@@ -1,22 +1,46 @@
 import { useCallback } from 'react';
 
-export type GetInitialsFn = (fullName: string) => string;
+export function formatUserDisplayName(
+    firstName: string,
+    lastName?: string | null,
+): string {
+    return [firstName, lastName].filter(Boolean).join(' ').trim();
+}
+
+export type GetInitialsFn = (
+    firstName: string,
+    lastName?: string | null,
+) => string;
+
+/**
+ * Initials from given name parts (first letter of first name + first letter of last name).
+ */
+export function getInitialsFromParts(
+    firstName: string,
+    lastName?: string | null,
+): string {
+    const first = firstName.trim();
+    const last = (lastName ?? '').trim();
+
+    if (first === '' && last === '') {
+        return '';
+    }
+
+    if (last === '') {
+        return first.charAt(0).toUpperCase();
+    }
+
+    if (first === '') {
+        return last.charAt(0).toUpperCase();
+    }
+
+    return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
+}
 
 export function useInitials(): GetInitialsFn {
-    return useCallback((fullName: string): string => {
-        const names = fullName.trim().split(' ');
-
-        if (names.length === 0) {
-            return '';
-        }
-
-        if (names.length === 1) {
-            return names[0].charAt(0).toUpperCase();
-        }
-
-        const firstInitial = names[0].charAt(0);
-        const lastInitial = names[names.length - 1].charAt(0);
-
-        return `${firstInitial}${lastInitial}`.toUpperCase();
-    }, []);
+    return useCallback(
+        (firstName: string, lastName?: string | null): string =>
+            getInitialsFromParts(firstName, lastName),
+        [],
+    );
 }
