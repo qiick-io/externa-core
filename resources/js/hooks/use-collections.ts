@@ -1,7 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
-import ContentCollectionController from '@/actions/App/Http/Controllers/Cms/ContentCollectionController';
-import type { CollectionRow } from '@/types/cms-collections';
+import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
+import type { CollectionRow } from '@/types/collections';
 
 export function slugify(value: string): string {
     const s = value

@@ -11,7 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { slugify, type UseCollectionsReturn } from '@/hooks/use-collections';
-import type { CollectionRow } from '@/types/cms-collections';
+import type { CollectionRow } from '@/types/collections';
 
 export type CollectionFormDrawerProps = {
     editing: CollectionRow | null;

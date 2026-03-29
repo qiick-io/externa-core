@@ -2,14 +2,14 @@
 
 namespace App\Http\Resources;
 
-use App\Models\Item;
-use App\Support\Cms\ItemDataAccessor;
-use App\Support\Cms\LocaleResolver;
+use App\Models\CollectionItem;
+use App\Support\Collections\ItemDataAccessor;
+use App\Support\Collections\LocaleResolver;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin Item
+ * @mixin CollectionItem
  */
 class ItemResource extends JsonResource
 {
@@ -18,7 +18,7 @@ class ItemResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        /** @var Item $item */
+        /** @var CollectionItem $item */
         $item = $this->resource;
         $item->loadMissing('collection.fields');
 

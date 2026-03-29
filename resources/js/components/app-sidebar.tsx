@@ -13,7 +13,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import cms from '@/routes/cms';
+import collections from '@/routes/collections';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
@@ -25,7 +25,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Collections',
-        href: cms.collections.index.url(),
+        href: collections.index.url(),
         icon: Database,
     },
 ];
