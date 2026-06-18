@@ -77,6 +77,10 @@ trait HasActivityLog
         if (static::usingSoftDeletes()) {
             // Listen to the "deleted" event and log activity
             static::deleted(function ($model) {
+                if (method_exists($model, 'isForceDeleting') && $model->isForceDeleting()) {
+                    return;
+                }
+
                 self::storeActivity(
                     ActivityLogActionEnum::DELETE->value,
                     null,
@@ -104,13 +108,11 @@ trait HasActivityLog
     /**
      * Store a new activity log entry associated with the given model.
      *
-     * @param string $action The action performed (create, update, delete, etc).
-     * @param mixed $payload Data snapshot or changed fields relevant to the action.
-     * @param int $model_id Identifier of the affected model instance.
-     * @param int|null $user_id Identifier of the user performing the action. Defaults to authenticated user or 1.
-     * @param \Carbon\Carbon|string|null $date Timestamp for the activity. Defaults to now.
-     *
-     * @return void
+     * @param  string  $action  The action performed (create, update, delete, etc).
+     * @param  mixed  $payload  Data snapshot or changed fields relevant to the action.
+     * @param  int  $model_id  Identifier of the affected model instance.
+     * @param  int|null  $user_id  Identifier of the user performing the action. Defaults to authenticated user or 1.
+     * @param  Carbon|string|null  $date  Timestamp for the activity. Defaults to now.
      */
     public static function storeActivity($action, $payload, $model_id, $user_id = null, $date = null): void
     {
@@ -126,13 +128,13 @@ trait HasActivityLog
 
         // Create the activity log record with relevant details
         ActivityLog::create([
-            'action'      => $action,
-            'method'      => Route::getCurrentRoute() ? Route::getCurrentRoute()->getActionName() : null,
-            'payload'     => $payload,
-            'user_id'     => $user_id,
+            'action' => $action,
+            'method' => Route::getCurrentRoute() ? Route::getCurrentRoute()->getActionName() : null,
+            'payload' => $payload,
+            'user_id' => $user_id,
             'entity_type' => static::class,
-            'entity_id'   => $model_id,
-            'date'        => $date,
+            'entity_id' => $model_id,
+            'date' => $date,
         ]);
     }
 
@@ -151,6 +153,7 @@ trait HasActivityLog
                 'Illuminate\Database\Eloquent\SoftDeletes',
                 class_uses_recursive(get_called_class())
             );
+
             return $usingSoftDeletes;
         }
 
@@ -159,8 +162,6 @@ trait HasActivityLog
 
     /**
      * Get all activity log records related to this model.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\MorphMany
      */
     public function activities(): MorphMany
     {
@@ -169,8 +170,6 @@ trait HasActivityLog
 
     /**
      * Relationship: Get the user associated with this entity via user_id.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function user(): BelongsTo
     {
@@ -179,8 +178,6 @@ trait HasActivityLog
 
     /**
      * Relationship: Get the user who created this entity.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function creator(): BelongsTo
     {
@@ -189,8 +186,6 @@ trait HasActivityLog
 
     /**
      * Relationship: Get the user who last updated this entity.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function updater(): BelongsTo
     {
@@ -199,8 +194,6 @@ trait HasActivityLog
 
     /**
      * Relationship: Get the user who deleted this entity (if soft deletes are enabled).
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function deleter(): BelongsTo
     {

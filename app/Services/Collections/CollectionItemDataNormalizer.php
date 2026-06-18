@@ -68,6 +68,10 @@ class CollectionItemDataNormalizer
                 FieldTypeEnum::RadioGroup,
                 FieldTypeEnum::Date,
                 FieldTypeEnum::Color => is_string($v) ? $v : null,
+                FieldTypeEnum::Image,
+                FieldTypeEnum::File => $this->normalizeFileId($v),
+                FieldTypeEnum::Relation => $this->normalizeRelationId($v),
+                FieldTypeEnum::RelationMany => $this->normalizeIntegerArray($v),
             };
         }
 
@@ -89,6 +93,10 @@ class CollectionItemDataNormalizer
             FieldTypeEnum::Boolean => $this->normalizeBoolean($value),
             FieldTypeEnum::Multiselect,
             FieldTypeEnum::Tag => $this->normalizeStringArray($value),
+            FieldTypeEnum::Image,
+            FieldTypeEnum::File => $this->normalizeFileId($value),
+            FieldTypeEnum::Relation => $this->normalizeRelationId($value),
+            FieldTypeEnum::RelationMany => $this->normalizeIntegerArray($value),
         };
     }
 
@@ -138,6 +146,49 @@ class CollectionItemDataNormalizer
         foreach ($value as $v) {
             if (is_string($v) && $v !== '') {
                 $out[] = $v;
+            }
+        }
+
+        return $out;
+    }
+
+    private function normalizeFileId(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            return (int) $value;
+        }
+
+        return null;
+    }
+
+    private function normalizeRelationId(mixed $value): ?int
+    {
+        if (is_array($value) && isset($value['related_item_id'])) {
+            return is_numeric($value['related_item_id'])
+                ? (int) $value['related_item_id']
+                : null;
+        }
+
+        return $this->normalizeFileId($value);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function normalizeIntegerArray(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($value as $entry) {
+            if (is_numeric($entry)) {
+                $out[] = (int) $entry;
             }
         }
 

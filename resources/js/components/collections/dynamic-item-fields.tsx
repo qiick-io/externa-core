@@ -1,9 +1,14 @@
 import { Fragment, useState, type ReactNode } from 'react';
 
+import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
+import { PaginatedMultiSelect } from '@/components/admin/paginated-multi-select';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { filePublicUrl } from '@/lib/files-api';
 import { cn } from '@/lib/utils';
+import type { AdminFileRow } from '@/types/files';
 
 const inputLike =
     'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
@@ -113,10 +118,133 @@ function TagCommaInput({
     );
 }
 
+function FileFieldInput({
+    name,
+    defaultFileId,
+    acceptImagesOnly = false,
+}: {
+    name: string;
+    defaultFileId: number | null;
+    acceptImagesOnly?: boolean;
+}) {
+    const [fileId, setFileId] = useState<number | null>(defaultFileId);
+    const [preview, setPreview] = useState<AdminFileRow | null>(null);
+    const [pickerOpen, setPickerOpen] = useState(false);
+
+    return (
+        <div className="space-y-2">
+            <input type="hidden" name={name} value={fileId ?? ''} />
+            {preview && (
+                <div className="flex items-center gap-3 rounded-lg border p-3">
+                    {filePublicUrl(preview) ? (
+                        <img
+                            src={filePublicUrl(preview)!}
+                            alt={preview.name}
+                            className="size-12 rounded object-cover"
+                        />
+                    ) : null}
+                    <span className="text-sm font-medium">{preview.name}</span>
+                </div>
+            )}
+            {!preview && fileId && (
+                <p className="text-muted-foreground text-sm">File #{fileId}</p>
+            )}
+            <div className="flex gap-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPickerOpen(true)}
+                >
+                    {fileId ? 'Change file' : 'Choose file'}
+                </Button>
+                {fileId !== null && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                            setFileId(null);
+                            setPreview(null);
+                        }}
+                    >
+                        Clear
+                    </Button>
+                )}
+            </div>
+            <FilePickerDrawer
+                open={pickerOpen}
+                onOpenChange={setPickerOpen}
+                acceptImagesOnly={acceptImagesOnly}
+                title={acceptImagesOnly ? 'Choose image' : 'Choose file'}
+                onSelect={(file) => {
+                    setFileId(file.id);
+                    setPreview(file);
+                }}
+            />
+        </div>
+    );
+}
+
+function RelationFieldInput({
+    collectionId,
+    field,
+    name,
+    defaultValue,
+    multiple = false,
+}: {
+    collectionId: number;
+    field: FieldDef;
+    name: string;
+    defaultValue: number | number[] | null;
+    multiple?: boolean;
+}) {
+    const fetchUrl = `/collections/${collectionId}/items/options?field_id=${field.id}`;
+    const initialIds = multiple
+        ? Array.isArray(defaultValue)
+            ? defaultValue
+            : []
+        : typeof defaultValue === 'number'
+          ? [defaultValue]
+          : [];
+
+    const [selectedIds, setSelectedIds] = useState<number[]>(initialIds);
+
+    return (
+        <div className="space-y-2">
+            {multiple ? (
+                selectedIds.map((selectedId) => (
+                    <input
+                        key={selectedId}
+                        type="hidden"
+                        name={`${name}[]`}
+                        value={selectedId}
+                    />
+                ))
+            ) : (
+                <input
+                    type="hidden"
+                    name={name}
+                    value={selectedIds[0] ?? ''}
+                />
+            )}
+            <PaginatedMultiSelect
+                fetchUrl={fetchUrl}
+                value={selectedIds}
+                onChange={(next) =>
+                    setSelectedIds(multiple ? next : next.slice(-1))
+                }
+                placeholder="Select related item…"
+            />
+        </div>
+    );
+}
+
 function renderScalarField(
     field: FieldDef,
     defaults: Record<string, unknown> | undefined,
     name: string,
+    collectionId: number,
 ) {
     const d = getDefaultScalar(defaults, field.name);
     const options = getSelectOptions(field.settings);
@@ -234,6 +362,46 @@ function renderScalarField(
                     defaultParts={Array.isArray(d) ? d.map(String) : []}
                 />
             );
+        case 'image':
+            return (
+                <FileFieldInput
+                    name={name}
+                    defaultFileId={
+                        typeof d === 'number' ? d : Number(d) || null
+                    }
+                    acceptImagesOnly
+                />
+            );
+        case 'file':
+            return (
+                <FileFieldInput
+                    name={name}
+                    defaultFileId={
+                        typeof d === 'number' ? d : Number(d) || null
+                    }
+                />
+            );
+        case 'relation':
+            return (
+                <RelationFieldInput
+                    collectionId={collectionId}
+                    field={field}
+                    name={name}
+                    defaultValue={
+                        typeof d === 'number' ? d : Number(d) || null
+                    }
+                />
+            );
+        case 'relation_many':
+            return (
+                <RelationFieldInput
+                    collectionId={collectionId}
+                    field={field}
+                    name={name}
+                    defaultValue={Array.isArray(d) ? d.map(Number) : []}
+                    multiple
+                />
+            );
         default:
             return (
                 <Input
@@ -251,6 +419,7 @@ function renderTranslatableField(
     defaults: Record<string, unknown> | undefined,
     name: (locale: string) => string,
     locale: string,
+    collectionId: number,
 ) {
     const d = getDefaultLocale(defaults, field.name, locale);
     const options = getSelectOptions(field.settings);
@@ -384,12 +553,14 @@ export function DynamicItemFields({
     fields,
     locales,
     defaults,
+    collectionId,
     variant = 'plain',
     fieldActions,
 }: {
     fields: FieldDef[];
     locales: string[];
     defaults?: Record<string, unknown>;
+    collectionId: number;
     variant?: 'plain' | 'cards';
     fieldActions?: (field: FieldDef) => ReactNode;
 }) {
@@ -417,6 +588,7 @@ export function DynamicItemFields({
                                         defaults,
                                         (loc) => `data[${field.name}][${loc}]`,
                                         locale,
+                                        collectionId,
                                     )}
                                 </div>
                             ))}
@@ -433,6 +605,7 @@ export function DynamicItemFields({
                             field,
                             defaults,
                             `data[${field.name}]`,
+                            collectionId,
                         )}
                     </div>
                 );

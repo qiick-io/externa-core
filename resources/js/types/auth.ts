@@ -12,7 +12,10 @@ export type User = {
 };
 
 export type Auth = {
-    user: User;
+    user: User | null;
+    permissions: string[];
+    roleNames: string[];
+    isSuperAdmin: boolean;
 };
 
 export type TwoFactorSetupData = {

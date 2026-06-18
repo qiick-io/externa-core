@@ -185,6 +185,7 @@ export default function ItemsForm({
                                         )}
                                         <DynamicItemFields
                                             variant="cards"
+                                            collectionId={collection.id}
                                             fields={collection.fields}
                                             locales={locales}
                                             defaults={contentDefaults}

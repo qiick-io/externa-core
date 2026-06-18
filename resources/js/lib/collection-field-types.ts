@@ -17,4 +17,12 @@ export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
     { value: 'date', label: 'Date' },
     { value: 'color', label: 'Color' },
     { value: 'tag', label: 'Tag' },
+    { value: 'image', label: 'Image', description: 'Single image from file manager' },
+    { value: 'file', label: 'File', description: 'Single file from file manager' },
+    { value: 'relation', label: 'Relation', description: 'Link to one item in another collection' },
+    {
+        value: 'relation_many',
+        label: 'Relation (many)',
+        description: 'Link to multiple items in another collection',
+    },
 ];

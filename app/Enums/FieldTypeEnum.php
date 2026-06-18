@@ -16,6 +16,10 @@ enum FieldTypeEnum: string
     case Date = 'date';
     case Color = 'color';
     case Tag = 'tag';
+    case Image = 'image';
+    case File = 'file';
+    case Relation = 'relation';
+    case RelationMany = 'relation_many';
 
     /**
      * @return list<string>
@@ -31,7 +35,7 @@ enum FieldTypeEnum: string
     public function isArrayStorage(): bool
     {
         return match ($this) {
-            self::Multiselect, self::Tag => true,
+            self::Multiselect, self::Tag, self::RelationMany => true,
             default => false,
         };
     }

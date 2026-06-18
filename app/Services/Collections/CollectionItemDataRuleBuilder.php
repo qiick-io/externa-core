@@ -6,6 +6,8 @@ use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 
 class CollectionItemDataRuleBuilder
 {
@@ -53,8 +55,10 @@ class CollectionItemDataRuleBuilder
             $prefix => array_merge([$required], $this->nonTranslatableRules($field)),
         ];
 
-        if (in_array($field->type, [FieldTypeEnum::Tag, FieldTypeEnum::Multiselect], true)) {
-            $rules[$prefix.'.*'] = ['string', 'max:1024'];
+        if (in_array($field->type, [FieldTypeEnum::Tag, FieldTypeEnum::Multiselect, FieldTypeEnum::RelationMany], true)) {
+            $rules[$prefix.'.*'] = $field->type === FieldTypeEnum::RelationMany
+                ? ['integer']
+                : ['string', 'max:1024'];
         }
 
         return $rules;
@@ -87,6 +91,17 @@ class CollectionItemDataRuleBuilder
             FieldTypeEnum::Color => [
                 $prefix => ['nullable', 'string', 'max:65535'],
             ],
+            FieldTypeEnum::Image,
+            FieldTypeEnum::File => [
+                $prefix => ['nullable', 'integer', Rule::exists('files', 'id')],
+            ],
+            FieldTypeEnum::Relation => [
+                $prefix => ['nullable', 'integer', $this->relatedItemExistsRule($field)],
+            ],
+            FieldTypeEnum::RelationMany => [
+                $prefix => ['nullable', 'array'],
+                $prefix.'.*' => ['integer', $this->relatedItemExistsRule($field)],
+            ],
         };
     }
 
@@ -108,7 +123,23 @@ class CollectionItemDataRuleBuilder
             FieldTypeEnum::Boolean => ['boolean'],
             FieldTypeEnum::Multiselect,
             FieldTypeEnum::Tag => ['array'],
+            FieldTypeEnum::Image,
+            FieldTypeEnum::File => ['nullable', 'integer', Rule::exists('files', 'id')],
+            FieldTypeEnum::Relation => ['nullable', 'integer', $this->relatedItemExistsRule($field)],
+            FieldTypeEnum::RelationMany => ['array'],
         };
+    }
+
+    /**
+     * @return Exists
+     */
+    private function relatedItemExistsRule(CollectionField $field): Rule
+    {
+        $relatedCollectionId = data_get($field->settings, 'related_collection_id');
+
+        return Rule::exists('collections_items', 'id')->where(
+            fn ($query) => $query->where('collection_id', (int) $relatedCollectionId)
+        );
     }
 
     /**

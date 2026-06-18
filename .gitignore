@@ -32,6 +32,9 @@ yarn-error.log
 .env.local
 .env.*.local
 
+# Graphify (generated knowledge graph — rebuild with `graphify update .`)
+/graphify-out/
+
 # AI / assistenti
 /.claude
 /.codex

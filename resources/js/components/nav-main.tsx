@@ -6,17 +6,29 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import type { NavItem } from '@/types';
 
-export function NavMain({ items = [] }: { items: NavItem[] }) {
+export type MainNavItem = NavItem & { permission?: string };
+
+export function NavMain({ items = [] }: { items?: MainNavItem[] }) {
     const { isCurrentUrl } = useCurrentUrl();
+    const { can } = useCan();
+
+    const visible = items.filter(
+        (item) => !item.permission || can(item.permission),
+    );
+
+    if (visible.length === 0) {
+        return null;
+    }
 
     return (
         <SidebarGroup className="px-2 py-0">
             <SidebarGroupLabel>Platform</SidebarGroupLabel>
             <SidebarMenu>
-                {items.map((item) => (
+                {visible.map((item) => (
                     <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
                             asChild

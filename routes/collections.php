@@ -20,6 +20,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('collections/{collection}/items/new', [ItemController::class, 'newItem'])
         ->name('collections.items.new');
 
+    Route::get('collections/{collection}/items/options', [ItemController::class, 'options'])
+        ->name('collections.items.options');
+
     Route::resource('collections.items', ItemController::class)->except(['create', 'edit']);
 
     Route::post('collections/{collection}/fields', [FieldController::class, 'store'])->name('collections.fields.store');

@@ -1,0 +1,41 @@
+<?php
+
+namespace App\Models;
+
+use App\Traits\HasActivityLog;
+use Database\Factories\UserGroupFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Permission\Models\Role;
+
+class UserGroup extends Model
+{
+    /** @use HasFactory<UserGroupFactory> */
+    use HasActivityLog, HasFactory, SoftDeletes;
+
+    /**
+     * @var list<string>
+     */
+    protected $fillable = [
+        'name',
+        'description',
+    ];
+
+    /**
+     * @return BelongsToMany<User, $this>
+     */
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_group_user')->withTimestamps();
+    }
+
+    /**
+     * @return BelongsToMany<Role, $this>
+     */
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, 'user_group_role')->withTimestamps();
+    }
+}

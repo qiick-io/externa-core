@@ -1,6 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
 import { Database, Pencil, Rows3 } from 'lucide-react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import {
+    AdminPageLayout,
+    AdminTablePanel,
+} from '@/components/admin/admin-page-layout';
 import { CollectionFormDrawer } from '@/components/collections/collection-form-drawer';
 import { Button } from '@/components/ui/button';
 import { Drawer } from '@/components/ui/drawer';
@@ -40,14 +44,10 @@ export default function CollectionsIndex({
                 open={open}
                 onOpenChange={handleDrawerOpenChange}
             >
-                <div className="flex flex-col gap-6 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex items-center gap-2">
-                            <Database className="size-5" />
-                            <h1 className="text-xl font-semibold tracking-tight">
-                                Collections
-                            </h1>
-                        </div>
+                <AdminPageLayout
+                    title="Collections"
+                    icon={Database}
+                    actions={
                         <Button
                             type="button"
                             onClick={() => {
@@ -57,9 +57,9 @@ export default function CollectionsIndex({
                         >
                             New collection
                         </Button>
-                    </div>
-
-                    <div className="rounded-xl border border-sidebar-border/70 bg-card p-1 dark:border-sidebar-border">
+                    }
+                >
+                    <AdminTablePanel>
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-sidebar-border/70 text-left">
@@ -157,8 +157,8 @@ export default function CollectionsIndex({
                                 )}
                             </tbody>
                         </table>
-                    </div>
-                </div>
+                    </AdminTablePanel>
+                </AdminPageLayout>
 
                 <CollectionFormDrawer
                     editing={editing}

@@ -151,6 +151,7 @@ export default function CollectionsShow({
                                         )}
                                         <DynamicItemFields
                                             variant="cards"
+                                            collectionId={collection.id}
                                             fields={collection.fields}
                                             locales={locales}
                                             defaults={contentDefaults}

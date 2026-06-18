@@ -7,11 +7,14 @@ use App\Http\Requests\Collections\StoreItemRequest;
 use App\Http\Requests\Collections\UpdateItemRequest;
 use App\Http\Resources\ItemResource;
 use App\Models\Collection;
+use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Services\Collections\CollectionItemDataNormalizer;
+use App\Services\Collections\CollectionItemOptionsService;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,6 +27,7 @@ class ItemController extends Controller
         private CollectionItemDataNormalizer $itemDataNormalizer,
         private CollectionItemValuesWriter $collectionItemValuesWriter,
         private CollectionItemValuesAssembler $collectionItemValuesAssembler,
+        private CollectionItemOptionsService $collectionItemOptionsService,
     ) {}
 
     public function index(Request $request, Collection $collection): Response|RedirectResponse
@@ -161,6 +165,29 @@ class ItemController extends Controller
 
         return redirect()->route('collections.items.index', $collection)
             ->with('success', __('Item deleted.'));
+    }
+
+    public function options(Request $request, Collection $collection): JsonResponse
+    {
+        $validated = $request->validate([
+            'field_id' => ['required', 'integer'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $field = CollectionField::query()
+            ->where('collection_id', $collection->id)
+            ->where('id', $validated['field_id'])
+            ->firstOrFail();
+
+        $paginator = $this->collectionItemOptionsService->paginateForField(
+            $field,
+            $validated['search'] ?? null,
+            $validated['per_page'] ?? 20,
+        );
+
+        return response()->json($paginator);
     }
 
     private function assertItemBelongsToCollection(Collection $collection, CollectionItem $item): void

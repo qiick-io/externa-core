@@ -1,8 +1,14 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { List, Rows3 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import {
+    AdminPageLayout,
+    AdminPagination,
+    AdminTablePanel,
+} from '@/components/admin/admin-page-layout';
+import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
     Table,
     TableBody,
@@ -59,24 +65,44 @@ export default function ItemsIndex({
         [collection.id, collection.name],
     );
 
-    const applyFilter = (): void => {
-        router.get(collections.items.index.url(collection.id), {
-            filter: { ...(filters as Record<string, string>), title: filterTitle },
-        });
-    };
+    const visit = useCallback(
+        (title?: string) => {
+            router.get(
+                collections.items.index.url(collection.id),
+                {
+                    filter: {
+                        ...(filters as Record<string, string>),
+                        title: title || undefined,
+                    },
+                },
+                { preserveState: true, preserveScroll: true },
+            );
+        },
+        [collection.id, filters],
+    );
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            visit(filterTitle || undefined);
+        }, 350);
+
+        return () => clearTimeout(timer);
+    }, [filterTitle]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Items — ${collection.name}`} />
 
-            <div className="flex flex-col gap-6 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                    <h1 className="text-xl font-semibold tracking-tight">Items</h1>
-                    <div className="flex flex-wrap gap-2">
+            <AdminPageLayout
+                title="Items"
+                icon={List}
+                actions={
+                    <>
                         <Button variant="outline" asChild>
                             <Link
                                 href={FieldController.index.url(collection.id)}
                             >
+                                <Rows3 className="mr-1 size-4" />
                                 Edit fields
                             </Link>
                         </Button>
@@ -87,27 +113,22 @@ export default function ItemsIndex({
                                 New item
                             </Link>
                         </Button>
-                    </div>
-                </div>
-
-                <div className="flex max-w-md flex-wrap items-end gap-2">
-                    <div className="grid flex-1 gap-2">
-                        <label className="text-sm font-medium" htmlFor="filter_title">
-                            Filter by title (if schema has title)
-                        </label>
-                        <Input
-                            id="filter_title"
-                            value={filterTitle}
-                            onChange={(e) => setFilterTitle(e.target.value)}
-                            placeholder="Search…"
-                        />
-                    </div>
-                    <Button type="button" onClick={applyFilter}>
-                        Apply
-                    </Button>
-                </div>
-
-                <div className="rounded-xl border border-sidebar-border/70 bg-card p-1 dark:border-sidebar-border">
+                    </>
+                }
+                filtersLeft={
+                    <DataTableToolbar
+                        search={filterTitle}
+                        onSearchChange={setFilterTitle}
+                        searchPlaceholder="Filter by title…"
+                    />
+                }
+                footer={
+                    items.last_page > 1 ? (
+                        <AdminPagination links={items.links} />
+                    ) : undefined
+                }
+            >
+                <AdminTablePanel>
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -119,7 +140,10 @@ export default function ItemsIndex({
                         <TableBody>
                             {items.data.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={3} className="text-muted-foreground">
+                                    <TableCell
+                                        colSpan={3}
+                                        className="text-muted-foreground"
+                                    >
                                         No items yet.
                                     </TableCell>
                                 </TableRow>
@@ -133,10 +157,13 @@ export default function ItemsIndex({
                                         <TableCell className="text-right">
                                             <Button variant="link" asChild>
                                                 <Link
-                                                    href={collections.items.show.url({
-                                                        collection: collection.id,
-                                                        item: row.id,
-                                                    })}
+                                                    href={collections.items.show.url(
+                                                        {
+                                                            collection:
+                                                                collection.id,
+                                                            item: row.id,
+                                                        },
+                                                    )}
                                                 >
                                                     Edit
                                                 </Link>
@@ -147,23 +174,8 @@ export default function ItemsIndex({
                             )}
                         </TableBody>
                     </Table>
-                </div>
-
-                {items.last_page > 1 && (
-                    <div className="text-muted-foreground flex flex-wrap gap-2 text-sm">
-                        {items.links.map((link, i) => (
-                            <button
-                                key={i}
-                                type="button"
-                                className={link.active ? 'font-semibold underline' : ''}
-                                disabled={!link.url}
-                                onClick={() => link.url && router.visit(link.url)}
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                            />
-                        ))}
-                    </div>
-                )}
-            </div>
+                </AdminTablePanel>
+            </AdminPageLayout>
         </AppLayout>
     );
 }

@@ -2,19 +2,20 @@
 
 namespace Database\Seeders;
 
+use App\Enums\RoleEnum;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class CreateSuperAdminSeeder extends Seeder
 {
     /**
-     * Create or update the initial application user (no roles/spatie).
+     * Create or update the initial application user with the super-admin role.
      *
      * Credentials come from config/super_admin.php (env-prefixed keys).
      */
     public function run(): void
     {
-        User::query()->updateOrCreate(
+        $user = User::query()->updateOrCreate(
             ['email' => config('super_admin.email')],
             [
                 'first_name' => config('super_admin.first_name'),
@@ -24,5 +25,7 @@ class CreateSuperAdminSeeder extends Seeder
                 'is_active' => true,
             ],
         );
+
+        $user->syncRoles([RoleEnum::SuperAdmin->value]);
     }
 }

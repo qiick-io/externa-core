@@ -1,0 +1,25 @@
+# Dependencies & generated artifacts
+vendor/
+node_modules/
+public/build/
+public/hot/
+bootstrap/ssr/
+
+# Laravel / tooling caches
+storage/
+.phpunit.cache/
+.phpunit.result.cache
+coverage/
+
+# Wayfinder generated TS (regenerated on build)
+resources/js/actions/
+resources/js/routes/
+resources/js/wayfinder/
+
+# Graphify output (never index self)
+graphify-out/
+
+# Local / IDE
+.env
+.env.*
+.DS_Store
