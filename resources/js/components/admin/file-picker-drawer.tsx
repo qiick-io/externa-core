@@ -4,6 +4,7 @@ import { FileDropzone } from '@/components/admin/file-dropzone';
 import { Button } from '@/components/ui/button';
 import {
     Drawer,
+    DrawerBody,
     DrawerClose,
     DrawerContent,
     DrawerDescription,
@@ -157,7 +158,7 @@ export function FilePickerDrawer({
                     </DrawerDescription>
                 </DrawerHeader>
 
-                <div className="flex-1 space-y-4 overflow-y-auto p-4">
+                <DrawerBody className="space-y-4">
                     <Input
                         placeholder="Search files…"
                         value={search}
@@ -244,7 +245,7 @@ export function FilePickerDrawer({
                             );
                         })}
                     </div>
-                </div>
+                </DrawerBody>
 
                 <DrawerFooter>
                     <DrawerClose asChild>

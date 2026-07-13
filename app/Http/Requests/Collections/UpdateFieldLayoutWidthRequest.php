@@ -3,8 +3,9 @@
 namespace App\Http\Requests\Collections;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class ReorderFieldsRequest extends FormRequest
+class UpdateFieldLayoutWidthRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,10 +18,7 @@ class ReorderFieldsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ids' => ['required', 'array', 'min:1'],
-            'ids.*' => ['integer', 'distinct'],
-            'starts_new_row_ids' => ['sometimes', 'array'],
-            'starts_new_row_ids.*' => ['integer', 'distinct'],
+            'layout_width' => ['required', Rule::in(['half', 'full', 'fill'])],
         ];
     }
 }

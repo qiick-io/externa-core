@@ -9,6 +9,7 @@ use App\Http\Requests\Collections\UpsertSingletonItemRequest;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Services\Collections\CollectionItemDataNormalizer;
+use App\Services\Collections\CollectionItemOptionsService;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
 use Illuminate\Http\RedirectResponse;
@@ -22,6 +23,7 @@ class ContentCollectionController extends Controller
         private CollectionItemDataNormalizer $itemDataNormalizer,
         private CollectionItemValuesWriter $collectionItemValuesWriter,
         private CollectionItemValuesAssembler $collectionItemValuesAssembler,
+        private CollectionItemOptionsService $collectionItemOptionsService,
     ) {}
 
     public function index(): Response
@@ -64,6 +66,7 @@ class ContentCollectionController extends Controller
         return Inertia::render('collections/collections/show', [
             'collection' => $collection,
             'singletonRawData' => $singletonRawData,
+            'relatedCollections' => $this->collectionItemOptionsService->collectionsForSelect(),
         ]);
     }
 
@@ -71,7 +74,7 @@ class ContentCollectionController extends Controller
     {
         $collection->update($request->validated());
 
-        return redirect()->route('collections.show', $collection)
+        return back()
             ->with('success', __('Collection updated.'));
     }
 
@@ -95,7 +98,7 @@ class ContentCollectionController extends Controller
         $item = $collection->items()->first();
 
         if (! $item instanceof CollectionItem) {
-            $normalized = $this->itemDataNormalizer->normalize($collection, $incoming);
+            $normalized = $this->itemDataNormalizer->normalize($collection, $incoming, true);
             $created = $collection->items()->create([]);
             $this->collectionItemValuesWriter->sync($created, $collection, $normalized);
 
@@ -104,6 +107,13 @@ class ContentCollectionController extends Controller
         }
 
         $data = $this->collectionItemValuesAssembler->assemble($item);
+        $collection->loadMissing('fields');
+        foreach ($collection->fields as $field) {
+            if ($field->isReadonly()) {
+                unset($incoming[$field->name]);
+            }
+        }
+
         foreach ($incoming as $key => $value) {
             if (is_array($value) && isset($data[$key]) && is_array($data[$key])) {
                 $data[$key] = array_merge($data[$key], $value);
@@ -112,7 +122,7 @@ class ContentCollectionController extends Controller
             }
         }
 
-        $normalized = $this->itemDataNormalizer->normalize($collection, $data);
+        $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
 
         $this->collectionItemValuesWriter->sync($item->fresh(), $collection, $normalized);
 

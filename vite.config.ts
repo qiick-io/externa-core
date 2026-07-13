@@ -35,7 +35,7 @@ export default defineConfig({
         tailwindcss(),
         wayfinder({
             formVariants: true,
-            command: `"${resolvePhpBinary()}" artisan wayfinder:generate`,
+            command: `"${resolvePhpBinary()}" artisan wayfinder:generate --with-form`,
         }),
     ],
 });

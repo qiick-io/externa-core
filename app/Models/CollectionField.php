@@ -68,6 +68,97 @@ class CollectionField extends Model implements Sortable
         return static::query()->where('collection_id', $this->collection_id);
     }
 
+    public function isHiddenInForm(): bool
+    {
+        return self::settingsFlagIsEnabled(data_get($this->settings, 'hidden_in_form', false));
+    }
+
+    public function isReadonly(): bool
+    {
+        return self::settingsFlagIsEnabled(data_get($this->settings, 'readonly', false));
+    }
+
+    public function isRequired(): bool
+    {
+        return self::settingsFlagIsEnabled(data_get($this->settings, 'required', false));
+    }
+
+    public function displayName(?string $locale = null): string
+    {
+        $locale ??= app()->getLocale();
+        $displayName = data_get($this->settings, 'display_name', []);
+
+        if (is_array($displayName) && is_string($displayName[$locale] ?? null) && trim($displayName[$locale]) !== '') {
+            return trim($displayName[$locale]);
+        }
+
+        foreach (config('collections.fallback_locales', ['en', 'it']) as $fallbackLocale) {
+            if (
+                is_string($fallbackLocale)
+                && is_array($displayName)
+                && is_string($displayName[$fallbackLocale] ?? null)
+                && trim($displayName[$fallbackLocale]) !== ''
+            ) {
+                return trim($displayName[$fallbackLocale]);
+            }
+        }
+
+        return $this->name;
+    }
+
+    public function note(?string $locale = null): ?string
+    {
+        $locale ??= app()->getLocale();
+        $note = data_get($this->settings, 'note', []);
+
+        if (is_array($note) && is_string($note[$locale] ?? null) && trim($note[$locale]) !== '') {
+            return trim($note[$locale]);
+        }
+
+        foreach (config('collections.fallback_locales', ['en', 'it']) as $fallbackLocale) {
+            if (
+                is_string($fallbackLocale)
+                && is_array($note)
+                && is_string($note[$fallbackLocale] ?? null)
+                && trim($note[$fallbackLocale]) !== ''
+            ) {
+                return trim($note[$fallbackLocale]);
+            }
+        }
+
+        return null;
+    }
+
+    public function defaultValue(): mixed
+    {
+        return data_get($this->settings, 'default_value');
+    }
+
+    public function layoutWidth(): string
+    {
+        $width = data_get($this->settings, 'layout_width', 'full');
+
+        return in_array($width, ['half', 'full', 'fill'], true) ? $width : 'full';
+    }
+
+    public static function settingsFlagIsEnabled(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        return in_array($value, [1, '1', 'true', 'on'], true);
+    }
+
+    public function usesArrayStorage(): bool
+    {
+        if ($this->type === FieldTypeEnum::Image) {
+            return self::settingsFlagIsEnabled(data_get($this->settings, 'allow_multiple', false));
+        }
+
+        return $this->type->isArrayStorage();
+    }
+
     /**
      * @return array<string, string>
      */

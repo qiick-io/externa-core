@@ -7,6 +7,12 @@ function Drawer({ ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>)
     return <DrawerPrimitive.Root data-slot="drawer" {...props} />;
 }
 
+function DrawerNested({
+    ...props
+}: React.ComponentProps<typeof DrawerPrimitive.NestedRoot>) {
+    return <DrawerPrimitive.NestedRoot data-slot="drawer-nested" {...props} />;
+}
+
 function DrawerTrigger({ ...props }: React.ComponentProps<typeof DrawerPrimitive.Trigger>) {
     return <DrawerPrimitive.Trigger data-slot="drawer-trigger" {...props} />;
 }
@@ -46,7 +52,7 @@ function DrawerContent({
             <DrawerPrimitive.Content
                 data-slot="drawer-content"
                 className={cn(
-                    'bg-background fixed z-50 flex h-full flex-col border shadow-lg',
+                    'bg-background fixed z-50 flex h-full max-h-dvh min-h-0 flex-col overflow-hidden border shadow-lg',
                     'data-[vaul-drawer-direction=right]:inset-y-0 data-[vaul-drawer-direction=right]:right-0 data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:max-w-md data-[vaul-drawer-direction=right]:rounded-l-xl data-[vaul-drawer-direction=right]:border-l',
                     className,
                 )}
@@ -62,7 +68,23 @@ function DrawerHeader({ className, ...props }: React.ComponentProps<'div'>) {
     return (
         <div
             data-slot="drawer-header"
-            className={cn('flex flex-col gap-1 border-b p-4', className)}
+            className={cn(
+                'bg-background flex shrink-0 flex-col gap-2 border-b px-6 pt-6 pb-5',
+                className,
+            )}
+            {...props}
+        />
+    );
+}
+
+function DrawerBody({ className, ...props }: React.ComponentProps<'div'>) {
+    return (
+        <div
+            data-slot="drawer-body"
+            className={cn(
+                'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-6 pt-6 pb-6',
+                className,
+            )}
             {...props}
         />
     );
@@ -72,7 +94,10 @@ function DrawerFooter({ className, ...props }: React.ComponentProps<'div'>) {
     return (
         <div
             data-slot="drawer-footer"
-            className={cn('mt-auto flex flex-col gap-2 border-t p-4', className)}
+            className={cn(
+                'bg-background mt-auto flex shrink-0 flex-col gap-2 border-t px-6 py-4',
+                className,
+            )}
             {...props}
         />
     );
@@ -85,7 +110,7 @@ function DrawerTitle({
     return (
         <DrawerPrimitive.Title
             data-slot="drawer-title"
-            className={cn('text-lg leading-none font-semibold tracking-tight', className)}
+            className={cn('text-lg leading-snug font-semibold tracking-tight', className)}
             {...props}
         />
     );
@@ -98,7 +123,7 @@ function DrawerDescription({
     return (
         <DrawerPrimitive.Description
             data-slot="drawer-description"
-            className={cn('text-muted-foreground text-sm', className)}
+            className={cn('text-muted-foreground mt-1.5 text-sm', className)}
             {...props}
         />
     );
@@ -106,11 +131,13 @@ function DrawerDescription({
 
 export {
     Drawer,
+    DrawerBody,
     DrawerClose,
     DrawerContent,
     DrawerDescription,
     DrawerFooter,
     DrawerHeader,
+    DrawerNested,
     DrawerOverlay,
     DrawerPortal,
     DrawerTitle,

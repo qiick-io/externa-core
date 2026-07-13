@@ -1,6 +1,7 @@
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
+    DrawerBody,
     DrawerClose,
     DrawerContent,
     DrawerDescription,
@@ -31,23 +32,24 @@ export function CollectionFormDrawer({
     submit,
 }: CollectionFormDrawerProps) {
     return (
-        <DrawerContent className="max-h-screen">
+        <DrawerContent>
             <DrawerHeader>
                 <DrawerTitle>{title}</DrawerTitle>
                 <DrawerDescription>
                     {editing
-                        ? 'Update name, slug, and whether this collection holds a single content item.'
+                        ? 'Update the collection name and slug. The singleton setting cannot be changed after creation.'
                         : 'Create a collection. Slug is generated from the name unless you edit it.'}
                 </DrawerDescription>
             </DrawerHeader>
 
             <form
-                className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4"
+                className="flex min-h-0 flex-1 flex-col overflow-hidden"
                 onSubmit={(e) => {
                     e.preventDefault();
                     submit();
                 }}
             >
+                <DrawerBody className="flex flex-col gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="collection_drawer_name">Name</Label>
                     <Input
@@ -78,22 +80,41 @@ export function CollectionFormDrawer({
                     />
                     <InputError message={form.errors.slug} />
                 </div>
-                <div className="flex items-center gap-2">
-                    <input
-                        id="collection_drawer_singleton"
-                        type="checkbox"
-                        className="size-4 rounded border"
-                        checked={form.data.is_singleton}
-                        onChange={(e) =>
-                            form.setData('is_singleton', e.target.checked)
-                        }
-                    />
-                    <Label htmlFor="collection_drawer_singleton">
-                        Singleton (one content item)
-                    </Label>
+                <div className="grid gap-2">
+                    <div className="flex items-center gap-2">
+                        <input
+                            id="collection_drawer_singleton"
+                            type="checkbox"
+                            className="size-4 rounded border disabled:cursor-not-allowed disabled:opacity-60"
+                            checked={form.data.is_singleton}
+                            disabled={editing !== null}
+                            onChange={(e) =>
+                                form.setData('is_singleton', e.target.checked)
+                            }
+                        />
+                        <Label
+                            htmlFor="collection_drawer_singleton"
+                            className={
+                                editing !== null
+                                    ? 'text-muted-foreground'
+                                    : undefined
+                            }
+                        >
+                            Singleton (one content item)
+                        </Label>
+                    </div>
+                    {!editing && (
+                        <p className="text-sm text-muted-foreground">
+                            Use this for collections with a single fixed entry
+                            (e.g. homepage or site settings). This choice
+                            cannot be changed after the collection is created.
+                        </p>
+                    )}
+                    <InputError message={form.errors.is_singleton} />
                 </div>
+                </DrawerBody>
 
-                <DrawerFooter className="flex flex-row justify-end gap-2 px-0">
+                <DrawerFooter className="flex flex-row justify-end gap-2">
                     <DrawerClose asChild>
                         <Button type="button" variant="outline">
                             Cancel

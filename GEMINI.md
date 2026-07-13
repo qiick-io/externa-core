@@ -137,7 +137,7 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 ## Enums
 
-- Typically, keys in an Enum should be TitleCase. For example: `FavoritePerson`, `BestLake`, `Monthly`.
+- That being said, keys in an Enum should follow existing application Enum conventions.
 
 ## Comments
 

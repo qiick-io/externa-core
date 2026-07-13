@@ -5,6 +5,7 @@ namespace App\Services\Collections;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
+use Illuminate\Support\Str;
 
 class CollectionItemDataNormalizer
 {
@@ -12,7 +13,7 @@ class CollectionItemDataNormalizer
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    public function normalize(Collection $collection, array $data): array
+    public function normalize(Collection $collection, array $data, bool $creating = false): array
     {
         $collection->loadMissing('fields');
 
@@ -20,6 +21,15 @@ class CollectionItemDataNormalizer
 
         foreach ($collection->fields as $field) {
             if (! array_key_exists($field->name, $data)) {
+                if ($creating) {
+                    $defaultValue = $field->defaultValue();
+                    if ($defaultValue !== null && $defaultValue !== '') {
+                        $out[$field->name] = $field->translatable
+                            ? $this->defaultTranslatableValue($field, $defaultValue)
+                            : $this->normalizeFieldValue($field, $defaultValue);
+                    }
+                }
+
                 continue;
             }
 
@@ -30,6 +40,19 @@ class CollectionItemDataNormalizer
             } else {
                 $out[$field->name] = $this->normalizeScalar($field, $value);
             }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function defaultTranslatableValue(CollectionField $field, mixed $defaultValue): array
+    {
+        $out = [];
+        foreach ($this->allowedLocales() as $locale) {
+            $out[$locale] = $this->normalizeFieldValue($field, $defaultValue);
         }
 
         return $out;
@@ -55,24 +78,7 @@ class CollectionItemDataNormalizer
 
             $v = $value[$locale];
 
-            $out[$locale] = match ($field->type) {
-                FieldTypeEnum::Tag,
-                FieldTypeEnum::Multiselect => $this->normalizeStringArray($v),
-                FieldTypeEnum::Number => is_numeric($v) ? 0 + $v : null,
-                FieldTypeEnum::Boolean => $this->normalizeBoolean($v),
-                FieldTypeEnum::String,
-                FieldTypeEnum::Textarea,
-                FieldTypeEnum::Markdown,
-                FieldTypeEnum::Code,
-                FieldTypeEnum::Select,
-                FieldTypeEnum::RadioGroup,
-                FieldTypeEnum::Date,
-                FieldTypeEnum::Color => is_string($v) ? $v : null,
-                FieldTypeEnum::Image,
-                FieldTypeEnum::File => $this->normalizeFileId($v),
-                FieldTypeEnum::Relation => $this->normalizeRelationId($v),
-                FieldTypeEnum::RelationMany => $this->normalizeIntegerArray($v),
-            };
+            $out[$locale] = $this->normalizeFieldValue($field, $v);
         }
 
         return $out;
@@ -80,23 +86,44 @@ class CollectionItemDataNormalizer
 
     private function normalizeScalar(CollectionField $field, mixed $value): mixed
     {
+        return $this->normalizeFieldValue($field, $value);
+    }
+
+    private function normalizeFieldValue(CollectionField $field, mixed $value): mixed
+    {
         return match ($field->type) {
             FieldTypeEnum::String,
+            FieldTypeEnum::Autocomplete,
+            FieldTypeEnum::ApiAutocomplete,
             FieldTypeEnum::Textarea,
+            FieldTypeEnum::Wysiwyg,
             FieldTypeEnum::Markdown,
             FieldTypeEnum::Code,
             FieldTypeEnum::Select,
             FieldTypeEnum::RadioGroup,
             FieldTypeEnum::Date,
-            FieldTypeEnum::Color => is_string($value) ? $value : null,
+            FieldTypeEnum::Color => $this->normalizeStringValue($field, is_string($value) ? $value : null),
+            FieldTypeEnum::Hash => $this->normalizeHash($value),
             FieldTypeEnum::Number => is_numeric($value) ? 0 + $value : null,
+            FieldTypeEnum::Slider => is_numeric($value) ? 0 + $value : null,
             FieldTypeEnum::Boolean => $this->normalizeBoolean($value),
             FieldTypeEnum::Multiselect,
-            FieldTypeEnum::Tag => $this->normalizeStringArray($value),
-            FieldTypeEnum::Image,
+            FieldTypeEnum::CheckboxGroup,
+            FieldTypeEnum::CheckboxGroupTree,
+            FieldTypeEnum::Tag => $this->normalizeSelectionArray($field, $value),
+            FieldTypeEnum::Map => $this->normalizeMapCoordinates($value),
+            FieldTypeEnum::Image => $field->usesArrayStorage()
+                ? $this->normalizeIntegerArray($value)
+                : $this->normalizeFileId($value),
             FieldTypeEnum::File => $this->normalizeFileId($value),
-            FieldTypeEnum::Relation => $this->normalizeRelationId($value),
-            FieldTypeEnum::RelationMany => $this->normalizeIntegerArray($value),
+            FieldTypeEnum::Files => $this->normalizeIntegerArray($value),
+            FieldTypeEnum::M2a => $this->normalizeM2aBlocks($value),
+            FieldTypeEnum::Relation,
+            FieldTypeEnum::ManyToOne,
+            FieldTypeEnum::RelationTree => $this->normalizeRelationId($value),
+            FieldTypeEnum::RelationMany,
+            FieldTypeEnum::OneToMany,
+            FieldTypeEnum::ManyToMany => $this->normalizeIntegerArray($value),
         };
     }
 
@@ -134,6 +161,138 @@ class CollectionItemDataNormalizer
     }
 
     /**
+     * @return array{lat: float|null, lng: float|null}|null
+     */
+    private function normalizeMapCoordinates(mixed $value): ?array
+    {
+        if (! is_array($value)) {
+            return null;
+        }
+
+        $lat = $value['lat'] ?? null;
+        $lng = $value['lng'] ?? null;
+
+        if ($lat === null || $lat === '' || $lng === null || $lng === '') {
+            return null;
+        }
+
+        if (! is_numeric($lat) || ! is_numeric($lng)) {
+            return null;
+        }
+
+        return [
+            'lat' => (float) $lat,
+            'lng' => (float) $lng,
+        ];
+    }
+
+    private function normalizeStringValue(CollectionField $field, ?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (CollectionField::settingsFlagIsEnabled(data_get($field->settings, 'trim', false))) {
+            $value = trim($value);
+        }
+
+        if (CollectionField::settingsFlagIsEnabled(data_get($field->settings, 'slugify', false))) {
+            $value = Str::slug($value);
+        }
+
+        return $value === '' ? null : $value;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeSelectionArray(CollectionField $field, mixed $value): array
+    {
+        if ($field->type === FieldTypeEnum::Tag) {
+            return $this->normalizeTagArray($field, $value);
+        }
+
+        $selected = $this->normalizeStringArray($value);
+
+        if ($field->type === FieldTypeEnum::CheckboxGroupTree) {
+            return $this->normalizeCheckboxGroupTree($field, $selected);
+        }
+
+        return $selected;
+    }
+
+    /**
+     * @param  list<string>  $selected
+     * @return list<string>
+     */
+    private function normalizeCheckboxGroupTree(CollectionField $field, array $selected): array
+    {
+        if (data_get($field->settings, 'value_combining') !== 'leaf') {
+            return $selected;
+        }
+
+        $leafValues = $this->collectTreeLeafValues(data_get($field->settings, 'options', []));
+
+        if ($leafValues === []) {
+            return $selected;
+        }
+
+        return array_values(array_intersect($selected, $leafValues));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function collectTreeLeafValues(mixed $options): array
+    {
+        if (! is_array($options)) {
+            return [];
+        }
+
+        $leafValues = [];
+
+        foreach ($options as $option) {
+            if (! is_array($option)) {
+                continue;
+            }
+
+            $value = isset($option['value']) ? (string) $option['value'] : '';
+            $children = $option['children'] ?? [];
+            $childRows = is_array($children) ? $children : [];
+
+            if ($childRows !== []) {
+                array_push($leafValues, ...$this->collectTreeLeafValues($childRows));
+
+                continue;
+            }
+
+            if ($value !== '') {
+                $leafValues[] = $value;
+            }
+        }
+
+        return $leafValues;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeTagArray(CollectionField $field, mixed $value): array
+    {
+        $tags = $this->normalizeStringArray($value);
+
+        if (CollectionField::settingsFlagIsEnabled(data_get($field->settings, 'lowercase', false))) {
+            $tags = array_map(static fn (string $tag): string => strtolower($tag), $tags);
+        }
+
+        if (CollectionField::settingsFlagIsEnabled(data_get($field->settings, 'alphabetize', false))) {
+            sort($tags);
+        }
+
+        return $tags;
+    }
+
+    /**
      * @return list<string>
      */
     private function normalizeStringArray(mixed $value): array
@@ -147,6 +306,38 @@ class CollectionItemDataNormalizer
             if (is_string($v) && $v !== '') {
                 $out[] = $v;
             }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<array{related_collection_id: int, related_item_id: int}>
+     */
+    private function normalizeM2aBlocks(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach ($value as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $relatedCollectionId = $entry['related_collection_id'] ?? null;
+            $relatedItemId = $entry['related_item_id'] ?? null;
+
+            if (! is_numeric($relatedCollectionId) || ! is_numeric($relatedItemId)) {
+                continue;
+            }
+
+            $out[] = [
+                'related_collection_id' => (int) $relatedCollectionId,
+                'related_item_id' => (int) $relatedItemId,
+            ];
         }
 
         return $out;
@@ -193,6 +384,15 @@ class CollectionItemDataNormalizer
         }
 
         return $out;
+    }
+
+    private function normalizeHash(mixed $value): string
+    {
+        if (is_string($value) && trim($value) !== '') {
+            return trim($value);
+        }
+
+        return hash('sha256', (string) Str::uuid());
     }
 
     /**

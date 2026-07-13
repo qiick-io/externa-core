@@ -8,6 +8,11 @@ import {
     AdminTablePanel,
 } from '@/components/admin/admin-page-layout';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
+import {
+    CollectionEditButton,
+    CollectionEditDrawer,
+    useCollectionEditDrawer,
+} from '@/components/collections/collection-edit-drawer';
 import { Button } from '@/components/ui/button';
 import {
     Table,
@@ -25,6 +30,8 @@ type Collection = {
     id: number;
     name: string;
     slug: string;
+    is_singleton: boolean;
+    sort_order: number;
 };
 
 type ItemRow = {
@@ -89,6 +96,8 @@ export default function ItemsIndex({
         return () => clearTimeout(timer);
     }, [filterTitle]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    const collectionForm = useCollectionEditDrawer();
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Items — ${collection.name}`} />
@@ -98,6 +107,10 @@ export default function ItemsIndex({
                 icon={List}
                 actions={
                     <>
+                        <CollectionEditButton
+                            collectionForm={collectionForm}
+                            collection={collection}
+                        />
                         <Button variant="outline" asChild>
                             <Link
                                 href={FieldController.index.url(collection.id)}
@@ -176,6 +189,8 @@ export default function ItemsIndex({
                     </Table>
                 </AdminTablePanel>
             </AdminPageLayout>
+
+            <CollectionEditDrawer collectionForm={collectionForm} />
         </AppLayout>
     );
 }

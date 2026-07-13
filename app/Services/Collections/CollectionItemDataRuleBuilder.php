@@ -8,22 +8,31 @@ use App\Models\CollectionField;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
+use Illuminate\Validation\Rules\In;
 
 class CollectionItemDataRuleBuilder
 {
+    public function __construct(
+        private FieldValidationRuleEvaluator $validationRuleEvaluator,
+    ) {}
+
     /**
      * @return array<string, mixed>
      */
-    public function rules(Collection $collection, bool $creating): array
+    public function rules(Collection $collection, bool $creating, ?int $excludeItemId = null): array
     {
         $collection->loadMissing('fields');
 
         $rules = [
-            'data' => $creating ? ['required', 'array'] : ['sometimes', 'array'],
+            'data' => $creating ? ['present', 'array'] : ['sometimes', 'array'],
         ];
 
         foreach ($collection->fields as $field) {
-            $rules = array_merge($rules, $this->rulesForField($field, $creating));
+            if ($field->isHiddenInForm()) {
+                continue;
+            }
+
+            $rules = array_merge($rules, $this->rulesForField($field, $creating, $excludeItemId));
         }
 
         return $rules;
@@ -32,19 +41,24 @@ class CollectionItemDataRuleBuilder
     /**
      * @return array<string, mixed>
      */
-    private function rulesForField(CollectionField $field, bool $creating): array
+    private function rulesForField(CollectionField $field, bool $creating, ?int $excludeItemId): array
     {
         $prefix = 'data.'.$field->name;
-        $required = $creating ? 'required' : 'sometimes';
+        $presence = $this->presenceRule($field, $creating);
 
         if ($field->translatable) {
             $rules = [
-                $prefix => [$required, 'array'],
+                $prefix => [$presence, 'array'],
             ];
             foreach ($this->allowedLocales() as $locale) {
                 $rules = array_merge(
                     $rules,
-                    $this->rulesForTranslatableLocale($field, $prefix.'.'.$locale)
+                    $this->rulesForTranslatableLocale(
+                        $field,
+                        $prefix.'.'.$locale,
+                        $this->fieldIsRequired($field),
+                        $excludeItemId,
+                    )
                 );
             }
 
@@ -52,13 +66,39 @@ class CollectionItemDataRuleBuilder
         }
 
         $rules = [
-            $prefix => array_merge([$required], $this->nonTranslatableRules($field)),
+            $prefix => array_merge(
+                [$presence],
+                $this->nonTranslatableRules($field, $this->fieldIsRequired($field), $excludeItemId),
+            ),
         ];
 
-        if (in_array($field->type, [FieldTypeEnum::Tag, FieldTypeEnum::Multiselect, FieldTypeEnum::RelationMany], true)) {
-            $rules[$prefix.'.*'] = $field->type === FieldTypeEnum::RelationMany
-                ? ['integer']
-                : ['string', 'max:1024'];
+        if (in_array($field->type, [
+            FieldTypeEnum::Tag,
+            FieldTypeEnum::Multiselect,
+            FieldTypeEnum::CheckboxGroup,
+            FieldTypeEnum::CheckboxGroupTree,
+        ], true)) {
+            $rules[$prefix.'.*'] = ['string', 'max:1024'];
+        }
+
+        if ($field->type->isMultipleRelationType()) {
+            $rules[$prefix.'.*'] = ['integer', $this->relatedItemExistsRule($field)];
+        }
+
+        if ($field->type === FieldTypeEnum::Files
+            || ($field->type === FieldTypeEnum::Image && $field->usesArrayStorage())) {
+            $rules[$prefix.'.*'] = ['integer', Rule::exists('files', 'id')];
+        }
+
+        if ($field->type === FieldTypeEnum::M2a) {
+            $rules[$prefix.'.*'] = ['array'];
+            $rules[$prefix.'.*.related_collection_id'] = ['required', 'integer', Rule::exists('collections', 'id')];
+            $rules[$prefix.'.*.related_item_id'] = ['required', 'integer', Rule::exists('collections_items', 'id')];
+        }
+
+        if ($field->type === FieldTypeEnum::Map) {
+            $rules[$prefix.'.lat'] = ['nullable', 'numeric', 'between:-90,90'];
+            $rules[$prefix.'.lng'] = ['nullable', 'numeric', 'between:-180,180'];
         }
 
         return $rules;
@@ -67,39 +107,83 @@ class CollectionItemDataRuleBuilder
     /**
      * @return array<string, mixed>
      */
-    private function rulesForTranslatableLocale(CollectionField $field, string $prefix): array
-    {
+    private function rulesForTranslatableLocale(
+        CollectionField $field,
+        string $prefix,
+        bool $required,
+        ?int $excludeItemId,
+    ): array {
+        $presence = $required ? 'required' : 'nullable';
+        $extraRules = $this->validationRuleEvaluator->rulesForField($field, $prefix, $excludeItemId);
+
         return match ($field->type) {
             FieldTypeEnum::Tag,
-            FieldTypeEnum::Multiselect => [
-                $prefix => ['nullable', 'array'],
+            FieldTypeEnum::Multiselect,
+            FieldTypeEnum::CheckboxGroup,
+            FieldTypeEnum::CheckboxGroupTree => [
+                $prefix => array_merge([$presence, 'array'], $extraRules),
                 $prefix.'.*' => ['string', 'max:1024'],
             ],
+            FieldTypeEnum::Map => [
+                $prefix => [$presence, 'array'],
+                $prefix.'.lat' => ['nullable', 'numeric', 'between:-90,90'],
+                $prefix.'.lng' => ['nullable', 'numeric', 'between:-180,180'],
+            ],
             FieldTypeEnum::Number => [
-                $prefix => ['nullable', 'numeric'],
+                $prefix => array_merge([$presence, 'numeric'], $extraRules, $this->numericBoundsRules($field)),
+            ],
+            FieldTypeEnum::Slider => [
+                $prefix => array_merge([$presence, 'numeric'], $this->sliderValueRules($field), $extraRules),
+            ],
+            FieldTypeEnum::Hash => [
+                $prefix => ['nullable', 'string', 'max:128'],
             ],
             FieldTypeEnum::Boolean => [
-                $prefix => ['nullable', 'boolean'],
+                $prefix => array_merge([$presence, 'boolean'], $extraRules),
             ],
             FieldTypeEnum::String,
+            FieldTypeEnum::Autocomplete,
+            FieldTypeEnum::ApiAutocomplete,
             FieldTypeEnum::Textarea,
+            FieldTypeEnum::Wysiwyg,
             FieldTypeEnum::Markdown,
             FieldTypeEnum::Code,
             FieldTypeEnum::Select,
             FieldTypeEnum::RadioGroup,
             FieldTypeEnum::Date,
             FieldTypeEnum::Color => [
-                $prefix => ['nullable', 'string', 'max:65535'],
+                $prefix => array_merge(
+                    [$presence],
+                    $this->stringValueRules($field),
+                    $this->optionInRules($field),
+                    $extraRules,
+                ),
             ],
-            FieldTypeEnum::Image,
+            FieldTypeEnum::Image => $field->usesArrayStorage()
+                ? [$prefix => [$presence, 'array'], $prefix.'.*' => ['integer', Rule::exists('files', 'id')]]
+                : [$prefix => [$presence, 'integer', Rule::exists('files', 'id')]],
             FieldTypeEnum::File => [
-                $prefix => ['nullable', 'integer', Rule::exists('files', 'id')],
+                $prefix => [$presence, 'integer', Rule::exists('files', 'id')],
             ],
-            FieldTypeEnum::Relation => [
-                $prefix => ['nullable', 'integer', $this->relatedItemExistsRule($field)],
+            FieldTypeEnum::Files => [
+                $prefix => [$presence, 'array'],
+                $prefix.'.*' => ['integer', Rule::exists('files', 'id')],
             ],
-            FieldTypeEnum::RelationMany => [
-                $prefix => ['nullable', 'array'],
+            FieldTypeEnum::M2a => [
+                $prefix => [$presence, 'array'],
+                $prefix.'.*' => ['array'],
+                $prefix.'.*.related_collection_id' => ['required', 'integer', Rule::exists('collections', 'id')],
+                $prefix.'.*.related_item_id' => ['required', 'integer', Rule::exists('collections_items', 'id')],
+            ],
+            FieldTypeEnum::Relation,
+            FieldTypeEnum::ManyToOne,
+            FieldTypeEnum::RelationTree => [
+                $prefix => [$presence, 'integer', $this->relatedItemExistsRule($field)],
+            ],
+            FieldTypeEnum::RelationMany,
+            FieldTypeEnum::OneToMany,
+            FieldTypeEnum::ManyToMany => [
+                $prefix => [$presence, 'array'],
                 $prefix.'.*' => ['integer', $this->relatedItemExistsRule($field)],
             ],
         };
@@ -108,32 +192,186 @@ class CollectionItemDataRuleBuilder
     /**
      * @return list<string|ValidationRule>
      */
-    private function nonTranslatableRules(CollectionField $field): array
-    {
+    private function nonTranslatableRules(
+        CollectionField $field,
+        bool $required,
+        ?int $excludeItemId,
+    ): array {
+        $presence = $required ? 'required' : 'nullable';
+        $extraRules = $this->validationRuleEvaluator->rulesForField($field, 'data.'.$field->name, $excludeItemId);
+
         return match ($field->type) {
             FieldTypeEnum::String,
+            FieldTypeEnum::Autocomplete,
+            FieldTypeEnum::ApiAutocomplete,
             FieldTypeEnum::Textarea,
+            FieldTypeEnum::Wysiwyg,
             FieldTypeEnum::Markdown,
             FieldTypeEnum::Code,
             FieldTypeEnum::Select,
             FieldTypeEnum::RadioGroup,
             FieldTypeEnum::Date,
-            FieldTypeEnum::Color => ['string', 'max:65535'],
-            FieldTypeEnum::Number => ['numeric'],
-            FieldTypeEnum::Boolean => ['boolean'],
+            FieldTypeEnum::Color => array_merge(
+                [$presence],
+                $this->stringValueRules($field),
+                $this->optionInRules($field),
+                $extraRules,
+            ),
+            FieldTypeEnum::Number => array_merge([$presence, 'numeric'], $this->numericBoundsRules($field), $extraRules),
+            FieldTypeEnum::Slider => array_merge([$presence, 'numeric'], $this->sliderValueRules($field), $extraRules),
+            FieldTypeEnum::Hash => ['nullable', 'string', 'max:128'],
+            FieldTypeEnum::Boolean => array_merge([$presence, 'boolean'], $extraRules),
             FieldTypeEnum::Multiselect,
-            FieldTypeEnum::Tag => ['array'],
-            FieldTypeEnum::Image,
-            FieldTypeEnum::File => ['nullable', 'integer', Rule::exists('files', 'id')],
-            FieldTypeEnum::Relation => ['nullable', 'integer', $this->relatedItemExistsRule($field)],
-            FieldTypeEnum::RelationMany => ['array'],
+            FieldTypeEnum::CheckboxGroup,
+            FieldTypeEnum::CheckboxGroupTree,
+            FieldTypeEnum::Tag => array_merge([$presence, 'array'], $extraRules),
+            FieldTypeEnum::Map => [$presence, 'array'],
+            FieldTypeEnum::Image => $field->usesArrayStorage()
+                ? [$presence, 'array']
+                : [$presence, 'integer', Rule::exists('files', 'id')],
+            FieldTypeEnum::File => [$presence, 'integer', Rule::exists('files', 'id')],
+            FieldTypeEnum::Files => [$presence, 'array'],
+            FieldTypeEnum::M2a => [$presence, 'array'],
+            FieldTypeEnum::Relation,
+            FieldTypeEnum::ManyToOne,
+            FieldTypeEnum::RelationTree => [$presence, 'integer', $this->relatedItemExistsRule($field)],
+            FieldTypeEnum::RelationMany,
+            FieldTypeEnum::OneToMany,
+            FieldTypeEnum::ManyToMany => [$presence, 'array'],
         };
     }
 
     /**
-     * @return Exists
+     * @return list<string>
      */
-    private function relatedItemExistsRule(CollectionField $field): Rule
+    private function sliderValueRules(CollectionField $field): array
+    {
+        $min = data_get($field->settings, 'min', 0);
+        $max = data_get($field->settings, 'max', 100);
+
+        $rules = [];
+
+        if (is_numeric($min)) {
+            $rules[] = 'min:'.$min;
+        }
+
+        if (is_numeric($max)) {
+            $rules[] = 'max:'.$max;
+        }
+
+        return $rules;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function stringValueRules(CollectionField $field): array
+    {
+        $inputType = (string) data_get($field->settings, 'input_type', 'string');
+        $maxLength = data_get($field->settings, 'max_length');
+
+        $rules = match ($inputType) {
+            'integer', 'bigInteger' => ['integer'],
+            'float', 'decimal' => ['numeric'],
+            'uuid' => ['uuid'],
+            default => ['string'],
+        };
+
+        if (is_numeric($maxLength) && (int) $maxLength > 0) {
+            $rules[] = 'max:'.(int) $maxLength;
+        } elseif (in_array('string', $rules, true)) {
+            $rules[] = 'max:65535';
+        }
+
+        return $rules;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function numericBoundsRules(CollectionField $field): array
+    {
+        $rules = [];
+        $min = data_get($field->settings, 'min');
+        $max = data_get($field->settings, 'max');
+
+        if (is_numeric($min)) {
+            $rules[] = 'min:'.$min;
+        }
+
+        if (is_numeric($max)) {
+            $rules[] = 'max:'.$max;
+        }
+
+        return $rules;
+    }
+
+    /**
+     * @return list<In|string>
+     */
+    private function optionInRules(CollectionField $field): array
+    {
+        if (! in_array($field->type, [
+            FieldTypeEnum::Select,
+            FieldTypeEnum::RadioGroup,
+            FieldTypeEnum::Autocomplete,
+        ], true)) {
+            return [];
+        }
+
+        if (CollectionField::settingsFlagIsEnabled(data_get($field->settings, 'allow_other', false))) {
+            return [];
+        }
+
+        $options = data_get($field->settings, 'options', []);
+        if (! is_array($options)) {
+            return [];
+        }
+
+        $values = [];
+        foreach ($options as $option) {
+            if (is_array($option) && isset($option['value']) && (string) $option['value'] !== '') {
+                $values[] = (string) $option['value'];
+            }
+        }
+
+        if ($values === []) {
+            return [];
+        }
+
+        return [Rule::in($values)];
+    }
+
+    private function fieldIsRequired(CollectionField $field): bool
+    {
+        if ($field->isRequired()) {
+            return true;
+        }
+
+        $rawRules = data_get($field->settings, 'validation_rules', []);
+        if (! is_array($rawRules)) {
+            return false;
+        }
+
+        foreach ($rawRules as $rule) {
+            if (is_array($rule) && ($rule['operator'] ?? null) === 'required') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function presenceRule(CollectionField $field, bool $creating): string
+    {
+        if ($this->fieldIsRequired($field)) {
+            return 'required';
+        }
+
+        return $creating ? 'nullable' : 'sometimes';
+    }
+
+    private function relatedItemExistsRule(CollectionField $field): Exists
     {
         $relatedCollectionId = data_get($field->settings, 'related_collection_id');
 

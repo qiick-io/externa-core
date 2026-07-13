@@ -57,11 +57,20 @@ export function useCollections() {
         };
 
         if (editing) {
+            form.transform((data) => ({
+                name: data.name,
+                slug: data.slug,
+            }));
             form.put(
                 ContentCollectionController.update.url({
                     collection: editing.id,
                 }),
-                opts,
+                {
+                    ...opts,
+                    onFinish: () => {
+                        form.transform((data) => data);
+                    },
+                },
             );
         } else {
             form.post(ContentCollectionController.store.url(), opts);

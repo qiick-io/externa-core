@@ -43,7 +43,7 @@ class CollectionItemValuesWriter
     private function syncTranslatable(CollectionItem $item, CollectionField $field, array $perLocale): void
     {
         foreach ($perLocale as $locale => $localeValue) {
-            if ($field->type->isArrayStorage()) {
+            if ($field->usesArrayStorage()) {
                 $list = is_array($localeValue) ? $localeValue : [];
                 foreach ($list as $position => $entry) {
                     $this->insertRow($item, $field, $locale, (int) $position, $entry);
@@ -58,7 +58,7 @@ class CollectionItemValuesWriter
 
     private function syncNonTranslatable(CollectionItem $item, CollectionField $field, mixed $value): void
     {
-        if ($field->type->isArrayStorage()) {
+        if ($field->usesArrayStorage()) {
             $list = is_array($value) ? $value : [];
             foreach ($list as $position => $entry) {
                 $this->insertRow($item, $field, null, (int) $position, $entry);

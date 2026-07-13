@@ -1,12 +1,14 @@
 import { Form, Head, Link } from '@inertiajs/react';
 import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
-import { CollectionFormDrawer } from '@/components/collections/collection-form-drawer';
+import {
+    CollectionEditButton,
+    CollectionEditDrawer,
+    useCollectionEditDrawer,
+} from '@/components/collections/collection-edit-drawer';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
 import { Button } from '@/components/ui/button';
-import { Drawer } from '@/components/ui/drawer';
 import { useCollection } from '@/hooks/use-collection';
-import { useCollections } from '@/hooks/use-collections';
 import AppLayout from '@/layouts/app-layout';
 import { collectCollectionDataErrorMessages } from '@/lib/collection-data-errors';
 import { collectionToFormRow } from '@/types';
@@ -17,9 +19,11 @@ const COLLECTION_CONTENT_FORM_ID = 'collection-content-form';
 export default function CollectionsShow({
     collection,
     singletonRawData,
+    relatedCollections = [],
 }: {
     collection: CollectionView;
     singletonRawData: Record<string, unknown> | null;
+    relatedCollections?: { id: number; name: string; slug: string }[];
 }) {
     const { locales, breadcrumbs, contentDefaults, hasFields } = useCollection({
         collection,
@@ -27,7 +31,7 @@ export default function CollectionsShow({
         editableRawData: null,
     });
 
-    const collectionForm = useCollections();
+    const collectionForm = useCollectionEditDrawer();
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -54,18 +58,10 @@ export default function CollectionsShow({
                                 Edit fields
                             </Link>
                         </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                                collectionForm.setEditing(
-                                    collectionToFormRow(collection),
-                                );
-                                collectionForm.setOpen(true);
-                            }}
-                        >
-                            Edit collection
-                        </Button>
+                        <CollectionEditButton
+                            collectionForm={collectionForm}
+                            collection={collectionToFormRow(collection)}
+                        />
                         <Form
                             {...ContentCollectionController.destroy.form({
                                 collection: collection.id,
@@ -155,6 +151,7 @@ export default function CollectionsShow({
                                             fields={collection.fields}
                                             locales={locales}
                                             defaults={contentDefaults}
+                                            relatedCollections={relatedCollections}
                                         />
                                     </>
                                 );
@@ -163,20 +160,7 @@ export default function CollectionsShow({
                     )}
                 </section>
 
-                <Drawer
-                    direction="right"
-                    open={collectionForm.open}
-                    onOpenChange={collectionForm.handleDrawerOpenChange}
-                >
-                    <CollectionFormDrawer
-                        editing={collectionForm.editing}
-                        slugManual={collectionForm.slugManual}
-                        setSlugManual={collectionForm.setSlugManual}
-                        form={collectionForm.form}
-                        title={collectionForm.title}
-                        submit={collectionForm.submit}
-                    />
-                </Drawer>
+                <CollectionEditDrawer collectionForm={collectionForm} />
             </div>
         </AppLayout>
     );

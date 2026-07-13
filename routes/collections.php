@@ -29,4 +29,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('collections/{collection}/fields/{field}', [FieldController::class, 'update'])->name('collections.fields.update');
     Route::delete('collections/{collection}/fields/{field}', [FieldController::class, 'destroy'])->name('collections.fields.destroy');
     Route::post('collections/{collection}/fields/reorder', [FieldController::class, 'reorder'])->name('collections.fields.reorder');
+    Route::post('collections/{collection}/fields/{field}/duplicate', [FieldController::class, 'duplicate'])->name('collections.fields.duplicate');
+    Route::post('collections/{collection}/fields/{field}/toggle-form-visibility', [FieldController::class, 'toggleFormVisibility'])->name('collections.fields.toggle-form-visibility');
+    Route::post('collections/{collection}/fields/{field}/layout-width', [FieldController::class, 'updateLayoutWidth'])->name('collections.fields.update-layout-width');
 });

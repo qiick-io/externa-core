@@ -18,6 +18,7 @@ export type PaginatedMultiSelectProps = {
     fetchUrl: string;
     placeholder?: string;
     disabled?: boolean;
+    multiple?: boolean;
     /** Pre-loaded labels for selected IDs (edit mode) */
     initialOptions?: AdminSelectOption[];
     perPage?: number;
@@ -54,6 +55,7 @@ export function PaginatedMultiSelect({
     fetchUrl,
     placeholder = 'Select…',
     disabled = false,
+    multiple = true,
     initialOptions = [],
     perPage = 20,
     className,
@@ -145,8 +147,14 @@ export function PaginatedMultiSelect({
     }, [open, debouncedSearch, fetchPage]);
 
     const toggle = (id: number): void => {
+        if (!multiple) {
+            onChange?.(value.includes(id) ? [] : [id]);
+
+            return;
+        }
+
         const next = value.includes(id)
-            ? value.filter((v) => v !== id)
+            ? value.filter((selectedId) => selectedId !== id)
             : [...value, id];
         onChange?.(next);
     };

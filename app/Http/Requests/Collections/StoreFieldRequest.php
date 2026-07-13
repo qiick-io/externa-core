@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Collections;
 
 use App\Enums\FieldTypeEnum;
+use App\Http\Requests\Collections\Concerns\ValidatesCollectionFieldSettings;
 use App\Models\Collection;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -10,6 +11,8 @@ use Illuminate\Validation\ValidationException;
 
 class StoreFieldRequest extends FormRequest
 {
+    use ValidatesCollectionFieldSettings;
+
     public function authorize(): bool
     {
         return true;
@@ -29,6 +32,8 @@ class StoreFieldRequest extends FormRequest
         }
 
         if (is_array($raw)) {
+            $this->merge(['settings' => $this->normalizeSettingsArray($raw)]);
+
             return;
         }
 
@@ -67,7 +72,7 @@ class StoreFieldRequest extends FormRequest
             ],
             'type' => ['required', Rule::enum(FieldTypeEnum::class)],
             'translatable' => ['sometimes', 'boolean'],
-            'settings' => ['nullable', 'array'],
+            ...$this->fieldSettingsRules(),
         ];
     }
 }

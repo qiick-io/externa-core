@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Collections;
 
 use App\Enums\FieldTypeEnum;
+use App\Http\Requests\Collections\Concerns\ValidatesCollectionFieldSettings;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use Illuminate\Foundation\Http\FormRequest;
@@ -11,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class UpdateFieldRequest extends FormRequest
 {
+    use ValidatesCollectionFieldSettings;
+
     public function authorize(): bool
     {
         return true;
@@ -30,6 +33,8 @@ class UpdateFieldRequest extends FormRequest
         }
 
         if (is_array($raw)) {
+            $this->merge(['settings' => $this->normalizeSettingsArray($raw)]);
+
             return;
         }
 
@@ -72,7 +77,7 @@ class UpdateFieldRequest extends FormRequest
             ],
             'type' => ['sometimes', Rule::enum(FieldTypeEnum::class)],
             'translatable' => ['sometimes', 'boolean'],
-            'settings' => ['sometimes', 'nullable', 'array'],
+            ...$this->fieldSettingsRules($field->type),
         ];
     }
 }

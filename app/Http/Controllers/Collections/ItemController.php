@@ -92,6 +92,7 @@ class ItemController extends Controller
             'item' => null,
             'rawData' => [],
             'isNew' => true,
+            'relatedCollections' => $this->relatedCollectionsForSelect(),
         ]);
     }
 
@@ -101,7 +102,11 @@ class ItemController extends Controller
             abort(422, __('A singleton collection already has its content item.'));
         }
 
-        $normalized = $this->itemDataNormalizer->normalize($collection, $request->validated('data') ?? []);
+        $normalized = $this->itemDataNormalizer->normalize(
+            $collection,
+            $request->validated('data') ?? [],
+            true,
+        );
 
         $item = $collection->items()->create([]);
 
@@ -129,6 +134,7 @@ class ItemController extends Controller
             'item' => (new ItemResource($item))->toArray($request),
             'rawData' => $rawData,
             'isNew' => false,
+            'relatedCollections' => $this->relatedCollectionsForSelect(),
         ]);
     }
 
@@ -140,6 +146,13 @@ class ItemController extends Controller
 
         $incoming = $request->validated('data') ?? [];
         if (is_array($incoming)) {
+            $collection->loadMissing('fields');
+            foreach ($collection->fields as $field) {
+                if ($field->isReadonly()) {
+                    unset($incoming[$field->name]);
+                }
+            }
+
             foreach ($incoming as $key => $value) {
                 if (is_array($value) && isset($data[$key]) && is_array($data[$key])) {
                     $data[$key] = array_merge($data[$key], $value);
@@ -149,7 +162,7 @@ class ItemController extends Controller
             }
         }
 
-        $normalized = $this->itemDataNormalizer->normalize($collection, $data);
+        $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
 
         $this->collectionItemValuesWriter->sync($item->fresh(), $collection, $normalized);
 
@@ -171,6 +184,7 @@ class ItemController extends Controller
     {
         $validated = $request->validate([
             'field_id' => ['required', 'integer'],
+            'related_collection_id' => ['nullable', 'integer', 'exists:collections,id'],
             'search' => ['nullable', 'string', 'max:255'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
@@ -181,10 +195,15 @@ class ItemController extends Controller
             ->where('id', $validated['field_id'])
             ->firstOrFail();
 
+        $relatedCollectionOverride = isset($validated['related_collection_id'])
+            ? (int) $validated['related_collection_id']
+            : null;
+
         $paginator = $this->collectionItemOptionsService->paginateForField(
             $field,
             $validated['search'] ?? null,
             $validated['per_page'] ?? 20,
+            $relatedCollectionOverride,
         );
 
         return response()->json($paginator);
@@ -193,5 +212,13 @@ class ItemController extends Controller
     private function assertItemBelongsToCollection(Collection $collection, CollectionItem $item): void
     {
         abort_if($item->collection_id !== $collection->id, 404);
+    }
+
+    /**
+     * @return list<array{id: int, name: string, slug: string}>
+     */
+    private function relatedCollectionsForSelect(): array
+    {
+        return $this->collectionItemOptionsService->collectionsForSelect();
     }
 }

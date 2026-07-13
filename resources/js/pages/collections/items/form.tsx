@@ -22,11 +22,13 @@ export default function ItemsForm({
     item,
     rawData,
     isNew,
+    relatedCollections = [],
 }: {
     collection: CollectionView;
     item: ItemPayload | null;
     rawData: Record<string, unknown>;
     isNew: boolean;
+    relatedCollections?: { id: number; name: string; slug: string }[];
 }) {
     const { locales, breadcrumbs: collectionBreadcrumbs, contentDefaults, hasFields } =
         useCollection({
@@ -189,6 +191,7 @@ export default function ItemsForm({
                                             fields={collection.fields}
                                             locales={locales}
                                             defaults={contentDefaults}
+                                            relatedCollections={relatedCollections}
                                         />
                                     </>
                                 );

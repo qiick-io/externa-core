@@ -21,8 +21,10 @@ class UpdateItemRequest extends FormRequest
     {
         /** @var Collection $collection */
         $collection = $this->route('collection');
+        $item = $this->route('item');
+        $excludeItemId = $item?->id;
 
-        return app(CollectionItemDataRuleBuilder::class)->rules($collection, false);
+        return app(CollectionItemDataRuleBuilder::class)->rules($collection, false, $excludeItemId);
     }
 
     public function withValidator(Validator $validator): void

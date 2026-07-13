@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Drawer,
+    DrawerBody,
     DrawerClose,
     DrawerContent,
     DrawerDescription,
@@ -131,7 +132,7 @@ export function FileFormDrawer({
                     </DrawerDescription>
                 </DrawerHeader>
 
-                <div className="flex-1 space-y-4 overflow-y-auto p-4">
+                <DrawerBody className="space-y-4">
                     {publicUrl && isImageFile(file) && (
                         <img
                             src={publicUrl}
@@ -192,7 +193,7 @@ export function FileFormDrawer({
                             </div>
                         )}
                     </dl>
-                </div>
+                </DrawerBody>
 
                 <DrawerFooter>
                     {canEdit && !isTrashed && (

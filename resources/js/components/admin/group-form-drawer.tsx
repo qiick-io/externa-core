@@ -5,6 +5,7 @@ import { RoleMultiSelect } from '@/components/admin/role-multi-select';
 import { UserMultiSelect } from '@/components/admin/user-multi-select';
 import { Button } from '@/components/ui/button';
 import {
+    DrawerBody,
     DrawerClose,
     DrawerContent,
     DrawerDescription,
@@ -69,7 +70,7 @@ export function GroupFormDrawer({
     const title = editing ? 'Edit group' : 'New group';
 
     return (
-        <DrawerContent className="max-h-screen">
+        <DrawerContent>
             <DrawerHeader>
                 <DrawerTitle>{title}</DrawerTitle>
                 <DrawerDescription>
@@ -78,7 +79,7 @@ export function GroupFormDrawer({
             </DrawerHeader>
 
             <form
-                className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4"
+                className="flex min-h-0 flex-1 flex-col overflow-hidden"
                 onSubmit={(e) => {
                     e.preventDefault();
                     if (!readOnly) {
@@ -86,6 +87,7 @@ export function GroupFormDrawer({
                     }
                 }}
             >
+                <DrawerBody className="flex flex-col gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="group_name">Name</Label>
                     <Input
@@ -131,8 +133,9 @@ export function GroupFormDrawer({
                     />
                     <InputError message={form.errors.user_ids} />
                 </div>
+                </DrawerBody>
 
-                <DrawerFooter className="flex flex-row justify-end gap-2 px-0">
+                <DrawerFooter className="flex flex-row justify-end gap-2">
                     <DrawerClose asChild>
                         <Button type="button" variant="outline">
                             Cancel

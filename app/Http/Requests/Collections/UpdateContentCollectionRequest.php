@@ -6,6 +6,7 @@ use App\Models\Collection;
 use App\Support\Collections\UniqueCollectionSlug;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class UpdateContentCollectionRequest extends FormRequest
 {
@@ -22,7 +23,6 @@ class UpdateContentCollectionRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'slug' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'is_singleton' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -31,8 +31,10 @@ class UpdateContentCollectionRequest extends FormRequest
         /** @var Collection $collection */
         $collection = $this->route('collection');
 
-        if ($this->has('is_singleton')) {
-            $this->merge(['is_singleton' => $this->boolean('is_singleton')]);
+        if ($this->has('is_singleton') && $this->boolean('is_singleton') !== $collection->is_singleton) {
+            throw ValidationException::withMessages([
+                'is_singleton' => __('The singleton setting cannot be changed after the collection is created.'),
+            ]);
         }
 
         if (! $this->has('name') && ! $this->has('slug')) {
