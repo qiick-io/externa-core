@@ -4,6 +4,8 @@ namespace App\Enums;
 
 enum PermissionEnum: string
 {
+    case CanShowDashboard = 'can-show-dashboard';
+
     case CanShowUsers = 'can-show-users';
     case CanCreateUsers = 'can-create-users';
     case CanEditUsers = 'can-edit-users';
@@ -41,6 +43,10 @@ enum PermissionEnum: string
     case CanDeleteCollections = 'can-delete-collections';
     case CanRestoreCollections = 'can-restore-collections';
     case CanForceDeleteCollections = 'can-force-delete-collections';
+
+    case CanShowActivityLogs = 'can-show-activity-logs';
+
+    case CanUseAi = 'can-use-ai';
 
     /**
      * @return list<string>

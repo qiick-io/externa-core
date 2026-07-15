@@ -106,19 +106,8 @@ class FileController extends Controller
 
     public function createFolder(Request $request): JsonResponse
     {
-        $parentId = $request->integer('parent_id') ?: null;
-
         $validated = $request->validate([
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('files', 'name')->where(
-                    fn ($query) => $parentId === null
-                        ? $query->whereNull('parent_id')
-                        : $query->where('parent_id', $parentId),
-                ),
-            ],
+            'name' => ['required', 'string', 'max:255'],
             'parent_id' => ['nullable', 'integer', 'exists:files,id'],
             'disk' => ['nullable', 'string', Rule::in(['assets'])],
         ]);

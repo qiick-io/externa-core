@@ -17,11 +17,6 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id(); // Primary key: auto-incrementing ID
 
-            // References to users who performed these actions (nullable for initial users)
-            $table->unsignedBigInteger('created_by')->nullable();
-            $table->unsignedBigInteger('updated_by')->nullable();
-            $table->unsignedBigInteger('deleted_by')->nullable();
-
             $table->boolean('is_active')->default(true); // Indicates if the user is active
 
             // Basic user info
@@ -59,11 +54,6 @@ return new class extends Migration
 
             // Soft deletes support (adds deleted_at)
             $table->softDeletes();
-
-            // Foreign key constraints for audit columns
-            $table->foreign('created_by')->references('id')->on('users');
-            $table->foreign('updated_by')->references('id')->on('users');
-            $table->foreign('deleted_by')->references('id')->on('users');
         });
 
         // Table for password reset tokens (used for password recovery)

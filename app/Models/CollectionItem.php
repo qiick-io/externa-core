@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsApplicationActivity;
 use App\Support\Collections\ItemDataAccessor;
 use Database\Factories\CollectionItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class CollectionItem extends Model
 {
     /** @use HasFactory<CollectionItemFactory> */
-    use HasFactory;
+    use HasFactory, LogsApplicationActivity;
 
     protected $table = 'collections_items';
 

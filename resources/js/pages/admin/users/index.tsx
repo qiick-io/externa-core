@@ -1,11 +1,11 @@
 import { Head, router } from '@inertiajs/react';
-import { Trash2, UserPlus, Users } from 'lucide-react';
+import { Trash2, UserPlus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    AdminPageLayout,
-    AdminPagination,
-    AdminTablePanel,
-} from '@/components/admin/admin-page-layout';
+    PageLayout,
+    TablePagination,
+    TablePanel,
+} from '@/components/layout/page-layout';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { UserFormDrawer } from '@/components/admin/user-form-drawer';
 import { Badge } from '@/components/ui/badge';
@@ -53,10 +53,7 @@ export default function AdminUsersIndex({
     const [editing, setEditing] = useState<AdminUserRow | null>(null);
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
-        () => [
-            { title: 'Admin', href: adminRoutes.users.index() },
-            { title: 'Users', href: adminRoutes.users.index() },
-        ],
+        () => [{ title: 'Users', href: adminRoutes.users.index() }],
         [],
     );
 
@@ -123,7 +120,17 @@ export default function AdminUsersIndex({
     const isTrashed = trashed === 'trashed';
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout
+            breadcrumbs={breadcrumbs}
+            headerActions={
+                can(PermissionEnum.CanCreateUsers) ? (
+                    <Button type="button" onClick={openCreate}>
+                        <UserPlus className="mr-1 size-4" />
+                        New user
+                    </Button>
+                ) : undefined
+            }
+        >
             <Head title="Users" />
 
             <Drawer
@@ -136,18 +143,8 @@ export default function AdminUsersIndex({
                     }
                 }}
             >
-                <AdminPageLayout
-                    title="Users"
-                    icon={Users}
-                    actions={
-                        can(PermissionEnum.CanCreateUsers) ? (
-                            <Button type="button" onClick={openCreate}>
-                                <UserPlus className="mr-1 size-4" />
-                                New user
-                            </Button>
-                        ) : undefined
-                    }
-                    filtersLeft={
+                <PageLayout
+                    filters={
                         <DataTableToolbar
                             search={search}
                             onSearchChange={setSearch}
@@ -227,13 +224,14 @@ export default function AdminUsersIndex({
                             </ToggleGroupItem>
                         </ToggleGroup>
                     }
-                    footer={
-                        users.last_page > 1 ? (
-                            <AdminPagination links={users.links ?? []} />
-                        ) : undefined
-                    }
                 >
-                    <AdminTablePanel>
+                    <TablePanel
+                        footer={
+                            users.last_page > 1 ? (
+                                <TablePagination links={users.links ?? []} />
+                            ) : undefined
+                        }
+                    >
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -337,8 +335,8 @@ export default function AdminUsersIndex({
                                 )}
                             </TableBody>
                         </Table>
-                    </AdminTablePanel>
-                </AdminPageLayout>
+                    </TablePanel>
+                </PageLayout>
 
                 <UserFormDrawer
                     editing={editing}

@@ -8,6 +8,7 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\File;
+use App\Models\FileUpload;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -105,7 +106,7 @@ test('super admin can manage files without explicit file permissions', function 
         ->assertJsonPath('name', 'super.pdf');
 });
 
-test('duplicate folder names in the same parent are rejected', function () {
+test('duplicate folder names in the same parent are allowed', function () {
     $user = grantFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,
         PermissionEnum::CanCreateFiles->value,
@@ -118,8 +119,32 @@ test('duplicate folder names in the same parent are rejected', function () {
 
     $this->postJson(route('files.folders.store'), [
         'name' => 'Assets',
-    ])->assertUnprocessable()
-        ->assertJsonValidationErrors(['name']);
+    ])->assertCreated();
+
+    expect(File::query()->where('name', 'Assets')->whereNull('parent_id')->count())->toBe(2);
+});
+
+test('duplicate file names in the same parent are allowed', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanCreateFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $firstUpload = UploadedFile::fake()->create('report.pdf', 100, 'application/pdf');
+    $secondUpload = UploadedFile::fake()->create('report.pdf', 100, 'application/pdf');
+
+    $this->postJson(route('files.upload'), [
+        'file' => $firstUpload,
+    ])->assertCreated()
+        ->assertJsonPath('name', 'report.pdf');
+
+    $this->postJson(route('files.upload'), [
+        'file' => $secondUpload,
+    ])->assertCreated()
+        ->assertJsonPath('name', 'report.pdf');
+
+    expect(File::query()->where('name', 'report.pdf')->whereNull('parent_id')->count())->toBe(2);
 });
 
 test('authorized users can upload files', function () {
@@ -279,6 +304,87 @@ test('collection items options endpoint returns related items', function () {
     $response->assertOk()
         ->assertJsonPath('data.0.id', $authorItem->id)
         ->assertJsonPath('data.0.label', 'Jane Doe');
+});
+
+test('authorized users can complete chunked file uploads', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanCreateFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $totalChunks = 2;
+    $chunkSize = 5 * 1024 * 1024;
+    $fileSize = $chunkSize + 1024;
+    $fileContent = str_repeat('a', $fileSize);
+
+    $initResponse = $this->postJson(route('files.uploads.init'), [
+        'file_name' => 'large.bin',
+        'total_size' => $fileSize,
+        'total_chunks' => $totalChunks,
+        'mime_type' => 'application/octet-stream',
+    ]);
+
+    $initResponse->assertCreated();
+    $uploadId = $initResponse->json('upload_id');
+
+    for ($chunkIndex = 0; $chunkIndex < $totalChunks; $chunkIndex++) {
+        $start = $chunkIndex * $chunkSize;
+        $chunkContent = substr($fileContent, $start, $chunkSize);
+
+        $this->post(route('files.uploads.chunk'), [
+            'upload_id' => $uploadId,
+            'chunk_index' => $chunkIndex,
+            'chunk' => UploadedFile::fake()->createWithContent("chunk-{$chunkIndex}.bin", $chunkContent),
+        ])->assertNoContent();
+    }
+
+    $this->getJson(route('files.uploads.status', ['upload_id' => $uploadId]))
+        ->assertOk()
+        ->assertJsonPath('uploaded_chunks', $totalChunks);
+
+    $this->postJson(route('files.uploads.complete'), [
+        'upload_id' => $uploadId,
+    ])->assertCreated()
+        ->assertJsonPath('name', 'large.bin');
+
+    expect(File::query()->where('name', 'large.bin')->exists())->toBeTrue();
+});
+
+test('stale file uploads cleanup command removes expired uploads and chunks', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanCreateFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $initResponse = $this->postJson(route('files.uploads.init'), [
+        'file_name' => 'stale.bin',
+        'total_size' => 1024,
+        'total_chunks' => 1,
+        'mime_type' => 'application/octet-stream',
+    ])->assertCreated();
+
+    $uploadId = $initResponse->json('upload_id');
+
+    $this->post(route('files.uploads.chunk'), [
+        'upload_id' => $uploadId,
+        'chunk_index' => 0,
+        'chunk' => UploadedFile::fake()->create('stale.bin', 1, 'application/octet-stream'),
+    ])->assertNoContent();
+
+    $fileUpload = FileUpload::query()->where('upload_id', $uploadId)->first();
+    expect($fileUpload)->not->toBeNull();
+
+    $fileUpload->update(['expires_at' => now()->subHour()]);
+
+    Storage::disk('assets')->assertExists("chunks/{$uploadId}/chunk_0");
+
+    $this->artisan('files:cleanup-uploads')
+        ->assertSuccessful();
+
+    expect(FileUpload::query()->where('upload_id', $uploadId)->exists())->toBeFalse();
+    Storage::disk('assets')->assertMissing("chunks/{$uploadId}/chunk_0");
 });
 
 test('collection item can store image file id field', function () {

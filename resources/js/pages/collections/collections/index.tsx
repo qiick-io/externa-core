@@ -1,10 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
-import { Database, Pencil, Rows3 } from 'lucide-react';
+import { Pencil, Plus, Rows3 } from 'lucide-react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import {
-    AdminPageLayout,
-    AdminTablePanel,
-} from '@/components/admin/admin-page-layout';
+    PageLayout,
+    TablePanel,
+} from '@/components/layout/page-layout';
 import { CollectionFormDrawer } from '@/components/collections/collection-form-drawer';
 import { Button } from '@/components/ui/button';
 import { Drawer } from '@/components/ui/drawer';
@@ -36,7 +36,21 @@ export default function CollectionsIndex({
     } = useCollections();
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout
+            breadcrumbs={breadcrumbs}
+            headerActions={
+                <Button
+                    type="button"
+                    onClick={() => {
+                        setEditing(null);
+                        setOpen(true);
+                    }}
+                >
+                    <Plus className="mr-1 size-4" />
+                    New collection
+                </Button>
+            }
+        >
             <Head title="Collections" />
 
             <Drawer
@@ -44,22 +58,8 @@ export default function CollectionsIndex({
                 open={open}
                 onOpenChange={handleDrawerOpenChange}
             >
-                <AdminPageLayout
-                    title="Collections"
-                    icon={Database}
-                    actions={
-                        <Button
-                            type="button"
-                            onClick={() => {
-                                setEditing(null);
-                                setOpen(true);
-                            }}
-                        >
-                            New collection
-                        </Button>
-                    }
-                >
-                    <AdminTablePanel>
+                <PageLayout>
+                    <TablePanel>
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-sidebar-border/70 text-left">
@@ -157,8 +157,8 @@ export default function CollectionsIndex({
                                 )}
                             </tbody>
                         </table>
-                    </AdminTablePanel>
-                </AdminPageLayout>
+                    </TablePanel>
+                </PageLayout>
 
                 <CollectionFormDrawer
                     editing={editing}

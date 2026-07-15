@@ -3,6 +3,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AppErrorBoundary } from '@/components/app-error-boundary';
+import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import '../css/app.css';
 import { initializeTheme } from '@/hooks/use-appearance';
@@ -24,6 +25,7 @@ createInertiaApp({
                 <AppErrorBoundary>
                     <TooltipProvider delayDuration={0}>
                         <App {...props} />
+                        <Toaster position="top-right" duration={5000} />
                     </TooltipProvider>
                 </AppErrorBoundary>
             </StrictMode>,

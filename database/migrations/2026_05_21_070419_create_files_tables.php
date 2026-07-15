@@ -11,9 +11,6 @@ return new class extends Migration
         Schema::create('files', function (Blueprint $table) {
             $table->id();
             $table->uuid('uuid')->unique();
-            $table->foreignId('created_by')->nullable()->constrained('users');
-            $table->foreignId('updated_by')->nullable()->constrained('users');
-            $table->foreignId('deleted_by')->nullable()->constrained('users');
             $table->foreignId('parent_id')
                 ->nullable()
                 ->constrained('files')
@@ -39,16 +36,13 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->unique(['parent_id', 'name']);
+            $table->index(['parent_id', 'name']);
             $table->index('disk');
             $table->index('hash');
         });
 
         Schema::create('file_versions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('created_by')->nullable()->constrained('users');
-            $table->foreignId('updated_by')->nullable()->constrained('users');
-            $table->foreignId('deleted_by')->nullable()->constrained('users');
             $table->foreignId('file_id')
                 ->nullable()
                 ->constrained('files')
@@ -68,9 +62,6 @@ return new class extends Migration
 
         Schema::create('file_uploads', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('created_by')->nullable()->constrained('users');
-            $table->foreignId('updated_by')->nullable()->constrained('users');
-            $table->foreignId('deleted_by')->nullable()->constrained('users');
             $table->string('upload_id', 64)->unique();
             $table->string('file_name');
             $table->string('mime_type')->nullable();

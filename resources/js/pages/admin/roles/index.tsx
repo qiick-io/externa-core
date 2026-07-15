@@ -1,10 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Plus, Shield } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import {
-    AdminPageLayout,
-    AdminTablePanel,
-} from '@/components/admin/admin-page-layout';
+    PageLayout,
+    TablePanel,
+} from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import {
     Table,
@@ -30,32 +30,28 @@ export default function AdminRolesIndex({
     const rows = normalizePaginated(rolesProp).data;
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
-        () => [
-            { title: 'Admin', href: adminRoutes.roles.index() },
-            { title: 'Roles', href: adminRoutes.roles.index() },
-        ],
+        () => [{ title: 'Roles', href: adminRoutes.roles.index() }],
         [],
     );
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout
+            breadcrumbs={breadcrumbs}
+            headerActions={
+                can(PermissionEnum.CanCreateRoles) ? (
+                    <Button asChild>
+                        <Link href={adminRoutes.roles.create()}>
+                            <Plus className="mr-1 size-4" />
+                            New role
+                        </Link>
+                    </Button>
+                ) : undefined
+            }
+        >
             <Head title="Roles" />
 
-            <AdminPageLayout
-                title="Roles"
-                icon={Shield}
-                actions={
-                    can(PermissionEnum.CanCreateRoles) ? (
-                        <Button asChild>
-                            <Link href={adminRoutes.roles.create()}>
-                                <Plus className="mr-1 size-4" />
-                                New role
-                            </Link>
-                        </Button>
-                    ) : undefined
-                }
-            >
-                <AdminTablePanel>
+            <PageLayout>
+                <TablePanel>
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -128,8 +124,8 @@ export default function AdminRolesIndex({
                             )}
                         </TableBody>
                     </Table>
-                </AdminTablePanel>
-            </AdminPageLayout>
+                </TablePanel>
+            </PageLayout>
         </AppLayout>
     );
 }

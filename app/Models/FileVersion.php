@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Traits\HasActivityLog;
+use App\Concerns\LogsApplicationActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class FileVersion extends Model
 {
-    use HasActivityLog;
+    use LogsApplicationActivity;
 
     protected $table = 'file_versions';
 

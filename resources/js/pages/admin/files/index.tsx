@@ -1,19 +1,17 @@
 import { Head, router } from '@inertiajs/react';
 import {
     ChevronDown,
-    ChevronRight,
     FileIcon,
     Files,
     FolderOpen,
     FolderPlus,
-    Home,
     Info,
     Pencil,
     Trash2,
     Upload,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AdminPageLayout } from '@/components/admin/admin-page-layout';
+import { PageLayout } from '@/components/layout/page-layout';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import {
     FileDropzone,
@@ -23,7 +21,6 @@ import {
 import { FileFormDrawer } from '@/components/admin/file-form-drawer';
 import { FileNameDialog } from '@/components/admin/file-name-dialog';
 import { FileUploadIndicator } from '@/components/admin/file-upload-indicator';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -43,6 +40,7 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
+import { toast } from '@/lib/toast';
 import {
     addFileUpload,
     createUploadId,
@@ -69,6 +67,7 @@ import {
     ensureFolderPath,
     type FileWithDirectoryPath,
     hasDirectoryInDataTransferItems,
+    inferFolderUploadLabel,
     runWithConcurrencyLimit,
 } from '@/lib/folder-upload';
 import { cn } from '@/lib/utils';
@@ -101,7 +100,6 @@ export default function AdminFilesIndex({
     const [renameDialogOpen, setRenameDialogOpen] = useState(false);
     const [renameTargetFile, setRenameTargetFile] =
         useState<AdminFileRow | null>(null);
-    const [pageError, setPageError] = useState<string | null>(null);
     const [uploads, setUploads] = useState<FileUploadProgress[]>([]);
     const [draggingFileId, setDraggingFileId] = useState<number | null>(null);
     const [dropTargetFolderId, setDropTargetFolderId] = useState<number | null>(
@@ -127,52 +125,32 @@ export default function AdminFilesIndex({
         return subscribeToFileUploads(setUploads);
     }, []);
 
-    const pageBreadcrumbs: BreadcrumbItem[] = useMemo(
-        () => [
-            { title: 'Admin', href: adminRoutes.files.index() },
+    const pageBreadcrumbs: BreadcrumbItem[] = useMemo(() => {
+        const crumbs: BreadcrumbItem[] = [
             { title: 'Files', href: adminRoutes.files.index() },
-        ],
-        [],
-    );
+        ];
 
-    const buildIndexQuery = useCallback(
-        (folderId: number | null = parentId): Record<string, string | number> => {
-            const query: Record<string, string | number> = {};
-
-            if (folderId !== null) {
-                query.parent_id = folderId;
+        if (!isTrashed) {
+            for (const crumb of initialBreadcrumbs) {
+                crumbs.push({
+                    title: crumb.name,
+                    href: adminRoutes.files.index({
+                        query: { parent_id: crumb.id },
+                    }),
+                });
             }
+        }
 
-            if (isTrashed) {
-                query.trashed = 'only';
-            }
-
-            return query;
-        },
-        [isTrashed, parentId],
-    );
+        return crumbs;
+    }, [initialBreadcrumbs, isTrashed]);
 
     const refreshPage = useCallback(() => {
-        router.get(
-            adminRoutes.files.index({
-                query: buildIndexQuery(),
-            }),
-            {},
-            {
-                preserveState: true,
-                preserveScroll: true,
-                onSuccess: (page) => {
-                    const props = page.props as {
-                        files?: AdminFileRow[];
-                    };
-
-                    if (props.files) {
-                        setFiles(props.files);
-                    }
-                },
-            },
-        );
-    }, [buildIndexQuery]);
+        router.reload({
+            only: ['files'],
+            preserveState: true,
+            preserveScroll: true,
+        });
+    }, []);
 
     const navigateToFolder = (folderId: number | null): void => {
         if (isTrashed) {
@@ -217,61 +195,97 @@ export default function AdminFilesIndex({
         async (
             file: File,
             targetParentId: number | null = parentId,
+            batchContext?: {
+                batchUploadId: string;
+                onFileComplete: () => void;
+                onFileBytesUploaded: (bytes: number) => void;
+            },
         ): Promise<boolean> => {
             const uploadId = createUploadId();
             const totalChunks = Math.max(
                 1,
                 Math.ceil(file.size / CHUNK_SIZE_BYTES),
             );
+            const trackIndividually = !batchContext;
 
-            addFileUpload({
-                uploadId,
-                fileName: file.name,
-                totalChunks,
-                uploadedChunks: 0,
-                status: 'uploading',
-            });
+            if (trackIndividually) {
+                addFileUpload({
+                    uploadId,
+                    fileName: file.name,
+                    kind: 'file',
+                    totalChunks,
+                    uploadedChunks: 0,
+                    status: 'uploading',
+                });
+            }
 
             try {
+                let lastReportedBytes = 0;
+
                 if (file.size > CHUNK_SIZE_BYTES) {
                     await uploadFileChunked(
                         file,
                         targetParentId,
-                        (uploaded, total) => {
-                            updateFileUpload(uploadId, (entry) => ({
-                                ...entry,
-                                uploadedChunks: uploaded,
-                                totalChunks: total,
-                                status: 'uploading',
-                            }));
+                        (uploadedChunks, total, uploadedBytes) => {
+                            const deltaBytes = uploadedBytes - lastReportedBytes;
+                            lastReportedBytes = uploadedBytes;
+
+                            if (trackIndividually) {
+                                updateFileUpload(uploadId, (entry) => ({
+                                    ...entry,
+                                    uploadedChunks,
+                                    totalChunks: total,
+                                    status: 'uploading',
+                                }));
+                            }
+
+                            if (deltaBytes > 0) {
+                                batchContext?.onFileBytesUploaded(deltaBytes);
+                            }
                         },
                     );
                 } else {
                     await uploadFileDirect(file, targetParentId);
+                    batchContext?.onFileBytesUploaded(file.size);
+
+                    if (trackIndividually) {
+                        updateFileUpload(uploadId, (entry) => ({
+                            ...entry,
+                            uploadedChunks: 1,
+                            totalChunks: 1,
+                            status: 'uploading',
+                        }));
+                    }
+                }
+
+                batchContext?.onFileComplete();
+
+                if (trackIndividually) {
                     updateFileUpload(uploadId, (entry) => ({
                         ...entry,
-                        uploadedChunks: 1,
-                        totalChunks: 1,
-                        status: 'uploading',
+                        status: 'complete',
+                        uploadedChunks: entry.totalChunks,
                     }));
                 }
 
-                updateFileUpload(uploadId, (entry) => ({
-                    ...entry,
-                    status: 'complete',
-                    uploadedChunks: entry.totalChunks,
-                }));
-
                 return true;
             } catch (error) {
-                updateFileUpload(uploadId, (entry) => ({
-                    ...entry,
-                    status: 'error',
-                    error:
-                        error instanceof Error
-                            ? error.message
-                            : 'Upload failed',
-                }));
+                const errorMessage =
+                    error instanceof Error ? error.message : 'Upload failed';
+
+                if (batchContext) {
+                    updateFileUpload(batchContext.batchUploadId, (entry) => ({
+                        ...entry,
+                        status: 'error',
+                        error: errorMessage,
+                    }));
+                } else {
+                    updateFileUpload(uploadId, (entry) => ({
+                        ...entry,
+                        status: 'error',
+                        error: errorMessage,
+                    }));
+                }
 
                 return false;
             }
@@ -285,7 +299,31 @@ export default function AdminFilesIndex({
                 return;
             }
 
-            setPageError(null);
+            const isFolderUpload = filesToUpload.some(
+                (entry) => entry.directoryPath.length > 0,
+            );
+            const batchUploadId = isFolderUpload ? createUploadId() : null;
+            const totalBytes = filesToUpload.reduce(
+                (sum, entry) => sum + entry.file.size,
+                0,
+            );
+            let uploadedBytes = 0;
+            let uploadedFiles = 0;
+
+            if (batchUploadId) {
+                addFileUpload({
+                    uploadId: batchUploadId,
+                    fileName: inferFolderUploadLabel(filesToUpload),
+                    kind: 'batch',
+                    totalChunks: filesToUpload.length,
+                    uploadedChunks: 0,
+                    totalFiles: filesToUpload.length,
+                    uploadedFiles: 0,
+                    totalBytes,
+                    uploadedBytes: 0,
+                    status: 'uploading',
+                });
+            }
 
             const directoryPaths = filesToUpload.map(
                 (entry) => entry.directoryPath,
@@ -295,7 +333,12 @@ export default function AdminFilesIndex({
                 parentId,
             );
 
+            if (batchUploadId) {
+                refreshPage();
+            }
+
             let uploadedCount = 0;
+            let hadUploadError = false;
 
             await runWithConcurrencyLimit(
                 filesToUpload.map((entry) => async () => {
@@ -310,13 +353,54 @@ export default function AdminFilesIndex({
                     const uploaded = await enqueueUpload(
                         entry.file,
                         targetParentId,
+                        batchUploadId
+                            ? {
+                                  batchUploadId,
+                                  onFileComplete: () => {
+                                      uploadedFiles += 1;
+                                      updateFileUpload(
+                                          batchUploadId,
+                                          (batchEntry) => ({
+                                              ...batchEntry,
+                                              uploadedFiles,
+                                              uploadedChunks: uploadedFiles,
+                                          }),
+                                      );
+                                  },
+                                  onFileBytesUploaded: (deltaBytes) => {
+                                      uploadedBytes = Math.min(
+                                          totalBytes,
+                                          uploadedBytes + deltaBytes,
+                                      );
+                                      updateFileUpload(
+                                          batchUploadId,
+                                          (batchEntry) => ({
+                                              ...batchEntry,
+                                              uploadedBytes,
+                                          }),
+                                      );
+                                  },
+                              }
+                            : undefined,
                     );
 
                     if (uploaded) {
                         uploadedCount += 1;
+                    } else {
+                        hadUploadError = true;
                     }
                 }),
             );
+
+            if (batchUploadId && !hadUploadError) {
+                updateFileUpload(batchUploadId, (entry) => ({
+                    ...entry,
+                    status: 'complete',
+                    uploadedFiles: filesToUpload.length,
+                    uploadedChunks: filesToUpload.length,
+                    uploadedBytes: totalBytes,
+                }));
+            }
 
             if (uploadedCount > 0) {
                 refreshPage();
@@ -358,7 +442,7 @@ export default function AdminFilesIndex({
                         await uploadFilesWithStructure(filesToUpload);
                     }
                 } catch (error) {
-                    setPageError(
+                    toast.error(
                         error instanceof Error
                             ? error.message
                             : 'Failed to process dropped files',
@@ -382,7 +466,6 @@ export default function AdminFilesIndex({
     };
 
     const handleCreateFolder = async (name: string): Promise<void> => {
-        setPageError(null);
         await createFolder(name, parentId);
         refreshPage();
     };
@@ -396,11 +479,10 @@ export default function AdminFilesIndex({
         }
 
         try {
-            setPageError(null);
             await moveFile(fileId, targetFolderId);
             refreshPage();
         } catch (error) {
-            setPageError(
+            toast.error(
                 error instanceof Error ? error.message : 'Failed to move file',
             );
         }
@@ -421,7 +503,6 @@ export default function AdminFilesIndex({
             return;
         }
 
-        setPageError(null);
         await renameFile(renameTargetFile.id, name);
         refreshPage();
     };
@@ -432,18 +513,80 @@ export default function AdminFilesIndex({
         }
 
         try {
-            setPageError(null);
             await deleteFile(file.id);
             refreshPage();
         } catch (error) {
-            setPageError(
+            toast.error(
                 error instanceof Error ? error.message : 'Failed to delete file',
             );
         }
     };
 
     return (
-        <AppLayout breadcrumbs={pageBreadcrumbs}>
+        <AppLayout
+            breadcrumbs={pageBreadcrumbs}
+            headerActions={
+                <>
+                    {canCreate && !isTrashed && (
+                        <Button
+                            type="button"
+                            onClick={() => setFolderDialogOpen(true)}
+                        >
+                            <FolderPlus className="mr-1 size-4" />
+                            New folder
+                        </Button>
+                    )}
+                    {uploadsEnabled && (
+                        <>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                className="hidden"
+                                onChange={handleUploadInputChange}
+                            />
+                            <input
+                                ref={folderInputRef}
+                                type="file"
+                                multiple
+                                className="hidden"
+                                {...({
+                                    webkitdirectory: '',
+                                } as React.InputHTMLAttributes<HTMLInputElement>)}
+                                onChange={handleUploadInputChange}
+                            />
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button type="button">
+                                        <Upload className="mr-1 size-4" />
+                                        Upload
+                                        <ChevronDown className="ml-1 size-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                        onClick={() =>
+                                            fileInputRef.current?.click()
+                                        }
+                                    >
+                                        <Upload className="size-4" />
+                                        Upload file
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onClick={() =>
+                                            folderInputRef.current?.click()
+                                        }
+                                    >
+                                        <FolderOpen className="size-4" />
+                                        Upload folder
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </>
+                    )}
+                </>
+            }
+        >
             <Head title="Files" />
 
             <FileDropzone
@@ -452,103 +595,9 @@ export default function AdminFilesIndex({
                 onItemsDropped={handleItemsDropped}
                 className="min-h-0 flex-1"
             >
-                <AdminPageLayout
+                <PageLayout
                     className="min-h-0 flex-1"
-                    title="File manager"
-                    icon={FolderOpen}
-                    headerExtra={
-                        !isTrashed ? (
-                            <nav className="text-muted-foreground flex flex-wrap items-center gap-1 text-sm">
-                                <button
-                                    type="button"
-                                    className="hover:text-foreground inline-flex items-center gap-1"
-                                    onClick={() => navigateToFolder(null)}
-                                >
-                                    <Home className="size-3.5" />
-                                    Root
-                                </button>
-                                {initialBreadcrumbs.map((crumb) => (
-                                    <span
-                                        key={crumb.id}
-                                        className="inline-flex items-center gap-1"
-                                    >
-                                        <ChevronRight className="size-3.5" />
-                                        <button
-                                            type="button"
-                                            className="hover:text-foreground"
-                                            onClick={() =>
-                                                navigateToFolder(crumb.id)
-                                            }
-                                        >
-                                            {crumb.name}
-                                        </button>
-                                    </span>
-                                ))}
-                            </nav>
-                        ) : undefined
-                    }
-                    actions={
-                        <>
-                            {canCreate && !isTrashed && (
-                                <Button
-                                    type="button"
-                                    onClick={() => setFolderDialogOpen(true)}
-                                >
-                                    <FolderPlus className="mr-1 size-4" />
-                                    New folder
-                                </Button>
-                            )}
-                            {uploadsEnabled && (
-                                <>
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        multiple
-                                        className="hidden"
-                                        onChange={handleUploadInputChange}
-                                    />
-                                    <input
-                                        ref={folderInputRef}
-                                        type="file"
-                                        multiple
-                                        className="hidden"
-                                        {...({
-                                            webkitdirectory: '',
-                                        } as React.InputHTMLAttributes<HTMLInputElement>)}
-                                        onChange={handleUploadInputChange}
-                                    />
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button type="button">
-                                                <Upload className="mr-1 size-4" />
-                                                Upload
-                                                <ChevronDown className="ml-1 size-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem
-                                                onClick={() =>
-                                                    fileInputRef.current?.click()
-                                                }
-                                            >
-                                                <Upload className="size-4" />
-                                                Upload file
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={() =>
-                                                    folderInputRef.current?.click()
-                                                }
-                                            >
-                                                <FolderOpen className="size-4" />
-                                                Upload folder
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </>
-                            )}
-                        </>
-                    }
-                    filtersLeft={
+                    filters={
                         <DataTableToolbar
                             search={search}
                             onSearchChange={setSearch}
@@ -586,13 +635,6 @@ export default function AdminFilesIndex({
                         </ToggleGroup>
                     }
                 >
-                    {pageError ? (
-                        <Alert variant="destructive">
-                            <AlertTitle>File manager error</AlertTitle>
-                            <AlertDescription>{pageError}</AlertDescription>
-                        </Alert>
-                    ) : null}
-
                     <div className="flex min-h-0 flex-1 flex-col">
                         {filteredFiles.length === 0 && (
                             <div className="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-sidebar-border/70 bg-muted/20 p-8 text-center">
@@ -810,7 +852,7 @@ export default function AdminFilesIndex({
                             </div>
                         )}
                     </div>
-                </AdminPageLayout>
+                </PageLayout>
             </FileDropzone>
 
             <FileNameDialog

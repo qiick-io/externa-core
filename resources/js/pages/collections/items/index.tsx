@@ -1,12 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { List, Rows3 } from 'lucide-react';
+import { Plus, Rows3 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import {
-    AdminPageLayout,
-    AdminPagination,
-    AdminTablePanel,
-} from '@/components/admin/admin-page-layout';
+    PageLayout,
+    TablePagination,
+    TablePanel,
+} from '@/components/layout/page-layout';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import {
     CollectionEditButton,
@@ -99,36 +99,37 @@ export default function ItemsIndex({
     const collectionForm = useCollectionEditDrawer();
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout
+            breadcrumbs={breadcrumbs}
+            headerActions={
+                <>
+                    <CollectionEditButton
+                        collectionForm={collectionForm}
+                        collection={collection}
+                    />
+                    <Button variant="outline" asChild>
+                        <Link
+                            href={FieldController.index.url(collection.id)}
+                        >
+                            <Rows3 className="mr-1 size-4" />
+                            Edit fields
+                        </Link>
+                    </Button>
+                    <Button asChild>
+                        <Link
+                            href={collections.items.new.url(collection.id)}
+                        >
+                            <Plus className="mr-1 size-4" />
+                            New item
+                        </Link>
+                    </Button>
+                </>
+            }
+        >
             <Head title={`Items — ${collection.name}`} />
 
-            <AdminPageLayout
-                title="Items"
-                icon={List}
-                actions={
-                    <>
-                        <CollectionEditButton
-                            collectionForm={collectionForm}
-                            collection={collection}
-                        />
-                        <Button variant="outline" asChild>
-                            <Link
-                                href={FieldController.index.url(collection.id)}
-                            >
-                                <Rows3 className="mr-1 size-4" />
-                                Edit fields
-                            </Link>
-                        </Button>
-                        <Button asChild>
-                            <Link
-                                href={collections.items.new.url(collection.id)}
-                            >
-                                New item
-                            </Link>
-                        </Button>
-                    </>
-                }
-                filtersLeft={
+            <PageLayout
+                filters={
                     <DataTableToolbar
                         search={filterTitle}
                         onSearchChange={setFilterTitle}
@@ -137,11 +138,11 @@ export default function ItemsIndex({
                 }
                 footer={
                     items.last_page > 1 ? (
-                        <AdminPagination links={items.links} />
+                        <TablePagination links={items.links} />
                     ) : undefined
                 }
             >
-                <AdminTablePanel>
+                <TablePanel>
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -187,8 +188,8 @@ export default function ItemsIndex({
                             )}
                         </TableBody>
                     </Table>
-                </AdminTablePanel>
-            </AdminPageLayout>
+                </TablePanel>
+            </PageLayout>
 
             <CollectionEditDrawer collectionForm={collectionForm} />
         </AppLayout>

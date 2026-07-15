@@ -1,10 +1,10 @@
 import { Head, router } from '@inertiajs/react';
-import { Plus, UsersRound } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    AdminPageLayout,
-    AdminTablePanel,
-} from '@/components/admin/admin-page-layout';
+    PageLayout,
+    TablePanel,
+} from '@/components/layout/page-layout';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { GroupFormDrawer } from '@/components/admin/group-form-drawer';
 import { Badge } from '@/components/ui/badge';
@@ -41,10 +41,7 @@ export default function AdminGroupsIndex({
     const [editing, setEditing] = useState<AdminGroupRow | null>(null);
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
-        () => [
-            { title: 'Admin', href: adminRoutes.groups.index() },
-            { title: 'Groups', href: adminRoutes.groups.index() },
-        ],
+        () => [{ title: 'Groups', href: adminRoutes.groups.index() }],
         [],
     );
 
@@ -79,7 +76,17 @@ export default function AdminGroupsIndex({
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout
+            breadcrumbs={breadcrumbs}
+            headerActions={
+                can(PermissionEnum.CanCreateGroups) ? (
+                    <Button type="button" onClick={openCreate}>
+                        <Plus className="mr-1 size-4" />
+                        New group
+                    </Button>
+                ) : undefined
+            }
+        >
             <Head title="User groups" />
 
             <Drawer
@@ -92,18 +99,8 @@ export default function AdminGroupsIndex({
                     }
                 }}
             >
-                <AdminPageLayout
-                    title="User groups"
-                    icon={UsersRound}
-                    actions={
-                        can(PermissionEnum.CanCreateGroups) ? (
-                            <Button type="button" onClick={openCreate}>
-                                <Plus className="mr-1 size-4" />
-                                New group
-                            </Button>
-                        ) : undefined
-                    }
-                    filtersLeft={
+                <PageLayout
+                    filters={
                         <DataTableToolbar
                             search={search}
                             onSearchChange={setSearch}
@@ -135,7 +132,7 @@ export default function AdminGroupsIndex({
                         />
                     }
                 >
-                    <AdminTablePanel>
+                    <TablePanel>
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -237,8 +234,8 @@ export default function AdminGroupsIndex({
                                 )}
                             </TableBody>
                         </Table>
-                    </AdminTablePanel>
-                </AdminPageLayout>
+                    </TablePanel>
+                </PageLayout>
 
                 <GroupFormDrawer
                     editing={editing}

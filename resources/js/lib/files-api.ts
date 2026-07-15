@@ -3,6 +3,14 @@ import { formRequestHeaders, jsonRequestHeaders } from '@/lib/csrf';
 import type { AdminFileRow } from '@/types/files';
 
 export const CHUNK_SIZE_BYTES = 10 * 1024 * 1024;
+export const MAX_CHUNK_RETRIES = 3;
+export const CHUNK_RETRY_BASE_DELAY_MS = 1000;
+
+function sleep(milliseconds: number): Promise<void> {
+    return new Promise((resolve) => {
+        setTimeout(resolve, milliseconds);
+    });
+}
 
 export function filePublicUrl(file: AdminFileRow): string | null {
     if (!file.storage_path || file.type !== 'file') {
@@ -198,10 +206,69 @@ export async function forceDeleteFile(fileId: number): Promise<void> {
     await assertOkResponse(response, 'Failed to permanently delete file');
 }
 
+async function uploadChunkWithRetry(
+    uploadId: string,
+    chunkIndex: number,
+    chunkBlob: Blob,
+    fileName: string,
+): Promise<void> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= MAX_CHUNK_RETRIES; attempt += 1) {
+        const formData = new FormData();
+        formData.append('upload_id', uploadId);
+        formData.append('chunk_index', String(chunkIndex));
+        formData.append('chunk', chunkBlob, `${fileName}.part${chunkIndex}`);
+
+        try {
+            const chunkResponse = await request(
+                adminRoutes.files.uploadsChunk(),
+                {
+                    method: 'POST',
+                    headers: formRequestHeaders(),
+                    credentials: 'same-origin',
+                    body: formData,
+                },
+                `Failed to upload chunk ${chunkIndex + 1}`,
+            );
+
+            if (chunkResponse.ok) {
+                return;
+            }
+
+            lastError = new Error(
+                await parseResponseError(
+                    chunkResponse,
+                    `Failed to upload chunk ${chunkIndex + 1}`,
+                ),
+            );
+        } catch (error) {
+            lastError =
+                error instanceof Error
+                    ? error
+                    : new Error(`Failed to upload chunk ${chunkIndex + 1}`);
+        }
+
+        if (attempt < MAX_CHUNK_RETRIES) {
+            await sleep(CHUNK_RETRY_BASE_DELAY_MS * (attempt + 1));
+        }
+    }
+
+    throw (
+        lastError ??
+        new Error(`Failed to upload chunk ${chunkIndex + 1} after retries`)
+    );
+}
+
 export async function uploadFileChunked(
     file: File,
     parentId: number | null,
-    onProgress?: (uploadedChunks: number, totalChunks: number) => void,
+    onProgress?: (
+        uploadedChunks: number,
+        totalChunks: number,
+        uploadedBytes: number,
+        totalBytes: number,
+    ) => void,
 ): Promise<AdminFileRow> {
     const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE_BYTES));
 
@@ -233,32 +300,9 @@ export async function uploadFileChunked(
         const end = Math.min(start + CHUNK_SIZE_BYTES, file.size);
         const chunkBlob = file.slice(start, end);
 
-        const formData = new FormData();
-        formData.append('upload_id', uploadId);
-        formData.append('chunk_index', String(chunkIndex));
-        formData.append('chunk', chunkBlob, `${file.name}.part${chunkIndex}`);
+        await uploadChunkWithRetry(uploadId, chunkIndex, chunkBlob, file.name);
 
-        const chunkResponse = await request(
-            adminRoutes.files.uploadsChunk(),
-            {
-                method: 'POST',
-                headers: formRequestHeaders(),
-                credentials: 'same-origin',
-                body: formData,
-            },
-            `Failed to upload chunk ${chunkIndex + 1}`,
-        );
-
-        if (!chunkResponse.ok) {
-            throw new Error(
-                await parseResponseError(
-                    chunkResponse,
-                    `Failed to upload chunk ${chunkIndex + 1}`,
-                ),
-            );
-        }
-
-        onProgress?.(chunkIndex + 1, totalChunks);
+        onProgress?.(chunkIndex + 1, totalChunks, end, file.size);
     }
 
     const completeResponse = await request(

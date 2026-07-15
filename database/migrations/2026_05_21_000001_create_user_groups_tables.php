@@ -11,19 +11,11 @@ return new class extends Migration
         Schema::create('user_groups', function (Blueprint $table) {
             $table->id();
 
-            $table->unsignedBigInteger('created_by')->nullable();
-            $table->unsignedBigInteger('updated_by')->nullable();
-            $table->unsignedBigInteger('deleted_by')->nullable();
-
             $table->string('name')->unique();
             $table->text('description')->nullable();
 
             $table->timestamps();
             $table->softDeletes();
-
-            $table->foreign('created_by')->references('id')->on('users');
-            $table->foreign('updated_by')->references('id')->on('users');
-            $table->foreign('deleted_by')->references('id')->on('users');
         });
 
         Schema::create('user_group_user', function (Blueprint $table) {

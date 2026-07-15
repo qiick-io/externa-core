@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\FileController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
@@ -102,6 +103,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('permissions/sync', [PermissionController::class, 'sync'])
         ->middleware('permission:'.PermissionEnum::CanEditPermissions->value)
         ->name('permissions.sync');
+
+    Route::get('activity-logs', [ActivityLogController::class, 'index'])
+        ->middleware('permission:'.PermissionEnum::CanShowActivityLogs->value)
+        ->name('activity-logs.index');
 
     Route::middleware('can.manage.files')->group(function () {
         Route::get('files', [FileController::class, 'index'])->name('files.index');

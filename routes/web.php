@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\PermissionEnum;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -9,9 +11,12 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])
+        ->middleware('permission:'.PermissionEnum::CanShowDashboard->value)
+        ->name('dashboard');
 });
 
 require __DIR__.'/admin.php';
 require __DIR__.'/settings.php';
 require __DIR__.'/collections.php';
+require __DIR__.'/ai.php';

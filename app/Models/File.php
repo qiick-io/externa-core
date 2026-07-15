@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsApplicationActivity;
 use App\Enums\FileTypeEnum;
-use App\Traits\HasActivityLog;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -38,7 +38,7 @@ use Illuminate\Support\Str;
  */
 class File extends Model
 {
-    use HasActivityLog;
+    use LogsApplicationActivity;
     use SoftDeletes;
 
     protected $table = 'files';

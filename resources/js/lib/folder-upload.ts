@@ -204,6 +204,28 @@ export async function ensureAllFolderPaths(
     return folderIdByPath;
 }
 
+export function inferFolderUploadLabel(
+    filesToUpload: FileWithDirectoryPath[],
+): string {
+    const directoryPaths = filesToUpload
+        .map((entry) => entry.directoryPath)
+        .filter((directoryPath) => directoryPath.length > 0);
+
+    if (directoryPaths.length === 0) {
+        return `${filesToUpload.length} files`;
+    }
+
+    const rootFolderNames = new Set(
+        directoryPaths.map((directoryPath) => directoryPath.split('/')[0]),
+    );
+
+    if (rootFolderNames.size === 1) {
+        return [...rootFolderNames][0];
+    }
+
+    return `${filesToUpload.length} files`;
+}
+
 export async function runWithConcurrencyLimit(
     tasks: Array<() => Promise<void>>,
     limit: number = MAX_CONCURRENT_UPLOADS,

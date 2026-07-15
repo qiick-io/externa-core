@@ -56,30 +56,24 @@ class FileService
             return DB::transaction(function () use ($parentId, $disk, $fileName, $mimeType, $size, $width, $height, $meta, $storedPath, $fileHash) {
                 $version = $this->resolveOrCreateVersion($disk, $storedPath, $fileHash, $mimeType, $size, $width, $height, $meta);
 
-                $file = File::query()->firstOrCreate(
-                    [
-                        'parent_id' => $parentId,
-                        'name' => $fileName,
-                        'type' => FileTypeEnum::File,
-                    ],
-                    [
-                        'path' => '/'.$fileName,
-                        'disk' => $version->disk,
-                        'storage_path' => $version->storage_path,
-                        'mime_type' => $mimeType,
-                        'extension' => pathinfo($fileName, PATHINFO_EXTENSION) ?: null,
-                        'size' => $size,
-                        'width' => $width,
-                        'height' => $height,
-                        'meta' => $meta,
-                        'hash' => $fileHash,
-                    ]
-                );
+                $file = File::query()->create([
+                    'parent_id' => $parentId,
+                    'name' => $fileName,
+                    'type' => FileTypeEnum::File,
+                    'path' => '/'.$fileName,
+                    'disk' => $version->disk,
+                    'storage_path' => $version->storage_path,
+                    'mime_type' => $mimeType,
+                    'extension' => pathinfo($fileName, PATHINFO_EXTENSION) ?: null,
+                    'size' => $size,
+                    'width' => $width,
+                    'height' => $height,
+                    'meta' => $meta,
+                    'hash' => $fileHash,
+                ]);
 
-                if ($version->file_id !== $file->id) {
-                    $version->file_id = $file->id;
-                    $version->save();
-                }
+                $version->file_id = $file->id;
+                $version->save();
 
                 $file->current_version_id = $version->id;
                 $file->path = $this->calculatePath($file);
@@ -172,57 +166,17 @@ class FileService
 
     public function rename(File $file, string $newName): File
     {
-        $oldStoragePath = $file->storage_path;
-        $newStoragePath = null;
-        $fileRenamed = false;
+        return DB::transaction(function () use ($file, $newName) {
+            $file->name = $newName;
+            $file->path = $this->calculatePath($file);
+            $file->save();
 
-        try {
-            if ($file->isFile() && $file->storage_path) {
-                $storage = Storage::disk($file->disk);
-                $directory = dirname($file->storage_path);
-                $extension = pathinfo($file->storage_path, PATHINFO_EXTENSION);
-                $newStoragePath = $directory.'/'.pathinfo($newName, PATHINFO_FILENAME).($extension ? '.'.$extension : '');
-
-                if ($oldStoragePath !== $newStoragePath && $storage->exists($oldStoragePath)) {
-                    $storage->move($oldStoragePath, $newStoragePath);
-                    $fileRenamed = true;
-                }
+            if ($file->isFolder()) {
+                $this->updateChildrenPaths($file);
             }
 
-            return DB::transaction(function () use ($file, $newName, $newStoragePath, $fileRenamed) {
-                $siblingExists = File::query()
-                    ->where('parent_id', $file->parent_id)
-                    ->where('name', $newName)
-                    ->where('id', '!=', $file->id)
-                    ->exists();
-
-                if ($siblingExists) {
-                    throw new \InvalidArgumentException("A file or folder with name '{$newName}' already exists in this location.");
-                }
-
-                $file->name = $newName;
-                if ($fileRenamed) {
-                    $file->storage_path = $newStoragePath;
-                }
-                $file->path = $this->calculatePath($file);
-                $file->save();
-
-                if ($file->isFolder()) {
-                    $this->updateChildrenPaths($file);
-                }
-
-                return $file->fresh();
-            });
-        } catch (\Throwable $e) {
-            if ($fileRenamed && $oldStoragePath && $newStoragePath) {
-                $storage = Storage::disk($file->disk);
-                if ($storage->exists($newStoragePath)) {
-                    $storage->move($newStoragePath, $oldStoragePath);
-                }
-            }
-
-            throw $e;
-        }
+            return $file->fresh();
+        });
     }
 
     public function softDelete(File $file): void
@@ -424,30 +378,24 @@ class FileService
             );
 
             $file = DB::transaction(function () use ($fileUpload, $fileHash, $width, $height, $meta, $version) {
-                $file = File::query()->firstOrCreate(
-                    [
-                        'parent_id' => $fileUpload->parent_id,
-                        'name' => $fileUpload->file_name,
-                        'type' => FileTypeEnum::File,
-                    ],
-                    [
-                        'path' => '/'.$fileUpload->file_name,
-                        'disk' => $version->disk,
-                        'storage_path' => $version->storage_path,
-                        'mime_type' => $fileUpload->mime_type,
-                        'extension' => pathinfo($fileUpload->file_name, PATHINFO_EXTENSION) ?: null,
-                        'size' => $fileUpload->total_size,
-                        'width' => $width,
-                        'height' => $height,
-                        'meta' => $meta,
-                        'hash' => $fileHash,
-                    ]
-                );
+                $file = File::query()->create([
+                    'parent_id' => $fileUpload->parent_id,
+                    'name' => $fileUpload->file_name,
+                    'type' => FileTypeEnum::File,
+                    'path' => '/'.$fileUpload->file_name,
+                    'disk' => $version->disk,
+                    'storage_path' => $version->storage_path,
+                    'mime_type' => $fileUpload->mime_type,
+                    'extension' => pathinfo($fileUpload->file_name, PATHINFO_EXTENSION) ?: null,
+                    'size' => $fileUpload->total_size,
+                    'width' => $width,
+                    'height' => $height,
+                    'meta' => $meta,
+                    'hash' => $fileHash,
+                ]);
 
-                if ($version->file_id !== $file->id) {
-                    $version->file_id = $file->id;
-                    $version->save();
-                }
+                $version->file_id = $file->id;
+                $version->save();
 
                 $file->current_version_id = $version->id;
                 $file->path = $this->calculatePath($file);
@@ -491,6 +439,25 @@ class FileService
             'uploaded_chunk_indices' => array_keys($chunksInfo),
             'expires_at' => $fileUpload->expires_at->toIso8601String(),
         ];
+    }
+
+    public function cleanupStaleUploads(?Carbon $before = null): int
+    {
+        $before ??= now();
+
+        $staleUploads = FileUpload::query()
+            ->where('expires_at', '<', $before)
+            ->get();
+
+        $cleanedCount = 0;
+
+        foreach ($staleUploads as $fileUpload) {
+            $this->cleanupChunks($fileUpload->upload_id, $fileUpload->disk);
+            $fileUpload->delete();
+            $cleanedCount++;
+        }
+
+        return $cleanedCount;
     }
 
     public function calculatePath(File $file): string

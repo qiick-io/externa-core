@@ -39,7 +39,6 @@ export default function AdminRoleForm({
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [
-            { title: 'Admin', href: adminRoutes.roles.index() },
             { title: 'Roles', href: adminRoutes.roles.index() },
             {
                 title: isEdit ? 'Edit role' : 'New role',

@@ -1,10 +1,10 @@
 import { Head, router } from '@inertiajs/react';
-import { RefreshCw, ShieldCheck } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useMemo } from 'react';
 import {
-    AdminPageLayout,
-    AdminTablePanel,
-} from '@/components/admin/admin-page-layout';
+    PageLayout,
+    TablePanel,
+} from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import {
     Table,
@@ -33,7 +33,6 @@ export default function AdminPermissionsIndex({
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [
-            { title: 'Admin', href: adminRoutes.permissions.index() },
             {
                 title: 'Permissions',
                 href: adminRoutes.permissions.index(),
@@ -51,12 +50,20 @@ export default function AdminPermissionsIndex({
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout
+            breadcrumbs={breadcrumbs}
+            headerActions={
+                can(PermissionEnum.CanEditPermissions) ? (
+                    <Button type="button" onClick={sync}>
+                        <RefreshCw className="mr-1 size-4" />
+                        Sync from enum
+                    </Button>
+                ) : undefined
+            }
+        >
             <Head title="Permissions" />
 
-            <AdminPageLayout
-                title="Permissions"
-                icon={ShieldCheck}
+            <PageLayout
                 description={
                     <>
                         Permissions are defined in{' '}
@@ -65,16 +72,8 @@ export default function AdminPermissionsIndex({
                         edit page.
                     </>
                 }
-                actions={
-                    can(PermissionEnum.CanEditPermissions) ? (
-                        <Button type="button" onClick={sync}>
-                            <RefreshCw className="mr-1 size-4" />
-                            Sync from enum
-                        </Button>
-                    ) : undefined
-                }
             >
-                <AdminTablePanel>
+                <TablePanel>
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -106,8 +105,8 @@ export default function AdminPermissionsIndex({
                             )}
                         </TableBody>
                     </Table>
-                </AdminTablePanel>
-            </AdminPageLayout>
+                </TablePanel>
+            </PageLayout>
         </AppLayout>
     );
 }

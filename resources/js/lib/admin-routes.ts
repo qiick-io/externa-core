@@ -62,6 +62,10 @@ const adminRoutes = {
         index: (options?: RouteQueryOptions) => url('/permissions', options),
         sync: () => url('/permissions/sync'),
     },
+    activityLogs: {
+        index: (options?: RouteQueryOptions) =>
+            url('/activity-logs', options),
+    },
     files: {
         index: (options?: RouteQueryOptions) => url('/files', options),
         list: (options?: RouteQueryOptions) => url('/files/list', options),

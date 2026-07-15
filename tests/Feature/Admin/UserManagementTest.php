@@ -131,16 +131,8 @@ test('authorized users can soft delete restore force delete and bulk manage user
     ]);
     $this->actingAs($actor);
 
-    $victim = User::factory()->create([
-        'created_by' => null,
-        'updated_by' => null,
-        'deleted_by' => null,
-    ]);
-    $bulk = User::factory()->count(2)->create([
-        'created_by' => null,
-        'updated_by' => null,
-        'deleted_by' => null,
-    ]);
+    $victim = User::factory()->create();
+    $bulk = User::factory()->count(2)->create();
 
     $this->delete(route('users.destroy', $victim))
         ->assertRedirect(route('users.index'));

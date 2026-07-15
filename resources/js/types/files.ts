@@ -27,8 +27,13 @@ export type FileBreadcrumb = {
 export type FileUploadProgress = {
     uploadId: string;
     fileName: string;
+    kind?: 'file' | 'batch';
     totalChunks: number;
     uploadedChunks: number;
+    totalFiles?: number;
+    uploadedFiles?: number;
+    totalBytes?: number;
+    uploadedBytes?: number;
     status: 'pending' | 'uploading' | 'complete' | 'error';
     error?: string;
 };

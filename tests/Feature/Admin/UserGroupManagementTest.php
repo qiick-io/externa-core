@@ -50,8 +50,8 @@ test('authorized users can list groups with search and pagination', function () 
     grantGroupPermissions($user, [PermissionEnum::CanShowGroups]);
     $this->actingAs($user);
 
-    UserGroup::factory()->create(['name' => 'Editors', 'created_by' => $user->id]);
-    UserGroup::factory()->create(['name' => 'Support team', 'created_by' => $user->id]);
+    UserGroup::factory()->create(['name' => 'Editors']);
+    UserGroup::factory()->create(['name' => 'Support team']);
 
     $this->get(route('groups.index', ['search' => 'editor']))
         ->assertOk()
@@ -113,7 +113,7 @@ test('authorized users can bulk delete groups', function () {
     ]);
     $this->actingAs($user);
 
-    $groups = UserGroup::factory()->count(2)->create(['created_by' => $user->id]);
+    $groups = UserGroup::factory()->count(2)->create();
 
     $this->delete(route('groups.bulk-destroy'), [
         'ids' => $groups->pluck('id')->all(),

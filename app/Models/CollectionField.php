@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsApplicationActivity;
 use App\Enums\FieldTypeEnum;
 use Database\Factories\CollectionFieldFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,7 +25,7 @@ use Spatie\EloquentSortable\SortableTrait;
 class CollectionField extends Model implements Sortable
 {
     /** @use HasFactory<CollectionFieldFactory> */
-    use HasFactory;
+    use HasFactory, LogsApplicationActivity;
 
     use SortableTrait;
 

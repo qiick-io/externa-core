@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsApplicationActivity;
 use Database\Factories\CollectionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -19,7 +20,7 @@ use Spatie\EloquentSortable\SortableTrait;
 class Collection extends Model implements Sortable
 {
     /** @use HasFactory<CollectionFactory> */
-    use HasFactory;
+    use HasFactory, LogsApplicationActivity;
 
     use SortableTrait;
 

@@ -28,11 +28,36 @@ function uploadProgressPercent(upload: FileUploadProgress): number {
         return 100;
     }
 
+    if (upload.kind === 'batch' && upload.totalBytes && upload.totalBytes > 0) {
+        return Math.round(
+            ((upload.uploadedBytes ?? 0) / upload.totalBytes) * 100,
+        );
+    }
+
     if (upload.totalChunks <= 0) {
         return 0;
     }
 
     return Math.round((upload.uploadedChunks / upload.totalChunks) * 100);
+}
+
+function uploadStatusLabel(upload: FileUploadProgress): string {
+    if (upload.status === 'error') {
+        return upload.error ?? 'Upload failed';
+    }
+
+    if (upload.status === 'complete') {
+        return 'Complete';
+    }
+
+    if (upload.kind === 'batch' && upload.totalFiles) {
+        const progress = uploadProgressPercent(upload);
+        const uploadedFiles = upload.uploadedFiles ?? 0;
+
+        return `${progress}% · ${uploadedFiles}/${upload.totalFiles} files`;
+    }
+
+    return `${uploadProgressPercent(upload)}%`;
 }
 
 function buildSummaryLabel(uploads: FileUploadProgress[]): string {
@@ -178,13 +203,7 @@ export function FileUploadIndicator({
                                                             : 'text-muted-foreground',
                                                     )}
                                                 >
-                                                    {upload.status === 'error'
-                                                        ? (upload.error ??
-                                                          'Upload failed')
-                                                        : upload.status ===
-                                                            'complete'
-                                                          ? 'Complete'
-                                                          : `${progress}%`}
+                                                    {uploadStatusLabel(upload)}
                                                 </p>
                                             </div>
                                             {upload.status === 'complete' && (
