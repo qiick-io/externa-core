@@ -20,6 +20,7 @@ return new class extends Migration
             $table->boolean('is_singleton')->default(false); // Single record collection flag
             $table->unsignedInteger('sort_order')->default(0); // Sort order for UI or queries
             $table->timestamps(); // created_at, updated_at
+            $table->softDeletes();
         });
 
         // On PostgreSQL, add an explicit index for sort_order
@@ -60,6 +61,7 @@ return new class extends Migration
                 ->constrained('collections')
                 ->cascadeOnDelete();
             $table->timestamps(); // created_at, updated_at
+            $table->softDeletes();
         });
 
         // On PostgreSQL, add an index for fast lookup by collection_id

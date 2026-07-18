@@ -7,10 +7,12 @@ use App\Enums\FileTypeEnum;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Spatie\Tags\HasTags;
 
 /**
  * @property int $id
@@ -18,6 +20,10 @@ use Illuminate\Support\Str;
  * @property int|null $parent_id
  * @property FileTypeEnum $type
  * @property string $name
+ * @property string|null $title
+ * @property string|null $description
+ * @property string|null $location
+ * @property string|null $download_name
  * @property string $path
  * @property string $disk
  * @property string|null $storage_path
@@ -28,6 +34,11 @@ use Illuminate\Support\Str;
  * @property int|null $width
  * @property int|null $height
  * @property array<string, mixed>|null $meta
+ * @property float|null $focal_point_x
+ * @property float|null $focal_point_y
+ * @property float|null $translate_x
+ * @property float|null $translate_y
+ * @property float|null $scale
  * @property int|null $current_version_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -35,9 +46,11 @@ use Illuminate\Support\Str;
  * @property-read File|null $parent
  * @property-read Collection<int, File> $children
  * @property-read FileVersion|null $currentVersion
+ * @property-read bool|null $is_favorited
  */
 class File extends Model
 {
+    use HasTags;
     use LogsApplicationActivity;
     use SoftDeletes;
 
@@ -56,6 +69,10 @@ class File extends Model
         'parent_id',
         'type',
         'name',
+        'title',
+        'description',
+        'location',
+        'download_name',
         'path',
         'disk',
         'storage_path',
@@ -134,6 +151,14 @@ class File extends Model
         return $this->belongsTo(FileVersion::class, 'current_version_id');
     }
 
+    /**
+     * @return BelongsToMany<User, $this>
+     */
+    public function favoritedBy(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'file_favorites')->withTimestamps();
+    }
+
     public function isFolder(): bool
     {
         return $this->type === FileTypeEnum::Folder;
@@ -142,6 +167,11 @@ class File extends Model
     public function isFile(): bool
     {
         return $this->type === FileTypeEnum::File;
+    }
+
+    public function downloadFilename(): string
+    {
+        return $this->download_name ?: $this->name;
     }
 
     public function calculatePath(): string

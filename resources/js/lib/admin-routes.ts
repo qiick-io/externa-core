@@ -67,10 +67,62 @@ const adminRoutes = {
             url('/activity-logs', options),
     },
     files: {
-        index: (options?: RouteQueryOptions) => url('/files', options),
+        index: (
+            folderOrOptions?: number | { folder: number } | RouteQueryOptions | null,
+            options?: RouteQueryOptions,
+        ) => {
+            if (typeof folderOrOptions === 'number') {
+                return url(`/files/${folderOrOptions}`, options);
+            }
+
+            if (
+                folderOrOptions &&
+                typeof folderOrOptions === 'object' &&
+                'folder' in folderOrOptions &&
+                folderOrOptions.folder != null
+            ) {
+                const { folder, ...routeOptions } = folderOrOptions as {
+                    folder: number;
+                } & RouteQueryOptions;
+
+                return url(
+                    `/files/${folder}`,
+                    Object.keys(routeOptions).length > 0
+                        ? routeOptions
+                        : options,
+                );
+            }
+
+            return url(
+                '/files',
+                (folderOrOptions as RouteQueryOptions | undefined) ?? options,
+            );
+        },
         list: (options?: RouteQueryOptions) => url('/files/list', options),
+        tagsCatalog: () => url('/files/tags'),
         createFolder: () => url('/files/folders'),
         upload: () => url('/files/upload'),
+        bulk: () => url('/files/bulk'),
+        downloadMany: () => url('/files/download'),
+        downloadZip: (jobId: string) => url(`/files/zips/${jobId}`),
+        update: (file: number | { file: number }) =>
+            url(`/files/${typeof file === 'number' ? file : file.file}`),
+        replace: (file: number | { file: number }) =>
+            url(
+                `/files/${typeof file === 'number' ? file : file.file}/replace`,
+            ),
+        copy: (file: number | { file: number }) =>
+            url(`/files/${typeof file === 'number' ? file : file.file}/copy`),
+        favorite: (file: number | { file: number }) =>
+            url(
+                `/files/${typeof file === 'number' ? file : file.file}/favorite`,
+            ),
+        tags: (file: number | { file: number }) =>
+            url(`/files/${typeof file === 'number' ? file : file.file}/tags`),
+        download: (file: number | { file: number }) =>
+            url(
+                `/files/${typeof file === 'number' ? file : file.file}/download`,
+            ),
         move: (file: number | { file: number }) =>
             url(
                 `/files/${typeof file === 'number' ? file : file.file}/move`,

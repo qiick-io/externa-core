@@ -1305,3 +1305,108 @@ test('tag field lowercase and alphabetize settings are applied on save', functio
     $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
     expect($assembled['keywords'])->toBe(['alpha', 'beta']);
 });
+
+test('deleting a collection soft deletes it and its items from the active index', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+    $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
+
+    $this->delete(route('collections.destroy', $collection))
+        ->assertRedirect(route('collections.index'));
+
+    $this->assertSoftDeleted($collection);
+    $this->assertSoftDeleted($item);
+
+    $this->get(route('collections.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('collections/collections/index')
+            ->has('collections', 0)
+            ->where('filters.trashed', false));
+});
+
+test('trashed collections filter only shows soft deleted collections', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    Collection::factory()->create();
+    $trashedCollection = Collection::factory()->create();
+    $trashedCollection->delete();
+
+    $this->get(route('collections.index', ['trashed' => 1]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('collections/collections/index')
+            ->has('collections', 1)
+            ->where('collections.0.id', $trashedCollection->id)
+            ->where('filters.trashed', true));
+});
+
+test('restoring a collection restores its soft deleted items', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+    $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
+    $collection->delete();
+
+    $this->post(route('collections.restore', $collection))
+        ->assertRedirect(route('collections.index', ['trashed' => 1]));
+
+    expect($collection->fresh())->not->toBeNull()
+        ->and($item->fresh())->not->toBeNull();
+});
+
+test('force deleting a collection permanently removes it and its items', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+    $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
+    $collection->delete();
+
+    $this->delete(route('collections.force-delete', $collection))
+        ->assertRedirect(route('collections.index', ['trashed' => 1]));
+
+    expect(Collection::query()->withTrashed()->find($collection->id))->toBeNull()
+        ->and(CollectionItem::query()->withTrashed()->find($item->id))->toBeNull();
+});
+
+test('collection items can be restored and force deleted', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+    $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
+    $item->delete();
+
+    $this->get(route('collections.items.index', [
+        'collection' => $collection,
+        'trashed' => 1,
+    ]))->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('collections/items/index')
+            ->has('items.data', 1)
+            ->where('items.data.0.id', $item->id)
+            ->where('filters.trashed', true));
+
+    $this->post(route('collections.items.restore', [$collection, $item]))
+        ->assertRedirect(route('collections.items.index', [
+            'collection' => $collection,
+            'trashed' => 1,
+        ]));
+
+    expect($item->fresh())->not->toBeNull();
+
+    $item->delete();
+
+    $this->delete(route('collections.items.force-delete', [$collection, $item]))
+        ->assertRedirect(route('collections.items.index', [
+            'collection' => $collection,
+            'trashed' => 1,
+        ]));
+
+    expect(CollectionItem::query()->withTrashed()->find($item->id))->toBeNull();
+});

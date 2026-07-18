@@ -58,7 +58,9 @@ class ItemController extends Controller
             }
         }
 
+        $trashed = $request->boolean('trashed');
         $query = CollectionItem::query()
+            ->when($trashed, fn ($query) => $query->onlyTrashed())
             ->where('collection_id', $collection->id)
             ->with(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
         $this->itemQueryService->applyFilters($query, $collection, $stringFilters);
@@ -71,7 +73,10 @@ class ItemController extends Controller
         return Inertia::render('collections/items/index', [
             'collection' => $collection,
             'items' => $paginator,
-            'filters' => $stringFilters,
+            'filters' => [
+                ...$stringFilters,
+                'trashed' => $trashed,
+            ],
         ]);
     }
 
@@ -178,6 +183,30 @@ class ItemController extends Controller
 
         return redirect()->route('collections.items.index', $collection)
             ->with('success', __('Item deleted.'));
+    }
+
+    public function restore(Collection $collection, CollectionItem $item): RedirectResponse
+    {
+        $this->assertItemBelongsToCollection($collection, $item);
+
+        $item->restore();
+
+        return redirect()->route('collections.items.index', [
+            'collection' => $collection,
+            'trashed' => 1,
+        ])->with('success', __('Item restored.'));
+    }
+
+    public function forceDelete(Collection $collection, CollectionItem $item): RedirectResponse
+    {
+        $this->assertItemBelongsToCollection($collection, $item);
+
+        $item->forceDelete();
+
+        return redirect()->route('collections.items.index', [
+            'collection' => $collection,
+            'trashed' => 1,
+        ])->with('success', __('Item permanently deleted.'));
     }
 
     public function options(Request $request, Collection $collection): JsonResponse

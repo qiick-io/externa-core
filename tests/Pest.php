@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /*
@@ -17,6 +19,10 @@ use Tests\TestCase;
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
+
+pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
+    ->in('Browser');
 
 pest()->extend(TestCase::class)
     ->in('Unit');
@@ -47,7 +53,14 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function grantAiPermissions(User $user, array $permissions): User
 {
-    // ..
+    $role = Role::query()->firstOrCreate([
+        'name' => 'test-ai-'.uniqid(),
+        'guard_name' => config('auth.defaults.guard', 'web'),
+    ]);
+    $role->syncPermissions($permissions);
+    $user->syncRoles([$role]);
+
+    return $user;
 }

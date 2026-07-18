@@ -1,6 +1,9 @@
 import { Link, usePage } from '@inertiajs/react';
-import { RefreshCw, Sparkles, Square } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Paperclip, RefreshCw, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer';
+import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
+import { AiComposer } from '@/components/ai/ai-composer';
 import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
 import { ThinkingDots } from '@/components/ai/thinking-dots';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
@@ -14,7 +17,6 @@ import {
     DrawerHeader,
     DrawerTitle,
 } from '@/components/ui/drawer';
-import { Input } from '@/components/ui/input';
 import { Message, MessageContent } from '@/components/ui/message';
 import {
     Tooltip,
@@ -23,8 +25,20 @@ import {
 } from '@/components/ui/tooltip';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
-import { fetchAiStatus, streamAiChat } from '@/lib/ai-chat';
-import type { AiStatus } from '@/lib/ai-chat';
+import {
+    AI_CHAT_ATTACHMENT_ACCEPT,
+    AI_CHAT_ATTACHMENT_MAX_COUNT,
+    fetchAiStatus,
+    getSpeechRecognitionConstructor,
+    isAbortError,
+    pickAiChatAttachmentFiles,
+    stopSpeaking,
+    streamAiChat,
+    truncateLastUserMessageIfMatches,
+    uploadAiAttachment,
+    type AiChatAttachment,
+    type AiStatus,
+} from '@/lib/ai-chat';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { index as aiIndex } from '@/routes/ai';
@@ -34,6 +48,14 @@ type ChatLine = {
     role: 'user' | 'assistant';
     content: string;
     isError?: boolean;
+    attachments?: AiChatAttachment[];
+};
+
+type InFlightTurn = {
+    prompt: string;
+    attachments: AiChatAttachment[];
+    userMessageId: string;
+    assistantMessageId: string;
 };
 
 export function AiFab() {
@@ -44,13 +66,30 @@ export function AiFab() {
         page.url === '/ai' || page.url.startsWith('/ai/') || page.url.startsWith('/ai?');
 
     const [open, setOpen] = useState(false);
+    const [presetsOpen, setPresetsOpen] = useState(false);
     const [status, setStatus] = useState<AiStatus>({ online: false });
     const [composer, setComposer] = useState('');
     const [isStreaming, setIsStreaming] = useState(false);
     const [toolHint, setToolHint] = useState<string | null>(null);
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [messages, setMessages] = useState<ChatLine[]>([]);
+    const [pendingAttachments, setPendingAttachments] = useState<
+        AiChatAttachment[]
+    >([]);
+    const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+    const [speechSupported] = useState(
+        () => getSpeechRecognitionConstructor() !== null,
+    );
     const abortControllerRef = useRef<AbortController | null>(null);
+    const conversationIdRef = useRef<string | null>(null);
+    const inFlightTurnRef = useRef<InFlightTurn | null>(null);
+    const recognitionRef = useRef<SpeechRecognition | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    useEffect(() => {
+        conversationIdRef.current = conversationId;
+    }, [conversationId]);
 
     useEffect(() => {
         if (!canUseAi) {
@@ -81,6 +120,8 @@ export function AiFab() {
         return () => {
             cancelled = true;
             abortControllerRef.current?.abort();
+            recognitionRef.current?.abort();
+            stopSpeaking();
             window.removeEventListener('focus', onFocus);
             window.clearInterval(intervalId);
         };
@@ -93,10 +134,49 @@ export function AiFab() {
     const offline = !status.online;
 
     const handleStop = () => {
-        abortControllerRef.current?.abort();
-        abortControllerRef.current = null;
+        const inFlightTurn = inFlightTurnRef.current;
+        const abortController = abortControllerRef.current;
+
         setIsStreaming(false);
         setToolHint(null);
+
+        abortController?.abort();
+        abortControllerRef.current = null;
+
+        if (!inFlightTurn) {
+            setMessages((current) =>
+                current.filter(
+                    (entry) =>
+                        !(
+                            entry.role === 'assistant' &&
+                            entry.content.trim() === '' &&
+                            !entry.isError
+                        ),
+                ),
+            );
+
+            return;
+        }
+
+        inFlightTurnRef.current = null;
+        setComposer(inFlightTurn.prompt);
+        setPendingAttachments(inFlightTurn.attachments);
+        setMessages((current) =>
+            current.filter(
+                (entry) =>
+                    entry.id !== inFlightTurn.userMessageId &&
+                    entry.id !== inFlightTurn.assistantMessageId,
+            ),
+        );
+
+        const conversationIdToTruncate = conversationIdRef.current;
+
+        if (conversationIdToTruncate) {
+            void truncateLastUserMessageIfMatches(
+                conversationIdToTruncate,
+                inFlightTurn.prompt,
+            );
+        }
     };
 
     const findPrecedingUserMessage = (
@@ -122,51 +202,98 @@ export function AiFab() {
     const runStream = async (
         message: string,
         baseMessages: ChatLine[],
+        attachments: AiChatAttachment[] = [],
     ): Promise<boolean> => {
+        const userMessageId = `user-${Date.now()}`;
         const assistantId = `assistant-${Date.now()}`;
         let completed = false;
 
+        inFlightTurnRef.current = {
+            prompt: message,
+            attachments,
+            userMessageId,
+            assistantMessageId: assistantId,
+        };
+
         setMessages([
             ...baseMessages,
-            { id: `user-${Date.now()}`, role: 'user', content: message },
+            {
+                id: userMessageId,
+                role: 'user',
+                content: message,
+                attachments,
+            },
             { id: assistantId, role: 'assistant', content: '' },
         ]);
         setIsStreaming(true);
         setToolHint(null);
+        stopSpeaking();
 
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
         try {
-            await streamAiChat(message, conversationId, {
-                signal: abortController.signal,
-                onToken: (token) => {
-                    setMessages((current) =>
-                        current.map((entry) =>
-                            entry.id === assistantId
-                                ? {
-                                      ...entry,
-                                      content: entry.content + token,
-                                      isError: false,
-                                  }
-                                : entry,
-                        ),
-                    );
+            await streamAiChat(
+                message,
+                conversationIdRef.current,
+                {
+                    signal: abortController.signal,
+                    onToken: (token) => {
+                        if (abortController.signal.aborted) {
+                            return;
+                        }
+
+                        setMessages((current) =>
+                            current.map((entry) =>
+                                entry.id === assistantId
+                                    ? {
+                                          ...entry,
+                                          content: entry.content + token,
+                                          isError: false,
+                                      }
+                                    : entry,
+                            ),
+                        );
+                    },
+                    onTool: (toolName) => {
+                        if (abortController.signal.aborted) {
+                            return;
+                        }
+
+                        setToolHint(`Chiamata ${toolName}…`);
+                    },
+                    onConversationId: (id) => {
+                        conversationIdRef.current = id;
+                        setConversationId(id);
+                    },
+                    onDone: () => {
+                        if (abortController.signal.aborted) {
+                            return;
+                        }
+
+                        completed = true;
+                        inFlightTurnRef.current = null;
+                        abortControllerRef.current = null;
+                        setIsStreaming(false);
+                        setToolHint(null);
+                    },
+                    onError: () => {
+                        if (abortController.signal.aborted) {
+                            return;
+                        }
+
+                        inFlightTurnRef.current = null;
+                        abortControllerRef.current = null;
+                        setIsStreaming(false);
+                        setToolHint(null);
+                    },
                 },
-                onTool: (toolName) => setToolHint(`Chiamata ${toolName}…`),
-                onConversationId: setConversationId,
-                onDone: () => {
-                    completed = true;
-                    abortControllerRef.current = null;
-                    setIsStreaming(false);
-                    setToolHint(null);
-                },
-                onError: () => {
-                    abortControllerRef.current = null;
-                    setIsStreaming(false);
-                    setToolHint(null);
-                },
-            });
+                attachments.map((attachment) => attachment.id),
+            );
+
+            if (abortController.signal.aborted) {
+                return false;
+            }
 
             return completed;
         } catch (error) {
@@ -174,12 +301,12 @@ export function AiFab() {
             setIsStreaming(false);
             setToolHint(null);
 
-            if (
-                (error instanceof DOMException && error.name === 'AbortError') ||
-                (error instanceof Error && error.name === 'AbortError')
-            ) {
+            if (isAbortError(error) || abortController.signal.aborted) {
+                // handleStop owns rollback + composer restore; avoid error toasts.
                 return false;
             }
+
+            inFlightTurnRef.current = null;
 
             const messageText =
                 error instanceof Error
@@ -199,15 +326,73 @@ export function AiFab() {
         }
     };
 
-    const handleSend = async () => {
-        const message = composer.trim();
+    const handleAttachmentFiles = async (files: FileList | File[]) => {
+        const { files: filesToUpload, error } = pickAiChatAttachmentFiles(
+            files,
+            pendingAttachments.length,
+        );
 
-        if (!message || isStreaming || offline) {
+        if (error) {
+            toast.error(error);
+        }
+
+        if (filesToUpload.length === 0) {
             return;
         }
 
+        setIsUploadingAttachment(true);
+
+        try {
+            for (const file of filesToUpload) {
+                const attachment = await uploadAiAttachment(file);
+                setPendingAttachments((current) => [...current, attachment]);
+            }
+        } catch (uploadError) {
+            toast.error(
+                uploadError instanceof Error
+                    ? uploadError.message
+                    : 'Caricamento allegato non riuscito',
+            );
+        } finally {
+            setIsUploadingAttachment(false);
+        }
+    };
+
+    const handleAttachmentSelected = async (
+        event: ChangeEvent<HTMLInputElement>,
+    ) => {
+        const selectedFiles = event.target.files;
+        event.target.value = '';
+
+        if (!selectedFiles || selectedFiles.length === 0) {
+            return;
+        }
+
+        await handleAttachmentFiles(selectedFiles);
+    };
+
+    const removePendingAttachment = (attachmentId: string) => {
+        setPendingAttachments((current) =>
+            current.filter((attachment) => attachment.id !== attachmentId),
+        );
+    };
+
+    const handleSend = async () => {
+        const message = composer.trim();
+
+        if (
+            !message ||
+            isStreaming ||
+            offline ||
+            isUploadingAttachment
+        ) {
+            return;
+        }
+
+        const attachmentsToSend = pendingAttachments;
         setComposer('');
-        await runStream(message, messages);
+        setPendingAttachments([]);
+        await runStream(message, messages, attachmentsToSend);
     };
 
     const handleRetry = async (assistantMessageId: string) => {
@@ -237,11 +422,77 @@ export function AiFab() {
             messages.findIndex((entry) => entry.id === userMessage.id),
         );
 
-        const succeeded = await runStream(prompt, baseMessages);
+        const succeeded = await runStream(
+            prompt,
+            baseMessages,
+            userMessage.attachments ?? [],
+        );
 
         if (succeeded) {
             setComposer('');
             toast.success('Messaggio reinviato');
+        }
+    };
+
+    const toggleVoiceInput = () => {
+        const Recognition = getSpeechRecognitionConstructor();
+
+        if (!Recognition) {
+            toast.error('Dettatura non supportata in questo browser');
+
+            return;
+        }
+
+        if (isListening && recognitionRef.current) {
+            recognitionRef.current.stop();
+            setIsListening(false);
+
+            return;
+        }
+
+        const recognition = new Recognition();
+        recognition.lang = 'it-IT';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognitionRef.current = recognition;
+
+        recognition.addEventListener('result', (event) => {
+            let transcript = '';
+
+            for (let index = event.resultIndex; index < event.results.length; index++) {
+                const result = event.results[index];
+
+                if (result?.isFinal) {
+                    transcript += result[0]?.transcript ?? '';
+                }
+            }
+
+            if (transcript.trim() !== '') {
+                setComposer((current) => {
+                    const prefix = current.trim() === '' ? '' : `${current.trim()} `;
+
+                    return `${prefix}${transcript.trim()}`;
+                });
+            }
+        });
+
+        recognition.addEventListener('error', () => {
+            setIsListening(false);
+            recognitionRef.current = null;
+            toast.error('Errore durante la dettatura');
+        });
+
+        recognition.addEventListener('end', () => {
+            setIsListening(false);
+            recognitionRef.current = null;
+        });
+
+        try {
+            recognition.start();
+            setIsListening(true);
+        } catch {
+            setIsListening(false);
+            toast.error('Impossibile avviare la dettatura');
         }
     };
 
@@ -287,129 +538,190 @@ export function AiFab() {
                         </DrawerDescription>
                     </DrawerHeader>
 
-                    <DrawerBody className="gap-3">
-                        {messages.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                Ask about collections, items, or files.
-                            </p>
-                        ) : (
-                            messages.map((message) => (
-                                <Message
-                                    key={message.id}
-                                    align={
-                                        message.role === 'user' ? 'end' : 'start'
-                                    }
-                                >
-                                    <MessageContent>
-                                        <Bubble
-                                            variant={
-                                                message.isError
-                                                    ? 'destructive'
-                                                    : message.role === 'user'
-                                                      ? 'default'
-                                                      : 'muted'
-                                            }
-                                            align={
-                                                message.role === 'user'
-                                                    ? 'end'
-                                                    : 'start'
-                                            }
-                                        >
-                                            <BubbleContent className="whitespace-pre-wrap">
-                                                {message.role === 'assistant' ? (
-                                                    message.isError ? (
+                    <AiChatDropZone
+                        disabled={
+                            offline || isStreaming || isUploadingAttachment
+                        }
+                        onFilesSelected={(files) =>
+                            void handleAttachmentFiles(files)
+                        }
+                    >
+                        <DrawerBody className="gap-3">
+                            {messages.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                    Ask about collections, items, or files.
+                                </p>
+                            ) : (
+                                messages.map((message) => (
+                                    <Message
+                                        key={message.id}
+                                        align={
+                                            message.role === 'user'
+                                                ? 'end'
+                                                : 'start'
+                                        }
+                                    >
+                                        <MessageContent>
+                                            <Bubble
+                                                variant={
+                                                    message.isError
+                                                        ? 'destructive'
+                                                        : message.role === 'user'
+                                                          ? 'muted'
+                                                          : 'ghost'
+                                                }
+                                                align={
+                                                    message.role === 'user'
+                                                        ? 'end'
+                                                        : 'start'
+                                                }
+                                            >
+                                                <BubbleContent
+                                                    className={
+                                                        message.role === 'user'
+                                                            ? 'whitespace-pre-wrap text-foreground'
+                                                            : 'w-full max-w-full whitespace-pre-wrap'
+                                                    }
+                                                >
+                                                    {message.role ===
+                                                    'assistant' ? (
+                                                        message.isError ? (
+                                                            <div className="flex flex-col gap-2">
+                                                                <div>
+                                                                    {
+                                                                        message.content
+                                                                    }
+                                                                </div>
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    variant="secondary"
+                                                                    className="w-fit"
+                                                                    disabled={
+                                                                        isStreaming ||
+                                                                        offline
+                                                                    }
+                                                                    onClick={() =>
+                                                                        void handleRetry(
+                                                                            message.id,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <RefreshCw className="size-3.5" />
+                                                                    Riprova
+                                                                </Button>
+                                                            </div>
+                                                        ) : message.content ? (
+                                                            <AssistantMarkdown
+                                                                content={
+                                                                    message.content
+                                                                }
+                                                            />
+                                                        ) : isStreaming ? (
+                                                            <ThinkingDots />
+                                                        ) : null
+                                                    ) : (
                                                         <div className="flex flex-col gap-2">
-                                                            <div>{message.content}</div>
-                                                            <Button
-                                                                type="button"
-                                                                size="sm"
-                                                                variant="secondary"
-                                                                className="w-fit"
-                                                                disabled={
-                                                                    isStreaming ||
-                                                                    offline
-                                                                }
-                                                                onClick={() =>
-                                                                    void handleRetry(
-                                                                        message.id,
-                                                                    )
-                                                                }
-                                                            >
-                                                                <RefreshCw className="size-3.5" />
-                                                                Riprova
-                                                            </Button>
+                                                            {(message.attachments
+                                                                ?.length ?? 0) >
+                                                            0 ? (
+                                                                <div className="flex flex-wrap gap-1.5">
+                                                                    {message.attachments?.map(
+                                                                        (
+                                                                            attachment,
+                                                                        ) => (
+                                                                            <span
+                                                                                key={
+                                                                                    attachment.id ??
+                                                                                    attachment.name
+                                                                                }
+                                                                                className="inline-flex items-center gap-1 rounded-md bg-foreground/15 px-2 py-0.5 text-xs"
+                                                                            >
+                                                                                <Paperclip className="size-3" />
+                                                                                {
+                                                                                    attachment.name
+                                                                                }
+                                                                            </span>
+                                                                        ),
+                                                                    )}
+                                                                </div>
+                                                            ) : null}
+                                                            <div>
+                                                                {message.content}
+                                                            </div>
                                                         </div>
-                                                    ) : message.content ? (
-                                                        <AssistantMarkdown
-                                                            content={message.content}
-                                                        />
-                                                    ) : isStreaming ? (
-                                                        <ThinkingDots />
-                                                    ) : null
-                                                ) : (
-                                                    message.content
-                                                )}
-                                            </BubbleContent>
-                                        </Bubble>
-                                    </MessageContent>
-                                </Message>
-                            ))
-                        )}
-                        {toolHint ? (
-                            <p className="text-xs text-muted-foreground">
-                                {toolHint}
-                            </p>
-                        ) : null}
-                    </DrawerBody>
+                                                    )}
+                                                </BubbleContent>
+                                            </Bubble>
+                                        </MessageContent>
+                                    </Message>
+                                ))
+                            )}
+                            {toolHint ? (
+                                <p className="text-xs text-muted-foreground">
+                                    {toolHint}
+                                </p>
+                            ) : null}
+                        </DrawerBody>
 
-                    <DrawerFooter>
-                        <form
-                            className="flex w-full flex-col gap-2"
-                            onSubmit={(event) => {
-                                event.preventDefault();
-                                void handleSend();
-                            }}
-                        >
-                            <Input
-                                value={composer}
+                        <DrawerFooter className="gap-2">
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept={AI_CHAT_ATTACHMENT_ACCEPT}
+                                multiple
+                                className="hidden"
                                 onChange={(event) =>
-                                    setComposer(event.target.value)
+                                    void handleAttachmentSelected(event)
                                 }
+                            />
+                            <AiComposer
+                                value={composer}
+                                onChange={setComposer}
+                                onSubmit={() => void handleSend()}
+                                onStop={handleStop}
+                                isStreaming={isStreaming}
+                                disabled={offline}
                                 placeholder={
                                     offline
                                         ? 'AI is offline…'
                                         : 'Ask something…'
                                 }
-                                disabled={offline || isStreaming}
+                                attachments={pendingAttachments}
+                                onRemoveAttachment={removePendingAttachment}
+                                onAttach={() => fileInputRef.current?.click()}
+                                isUploadingAttachment={isUploadingAttachment}
+                                attachDisabled={
+                                    pendingAttachments.length >=
+                                    AI_CHAT_ATTACHMENT_MAX_COUNT
+                                }
+                                speechSupported={speechSupported}
+                                isListening={isListening}
+                                onToggleVoice={toggleVoiceInput}
+                                onOpenPresets={() => setPresetsOpen(true)}
+                                attachTooltip="Allega CSV, TXT, Excel o PDF (max 5 MB)"
                             />
-                            <div className="flex items-center justify-between gap-2">
-                                <Button variant="ghost" size="sm" asChild>
-                                    <Link href={aiIndex.url()}>
-                                        Open full assistant
-                                    </Link>
-                                </Button>
-                                {isStreaming ? (
-                                    <Button
-                                        type="button"
-                                        variant="destructive"
-                                        onClick={handleStop}
-                                    >
-                                        <Square className="size-3.5 fill-current" />
-                                        Stop
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        type="submit"
-                                        disabled={offline || !composer.trim()}
-                                    >
-                                        Invia
-                                    </Button>
-                                )}
-                            </div>
-                        </form>
-                    </DrawerFooter>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                asChild
+                                className="self-start"
+                            >
+                                <Link href={aiIndex.url()}>
+                                    Open full assistant
+                                </Link>
+                            </Button>
+                        </DrawerFooter>
+                    </AiChatDropZone>
                 </DrawerContent>
             </Drawer>
+
+            <AiActionPresetsDrawer
+                nested
+                open={presetsOpen}
+                onOpenChange={setPresetsOpen}
+                onSelect={(prompt) => setComposer(prompt)}
+            />
         </>
     );
 }

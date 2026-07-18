@@ -7,6 +7,8 @@ use Database\Factories\CollectionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
 
@@ -16,11 +18,12 @@ use Spatie\EloquentSortable\SortableTrait;
  * @property string $slug
  * @property bool $is_singleton
  * @property int $sort_order
+ * @property Carbon|null $deleted_at
  */
 class Collection extends Model implements Sortable
 {
     /** @use HasFactory<CollectionFactory> */
-    use HasFactory, LogsApplicationActivity;
+    use HasFactory, LogsApplicationActivity, SoftDeletes;
 
     use SortableTrait;
 
@@ -41,6 +44,23 @@ class Collection extends Model implements Sortable
         'sort_order',
     ];
 
+    protected static function booted(): void
+    {
+        static::deleting(function (Collection $collection): void {
+            if ($collection->isForceDeleting()) {
+                $collection->items()->withTrashed()->forceDelete();
+
+                return;
+            }
+
+            $collection->items()->delete();
+        });
+
+        static::restoring(function (Collection $collection): void {
+            $collection->items()->onlyTrashed()->restore();
+        });
+    }
+
     /**
      * @return HasMany<CollectionField, $this>
      */
@@ -55,6 +75,17 @@ class Collection extends Model implements Sortable
     public function items(): HasMany
     {
         return $this->hasMany(CollectionItem::class, 'collection_id');
+    }
+
+    /**
+     * @param  mixed  $value
+     * @param  string|null  $field
+     */
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        return $this->withTrashed()
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->firstOrFail();
     }
 
     /**

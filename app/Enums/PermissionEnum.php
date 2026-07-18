@@ -36,6 +36,12 @@ enum PermissionEnum: string
     case CanDeleteFiles = 'can-delete-files';
     case CanRestoreFiles = 'can-restore-files';
     case CanForceDeleteFiles = 'can-force-delete-files';
+    case CanDownloadFiles = 'can-download-files';
+    case CanFavoriteFiles = 'can-favorite-files';
+    case CanCopyFiles = 'can-copy-files';
+    case CanReplaceFiles = 'can-replace-files';
+    case CanTagFiles = 'can-tag-files';
+    case CanUpdateFileMetadata = 'can-update-file-metadata';
 
     case CanShowCollections = 'can-show-collections';
     case CanCreateCollections = 'can-create-collections';

@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 Schedule::command('activitylog:clean')->daily();
 Schedule::command('files:cleanup-uploads')->hourly();
+Schedule::command('files:cleanup-zips')->hourly();
+Schedule::command('ai:cleanup-attachments')->daily();
+Schedule::command('ai:run-sync-sources')->everyMinute();

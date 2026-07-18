@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Ai;
 
+use App\Ai\Support\AiToolTurnSummary;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -42,14 +43,24 @@ class AiConversationController extends Controller
 
         return response()->json([
             'conversation' => $owned->only(['id', 'title', 'pinned_at', 'created_at', 'updated_at']),
-            'messages' => $messages->map(fn (ConversationMessage $message): array => [
-                'id' => $message->id,
-                'role' => $message->role,
-                'content' => $this->normalizeMessageContent($message->content),
-                'tool_calls' => $this->normalizeMessageArray($message->tool_calls),
-                'tool_results' => $this->normalizeMessageArray($message->tool_results),
-                'created_at' => $message->created_at,
-            ]),
+            'messages' => $messages->map(function (ConversationMessage $message): array {
+                $content = $this->normalizeMessageContent($message->content);
+                $toolCalls = $this->normalizeMessageArray($message->tool_calls);
+                $toolResults = $this->normalizeMessageArray($message->tool_results);
+
+                if ($message->role === 'assistant' && trim($content) === '' && ($toolCalls !== [] || $toolResults !== [])) {
+                    $content = AiToolTurnSummary::fromTools($toolCalls, $toolResults);
+                }
+
+                return [
+                    'id' => $message->id,
+                    'role' => $message->role,
+                    'content' => $content,
+                    'tool_calls' => $toolCalls,
+                    'tool_results' => $toolResults,
+                    'created_at' => $message->created_at,
+                ];
+            }),
         ]);
     }
 

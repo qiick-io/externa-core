@@ -13,11 +13,11 @@ trait ChecksAiPermissions
         $user = auth()->user();
 
         if (! $user instanceof User) {
-            return 'Error: Unauthenticated.';
+            return 'Error: Non autenticato.';
         }
 
         if (! app(EffectivePermissionResolver::class)->hasPermission($user, $permission->value)) {
-            return 'Error: Missing permission '.$permission->value.'.';
+            return 'Error: Permesso mancante ('.$permission->value.'). Non puoi eseguire questa operazione.';
         }
 
         return null;

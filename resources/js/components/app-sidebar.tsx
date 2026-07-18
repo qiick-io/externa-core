@@ -16,6 +16,7 @@ import AppLogo from '@/components/app-logo';
 import { NavAdmin, type AdminNavItem } from '@/components/nav-admin';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
+import { NotificationsBell } from '@/components/notifications/notifications-bell';
 import { NavUser } from '@/components/nav-user';
 import {
     Sidebar,
@@ -165,6 +166,7 @@ export function AppSidebar() {
 
             <SidebarFooter>
                 <NavFooter items={footerNavItems} className="mt-auto" />
+                <NotificationsBell />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

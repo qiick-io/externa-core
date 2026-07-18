@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -14,6 +15,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])
         ->middleware('permission:'.PermissionEnum::CanShowDashboard->value)
         ->name('dashboard');
+
+    Route::get('notifications', [NotificationController::class, 'index'])
+        ->name('notifications.index');
+    Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount'])
+        ->name('notifications.unread-count');
+    Route::post('notifications/read', [NotificationController::class, 'markRead'])
+        ->name('notifications.read');
 });
 
 require __DIR__.'/admin.php';

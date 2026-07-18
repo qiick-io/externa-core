@@ -11,6 +11,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'edit',
     ]);
 
+    Route::post('collections/{collection}/restore', [ContentCollectionController::class, 'restore'])
+        ->name('collections.restore');
+    Route::delete('collections/{collection}/force', [ContentCollectionController::class, 'forceDelete'])
+        ->name('collections.force-delete');
+
     Route::put('collections/{collection}/singleton-content', [ContentCollectionController::class, 'upsertSingletonContent'])
         ->name('collections.singleton-content');
 
@@ -22,6 +27,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('collections/{collection}/items/options', [ItemController::class, 'options'])
         ->name('collections.items.options');
+
+    Route::post('collections/{collection}/items/{item}/restore', [ItemController::class, 'restore'])
+        ->name('collections.items.restore');
+    Route::delete('collections/{collection}/items/{item}/force', [ItemController::class, 'forceDelete'])
+        ->name('collections.items.force-delete');
 
     Route::resource('collections.items', ItemController::class)->except(['create', 'edit']);
 

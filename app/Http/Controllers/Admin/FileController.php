@@ -4,50 +4,91 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\FileTypeEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateFileMetadataRequest;
 use App\Http\Resources\Admin\FileResource;
+use App\Jobs\DuplicateFilesJob;
+use App\Jobs\PrepareFilesZipJob;
 use App\Models\File;
 use App\Services\FileService;
+use App\Services\FileTransformService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Spatie\Tags\Tag;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FileController extends Controller
 {
+    /**
+     * @var list<string>
+     */
+    private const SORTABLE_COLUMNS = ['name', 'size', 'created_at', 'updated_at'];
+
     public function __construct(
         protected FileService $fileService,
+        protected FileTransformService $fileTransformService,
     ) {}
 
-    public function index(Request $request): InertiaResponse
+    public function index(Request $request, ?int $folder = null): InertiaResponse|RedirectResponse
     {
-        $parentId = $request->integer('parent_id') ?: null;
-        $trashedFilter = $request->string('trashed')->toString();
+        $parentId = null;
 
-        $filesQuery = File::query();
+        if ($folder !== null) {
+            $folderModel = File::query()->find($folder);
 
-        if ($trashedFilter === 'only') {
-            $filesQuery->onlyTrashed();
-        } elseif ($trashedFilter === 'with') {
-            $filesQuery->withTrashed();
+            if ($folderModel === null || ! $folderModel->isFolder()) {
+                return redirect()->route(
+                    'files.index',
+                    collect($request->query())->except('parent_id')->all(),
+                );
+            }
+
+            $parentId = $folderModel->id;
         }
 
-        $files = $filesQuery
-            ->when(
-                $parentId,
-                fn ($query) => $query->where('parent_id', $parentId),
-                fn ($query) => $query->whereNull('parent_id'),
-            )
-            ->with('currentVersion')
-            ->orderByRaw('CASE WHEN type = ? THEN 0 ELSE 1 END', [FileTypeEnum::Folder->value])
-            ->orderBy('name')
-            ->get();
+        $validated = $request->validate([
+            'trashed' => ['nullable', 'string', Rule::in(['only', 'with'])],
+            'sort' => ['nullable', 'string', Rule::in(self::SORTABLE_COLUMNS)],
+            'direction' => ['nullable', 'string', Rule::in(['asc', 'desc'])],
+            'tag_ids' => ['nullable', 'array'],
+            'tag_ids.*' => ['integer', 'min:1'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['string', 'max:100'],
+        ]);
+
+        $trashedFilter = $validated['trashed'] ?? null;
+        $sort = $validated['sort'] ?? 'name';
+        $direction = $validated['direction'] ?? 'asc';
+        [$tagIds, $tagNames] = $this->resolveTagFilters($request);
+
+        // Grid + load-more always boots from page 1; further pages use files.list.
+        $paginator = $this->folderQuery(
+            $request,
+            $parentId,
+            $trashedFilter,
+            null,
+            $tagIds,
+            $tagNames,
+            $sort,
+            $direction,
+        )
+            ->paginate(50, ['*'], 'page', 1)
+            ->withQueryString();
 
         $breadcrumbs = [];
         if ($parentId !== null) {
-            $current = File::query()->withTrashed()->find($parentId);
+            $current = File::query()->find($parentId);
             while ($current !== null) {
                 array_unshift($breadcrumbs, [
                     'id' => $current->id,
@@ -58,11 +99,21 @@ class FileController extends Controller
         }
 
         return Inertia::render('admin/files/index', [
-            'files' => FileResource::collection($files)->resolve(),
+            'files' => [
+                'data' => FileResource::collection($paginator->items())->resolve(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
             'parentId' => $parentId,
             'breadcrumbs' => $breadcrumbs,
             'filters' => [
                 'trashed' => in_array($trashedFilter, ['only', 'with'], true) ? $trashedFilter : null,
+                // Has any of the selected tags (OR). Prefer tag_ids when both are sent.
+                'tag_ids' => $tagIds,
+                'sort' => $sort,
+                'direction' => $direction,
             ],
         ]);
     }
@@ -73,35 +124,54 @@ class FileController extends Controller
             'parent_id' => ['nullable', 'integer', 'exists:files,id'],
             'search' => ['nullable', 'string', 'max:255'],
             'trashed' => ['nullable', 'string', Rule::in(['only', 'with'])],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'sort' => ['nullable', 'string', Rule::in(self::SORTABLE_COLUMNS)],
+            'direction' => ['nullable', 'string', Rule::in(['asc', 'desc'])],
+            'tag_ids' => ['nullable', 'array'],
+            'tag_ids.*' => ['integer', 'min:1'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['string', 'max:100'],
         ]);
 
-        $files = File::query()
-            ->when(
-                ($validated['trashed'] ?? null) === 'only',
-                fn ($query) => $query->onlyTrashed(),
-            )
-            ->when(
-                ($validated['trashed'] ?? null) === 'with',
-                fn ($query) => $query->withTrashed(),
-            )
-            ->when(
-                $validated['parent_id'] ?? null,
-                fn ($query, int $parentId) => $query->where('parent_id', $parentId),
-                fn ($query) => $query->whereNull('parent_id'),
-            )
-            ->when($validated['search'] ?? null, function ($query, string $search) {
-                $searchTerm = '%'.strtolower($search).'%';
-                $query->where(function ($inner) use ($searchTerm) {
-                    $inner->whereRaw('LOWER(name) LIKE ?', [$searchTerm])
-                        ->orWhereRaw('LOWER(path) LIKE ?', [$searchTerm]);
-                });
-            })
-            ->with('currentVersion')
-            ->orderByRaw('CASE WHEN type = ? THEN 0 ELSE 1 END', [FileTypeEnum::Folder->value])
-            ->orderBy('name')
-            ->paginate(50);
+        [$tagIds, $tagNames] = $this->resolveTagFilters($request);
 
-        return response()->json($files);
+        $paginator = $this->folderQuery(
+            $request,
+            $validated['parent_id'] ?? null,
+            $validated['trashed'] ?? null,
+            $validated['search'] ?? null,
+            $tagIds,
+            $tagNames,
+            $validated['sort'] ?? 'name',
+            $validated['direction'] ?? 'asc',
+        )->paginate(50);
+
+        return response()->json([
+            'data' => FileResource::collection($paginator->items())->resolve(),
+            'current_page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->total(),
+        ]);
+    }
+
+    /**
+     * Global tag catalog for the file manager picker/filter (shared across all files).
+     */
+    public function listTags(): JsonResponse
+    {
+        $tags = Tag::query()
+            ->ordered()
+            ->get()
+            ->map(static fn (Tag $tag): array => [
+                'id' => $tag->id,
+                'name' => (string) $tag->name,
+                'slug' => (string) $tag->slug,
+            ])
+            ->values()
+            ->all();
+
+        return response()->json($tags);
     }
 
     public function createFolder(Request $request): JsonResponse
@@ -118,7 +188,7 @@ class FileController extends Controller
             $validated['disk'] ?? 'assets',
         );
 
-        return (new FileResource($folder))
+        return (new FileResource($folder->load('tags')))
             ->response()
             ->setStatusCode(201);
     }
@@ -139,9 +209,227 @@ class FileController extends Controller
             $validated['name'] ?? null,
         );
 
-        return (new FileResource($file))
+        return (new FileResource($file->load('tags')))
             ->response()
             ->setStatusCode(201);
+    }
+
+    public function update(UpdateFileMetadataRequest $request, File $file): JsonResponse
+    {
+        $updated = $this->fileService->updateMetadata($file, $request->validated());
+
+        return (new FileResource($this->withFavoriteFlag($updated, $request)))->response();
+    }
+
+    public function replace(Request $request, File $file): JsonResponse
+    {
+        if (! $file->isFile()) {
+            throw ValidationException::withMessages([
+                'file' => ['Only files can be replaced.'],
+            ]);
+        }
+
+        $validated = $request->validate([
+            'file' => ['required', 'file'],
+        ]);
+
+        /** @var UploadedFile $upload */
+        $upload = $validated['file'];
+        $this->assertCompatibleReplaceUpload($file, $upload);
+
+        $replaced = $this->fileService->replaceFile($file, $upload);
+
+        return (new FileResource($this->withFavoriteFlag($replaced, $request)))->response();
+    }
+
+    public function copy(Request $request, File $file): JsonResponse
+    {
+        $validated = $request->validate([
+            'parent_id' => ['nullable', 'integer', 'exists:files,id'],
+        ]);
+
+        $targetParentId = $validated['parent_id'] ?? null;
+
+        if ($this->shouldDuplicateSynchronously($file)) {
+            $copied = $this->fileService->copy($file, $targetParentId);
+
+            return (new FileResource($this->withFavoriteFlag($copied, $request)))
+                ->response()
+                ->setStatusCode(201);
+        }
+
+        return $this->queueDuplicate($request, [$file->id], $targetParentId);
+    }
+
+    public function favorite(Request $request, File $file): JsonResponse
+    {
+        $this->fileService->favorite($file, $request->user());
+
+        $file->load('tags');
+        $file->is_favorited = true;
+
+        return (new FileResource($file))->response();
+    }
+
+    public function unfavorite(Request $request, File $file): JsonResponse
+    {
+        $this->fileService->unfavorite($file, $request->user());
+
+        $file->load('tags');
+        $file->is_favorited = false;
+
+        return (new FileResource($file))->response();
+    }
+
+    public function syncTags(Request $request, File $file): JsonResponse
+    {
+        $validated = $request->validate([
+            'tags' => ['present', 'array'],
+            'tags.*' => ['string', 'max:100'],
+        ]);
+
+        $updated = $this->fileService->syncTags($file, $validated['tags']);
+
+        return (new FileResource($this->withFavoriteFlag($updated, $request)))->response();
+    }
+
+    public function download(File $file): StreamedResponse|Response
+    {
+        if (! $file->isFile() || ! $file->storage_path || ! Storage::disk($file->disk)->exists($file->storage_path)) {
+            abort(404);
+        }
+
+        return Storage::disk($file->disk)->download(
+            $file->storage_path,
+            $file->downloadFilename(),
+        );
+    }
+
+    public function thumbnail(Request $request, File $file): StreamedResponse|Response
+    {
+        if (! $this->fileTransformService->isImage($file)) {
+            abort(422, 'Thumbnails are only available for image files.');
+        }
+
+        $validated = $request->validate([
+            'size' => ['nullable', 'integer', 'min:1', 'max:'.FileTransformService::MAX_SIZE],
+        ]);
+
+        try {
+            $cachePath = $this->fileTransformService->ensureThumbnail(
+                $file,
+                isset($validated['size']) ? (int) $validated['size'] : null,
+            );
+        } catch (\Throwable) {
+            abort(404);
+        }
+
+        $mimeType = str_ends_with($cachePath, '.webp') ? 'image/webp' : 'image/jpeg';
+
+        return Storage::disk($file->disk)->response($cachePath, null, [
+            'Content-Type' => $mimeType,
+            'Cache-Control' => 'private, max-age=86400',
+        ]);
+    }
+
+    public function downloadMany(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:files,id'],
+        ]);
+
+        $jobUuid = (string) Str::uuid();
+
+        PrepareFilesZipJob::dispatch(
+            $request->user()->id,
+            array_values(array_map(static fn (mixed $fileId): int => (int) $fileId, $validated['ids'])),
+            $jobUuid,
+        );
+
+        return response()->json([
+            'queued' => true,
+            'job_id' => $jobUuid,
+        ], 202);
+    }
+
+    public function downloadPreparedZip(Request $request, string $jobId): BinaryFileResponse
+    {
+        if (! preg_match('/^[0-9a-fA-F-]{36}$/', $jobId)) {
+            abort(404);
+        }
+
+        $zipPath = $this->fileService->zipStoragePath($request->user()->id, $jobId);
+
+        if (! is_file($zipPath)) {
+            abort(404);
+        }
+
+        $ttlMinutes = (int) config('files.zip_ttl_minutes', 60);
+        $modifiedAt = filemtime($zipPath);
+
+        if ($modifiedAt !== false && $modifiedAt < now()->subMinutes($ttlMinutes)->getTimestamp()) {
+            @unlink($zipPath);
+            abort(410);
+        }
+
+        return response()->download($zipPath, 'files.zip')->deleteFileAfterSend(true);
+    }
+
+    public function bulk(Request $request): JsonResponse|Response
+    {
+        $validated = $request->validate([
+            'action' => ['required', 'string', Rule::in([
+                'move',
+                'delete',
+                'restore',
+                'force_delete',
+                'favorite',
+                'unfavorite',
+                'tag',
+                'untag',
+                'copy',
+            ])],
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+            'parent_id' => ['nullable', 'integer', 'exists:files,id'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['string', 'max:100'],
+        ]);
+
+        $ids = $validated['ids'];
+
+        return match ($validated['action']) {
+            'move' => response()->json([
+                'data' => FileResource::collection(
+                    $this->fileService->bulkMove($ids, $validated['parent_id'] ?? null)
+                )->resolve(),
+            ]),
+            'copy' => $this->queueDuplicate($request, $ids, $validated['parent_id'] ?? null),
+            'delete' => tap(response()->noContent(), fn () => $this->fileService->bulkSoftDelete($ids)),
+            'restore' => tap(response()->noContent(), fn () => $this->fileService->bulkRestore($ids)),
+            'force_delete' => tap(response()->noContent(), fn () => $this->fileService->bulkForceDelete($ids)),
+            'favorite' => response()->json([
+                'data' => FileResource::collection(
+                    $this->fileService->bulkFavorite($ids, $request->user(), true)
+                )->resolve(),
+            ]),
+            'unfavorite' => response()->json([
+                'data' => FileResource::collection(
+                    $this->fileService->bulkFavorite($ids, $request->user(), false)
+                )->resolve(),
+            ]),
+            'tag' => response()->json([
+                'data' => FileResource::collection(
+                    $this->fileService->bulkTag($ids, $validated['tags'] ?? [], true)
+                )->resolve(),
+            ]),
+            'untag' => response()->json([
+                'data' => FileResource::collection(
+                    $this->fileService->bulkTag($ids, $validated['tags'] ?? [], false)
+                )->resolve(),
+            ]),
+        };
     }
 
     public function move(Request $request, File $file): JsonResponse
@@ -159,7 +447,7 @@ class FileController extends Controller
             isset($validated['version']) ? Carbon::parse($validated['version']) : null,
         );
 
-        return (new FileResource($moved))->response();
+        return (new FileResource($this->withFavoriteFlag($moved->load('tags'), $request)))->response();
     }
 
     public function rename(Request $request, File $file): JsonResponse
@@ -170,7 +458,7 @@ class FileController extends Controller
 
         $renamed = $this->fileService->rename($file, $validated['name']);
 
-        return (new FileResource($renamed))->response();
+        return (new FileResource($this->withFavoriteFlag($renamed->load('tags'), $request)))->response();
     }
 
     public function destroy(File $file): Response
@@ -186,7 +474,7 @@ class FileController extends Controller
 
         $restored = $this->fileService->restore($fileModel);
 
-        return (new FileResource($restored))->response();
+        return (new FileResource($restored->load('tags')))->response();
     }
 
     public function forceDelete(int $file): Response
@@ -287,7 +575,7 @@ class FileController extends Controller
 
         $file = $this->fileService->completeChunkUpload($validated['upload_id']);
 
-        return (new FileResource($file))
+        return (new FileResource($file->load('tags')))
             ->response()
             ->setStatusCode(201);
     }
@@ -305,5 +593,190 @@ class FileController extends Controller
         }
 
         return response()->json($status);
+    }
+
+    /**
+     * @param  list<int>  $tagIds
+     * @param  list<string>  $tagNames
+     * @return Builder<File>
+     */
+    protected function folderQuery(
+        Request $request,
+        ?int $parentId,
+        ?string $trashedFilter = null,
+        ?string $search = null,
+        array $tagIds = [],
+        array $tagNames = [],
+        string $sort = 'name',
+        string $direction = 'asc',
+    ): Builder {
+        $userId = $request->user()?->id;
+        $sortColumn = in_array($sort, self::SORTABLE_COLUMNS, true) ? $sort : 'name';
+        $sortDirection = $direction === 'desc' ? 'desc' : 'asc';
+
+        $query = File::query()
+            ->with('tags')
+            ->when(
+                $trashedFilter === 'only',
+                fn (Builder $builder) => $builder->onlyTrashed(),
+            )
+            ->when(
+                $trashedFilter === 'with',
+                fn (Builder $builder) => $builder->withTrashed(),
+            )
+            // Flat trash: show every soft-deleted item regardless of folder.
+            // Active/with views stay scoped to the current parent.
+            ->when(
+                $trashedFilter !== 'only',
+                fn (Builder $builder) => $builder->when(
+                    $parentId,
+                    fn (Builder $scoped) => $scoped->where('parent_id', $parentId),
+                    fn (Builder $scoped) => $scoped->whereNull('parent_id'),
+                ),
+            )
+            ->when($search, function (Builder $builder) use ($search) {
+                $searchTerm = '%'.strtolower($search).'%';
+                $builder->where(function (Builder $inner) use ($searchTerm) {
+                    $inner->whereRaw('LOWER(name) LIKE ?', [$searchTerm])
+                        ->orWhereRaw('LOWER(path) LIKE ?', [$searchTerm])
+                        ->orWhereRaw('LOWER(title) LIKE ?', [$searchTerm]);
+                });
+            })
+            ->when($tagIds !== [], function (Builder $builder) use ($tagIds) {
+                // Has any of the selected tags (OR).
+                $builder->whereHas(
+                    'tags',
+                    fn (Builder $tagQuery) => $tagQuery->whereIn(File::getTagTablePrimaryKeyName(), $tagIds),
+                );
+            })
+            ->when($tagIds === [] && $tagNames !== [], function (Builder $builder) use ($tagNames) {
+                // Has any of the named tags (OR); Spatie resolves names via findFromString.
+                $builder->withAnyTags($tagNames);
+            })
+            ->with('currentVersion');
+
+        if ($userId !== null) {
+            $query->withExists([
+                'favoritedBy as is_favorited' => fn (Builder $builder) => $builder->where('user_id', $userId),
+            ])->orderByDesc('is_favorited');
+        }
+
+        // Folders before files, then user sort, then stable id.
+        return $query
+            ->orderByRaw('CASE WHEN type = ? THEN 0 ELSE 1 END', [FileTypeEnum::Folder->value])
+            ->orderBy($sortColumn, $sortDirection)
+            ->orderBy('id');
+    }
+
+    /**
+     * @return array{0: list<int>, 1: list<string>}
+     */
+    protected function resolveTagFilters(Request $request): array
+    {
+        $tagIds = collect($request->input('tag_ids', []))
+            ->map(static fn (mixed $tagId): int => (int) $tagId)
+            ->filter(static fn (int $tagId): bool => $tagId > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        $tagNames = collect($request->input('tags', []))
+            ->map(static fn (mixed $tagName): string => trim((string) $tagName))
+            ->filter(static fn (string $tagName): bool => $tagName !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        return [$tagIds, $tagNames];
+    }
+
+    protected function assertCompatibleReplaceUpload(File $file, UploadedFile $upload): void
+    {
+        $expectedExtension = $this->normalizeExtension(
+            $file->extension ?: pathinfo($file->name, PATHINFO_EXTENSION),
+        );
+        $uploadedExtension = $this->normalizeExtension(
+            pathinfo($upload->getClientOriginalName(), PATHINFO_EXTENSION),
+        );
+
+        if ($expectedExtension !== null) {
+            if ($uploadedExtension !== $expectedExtension) {
+                throw ValidationException::withMessages([
+                    'file' => ["Replacement must use the .{$expectedExtension} extension."],
+                ]);
+            }
+
+            return;
+        }
+
+        // ponytail: no stored/name extension — fall back to mime family (image/*, text/*, …).
+        $expectedMime = $file->mime_type;
+        $uploadedMime = $upload->getMimeType();
+
+        if ($expectedMime === null || $expectedMime === '' || $uploadedMime === null || $uploadedMime === '') {
+            return;
+        }
+
+        $expectedFamily = strtolower(explode('/', $expectedMime, 2)[0]);
+        $uploadedFamily = strtolower(explode('/', $uploadedMime, 2)[0]);
+
+        if ($expectedFamily !== '' && $expectedFamily !== $uploadedFamily) {
+            throw ValidationException::withMessages([
+                'file' => ["Replacement must be a {$expectedFamily} file."],
+            ]);
+        }
+    }
+
+    protected function normalizeExtension(?string $extension): ?string
+    {
+        $normalized = strtolower(ltrim(trim((string) $extension), '.'));
+
+        return $normalized === '' ? null : $normalized;
+    }
+
+    protected function withFavoriteFlag(File $file, Request $request): File
+    {
+        $userId = $request->user()?->id;
+        $file->loadMissing('tags');
+
+        if ($userId !== null) {
+            $file->is_favorited = $file->favoritedBy()->where('user_id', $userId)->exists();
+        }
+
+        return $file;
+    }
+
+    /**
+     * Sync only for a single non-folder file at or under the configured size threshold.
+     */
+    protected function shouldDuplicateSynchronously(File $file): bool
+    {
+        if ($file->isFolder()) {
+            return false;
+        }
+
+        $maxBytes = (int) config('files.duplicate_sync_max_bytes', 52_428_800);
+
+        return ($file->size ?? 0) <= $maxBytes;
+    }
+
+    /**
+     * @param  list<int>  $fileIds
+     */
+    protected function queueDuplicate(Request $request, array $fileIds, ?int $targetParentId): JsonResponse
+    {
+        $jobUuid = (string) Str::uuid();
+
+        DuplicateFilesJob::dispatch(
+            $request->user()->id,
+            array_values(array_map(static fn (mixed $fileId): int => (int) $fileId, $fileIds)),
+            $targetParentId,
+            $jobUuid,
+        );
+
+        return response()->json([
+            'queued' => true,
+            'job_id' => $jobUuid,
+        ], 202);
     }
 }

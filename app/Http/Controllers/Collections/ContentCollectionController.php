@@ -26,12 +26,19 @@ class ContentCollectionController extends Controller
         private CollectionItemOptionsService $collectionItemOptionsService,
     ) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $collections = Collection::query()->ordered()->get();
+        $trashed = $request->boolean('trashed');
+        $collections = Collection::query()
+            ->when($trashed, fn ($query) => $query->onlyTrashed())
+            ->ordered()
+            ->get();
 
         return Inertia::render('collections/collections/index', [
             'collections' => $collections,
+            'filters' => [
+                'trashed' => $trashed,
+            ],
         ]);
     }
 
@@ -84,6 +91,22 @@ class ContentCollectionController extends Controller
 
         return redirect()->route('collections.index')
             ->with('success', __('Collection deleted.'));
+    }
+
+    public function restore(Collection $collection): RedirectResponse
+    {
+        $collection->restore();
+
+        return redirect()->route('collections.index', ['trashed' => 1])
+            ->with('success', __('Collection restored.'));
+    }
+
+    public function forceDelete(Collection $collection): RedirectResponse
+    {
+        $collection->forceDelete();
+
+        return redirect()->route('collections.index', ['trashed' => 1])
+            ->with('success', __('Collection permanently deleted.'));
     }
 
     public function upsertSingletonContent(UpsertSingletonItemRequest $request, Collection $collection): RedirectResponse

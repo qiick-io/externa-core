@@ -16,9 +16,12 @@
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
+        "phpoffice/phpspreadsheet": "^5.9",
+        "smalot/pdfparser": "^2.12",
         "spatie/eloquent-sortable": "^5.0",
         "spatie/laravel-activitylog": "^5.0",
         "spatie/laravel-permission": "^7.2",
+        "spatie/laravel-tags": "^4.12",
         "spatie/laravel-translatable": "^6.13"
     },
     "require-dev": {
@@ -30,6 +33,7 @@
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.9",
         "pestphp/pest": "^4.4",
+        "pestphp/pest-plugin-browser": "^4.0",
         "pestphp/pest-plugin-laravel": "^4.1"
     },
     "autoload": {

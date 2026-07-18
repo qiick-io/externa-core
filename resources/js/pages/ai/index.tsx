@@ -1,21 +1,23 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
-    Mic,
-    MicOff,
+    Paperclip,
     Pin,
     Plus,
     RefreshCw,
     Sparkles,
-    Square,
     Trash2,
 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react';
+import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer';
+import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
+import { AiComposer } from '@/components/ai/ai-composer';
 import {
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-    type PointerEvent as ReactPointerEvent,
-} from 'react';
+    AiFileCards,
+    fileCardsFromToolResult,
+    fileCardsFromToolResults,
+    type AiFileCardItem,
+} from '@/components/ai/ai-file-cards';
 import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
 import { AssistantMessageActions } from '@/components/ai/assistant-message-actions';
 import { ThinkingDots } from '@/components/ai/thinking-dots';
@@ -31,27 +33,38 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Message, MessageContent, MessageFooter } from '@/components/ui/message';
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
+    Message,
+    MessageContent,
+    MessageFooter,
+} from '@/components/ui/message';
 import AppLayout from '@/layouts/app-layout';
 import {
+    AI_CHAT_ATTACHMENT_ACCEPT,
+    AI_CHAT_ATTACHMENT_MAX_COUNT,
     bulkDeleteAiConversations,
     createAiConversation,
     deleteAiConversation,
+    fetchAiImportJobStatus,
     fetchAiConversationsPage,
     getSpeechRecognitionConstructor,
+    isAbortError,
+    pickAiChatAttachmentFiles,
     stopSpeaking,
     streamAiChat,
     toggleAiConversationPin,
     truncateAiConversationFrom,
-    type AiConversationSummary,
+    truncateLastUserMessageIfMatches,
+    uploadAiAttachment,
 } from '@/lib/ai-chat';
-import { normalizePaginated, type LaravelPaginated } from '@/lib/pagination';
+import type {
+    AiChatAttachment,
+    AiConversationSummary,
+    AiImportJobStatus,
+} from '@/lib/ai-chat';
+import { suggestedActionsForTools } from '@/lib/ai-suggested-actions';
+import { normalizePaginated } from '@/lib/pagination';
+import type { LaravelPaginated } from '@/lib/pagination';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { index as aiIndex, show as aiShow } from '@/routes/ai';
@@ -66,7 +79,40 @@ type ChatMessage = {
     content: string;
     isError?: boolean;
     toolHint?: string | null;
+    attachments?: AiChatAttachment[];
+    toolNames?: string[];
+    fileCards?: AiFileCardItem[];
+    tool_calls?: Array<{ name?: string; function?: { name?: string } }>;
+    tool_results?: Array<{
+        name?: string;
+        tool_name?: string;
+        result?: unknown;
+    }>;
 };
+
+type InFlightTurn = {
+    prompt: string;
+    attachments: AiChatAttachment[];
+    userMessageId: string;
+    assistantMessageId: string;
+};
+
+function toolFallbackContent(
+    toolsUsed: string[] = [],
+    toolCalls?: ChatMessage['tool_calls'],
+): string {
+    const namesFromCalls =
+        toolCalls
+            ?.map((toolCall) => toolCall.name ?? toolCall.function?.name)
+            .filter(
+                (name): name is string =>
+                    typeof name === 'string' && name !== '',
+            ) ?? [];
+    const uniqueTools = [...new Set([...toolsUsed, ...namesFromCalls])];
+    const toolLabel = uniqueTools.length > 0 ? uniqueTools.join(', ') : 'tool';
+
+    return `Operazione completata tramite ${toolLabel}. Se serve, chiedimi di verificare il risultato.`;
+}
 
 type Props = {
     conversations:
@@ -96,6 +142,25 @@ function isPersistedMessageId(messageId: string): boolean {
 /** Secure-context-safe id — crypto.randomUUID is unavailable on http://*.test */
 function createLocalMessageId(prefix: string): string {
     return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function importJobIdFromToolResult(result: unknown): string | null {
+    const parsed =
+        typeof result === 'string'
+            ? (() => {
+                  try {
+                      return JSON.parse(result) as unknown;
+                  } catch {
+                      return null;
+                  }
+              })()
+            : result;
+
+    if (!parsed || typeof parsed !== 'object' || !('job_id' in parsed)) {
+        return null;
+    }
+
+    return typeof parsed.job_id === 'string' ? parsed.job_id : null;
 }
 
 function startOfLocalDay(date: Date): Date {
@@ -221,7 +286,9 @@ export default function AiIndexPage({
     const [conversationId, setConversationId] = useState<string | null>(
         selectedConversation?.id ?? null,
     );
-    const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+    const [editingMessageId, setEditingMessageId] = useState<string | null>(
+        null,
+    );
     const [editingDraft, setEditingDraft] = useState('');
     const [isListening, setIsListening] = useState(false);
     const [speechSupported] = useState(
@@ -234,17 +301,29 @@ export default function AiIndexPage({
         ConversationSummary[]
     >(initialPaginated.data);
     const [listPage, setListPage] = useState(initialPaginated.current_page);
-    const [listLastPage, setListLastPage] = useState(initialPaginated.last_page);
+    const [listLastPage, setListLastPage] = useState(
+        initialPaginated.last_page,
+    );
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [pendingAttachments, setPendingAttachments] = useState<
+        AiChatAttachment[]
+    >([]);
+    const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+    const [dryRunMode, setDryRunMode] = useState(false);
+    const [presetsOpen, setPresetsOpen] = useState(false);
+    const [importJobStatus, setImportJobStatus] =
+        useState<AiImportJobStatus | null>(null);
 
     const conversationIdRef = useRef<string | null>(
         selectedConversation?.id ?? null,
     );
     const isStreamingRef = useRef(false);
     const abortControllerRef = useRef<AbortController | null>(null);
+    const inFlightTurnRef = useRef<InFlightTurn | null>(null);
     const recognitionRef = useRef<SpeechRecognition | null>(null);
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const lastSelectedIndexRef = useRef<number | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     // Sync Inertia props when the selected conversation changes — never while streaming.
     useEffect(() => {
@@ -252,22 +331,68 @@ export default function AiIndexPage({
             return;
         }
 
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- mirror server props into local chat state
-        setMessages(initialMessages);
+        // Tool-only turns: prefer server summary; never keep a permanently blank assistant bubble.
+        const syncedMessages = initialMessages.flatMap((message) => {
+            const fileCards = fileCardsFromToolResults(message.tool_results);
+            const withCards =
+                fileCards.length > 0
+                    ? { ...message, fileCards }
+                    : message;
+
+            if (
+                withCards.role !== 'assistant' ||
+                withCards.content.trim() !== '' ||
+                withCards.isError
+            ) {
+                return [withCards];
+            }
+
+            if ((withCards.tool_calls?.length ?? 0) > 0) {
+                return [
+                    {
+                        ...withCards,
+                        content: toolFallbackContent([], withCards.tool_calls),
+                    },
+                ];
+            }
+
+            return [];
+        });
+
+        setMessages(syncedMessages);
         setConversationId(selectedConversation?.id ?? null);
         conversationIdRef.current = selectedConversation?.id ?? null;
         setEditingMessageId(null);
         setEditingDraft('');
     }, [initialMessages, selectedConversation?.id, page.url]);
 
+    // Fingerprint server list content so a new props object with the same rows
+    // cannot wipe optimistic local removals (fetch-delete leaves Inertia props stale).
+    const conversationsSyncKey = useMemo(() => {
+        const paginated = normalizePaginated(conversationsProp);
+
+        return JSON.stringify({
+            current_page: paginated.current_page,
+            last_page: paginated.last_page,
+            items: paginated.data.map((conversation) => [
+                String(conversation.id),
+                conversation.pinned_at ?? null,
+                conversation.title,
+                conversation.updated_at ?? null,
+            ]),
+        });
+    }, [conversationsProp]);
+
     useEffect(() => {
         const nextPage = normalizePaginated(conversationsProp);
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- reset list when Inertia refreshes conversations
+
         setConversationItems(nextPage.data);
         setListPage(nextPage.current_page);
         setListLastPage(nextPage.last_page);
         lastSelectedIndexRef.current = null;
-    }, [conversationsProp]);
+        // conversationsSyncKey is a content fingerprint of conversationsProp
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- avoid resetting on prop identity alone
+    }, [conversationsSyncKey]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -324,7 +449,11 @@ export default function AiIndexPage({
             setIsStreaming(false);
         }
 
-        router.get(conversationUrl(id), {}, { preserveState: false, preserveScroll: true });
+        router.get(
+            conversationUrl(id),
+            {},
+            { preserveState: false, preserveScroll: true },
+        );
     };
 
     const handleNewChat = async () => {
@@ -340,23 +469,50 @@ export default function AiIndexPage({
         }
     };
 
+    const removeConversationsFromSidebar = (ids: string[]) => {
+        const deletedIds = new Set(ids.map(String));
+
+        setConversationItems((current) =>
+            current.filter(
+                (conversation) => !deletedIds.has(String(conversation.id)),
+            ),
+        );
+        setSelectedIds((current) => {
+            const next = new Set(current);
+
+            for (const deletedId of deletedIds) {
+                next.delete(deletedId);
+            }
+
+            return next;
+        });
+        lastSelectedIndexRef.current = null;
+    };
+
+    const refreshConversationsAfterDelete = (selectedWasDeleted: boolean) => {
+        // Prefetch cache defaults to fresh:false (30s) — without this, /ai can
+        // reappear with deleted rows and the sync effect resurrects them.
+        router.flushAll();
+
+        if (selectedWasDeleted) {
+            router.get(
+                aiIndex.url(),
+                {},
+                { preserveState: false, fresh: true },
+            );
+
+            return;
+        }
+
+        router.reload({ only: ['conversations'], fresh: true });
+    };
+
     const handleDelete = async (id: string) => {
         try {
             await deleteAiConversation(id);
             toast.success('Chat eliminata');
-            setConversationItems((current) =>
-                current.filter((conversation) => conversation.id !== id),
-            );
-            setSelectedIds((current) => {
-                const next = new Set(current);
-                next.delete(id);
-
-                return next;
-            });
-
-            if (conversationId === id) {
-                router.get(aiIndex.url(), {}, { preserveState: false });
-            }
+            removeConversationsFromSidebar([id]);
+            refreshConversationsAfterDelete(conversationId === id);
         } catch {
             toast.error('Impossibile eliminare la chat');
         }
@@ -449,7 +605,7 @@ export default function AiIndexPage({
     };
 
     const handleBulkDelete = async () => {
-        const ids = [...selectedIds];
+        const ids = [...selectedIds].map(String);
 
         if (ids.length === 0) {
             return;
@@ -465,23 +621,13 @@ export default function AiIndexPage({
                     : `${ids.length} chat eliminate`,
             );
 
-            const deletedIds = new Set(ids);
-            setConversationItems((current) =>
-                current.filter(
-                    (conversation) => !deletedIds.has(conversation.id),
-                ),
-            );
-            setSelectedIds(new Set());
+            removeConversationsFromSidebar(ids);
             setConfirmBulkDeleteOpen(false);
-            lastSelectedIndexRef.current = null;
 
             const selectedWasDeleted =
-                conversationId !== null && deletedIds.has(conversationId);
+                conversationId !== null && ids.includes(String(conversationId));
 
-            // ponytail: fetch delete + same-URL router.get won't refresh conversationItems
-            if (selectedWasDeleted) {
-                router.get(aiIndex.url(), {}, { preserveState: false });
-            }
+            refreshConversationsAfterDelete(selectedWasDeleted);
         } catch {
             toast.error('Impossibile eliminare le chat selezionate');
         } finally {
@@ -507,14 +653,72 @@ export default function AiIndexPage({
     };
 
     const handleStop = () => {
-        abortControllerRef.current?.abort();
-        abortControllerRef.current = null;
+        const inFlightTurn = inFlightTurnRef.current;
+        const abortController = abortControllerRef.current;
+
+        // Mark streaming finished before abort so late onDone/onToken see the flag.
         isStreamingRef.current = false;
         setIsStreaming(false);
         setToolHint(null);
+
+        abortController?.abort();
+        abortControllerRef.current = null;
+
+        if (!inFlightTurn) {
+            // Drop empty in-flight assistant bubble so stop never leaves a blank card.
+            setMessages((current) =>
+                current.filter(
+                    (entry) =>
+                        !(
+                            entry.role === 'assistant' &&
+                            entry.content.trim() === '' &&
+                            !entry.isError
+                        ),
+                ),
+            );
+
+            return;
+        }
+
+        inFlightTurnRef.current = null;
+        setComposer(inFlightTurn.prompt);
+        setPendingAttachments(inFlightTurn.attachments);
+        setMessages((current) =>
+            current.filter(
+                (entry) =>
+                    entry.id !== inFlightTurn.userMessageId &&
+                    entry.id !== inFlightTurn.assistantMessageId,
+            ),
+        );
+
+        const conversationIdToTruncate = conversationIdRef.current;
+
+        if (conversationIdToTruncate) {
+            // Best-effort: remove the persisted user turn if the server already saved it.
+            void truncateLastUserMessageIfMatches(
+                conversationIdToTruncate,
+                inFlightTurn.prompt,
+            );
+        }
     };
 
-    const markAssistantError = (assistantMessageId: string, message: string) => {
+    const pollImportJob = async (jobId: string): Promise<void> => {
+        try {
+            const status = await fetchAiImportJobStatus(jobId);
+            setImportJobStatus(status);
+
+            if (status.status === 'queued' || status.status === 'running') {
+                window.setTimeout(() => void pollImportJob(jobId), 2000);
+            }
+        } catch {
+            setImportJobStatus(null);
+        }
+    };
+
+    const markAssistantError = (
+        assistantMessageId: string,
+        message: string,
+    ) => {
         setMessages((current) =>
             current.map((entry) =>
                 entry.id === assistantMessageId
@@ -533,15 +737,28 @@ export default function AiIndexPage({
         options: {
             conversationIdForStream: string | null;
             baseMessages: ChatMessage[];
+            attachments?: AiChatAttachment[];
         },
     ): Promise<boolean> => {
+        const attachmentsForMessage = options.attachments ?? [];
+        const userMessageId = createLocalMessageId('local-user');
+        const assistantMessageId = createLocalMessageId('local-assistant');
         const userMessage: ChatMessage = {
-            id: createLocalMessageId('local-user'),
+            id: userMessageId,
             role: 'user',
             content: message,
+            attachments: attachmentsForMessage,
         };
-        const assistantMessageId = createLocalMessageId('local-assistant');
         let completed = false;
+        let toolsCalled = false;
+        const toolsUsed: string[] = [];
+
+        inFlightTurnRef.current = {
+            prompt: message,
+            attachments: attachmentsForMessage,
+            userMessageId,
+            assistantMessageId,
+        };
 
         setMessages([
             ...options.baseMessages,
@@ -557,36 +774,127 @@ export default function AiIndexPage({
         abortControllerRef.current = abortController;
 
         try {
-            await streamAiChat(message, options.conversationIdForStream, {
-                signal: abortController.signal,
-                onToken: (token) => {
-                    setMessages((current) =>
-                        current.map((entry) =>
-                            entry.id === assistantMessageId
-                                ? {
-                                      ...entry,
-                                      content: entry.content + token,
-                                      isError: false,
-                                  }
-                                : entry,
-                        ),
-                    );
-                },
-                onTool: (toolName) => {
-                    setToolHint(`Chiamata ${toolName}…`);
-                },
-                onConversationId: (id) => {
-                    conversationIdRef.current = id;
-                    setConversationId(id);
-                },
-                onDone: (fullText) => {
-                    completed = true;
-                    abortControllerRef.current = null;
-                    setToolHint(null);
-                    isStreamingRef.current = false;
-                    setIsStreaming(false);
+            await streamAiChat(
+                message,
+                options.conversationIdForStream,
+                {
+                    signal: abortController.signal,
+                    onToken: (token) => {
+                        if (abortController.signal.aborted) {
+                            return;
+                        }
 
-                    if (fullText !== '') {
+                        setMessages((current) =>
+                            current.map((entry) =>
+                                entry.id === assistantMessageId
+                                    ? {
+                                          ...entry,
+                                          content: entry.content + token,
+                                          isError: false,
+                                      }
+                                    : entry,
+                            ),
+                        );
+                    },
+                    onTool: (toolName) => {
+                        if (abortController.signal.aborted) {
+                            return;
+                        }
+
+                        toolsCalled = true;
+                        toolsUsed.push(toolName);
+                        setToolHint(`Chiamata ${toolName}…`);
+                    },
+                    onToolResult: (toolName, result) => {
+                        const jobId = importJobIdFromToolResult(result);
+
+                        if (jobId) {
+                            void pollImportJob(jobId);
+                        }
+
+                        const cards = fileCardsFromToolResult(toolName, result);
+
+                        if (cards.length === 0) {
+                            return;
+                        }
+
+                        setMessages((current) =>
+                            current.map((entry) => {
+                                if (entry.id !== assistantMessageId) {
+                                    return entry;
+                                }
+
+                                const byId = new Map(
+                                    (entry.fileCards ?? []).map((file) => [
+                                        file.id,
+                                        file,
+                                    ]),
+                                );
+
+                                for (const file of cards) {
+                                    byId.set(file.id, file);
+                                }
+
+                                return {
+                                    ...entry,
+                                    fileCards: [...byId.values()],
+                                };
+                            }),
+                        );
+                    },
+                    onConversationId: (id) => {
+                        // Keep conversation id even after stop so truncate cleanup can run.
+                        conversationIdRef.current = id;
+                        setConversationId(id);
+                    },
+                    onDone: (fullText) => {
+                        // Stop already rolled back UI; never reload/navigate after abort.
+                        if (abortController.signal.aborted) {
+                            return;
+                        }
+
+                        completed = true;
+                        inFlightTurnRef.current = null;
+                        abortControllerRef.current = null;
+                        setToolHint(null);
+                        isStreamingRef.current = false;
+                        setIsStreaming(false);
+
+                        const trimmed = fullText.trim();
+
+                        if (trimmed === '') {
+                            // Tool-only turns often end with no final text tokens from local models.
+                            if (toolsCalled) {
+                                const fallback = toolFallbackContent(toolsUsed);
+                                setMessages((current) =>
+                                    current.map((entry) =>
+                                        entry.id === assistantMessageId
+                                            ? {
+                                                  ...entry,
+                                                  content: fallback,
+                                                  isError: false,
+                                                  toolNames: [
+                                                      ...new Set(toolsUsed),
+                                                  ],
+                                              }
+                                            : entry,
+                                    ),
+                                );
+                                // Reload so backfilled server summary (if any) replaces the local fallback.
+                                reloadConversation(conversationIdRef.current);
+
+                                return;
+                            }
+
+                            markAssistantError(
+                                assistantMessageId,
+                                "Nessuna risposta dall'assistente. Riprova.",
+                            );
+                            toast.error("Nessuna risposta dall'assistente");
+
+                            return;
+                        }
+
                         setMessages((current) =>
                             current.map((entry) =>
                                 entry.id === assistantMessageId
@@ -594,28 +902,87 @@ export default function AiIndexPage({
                                           ...entry,
                                           content: fullText,
                                           isError: false,
+                                          toolNames: [...new Set(toolsUsed)],
                                       }
                                     : entry,
                             ),
                         );
+
+                        reloadConversation(conversationIdRef.current);
+                    },
+                    onError: (error) => {
+                        if (abortController.signal.aborted) {
+                            return;
+                        }
+
+                        inFlightTurnRef.current = null;
+                        abortControllerRef.current = null;
+                        isStreamingRef.current = false;
+                        setIsStreaming(false);
+                        setToolHint(null);
+                        markAssistantError(
+                            assistantMessageId,
+                            error.message || 'Errore durante la risposta',
+                        );
+                    },
+                },
+                attachmentsForMessage.map((attachment) => attachment.id),
+            );
+
+            // Stop: streamAiChat swallows AbortError; handleStop already rolled back UI.
+            if (abortController.signal.aborted) {
+                return false;
+            }
+
+            // Stream ended without onDone (truncated body) — settle empty bubbles.
+            if (!completed) {
+                inFlightTurnRef.current = null;
+                setMessages((current) => {
+                    const assistant = current.find(
+                        (entry) => entry.id === assistantMessageId,
+                    );
+
+                    if (
+                        assistant &&
+                        assistant.content.trim() === '' &&
+                        !assistant.isError
+                    ) {
+                        if (toolsCalled) {
+                            return current.map((entry) =>
+                                entry.id === assistantMessageId
+                                    ? {
+                                          ...entry,
+                                          content:
+                                              toolFallbackContent(toolsUsed),
+                                          isError: false,
+                                      }
+                                    : entry,
+                            );
+                        }
+
+                        return current.map((entry) =>
+                            entry.id === assistantMessageId
+                                ? {
+                                      ...entry,
+                                      content:
+                                          "Nessuna risposta dall'assistente. Riprova.",
+                                      isError: true,
+                                  }
+                                : entry,
+                        );
                     }
 
-                    reloadConversation(conversationIdRef.current);
-                },
-                onError: () => {
-                    abortControllerRef.current = null;
-                    isStreamingRef.current = false;
-                    setIsStreaming(false);
-                    setToolHint(null);
-                },
-            });
+                    return current;
+                });
+                isStreamingRef.current = false;
+                setIsStreaming(false);
+                setToolHint(null);
+            }
 
             return completed;
         } catch (error) {
-            if (
-                (error instanceof DOMException && error.name === 'AbortError') ||
-                (error instanceof Error && error.name === 'AbortError')
-            ) {
+            if (isAbortError(error) || abortController.signal.aborted) {
+                // handleStop owns rollback + composer restore; avoid error toasts.
                 abortControllerRef.current = null;
                 isStreamingRef.current = false;
                 setIsStreaming(false);
@@ -624,6 +991,7 @@ export default function AiIndexPage({
                 return false;
             }
 
+            inFlightTurnRef.current = null;
             abortControllerRef.current = null;
             isStreamingRef.current = false;
             setIsStreaming(false);
@@ -641,19 +1009,90 @@ export default function AiIndexPage({
         }
     };
 
-    const handleSend = async () => {
-        const message = composer.trim();
+    const handlePickAttachment = () => {
+        fileInputRef.current?.click();
+    };
 
-        if (!message || isStreamingRef.current) {
+    const handleAttachmentFiles = async (files: FileList | File[]) => {
+        const { files: filesToUpload, error } = pickAiChatAttachmentFiles(
+            files,
+            pendingAttachments.length,
+        );
+
+        if (error) {
+            toast.error(error);
+        }
+
+        if (filesToUpload.length === 0) {
             return;
         }
 
-        setComposer('');
+        setIsUploadingAttachment(true);
 
         try {
-            await runStream(message, {
+            for (const file of filesToUpload) {
+                const attachment = await uploadAiAttachment(file);
+                setPendingAttachments((current) => [...current, attachment]);
+            }
+        } catch (uploadError) {
+            toast.error(
+                uploadError instanceof Error
+                    ? uploadError.message
+                    : 'Caricamento allegato non riuscito',
+            );
+        } finally {
+            setIsUploadingAttachment(false);
+        }
+    };
+
+    const handleAttachmentSelected = async (
+        event: ChangeEvent<HTMLInputElement>,
+    ) => {
+        const selectedFiles = event.target.files;
+        event.target.value = '';
+
+        if (!selectedFiles || selectedFiles.length === 0) {
+            return;
+        }
+
+        await handleAttachmentFiles(selectedFiles);
+    };
+
+    const removePendingAttachment = (attachmentId: string) => {
+        setPendingAttachments((current) =>
+            current.filter((attachment) => attachment.id !== attachmentId),
+        );
+    };
+
+    const handleSend = async () => {
+        const message = composer.trim();
+
+        if (
+            (!message && pendingAttachments.length === 0) ||
+            isStreamingRef.current ||
+            isUploadingAttachment
+        ) {
+            return;
+        }
+
+        if (!message) {
+            toast.error('Scrivi un messaggio oltre agli allegati');
+
+            return;
+        }
+
+        const attachmentsToSend = pendingAttachments;
+        const prompt = dryRunMode
+            ? `[MODALITÀ SIMULAZIONE] Esegui solo dry_run=true, non scrivere dati.\n\n${message}`
+            : message;
+        setComposer('');
+        setPendingAttachments([]);
+
+        try {
+            await runStream(prompt, {
                 conversationIdForStream: conversationIdRef.current,
                 baseMessages: messages,
+                attachments: attachmentsToSend,
             });
         } catch (error) {
             const messageText =
@@ -713,7 +1152,10 @@ export default function AiIndexPage({
 
         if (conversationId && isPersistedMessageId(userMessage.id)) {
             try {
-                await truncateAiConversationFrom(conversationId, userMessage.id);
+                await truncateAiConversationFrom(
+                    conversationId,
+                    userMessage.id,
+                );
             } catch {
                 toast.error('Impossibile preparare la rigenerazione');
 
@@ -763,7 +1205,9 @@ export default function AiIndexPage({
             handleStop();
         }
 
-        const messageIndex = messages.findIndex((entry) => entry.id === messageId);
+        const messageIndex = messages.findIndex(
+            (entry) => entry.id === messageId,
+        );
 
         if (messageIndex < 0) {
             return;
@@ -815,7 +1259,11 @@ export default function AiIndexPage({
         recognition.addEventListener('result', (event) => {
             let transcript = '';
 
-            for (let index = event.resultIndex; index < event.results.length; index++) {
+            for (
+                let index = event.resultIndex;
+                index < event.results.length;
+                index++
+            ) {
                 const result = event.results[index];
 
                 if (result?.isFinal) {
@@ -825,7 +1273,8 @@ export default function AiIndexPage({
 
             if (transcript.trim() !== '') {
                 setComposer((current) => {
-                    const prefix = current.trim() === '' ? '' : `${current.trim()} `;
+                    const prefix =
+                        current.trim() === '' ? '' : `${current.trim()} `;
 
                     return `${prefix}${transcript.trim()}`;
                 });
@@ -868,7 +1317,9 @@ export default function AiIndexPage({
                                 size="icon"
                                 variant="outline"
                                 className="size-8"
-                                disabled={selectedIds.size === 0 || isBulkDeleting}
+                                disabled={
+                                    selectedIds.size === 0 || isBulkDeleting
+                                }
                                 onClick={() => setConfirmBulkDeleteOpen(true)}
                                 aria-label="Elimina chat selezionate"
                             >
@@ -899,98 +1350,105 @@ export default function AiIndexPage({
                                             ) : null}
                                             {section.label}
                                         </div>
-                                        {section.conversations.map((conversation) => {
-                                            const index =
-                                                conversationIndexById.get(
-                                                    conversation.id,
-                                                ) ?? 0;
+                                        {section.conversations.map(
+                                            (conversation) => {
+                                                const index =
+                                                    conversationIndexById.get(
+                                                        conversation.id,
+                                                    ) ?? 0;
 
-                                            return (
-                                                <div
-                                                    key={conversation.id}
-                                                    className={cn(
-                                                        'group mb-0.5 flex items-center gap-1 rounded-md',
-                                                        conversation.id ===
-                                                            conversationId
-                                                            ? 'bg-muted'
-                                                            : 'hover:bg-muted/60',
-                                                    )}
-                                                >
-                                                    <Checkbox
-                                                        className="ml-2"
-                                                        checked={selectedIds.has(
-                                                            conversation.id,
-                                                        )}
-                                                        onPointerDown={(event) =>
-                                                            handleCheckboxPointerDown(
-                                                                event,
-                                                                index,
-                                                            )
-                                                        }
-                                                        onCheckedChange={(checked) =>
-                                                            toggleSelected(
-                                                                conversation.id,
-                                                                checked === true,
-                                                                index,
-                                                            )
-                                                        }
-                                                        aria-label={`Seleziona ${conversation.title}`}
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        className="min-w-0 flex-1 truncate px-2 py-2 text-left text-sm"
-                                                        onClick={() =>
-                                                            selectConversation(
-                                                                conversation.id,
-                                                            )
-                                                        }
-                                                    >
-                                                        {conversation.title}
-                                                    </button>
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
+                                                return (
+                                                    <div
+                                                        key={conversation.id}
                                                         className={cn(
-                                                            'size-8',
-                                                            conversation.pinned_at
-                                                                ? 'opacity-100'
-                                                                : 'opacity-0 group-hover:opacity-100',
+                                                            'group mb-0.5 flex items-center gap-1 rounded-md',
+                                                            conversation.id ===
+                                                                conversationId
+                                                                ? 'bg-muted'
+                                                                : 'hover:bg-muted/60',
                                                         )}
-                                                        onClick={() =>
-                                                            void handleTogglePin(
-                                                                conversation.id,
-                                                            )
-                                                        }
-                                                        aria-label={
-                                                            conversation.pinned_at
-                                                                ? 'Rimuovi pin'
-                                                                : 'Fissa chat'
-                                                        }
                                                     >
-                                                        <Pin
-                                                            className={cn(
-                                                                'size-3.5',
-                                                                conversation.pinned_at &&
-                                                                    'fill-current',
+                                                        <Checkbox
+                                                            className="ml-2"
+                                                            checked={selectedIds.has(
+                                                                conversation.id,
                                                             )}
+                                                            onPointerDown={(
+                                                                event,
+                                                            ) =>
+                                                                handleCheckboxPointerDown(
+                                                                    event,
+                                                                    index,
+                                                                )
+                                                            }
+                                                            onCheckedChange={(
+                                                                checked,
+                                                            ) =>
+                                                                toggleSelected(
+                                                                    conversation.id,
+                                                                    checked ===
+                                                                        true,
+                                                                    index,
+                                                                )
+                                                            }
+                                                            aria-label={`Seleziona ${conversation.title}`}
                                                         />
-                                                    </Button>
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="size-8 opacity-0 group-hover:opacity-100"
-                                                        onClick={() =>
-                                                            void handleDelete(
-                                                                conversation.id,
-                                                            )
-                                                        }
-                                                        aria-label="Elimina chat"
-                                                    >
-                                                        <Trash2 className="size-3.5" />
-                                                    </Button>
-                                                </div>
-                                            );
-                                        })}
+                                                        <button
+                                                            type="button"
+                                                            className="min-w-0 flex-1 truncate px-2 py-2 text-left text-sm"
+                                                            onClick={() =>
+                                                                selectConversation(
+                                                                    conversation.id,
+                                                                )
+                                                            }
+                                                        >
+                                                            {conversation.title}
+                                                        </button>
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            className={cn(
+                                                                'size-8',
+                                                                conversation.pinned_at
+                                                                    ? 'opacity-100'
+                                                                    : 'opacity-0 group-hover:opacity-100',
+                                                            )}
+                                                            onClick={() =>
+                                                                void handleTogglePin(
+                                                                    conversation.id,
+                                                                )
+                                                            }
+                                                            aria-label={
+                                                                conversation.pinned_at
+                                                                    ? 'Rimuovi pin'
+                                                                    : 'Fissa chat'
+                                                            }
+                                                        >
+                                                            <Pin
+                                                                className={cn(
+                                                                    'size-3.5',
+                                                                    conversation.pinned_at &&
+                                                                        'fill-current',
+                                                                )}
+                                                            />
+                                                        </Button>
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            className="size-8 opacity-0 group-hover:opacity-100"
+                                                            onClick={() =>
+                                                                void handleDelete(
+                                                                    conversation.id,
+                                                                )
+                                                            }
+                                                            aria-label="Elimina chat"
+                                                        >
+                                                            <Trash2 className="size-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                );
+                                            },
+                                        )}
                                     </div>
                                 ))}
                                 {hasMoreConversations ? (
@@ -1017,7 +1475,9 @@ export default function AiIndexPage({
                 <section className="flex min-w-0 flex-1 flex-col">
                     <div className="flex items-center justify-between border-b px-4 py-3">
                         <div>
-                            <h1 className="text-sm font-semibold">{selectedTitle}</h1>
+                            <h1 className="text-sm font-semibold">
+                                {selectedTitle}
+                            </h1>
                             <p className="text-xs text-muted-foreground">
                                 Assistente con permessi per collezioni e file
                             </p>
@@ -1027,238 +1487,352 @@ export default function AiIndexPage({
                         </Button>
                     </div>
 
-                    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
-                        {messages.length === 0 ? (
-                            <div className="m-auto max-w-md text-center text-sm text-muted-foreground">
-                                Chiedi all&apos;assistente di elencare collezioni,
-                                creare elementi o gestire file. Le azioni distruttive
-                                passano dai tool.
-                            </div>
-                        ) : (
-                            messages.map((message) => {
-                                const isUser = message.role === 'user';
-                                const isEditing = editingMessageId === message.id;
-                                const isEmptyAssistant =
-                                    !isUser && message.content.trim() === '';
-                                const showThinking =
-                                    isEmptyAssistant && isStreaming && !message.isError;
+                    <AiChatDropZone
+                        disabled={isStreaming || isUploadingAttachment}
+                        onFilesSelected={(files) =>
+                            void handleAttachmentFiles(files)
+                        }
+                    >
+                        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
+                            {messages.length === 0 ? (
+                                <div className="m-auto max-w-md text-center text-sm text-muted-foreground">
+                                    Chiedi all&apos;assistente di elencare
+                                    collezioni, creare elementi o gestire file.
+                                    Le azioni distruttive passano dai tool.
+                                </div>
+                            ) : (
+                                messages.map((message) => {
+                                    const isUser = message.role === 'user';
+                                    const isEditing =
+                                        editingMessageId === message.id;
+                                    const isEmptyAssistant =
+                                        !isUser &&
+                                        message.content.trim() === '';
+                                    const isLastMessage =
+                                        message.id ===
+                                        messages[messages.length - 1]?.id;
+                                    const showThinking =
+                                        isEmptyAssistant &&
+                                        isStreaming &&
+                                        isLastMessage &&
+                                        !message.isError;
 
-                                return (
-                                    <Message
-                                        key={message.id}
-                                        align={isUser ? 'end' : 'start'}
-                                    >
-                                        <MessageContent>
-                                            <Bubble
-                                                variant={
-                                                    message.isError
-                                                        ? 'destructive'
-                                                        : isUser
-                                                          ? 'default'
-                                                          : 'muted'
-                                                }
-                                                align={isUser ? 'end' : 'start'}
-                                            >
-                                                <BubbleContent
-                                                    className={cn(
-                                                        !isUser && 'w-full max-w-full',
-                                                    )}
+                                    return (
+                                        <Message
+                                            key={message.id}
+                                            align={isUser ? 'end' : 'start'}
+                                        >
+                                            <MessageContent>
+                                                <Bubble
+                                                    variant={
+                                                        message.isError
+                                                            ? 'destructive'
+                                                            : isUser
+                                                              ? 'muted'
+                                                              : 'ghost'
+                                                    }
+                                                    align={
+                                                        isUser ? 'end' : 'start'
+                                                    }
                                                 >
-                                                    {isEditing ? (
-                                                        <div className="flex min-w-[16rem] flex-col gap-2">
-                                                            <textarea
-                                                                value={editingDraft}
-                                                                onChange={(event) =>
-                                                                    setEditingDraft(
-                                                                        event.target
-                                                                            .value,
-                                                                    )
-                                                                }
-                                                                rows={3}
-                                                                className="w-full resize-y rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                                            />
-                                                            <div className="flex justify-end gap-2">
+                                                    <BubbleContent
+                                                        className={cn(
+                                                            isUser
+                                                                ? 'text-foreground'
+                                                                : 'w-full max-w-full',
+                                                        )}
+                                                    >
+                                                        {isEditing ? (
+                                                            <div className="flex min-w-[16rem] flex-col gap-2">
+                                                                <textarea
+                                                                    value={
+                                                                        editingDraft
+                                                                    }
+                                                                    onChange={(
+                                                                        event,
+                                                                    ) =>
+                                                                        setEditingDraft(
+                                                                            event
+                                                                                .target
+                                                                                .value,
+                                                                        )
+                                                                    }
+                                                                    rows={3}
+                                                                    className="w-full resize-y rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                                />
+                                                                <div className="flex justify-end gap-2">
+                                                                    <Button
+                                                                        type="button"
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        onClick={
+                                                                            cancelEditing
+                                                                        }
+                                                                    >
+                                                                        Annulla
+                                                                    </Button>
+                                                                    <Button
+                                                                        type="button"
+                                                                        size="sm"
+                                                                        onClick={() =>
+                                                                            void handleResendEdited(
+                                                                                message.id,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        Invia di
+                                                                        nuovo
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        ) : showThinking ? (
+                                                            <ThinkingDots />
+                                                        ) : isUser ? (
+                                                            <div className="flex flex-col gap-2">
+                                                                {(message
+                                                                    .attachments
+                                                                    ?.length ??
+                                                                    0) > 0 ? (
+                                                                    <div className="flex flex-wrap gap-1.5">
+                                                                        {message.attachments?.map(
+                                                                            (
+                                                                                attachment,
+                                                                            ) => (
+                                                                                <span
+                                                                                    key={
+                                                                                        attachment.id ??
+                                                                                        attachment.name
+                                                                                    }
+                                                                                    className="inline-flex items-center gap-1 rounded-md bg-foreground/15 px-2 py-0.5 text-xs"
+                                                                                >
+                                                                                    <Paperclip className="size-3" />
+                                                                                    {
+                                                                                        attachment.name
+                                                                                    }
+                                                                                </span>
+                                                                            ),
+                                                                        )}
+                                                                    </div>
+                                                                ) : null}
+                                                                <div className="whitespace-pre-wrap">
+                                                                    {
+                                                                        message.content
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        ) : message.isError ? (
+                                                            <div className="flex flex-col gap-2">
+                                                                <div className="text-sm whitespace-pre-wrap">
+                                                                    {
+                                                                        message.content
+                                                                    }
+                                                                </div>
                                                                 <Button
                                                                     type="button"
                                                                     size="sm"
-                                                                    variant="ghost"
-                                                                    onClick={cancelEditing}
-                                                                >
-                                                                    Annulla
-                                                                </Button>
-                                                                <Button
-                                                                    type="button"
-                                                                    size="sm"
+                                                                    variant="secondary"
+                                                                    className="w-fit"
+                                                                    disabled={
+                                                                        isStreaming
+                                                                    }
                                                                     onClick={() =>
-                                                                        void handleResendEdited(
+                                                                        void handleRegenerate(
                                                                             message.id,
+                                                                            {
+                                                                                asRetry: true,
+                                                                            },
                                                                         )
                                                                     }
                                                                 >
-                                                                    Invia di nuovo
+                                                                    <RefreshCw className="size-3.5" />
+                                                                    Riprova
                                                                 </Button>
                                                             </div>
-                                                        </div>
-                                                    ) : showThinking ? (
-                                                        <ThinkingDots />
-                                                    ) : isUser ? (
-                                                        <div className="whitespace-pre-wrap">
-                                                            {message.content}
-                                                        </div>
-                                                    ) : message.isError ? (
-                                                        <div className="flex flex-col gap-2">
-                                                            <div className="whitespace-pre-wrap text-sm">
-                                                                {message.content}
+                                                        ) : (
+                                                            <div className="flex flex-col gap-3">
+                                                                <AssistantMarkdown
+                                                                    content={
+                                                                        message.content
+                                                                    }
+                                                                />
+                                                                {message.fileCards &&
+                                                                message.fileCards
+                                                                    .length >
+                                                                    0 ? (
+                                                                    <AiFileCards
+                                                                        files={
+                                                                            message.fileCards
+                                                                        }
+                                                                    />
+                                                                ) : null}
+                                                                {isLastMessage
+                                                                    ? (() => {
+                                                                          const toolNames =
+                                                                              message.toolNames ??
+                                                                              message.tool_calls
+                                                                                  ?.map(
+                                                                                      (
+                                                                                          toolCall,
+                                                                                      ) =>
+                                                                                          toolCall.name ??
+                                                                                          toolCall
+                                                                                              .function
+                                                                                              ?.name,
+                                                                                  )
+                                                                                  .filter(
+                                                                                      (
+                                                                                          name,
+                                                                                      ): name is string =>
+                                                                                          Boolean(
+                                                                                              name,
+                                                                                          ),
+                                                                                  ) ??
+                                                                              [];
+                                                                          const actions =
+                                                                              suggestedActionsForTools(
+                                                                                  toolNames,
+                                                                              );
+
+                                                                          return actions.length >
+                                                                              0 ? (
+                                                                              <div className="flex flex-wrap gap-2">
+                                                                                  {actions.map(
+                                                                                      (
+                                                                                          action,
+                                                                                      ) => (
+                                                                                          <Button
+                                                                                              key={
+                                                                                                  action.label
+                                                                                              }
+                                                                                              type="button"
+                                                                                              size="sm"
+                                                                                              variant="outline"
+                                                                                              className="h-7 rounded-full text-xs"
+                                                                                              onClick={() =>
+                                                                                                  setComposer(
+                                                                                                      action.prompt,
+                                                                                                  )
+                                                                                              }
+                                                                                          >
+                                                                                              {
+                                                                                                  action.label
+                                                                                              }
+                                                                                          </Button>
+                                                                                      ),
+                                                                                  )}
+                                                                              </div>
+                                                                          ) : null;
+                                                                      })()
+                                                                    : null}
                                                             </div>
-                                                            <Button
-                                                                type="button"
-                                                                size="sm"
-                                                                variant="secondary"
-                                                                className="w-fit"
-                                                                disabled={isStreaming}
-                                                                onClick={() =>
-                                                                    void handleRegenerate(
-                                                                        message.id,
-                                                                        {
-                                                                            asRetry: true,
-                                                                        },
-                                                                    )
-                                                                }
-                                                            >
-                                                                <RefreshCw className="size-3.5" />
-                                                                Riprova
-                                                            </Button>
-                                                        </div>
-                                                    ) : (
-                                                        <AssistantMarkdown
-                                                            content={message.content}
+                                                        )}
+                                                    </BubbleContent>
+                                                </Bubble>
+
+                                                {isUser && !isEditing ? (
+                                                    <MessageFooter className="opacity-60 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100">
+                                                        <UserMessageActions
+                                                            content={
+                                                                message.content
+                                                            }
+                                                            disabled={
+                                                                isStreaming
+                                                            }
+                                                            onEdit={() =>
+                                                                startEditing(
+                                                                    message,
+                                                                )
+                                                            }
                                                         />
-                                                    )}
-                                                </BubbleContent>
-                                            </Bubble>
+                                                    </MessageFooter>
+                                                ) : null}
 
-                                            {isUser && !isEditing ? (
-                                                <MessageFooter className="opacity-60 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100">
-                                                    <UserMessageActions
-                                                        content={message.content}
-                                                        disabled={isStreaming}
-                                                        onEdit={() =>
-                                                            startEditing(message)
-                                                        }
-                                                    />
-                                                </MessageFooter>
-                                            ) : null}
+                                                {!isUser &&
+                                                !isEmptyAssistant &&
+                                                !message.isError ? (
+                                                    <MessageFooter className="opacity-60 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100">
+                                                        <AssistantMessageActions
+                                                            content={
+                                                                message.content
+                                                            }
+                                                            disabled={
+                                                                isStreaming
+                                                            }
+                                                            onRegenerate={() =>
+                                                                void handleRegenerate(
+                                                                    message.id,
+                                                                )
+                                                            }
+                                                        />
+                                                    </MessageFooter>
+                                                ) : null}
+                                            </MessageContent>
+                                        </Message>
+                                    );
+                                })
+                            )}
 
-                                            {!isUser &&
-                                            !isEmptyAssistant &&
-                                            !message.isError ? (
-                                                <MessageFooter className="opacity-60 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100">
-                                                    <AssistantMessageActions
-                                                        content={message.content}
-                                                        disabled={isStreaming}
-                                                        onRegenerate={() =>
-                                                            void handleRegenerate(
-                                                                message.id,
-                                                            )
-                                                        }
-                                                    />
-                                                </MessageFooter>
-                                            ) : null}
-                                        </MessageContent>
-                                    </Message>
-                                );
-                            })
-                        )}
+                            {toolHint ? (
+                                <p className="text-xs text-muted-foreground">
+                                    {toolHint}
+                                </p>
+                            ) : null}
+                            {importJobStatus ? (
+                                <p className="text-xs text-muted-foreground">
+                                    Importazione {importJobStatus.status}:{' '}
+                                    {importJobStatus.processed}
+                                    {importJobStatus.total !== null
+                                        ? `/${importJobStatus.total}`
+                                        : ''}
+                                    {' — '}
+                                    {importJobStatus.message}
+                                </p>
+                            ) : null}
+                            <div ref={bottomRef} />
+                        </div>
 
-                        {toolHint ? (
-                            <p className="text-xs text-muted-foreground">{toolHint}</p>
-                        ) : null}
-                        <div ref={bottomRef} />
-                    </div>
-
-                    <div className="border-t p-3">
-                        <form
-                            className="flex items-end gap-2"
-                            onSubmit={(event) => {
-                                event.preventDefault();
-                                void handleSend();
-                            }}
-                        >
-                            <Input
-                                value={composer}
-                                onChange={(event) => setComposer(event.target.value)}
-                                placeholder="Chiedi all'assistente…"
-                                disabled={isStreaming}
-                                className="min-h-10"
+                        <div className="border-t p-3">
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept={AI_CHAT_ATTACHMENT_ACCEPT}
+                                multiple
+                                className="hidden"
+                                onChange={(event) =>
+                                    void handleAttachmentSelected(event)
+                                }
                             />
-                            {speechSupported ? (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            type="button"
-                                            size="icon"
-                                            variant={isListening ? 'default' : 'outline'}
-                                            className="shrink-0"
-                                            disabled={isStreaming}
-                                            onClick={toggleVoiceInput}
-                                            aria-label={
-                                                isListening
-                                                    ? 'Interrompi dettatura'
-                                                    : 'Dettatura vocale'
-                                            }
-                                        >
-                                            {isListening ? (
-                                                <MicOff className="size-4" />
-                                            ) : (
-                                                <Mic className="size-4" />
-                                            )}
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        {isListening
-                                            ? 'Interrompi dettatura'
-                                            : 'Dettatura vocale'}
-                                    </TooltipContent>
-                                </Tooltip>
-                            ) : (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <span className="inline-flex">
-                                            <Button
-                                                type="button"
-                                                size="icon"
-                                                variant="outline"
-                                                className="shrink-0"
-                                                disabled
-                                                aria-label="Dettatura non supportata"
-                                            >
-                                                <Mic className="size-4" />
-                                            </Button>
-                                        </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        Dettatura non supportata in questo browser
-                                    </TooltipContent>
-                                </Tooltip>
-                            )}
-                            {isStreaming ? (
-                                <Button
-                                    type="button"
-                                    variant="destructive"
-                                    onClick={handleStop}
-                                >
-                                    <Square className="size-3.5 fill-current" />
-                                    Stop
-                                </Button>
-                            ) : (
-                                <Button type="submit" disabled={!composer.trim()}>
-                                    Invia
-                                </Button>
-                            )}
-                        </form>
-                    </div>
+                            <AiComposer
+                                value={composer}
+                                onChange={setComposer}
+                                onSubmit={() => void handleSend()}
+                                onStop={handleStop}
+                                isStreaming={isStreaming}
+                                attachments={pendingAttachments}
+                                onRemoveAttachment={removePendingAttachment}
+                                onAttach={handlePickAttachment}
+                                isUploadingAttachment={isUploadingAttachment}
+                                attachDisabled={
+                                    pendingAttachments.length >=
+                                    AI_CHAT_ATTACHMENT_MAX_COUNT
+                                }
+                                speechSupported={speechSupported}
+                                isListening={isListening}
+                                onToggleVoice={toggleVoiceInput}
+                                dryRunMode={dryRunMode}
+                                onDryRunModeChange={setDryRunMode}
+                                onOpenPresets={() => setPresetsOpen(true)}
+                            />
+                        </div>
+                    </AiChatDropZone>
                 </section>
             </div>
+
+            <AiActionPresetsDrawer
+                open={presetsOpen}
+                onOpenChange={setPresetsOpen}
+                onSelect={(prompt) => setComposer(prompt)}
+            />
 
             <Dialog
                 open={confirmBulkDeleteOpen}
@@ -1266,7 +1840,9 @@ export default function AiIndexPage({
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Eliminare le chat selezionate?</DialogTitle>
+                        <DialogTitle>
+                            Eliminare le chat selezionate?
+                        </DialogTitle>
                         <DialogDescription>
                             Stai per eliminare {selectedIds.size} chat.
                             L&apos;azione non può essere annullata.

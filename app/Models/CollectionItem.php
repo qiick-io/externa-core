@@ -9,15 +9,18 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
  * @property-read int $id
  * @property int $collection_id
+ * @property Carbon|null $deleted_at
  */
 class CollectionItem extends Model
 {
     /** @use HasFactory<CollectionItemFactory> */
-    use HasFactory, LogsApplicationActivity;
+    use HasFactory, LogsApplicationActivity, SoftDeletes;
 
     protected $table = 'collections_items';
 
@@ -39,6 +42,17 @@ class CollectionItem extends Model
     public function fieldValues(): HasMany
     {
         return $this->hasMany(CollectionItemValue::class, 'item_id');
+    }
+
+    /**
+     * @param  mixed  $value
+     * @param  string|null  $field
+     */
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        return $this->withTrashed()
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->firstOrFail();
     }
 
     public function getTranslated(string $field, ?string $locale = null): mixed

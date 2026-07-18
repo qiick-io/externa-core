@@ -54,6 +54,23 @@ return [
         'generate_title' => false,
     ],
 
+    'remote_import_hosts' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('AI_REMOTE_IMPORT_HOSTS', '')),
+    ))),
+
+    'webhook_token' => env('AI_WEBHOOK_TOKEN'),
+
+    'daily_prompt_limit' => (int) env('AI_DAILY_PROMPT_LIMIT', 0),
+
+    'embeddings' => [
+        'enabled' => (bool) env('AI_EMBEDDINGS_ENABLED', false),
+    ],
+
+    'mcp' => [
+        'enabled' => (bool) env('AI_MCP_ENABLED', false),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | AI Providers

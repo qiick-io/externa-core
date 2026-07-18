@@ -1,6 +1,6 @@
 import adminRoutes from '@/lib/admin-routes';
 import { formRequestHeaders, jsonRequestHeaders } from '@/lib/csrf';
-import type { AdminFileRow } from '@/types/files';
+import type { AdminFileRow, FileTag } from '@/types/files';
 
 export const CHUNK_SIZE_BYTES = 10 * 1024 * 1024;
 export const MAX_CHUNK_RETRIES = 3;
@@ -13,6 +13,10 @@ function sleep(milliseconds: number): Promise<void> {
 }
 
 export function filePublicUrl(file: AdminFileRow): string | null {
+    if (file.url) {
+        return file.url;
+    }
+
     if (!file.storage_path || file.type !== 'file') {
         return null;
     }
@@ -22,6 +26,14 @@ export function filePublicUrl(file: AdminFileRow): string | null {
 
 export function isImageFile(file: AdminFileRow): boolean {
     return Boolean(file.mime_type?.startsWith('image/'));
+}
+
+export function isVideoFile(file: AdminFileRow): boolean {
+    return Boolean(file.mime_type?.startsWith('video/'));
+}
+
+export function isPlayableVideo(file: AdminFileRow): boolean {
+    return file.mime_type === 'video/mp4' || file.mime_type === 'video/webm';
 }
 
 export function formatFileSize(bytes: number | null): string {
@@ -204,6 +216,245 @@ export async function forceDeleteFile(fileId: number): Promise<void> {
     });
 
     await assertOkResponse(response, 'Failed to permanently delete file');
+}
+
+export async function updateFileMetadata(
+    fileId: number,
+    payload: Partial<{
+        title: string | null;
+        description: string | null;
+        location: string | null;
+        download_name: string | null;
+        focal_point_x: number | null;
+        focal_point_y: number | null;
+        translate_x: number | null;
+        translate_y: number | null;
+        scale: number | null;
+    }>,
+): Promise<AdminFileRow> {
+    const response = await fetch(adminRoutes.files.update(fileId), {
+        method: 'PATCH',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+        body: JSON.stringify(payload),
+    });
+
+    await assertOkResponse(response, 'Failed to update file');
+
+    return (await response.json()) as AdminFileRow;
+}
+
+export async function replaceFile(
+    fileId: number,
+    file: File,
+): Promise<AdminFileRow> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await request(
+        adminRoutes.files.replace(fileId),
+        {
+            method: 'POST',
+            headers: formRequestHeaders(),
+            credentials: 'same-origin',
+            body: formData,
+        },
+        'Failed to replace file',
+    );
+
+    await assertOkResponse(response, 'Failed to replace file');
+
+    return (await response.json()) as AdminFileRow;
+}
+
+export type DuplicateFileResult =
+    | { queued: false; file: AdminFileRow }
+    | { queued: true; job_id: string };
+
+export async function copyFile(
+    fileId: number,
+    parentId?: number | null,
+): Promise<DuplicateFileResult> {
+    const response = await fetch(adminRoutes.files.copy(fileId), {
+        method: 'POST',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+        body: JSON.stringify({ parent_id: parentId ?? null }),
+    });
+
+    await assertOkResponse(response, 'Failed to duplicate file');
+
+    if (response.status === 202) {
+        const payload = (await response.json()) as {
+            queued: true;
+            job_id: string;
+        };
+
+        return { queued: true, job_id: payload.job_id };
+    }
+
+    return {
+        queued: false,
+        file: (await response.json()) as AdminFileRow,
+    };
+}
+
+export async function favoriteFile(fileId: number): Promise<AdminFileRow> {
+    const response = await fetch(adminRoutes.files.favorite(fileId), {
+        method: 'POST',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+    });
+
+    await assertOkResponse(response, 'Failed to favorite file');
+
+    return (await response.json()) as AdminFileRow;
+}
+
+export async function unfavoriteFile(fileId: number): Promise<AdminFileRow> {
+    const response = await fetch(adminRoutes.files.favorite(fileId), {
+        method: 'DELETE',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+    });
+
+    await assertOkResponse(response, 'Failed to unfavorite file');
+
+    return (await response.json()) as AdminFileRow;
+}
+
+export async function syncFileTags(
+    fileId: number,
+    tags: string[],
+): Promise<AdminFileRow> {
+    const response = await fetch(adminRoutes.files.tags(fileId), {
+        method: 'PUT',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+        body: JSON.stringify({ tags }),
+    });
+
+    await assertOkResponse(response, 'Failed to update tags');
+
+    return (await response.json()) as AdminFileRow;
+}
+
+export async function listFileTagsCatalog(): Promise<FileTag[]> {
+    const response = await fetch(adminRoutes.files.tagsCatalog(), {
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+    });
+
+    await assertOkResponse(response, 'Failed to load tags');
+
+    return (await response.json()) as FileTag[];
+}
+
+export function downloadFileUrl(fileId: number): string {
+    return adminRoutes.files.download(fileId);
+}
+
+export function downloadPreparedZipUrl(jobId: string): string {
+    return adminRoutes.files.downloadZip(jobId);
+}
+
+export type QueueZipDownloadResult = { queued: true; job_id: string };
+
+export async function queueFilesZipDownload(
+    fileIds: number[],
+): Promise<QueueZipDownloadResult> {
+    const response = await fetch(adminRoutes.files.downloadMany(), {
+        method: 'POST',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+        body: JSON.stringify({ ids: fileIds }),
+    });
+
+    await assertOkResponse(response, 'Failed to prepare zip download');
+
+    const payload = (await response.json()) as {
+        queued: true;
+        job_id: string;
+    };
+
+    return { queued: true, job_id: payload.job_id };
+}
+
+export type BulkFileActionResult =
+    | { queued: false }
+    | { queued: true; job_id: string };
+
+export async function bulkFileAction(
+    action: string,
+    ids: number[],
+    extra: Record<string, unknown> = {},
+): Promise<BulkFileActionResult> {
+    const response = await fetch(adminRoutes.files.bulk(), {
+        method: 'POST',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+        body: JSON.stringify({ action, ids, ...extra }),
+    });
+
+    await assertOkResponse(response, 'Failed to run bulk action');
+
+    if (response.status === 202) {
+        const payload = (await response.json()) as {
+            queued: true;
+            job_id: string;
+        };
+
+        return { queued: true, job_id: payload.job_id };
+    }
+
+    return { queued: false };
+}
+
+export async function listFilesPage(options: {
+    parentId: number | null;
+    trashed?: 'only' | 'with' | null;
+    page: number;
+    search?: string;
+    tagIds?: number[];
+    sort?: string;
+    direction?: 'asc' | 'desc';
+}): Promise<{
+    data: AdminFileRow[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}> {
+    const response = await fetch(
+        adminRoutes.files.list({
+            query: {
+                parent_id: options.parentId ?? undefined,
+                trashed: options.trashed ?? undefined,
+                page: options.page,
+                search: options.search || undefined,
+                sort: options.sort || undefined,
+                direction: options.direction || undefined,
+                tag_ids:
+                    options.tagIds && options.tagIds.length > 0
+                        ? options.tagIds
+                        : undefined,
+            },
+        }),
+        {
+            headers: jsonRequestHeaders(),
+            credentials: 'same-origin',
+        },
+    );
+
+    await assertOkResponse(response, 'Failed to load files');
+
+    return (await response.json()) as {
+        data: AdminFileRow[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
 }
 
 async function uploadChunkWithRetry(

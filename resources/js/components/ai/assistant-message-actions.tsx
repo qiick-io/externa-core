@@ -7,6 +7,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { exportTextAsPdf, speakText } from '@/lib/ai-chat';
+import { copyTextToClipboard } from '@/lib/clipboard';
 import { toast } from '@/lib/toast';
 
 type AssistantMessageActionsProps = {
@@ -23,12 +24,15 @@ export function AssistantMessageActions({
     const hasContent = content.trim() !== '';
 
     const handleCopy = async () => {
-        try {
-            await navigator.clipboard.writeText(content);
+        const copied = await copyTextToClipboard(content);
+
+        if (copied) {
             toast.success('Copiato negli appunti');
-        } catch {
-            toast.error('Copia non riuscita');
+
+            return;
         }
+
+        toast.error('Copia non riuscita');
     };
 
     const handleSpeak = () => {

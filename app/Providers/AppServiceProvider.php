@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\User;
 use App\Services\Authorization\EffectivePermissionResolver;
+use App\Support\Http\CurlSseStreamer;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Activitylog\Facades\Activity;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -41,21 +43,24 @@ class AppServiceProvider extends ServiceProvider
 
     /**
      * Herd PHP-FPM + Guzzle `stream => true` returns HTTP 200 with a 0-byte body for
-     * LM Studio SSE. Buffer the full SSE payload instead; laravel/ai can still parse
-     * events from the in-memory body (tokens arrive in a burst after each upstream step).
+     * LM Studio SSE. Prefer curl_multi progressive streaming; fall back to buffering.
      */
     protected function configureHttpClientStreaming(): void
     {
-        // ponytail: Guzzle stream:true under fpm-fcgi yields empty bodies; drop the option so
-        // API stream:true responses buffer as a normal body. Swap for a WRITEFUNCTION curl
-        // handler if true token-by-token passthrough is required.
         Http::globalMiddleware(function (callable $handler): callable {
             return function ($request, array $options) use ($handler) {
-                if (($options['stream'] ?? false) === true) {
-                    unset($options['stream']);
+                if (($options['stream'] ?? false) !== true) {
+                    return $handler($request, $options);
                 }
 
-                return $handler($request, $options);
+                try {
+                    return CurlSseStreamer::stream($request);
+                } catch (Throwable) {
+                    // ponytail: if curl_multi fails, buffer the full SSE body so chat still works
+                    unset($options['stream']);
+
+                    return $handler($request, $options);
+                }
             };
         });
     }

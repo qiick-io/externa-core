@@ -17,6 +17,10 @@ return new class extends Migration
                 ->nullOnDelete();
             $table->string('type')->index();
             $table->string('name');
+            $table->string('title')->nullable();
+            $table->text('description')->nullable();
+            $table->string('location')->nullable();
+            $table->string('download_name')->nullable();
             $table->string('path')->index();
             $table->string('disk')->default('assets');
             $table->string('storage_path')->nullable();
@@ -39,6 +43,15 @@ return new class extends Migration
             $table->index(['parent_id', 'name']);
             $table->index('disk');
             $table->index('hash');
+        });
+
+        Schema::create('file_favorites', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('file_id')->constrained('files')->cascadeOnDelete();
+            $table->timestamps();
+
+            $table->unique(['user_id', 'file_id']);
         });
 
         Schema::create('file_versions', function (Blueprint $table) {
@@ -112,6 +125,7 @@ return new class extends Migration
         });
 
         Schema::dropIfExists('fileables');
+        Schema::dropIfExists('file_favorites');
         Schema::dropIfExists('file_uploads');
         Schema::dropIfExists('file_versions');
         Schema::dropIfExists('files');

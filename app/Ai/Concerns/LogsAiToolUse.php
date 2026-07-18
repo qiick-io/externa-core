@@ -14,7 +14,7 @@ trait LogsAiToolUse
     {
         $user = $this->resolveToolUser();
         $conversationId = $this->resolveConversationId();
-        $input = $request->all();
+        $input = $this->redactSensitiveToolInput($request->all());
         $toolName = class_basename(static::class);
 
         try {
@@ -34,18 +34,21 @@ trait LogsAiToolUse
 
             return $result;
         } catch (Throwable $exception) {
+            $message = 'Error: '.$exception->getMessage();
+
             if ($user !== null) {
                 AiActivityLogger::tool(
                     $user,
                     $toolName,
                     $input,
-                    $exception->getMessage(),
+                    $message,
                     $conversationId,
                     failed: true,
                 );
             }
 
-            throw $exception;
+            // ponytail: return tool errors as text so chat streaming does not 500 on DB/validation failures
+            return $message;
         }
     }
 
@@ -81,5 +84,47 @@ trait LogsAiToolUse
             $action,
             $this->resolveConversationId(),
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    protected function redactSensitiveToolInput(array $input): array
+    {
+        $sensitiveKeys = [
+            'auth_bearer',
+            'auth_header',
+            'authorization',
+            'bearer',
+            'password',
+            'token',
+            'api_key',
+            'apikey',
+            'email',
+            'phone',
+            'telephone',
+            'ssn',
+            'social_security_number',
+            'credit_card',
+            'card_number',
+            'cvv',
+        ];
+
+        foreach ($input as $key => $value) {
+            if (! is_string($key)) {
+                continue;
+            }
+
+            if (! in_array(strtolower($key), $sensitiveKeys, true)) {
+                continue;
+            }
+
+            if (is_string($value) && $value !== '') {
+                $input[$key] = '[redacted]';
+            }
+        }
+
+        return $input;
     }
 }

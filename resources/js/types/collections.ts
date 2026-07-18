@@ -4,6 +4,7 @@ export type CollectionRow = {
     slug: string;
     is_singleton: boolean;
     sort_order: number;
+    deleted_at?: string | null;
 };
 
 export type CollectionFieldRow = {

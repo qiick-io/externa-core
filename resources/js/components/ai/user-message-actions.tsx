@@ -6,6 +6,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { copyTextToClipboard } from '@/lib/clipboard';
 import { toast } from '@/lib/toast';
 
 type UserMessageActionsProps = {
@@ -22,12 +23,15 @@ export function UserMessageActions({
     const hasContent = content.trim() !== '';
 
     const handleCopy = async () => {
-        try {
-            await navigator.clipboard.writeText(content);
+        const copied = await copyTextToClipboard(content);
+
+        if (copied) {
             toast.success('Copiato negli appunti');
-        } catch {
-            toast.error('Copia non riuscita');
+
+            return;
         }
+
+        toast.error('Copia non riuscita');
     };
 
     return (

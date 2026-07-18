@@ -1,13 +1,13 @@
-import { Head, Link } from '@inertiajs/react';
-import { Pencil, Plus, Rows3 } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Pencil, Plus, Rows3, Trash2 } from 'lucide-react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
-import {
-    PageLayout,
-    TablePanel,
-} from '@/components/layout/page-layout';
+import { PageLayout, TablePanel } from '@/components/layout/page-layout';
 import { CollectionFormDrawer } from '@/components/collections/collection-form-drawer';
 import { Button } from '@/components/ui/button';
 import { Drawer } from '@/components/ui/drawer';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { PermissionEnum } from '@/enums/permission-enum';
+import { useCan } from '@/hooks/use-can';
 import { useCollections } from '@/hooks/use-collections';
 import AppLayout from '@/layouts/app-layout';
 import collectionRoutes from '@/routes/collections';
@@ -15,9 +15,13 @@ import type { BreadcrumbItem, CollectionRow } from '@/types';
 
 export default function CollectionsIndex({
     collections,
+    filters = {},
 }: {
     collections: CollectionRow[];
+    filters?: { trashed?: boolean };
 }) {
+    const { can } = useCan();
+    const isTrashed = filters.trashed === true;
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Collections', href: collectionRoutes.index.url() },
     ];
@@ -39,16 +43,18 @@ export default function CollectionsIndex({
         <AppLayout
             breadcrumbs={breadcrumbs}
             headerActions={
-                <Button
-                    type="button"
-                    onClick={() => {
-                        setEditing(null);
-                        setOpen(true);
-                    }}
-                >
-                    <Plus className="mr-1 size-4" />
-                    New collection
-                </Button>
+                !isTrashed ? (
+                    <Button
+                        type="button"
+                        onClick={() => {
+                            setEditing(null);
+                            setOpen(true);
+                        }}
+                    >
+                        <Plus className="mr-1 size-4" />
+                        New collection
+                    </Button>
+                ) : undefined
             }
         >
             <Head title="Collections" />
@@ -58,7 +64,48 @@ export default function CollectionsIndex({
                 open={open}
                 onOpenChange={handleDrawerOpenChange}
             >
-                <PageLayout>
+                <PageLayout
+                    filtersRight={
+                        <ToggleGroup
+                            type="single"
+                            value={isTrashed ? 'trashed' : 'active'}
+                            onValueChange={(value) => {
+                                if (!value) {
+                                    return;
+                                }
+
+                                router.get(
+                                    collectionRoutes.index.url({
+                                        query: {
+                                            trashed:
+                                                value === 'trashed'
+                                                    ? true
+                                                    : undefined,
+                                        },
+                                    }),
+                                    {},
+                                    {
+                                        preserveState: true,
+                                        preserveScroll: true,
+                                    },
+                                );
+                            }}
+                        >
+                            <ToggleGroupItem
+                                value="active"
+                                aria-label="Active collections"
+                            >
+                                Active
+                            </ToggleGroupItem>
+                            <ToggleGroupItem
+                                value="trashed"
+                                aria-label="Trashed collections"
+                            >
+                                <Trash2 className="size-4" />
+                            </ToggleGroupItem>
+                        </ToggleGroup>
+                    }
+                >
                     <TablePanel>
                         <table className="w-full text-sm">
                             <thead>
@@ -106,50 +153,116 @@ export default function CollectionsIndex({
                                             </td>
                                             <td className="p-3 text-right">
                                                 <div className="flex flex-wrap justify-end gap-2">
-                                                    <Button
-                                                        variant="link"
-                                                        asChild
-                                                    >
-                                                        <Link
-                                                            href={
-                                                                c.is_singleton
-                                                                    ? collectionRoutes.show.url(
-                                                                          c.id,
-                                                                      )
-                                                                    : collectionRoutes.items.index.url(
-                                                                          c.id,
-                                                                      )
-                                                            }
-                                                        >
-                                                            Open
-                                                        </Link>
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        asChild
-                                                    >
-                                                        <Link
-                                                            href={FieldController.index.url(
-                                                                c.id,
+                                                    {isTrashed ? (
+                                                        <>
+                                                            {can(
+                                                                PermissionEnum.CanRestoreCollections,
+                                                            ) && (
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        router.post(
+                                                                            collectionRoutes.restore.url(
+                                                                                c.id,
+                                                                            ),
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Restore
+                                                                </Button>
                                                             )}
-                                                        >
-                                                            <Rows3 className="mr-1 size-3.5" />
-                                                            Edit fields
-                                                        </Link>
-                                                    </Button>
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            setEditing(c);
-                                                            setOpen(true);
-                                                        }}
-                                                    >
-                                                        <Pencil className="mr-1 size-3.5" />
-                                                        Edit
-                                                    </Button>
+                                                            {can(
+                                                                PermissionEnum.CanForceDeleteCollections,
+                                                            ) && (
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="destructive"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        router.delete(
+                                                                            collectionRoutes.forceDelete.url(
+                                                                                c.id,
+                                                                            ),
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Delete
+                                                                    permanently
+                                                                </Button>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Button
+                                                                variant="link"
+                                                                asChild
+                                                            >
+                                                                <Link
+                                                                    href={
+                                                                        c.is_singleton
+                                                                            ? collectionRoutes.show.url(
+                                                                                  c.id,
+                                                                              )
+                                                                            : collectionRoutes.items.index.url(
+                                                                                  c.id,
+                                                                              )
+                                                                    }
+                                                                >
+                                                                    Open
+                                                                </Link>
+                                                            </Button>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                asChild
+                                                            >
+                                                                <Link
+                                                                    href={FieldController.index.url(
+                                                                        c.id,
+                                                                    )}
+                                                                >
+                                                                    <Rows3 className="mr-1 size-3.5" />
+                                                                    Edit fields
+                                                                </Link>
+                                                            </Button>
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    setEditing(
+                                                                        c,
+                                                                    );
+                                                                    setOpen(
+                                                                        true,
+                                                                    );
+                                                                }}
+                                                            >
+                                                                <Pencil className="mr-1 size-3.5" />
+                                                                Edit
+                                                            </Button>
+                                                            {can(
+                                                                PermissionEnum.CanDeleteCollections,
+                                                            ) && (
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="destructive"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        router.delete(
+                                                                            collectionRoutes.destroy.url(
+                                                                                c.id,
+                                                                            ),
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Delete
+                                                                </Button>
+                                                            )}
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

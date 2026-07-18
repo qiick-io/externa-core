@@ -1,12 +1,11 @@
 import { Head, router } from '@inertiajs/react';
 import {
+    ArrowDownAZ,
+    ArrowUpAZ,
     ChevronDown,
-    FileIcon,
     Files,
     FolderOpen,
     FolderPlus,
-    Info,
-    Pencil,
     Trash2,
     Upload,
 } from 'lucide-react';
@@ -15,12 +14,21 @@ import { PageLayout } from '@/components/layout/page-layout';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import {
     FileDropzone,
-    INTERNAL_FILE_DRAG_TYPE,
-    isInternalFileDrag,
 } from '@/components/admin/file-dropzone';
-import { FileFormDrawer } from '@/components/admin/file-form-drawer';
 import { FileNameDialog } from '@/components/admin/file-name-dialog';
 import { FileUploadIndicator } from '@/components/admin/file-upload-indicator';
+import { FileDetailPanel } from '@/components/admin/files/file-detail-panel';
+import { FileGrid } from '@/components/admin/files/file-grid';
+import {
+    resolveContextMenuTargets,
+    resolveFileActions,
+    type FileActionPermissions,
+} from '@/components/admin/files/file-actions';
+import { FolderPickerDialog } from '@/components/admin/files/folder-picker-dialog';
+import { FilesSelectionToolbar } from '@/components/admin/files/files-selection-toolbar';
+import { TagFilterPopover } from '@/components/admin/files/tag-filter-popover';
+import { TagPicker } from '@/components/admin/files/tag-picker';
+import { useFilesSelection } from '@/components/admin/files/use-files-selection';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -29,12 +37,19 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-    ContextMenu,
-    ContextMenuContent,
-    ContextMenuItem,
-    ContextMenuSeparator,
-    ContextMenuTrigger,
-} from '@/components/ui/context-menu';
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
@@ -51,15 +66,28 @@ import {
 } from '@/lib/file-upload-store';
 import {
     CHUNK_SIZE_BYTES,
+    bulkFileAction,
+    copyFile,
     createFolder,
     deleteFile,
-    filePublicUrl,
-    isImageFile,
+    downloadFileUrl,
+    downloadPreparedZipUrl,
+    favoriteFile,
+    forceDeleteFile,
+    listFileTagsCatalog,
+    listFilesPage,
     moveFile,
+    queueFilesZipDownload,
     renameFile,
+    restoreFile,
+    unfavoriteFile,
     uploadFileChunked,
     uploadFileDirect,
 } from '@/lib/files-api';
+import {
+    fetchNotifications,
+    notifyNotificationsUpdated,
+} from '@/lib/notifications-api';
 import {
     collectFilesFromDataTransferItems,
     collectFilesFromFileList,
@@ -70,13 +98,35 @@ import {
     inferFolderUploadLabel,
     runWithConcurrencyLimit,
 } from '@/lib/folder-upload';
-import { cn } from '@/lib/utils';
-import type { AdminFileRow, FileBreadcrumb, FileUploadProgress } from '@/types/files';
+import type {
+    AdminFileRow,
+    FileActionKey,
+    FileBreadcrumb,
+    FileTag,
+    FilesPaginator,
+    FileUploadProgress,
+} from '@/types/files';
 import type { BreadcrumbItem } from '@/types';
+
+type FileSortField = 'name' | 'size' | 'created_at' | 'updated_at';
+type FileSortDirection = 'asc' | 'desc';
 
 type FileFilters = {
     trashed?: 'only' | 'with' | null;
+    tag_ids?: number[];
+    sort?: FileSortField;
+    direction?: FileSortDirection;
 };
+
+const FILE_SORT_FIELDS: { value: FileSortField; label: string }[] = [
+    { value: 'name', label: 'Name' },
+    { value: 'size', label: 'Size' },
+    { value: 'created_at', label: 'Created' },
+    { value: 'updated_at', label: 'Updated' },
+];
+
+// ponytail: no websockets — poll notifications while duplication jobs are pending.
+const BACKGROUND_JOB_POLL_INTERVAL_MS = 2_500;
 
 export default function AdminFilesIndex({
     files: initialFiles,
@@ -84,7 +134,7 @@ export default function AdminFilesIndex({
     breadcrumbs: initialBreadcrumbs = [],
     filters = {},
 }: {
-    files: AdminFileRow[];
+    files: FilesPaginator;
     parentId?: number | null;
     breadcrumbs?: FileBreadcrumb[];
     filters?: FileFilters;
@@ -92,14 +142,27 @@ export default function AdminFilesIndex({
     const { can } = useCan();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);
-    const [files, setFiles] = useState(initialFiles);
+    const [files, setFiles] = useState(initialFiles.data);
+    const [page, setPage] = useState(initialFiles.current_page);
+    const [lastPage, setLastPage] = useState(initialFiles.last_page);
+    const [loadingMore, setLoadingMore] = useState(false);
+    // ponytail: ref lock + generation beat double-click / stale load-more races
+    const loadingMoreRef = useRef(false);
+    const listGenerationRef = useRef(0);
     const [search, setSearch] = useState('');
-    const [selectedFile, setSelectedFile] = useState<AdminFileRow | null>(null);
-    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [detailFile, setDetailFile] = useState<AdminFileRow | null>(null);
     const [folderDialogOpen, setFolderDialogOpen] = useState(false);
     const [renameDialogOpen, setRenameDialogOpen] = useState(false);
     const [renameTargetFile, setRenameTargetFile] =
         useState<AdminFileRow | null>(null);
+    const [tagDialogOpen, setTagDialogOpen] = useState(false);
+    const [bulkTags, setBulkTags] = useState<string[]>([]);
+    const [tagCatalog, setTagCatalog] = useState<FileTag[]>([]);
+    const [selectedTagIds, setSelectedTagIds] = useState<number[]>(
+        filters.tag_ids ?? [],
+    );
+    const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+    const [moveTargetFiles, setMoveTargetFiles] = useState<AdminFileRow[]>([]);
     const [uploads, setUploads] = useState<FileUploadProgress[]>([]);
     const [draggingFileId, setDraggingFileId] = useState<number | null>(null);
     const [dropTargetFolderId, setDropTargetFolderId] = useState<number | null>(
@@ -108,43 +171,194 @@ export default function AdminFilesIndex({
     const [trashed, setTrashed] = useState<'active' | 'trashed'>(
         filters.trashed === 'only' ? 'trashed' : 'active',
     );
+    const [sort, setSort] = useState<FileSortField>(filters.sort ?? 'name');
+    const [direction, setDirection] = useState<FileSortDirection>(
+        filters.direction ?? 'asc',
+    );
+    const pendingDuplicationJobIdsRef = useRef(new Set<string>());
+    const [pendingDuplicationJobCount, setPendingDuplicationJobCount] =
+        useState(0);
+    const pendingZipJobIdsRef = useRef(new Set<string>());
+    const [pendingZipJobCount, setPendingZipJobCount] = useState(0);
 
     const canCreate = can(PermissionEnum.CanCreateFiles);
     const canEdit = can(PermissionEnum.CanEditFiles);
     const canDelete = can(PermissionEnum.CanDeleteFiles);
     const canRestore = can(PermissionEnum.CanRestoreFiles);
     const canForceDelete = can(PermissionEnum.CanForceDeleteFiles);
+    const canDownload = can(PermissionEnum.CanDownloadFiles);
+    const canFavorite = can(PermissionEnum.CanFavoriteFiles);
+    const canCopy = can(PermissionEnum.CanCopyFiles);
+    const canReplace = can(PermissionEnum.CanReplaceFiles);
+    const canTag = can(PermissionEnum.CanTagFiles);
+    const canUpdateMetadata = can(PermissionEnum.CanUpdateFileMetadata);
     const isTrashed = trashed === 'trashed';
     const uploadsEnabled = canCreate && !isTrashed;
 
+    const selectionResetKey = `${parentId ?? 'root'}:${trashed}:${selectedTagIds.join(',')}`;
+    const selection = useFilesSelection(files, selectionResetKey);
+
+    const clearSelectionAndDetail = useCallback((): void => {
+        selection.clearSelection();
+        setDetailFile(null);
+    }, [selection.clearSelection]);
+
     useEffect(() => {
-        setFiles(initialFiles);
-    }, [initialFiles]);
+        const handleEscape = (event: KeyboardEvent): void => {
+            if (event.key !== 'Escape') {
+                return;
+            }
+
+            if (
+                folderDialogOpen ||
+                renameDialogOpen ||
+                tagDialogOpen ||
+                moveDialogOpen
+            ) {
+                return;
+            }
+
+            clearSelectionAndDetail();
+        };
+
+        window.addEventListener('keydown', handleEscape);
+
+        return () => {
+            window.removeEventListener('keydown', handleEscape);
+        };
+    }, [
+        clearSelectionAndDetail,
+        folderDialogOpen,
+        moveDialogOpen,
+        renameDialogOpen,
+        tagDialogOpen,
+    ]);
+
+    const actionPermissions: FileActionPermissions = useMemo(
+        () => ({
+            canEdit,
+            canDelete,
+            canRestore,
+            canForceDelete,
+            canDownload,
+            canFavorite,
+            canCopy,
+            canReplace,
+            canTag,
+            canUpdateMetadata,
+        }),
+        [
+            canEdit,
+            canDelete,
+            canRestore,
+            canForceDelete,
+            canDownload,
+            canFavorite,
+            canCopy,
+            canReplace,
+            canTag,
+            canUpdateMetadata,
+        ],
+    );
+
+    const applyServerPage = useCallback((paginator: FilesPaginator): void => {
+        listGenerationRef.current += 1;
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+        setFiles(paginator.data);
+        setPage(paginator.current_page);
+        setLastPage(paginator.last_page);
+    }, []);
+
+    const beginListFilterVisit = useCallback((): void => {
+        // Invalidate load-more and hide the button until page-1 props arrive.
+        // Keep current cards visible to avoid an empty-folder flash mid-visit.
+        listGenerationRef.current += 1;
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+        setPage(1);
+        setLastPage(1);
+    }, []);
+
+    useEffect(() => {
+        applyServerPage(initialFiles);
+    }, [applyServerPage, initialFiles]);
+
+    useEffect(() => {
+        setSelectedTagIds(filters.tag_ids ?? []);
+    }, [filters.tag_ids]);
+
+    useEffect(() => {
+        setSort(filters.sort ?? 'name');
+        setDirection(filters.direction ?? 'asc');
+    }, [filters.sort, filters.direction]);
 
     useEffect(() => {
         return subscribeToFileUploads(setUploads);
     }, []);
 
+    useEffect(() => {
+        let cancelled = false;
+
+        void listFileTagsCatalog()
+            .then((tags) => {
+                if (!cancelled) {
+                    setTagCatalog(tags);
+                }
+            })
+            .catch(() => {
+                // Catalog is best-effort for picker/filter; listing still works.
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const refreshTagCatalog = useCallback(async (): Promise<void> => {
+        try {
+            setTagCatalog(await listFileTagsCatalog());
+        } catch {
+            // Ignore catalog refresh failures.
+        }
+    }, []);
+
     const pageBreadcrumbs: BreadcrumbItem[] = useMemo(() => {
+        const listQuery: Record<string, string | number | number[]> = {
+            sort,
+            direction,
+        };
+
+        if (selectedTagIds.length > 0) {
+            listQuery.tag_ids = selectedTagIds;
+        }
+
         const crumbs: BreadcrumbItem[] = [
-            { title: 'Files', href: adminRoutes.files.index() },
+            {
+                title: 'Files',
+                href: adminRoutes.files.index({ query: listQuery }),
+            },
         ];
 
         if (!isTrashed) {
             for (const crumb of initialBreadcrumbs) {
                 crumbs.push({
                     title: crumb.name,
-                    href: adminRoutes.files.index({
-                        query: { parent_id: crumb.id },
+                    href: adminRoutes.files.index(crumb.id, {
+                        query: listQuery,
                     }),
                 });
             }
         }
 
         return crumbs;
-    }, [initialBreadcrumbs, isTrashed]);
+    }, [direction, initialBreadcrumbs, isTrashed, selectedTagIds, sort]);
 
     const refreshPage = useCallback(() => {
+        // Invalidate in-flight load-more before Inertia replaces page 1.
+        listGenerationRef.current += 1;
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
         router.reload({
             only: ['files'],
             preserveState: true,
@@ -152,30 +366,202 @@ export default function AdminFilesIndex({
         });
     }, []);
 
+    const trackPendingDuplication = useCallback((jobId: string) => {
+        pendingDuplicationJobIdsRef.current.add(jobId);
+        setPendingDuplicationJobCount(pendingDuplicationJobIdsRef.current.size);
+    }, []);
+
+    const trackPendingZip = useCallback((jobId: string) => {
+        pendingZipJobIdsRef.current.add(jobId);
+        setPendingZipJobCount(pendingZipJobIdsRef.current.size);
+    }, []);
+
+    useEffect(() => {
+        if (pendingDuplicationJobCount === 0 && pendingZipJobCount === 0) {
+            return;
+        }
+
+        let cancelled = false;
+
+        const pollPendingJobs = async (): Promise<void> => {
+            try {
+                const payload = await fetchNotifications(1);
+
+                if (cancelled) {
+                    return;
+                }
+
+                const pendingDuplicationJobIds =
+                    pendingDuplicationJobIdsRef.current;
+                const pendingZipJobIds = pendingZipJobIdsRef.current;
+                let resolvedDuplication = false;
+                let resolvedZip = false;
+
+                for (const notification of payload.data) {
+                    const jobId = notification.data.job_id;
+
+                    if (typeof jobId !== 'string') {
+                        continue;
+                    }
+
+                    if (pendingDuplicationJobIds.has(jobId)) {
+                        pendingDuplicationJobIds.delete(jobId);
+                        resolvedDuplication = true;
+
+                        if (
+                            notification.data.type ===
+                            'file_duplication_completed'
+                        ) {
+                            toast.success(
+                                notification.data.title ??
+                                    'File duplication completed',
+                            );
+                            refreshPage();
+                        } else if (
+                            notification.data.type ===
+                            'file_duplication_failed'
+                        ) {
+                            toast.error(
+                                notification.data.title ??
+                                    'File duplication failed',
+                            );
+                        }
+                    }
+
+                    if (pendingZipJobIds.has(jobId)) {
+                        pendingZipJobIds.delete(jobId);
+                        resolvedZip = true;
+
+                        if (notification.data.type === 'file_zip_ready') {
+                            const downloadUrl =
+                                typeof notification.data.download_url ===
+                                'string'
+                                    ? notification.data.download_url
+                                    : downloadPreparedZipUrl(jobId);
+
+                            toast.success(
+                                notification.data.title ??
+                                    'Your zip is ready',
+                                {
+                                    action: {
+                                        label: 'Download',
+                                        onClick: () => {
+                                            window.location.href = downloadUrl;
+                                        },
+                                    },
+                                },
+                            );
+                        } else if (
+                            notification.data.type === 'file_zip_failed'
+                        ) {
+                            toast.error(
+                                notification.data.title ??
+                                    'Zip preparation failed',
+                            );
+                        }
+                    }
+                }
+
+                if (resolvedDuplication) {
+                    setPendingDuplicationJobCount(
+                        pendingDuplicationJobIds.size,
+                    );
+                }
+
+                if (resolvedZip) {
+                    setPendingZipJobCount(pendingZipJobIds.size);
+                }
+
+                if (resolvedDuplication || resolvedZip) {
+                    notifyNotificationsUpdated();
+                }
+            } catch {
+                // Ignore transient poll failures while jobs are pending.
+            }
+        };
+
+        void pollPendingJobs();
+        const intervalId = window.setInterval(() => {
+            void pollPendingJobs();
+        }, BACKGROUND_JOB_POLL_INTERVAL_MS);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(intervalId);
+        };
+    }, [pendingDuplicationJobCount, pendingZipJobCount, refreshPage]);
+
+    const buildFilesIndexUrl = useCallback(
+        (options: {
+            folderId?: number | null;
+            nextTrashed?: 'active' | 'trashed';
+            nextTagIds?: number[];
+            nextSort?: FileSortField;
+            nextDirection?: FileSortDirection;
+        } = {}): string => {
+            const folderId =
+                options.folderId !== undefined ? options.folderId : parentId;
+            const nextTrashed = options.nextTrashed ?? trashed;
+            const nextTagIds = options.nextTagIds ?? selectedTagIds;
+            const nextSort = options.nextSort ?? sort;
+            const nextDirection = options.nextDirection ?? direction;
+            const query: Record<string, string | number | number[] | undefined> =
+                {
+                    trashed: nextTrashed === 'trashed' ? 'only' : undefined,
+                    tag_ids: nextTagIds.length > 0 ? nextTagIds : undefined,
+                    sort: nextSort,
+                    direction: nextDirection,
+                };
+
+            if (nextTrashed === 'trashed' || folderId === null) {
+                return adminRoutes.files.index({ query });
+            }
+
+            return adminRoutes.files.index(folderId, { query });
+        },
+        [direction, parentId, selectedTagIds, sort, trashed],
+    );
+
     const navigateToFolder = (folderId: number | null): void => {
         if (isTrashed) {
             return;
         }
 
-        router.get(
-            adminRoutes.files.index({
-                query: folderId ? { parent_id: folderId } : undefined,
-            }),
-        );
+        router.get(buildFilesIndexUrl({ folderId }));
     };
 
     const visitWithTrashed = (nextTrashed: 'active' | 'trashed'): void => {
         setTrashed(nextTrashed);
+        beginListFilterVisit();
 
         router.get(
-            adminRoutes.files.index({
-                query:
-                    nextTrashed === 'trashed'
-                        ? { trashed: 'only' }
-                        : parentId
-                          ? { parent_id: parentId }
-                          : undefined,
-            }),
+            buildFilesIndexUrl({ nextTrashed }),
+            {},
+            { preserveState: true, preserveScroll: true },
+        );
+    };
+
+    const visitWithTagFilter = (nextTagIds: number[]): void => {
+        setSelectedTagIds(nextTagIds);
+        beginListFilterVisit();
+
+        router.get(
+            buildFilesIndexUrl({ nextTagIds }),
+            {},
+            { preserveState: true, preserveScroll: true },
+        );
+    };
+
+    const visitWithSort = (
+        nextSort: FileSortField,
+        nextDirection: FileSortDirection,
+    ): void => {
+        setSort(nextSort);
+        setDirection(nextDirection);
+        beginListFilterVisit();
+
+        router.get(
+            buildFilesIndexUrl({ nextSort, nextDirection }),
             {},
             { preserveState: true, preserveScroll: true },
         );
@@ -188,8 +574,84 @@ export default function AdminFilesIndex({
             return files;
         }
 
-        return files.filter((file) => file.name.toLowerCase().includes(term));
+        return files.filter(
+            (file) =>
+                file.name.toLowerCase().includes(term) ||
+                (file.title ?? '').toLowerCase().includes(term),
+        );
     }, [files, search]);
+
+    const toolbarActions = useMemo(
+        () =>
+            resolveFileActions(
+                selection.selectedFiles,
+                actionPermissions,
+                isTrashed,
+            ),
+        [selection.selectedFiles, actionPermissions, isTrashed],
+    );
+
+    const loadMore = useCallback(async (): Promise<void> => {
+        if (loadingMoreRef.current || page >= lastPage) {
+            return;
+        }
+
+        const requestGeneration = listGenerationRef.current;
+        const nextPage = page + 1;
+        loadingMoreRef.current = true;
+        setLoadingMore(true);
+
+        try {
+            const next = await listFilesPage({
+                parentId,
+                trashed: isTrashed ? 'only' : null,
+                page: nextPage,
+                tagIds: selectedTagIds,
+                sort,
+                direction,
+            });
+
+            if (requestGeneration !== listGenerationRef.current) {
+                return;
+            }
+
+            setFiles((current) => {
+                const seenIds = new Set(current.map((file) => file.id));
+                const appended = next.data.filter(
+                    (file) => !seenIds.has(file.id),
+                );
+
+                return appended.length === 0
+                    ? current
+                    : [...current, ...appended];
+            });
+            setPage(next.current_page);
+            setLastPage(next.last_page);
+        } catch (error) {
+            if (requestGeneration !== listGenerationRef.current) {
+                return;
+            }
+
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : 'Failed to load more files',
+            );
+        } finally {
+            if (requestGeneration === listGenerationRef.current) {
+                loadingMoreRef.current = false;
+                setLoadingMore(false);
+            }
+        }
+    }, [
+        direction,
+        isTrashed,
+        lastPage,
+        page,
+        parentId,
+        selectedTagIds,
+        sort,
+    ]);
 
     const enqueueUpload = useCallback(
         async (
@@ -489,8 +951,8 @@ export default function AdminFilesIndex({
     };
 
     const openFileDetails = (file: AdminFileRow): void => {
-        setSelectedFile(file);
-        setDrawerOpen(true);
+        setDetailFile(file);
+        selection.selectOnly(file.id);
     };
 
     const openRenameDialog = (file: AdminFileRow): void => {
@@ -507,19 +969,184 @@ export default function AdminFilesIndex({
         refreshPage();
     };
 
-    const handleDeleteFile = async (file: AdminFileRow): Promise<void> => {
-        if (!canDelete || isTrashed) {
+    const runAction = useCallback(
+        async (action: FileActionKey, targets?: AdminFileRow[]): Promise<void> => {
+            const selected = targets ?? selection.selectedFiles;
+
+            if (selected.length === 0) {
+                return;
+            }
+
+            const ids = selected.map((file) => file.id);
+
+            try {
+                switch (action) {
+                    case 'details':
+                        if (selected[0]) {
+                            openFileDetails(selected[0]);
+                        }
+                        break;
+                    case 'download':
+                        if (selected.length === 1 && selected[0].type === 'file') {
+                            window.location.href = downloadFileUrl(selected[0].id);
+                        } else {
+                            const result = await queueFilesZipDownload(ids);
+                            toast.success(
+                                "Preparing zip — you'll be notified when it's ready.",
+                            );
+                            trackPendingZip(result.job_id);
+                            selection.clearSelection();
+                        }
+                        break;
+                    case 'move':
+                        setMoveTargetFiles(selected);
+                        setMoveDialogOpen(true);
+                        break;
+                    case 'rename':
+                        if (selected[0]) {
+                            openRenameDialog(selected[0]);
+                        }
+                        break;
+                    case 'duplicate': {
+                        if (ids.length === 1) {
+                            const result = await copyFile(ids[0], parentId);
+
+                            if (result.queued) {
+                                toast.success(
+                                    "Duplication started — you'll be notified when it finishes",
+                                );
+                                trackPendingDuplication(result.job_id);
+                            } else {
+                                toast.success('File duplicated');
+                                refreshPage();
+                            }
+                        } else {
+                            const result = await bulkFileAction('copy', ids, {
+                                parent_id: parentId,
+                            });
+                            toast.success(
+                                "Duplication started — you'll be notified when it finishes",
+                            );
+
+                            if (result.queued) {
+                                trackPendingDuplication(result.job_id);
+                            }
+                        }
+                        selection.clearSelection();
+                        break;
+                    }
+                    case 'favorite':
+                        if (ids.length === 1) {
+                            await favoriteFile(ids[0]);
+                        } else {
+                            await bulkFileAction('favorite', ids);
+                        }
+                        refreshPage();
+                        break;
+                    case 'unfavorite':
+                        if (ids.length === 1) {
+                            await unfavoriteFile(ids[0]);
+                        } else {
+                            await bulkFileAction('unfavorite', ids);
+                        }
+                        refreshPage();
+                        break;
+                    case 'replace':
+                        if (selected[0]) {
+                            openFileDetails(selected[0]);
+                        }
+                        break;
+                    case 'tag':
+                        setTagDialogOpen(true);
+                        break;
+                    case 'delete':
+                        if (ids.length === 1) {
+                            await deleteFile(ids[0]);
+                        } else {
+                            await bulkFileAction('delete', ids);
+                        }
+                        selection.clearSelection();
+                        setDetailFile(null);
+                        refreshPage();
+                        break;
+                    case 'restore':
+                        if (ids.length === 1) {
+                            await restoreFile(ids[0]);
+                        } else {
+                            await bulkFileAction('restore', ids);
+                        }
+                        selection.clearSelection();
+                        refreshPage();
+                        break;
+                    case 'force_delete':
+                        if (ids.length === 1) {
+                            await forceDeleteFile(ids[0]);
+                        } else {
+                            await bulkFileAction('force_delete', ids);
+                        }
+                        selection.clearSelection();
+                        setDetailFile(null);
+                        refreshPage();
+                        break;
+                }
+            } catch (error) {
+                toast.error(
+                    error instanceof Error
+                        ? error.message
+                        : 'Action failed',
+                );
+            }
+        },
+        [parentId, refreshPage, selection, trackPendingDuplication],
+    );
+
+    const resetBulkTagDialog = (): void => {
+        setBulkTags([]);
+    };
+
+    const applyBulkTags = async (): Promise<void> => {
+        if (bulkTags.length === 0 || selection.selectedIds.length === 0) {
             return;
         }
 
         try {
-            await deleteFile(file.id);
+            await bulkFileAction('tag', selection.selectedIds, {
+                tags: bulkTags,
+            });
+            setTagDialogOpen(false);
+            resetBulkTagDialog();
+            await refreshTagCatalog();
             refreshPage();
         } catch (error) {
             toast.error(
-                error instanceof Error ? error.message : 'Failed to delete file',
+                error instanceof Error ? error.message : 'Failed to tag files',
             );
         }
+    };
+
+    const blockedMoveFolders = useMemo(
+        () =>
+            moveTargetFiles
+                .filter((file) => file.type === 'folder')
+                .map((folder) => ({ id: folder.id, path: folder.path })),
+        [moveTargetFiles],
+    );
+
+    const handleConfirmMove = async (
+        targetParentId: number | null,
+    ): Promise<void> => {
+        const ids = moveTargetFiles.map((file) => file.id);
+
+        if (ids.length === 0) {
+            return;
+        }
+
+        await bulkFileAction('move', ids, {
+            parent_id: targetParentId,
+        });
+        selection.clearSelection();
+        setMoveTargetFiles([]);
+        refreshPage();
     };
 
     return (
@@ -595,264 +1222,238 @@ export default function AdminFilesIndex({
                 onItemsDropped={handleItemsDropped}
                 className="min-h-0 flex-1"
             >
-                <PageLayout
-                    className="min-h-0 flex-1"
-                    filters={
-                        <DataTableToolbar
-                            search={search}
-                            onSearchChange={setSearch}
-                            searchPlaceholder={
-                                isTrashed
-                                    ? 'Filter trash…'
-                                    : 'Filter current folder…'
-                            }
-                        />
-                    }
-                    filtersRight={
-                        <ToggleGroup
-                            type="single"
-                            value={trashed}
-                            onValueChange={(value) => {
-                                if (value === 'active' || value === 'trashed') {
-                                    visitWithTrashed(value);
+                <div className="flex min-h-0 flex-1">
+                    <PageLayout
+                        className="min-h-0 min-w-0 flex-1"
+                        filters={
+                            selection.selectedIds.length > 0 ? (
+                                <div className="flex min-w-0 items-center gap-2">
+                                    <FilesSelectionToolbar
+                                        count={selection.selectedIds.length}
+                                        actions={toolbarActions}
+                                        onClear={selection.clearSelection}
+                                        onAction={(action) => {
+                                            void runAction(action);
+                                        }}
+                                    />
+                                </div>
+                            ) : (
+                                <DataTableToolbar
+                                    search={search}
+                                    onSearchChange={setSearch}
+                                    searchPlaceholder={
+                                        isTrashed
+                                            ? 'Filter trash…'
+                                            : 'Filter current folder…'
+                                    }
+                                    trailing={
+                                        <TagFilterPopover
+                                            catalog={tagCatalog}
+                                            selectedTagIds={selectedTagIds}
+                                            onChange={visitWithTagFilter}
+                                        />
+                                    }
+                                />
+                            )
+                        }
+                        filtersRight={
+                            <div className="flex items-center gap-1.5">
+                                <Select
+                                    value={sort}
+                                    onValueChange={(value) => {
+                                        if (
+                                            value === 'name' ||
+                                            value === 'size' ||
+                                            value === 'created_at' ||
+                                            value === 'updated_at'
+                                        ) {
+                                            visitWithSort(value, direction);
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        size="sm"
+                                        aria-label="Sort by"
+                                        className="w-[7.5rem]"
+                                    >
+                                        <SelectValue placeholder="Sort" />
+                                    </SelectTrigger>
+                                    <SelectContent align="end">
+                                        {FILE_SORT_FIELDS.map((field) => (
+                                            <SelectItem
+                                                key={field.value}
+                                                value={field.value}
+                                            >
+                                                {field.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-8"
+                                    aria-label={
+                                        direction === 'asc'
+                                            ? 'Sort ascending'
+                                            : 'Sort descending'
+                                    }
+                                    onClick={() => {
+                                        visitWithSort(
+                                            sort,
+                                            direction === 'asc'
+                                                ? 'desc'
+                                                : 'asc',
+                                        );
+                                    }}
+                                >
+                                    {direction === 'asc' ? (
+                                        <ArrowUpAZ className="size-4" />
+                                    ) : (
+                                        <ArrowDownAZ className="size-4" />
+                                    )}
+                                </Button>
+                                <ToggleGroup
+                                    type="single"
+                                    value={trashed}
+                                    onValueChange={(value) => {
+                                        if (
+                                            value === 'active' ||
+                                            value === 'trashed'
+                                        ) {
+                                            visitWithTrashed(value);
+                                        }
+                                    }}
+                                >
+                                    <ToggleGroupItem
+                                        value="active"
+                                        aria-label="Active files"
+                                        className="px-2.5"
+                                    >
+                                        <Files className="size-4" />
+                                    </ToggleGroupItem>
+                                    <ToggleGroupItem
+                                        value="trashed"
+                                        aria-label="Trash"
+                                        className="px-2.5"
+                                    >
+                                        <Trash2 className="size-4" />
+                                    </ToggleGroupItem>
+                                </ToggleGroup>
+                            </div>
+                        }
+                    >
+                        <FileGrid
+                            files={filteredFiles}
+                            isTrashed={isTrashed}
+                            uploadsEnabled={uploadsEnabled}
+                            canEdit={canEdit}
+                            selectedIds={selection.selectedIds}
+                            multiSelectMode={selection.multiSelectMode}
+                            dropTargetFolderId={dropTargetFolderId}
+                            hasMore={page < lastPage && search.trim() === ''}
+                            loadingMore={loadingMore}
+                            onLoadMore={() => {
+                                void loadMore();
+                            }}
+                            onSelect={selection.handleSelectClick}
+                            onOpenFolder={navigateToFolder}
+                            onOpenDetails={openFileDetails}
+                            onClearSelection={clearSelectionAndDetail}
+                            onPrepareContextMenu={(file) => {
+                                if (!selection.selectedIds.includes(file.id)) {
+                                    selection.selectOnly(file.id);
                                 }
                             }}
-                        >
-                            <ToggleGroupItem
-                                value="active"
-                                aria-label="Active files"
-                                className="px-2.5"
-                            >
-                                <Files className="size-4" />
-                            </ToggleGroupItem>
-                            <ToggleGroupItem
-                                value="trashed"
-                                aria-label="Trash"
-                                className="px-2.5"
-                            >
-                                <Trash2 className="size-4" />
-                            </ToggleGroupItem>
-                        </ToggleGroup>
-                    }
-                >
-                    <div className="flex min-h-0 flex-1 flex-col">
-                        {filteredFiles.length === 0 && (
-                            <div className="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-sidebar-border/70 bg-muted/20 p-8 text-center">
-                                <Upload className="size-8 opacity-60" />
-                                <p className="text-sm font-medium">
-                                    {isTrashed
-                                        ? 'Trash is empty'
-                                        : uploadsEnabled
-                                          ? 'Drop files anywhere to upload'
-                                          : 'This folder is empty'}
-                                </p>
-                                {uploadsEnabled && !isTrashed && (
-                                    <p className="text-xs">
-                                        Or use the Upload button above
-                                    </p>
-                                )}
-                            </div>
-                        )}
-
-                        {filteredFiles.length > 0 && (
-                            <div
-                                className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
-                                onDragOver={(event) => {
-                                    if (
-                                        isTrashed ||
-                                        !isInternalFileDrag(event)
-                                    ) {
-                                        return;
-                                    }
-
-                                    event.preventDefault();
-                                }}
-                                onDrop={(event) => {
-                                    if (
-                                        isTrashed ||
-                                        !isInternalFileDrag(event)
-                                    ) {
-                                        return;
-                                    }
-
-                                    event.preventDefault();
-
-                                    if (canEdit && draggingFileId !== null) {
-                                        void handleMoveToFolder(
-                                            draggingFileId,
-                                            parentId,
-                                        );
-                                    }
-
-                                    setDraggingFileId(null);
+                            onAction={(action, file) => {
+                                const targets = resolveContextMenuTargets(
+                                    file,
+                                    selection.selectedIds,
+                                    selection.selectedFiles,
+                                );
+                                void runAction(action, targets);
+                            }}
+                            onDragStart={setDraggingFileId}
+                            onDragEnd={() => {
+                                setDraggingFileId(null);
+                                setDropTargetFolderId(null);
+                            }}
+                            onDragOverFolder={setDropTargetFolderId}
+                            onDragLeaveFolder={(folderId) => {
+                                if (dropTargetFolderId === folderId) {
                                     setDropTargetFolderId(null);
-                                }}
-                            >
-                        {filteredFiles.map((file) => {
-                            const isFolder = file.type === 'folder';
-                            const publicUrl = filePublicUrl(file);
-                            const isDropTarget =
-                                isFolder &&
-                                dropTargetFolderId === file.id &&
-                                !isTrashed;
+                                }
+                            }}
+                            onDropOnFolder={(folderId) => {
+                                if (
+                                    canEdit &&
+                                    draggingFileId !== null &&
+                                    draggingFileId !== folderId
+                                ) {
+                                    void handleMoveToFolder(
+                                        draggingFileId,
+                                        folderId,
+                                    );
+                                }
 
-                            return (
-                                <ContextMenu key={file.id} modal={false}>
-                                    <ContextMenuTrigger asChild>
-                                        <div
-                                            draggable={
-                                                canEdit &&
-                                                !isFolder &&
-                                                !isTrashed
-                                            }
-                                            className={cn(
-                                                'group relative flex flex-col items-center gap-2 rounded-xl border p-4 transition-colors',
-                                                'border-sidebar-border/70 bg-card hover:bg-muted/40',
-                                                isDropTarget &&
-                                                    'ring-primary ring-2',
-                                                isTrashed && 'opacity-80',
-                                            )}
-                                            onDragStart={(event) => {
-                                                if (isTrashed) {
-                                                    return;
-                                                }
+                                setDraggingFileId(null);
+                                setDropTargetFolderId(null);
+                            }}
+                            onDropOnGrid={() => {
+                                if (canEdit && draggingFileId !== null) {
+                                    void handleMoveToFolder(
+                                        draggingFileId,
+                                        parentId,
+                                    );
+                                }
 
-                                                setDraggingFileId(file.id);
-                                                event.dataTransfer.setData(
-                                                    INTERNAL_FILE_DRAG_TYPE,
-                                                    String(file.id),
-                                                );
-                                            }}
-                                            onDragEnd={() => {
-                                                setDraggingFileId(null);
-                                                setDropTargetFolderId(null);
-                                            }}
-                                            onDragOver={(event) => {
-                                                if (
-                                                    !isFolder ||
-                                                    !canEdit ||
-                                                    isTrashed ||
-                                                    !isInternalFileDrag(event)
-                                                ) {
-                                                    return;
-                                                }
+                                setDraggingFileId(null);
+                                setDropTargetFolderId(null);
+                            }}
+                            onNewFolder={() => setFolderDialogOpen(true)}
+                            onUploadFile={() =>
+                                fileInputRef.current?.click()
+                            }
+                            onUploadFolder={() =>
+                                folderInputRef.current?.click()
+                            }
+                            cardActionsFor={(file) =>
+                                resolveFileActions(
+                                    resolveContextMenuTargets(
+                                        file,
+                                        selection.selectedIds,
+                                        selection.selectedFiles,
+                                    ),
+                                    actionPermissions,
+                                    isTrashed,
+                                )
+                            }
+                        />
+                    </PageLayout>
 
-                                                event.preventDefault();
-                                                setDropTargetFolderId(file.id);
-                                            }}
-                                            onDragLeave={() => {
-                                                if (
-                                                    dropTargetFolderId ===
-                                                    file.id
-                                                ) {
-                                                    setDropTargetFolderId(null);
-                                                }
-                                            }}
-                                            onDrop={(event) => {
-                                                if (
-                                                    isTrashed ||
-                                                    !isInternalFileDrag(event)
-                                                ) {
-                                                    return;
-                                                }
-
-                                                event.preventDefault();
-                                                event.stopPropagation();
-
-                                                if (
-                                                    canEdit &&
-                                                    draggingFileId !== null &&
-                                                    isFolder &&
-                                                    draggingFileId !== file.id
-                                                ) {
-                                                    void handleMoveToFolder(
-                                                        draggingFileId,
-                                                        file.id,
-                                                    );
-                                                }
-
-                                                setDraggingFileId(null);
-                                                setDropTargetFolderId(null);
-                                            }}
-                                        >
-                                            <button
-                                                type="button"
-                                                className="flex w-full flex-col items-center gap-2"
-                                                onClick={() => {
-                                                    if (
-                                                        isFolder &&
-                                                        !isTrashed
-                                                    ) {
-                                                        navigateToFolder(
-                                                            file.id,
-                                                        );
-                                                        return;
-                                                    }
-
-                                                    openFileDetails(file);
-                                                }}
-                                            >
-                                                {isFolder ? (
-                                                    <FolderOpen className="size-12 text-amber-500" />
-                                                ) : publicUrl &&
-                                                  isImageFile(file) ? (
-                                                    <img
-                                                        src={publicUrl}
-                                                        alt={file.name}
-                                                        className="size-12 rounded object-cover"
-                                                    />
-                                                ) : (
-                                                    <FileIcon className="text-muted-foreground size-12" />
-                                                )}
-                                                <span className="w-full truncate text-center text-xs font-medium">
-                                                    {file.name}
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </ContextMenuTrigger>
-                                    <ContextMenuContent>
-                                        <ContextMenuItem
-                                            onSelect={() =>
-                                                openFileDetails(file)
-                                            }
-                                        >
-                                            <Info className="size-4" />
-                                            Open for details
-                                        </ContextMenuItem>
-                                        {canEdit && !isTrashed && (
-                                            <ContextMenuItem
-                                                onSelect={() =>
-                                                    openRenameDialog(file)
-                                                }
-                                            >
-                                                <Pencil className="size-4" />
-                                                Rename
-                                            </ContextMenuItem>
-                                        )}
-                                        {canDelete && !isTrashed && (
-                                            <>
-                                                <ContextMenuSeparator />
-                                                <ContextMenuItem
-                                                    variant="destructive"
-                                                    onSelect={() => {
-                                                        void handleDeleteFile(
-                                                            file,
-                                                        );
-                                                    }}
-                                                >
-                                                    <Trash2 className="size-4" />
-                                                    Delete
-                                                </ContextMenuItem>
-                                            </>
-                                        )}
-                                    </ContextMenuContent>
-                                </ContextMenu>
-                            );
-                        })}
-                            </div>
-                        )}
-                    </div>
-                </PageLayout>
+                    {detailFile && !isTrashed && (
+                        <FileDetailPanel
+                            file={detailFile}
+                            canUpdateMetadata={canUpdateMetadata}
+                            canTag={canTag}
+                            canReplace={canReplace}
+                            tagCatalog={tagCatalog}
+                            onClose={() => setDetailFile(null)}
+                            onUpdated={(updated) => {
+                                setDetailFile(updated);
+                                setFiles((current) =>
+                                    current.map((entry) =>
+                                        entry.id === updated.id
+                                            ? updated
+                                            : entry,
+                                    ),
+                                );
+                                void refreshTagCatalog();
+                            }}
+                        />
+                    )}
+                </div>
             </FileDropzone>
 
             <FileNameDialog
@@ -874,16 +1475,53 @@ export default function AdminFilesIndex({
                 onConfirm={handleRenameFile}
             />
 
-            <FileFormDrawer
-                file={selectedFile}
-                open={drawerOpen}
-                onOpenChange={setDrawerOpen}
-                onUpdated={refreshPage}
-                canEdit={canEdit && !isTrashed}
-                canDelete={canDelete && !isTrashed}
-                canRestore={canRestore && isTrashed}
-                canForceDelete={canForceDelete && isTrashed}
-                isTrashed={isTrashed}
+            <Dialog
+                open={tagDialogOpen}
+                onOpenChange={(open) => {
+                    setTagDialogOpen(open);
+                    if (!open) {
+                        resetBulkTagDialog();
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add tags</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-2">
+                        <p className="text-muted-foreground text-sm">
+                            Tags are shared across all files. Pick existing ones
+                            or create a new name.
+                        </p>
+                        <TagPicker
+                            value={bulkTags}
+                            onChange={setBulkTags}
+                            catalog={tagCatalog}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                void applyBulkTags();
+                            }}
+                        >
+                            Apply tags
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <FolderPickerDialog
+                open={moveDialogOpen}
+                onOpenChange={(open) => {
+                    setMoveDialogOpen(open);
+                    if (!open) {
+                        setMoveTargetFiles([]);
+                    }
+                }}
+                blockedFolders={blockedMoveFolders}
+                onConfirm={handleConfirmMove}
             />
 
             <FileUploadIndicator

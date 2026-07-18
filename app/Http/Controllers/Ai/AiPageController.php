@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Ai;
 
+use App\Ai\Support\AiToolTurnSummary;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -61,14 +62,27 @@ class AiPageController extends Controller
                 ->where('conversation_id', $selected->id)
                 ->orderBy('created_at')
                 ->orderBy('id')
-                ->get(['id', 'role', 'content', 'tool_calls', 'created_at'])
-                ->map(fn (ConversationMessage $message): array => [
-                    'id' => $message->id,
-                    'role' => $message->role,
-                    'content' => $this->normalizeMessageContent($message->content),
-                    'tool_calls' => $this->normalizeMessageArray($message->tool_calls),
-                    'created_at' => $message->created_at?->toIso8601String(),
-                ])
+                ->get(['id', 'role', 'content', 'attachments', 'tool_calls', 'tool_results', 'created_at'])
+                ->map(function (ConversationMessage $message): array {
+                    $content = $this->normalizeMessageContent($message->content);
+                    $toolCalls = $this->normalizeMessageArray($message->tool_calls);
+                    $toolResults = $this->normalizeMessageArray($message->tool_results);
+                    $attachments = $this->normalizeMessageAttachments($message->attachments);
+
+                    if ($message->role === 'assistant' && trim($content) === '' && ($toolCalls !== [] || $toolResults !== [])) {
+                        $content = AiToolTurnSummary::fromTools($toolCalls, $toolResults);
+                    }
+
+                    return [
+                        'id' => $message->id,
+                        'role' => $message->role,
+                        'content' => $content,
+                        'attachments' => $attachments,
+                        'tool_calls' => $toolCalls,
+                        'tool_results' => $toolResults,
+                        'created_at' => $message->created_at?->toIso8601String(),
+                    ];
+                })
                 ->all();
 
             // ponytail: keep the open chat visible even when it falls outside page 1
@@ -164,5 +178,36 @@ class AiPageController extends Controller
         }
 
         return [];
+    }
+
+    /**
+     * @return list<array{id?: string, name: string, mime?: string|null, size?: int|null}>
+     */
+    private function normalizeMessageAttachments(mixed $value): array
+    {
+        $items = $this->normalizeMessageArray($value);
+
+        $attachments = [];
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $name = $item['name'] ?? null;
+
+            if (! is_string($name) || $name === '') {
+                continue;
+            }
+
+            $attachments[] = [
+                'id' => is_string($item['id'] ?? null) ? $item['id'] : null,
+                'name' => $name,
+                'mime' => is_string($item['mime'] ?? null) ? $item['mime'] : null,
+                'size' => is_numeric($item['size'] ?? null) ? (int) $item['size'] : null,
+            ];
+        }
+
+        return $attachments;
     }
 }

@@ -109,12 +109,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('activity-logs.index');
 
     Route::middleware('can.manage.files')->group(function () {
-        Route::get('files', [FileController::class, 'index'])->name('files.index');
-
         Route::prefix('files')->name('files.')->group(function () {
             Route::get('list', [FileController::class, 'list'])->name('list');
+            Route::get('tags', [FileController::class, 'listTags'])->name('tags.index');
             Route::post('folders', [FileController::class, 'createFolder'])->name('folders.store');
             Route::post('upload', [FileController::class, 'upload'])->name('upload');
+            Route::post('bulk', [FileController::class, 'bulk'])->name('bulk');
+            Route::post('download', [FileController::class, 'downloadMany'])->name('download-many');
+            Route::get('zips/{jobId}', [FileController::class, 'downloadPreparedZip'])->name('zips.download');
+            Route::patch('{file}', [FileController::class, 'update'])->name('update');
+            Route::post('{file}/replace', [FileController::class, 'replace'])->name('replace');
+            Route::post('{file}/copy', [FileController::class, 'copy'])->name('copy');
+            Route::post('{file}/favorite', [FileController::class, 'favorite'])->name('favorite');
+            Route::delete('{file}/favorite', [FileController::class, 'unfavorite'])->name('unfavorite');
+            Route::put('{file}/tags', [FileController::class, 'syncTags'])->name('tags');
+            Route::get('{file}/download', [FileController::class, 'download'])->name('download');
+            Route::get('{file}/thumbnail', [FileController::class, 'thumbnail'])->name('thumbnail');
             Route::patch('{file}/move', [FileController::class, 'move'])->name('move');
             Route::patch('{file}/rename', [FileController::class, 'rename'])->name('rename');
             Route::delete('{file}', [FileController::class, 'destroy'])->name('destroy');
@@ -128,5 +138,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('uploads/complete', [FileController::class, 'completeChunkUpload'])->name('uploads.complete');
             Route::get('uploads/status', [FileController::class, 'uploadStatus'])->name('uploads.status');
         });
+
+        // After static /files/* segments so "list"/"tags" etc. are not captured as {folder}.
+        Route::get('files/{folder?}', [FileController::class, 'index'])
+            ->whereNumber('folder')
+            ->name('files.index');
     });
 });
