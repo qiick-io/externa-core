@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Settings\ProjectAppearance;
+use App\Services\Settings\ProjectSettings;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -41,21 +43,27 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
         $permissionResolver = app(EffectivePermissionResolver::class);
+        $projectAppearance = app(ProjectAppearance::class)->shared();
+        $projectSettings = app(ProjectSettings::class);
 
         return [
             ...parent::share($request),
-            'name' => config('app.name'),
+            'name' => $projectSettings->displayName(),
             'auth' => [
                 'user' => $user,
                 'permissions' => $user ? $permissionResolver->permissionsFor($user) : [],
                 'roleNames' => $user ? $permissionResolver->roleNamesFor($user) : [],
                 'isSuperAdmin' => $user ? $permissionResolver->isSuperAdmin($user) : false,
             ],
+            'locale' => app()->getLocale(),
+            'availableLocales' => config('i18n.available_locales', ['en' => 'English']),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'collectionLocales' => config('collections.locales', ['en', 'it']),
             'notifications' => [
                 'unread_count' => $user ? $user->unreadNotifications()->count() : 0,
             ],
+            'projectAppearance' => $projectAppearance,
+            'projectSettings' => $projectSettings->shared(),
         ];
     }
 }

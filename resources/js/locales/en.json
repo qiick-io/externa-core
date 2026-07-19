@@ -1,0 +1,282 @@
+{
+    "common": {
+        "save": "Save",
+        "saved": "Saved",
+        "cancel": "Cancel",
+        "continue": "Continue",
+        "back": "Back",
+        "close": "Close",
+        "email": "Email",
+        "emailAddress": "Email address",
+        "password": "Password",
+        "confirmPassword": "Confirm password",
+        "firstName": "First name",
+        "lastName": "Last name",
+        "hide": "Hide",
+        "view": "View"
+    },
+    "nav": {
+        "platform": "Platform",
+        "dashboard": "Dashboard",
+        "files": "Files",
+        "collections": "Collections",
+        "activityLog": "Activity Log",
+        "users": "Users",
+        "groups": "Groups",
+        "roles": "Roles",
+        "permissions": "Permissions",
+        "admin": "Admin",
+        "assistant": "Assistant",
+        "settings": "Settings",
+        "repository": "Repository",
+        "documentation": "Documentation"
+    },
+    "userMenu": {
+        "settings": "Settings",
+        "language": "Language",
+        "appearance": "Appearance",
+        "logOut": "Log out"
+    },
+    "auth": {
+        "login": {
+            "title": "Log in to your account",
+            "description": "Enter your email and password below to log in",
+            "head": "Log in",
+            "forgotPassword": "Forgot password?",
+            "rememberMe": "Remember me",
+            "submit": "Log in",
+            "noAccount": "Don't have an account?",
+            "signUp": "Sign up"
+        },
+        "register": {
+            "title": "Create an account",
+            "description": "Enter your details below to create your account",
+            "head": "Register",
+            "submit": "Create account",
+            "hasAccount": "Already have an account?",
+            "logIn": "Log in"
+        },
+        "forgotPassword": {
+            "title": "Forgot password",
+            "description": "Enter your email to receive a password reset link",
+            "head": "Forgot password",
+            "submit": "Email password reset link",
+            "orReturn": "Or, return to",
+            "logIn": "log in"
+        },
+        "resetPassword": {
+            "title": "Reset password",
+            "description": "Please enter your new password below",
+            "head": "Reset password",
+            "submit": "Reset password"
+        },
+        "confirmPassword": {
+            "title": "Confirm your password",
+            "description": "This is a secure area of the application. Please confirm your password before continuing.",
+            "head": "Confirm password",
+            "submit": "Confirm password"
+        },
+        "verifyEmail": {
+            "title": "Verify email",
+            "description": "Please verify your email address by clicking on the link we just emailed to you.",
+            "head": "Email verification",
+            "linkSent": "A new verification link has been sent to the email address you provided during registration.",
+            "resend": "Resend verification email",
+            "logOut": "Log out"
+        },
+        "twoFactorChallenge": {
+            "head": "Two-factor authentication",
+            "recoveryTitle": "Recovery code",
+            "recoveryDescription": "Please confirm access to your account by entering one of your emergency recovery codes.",
+            "recoveryToggle": "login using an authentication code",
+            "authTitle": "Authentication code",
+            "authDescription": "Enter the authentication code provided by your authenticator application.",
+            "authToggle": "login using a recovery code",
+            "recoveryPlaceholder": "Enter recovery code",
+            "orYouCan": "or you can "
+        }
+    },
+    "settings": {
+        "layout": {
+            "title": "Settings",
+            "description": "Manage your profile and account settings",
+            "navAria": "Settings",
+            "sectionAccount": "Account",
+            "sectionProject": "Project",
+            "profile": "Profile",
+            "security": "Security",
+            "project": "Project",
+            "appearance": "Appearance",
+            "reportBug": "Report a Bug"
+        },
+        "profile": {
+            "breadcrumb": "Profile settings",
+            "head": "Profile settings",
+            "title": "Profile information",
+            "description": "Update your profile details and email address",
+            "unverified": "Your email address is unverified.",
+            "resend": "Click here to resend the verification email.",
+            "linkSent": "A new verification link has been sent to your email address."
+        },
+        "security": {
+            "breadcrumb": "Security settings",
+            "head": "Security settings",
+            "passwordTitle": "Update password",
+            "passwordDescription": "Ensure your account is using a long, random password to stay secure",
+            "currentPassword": "Current password",
+            "newPassword": "New password",
+            "savePassword": "Save password",
+            "twoFactorTitle": "Two-factor authentication",
+            "twoFactorDescription": "Manage your two-factor authentication settings",
+            "enabledHint": "You will be prompted for a secure, random pin during login, which you can retrieve from the TOTP-supported application on your phone.",
+            "disabledHint": "When you enable two-factor authentication, you will be prompted for a secure pin during login. This pin can be retrieved from a TOTP-supported application on your phone.",
+            "disable2fa": "Disable 2FA",
+            "enable2fa": "Enable 2FA",
+            "continueSetup": "Continue setup"
+        },
+        "project": {
+            "breadcrumb": "Project settings",
+            "head": "Project settings",
+            "generalTitle": "General",
+            "generalDescription": "Project identity and default language",
+            "name": "Project name",
+            "description": "Project description",
+            "url": "Project URL",
+            "defaultLanguage": "Default language",
+            "sidebarTitle": "Sidebar modules",
+            "sidebarDescription": "Reorder modules and choose which appear in the sidebar. Locked items always stay enabled.",
+            "securityTitle": "Security",
+            "securityDescription": "Password strength and login attempt limits",
+            "passwordPolicy": "Password security",
+            "passwordPolicies": {
+                "weak": {
+                    "label": "Weak",
+                    "description": "Minimum 6 characters. No mixed case, numbers, or symbols required."
+                },
+                "medium": {
+                    "label": "Medium",
+                    "description": "Minimum 8 characters, with mixed case letters and at least one number."
+                },
+                "strong": {
+                    "label": "Strong",
+                    "description": "Minimum 12 characters, mixed case, letters, numbers, symbols, and not found in known data breaches."
+                }
+            },
+            "loginMaxAttempts": "Max login attempts per minute",
+            "registrationTitle": "User registration",
+            "registrationDescription": "Control public sign-up and defaults for new accounts",
+            "registrationEnabled": "Registration enabled",
+            "defaultUserRole": "Default user role",
+            "noRole": "No default role",
+            "emailVerificationRequired": "Email verification required",
+            "allowedDomains": "Allowed email domains",
+            "allowedDomainsHint": "Comma-separated. Leave empty to allow any domain.",
+            "filesTitle": "Files & storage",
+            "filesDescription": "Image transformation options used by the file library",
+            "allowedTransformations": "Allowed transformations",
+            "transformations": {
+                "thumbnail": "Thumbnail"
+            },
+            "presetTransformations": "Transformation presets",
+            "presetTransformationsHint": "Named image presets used by the file library (GD). Add, edit, or delete presets.",
+            "presetAdd": "Add preset",
+            "presetEdit": "Edit preset",
+            "presetDelete": "Delete preset",
+            "presetEmpty": "No presets yet. Add at least one before saving.",
+            "presetCreateTitle": "Create preset",
+            "presetEditTitle": "Edit preset",
+            "presetDialogDescription": "Configure how images are resized and encoded for this preset key.",
+            "presetKey": "Key",
+            "presetKeyInvalid": "Key must be a slug using letters, numbers, underscores, or hyphens.",
+            "presetKeyDuplicate": "A preset with this key already exists.",
+            "presetDimensionsRequired": "Set at least width or height.",
+            "presetFit": "Fit",
+            "presetWidth": "Width",
+            "presetHeight": "Height",
+            "presetQuality": "Quality",
+            "presetNoUpscale": "Do not upscale",
+            "presetNoUpscaleShort": "no upscale",
+            "presetFormat": "Format",
+            "presetCancel": "Cancel",
+            "presetSave": "Save preset",
+            "presetFits": {
+                "contain": "Contain (fit inside, letterbox)",
+                "cover": "Cover (fill and crop)",
+                "inside": "Inside (fit inside, no letterbox)",
+                "outside": "Outside (cover both dimensions)"
+            },
+            "presetFormats": {
+                "auto": "Auto (WebP when available, else JPEG)",
+                "jpeg": "JPEG",
+                "png": "PNG",
+                "webp": "WebP"
+            },
+            "reportingTitle": "Reporting URLs",
+            "reportingDescription": "Optional links for issue, bug, and error reporting",
+            "reportIssueUrl": "Report issue URL",
+            "reportBugUrl": "Report bug URL",
+            "reportErrorUrl": "Report error URL",
+            "modules": {
+                "dashboard": "Dashboard",
+                "ai": "Assistant",
+                "files": "Files",
+                "collections": "Collections",
+                "activity": "Activity",
+                "users": "Users",
+                "groups": "Groups",
+                "roles": "Roles",
+                "permissions": "Permissions",
+                "settings": "Settings"
+            }
+        },
+        "appearance": {
+            "breadcrumb": "Appearance settings",
+            "head": "Appearance settings",
+            "title": "Appearance settings",
+            "description": "Update project branding and the default theme",
+            "brandingTitle": "Branding",
+            "brandingDescription": "Project color, logo, and favicon used in the app chrome and on login",
+            "projectColor": "Project color",
+            "projectLogo": "Project logo",
+            "projectLogoDark": "Project logo (dark)",
+            "publicFavicon": "Favicon",
+            "chooseFile": "Choose file",
+            "changeFile": "Change file",
+            "clearFile": "Clear",
+            "noFile": "No file selected",
+            "defaultThemeTitle": "Default theme",
+            "defaultThemeDescription": "Used when a user has not chosen a personal light/dark preference",
+            "defaultAppearance": "Default appearance",
+            "light": "Light",
+            "dark": "Dark",
+            "system": "System"
+        },
+        "deleteUser": {
+            "title": "Delete account",
+            "description": "Delete your account and all of its resources",
+            "warning": "Warning",
+            "caution": "Please proceed with caution, this cannot be undone.",
+            "button": "Delete account",
+            "confirmTitle": "Are you sure you want to delete your account?",
+            "confirmDescription": "Once your account is deleted, all of its resources and data will also be permanently deleted. Please enter your password to confirm you would like to permanently delete your account."
+        },
+        "twoFactor": {
+            "enabledTitle": "Two-factor authentication enabled",
+            "enabledDescription": "Two-factor authentication is now enabled. Scan the QR code or enter the setup key in your authenticator app.",
+            "verifyTitle": "Verify authentication code",
+            "verifyDescription": "Enter the 6-digit code from your authenticator app",
+            "enableTitle": "Enable two-factor authentication",
+            "enableDescription": "To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app",
+            "orEnterManually": "or, enter the code manually",
+            "confirm": "Confirm",
+            "recoveryTitle": "2FA recovery codes",
+            "recoveryDescription": "Recovery codes let you regain access if you lose your 2FA device. Store them in a secure password manager.",
+            "viewCodes": "View recovery codes",
+            "hideCodes": "Hide recovery codes",
+            "regenerate": "Regenerate codes",
+            "codesAria": "Recovery codes",
+            "loadingAria": "Loading recovery codes",
+            "regenerateWarning": "Each recovery code can be used once to access your account and will be removed after use. If you need more, click <bold>Regenerate codes</bold> above."
+        }
+    }
+}

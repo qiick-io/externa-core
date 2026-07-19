@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     BookOpen,
     Database,
@@ -6,18 +6,18 @@ import {
     FolderGit2,
     LayoutGrid,
     ScrollText,
+    Settings,
     Shield,
     ShieldCheck,
     Sparkles,
     Users,
     UsersRound,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/app-logo';
-import { NavAdmin  } from '@/components/nav-admin';
-import type {AdminNavItem} from '@/components/nav-admin';
 import { NavFooter } from '@/components/nav-footer';
-import { NavMain } from '@/components/nav-main';
-import type { MainNavItem } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { NotificationsBell } from '@/components/notifications/notifications-bell';
 import {
@@ -25,11 +25,11 @@ import {
     SidebarContent,
     SidebarFooter,
     SidebarGroup,
+    SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-    SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
@@ -39,86 +39,172 @@ import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import { index as aiIndex } from '@/routes/ai';
 import collections from '@/routes/collections';
-import type { NavItem } from '@/types';
+import { edit as editProfile } from '@/routes/profile';
+import type { NavItem, SidebarModuleSetting } from '@/types';
 
-const mainNavItems: MainNavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Files',
-        href: adminRoutes.files.index(),
-        icon: Folder,
-        permission: PermissionEnum.CanShowFiles,
-    },
-    {
-        title: 'Collections',
-        href: collections.index.url(),
-        icon: Database,
-        permission: PermissionEnum.CanShowCollections,
-    },
-    {
-        title: 'Activity Log',
-        href: adminRoutes.activityLogs.index(),
-        icon: ScrollText,
-        permission: PermissionEnum.CanShowActivityLogs,
-    },
-];
+type ModuleDef = {
+    id: string;
+    titleKey: string;
+    href: string;
+    icon: LucideIcon;
+    permission?: PermissionEnum;
+    accent?: boolean;
+};
 
-const directoryNavItems: AdminNavItem[] = [
-    {
-        title: 'Users',
-        href: adminRoutes.users.index(),
-        icon: Users,
-        permission: PermissionEnum.CanShowUsers,
-    },
-    {
-        title: 'Groups',
-        href: adminRoutes.groups.index(),
-        icon: UsersRound,
-        permission: PermissionEnum.CanShowGroups,
-    },
-];
-
-const adminNavItems: AdminNavItem[] = [
-    {
-        title: 'Roles',
-        href: adminRoutes.roles.index(),
-        icon: Shield,
-        permission: PermissionEnum.CanShowRoles,
-    },
-    {
-        title: 'Permissions',
-        href: adminRoutes.permissions.index(),
-        icon: ShieldCheck,
-        permission: PermissionEnum.CanShowPermissions,
-    },
-];
-
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
-    },
-];
+/** Always first in the nav, regardless of persisted module order. */
+const PINNED_SIDEBAR_MODULE_IDS = ['ai'] as const;
 
 /**
  * Primary application sidebar with navigation and user menu.
- * @param {*} props - Component props.
- * @returns {JSX.Element}
  */
 export function AppSidebar() {
+    const { t } = useTranslation();
     const { can } = useCan();
     const { isCurrentUrl } = useCurrentUrl();
-    const canUseAi = can(PermissionEnum.CanUseAi);
+    const { projectSettings } = usePage().props;
+
+    const moduleDefs = useMemo<Record<string, ModuleDef>>(
+        () => ({
+            dashboard: {
+                id: 'dashboard',
+                titleKey: 'nav.dashboard',
+                href: dashboard(),
+                icon: LayoutGrid,
+            },
+            ai: {
+                id: 'ai',
+                titleKey: 'nav.assistant',
+                href: aiIndex.url(),
+                icon: Sparkles,
+                permission: PermissionEnum.CanUseAi,
+                accent: true,
+            },
+            files: {
+                id: 'files',
+                titleKey: 'nav.files',
+                href: adminRoutes.files.index(),
+                icon: Folder,
+                permission: PermissionEnum.CanShowFiles,
+            },
+            collections: {
+                id: 'collections',
+                titleKey: 'nav.collections',
+                href: collections.index.url(),
+                icon: Database,
+                permission: PermissionEnum.CanShowCollections,
+            },
+            activity: {
+                id: 'activity',
+                titleKey: 'nav.activityLog',
+                href: adminRoutes.activityLogs.index(),
+                icon: ScrollText,
+                permission: PermissionEnum.CanShowActivityLogs,
+            },
+            users: {
+                id: 'users',
+                titleKey: 'nav.users',
+                href: adminRoutes.users.index(),
+                icon: Users,
+                permission: PermissionEnum.CanShowUsers,
+            },
+            groups: {
+                id: 'groups',
+                titleKey: 'nav.groups',
+                href: adminRoutes.groups.index(),
+                icon: UsersRound,
+                permission: PermissionEnum.CanShowGroups,
+            },
+            roles: {
+                id: 'roles',
+                titleKey: 'nav.roles',
+                href: adminRoutes.roles.index(),
+                icon: Shield,
+                permission: PermissionEnum.CanShowRoles,
+            },
+            permissions: {
+                id: 'permissions',
+                titleKey: 'nav.permissions',
+                href: adminRoutes.permissions.index(),
+                icon: ShieldCheck,
+                permission: PermissionEnum.CanShowPermissions,
+            },
+            settings: {
+                id: 'settings',
+                titleKey: 'nav.settings',
+                href: editProfile(),
+                icon: Settings,
+            },
+        }),
+        [],
+    );
+
+    const modules: SidebarModuleSetting[] =
+        projectSettings?.sidebarModules ??
+        Object.keys(moduleDefs).map((id) => ({
+            id,
+            enabled: true,
+            locked: id === 'dashboard' || id === 'ai',
+        }));
+
+    const visibleModules = pinModulesFirst(
+        modules
+            .filter((module) => module.enabled)
+            .map((module) => moduleDefs[module.id])
+            .filter((def): def is ModuleDef => !!def)
+            .filter((def) => !def.permission || can(def.permission)),
+    );
+
+    const pinnedIds = new Set<string>(PINNED_SIDEBAR_MODULE_IDS);
+    const pinnedModules = visibleModules.filter((item) =>
+        pinnedIds.has(item.id),
+    );
+    const platformModules = visibleModules.filter(
+        (item) => !pinnedIds.has(item.id),
+    );
+
+    const footerNavItems: NavItem[] = [
+        {
+            title: t('nav.repository'),
+            href: 'https://github.com/laravel/react-starter-kit',
+            icon: FolderGit2,
+        },
+        {
+            title: t('nav.documentation'),
+            href: 'https://laravel.com/docs/starter-kits#react',
+            icon: BookOpen,
+        },
+    ];
+
+    const renderModuleItem = (item: ModuleDef) => (
+        <SidebarMenuItem key={item.id}>
+            <SidebarMenuButton
+                asChild
+                isActive={isCurrentUrl(
+                    item.id === 'settings' ? '/settings' : item.href,
+                    undefined,
+                    item.id === 'ai' || item.id === 'settings',
+                )}
+                tooltip={{ children: t(item.titleKey) }}
+                className={
+                    item.accent
+                        ? cn(
+                              'sidebar-ai-nav relative overflow-hidden',
+                              'text-orange-700 hover:text-orange-700',
+                              'dark:text-orange-300 dark:hover:text-orange-300',
+                              'data-[active=true]:font-medium',
+                              'data-[active=true]:text-orange-700',
+                              'dark:data-[active=true]:text-orange-300',
+                          )
+                        : undefined
+                }
+            >
+                <Link href={item.href} prefetch>
+                    <item.icon />
+                    <span>{t(item.titleKey)}</span>
+                </Link>
+            </SidebarMenuButton>
+        </SidebarMenuItem>
+    );
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -135,39 +221,24 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                {canUseAi ? (
+                {pinnedModules.length > 0 ? (
                     <SidebarGroup className="px-2 py-0">
                         <SidebarMenu>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton
-                                    asChild
-                                    isActive={isCurrentUrl(
-                                        aiIndex.url(),
-                                        undefined,
-                                        true,
-                                    )}
-                                    tooltip={{ children: 'Assistente' }}
-                                    className={cn(
-                                        'text-white hover:text-white active:text-white',
-                                        'bg-gradient-to-br from-orange-500 via-rose-500 to-amber-400',
-                                        'hover:bg-gradient-to-br hover:from-orange-500 hover:via-rose-500 hover:to-amber-400',
-                                        'data-[active=true]:bg-gradient-to-br data-[active=true]:from-orange-500 data-[active=true]:via-rose-500 data-[active=true]:to-amber-400',
-                                        'data-[active=true]:text-white',
-                                    )}
-                                >
-                                    <Link href={aiIndex.url()} prefetch>
-                                        <Sparkles />
-                                        <span>Assistente</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
+                            {pinnedModules.map(renderModuleItem)}
                         </SidebarMenu>
                     </SidebarGroup>
                 ) : null}
-                <NavMain items={mainNavItems} />
-                <SidebarSeparator className="mx-0" />
-                <NavAdmin items={directoryNavItems} />
-                <NavAdmin items={adminNavItems} label="Admin" />
+
+                {platformModules.length > 0 ? (
+                    <SidebarGroup className="px-2 py-0">
+                        <SidebarGroupLabel>
+                            {t('nav.platform')}
+                        </SidebarGroupLabel>
+                        <SidebarMenu>
+                            {platformModules.map(renderModuleItem)}
+                        </SidebarMenu>
+                    </SidebarGroup>
+                ) : null}
             </SidebarContent>
 
             <SidebarFooter>
@@ -177,4 +248,14 @@ export function AppSidebar() {
             </SidebarFooter>
         </Sidebar>
     );
+}
+
+function pinModulesFirst<T extends { id: string }>(items: T[]): T[] {
+    const pinnedIds = new Set<string>(PINNED_SIDEBAR_MODULE_IDS);
+    const pinned = PINNED_SIDEBAR_MODULE_IDS.map((id) =>
+        items.find((item) => item.id === id),
+    ).filter((item): item is T => !!item);
+    const rest = items.filter((item) => !pinnedIds.has(item.id));
+
+    return [...pinned, ...rest];
 }

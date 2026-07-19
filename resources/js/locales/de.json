@@ -1,0 +1,282 @@
+{
+    "common": {
+        "save": "Speichern",
+        "saved": "Gespeichert",
+        "cancel": "Abbrechen",
+        "continue": "Weiter",
+        "back": "Zurück",
+        "close": "Schließen",
+        "email": "E-Mail",
+        "emailAddress": "E-Mail-Adresse",
+        "password": "Passwort",
+        "confirmPassword": "Passwort bestätigen",
+        "firstName": "Vorname",
+        "lastName": "Nachname",
+        "hide": "Ausblenden",
+        "view": "Anzeigen"
+    },
+    "nav": {
+        "platform": "Plattform",
+        "dashboard": "Dashboard",
+        "files": "Dateien",
+        "collections": "Collections",
+        "activityLog": "Aktivitätsprotokoll",
+        "users": "Benutzer",
+        "groups": "Gruppen",
+        "roles": "Rollen",
+        "permissions": "Berechtigungen",
+        "admin": "Admin",
+        "assistant": "Assistent",
+        "settings": "Einstellungen",
+        "repository": "Repository",
+        "documentation": "Dokumentation"
+    },
+    "userMenu": {
+        "settings": "Einstellungen",
+        "language": "Sprache",
+        "appearance": "Darstellung",
+        "logOut": "Abmelden"
+    },
+    "auth": {
+        "login": {
+            "title": "In Ihr Konto einloggen",
+            "description": "Geben Sie unten E-Mail und Passwort ein, um sich anzumelden",
+            "head": "Anmelden",
+            "forgotPassword": "Passwort vergessen?",
+            "rememberMe": "Angemeldet bleiben",
+            "submit": "Anmelden",
+            "noAccount": "Noch kein Konto?",
+            "signUp": "Registrieren"
+        },
+        "register": {
+            "title": "Konto erstellen",
+            "description": "Geben Sie Ihre Daten ein, um ein Konto zu erstellen",
+            "head": "Registrieren",
+            "submit": "Konto erstellen",
+            "hasAccount": "Bereits ein Konto?",
+            "logIn": "Anmelden"
+        },
+        "forgotPassword": {
+            "title": "Passwort vergessen",
+            "description": "Geben Sie Ihre E-Mail ein, um einen Reset-Link zu erhalten",
+            "head": "Passwort vergessen",
+            "submit": "Reset-Link senden",
+            "orReturn": "Oder zurück zur",
+            "logIn": "Anmeldung"
+        },
+        "resetPassword": {
+            "title": "Passwort zurücksetzen",
+            "description": "Bitte geben Sie unten Ihr neues Passwort ein",
+            "head": "Passwort zurücksetzen",
+            "submit": "Passwort zurücksetzen"
+        },
+        "confirmPassword": {
+            "title": "Passwort bestätigen",
+            "description": "Dies ist ein geschützter Bereich. Bitte bestätigen Sie Ihr Passwort, um fortzufahren.",
+            "head": "Passwort bestätigen",
+            "submit": "Passwort bestätigen"
+        },
+        "verifyEmail": {
+            "title": "E-Mail bestätigen",
+            "description": "Bitte bestätigen Sie Ihre E-Mail-Adresse über den Link, den wir Ihnen gerade gesendet haben.",
+            "head": "E-Mail-Bestätigung",
+            "linkSent": "Ein neuer Bestätigungslink wurde an die bei der Registrierung angegebene E-Mail-Adresse gesendet.",
+            "resend": "Bestätigungs-E-Mail erneut senden",
+            "logOut": "Abmelden"
+        },
+        "twoFactorChallenge": {
+            "head": "Zwei-Faktor-Authentifizierung",
+            "recoveryTitle": "Wiederherstellungscode",
+            "recoveryDescription": "Bestätigen Sie den Zugriff auf Ihr Konto mit einem Ihrer Notfall-Wiederherstellungscodes.",
+            "recoveryToggle": "mit einem Authentifizierungscode anmelden",
+            "authTitle": "Authentifizierungscode",
+            "authDescription": "Geben Sie den Code aus Ihrer Authenticator-App ein.",
+            "authToggle": "mit einem Wiederherstellungscode anmelden",
+            "recoveryPlaceholder": "Wiederherstellungscode eingeben",
+            "orYouCan": "oder Sie können sich "
+        }
+    },
+    "settings": {
+        "layout": {
+            "title": "Einstellungen",
+            "description": "Profil und Kontoeinstellungen verwalten",
+            "navAria": "Einstellungen",
+            "sectionAccount": "Konto",
+            "sectionProject": "Projekt",
+            "profile": "Profil",
+            "security": "Sicherheit",
+            "project": "Projekt",
+            "appearance": "Darstellung",
+            "reportBug": "Bug melden"
+        },
+        "profile": {
+            "breadcrumb": "Profileinstellungen",
+            "head": "Profileinstellungen",
+            "title": "Profilinformationen",
+            "description": "Aktualisieren Sie Ihre Profildaten und E-Mail-Adresse",
+            "unverified": "Ihre E-Mail-Adresse ist nicht bestätigt.",
+            "resend": "Hier klicken, um die Bestätigungs-E-Mail erneut zu senden.",
+            "linkSent": "Ein neuer Bestätigungslink wurde an Ihre E-Mail-Adresse gesendet."
+        },
+        "security": {
+            "breadcrumb": "Sicherheitseinstellungen",
+            "head": "Sicherheitseinstellungen",
+            "passwordTitle": "Passwort aktualisieren",
+            "passwordDescription": "Verwenden Sie ein langes, zufälliges Passwort, um Ihr Konto zu schützen",
+            "currentPassword": "Aktuelles Passwort",
+            "newPassword": "Neues Passwort",
+            "savePassword": "Passwort speichern",
+            "twoFactorTitle": "Zwei-Faktor-Authentifizierung",
+            "twoFactorDescription": "Einstellungen der Zwei-Faktor-Authentifizierung verwalten",
+            "enabledHint": "Beim Login werden Sie nach einer sicheren PIN gefragt, die Sie aus der TOTP-App auf Ihrem Telefon abrufen können.",
+            "disabledHint": "Wenn Sie die Zwei-Faktor-Authentifizierung aktivieren, werden Sie beim Login nach einer sicheren PIN gefragt, die Sie aus einer TOTP-App abrufen können.",
+            "disable2fa": "2FA deaktivieren",
+            "enable2fa": "2FA aktivieren",
+            "continueSetup": "Einrichtung fortsetzen"
+        },
+        "project": {
+            "breadcrumb": "Projekteinstellungen",
+            "head": "Projekteinstellungen",
+            "generalTitle": "Allgemein",
+            "generalDescription": "Projektidentität und Standardsprache",
+            "name": "Projektname",
+            "description": "Projektbeschreibung",
+            "url": "Projekt-URL",
+            "defaultLanguage": "Standardsprache",
+            "sidebarTitle": "Sidebar-Module",
+            "sidebarDescription": "Module neu anordnen und auswählen. Gesperrte Einträge bleiben immer aktiv.",
+            "securityTitle": "Sicherheit",
+            "securityDescription": "Passwortstärke und Login-Versuchslimits",
+            "passwordPolicy": "Passwortsicherheit",
+            "passwordPolicies": {
+                "weak": {
+                    "label": "Schwach",
+                    "description": "Mindestens 6 Zeichen. Keine Groß-/Kleinschreibung, Zahlen oder Sonderzeichen erforderlich."
+                },
+                "medium": {
+                    "label": "Mittel",
+                    "description": "Mindestens 8 Zeichen, mit Groß- und Kleinbuchstaben sowie mindestens einer Zahl."
+                },
+                "strong": {
+                    "label": "Stark",
+                    "description": "Mindestens 12 Zeichen, Groß-/Kleinbuchstaben, Buchstaben, Zahlen, Sonderzeichen und nicht in bekannten Datenlecks."
+                }
+            },
+            "loginMaxAttempts": "Max. Login-Versuche pro Minute",
+            "registrationTitle": "Benutzerregistrierung",
+            "registrationDescription": "Öffentliche Registrierung und Standardwerte für neue Konten steuern",
+            "registrationEnabled": "Registrierung aktiviert",
+            "defaultUserRole": "Standard-Benutzerrolle",
+            "noRole": "Keine Standardrolle",
+            "emailVerificationRequired": "E-Mail-Verifizierung erforderlich",
+            "allowedDomains": "Erlaubte E-Mail-Domains",
+            "allowedDomainsHint": "Kommagetrennt. Leer lassen, um alle Domains zu erlauben.",
+            "filesTitle": "Dateien & Speicher",
+            "filesDescription": "Bildtransformationsoptionen der Dateibibliothek",
+            "allowedTransformations": "Erlaubte Transformationen",
+            "transformations": {
+                "thumbnail": "Vorschaubild"
+            },
+            "presetTransformations": "Transformations-Presets",
+            "presetTransformationsHint": "Benannte Bild-Presets für die Dateibibliothek (GD). Hinzufügen, bearbeiten oder löschen.",
+            "presetAdd": "Preset hinzufügen",
+            "presetEdit": "Preset bearbeiten",
+            "presetDelete": "Preset löschen",
+            "presetEmpty": "Keine Presets. Vor dem Speichern mindestens eines hinzufügen.",
+            "presetCreateTitle": "Preset erstellen",
+            "presetEditTitle": "Preset bearbeiten",
+            "presetDialogDescription": "Skalierung und Encoding für diesen Preset-Schlüssel konfigurieren.",
+            "presetKey": "Schlüssel",
+            "presetKeyInvalid": "Schlüssel muss ein Slug aus Buchstaben, Zahlen, Unterstrichen oder Bindestrichen sein.",
+            "presetKeyDuplicate": "Ein Preset mit diesem Schlüssel existiert bereits.",
+            "presetDimensionsRequired": "Mindestens Breite oder Höhe setzen.",
+            "presetFit": "Einpassung",
+            "presetWidth": "Breite",
+            "presetHeight": "Höhe",
+            "presetQuality": "Qualität",
+            "presetNoUpscale": "Nicht hochskalieren",
+            "presetNoUpscaleShort": "kein Upscale",
+            "presetFormat": "Format",
+            "presetCancel": "Abbrechen",
+            "presetSave": "Preset speichern",
+            "presetFits": {
+                "contain": "Contain (hineinpassen, mit Letterbox)",
+                "cover": "Cover (füllen und zuschneiden)",
+                "inside": "Inside (hineinpassen, ohne Letterbox)",
+                "outside": "Outside (beide Dimensionen abdecken)"
+            },
+            "presetFormats": {
+                "auto": "Auto (WebP wenn verfügbar, sonst JPEG)",
+                "jpeg": "JPEG",
+                "png": "PNG",
+                "webp": "WebP"
+            },
+            "reportingTitle": "Melde-URLs",
+            "reportingDescription": "Optionale Links für Problem-, Bug- und Fehlermeldungen",
+            "reportIssueUrl": "URL für Problem melden",
+            "reportBugUrl": "URL für Bug melden",
+            "reportErrorUrl": "URL für Fehler melden",
+            "modules": {
+                "dashboard": "Dashboard",
+                "ai": "Assistent",
+                "files": "Dateien",
+                "collections": "Sammlungen",
+                "activity": "Aktivität",
+                "users": "Benutzer",
+                "groups": "Gruppen",
+                "roles": "Rollen",
+                "permissions": "Berechtigungen",
+                "settings": "Einstellungen"
+            }
+        },
+        "appearance": {
+            "breadcrumb": "Darstellungseinstellungen",
+            "head": "Darstellungseinstellungen",
+            "title": "Darstellungseinstellungen",
+            "description": "Projekt-Branding und Standard-Theme aktualisieren",
+            "brandingTitle": "Branding",
+            "brandingDescription": "Projektfarbe, Logo und Favicon für App-Oberfläche und Login",
+            "projectColor": "Projektfarbe",
+            "projectLogo": "Projektlogo",
+            "projectLogoDark": "Projektlogo (dunkel)",
+            "publicFavicon": "Favicon",
+            "chooseFile": "Datei wählen",
+            "changeFile": "Datei ändern",
+            "clearFile": "Entfernen",
+            "noFile": "Keine Datei ausgewählt",
+            "defaultThemeTitle": "Standard-Theme",
+            "defaultThemeDescription": "Wird verwendet, wenn der Benutzer keine persönliche Hell/Dunkel-Einstellung gewählt hat",
+            "defaultAppearance": "Standard-Darstellung",
+            "light": "Hell",
+            "dark": "Dunkel",
+            "system": "System"
+        },
+        "deleteUser": {
+            "title": "Konto löschen",
+            "description": "Löschen Sie Ihr Konto und alle zugehörigen Ressourcen",
+            "warning": "Warnung",
+            "caution": "Bitte vorsichtig vorgehen – dies kann nicht rückgängig gemacht werden.",
+            "button": "Konto löschen",
+            "confirmTitle": "Möchten Sie Ihr Konto wirklich löschen?",
+            "confirmDescription": "Sobald Ihr Konto gelöscht ist, werden alle Ressourcen und Daten dauerhaft entfernt. Bitte geben Sie Ihr Passwort zur Bestätigung ein."
+        },
+        "twoFactor": {
+            "enabledTitle": "Zwei-Faktor-Authentifizierung aktiviert",
+            "enabledDescription": "Die Zwei-Faktor-Authentifizierung ist jetzt aktiv. Scannen Sie den QR-Code oder geben Sie den Setup-Schlüssel in Ihrer Authenticator-App ein.",
+            "verifyTitle": "Authentifizierungscode bestätigen",
+            "verifyDescription": "Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein",
+            "enableTitle": "Zwei-Faktor-Authentifizierung aktivieren",
+            "enableDescription": "Um die Aktivierung abzuschließen, scannen Sie den QR-Code oder geben Sie den Setup-Schlüssel in Ihrer Authenticator-App ein",
+            "orEnterManually": "oder Code manuell eingeben",
+            "confirm": "Bestätigen",
+            "recoveryTitle": "2FA-Wiederherstellungscodes",
+            "recoveryDescription": "Mit Wiederherstellungscodes können Sie wieder zugreifen, wenn Sie Ihr 2FA-Gerät verlieren. Speichern Sie sie in einem sicheren Passwortmanager.",
+            "viewCodes": "Wiederherstellungscodes anzeigen",
+            "hideCodes": "Wiederherstellungscodes ausblenden",
+            "regenerate": "Codes neu generieren",
+            "codesAria": "Wiederherstellungscodes",
+            "loadingAria": "Wiederherstellungscodes werden geladen",
+            "regenerateWarning": "Jeder Wiederherstellungscode kann einmal verwendet werden und wird danach entfernt. Wenn Sie mehr benötigen, klicken Sie oben auf <bold>Codes neu generieren</bold>."
+        }
+    }
+}

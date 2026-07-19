@@ -57,6 +57,8 @@ enum PermissionEnum: string
 
     case CanUseAi = 'can-use-ai';
 
+    case CanManageProjectSettings = 'can-manage-project-settings';
+
     /**
      * @return list<string>
      */

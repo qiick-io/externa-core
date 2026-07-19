@@ -354,22 +354,23 @@ class FileController extends Controller
         }
 
         $validated = $request->validate([
-            'size' => ['nullable', 'integer', 'min:1', 'max:'.FileTransformService::MAX_SIZE],
+            'size' => ['nullable', 'integer', 'min:1', 'max:'.$this->fileTransformService->maxSize()],
+            'key' => ['nullable', 'string', 'max:64'],
         ]);
 
         try {
-            $cachePath = $this->fileTransformService->ensureThumbnail(
-                $file,
-                isset($validated['size']) ? (int) $validated['size'] : null,
-            );
+            $cachePath = isset($validated['key'])
+                ? $this->fileTransformService->ensureTransform($file, key: $validated['key'])
+                : $this->fileTransformService->ensureThumbnail(
+                    $file,
+                    isset($validated['size']) ? (int) $validated['size'] : null,
+                );
         } catch (\Throwable) {
             abort(404);
         }
 
-        $mimeType = str_ends_with($cachePath, '.webp') ? 'image/webp' : 'image/jpeg';
-
         return Storage::disk($file->disk)->response($cachePath, null, [
-            'Content-Type' => $mimeType,
+            'Content-Type' => $this->fileTransformService->mimeForPath($cachePath),
             'Cache-Control' => 'private, max-age=86400',
         ]);
     }

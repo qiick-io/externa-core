@@ -29,12 +29,18 @@ const setCookie = (name: string, value: string, days = 365): void => {
     document.cookie = `${name}=${value};path=/;max-age=${maxAge};SameSite=Lax`;
 };
 
-const getStoredAppearance = (): Appearance => {
+const isAppearance = (value: string | null): value is Appearance => {
+    return value === 'light' || value === 'dark' || value === 'system';
+};
+
+const getStoredAppearance = (): Appearance | null => {
     if (typeof window === 'undefined') {
-        return 'system';
+        return null;
     }
 
-    return (localStorage.getItem('appearance') as Appearance) || 'system';
+    const stored = localStorage.getItem('appearance');
+
+    return isAppearance(stored) ? stored : null;
 };
 
 const isDarkMode = (appearance: Appearance): boolean => {
@@ -71,22 +77,22 @@ const mediaQuery = (): MediaQueryList | null => {
 const handleSystemThemeChange = (): void => applyTheme(currentAppearance);
 
 /**
- * Applies the stored appearance on first client load and listens for OS theme changes.
- * Call once from `app.tsx` before React mounts.
+ * Applies stored personal preference, else the project default (no localStorage write).
+ * Call once from `app.tsx` after Inertia props are available.
  *
+ * @param {Appearance} [projectDefault='system'] - Project default when user has no preference
  * @returns {void}
  */
-export function initializeTheme(): void {
+export function initializeTheme(projectDefault: Appearance = 'system'): void {
     if (typeof window === 'undefined') {
         return;
     }
 
-    if (!localStorage.getItem('appearance')) {
-        localStorage.setItem('appearance', 'system');
-        setCookie('appearance', 'system');
-    }
+    const stored = getStoredAppearance();
+    const fallback = isAppearance(projectDefault) ? projectDefault : 'system';
 
-    currentAppearance = getStoredAppearance();
+    // ponytail: personal localStorage wins; project default is never persisted until the user chooses
+    currentAppearance = stored ?? fallback;
     applyTheme(currentAppearance);
 
     mediaQuery()?.addEventListener('change', handleSystemThemeChange);

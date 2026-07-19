@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\User;
 use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Settings\ProjectSettings;
 use App\Support\Http\CurlSseStreamer;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
@@ -156,14 +157,6 @@ class AppServiceProvider extends ServiceProvider
             app()->isProduction(),
         );
 
-        Password::defaults(fn (): ?Password => app()->isProduction()
-            ? Password::min(12)
-                ->mixedCase()
-                ->letters()
-                ->numbers()
-                ->symbols()
-                ->uncompromised()
-            : null,
-        );
+        Password::defaults(fn (): Password => app(ProjectSettings::class)->passwordRule());
     }
 }

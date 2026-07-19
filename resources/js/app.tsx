@@ -6,9 +6,31 @@ import { AppErrorBoundary } from '@/components/app-error-boundary';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import '../css/app.css';
+import type { Appearance } from '@/hooks/use-appearance';
 import { initializeTheme } from '@/hooks/use-appearance';
+import { initI18n } from '@/lib/i18n';
+import type { ProjectAppearance } from '@/types/appearance';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+
+const resolveProjectDefaultAppearance = (
+    projectAppearance: unknown,
+): Appearance => {
+    if (
+        projectAppearance &&
+        typeof projectAppearance === 'object' &&
+        'defaultAppearance' in projectAppearance
+    ) {
+        const value = (projectAppearance as ProjectAppearance)
+            .defaultAppearance;
+
+        if (value === 'light' || value === 'dark' || value === 'system') {
+            return value;
+        }
+    }
+
+    return 'system';
+};
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -18,6 +40,18 @@ createInertiaApp({
             import.meta.glob('./pages/**/*.tsx'),
         ),
     setup({ el, App, props }) {
+        const locale =
+            typeof props.initialPage.props.locale === 'string'
+                ? props.initialPage.props.locale
+                : 'en';
+        initI18n(locale);
+
+        initializeTheme(
+            resolveProjectDefaultAppearance(
+                props.initialPage.props.projectAppearance,
+            ),
+        );
+
         const root = createRoot(el);
 
         root.render(
@@ -35,5 +69,3 @@ createInertiaApp({
         color: '#4B5563',
     },
 });
-
-initializeTheme();

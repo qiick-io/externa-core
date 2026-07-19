@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
@@ -15,16 +16,16 @@ type Props = {
 
 /**
  * Set a new password from a reset token.
- * @param {*} props - Component props.
- * @returns {JSX.Element}
  */
 export default function ResetPassword({ token, email }: Props) {
+    const { t } = useTranslation();
+
     return (
         <AuthLayout
-            title="Reset password"
-            description="Please enter your new password below"
+            title={t('auth.resetPassword.title')}
+            description={t('auth.resetPassword.description')}
         >
-            <Head title="Reset password" />
+            <Head title={t('auth.resetPassword.head')} />
 
             <Form
                 {...update.form()}
@@ -34,7 +35,7 @@ export default function ResetPassword({ token, email }: Props) {
                 {({ processing, errors }) => (
                     <div className="grid gap-6">
                         <div className="grid gap-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email">{t('common.email')}</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -51,28 +52,30 @@ export default function ResetPassword({ token, email }: Props) {
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password">
+                                {t('common.password')}
+                            </Label>
                             <PasswordInput
                                 id="password"
                                 name="password"
                                 autoComplete="new-password"
                                 className="mt-1 block w-full"
                                 autoFocus
-                                placeholder="Password"
+                                placeholder={t('common.password')}
                             />
                             <InputError message={errors.password} />
                         </div>
 
                         <div className="grid gap-2">
                             <Label htmlFor="password_confirmation">
-                                Confirm password
+                                {t('common.confirmPassword')}
                             </Label>
                             <PasswordInput
                                 id="password_confirmation"
                                 name="password_confirmation"
                                 autoComplete="new-password"
                                 className="mt-1 block w-full"
-                                placeholder="Confirm password"
+                                placeholder={t('common.confirmPassword')}
                             />
                             <InputError
                                 message={errors.password_confirmation}
@@ -87,7 +90,7 @@ export default function ResetPassword({ token, email }: Props) {
                             data-test="reset-password-button"
                         >
                             {processing && <Spinner />}
-                            Reset password
+                            {t('auth.resetPassword.submit')}
                         </Button>
                     </div>
                 )}

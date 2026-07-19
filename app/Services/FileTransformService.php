@@ -3,11 +3,12 @@
 namespace App\Services;
 
 use App\Models\File;
+use App\Services\Settings\ProjectSettings;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 /**
- * Generates and caches contain-fit image thumbnails on the file disk.
+ * Generates and caches image transforms via PHP GD (no Sharp / Intervention).
  */
 class FileTransformService
 {
@@ -15,10 +16,12 @@ class FileTransformService
 
     public const MAX_SIZE = 256;
 
+    public const DEFAULT_QUALITY = 82;
+
     /**
      * @var list<int>
      */
-    private const CLEANUP_SIZES = [64, 128, 256];
+    private const LEGACY_CLEANUP_SIZES = [64, 128, 256];
 
     /**
      * Whether the file is a raster image eligible for thumbnail generation.
@@ -36,32 +39,87 @@ class FileTransformService
      */
     public function clampSize(?int $size): int
     {
-        $resolved = $size ?? self::DEFAULT_SIZE;
+        $max = $this->maxSize();
+        $resolved = $size ?? min(self::DEFAULT_SIZE, $max);
 
         if ($resolved < 1) {
-            $resolved = self::DEFAULT_SIZE;
+            $resolved = min(self::DEFAULT_SIZE, $max);
         }
 
-        return min($resolved, self::MAX_SIZE);
+        return min($resolved, $max);
     }
 
     /**
      * Ensure a contain-fit thumbnail exists and return its storage path.
+     *
+     * Backward-compatible square transform used by ?size=N.
      */
     public function ensureThumbnail(File $file, ?int $size = null): string
     {
+        $size = $this->clampSize($size);
+
+        // inside (not contain): matches prior square thumbs — scale to fit, no letterbox
+        return $this->ensureTransform($file, [
+            'key' => 'size-'.$size,
+            'fit' => 'inside',
+            'width' => $size,
+            'height' => $size,
+            'quality' => self::DEFAULT_QUALITY,
+            'without_enlargement' => true,
+            'format' => 'auto',
+        ]);
+    }
+
+    /**
+     * Apply a named project preset and return the cached storage path.
+     *
+     * @param  array{
+     *     key?: string,
+     *     fit?: string,
+     *     width?: int|null,
+     *     height?: int|null,
+     *     quality?: int,
+     *     without_enlargement?: bool,
+     *     format?: string
+     * }|null  $preset
+     */
+    public function ensureTransform(File $file, ?array $preset = null, ?string $key = null): string
+    {
+        if (! $this->transformationsEnabled()) {
+            throw new RuntimeException('Image transformations are disabled.');
+        }
+
         if (! $this->isImage($file) || ! $file->storage_path) {
             throw new RuntimeException('Thumbnails are only available for image files.');
         }
 
-        $size = $this->clampSize($size);
+        if ($preset === null) {
+            if ($key === null) {
+                return $this->ensureThumbnail($file);
+            }
+
+            $preset = app(ProjectSettings::class)->transformPreset($key);
+            if ($preset === null) {
+                throw new RuntimeException("Unknown transform preset [{$key}].");
+            }
+        }
+
+        $preset = $this->normalizePresetInput($preset);
         $disk = Storage::disk($file->disk);
+        $extension = $this->resolveExtension($preset['format']);
 
-        foreach (['webp', 'jpg'] as $extension) {
-            $existingPath = $this->cachePath($file, $size, $extension);
+        $existingPath = $this->cachePath($file, $preset, $extension);
+        if ($disk->exists($existingPath)) {
+            return $existingPath;
+        }
 
-            if ($disk->exists($existingPath)) {
-                return $existingPath;
+        // auto may have been written as jpg when webp was unavailable
+        if ($preset['format'] === 'auto') {
+            foreach (['webp', 'jpg', 'png'] as $candidate) {
+                $candidatePath = $this->cachePath($file, $preset, $candidate);
+                if ($disk->exists($candidatePath)) {
+                    return $candidatePath;
+                }
             }
         }
 
@@ -75,15 +133,15 @@ class FileTransformService
             throw new RuntimeException('Unable to read source image.');
         }
 
-        $encoded = $this->resizeContain($contents, $size);
-        $cachePath = $this->cachePath($file, $size, $encoded['extension']);
+        $encoded = $this->transform($contents, $preset);
+        $cachePath = $this->cachePath($file, $preset, $encoded['extension']);
         $disk->put($cachePath, $encoded['binary']);
 
         return $cachePath;
     }
 
     /**
-     * Remove cached transform files for the given file across standard sizes.
+     * Remove cached transform files for the given file across known presets.
      */
     public function clearTransforms(File $file): void
     {
@@ -92,16 +150,76 @@ class FileTransformService
         }
 
         $disk = Storage::disk($file->disk);
+        $presets = $this->cleanupPresets();
 
-        foreach (self::CLEANUP_SIZES as $size) {
-            foreach (['webp', 'jpg'] as $extension) {
-                $path = $this->cachePath($file, $size, $extension);
+        foreach ($presets as $preset) {
+            foreach (['webp', 'jpg', 'png'] as $extension) {
+                $path = $this->cachePath($file, $preset, $extension);
 
                 if ($disk->exists($path)) {
                     $disk->delete($path);
                 }
             }
         }
+
+        // Legacy hash was size + extension only (pre-structured presets)
+        foreach (self::LEGACY_CLEANUP_SIZES as $size) {
+            foreach (['webp', 'jpg'] as $extension) {
+                $path = $this->legacyCachePath($file, $size, $extension);
+
+                if ($disk->exists($path)) {
+                    $disk->delete($path);
+                }
+            }
+        }
+    }
+
+    /**
+     * Pre-structured-preset cache path (size edge only).
+     */
+    private function legacyCachePath(File $file, int $size, string $extension): string
+    {
+        $directory = trim(dirname((string) $file->storage_path), '.');
+        $hash = hash('sha256', implode('|', [
+            (string) $file->storage_path,
+            (string) ($file->hash ?? ''),
+            (string) $size,
+            $extension,
+        ]));
+
+        $prefix = $directory === '' ? 'transforms' : $directory.'/transforms';
+
+        return $prefix.'/'.$hash.'.'.$extension;
+    }
+
+    public function maxSize(): int
+    {
+        try {
+            return app(ProjectSettings::class)->maxTransformSize();
+        } catch (\Throwable) {
+            return self::MAX_SIZE;
+        }
+    }
+
+    public function transformationsEnabled(): bool
+    {
+        try {
+            return app(ProjectSettings::class)->transformationsEnabled();
+        } catch (\Throwable) {
+            return true;
+        }
+    }
+
+    /**
+     * MIME type for a cached transform path extension.
+     */
+    public function mimeForPath(string $path): string
+    {
+        return match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
+            'webp' => 'image/webp',
+            'png' => 'image/png',
+            default => 'image/jpeg',
+        };
     }
 
     /**
@@ -117,9 +235,110 @@ class FileTransformService
     }
 
     /**
+     * @return list<array{
+     *     key: string,
+     *     fit: string,
+     *     width: int|null,
+     *     height: int|null,
+     *     quality: int,
+     *     without_enlargement: bool,
+     *     format: string
+     * }>
+     */
+    private function cleanupPresets(): array
+    {
+        $presets = [];
+
+        try {
+            $presets = app(ProjectSettings::class)->presetTransformations();
+        } catch (\Throwable) {
+            $presets = [];
+        }
+
+        foreach (self::LEGACY_CLEANUP_SIZES as $size) {
+            // Match ensureThumbnail() hash inputs (inside, not contain)
+            $presets[] = [
+                'key' => 'size-'.$size,
+                'fit' => 'inside',
+                'width' => $size,
+                'height' => $size,
+                'quality' => self::DEFAULT_QUALITY,
+                'without_enlargement' => true,
+                'format' => 'auto',
+            ];
+        }
+
+        return $presets;
+    }
+
+    /**
+     * @param  array<string, mixed>  $preset
+     * @return array{
+     *     key: string,
+     *     fit: string,
+     *     width: int|null,
+     *     height: int|null,
+     *     quality: int,
+     *     without_enlargement: bool,
+     *     format: string
+     * }
+     */
+    private function normalizePresetInput(array $preset): array
+    {
+        $fits = config('settings.project.transform_fits', ['contain', 'cover', 'inside', 'outside']);
+        $formats = config('settings.project.transform_formats', ['auto', 'jpeg', 'png', 'webp']);
+
+        $fit = is_string($preset['fit'] ?? null) ? $preset['fit'] : 'contain';
+        if (! in_array($fit, $fits, true)) {
+            $fit = 'contain';
+        }
+
+        $format = is_string($preset['format'] ?? null) ? $preset['format'] : 'auto';
+        if (! in_array($format, $formats, true)) {
+            $format = 'auto';
+        }
+
+        $width = isset($preset['width']) && $preset['width'] !== null ? (int) $preset['width'] : null;
+        $height = isset($preset['height']) && $preset['height'] !== null ? (int) $preset['height'] : null;
+        if ($width !== null && $width < 1) {
+            $width = null;
+        }
+        if ($height !== null && $height < 1) {
+            $height = null;
+        }
+        if ($width === null && $height === null) {
+            $width = self::DEFAULT_SIZE;
+            $height = self::DEFAULT_SIZE;
+        }
+
+        $quality = is_numeric($preset['quality'] ?? null)
+            ? (int) $preset['quality']
+            : self::DEFAULT_QUALITY;
+
+        return [
+            'key' => is_string($preset['key'] ?? null) ? $preset['key'] : 'custom',
+            'fit' => $fit,
+            'width' => $width,
+            'height' => $height,
+            'quality' => max(1, min(100, $quality)),
+            'without_enlargement' => (bool) ($preset['without_enlargement'] ?? true),
+            'format' => $format,
+        ];
+    }
+
+    /**
+     * @param  array{
+     *     key: string,
+     *     fit: string,
+     *     width: int|null,
+     *     height: int|null,
+     *     quality: int,
+     *     without_enlargement: bool,
+     *     format: string
+     * }  $preset
      * @return array{binary: string, mime: string, extension: string}
      */
-    protected function resizeContain(string $contents, int $maxEdge): array
+    protected function transform(string $contents, array $preset): array
     {
         $source = @imagecreatefromstring($contents);
 
@@ -135,11 +354,16 @@ class FileTransformService
             throw new RuntimeException('Invalid image dimensions.');
         }
 
-        $scale = min(1, $maxEdge / max($sourceWidth, $sourceHeight));
-        $targetWidth = max(1, (int) round($sourceWidth * $scale));
-        $targetHeight = max(1, (int) round($sourceHeight * $scale));
+        $geometry = $this->resolveGeometry(
+            $sourceWidth,
+            $sourceHeight,
+            $preset['width'],
+            $preset['height'],
+            $preset['fit'],
+            $preset['without_enlargement'],
+        );
 
-        $canvas = imagecreatetruecolor($targetWidth, $targetHeight);
+        $canvas = imagecreatetruecolor($geometry['canvas_w'], $geometry['canvas_h']);
 
         if ($canvas === false) {
             imagedestroy($source);
@@ -155,51 +379,290 @@ class FileTransformService
         imagecopyresampled(
             $canvas,
             $source,
-            0,
-            0,
-            0,
-            0,
-            $targetWidth,
-            $targetHeight,
-            $sourceWidth,
-            $sourceHeight,
+            $geometry['dst_x'],
+            $geometry['dst_y'],
+            $geometry['src_x'],
+            $geometry['src_y'],
+            $geometry['dst_w'],
+            $geometry['dst_h'],
+            $geometry['src_w'],
+            $geometry['src_h'],
         );
 
         imagedestroy($source);
 
-        ob_start();
+        return $this->encodeCanvas($canvas, $preset['format'], $preset['quality']);
+    }
 
-        if (function_exists('imagewebp')) {
-            imagewebp($canvas, null, 82);
-            $binary = (string) ob_get_clean();
-            imagedestroy($canvas);
+    /**
+     * @return array{
+     *     canvas_w: int,
+     *     canvas_h: int,
+     *     dst_x: int,
+     *     dst_y: int,
+     *     dst_w: int,
+     *     dst_h: int,
+     *     src_x: int,
+     *     src_y: int,
+     *     src_w: int,
+     *     src_h: int
+     * }
+     */
+    private function resolveGeometry(
+        int $sourceWidth,
+        int $sourceHeight,
+        ?int $width,
+        ?int $height,
+        string $fit,
+        bool $withoutEnlargement,
+    ): array {
+        $targetW = $width ?? $height ?? $sourceWidth;
+        $targetH = $height ?? $width ?? $sourceHeight;
 
+        return match ($fit) {
+            'cover' => $this->geometryCover($sourceWidth, $sourceHeight, $targetW, $targetH, $withoutEnlargement),
+            'outside' => $this->geometryOutside($sourceWidth, $sourceHeight, $targetW, $targetH, $withoutEnlargement),
+            'contain' => $this->geometryContain($sourceWidth, $sourceHeight, $targetW, $targetH, $withoutEnlargement, pad: true),
+            default => $this->geometryContain($sourceWidth, $sourceHeight, $targetW, $targetH, $withoutEnlargement, pad: false),
+        };
+    }
+
+    /**
+     * @return array{
+     *     canvas_w: int,
+     *     canvas_h: int,
+     *     dst_x: int,
+     *     dst_y: int,
+     *     dst_w: int,
+     *     dst_h: int,
+     *     src_x: int,
+     *     src_y: int,
+     *     src_w: int,
+     *     src_h: int
+     * }
+     */
+    private function geometryContain(
+        int $sw,
+        int $sh,
+        int $tw,
+        int $th,
+        bool $withoutEnlargement,
+        bool $pad,
+    ): array {
+        $scale = min($tw / $sw, $th / $sh);
+        if ($withoutEnlargement) {
+            $scale = min(1, $scale);
+        }
+
+        $dw = max(1, (int) round($sw * $scale));
+        $dh = max(1, (int) round($sh * $scale));
+
+        if ($pad) {
             return [
-                'binary' => $binary,
-                'mime' => 'image/webp',
-                'extension' => 'webp',
+                'canvas_w' => $tw,
+                'canvas_h' => $th,
+                'dst_x' => (int) floor(($tw - $dw) / 2),
+                'dst_y' => (int) floor(($th - $dh) / 2),
+                'dst_w' => $dw,
+                'dst_h' => $dh,
+                'src_x' => 0,
+                'src_y' => 0,
+                'src_w' => $sw,
+                'src_h' => $sh,
             ];
         }
 
-        imagejpeg($canvas, null, 82);
-        $binary = (string) ob_get_clean();
-        imagedestroy($canvas);
-
         return [
-            'binary' => $binary,
-            'mime' => 'image/jpeg',
-            'extension' => 'jpg',
+            'canvas_w' => $dw,
+            'canvas_h' => $dh,
+            'dst_x' => 0,
+            'dst_y' => 0,
+            'dst_w' => $dw,
+            'dst_h' => $dh,
+            'src_x' => 0,
+            'src_y' => 0,
+            'src_w' => $sw,
+            'src_h' => $sh,
         ];
     }
 
-    protected function cachePath(File $file, int $size, ?string $extension = null): string
+    /**
+     * @return array{
+     *     canvas_w: int,
+     *     canvas_h: int,
+     *     dst_x: int,
+     *     dst_y: int,
+     *     dst_w: int,
+     *     dst_h: int,
+     *     src_x: int,
+     *     src_y: int,
+     *     src_w: int,
+     *     src_h: int
+     * }
+     */
+    private function geometryCover(
+        int $sw,
+        int $sh,
+        int $tw,
+        int $th,
+        bool $withoutEnlargement,
+    ): array {
+        $scale = max($tw / $sw, $th / $sh);
+
+        // Sharp-like: do not upscale — emit source (centered crop only if larger)
+        if ($withoutEnlargement && $scale > 1) {
+            $cropW = min($sw, $tw);
+            $cropH = min($sh, $th);
+
+            return [
+                'canvas_w' => $cropW,
+                'canvas_h' => $cropH,
+                'dst_x' => 0,
+                'dst_y' => 0,
+                'dst_w' => $cropW,
+                'dst_h' => $cropH,
+                'src_x' => (int) floor(($sw - $cropW) / 2),
+                'src_y' => (int) floor(($sh - $cropH) / 2),
+                'src_w' => $cropW,
+                'src_h' => $cropH,
+            ];
+        }
+
+        $srcW = max(1, min($sw, (int) round($tw / $scale)));
+        $srcH = max(1, min($sh, (int) round($th / $scale)));
+
+        return [
+            'canvas_w' => $tw,
+            'canvas_h' => $th,
+            'dst_x' => 0,
+            'dst_y' => 0,
+            'dst_w' => $tw,
+            'dst_h' => $th,
+            'src_x' => (int) floor(($sw - $srcW) / 2),
+            'src_y' => (int) floor(($sh - $srcH) / 2),
+            'src_w' => $srcW,
+            'src_h' => $srcH,
+        ];
+    }
+
+    /**
+     * @return array{
+     *     canvas_w: int,
+     *     canvas_h: int,
+     *     dst_x: int,
+     *     dst_y: int,
+     *     dst_w: int,
+     *     dst_h: int,
+     *     src_x: int,
+     *     src_y: int,
+     *     src_w: int,
+     *     src_h: int
+     * }
+     */
+    private function geometryOutside(
+        int $sw,
+        int $sh,
+        int $tw,
+        int $th,
+        bool $withoutEnlargement,
+    ): array {
+        $scale = max($tw / $sw, $th / $sh);
+        if ($withoutEnlargement) {
+            $scale = min(1, $scale);
+        }
+
+        $dw = max(1, (int) round($sw * $scale));
+        $dh = max(1, (int) round($sh * $scale));
+
+        return [
+            'canvas_w' => $dw,
+            'canvas_h' => $dh,
+            'dst_x' => 0,
+            'dst_y' => 0,
+            'dst_w' => $dw,
+            'dst_h' => $dh,
+            'src_x' => 0,
+            'src_y' => 0,
+            'src_w' => $sw,
+            'src_h' => $sh,
+        ];
+    }
+
+    /**
+     * @return array{binary: string, mime: string, extension: string}
+     */
+    protected function encodeCanvas(\GdImage $canvas, string $format, int $quality): array
     {
-        $extension ??= function_exists('imagewebp') ? 'webp' : 'jpg';
+        $resolved = $this->resolveEncodeFormat($format);
+
+        ob_start();
+
+        match ($resolved) {
+            'png' => imagepng($canvas, null, (int) round((100 - $quality) / 11.111)), // 0–9
+            'webp' => imagewebp($canvas, null, $quality),
+            default => imagejpeg($canvas, null, $quality),
+        };
+
+        $binary = (string) ob_get_clean();
+        imagedestroy($canvas);
+
+        return match ($resolved) {
+            'png' => ['binary' => $binary, 'mime' => 'image/png', 'extension' => 'png'],
+            'webp' => ['binary' => $binary, 'mime' => 'image/webp', 'extension' => 'webp'],
+            default => ['binary' => $binary, 'mime' => 'image/jpeg', 'extension' => 'jpg'],
+        };
+    }
+
+    private function resolveEncodeFormat(string $format): string
+    {
+        if ($format === 'png') {
+            return 'png';
+        }
+
+        if ($format === 'webp' || $format === 'auto') {
+            if (function_exists('imagewebp')) {
+                return 'webp';
+            }
+
+            return 'jpeg';
+        }
+
+        return 'jpeg';
+    }
+
+    private function resolveExtension(string $format): string
+    {
+        return match ($this->resolveEncodeFormat($format)) {
+            'png' => 'png',
+            'webp' => 'webp',
+            default => 'jpg',
+        };
+    }
+
+    /**
+     * @param  array{
+     *     key: string,
+     *     fit: string,
+     *     width: int|null,
+     *     height: int|null,
+     *     quality: int,
+     *     without_enlargement: bool,
+     *     format: string
+     * }  $preset
+     */
+    protected function cachePath(File $file, array $preset, string $extension): string
+    {
         $directory = trim(dirname((string) $file->storage_path), '.');
         $hash = hash('sha256', implode('|', [
             (string) $file->storage_path,
             (string) ($file->hash ?? ''),
-            (string) $size,
+            $preset['key'],
+            $preset['fit'],
+            (string) ($preset['width'] ?? ''),
+            (string) ($preset['height'] ?? ''),
+            (string) $preset['quality'],
+            $preset['without_enlargement'] ? '1' : '0',
+            $preset['format'],
             $extension,
         ]));
 

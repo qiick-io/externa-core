@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import {
     SidebarGroup,
     SidebarGroupLabel,
@@ -19,6 +20,7 @@ export type MainNavItem = NavItem & { permission?: string };
  * @returns {JSX.Element | null}
  */
 export function NavMain({ items = [] }: { items?: MainNavItem[] }) {
+    const { t } = useTranslation();
     const { isCurrentUrl } = useCurrentUrl();
     const { can } = useCan();
 
@@ -32,7 +34,7 @@ export function NavMain({ items = [] }: { items?: MainNavItem[] }) {
 
     return (
         <SidebarGroup className="px-2 py-0">
-            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+            <SidebarGroupLabel>{t('nav.platform')}</SidebarGroupLabel>
             <SidebarMenu>
                 {visible.map((item) => (
                     <SidebarMenuItem key={item.title}>

@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureCanManageFiles;
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SetLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,13 +22,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'can.manage.files' => EnsureCanManageFiles::class,
         ]);
 
-        $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+        $middleware->encryptCookies(except: ['appearance', 'sidebar_state', 'locale']);
         $middleware->validateCsrfTokens(except: [
             'ai/webhooks/collection-import',
         ]);
 
         $middleware->web(append: [
             HandleAppearance::class,
+            SetLocale::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);

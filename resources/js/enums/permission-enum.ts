@@ -43,6 +43,7 @@ export enum PermissionEnum {
     CanForceDeleteCollections = 'can-force-delete-collections',
     CanShowActivityLogs = 'can-show-activity-logs',
     CanUseAi = 'can-use-ai',
+    CanManageProjectSettings = 'can-manage-project-settings',
 }
 
 /** @deprecated Use PermissionEnum — kept for backwards compatibility */

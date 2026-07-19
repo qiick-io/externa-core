@@ -1,6 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,9 +16,9 @@ import { store } from '@/routes/two-factor/login';
 
 /**
  * Two-factor authentication challenge during login.
- * @returns {JSX.Element}
  */
 export default function TwoFactorChallenge() {
+    const { t } = useTranslation();
     const [showRecoveryInput, setShowRecoveryInput] = useState<boolean>(false);
     const [code, setCode] = useState<string>('');
 
@@ -28,20 +29,18 @@ export default function TwoFactorChallenge() {
     }>(() => {
         if (showRecoveryInput) {
             return {
-                title: 'Recovery code',
-                description:
-                    'Please confirm access to your account by entering one of your emergency recovery codes.',
-                toggleText: 'login using an authentication code',
+                title: t('auth.twoFactorChallenge.recoveryTitle'),
+                description: t('auth.twoFactorChallenge.recoveryDescription'),
+                toggleText: t('auth.twoFactorChallenge.recoveryToggle'),
             };
         }
 
         return {
-            title: 'Authentication code',
-            description:
-                'Enter the authentication code provided by your authenticator application.',
-            toggleText: 'login using a recovery code',
+            title: t('auth.twoFactorChallenge.authTitle'),
+            description: t('auth.twoFactorChallenge.authDescription'),
+            toggleText: t('auth.twoFactorChallenge.authToggle'),
         };
-    }, [showRecoveryInput]);
+    }, [showRecoveryInput, t]);
 
     const toggleRecoveryMode = (clearErrors: () => void): void => {
         setShowRecoveryInput(!showRecoveryInput);
@@ -54,7 +53,7 @@ export default function TwoFactorChallenge() {
             title={authConfigContent.title}
             description={authConfigContent.description}
         >
-            <Head title="Two-factor authentication" />
+            <Head title={t('auth.twoFactorChallenge.head')} />
 
             <div className="space-y-6">
                 <Form
@@ -70,7 +69,9 @@ export default function TwoFactorChallenge() {
                                     <Input
                                         name="recovery_code"
                                         type="text"
-                                        placeholder="Enter recovery code"
+                                        placeholder={t(
+                                            'auth.twoFactorChallenge.recoveryPlaceholder',
+                                        )}
                                         autoFocus={showRecoveryInput}
                                         required
                                     />
@@ -111,11 +112,13 @@ export default function TwoFactorChallenge() {
                                 className="w-full"
                                 disabled={processing}
                             >
-                                Continue
+                                {t('common.continue')}
                             </Button>
 
                             <div className="text-center text-sm text-muted-foreground">
-                                <span>or you can </span>
+                                <span>
+                                    {t('auth.twoFactorChallenge.orYouCan')}
+                                </span>
                                 <button
                                     type="button"
                                     className="cursor-pointer text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"

@@ -3,11 +3,16 @@ import createServer from '@inertiajs/react/server';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import ReactDOMServer from 'react-dom/server';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { initI18n } from '@/lib/i18n';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
-createServer((page) =>
-    createInertiaApp({
+createServer((page) => {
+    const locale =
+        typeof page.props.locale === 'string' ? page.props.locale : 'en';
+    initI18n(locale);
+
+    return createInertiaApp({
         page,
         render: ReactDOMServer.renderToString,
         title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -23,5 +28,5 @@ createServer((page) =>
                 </TooltipProvider>
             );
         },
-    }),
-);
+    });
+});

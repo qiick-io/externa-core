@@ -2,24 +2,38 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\Settings\ProjectAppearance;
+use App\Services\Settings\ProjectSettings;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\View;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Share the user's appearance preference with Blade views for the current request.
+ * Share appearance / branding view vars for the Blade document shell.
  */
 class HandleAppearance
 {
     /**
-     * Expose the appearance cookie (or `system`) as a shared view variable.
+     * Prefer the personal appearance cookie; fall back to the project default.
      *
      * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        View::share('appearance', $request->cookie('appearance') ?? 'system');
+        $projectAppearance = app(ProjectAppearance::class)->shared();
+        $cookie = $request->cookie('appearance');
+
+        View::share(
+            'appearance',
+            is_string($cookie) && $cookie !== ''
+                ? $cookie
+                : $projectAppearance['defaultAppearance'],
+        );
+        View::share('projectFaviconUrl', $projectAppearance['faviconUrl']);
+        View::share('projectColor', $projectAppearance['projectColor']);
+        View::share('projectColorForeground', $projectAppearance['primaryForeground']);
+        View::share('projectName', app(ProjectSettings::class)->displayName());
 
         return $next($request);
     }

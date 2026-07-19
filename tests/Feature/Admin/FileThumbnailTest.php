@@ -5,6 +5,7 @@ use App\Enums\PermissionEnum;
 use App\Models\File;
 use App\Models\User;
 use App\Services\FileTransformService;
+use App\Services\Settings\SettingsRepository;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -142,6 +143,46 @@ test('file list resource includes thumbnail_url for images and null for other fi
     expect($imageRow['url'])->not->toBeNull();
     expect($documentRow['thumbnail_url'])->toBeNull();
     expect($documentRow['url'])->not->toBeNull();
+});
+
+test('thumbnail endpoint honors a named transform preset key', function () {
+    $user = grantThumbnailPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanCreateFiles->value,
+        PermissionEnum::CanManageProjectSettings->value,
+    ]);
+    $this->actingAs($user);
+
+    app(SettingsRepository::class)->setMany(
+        SettingsRepository::SCOPE_PROJECT,
+        'project',
+        [
+            'allowed_transformations' => ['thumbnail'],
+            'preset_transformations' => [[
+                'key' => 'card',
+                'fit' => 'cover',
+                'width' => 200,
+                'height' => 120,
+                'quality' => 80,
+                'without_enlargement' => true,
+                'format' => 'png',
+            ]],
+        ],
+    );
+
+    $created = $this->postJson(route('files.upload'), [
+        'file' => UploadedFile::fake()->image('card-source.png', 400, 300),
+    ])->assertCreated();
+
+    $file = File::query()->findOrFail($created->json('id'));
+
+    $response = $this->get(route('files.thumbnail', ['file' => $file, 'key' => 'card']));
+    $response->assertOk();
+    expect($response->headers->get('content-type'))->toContain('image/png');
+
+    $cachePath = app(FileTransformService::class)->ensureTransform($file, key: 'card');
+    Storage::disk('assets')->assertExists($cachePath);
+    expect($cachePath)->toEndWith('.png');
 });
 
 test('replacing an image clears cached thumbnails for the previous storage path', function () {

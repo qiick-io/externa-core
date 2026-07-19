@@ -1,84 +1,139 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
+import { Bug } from 'lucide-react';
 import type { PropsWithChildren } from 'react';
+import { useTranslation } from 'react-i18next';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { PermissionEnum } from '@/enums/permission-enum';
+import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn, toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit } from '@/routes/profile';
+import { edit as editProject } from '@/routes/project';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
 
-const sidebarNavItems: NavItem[] = [
-    {
-        title: 'Profile',
-        href: edit(),
-        icon: null,
-    },
-    {
-        title: 'Security',
-        href: editSecurity(),
-        icon: null,
-    },
-    {
-        title: 'Appearance',
-        href: editAppearance(),
-        icon: null,
-    },
-];
+const DEFAULT_REPORT_BUG_URL =
+    'https://github.com/qiick-io/externa-core/issues/new?template=bug_report.yml';
 
 /**
  * Settings section layout with sidebar nav (client-only to avoid SSR mismatch).
- * @param {PropsWithChildren} props - Layout props.
- * @param {React.ReactNode} props.children - Active settings page content.
- * @returns {JSX.Element | null}
  */
 export default function SettingsLayout({ children }: PropsWithChildren) {
+    const { t } = useTranslation();
     const { isCurrentOrParentUrl } = useCurrentUrl();
+    const { can } = useCan();
+    const { projectSettings } = usePage().props;
+
+    const accountNavItems: NavItem[] = [
+        {
+            title: t('settings.layout.profile'),
+            href: edit(),
+            icon: null,
+        },
+        {
+            title: t('settings.layout.security'),
+            href: editSecurity(),
+            icon: null,
+        },
+    ];
+
+    const projectNavItems: NavItem[] = can(
+        PermissionEnum.CanManageProjectSettings,
+    )
+        ? [
+              {
+                  title: t('settings.layout.project'),
+                  href: editProject(),
+                  icon: null,
+              },
+              {
+                  title: t('settings.layout.appearance'),
+                  href: editAppearance(),
+                  icon: null,
+              },
+          ]
+        : [];
+
+    const reportBugUrl =
+        projectSettings?.reportBugUrl?.trim() || DEFAULT_REPORT_BUG_URL;
 
     if (typeof window === 'undefined') {
         return null;
     }
 
+    const renderNavItem = (item: NavItem, index: number) => (
+        <Button
+            key={`${toUrl(item.href)}-${index}`}
+            size="sm"
+            variant="ghost"
+            asChild
+            className={cn('w-full justify-start', {
+                'bg-muted': isCurrentOrParentUrl(item.href),
+            })}
+        >
+            <Link href={item.href}>
+                {item.icon && <item.icon className="h-4 w-4" />}
+                {item.title}
+            </Link>
+        </Button>
+    );
+
     return (
-        <div className="px-4 py-6">
+        // App shell is h-svh + overflow-hidden; only the content pane scrolls.
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-6">
             <Heading
-                title="Settings"
-                description="Manage your profile and account settings"
+                title={t('settings.layout.title')}
+                description={t('settings.layout.description')}
             />
 
-            <div className="flex flex-col lg:flex-row lg:space-x-12">
-                <aside className="w-full max-w-xl lg:w-48">
+            <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:space-x-12">
+                <aside className="w-full max-w-xl shrink-0 lg:w-48">
                     <nav
                         className="flex flex-col space-y-1 space-x-0"
-                        aria-label="Settings"
+                        aria-label={t('settings.layout.navAria')}
                     >
-                        {sidebarNavItems.map((item, index) => (
-                            <Button
-                                key={`${toUrl(item.href)}-${index}`}
-                                size="sm"
-                                variant="ghost"
-                                asChild
-                                className={cn('w-full justify-start', {
-                                    'bg-muted': isCurrentOrParentUrl(item.href),
-                                })}
+                        <p className="text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wide uppercase">
+                            {t('settings.layout.sectionAccount')}
+                        </p>
+                        {accountNavItems.map(renderNavItem)}
+
+                        {projectNavItems.length > 0 && (
+                            <>
+                                <Separator className="my-2" />
+                                <p className="text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wide uppercase">
+                                    {t('settings.layout.sectionProject')}
+                                </p>
+                                {projectNavItems.map(renderNavItem)}
+                            </>
+                        )}
+
+                        <Separator className="my-2" />
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            asChild
+                            className="w-full justify-start"
+                        >
+                            <a
+                                href={reportBugUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
                             >
-                                <Link href={item.href}>
-                                    {item.icon && (
-                                        <item.icon className="h-4 w-4" />
-                                    )}
-                                    {item.title}
-                                </Link>
-                            </Button>
-                        ))}
+                                <Bug className="h-4 w-4" />
+                                {t('settings.layout.reportBug')}
+                            </a>
+                        </Button>
                     </nav>
                 </aside>
 
-                <Separator className="my-6 lg:hidden" />
+                <Separator className="my-6 shrink-0 lg:hidden" />
 
-                <div className="flex-1 md:max-w-2xl">
-                    <section className="max-w-xl space-y-12">
+                {/* Scroll pane: sticky Save bars pin to this box, not the viewport. */}
+                <div className="min-h-0 flex-1 overflow-y-auto md:max-w-2xl">
+                    <section className="max-w-xl space-y-12 pb-6">
                         {children}
                     </section>
                 </div>

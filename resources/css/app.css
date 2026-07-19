@@ -140,4 +140,76 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    /* Tailwind v4 preflight sets cursor: default on buttons — restore click affordance */
+    button:not(:disabled),
+    [role='button']:not([aria-disabled='true']),
+    [role='checkbox']:not([aria-disabled='true']),
+    [role='radio']:not([aria-disabled='true']),
+    [role='switch']:not([aria-disabled='true']),
+    [role='combobox']:not([aria-disabled='true']),
+    [role='option']:not([aria-disabled='true']),
+    [role='menuitem']:not([aria-disabled='true']),
+    [role='menuitemcheckbox']:not([aria-disabled='true']),
+    [role='menuitemradio']:not([aria-disabled='true']),
+    [role='tab']:not([aria-disabled='true']),
+    label[for],
+    summary {
+        cursor: pointer;
+    }
+
+    button:disabled,
+    [aria-disabled='true'],
+    [role='button'][aria-disabled='true'],
+    [role='checkbox'][aria-disabled='true'],
+    [role='radio'][aria-disabled='true'],
+    [role='switch'][aria-disabled='true'],
+    [role='combobox'][aria-disabled='true'] {
+        cursor: not-allowed;
+    }
+}
+
+/* Assistant nav: gradient border + hover shimmer (no solid fill) */
+.sidebar-ai-nav {
+    border: 1px solid transparent;
+    background:
+        linear-gradient(var(--sidebar), var(--sidebar)) padding-box,
+        linear-gradient(135deg, #f97316, #f43f5e, #fbbf24) border-box !important;
+}
+
+.sidebar-ai-nav:hover,
+.sidebar-ai-nav:active,
+.sidebar-ai-nav[data-active='true'] {
+    background:
+        linear-gradient(
+                color-mix(in oklab, #f97316 12%, var(--sidebar)),
+                color-mix(in oklab, #f97316 12%, var(--sidebar))
+            )
+            padding-box,
+        linear-gradient(135deg, #f97316, #f43f5e, #fbbf24) border-box !important;
+}
+
+.sidebar-ai-nav::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+        105deg,
+        transparent 35%,
+        color-mix(in oklab, white 35%, transparent) 50%,
+        transparent 65%
+    );
+    transform: translateX(-120%);
+}
+
+.sidebar-ai-nav:hover::after {
+    animation: sidebar-ai-shimmer 0.85s ease;
+}
+
+@keyframes sidebar-ai-shimmer {
+    to {
+        transform: translateX(120%);
+    }
 }
