@@ -1,10 +1,11 @@
+import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import {
-    supportsDefaultValue,
-    type CommonFieldSettings,
+    supportsDefaultValue
+    
 } from '@/lib/collection-field-types';
+import type {CommonFieldSettings} from '@/lib/collection-field-types';
 
 type CommonAdvancedSettingsProps = {
     fieldType: string;
@@ -14,6 +15,11 @@ type CommonAdvancedSettingsProps = {
     ) => void;
 };
 
+/**
+ * Shared advanced settings panel for field types.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function CommonAdvancedSettings({
     fieldType,
     settings,

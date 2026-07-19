@@ -7,8 +7,14 @@ use App\Jobs\ImportCollectionJob;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Expose background collection import job status for the authenticated user.
+ */
 class ImportJobStatusController extends Controller
 {
+    /**
+     * Return import job progress when the job belongs to the current user.
+     */
     public function __invoke(Request $request, string $jobId): Response
     {
         $status = ImportCollectionJob::status($jobId);

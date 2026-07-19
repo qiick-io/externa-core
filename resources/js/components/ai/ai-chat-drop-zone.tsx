@@ -1,10 +1,11 @@
 import { Paperclip } from 'lucide-react';
 import {
     useCallback,
-    useState,
-    type DragEvent,
-    type ReactNode,
+    useState
+    
+    
 } from 'react';
+import type {DragEvent, ReactNode} from 'react';
 import { cn } from '@/lib/utils';
 
 function isFileDrag(event: DragEvent): boolean {
@@ -18,6 +19,11 @@ type AiChatDropZoneProps = {
     className?: string;
 };
 
+/**
+ * Drop target for attaching files to an AI message.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function AiChatDropZone({
     children,
     onFilesSelected,

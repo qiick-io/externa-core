@@ -2,6 +2,9 @@
 
 namespace App\Enums;
 
+/**
+ * File manager node kinds (file, folder, link, etc.).
+ */
 enum FileTypeEnum: string
 {
     case File = 'file';

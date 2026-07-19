@@ -3,6 +3,13 @@ import { Breadcrumbs } from '@/components/breadcrumbs';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
 
+/**
+ * Top bar inside the sidebar layout with collapse trigger, breadcrumbs, and actions.
+ * @param {{ breadcrumbs?: BreadcrumbItemType[], actions?: ReactNode }} props - Component props.
+ * @param {BreadcrumbItemType[]} [props.breadcrumbs=[]] - Breadcrumb trail.
+ * @param {ReactNode} [props.actions] - Optional right-aligned header actions.
+ * @returns {JSX.Element}
+ */
 export function AppSidebarHeader({
     breadcrumbs = [],
     actions,

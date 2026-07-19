@@ -24,9 +24,10 @@ import {
     Star,
     Tag,
     Type,
-    User,
-    type LucideIcon,
+    User
+    
 } from 'lucide-react';
+import type {LucideIcon} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
+/** Curated Lucide icons available in collection field settings. */
 export const LUCIDE_ICON_OPTIONS: { name: string; icon: LucideIcon }[] = [
     { name: 'Type', icon: Type },
     { name: 'Search', icon: Search },
@@ -70,6 +72,10 @@ const ICON_MAP = Object.fromEntries(
     LUCIDE_ICON_OPTIONS.map((option) => [option.name, option.icon]),
 );
 
+/**
+ * Renders a Lucide icon by its string name.
+ * @returns {JSX.Element}
+ */
 export function LucideIconByName({
     name,
     className,
@@ -93,6 +99,11 @@ type LucideIconPickerProps = {
     onChange: (next: string) => void;
 };
 
+/**
+ * Searchable picker for Lucide icons on collection fields.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function LucideIconPicker({
     id,
     label,

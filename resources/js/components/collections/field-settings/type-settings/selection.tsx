@@ -1,14 +1,15 @@
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { TranslatedInput } from '@/components/collections/field-settings/translated-input';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     parseBooleanFieldSettings,
     parseColorFieldSettings,
     parseMapFieldSettings,
-    parseSelectFieldSettings,
-    type TranslatedText,
+    parseSelectFieldSettings
+    
 } from '@/lib/collection-field-types';
+import type {TranslatedText} from '@/lib/collection-field-types';
 
 type SelectionSettingsProps = {
     fieldType: string;
@@ -20,6 +21,10 @@ type SelectionSettingsProps = {
     }) => void;
 };
 
+/**
+ * Settings panel for select and boolean field types.
+ * @returns {JSX.Element}
+ */
 export function SelectionSettings({
     fieldType,
     settings,
@@ -186,6 +191,10 @@ export function SelectionSettings({
     return null;
 }
 
+/**
+ * Serializes boolean field label settings.
+ * @returns {*}
+ */
 export function serializeBooleanFieldSettings(booleanLabels: {
     labelOn: TranslatedText;
     labelOff: TranslatedText;

@@ -17,7 +17,7 @@ use App\Ai\Tools\ManageUsers;
 use App\Ai\Tools\QueryActivityLogs;
 use App\Ai\Tools\QueryCollectionItems;
 use App\Ai\Tools\RollbackLastAiTurn;
-use App\Ai\Tools\SearchSimilarItems;
+use App\Ai\Tools\SearchSimilarCollectionItems;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\User;
@@ -32,6 +32,9 @@ use Laravel\Ai\Promptable;
 use Stringable;
 
 #[Provider('local')]
+/**
+ * Primary in-app AI assistant agent with tools for admin and content workflows.
+ */
 class AppAssistant implements Agent, Conversational, HasTools
 {
     use Promptable;
@@ -135,7 +138,7 @@ INSTRUCTIONS;
         if ($resolver->hasPermission($user, PermissionEnum::CanShowCollections->value)) {
             $tools[] = new QueryCollectionItems;
             $tools[] = new ExportCollection;
-            $tools[] = new SearchSimilarItems;
+            $tools[] = new SearchSimilarCollectionItems;
         }
 
         if ($resolver->hasPermission($user, PermissionEnum::CanDeleteCollections->value)) {

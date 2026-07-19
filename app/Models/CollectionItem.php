@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\LogsApplicationActivity;
-use App\Support\Collections\ItemDataAccessor;
+use App\Support\Collections\CollectionItemDataAccessor;
 use Database\Factories\CollectionItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
+ * A single record within a collection; field values live in related rows.
+ *
  * @property-read int $id
  * @property int $collection_id
  * @property Carbon|null $deleted_at
@@ -45,6 +47,8 @@ class CollectionItem extends Model
     }
 
     /**
+     * Resolve route binding including soft-deleted items.
+     *
      * @param  mixed  $value
      * @param  string|null  $field
      */
@@ -55,8 +59,11 @@ class CollectionItem extends Model
             ->firstOrFail();
     }
 
+    /**
+     * Resolve a translatable field value for the given locale with fallbacks.
+     */
     public function getTranslated(string $field, ?string $locale = null): mixed
     {
-        return app(ItemDataAccessor::class)->getTranslated($this, $field, $locale);
+        return app(CollectionItemDataAccessor::class)->getTranslated($this, $field, $locale);
     }
 }

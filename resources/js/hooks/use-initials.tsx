@@ -1,5 +1,12 @@
 import { useCallback } from 'react';
 
+/**
+ * Formats a user's display name from given name parts.
+ *
+ * @param firstName - Given name
+ * @param lastName - Optional family name
+ * @returns Trimmed full name
+ */
 export function formatUserDisplayName(
     firstName: string,
     lastName?: string | null,
@@ -7,13 +14,19 @@ export function formatUserDisplayName(
     return [firstName, lastName].filter(Boolean).join(' ').trim();
 }
 
+/** Callback that derives avatar initials from name parts. */
 export type GetInitialsFn = (
     firstName: string,
     lastName?: string | null,
 ) => string;
 
 /**
- * Initials from given name parts (first letter of first name + first letter of last name).
+ * Derives two-letter initials from given name parts (first + last initial).
+ * Falls back to a single initial when only one name part is present.
+ *
+ * @param firstName - Given name
+ * @param lastName - Optional family name
+ * @returns Uppercase initials, or empty string when both parts are blank
  */
 export function getInitialsFromParts(
     firstName: string,
@@ -37,6 +50,11 @@ export function getInitialsFromParts(
     return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
 }
 
+/**
+ * Returns a stable callback for deriving user avatar initials.
+ *
+ * @returns Memoized {@link GetInitialsFn}
+ */
 export function useInitials(): GetInitialsFn {
     return useCallback(
         (firstName: string, lastName?: string | null): string =>

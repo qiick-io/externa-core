@@ -5,14 +5,17 @@ namespace App\Services\Collections;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
-use App\Support\Collections\LocaleResolver;
+use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Applies field-based filters to collection item listing queries.
+ */
 class CollectionItemQueryService
 {
     public function __construct(
-        private LocaleResolver $localeResolver,
+        private CollectionLocaleResolver $localeResolver,
     ) {}
 
     /**

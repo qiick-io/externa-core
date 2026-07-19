@@ -22,7 +22,9 @@ beforeEach(function () {
 });
 
 /**
- * @return array{0: User, 1: string}
+ * Create a user authorized for AI with one additional domain permission.
+ *
+ * @return array{0: User, 1: string} The user and the granted permission name.
  */
 function userWithOnlyAiPermission(string $permission): array
 {
@@ -637,7 +639,7 @@ test('app assistant registers tools only for granted permission families', funct
 })->with([
     'collections show' => [
         PermissionEnum::CanShowCollections->value,
-        ['ManageCollections', 'ManageCollectionItems', 'QueryCollectionItems', 'ExportCollection', 'SearchSimilarItems'],
+        ['ManageCollections', 'ManageCollectionItems', 'QueryCollectionItems', 'ExportCollection', 'SearchSimilarCollectionItems'],
     ],
     'collections create' => [
         PermissionEnum::CanCreateCollections->value,

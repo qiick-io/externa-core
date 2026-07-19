@@ -32,6 +32,11 @@ type FilePickerDrawerProps = {
     title?: string;
 };
 
+/**
+ * Drawer for browsing and selecting existing files.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function FilePickerDrawer({
     open,
     onOpenChange,
@@ -48,11 +53,14 @@ export function FilePickerDrawer({
 
     const loadFiles = useCallback(async () => {
         setLoading(true);
+
         try {
             const params = new URLSearchParams();
+
             if (parentId !== null) {
                 params.set('parent_id', String(parentId));
             }
+
             if (search.trim()) {
                 params.set('search', search.trim());
             }
@@ -111,6 +119,7 @@ export function FilePickerDrawer({
         if (index < 0) {
             setParentId(null);
             setBreadcrumbs([]);
+
             return;
         }
 
@@ -220,6 +229,7 @@ export function FilePickerDrawer({
                                     onClick={() => {
                                         if (isFolder) {
                                             openFolder(file);
+
                                             return;
                                         }
 

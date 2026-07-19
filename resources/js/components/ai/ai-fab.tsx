@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { Paperclip, RefreshCw, Sparkles } from 'lucide-react';
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState  } from 'react';
+import type {ChangeEvent} from 'react';
 import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer';
 import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiComposer } from '@/components/ai/ai-composer';
@@ -35,10 +36,11 @@ import {
     stopSpeaking,
     streamAiChat,
     truncateLastUserMessageIfMatches,
-    uploadAiAttachment,
-    type AiChatAttachment,
-    type AiStatus,
+    uploadAiAttachment
+    
+    
 } from '@/lib/ai-chat';
+import type {AiChatAttachment, AiStatus} from '@/lib/ai-chat';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { index as aiIndex } from '@/routes/ai';
@@ -58,6 +60,11 @@ type InFlightTurn = {
     assistantMessageId: string;
 };
 
+/**
+ * Floating action button that opens the AI assistant chat.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function AiFab() {
     const { can } = useCan();
     const page = usePage();

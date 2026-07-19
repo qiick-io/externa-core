@@ -2,6 +2,11 @@ import type { FileUploadProgress } from '@/types/files';
 
 type FileUploadListener = (uploads: FileUploadProgress[]) => void;
 
+/**
+ * Generates a unique upload tracking id (`crypto.randomUUID` with a time-based fallback).
+ *
+ * @returns Upload id string
+ */
 export function createUploadId(): string {
     if (
         typeof crypto !== 'undefined' &&
@@ -21,6 +26,13 @@ function notifyListeners(): void {
     listeners.forEach((listener) => listener(snapshot));
 }
 
+/**
+ * Subscribes to in-flight file upload progress updates.
+ * The listener is invoked immediately with the current snapshot.
+ *
+ * @param listener - Callback receiving the full upload list on each change
+ * @returns Unsubscribe function
+ */
 export function subscribeToFileUploads(
     listener: FileUploadListener,
 ): () => void {
@@ -32,15 +44,33 @@ export function subscribeToFileUploads(
     };
 }
 
+/**
+ * Returns a snapshot of all tracked uploads.
+ *
+ * @returns Copy of the current upload progress list
+ */
 export function getFileUploads(): FileUploadProgress[] {
     return [...uploads];
 }
 
+/**
+ * Appends a new upload entry and notifies subscribers.
+ *
+ * @param entry - Upload progress record to track
+ * @returns {void}
+ */
 export function addFileUpload(entry: FileUploadProgress): void {
     uploads = [...uploads, entry];
     notifyListeners();
 }
 
+/**
+ * Updates a single upload entry by id.
+ *
+ * @param uploadId - Id of the upload to mutate
+ * @param updater - Function returning the next entry state
+ * @returns {void}
+ */
 export function updateFileUpload(
     uploadId: string,
     updater: (entry: FileUploadProgress) => FileUploadProgress,
@@ -51,16 +81,32 @@ export function updateFileUpload(
     notifyListeners();
 }
 
+/**
+ * Removes an upload entry from the store.
+ *
+ * @param uploadId - Id of the upload to remove
+ * @returns {void}
+ */
 export function removeFileUpload(uploadId: string): void {
     uploads = uploads.filter((entry) => entry.uploadId !== uploadId);
     notifyListeners();
 }
 
+/**
+ * Drops completed uploads while keeping pending, uploading, and errored entries.
+ *
+ * @returns {void}
+ */
 export function clearCompletedFileUploads(): void {
     uploads = uploads.filter((entry) => entry.status !== 'complete');
     notifyListeners();
 }
 
+/**
+ * Clears all tracked uploads.
+ *
+ * @returns {void}
+ */
 export function dismissAllFileUploads(): void {
     uploads = [];
     notifyListeners();

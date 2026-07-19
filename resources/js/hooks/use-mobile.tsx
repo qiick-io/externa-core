@@ -27,6 +27,11 @@ function getServerSnapshot(): boolean {
     return false;
 }
 
+/**
+ * Subscribes to the mobile viewport breakpoint (`max-width: 767px`).
+ *
+ * @returns `true` when the viewport is below the mobile breakpoint
+ */
 export function useIsMobile(): boolean {
     return useSyncExternalStore(
         mediaQueryListener,

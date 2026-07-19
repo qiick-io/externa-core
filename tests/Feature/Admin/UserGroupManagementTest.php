@@ -12,6 +12,8 @@ use Spatie\Permission\Models\Role;
 uses(RefreshDatabase::class);
 
 /**
+ * Assign group-management permissions, creating missing permission rows when needed.
+ *
  * @param  list<PermissionEnum>  $permissions
  */
 function grantGroupPermissions(User $user, array $permissions): void

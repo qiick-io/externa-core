@@ -12,10 +12,15 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Fortify\Features;
 
+/**
+ * Manages password and two-factor security settings for the authenticated user.
+ */
 class SecurityController extends Controller implements HasMiddleware
 {
     /**
-     * Get the middleware that should be assigned to the controller.
+     * Register Fortify password-confirmation middleware when required for 2FA setup.
+     *
+     * @return list<Middleware>
      */
     public static function middleware(): array
     {
@@ -26,7 +31,7 @@ class SecurityController extends Controller implements HasMiddleware
     }
 
     /**
-     * Show the user's security settings page.
+     * Render the security settings page with two-factor state when enabled.
      */
     public function edit(TwoFactorAuthenticationRequest $request): Response
     {
@@ -45,7 +50,7 @@ class SecurityController extends Controller implements HasMiddleware
     }
 
     /**
-     * Update the user's password.
+     * Update the authenticated user's password.
      */
     public function update(PasswordUpdateRequest $request): RedirectResponse
     {

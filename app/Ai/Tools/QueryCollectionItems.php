@@ -14,16 +14,25 @@ use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 
+/**
+ * AI tool that searches and filters collection items for the assistant.
+ */
 class QueryCollectionItems implements Tool
 {
     use ChecksAiPermissions;
     use LogsAiToolUse;
 
+    /**
+     * Describe what this tool does for the model.
+     */
     public function description(): Stringable|string
     {
         return 'Query collection items by field filters and return compact tabular JSON.';
     }
 
+    /**
+     * Execute the tool request and return a string result for the model.
+     */
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
@@ -59,6 +68,9 @@ class QueryCollectionItems implements Tool
         });
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function schema(JsonSchema $schema): array
     {
         return [

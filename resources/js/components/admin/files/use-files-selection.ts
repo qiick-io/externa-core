@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AdminFileRow } from '@/types/files';
 
+/**
+ * Tracks multi-select state for the file manager grid.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function useFilesSelection(
     files: AdminFileRow[],
     resetKey: string | number | null,
@@ -38,6 +43,7 @@ export function useFilesSelection(
         (fileId: number): void => {
             if (anchorId === null) {
                 selectOnly(fileId);
+
                 return;
             }
 
@@ -47,6 +53,7 @@ export function useFilesSelection(
 
             if (start === -1 || end === -1) {
                 selectOnly(fileId);
+
                 return;
             }
 
@@ -63,11 +70,13 @@ export function useFilesSelection(
         ): void => {
             if (event.shiftKey) {
                 selectRange(fileId);
+
                 return;
             }
 
             if (event.metaKey || event.ctrlKey) {
                 toggle(fileId);
+
                 return;
             }
 

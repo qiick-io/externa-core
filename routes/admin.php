@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * Admin routes for users, groups, roles, permissions, activity logs, and the file manager.
+ *
+ * All routes require `auth` and `verified`. Each action is gated by a Spatie `permission:*`
+ * middleware alias except bulk actions that enforce authorization in the controller.
+ */
+
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\FileController;
@@ -108,6 +115,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:'.PermissionEnum::CanShowActivityLogs->value)
         ->name('activity-logs.index');
 
+    /*
+     * File manager API and UI. `can.manage.files` resolves effective file permissions
+     * instead of a single enum gate. Static `/files/*` paths are registered before the
+     * optional `{folder}` index route so reserved segments are not captured as folder IDs.
+     */
     Route::middleware('can.manage.files')->group(function () {
         Route::prefix('files')->name('files.')->group(function () {
             Route::get('list', [FileController::class, 'list'])->name('list');
@@ -139,7 +151,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('uploads/status', [FileController::class, 'uploadStatus'])->name('uploads.status');
         });
 
-        // After static /files/* segments so "list"/"tags" etc. are not captured as {folder}.
         Route::get('files/{folder?}', [FileController::class, 'index'])
             ->whereNumber('folder')
             ->name('files.index');

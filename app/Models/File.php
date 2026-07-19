@@ -15,6 +15,8 @@ use Illuminate\Support\Str;
 use Spatie\Tags\HasTags;
 
 /**
+ * File or folder node in the hierarchical file manager with versioning and tags.
+ *
  * @property int $id
  * @property string $uuid
  * @property int|null $parent_id
@@ -91,6 +93,9 @@ class File extends Model
         'scale',
     ];
 
+    /**
+     * Assign a UUID before the first save when none is provided.
+     */
     protected static function booted(): void
     {
         static::creating(function (File $file): void {
@@ -159,21 +164,33 @@ class File extends Model
         return $this->belongsToMany(User::class, 'file_favorites')->withTimestamps();
     }
 
+    /**
+     * Whether this node is a folder.
+     */
     public function isFolder(): bool
     {
         return $this->type === FileTypeEnum::Folder;
     }
 
+    /**
+     * Whether this node is a stored file (not a folder).
+     */
     public function isFile(): bool
     {
         return $this->type === FileTypeEnum::File;
     }
 
+    /**
+     * Filename used for downloads, preferring download_name when set.
+     */
     public function downloadFilename(): string
     {
         return $this->download_name ?: $this->name;
     }
 
+    /**
+     * Compute the display path from parent hierarchy and name.
+     */
     public function calculatePath(): string
     {
         if ($this->parent_id === null) {

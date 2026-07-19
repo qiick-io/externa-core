@@ -3,6 +3,7 @@ import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import type { Paginated } from '@/types/admin';
 
+/** Summary row for an AI conversation in list views. */
 export type AiConversationSummary = {
     id: string;
     title: string;
@@ -11,6 +12,7 @@ export type AiConversationSummary = {
     updated_at?: string | null;
 };
 
+/** Uploaded attachment metadata returned after a successful chat upload. */
 export type AiChatAttachment = {
     id: string;
     name: string;
@@ -18,11 +20,20 @@ export type AiChatAttachment = {
     size?: number | null;
 };
 
+/** `accept` attribute value for AI chat file attachments. */
 export const AI_CHAT_ATTACHMENT_ACCEPT =
     '.csv,.txt,.xlsx,.pdf,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf';
+/** Maximum number of attachments per chat message. */
 export const AI_CHAT_ATTACHMENT_MAX_COUNT = 5;
+/** Maximum size in bytes for a single chat attachment (5 MiB). */
 export const AI_CHAT_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
 
+/**
+ * Checks whether a file matches allowed AI chat attachment types by extension or MIME.
+ *
+ * @param file - Browser file to validate
+ * @returns Whether the file type is accepted
+ */
 export function isAcceptedAiChatAttachment(file: File): boolean {
     const lowerName = file.name.toLowerCase();
 
@@ -49,9 +60,12 @@ export function isAcceptedAiChatAttachment(file: File): boolean {
 }
 
 /**
- * Client-side filter matching paperclip accept + max count/size.
- * Uploads rejected types/sizes are skipped; `error` is set when nothing usable remains
- * or limits were hit.
+ * Client-side filter matching paperclip accept rules plus max count and size limits.
+ * Rejected files are skipped; `error` is set when nothing usable remains or limits were hit.
+ *
+ * @param files - Candidate files from input or drop
+ * @param currentCount - Attachments already selected for this message
+ * @returns Accepted files and an optional user-facing error message
  */
 export function pickAiChatAttachmentFiles(
     files: FileList | File[],
@@ -96,11 +110,13 @@ export function pickAiChatAttachmentFiles(
     return { files: accepted, error };
 }
 
+/** Online status and active model name from the AI status endpoint. */
 export type AiStatus = {
     online: boolean;
     model?: string | null;
 };
 
+/** Callbacks invoked while consuming an AI chat SSE stream. */
 export type AiStreamHandlers = {
     onToken?: (token: string) => void;
     onTool?: (toolName: string) => void;
@@ -124,6 +140,12 @@ type ParsedSsePayload = {
     result?: unknown;
 };
 
+/**
+ * Parses a single SSE `data:` payload line into a structured event object.
+ *
+ * @param data - Raw JSON or plain-text payload after the `data:` prefix
+ * @returns Parsed event, or null for `[DONE]` / empty payloads
+ */
 function parseSseData(data: string): ParsedSsePayload | null {
     if (data === '[DONE]' || data === '') {
         return null;
@@ -136,8 +158,13 @@ function parseSseData(data: string): ParsedSsePayload | null {
     }
 }
 
+/**
+ * Extracts a text token from laravel/ai and Vercel-style stream event shapes.
+ *
+ * @param parsed - Parsed SSE payload
+ * @returns Token string, or null when the event is not a text delta
+ */
 function extractToken(parsed: ParsedSsePayload): string | null {
-    // laravel/ai StreamEvent shapes: text_delta.delta (also vercel-style text-delta)
     if (
         parsed.type === 'text_delta' ||
         parsed.type === 'text-delta' ||
@@ -153,6 +180,10 @@ function extractToken(parsed: ParsedSsePayload): string | null {
     return null;
 }
 
+/**
+ * @param error - Caught rejection value
+ * @returns Whether the error represents an intentional abort
+ */
 export function isAbortError(error: unknown): boolean {
     return (
         (error instanceof DOMException && error.name === 'AbortError') ||
@@ -160,6 +191,11 @@ export function isAbortError(error: unknown): boolean {
     );
 }
 
+/**
+ * Fetches whether the AI backend is reachable and which model is active.
+ *
+ * @returns Online flag and optional model name
+ */
 export async function fetchAiStatus(): Promise<AiStatus> {
     const response = await fetch('/ai/status', {
         headers: {
@@ -176,6 +212,12 @@ export async function fetchAiStatus(): Promise<AiStatus> {
     return (await response.json()) as AiStatus;
 }
 
+/**
+ * Uploads a chat attachment and returns server-assigned metadata.
+ *
+ * @param file - File to upload
+ * @returns Attachment record with id and display fields
+ */
 export async function uploadAiAttachment(
     file: File,
 ): Promise<AiChatAttachment> {
@@ -200,7 +242,7 @@ export async function uploadAiAttachment(
 
             detail = payload.errors?.file?.[0] ?? payload.message ?? detail;
         } catch {
-            // keep default
+            /* Use default Italian error message when response body is not JSON */
         }
 
         throw new Error(detail);
@@ -213,6 +255,16 @@ export async function uploadAiAttachment(
     return payload.attachment;
 }
 
+/**
+ * Sends a chat message and consumes the SSE response stream.
+ * Aborts silently without calling `onDone` when `handlers.signal` is aborted.
+ *
+ * @param message - User prompt text
+ * @param conversationId - Existing conversation id, or null for a new thread
+ * @param handlers - Stream event callbacks and optional abort signal
+ * @param attachmentIds - Previously uploaded attachment ids to include
+ * @returns {void}
+ */
 export async function streamAiChat(
     message: string,
     conversationId: string | null | undefined,
@@ -238,7 +290,7 @@ export async function streamAiChat(
         });
     } catch (error) {
         if (isAbortError(error) || handlers.signal?.aborted) {
-            // ponytail: abort is intentional stop — skip onDone so callers do not navigate/reload
+            /* ponytail: intentional abort — skip onDone so callers do not navigate/reload */
             return;
         }
 
@@ -264,7 +316,7 @@ export async function streamAiChat(
                 detail = payload.message;
             }
         } catch {
-            // keep default
+            /* Use default error message when response body is not JSON */
         }
 
         const error = new Error(detail);
@@ -288,7 +340,7 @@ export async function streamAiChat(
 
     const cancelReader = (): void => {
         void reader.cancel().catch(() => {
-            // already closed / aborted
+            /* Reader may already be closed after abort */
         });
     };
 
@@ -336,7 +388,6 @@ export async function streamAiChat(
                 const data = trimmed.slice(5).trim();
 
                 if (data === '[DONE]') {
-                    // Stop clicked while buffered SSE still contained [DONE].
                     if (abortSignal?.aborted) {
                         return;
                     }
@@ -420,7 +471,7 @@ export async function streamAiChat(
         handlers.onDone?.(fullText);
     } catch (error) {
         if (isAbortError(error) || abortSignal?.aborted) {
-            // ponytail: abort is intentional stop — skip onDone so callers do not navigate/reload
+            /* ponytail: intentional abort — skip onDone so callers do not navigate/reload */
             return;
         }
 
@@ -436,6 +487,7 @@ export async function streamAiChat(
     }
 }
 
+/** Progress payload for a background AI import job. */
 export type AiImportJobStatus = {
     job_id: string;
     status: 'queued' | 'running' | 'done' | 'failed';
@@ -445,6 +497,12 @@ export type AiImportJobStatus = {
     result?: Record<string, unknown> | null;
 };
 
+/**
+ * Polls the status of a background AI import job.
+ *
+ * @param jobId - Import job id returned when the job was queued
+ * @returns Current job status and progress counters
+ */
 export async function fetchAiImportJobStatus(
     jobId: string,
 ): Promise<AiImportJobStatus> {
@@ -475,6 +533,13 @@ function mapConversationSummary(
     };
 }
 
+/**
+ * Fetches a paginated list of AI conversations.
+ *
+ * @param page - 1-based page number
+ * @param perPage - Page size (default 25)
+ * @returns Normalized paginated conversation summaries
+ */
 export async function fetchAiConversationsPage(
     page: number,
     perPage = 25,
@@ -506,6 +571,12 @@ export async function fetchAiConversationsPage(
     };
 }
 
+/**
+ * Creates a new AI conversation thread.
+ *
+ * @param title - Optional initial title
+ * @returns New conversation id and title
+ */
 export async function createAiConversation(
     title?: string,
 ): Promise<{ id: string; title: string }> {
@@ -527,6 +598,12 @@ export async function createAiConversation(
     return payload.conversation;
 }
 
+/**
+ * Deletes an AI conversation and its messages.
+ *
+ * @param conversationId - Conversation id to delete
+ * @returns {void}
+ */
 export async function deleteAiConversation(
     conversationId: string,
 ): Promise<void> {
@@ -541,6 +618,12 @@ export async function deleteAiConversation(
     }
 }
 
+/**
+ * Soft-deletes multiple AI conversations in one request.
+ *
+ * @param conversationIds - Ids to delete
+ * @returns Count of conversations deleted
+ */
 export async function bulkDeleteAiConversations(
     conversationIds: string[],
 ): Promise<{ deleted: number }> {
@@ -558,6 +641,12 @@ export async function bulkDeleteAiConversations(
     return (await response.json()) as { deleted: number };
 }
 
+/**
+ * Toggles pin state on a conversation.
+ *
+ * @param conversationId - Conversation id
+ * @returns Updated conversation id, title, and pin timestamp
+ */
 export async function toggleAiConversationPin(conversationId: string): Promise<{
     id: string;
     title: string;
@@ -584,6 +673,13 @@ export async function toggleAiConversationPin(conversationId: string): Promise<{
     return payload.conversation;
 }
 
+/**
+ * Truncates a conversation from a given message id onward (inclusive).
+ *
+ * @param conversationId - Conversation id
+ * @param fromMessageId - First message id to remove
+ * @returns Count of deleted messages
+ */
 export async function truncateAiConversationFrom(
     conversationId: string,
     fromMessageId: string,
@@ -611,6 +707,14 @@ type ConversationMessageRow = {
     content: string;
 };
 
+/**
+ * Returns whether persisted user message content matches a cancelled prompt.
+ * During an aborted stream, Laravel AI may store an attachment-augmented prompt.
+ *
+ * @param content - Stored message body
+ * @param prompt - Original prompt the user submitted
+ * @returns Whether truncation should target this message
+ */
 function userMessageMatchesStoppedPrompt(
     content: string,
     prompt: string,
@@ -622,7 +726,6 @@ function userMessageMatchesStoppedPrompt(
         return false;
     }
 
-    // During an aborted stream, Laravel AI may still store the attachment-augmented prompt.
     return (
         normalizedContent === normalizedPrompt ||
         normalizedContent.startsWith(normalizedPrompt)
@@ -630,8 +733,12 @@ function userMessageMatchesStoppedPrompt(
 }
 
 /**
- * Best-effort cleanup after Stop: delete the last persisted user turn when it
+ * Best-effort cleanup after Stop: deletes the last persisted user turn when it
  * matches the cancelled prompt (avoids truncating an older turn if save raced).
+ *
+ * @param conversationId - Conversation id
+ * @param prompt - Prompt text the user submitted before aborting
+ * @returns Deletion result, or null when no matching message was found
  */
 export async function truncateLastUserMessageIfMatches(
     conversationId: string,
@@ -671,8 +778,15 @@ export async function truncateLastUserMessageIfMatches(
     return null;
 }
 
+/**
+ * Opens a print dialog so the user can save chat content as PDF.
+ * ponytail: uses browser print-to-PDF instead of a PDF library.
+ *
+ * @param title - Document title shown in the print preview
+ * @param content - Plain text body to print
+ * @returns {void}
+ */
 export function exportTextAsPdf(title: string, content: string): void {
-    // ponytail: browser print-to-PDF instead of a PDF library
     const printWindow = window.open(
         '',
         '_blank',
@@ -714,6 +828,13 @@ export function exportTextAsPdf(title: string, content: string): void {
     printWindow.document.close();
 }
 
+/**
+ * Speaks plain text using the Web Speech API.
+ *
+ * @param text - Text to synthesize
+ * @param locale - BCP 47 language tag (default `it-IT`)
+ * @returns {void}
+ */
 export function speakText(text: string, locale = 'it-IT'): void {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
         throw new Error('Sintesi vocale non supportata in questo browser');
@@ -725,12 +846,22 @@ export function speakText(text: string, locale = 'it-IT'): void {
     window.speechSynthesis.speak(utterance);
 }
 
+/**
+ * Cancels any in-progress speech synthesis.
+ *
+ * @returns {void}
+ */
 export function stopSpeaking(): void {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
     }
 }
 
+/**
+ * Returns the browser speech recognition constructor when available.
+ *
+ * @returns Constructor, or null outside a supporting browser context
+ */
 export function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | null {
     if (typeof window === 'undefined') {
         return null;

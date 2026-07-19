@@ -8,10 +8,16 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+/**
+ * Validate creating a permission record.
+ */
 class StorePermissionRequest extends FormRequest
 {
     use AuthorizesWithPermission;
 
+    /**
+     * Require permission to create permissions.
+     */
     public function authorize(): bool
     {
         $this->authorizePermission(PermissionEnum::CanCreatePermissions->value);

@@ -30,6 +30,10 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+/**
+ * Password and two-factor security settings.
+ * @returns {JSX.Element}
+ */
 export default function Security({
     canManageTwoFactor = false,
     requiresConfirmation = false,

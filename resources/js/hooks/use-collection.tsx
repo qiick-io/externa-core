@@ -11,7 +11,11 @@ export type UseCollectionInput = {
 };
 
 /**
- * Locales, breadcrumbs, and value defaults for editing item content (not field schema).
+ * Derives locales, breadcrumbs, and default field values for collection item editing.
+ * Does not manage field schema — only item content context.
+ *
+ * @param input - Collection metadata and raw item data from the server
+ * @returns Locales, breadcrumbs, content defaults, and whether fields exist
  */
 export function useCollection({
     collection,

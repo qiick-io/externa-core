@@ -10,10 +10,16 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
+/**
+ * Validate updating an admin user.
+ */
 class UpdateUserRequest extends FormRequest
 {
     use AuthorizesWithPermission;
 
+    /**
+     * Require permission to edit users.
+     */
     public function authorize(): bool
     {
         $this->authorizePermission(PermissionEnum::CanEditUsers->value);

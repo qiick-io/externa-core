@@ -10,6 +10,11 @@ type FilesSelectionToolbarProps = {
     onAction: (key: FileActionKey) => void;
 };
 
+/**
+ * Toolbar shown when one or more files are selected.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function FilesSelectionToolbar({
     count,
     actions,

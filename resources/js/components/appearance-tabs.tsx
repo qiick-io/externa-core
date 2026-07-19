@@ -5,6 +5,11 @@ import type { Appearance } from '@/hooks/use-appearance';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 
+/**
+ * Segmented control for light, dark, and system appearance preference.
+ * @param {HTMLAttributes<HTMLDivElement>} props - Container div attributes.
+ * @returns {JSX.Element}
+ */
 export default function AppearanceToggleTab({
     className = '',
     ...props

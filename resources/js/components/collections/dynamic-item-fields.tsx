@@ -4,12 +4,14 @@ import {
     useEffect,
     useId,
     useRef,
-    useState,
-    type ReactNode,
+    useState
+    
 } from 'react';
+import type {ReactNode} from 'react';
 
 import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
 import { PaginatedMultiSelect } from '@/components/admin/paginated-multi-select';
+import { LucideIconByName } from '@/components/collections/field-settings/lucide-icon-picker';
 import {
     CodeFieldInput,
     ColorFieldInput,
@@ -17,7 +19,6 @@ import {
     TagChipInput,
     WysiwygFieldInput,
 } from '@/components/collections/item-field-rich-inputs';
-import { LucideIconByName } from '@/components/collections/field-settings/lucide-icon-picker';
 import { MapCoordinateInput } from '@/components/collections/map-coordinate-input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -43,10 +44,11 @@ import {
     parseSliderFieldSettings,
     parseStringFieldSettings,
     parseTextareaFieldSettings,
-    resolveTranslatedText,
-    type FieldTreeOptionRow,
-    type RelatedCollectionOption,
+    resolveTranslatedText
+    
+    
 } from '@/lib/collection-field-types';
+import type {FieldTreeOptionRow, RelatedCollectionOption} from '@/lib/collection-field-types';
 import { filePublicUrl } from '@/lib/files-api';
 import { cn } from '@/lib/utils';
 import type { AdminFileRow } from '@/types/files';
@@ -87,6 +89,7 @@ function getDefaultScalar(
     name: string,
 ): DefaultValue {
     const defaultEntry = defaults?.[name];
+
     if (
         typeof defaultEntry === 'string' ||
         typeof defaultEntry === 'number' ||
@@ -94,9 +97,11 @@ function getDefaultScalar(
     ) {
         return defaultEntry;
     }
+
     if (Array.isArray(defaultEntry)) {
         return defaultEntry as string[] | number[];
     }
+
     if (
         defaultEntry &&
         typeof defaultEntry === 'object' &&
@@ -114,15 +119,18 @@ function getDefaultLocale(
     locale: string,
 ): DefaultValue {
     const defaultEntry = defaults?.[name];
+
     if (
         defaultEntry &&
         typeof defaultEntry === 'object' &&
         !Array.isArray(defaultEntry)
     ) {
         const localeValue = (defaultEntry as Record<string, unknown>)[locale];
+
         if (Array.isArray(localeValue)) {
             return localeValue as string[] | number[];
         }
+
         if (
             typeof localeValue === 'string' ||
             typeof localeValue === 'number' ||
@@ -130,6 +138,7 @@ function getDefaultLocale(
         ) {
             return localeValue;
         }
+
         if (
             localeValue &&
             typeof localeValue === 'object' &&
@@ -167,6 +176,7 @@ function toDatetimeLocalValue(
     }
 
     const parsedDate = new Date(stringValue);
+
     if (Number.isNaN(parsedDate.getTime())) {
         return stringValue;
     }
@@ -1046,6 +1056,7 @@ function M2aFieldInput({
 
     const addBlock = () => {
         const firstCollection = allowedCollections[0];
+
         if (!firstCollection) {
             return;
         }
@@ -1074,6 +1085,7 @@ function M2aFieldInput({
     const moveBlock = (index: number, direction: -1 | 1) => {
         setBlocks((current) => {
             const targetIndex = index + direction;
+
             if (targetIndex < 0 || targetIndex >= current.length) {
                 return current;
             }
@@ -1597,6 +1609,11 @@ function renderFieldControl(context: FieldRenderContext) {
     }
 }
 
+/**
+ * Renders all dynamic fields for a collection item form.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function DynamicItemFields({
     fields,
     locales,

@@ -240,6 +240,11 @@ type Props = {
     errors: string[];
 };
 
+/**
+ * Modal wizard for enabling two-factor authentication.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export default function TwoFactorSetupModal({
     isOpen,
     onClose,
@@ -288,6 +293,7 @@ export default function TwoFactorSetupModal({
     const handleModalNextStep = useCallback(() => {
         if (requiresConfirmation) {
             setShowVerificationStep(true);
+
             return;
         }
 

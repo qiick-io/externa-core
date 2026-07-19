@@ -12,6 +12,9 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Activitylog\Models\Activity;
 
+/**
+ * Admin activity log browser with user, event, and date filters.
+ */
 class ActivityLogController extends Controller
 {
     use AuthorizesWithPermission;
@@ -33,6 +36,9 @@ class ActivityLogController extends Controller
         'ai_mutation',
     ];
 
+    /**
+     * List activity log entries with optional filters for the admin index page.
+     */
     public function index(Request $request): Response
     {
         $this->authorizePermission(PermissionEnum::CanShowActivityLogs->value);

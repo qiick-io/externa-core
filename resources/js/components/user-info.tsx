@@ -2,6 +2,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatUserDisplayName, useInitials } from '@/hooks/use-initials';
 import type { User } from '@/types';
 
+/**
+ * Avatar plus display name (and optional email) for the authenticated user.
+ * @param {{ user: User, showEmail?: boolean }} props - Component props.
+ * @param {User} props.user - User record with name, avatar, and email.
+ * @param {boolean} [props.showEmail=false] - Whether to show the email line.
+ * @returns {JSX.Element}
+ */
 export function UserInfo({
     user,
     showEmail = false,

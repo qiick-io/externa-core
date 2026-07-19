@@ -18,9 +18,15 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
-import { normalizePaginated, type LaravelPaginated } from '@/lib/pagination';
+import { normalizePaginated  } from '@/lib/pagination';
+import type {LaravelPaginated} from '@/lib/pagination';
 import type { AdminPermissionRow, BreadcrumbItem, Paginated } from '@/types';
 
+/**
+ * Read-only permissions reference for admins.
+ * @param {*} props.permissions - permissions.
+ * @returns {JSX.Element}
+ */
 export default function AdminPermissionsIndex({
     permissions: permissionsProp,
 }: {

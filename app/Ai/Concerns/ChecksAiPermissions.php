@@ -6,8 +6,17 @@ use App\Enums\PermissionEnum;
 use App\Models\User;
 use App\Services\Authorization\EffectivePermissionResolver;
 
+/**
+ * Concern that enforces permission checks inside AI tool handlers.
+ */
+/**
+ * Permission gate helpers for AI tools returning Italian error strings.
+ */
 trait ChecksAiPermissions
 {
+    /**
+     * Return an error string when the user lacks the permission, or null when allowed.
+     */
     protected function requirePermission(PermissionEnum $permission): ?string
     {
         $user = auth()->user();
@@ -23,6 +32,9 @@ trait ChecksAiPermissions
         return null;
     }
 
+    /**
+     * Authenticated user for tool execution, or null when guest.
+     */
     protected function authenticatedUser(): ?User
     {
         $user = auth()->user();

@@ -5,6 +5,14 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import type { AppLayoutProps } from '@/types';
 
+/**
+ * Authenticated app layout with collapsible sidebar, header bar, and AI FAB.
+ * @param {AppLayoutProps} props - Layout props from Inertia pages.
+ * @param {React.ReactNode} props.children - Page content.
+ * @param {AppLayoutProps['breadcrumbs']} [props.breadcrumbs=[]] - Breadcrumb trail for the header.
+ * @param {AppLayoutProps['headerActions']} [props.headerActions] - Optional actions slot in the header.
+ * @returns {JSX.Element}
+ */
 export default function AppSidebarLayout({
     children,
     breadcrumbs = [],

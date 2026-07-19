@@ -13,6 +13,9 @@ use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 
+/**
+ * AI tool that exports collection items to a downloadable format.
+ */
 class ExportCollection implements Tool
 {
     use ChecksAiPermissions;
@@ -20,11 +23,17 @@ class ExportCollection implements Tool
 
     private const MAX_ROWS = 500;
 
+    /**
+     * Describe what this tool does for the model.
+     */
     public function description(): Stringable|string
     {
         return 'Export up to 500 collection items as CSV or JSON content with a concise summary.';
     }
 
+    /**
+     * Execute the tool request and return a string result for the model.
+     */
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
@@ -74,6 +83,9 @@ class ExportCollection implements Tool
         });
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function schema(JsonSchema $schema): array
     {
         return [

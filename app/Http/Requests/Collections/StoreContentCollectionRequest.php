@@ -2,18 +2,26 @@
 
 namespace App\Http\Requests\Collections;
 
-use App\Support\Collections\UniqueCollectionSlug;
+use App\Support\Collections\UniqueCollectionSlugGenerator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 
+/**
+ * Validates creating a content collection definition.
+ */
 class StoreContentCollectionRequest extends FormRequest
 {
+    /**
+     * Authorization is enforced by collection route middleware.
+     */
     public function authorize(): bool
     {
         return true;
     }
 
     /**
+     * Validate collection name, slug, and singleton flag.
+     *
      * @return array<string, mixed>
      */
     public function rules(): array
@@ -25,6 +33,9 @@ class StoreContentCollectionRequest extends FormRequest
         ];
     }
 
+    /**
+     * Derive a slug from the collection name when one is not provided.
+     */
     protected function prepareForValidation(): void
     {
         if (! $this->filled('slug')) {
@@ -32,10 +43,13 @@ class StoreContentCollectionRequest extends FormRequest
         }
     }
 
+    /**
+     * Normalize the slug to a unique value and coerce the singleton flag.
+     */
     protected function passedValidation(): void
     {
         $this->merge([
-            'slug' => app(UniqueCollectionSlug::class)->make((string) $this->input('slug', ''), null),
+            'slug' => app(UniqueCollectionSlugGenerator::class)->make((string) $this->input('slug', ''), null),
             'is_singleton' => $this->boolean('is_singleton'),
         ]);
     }

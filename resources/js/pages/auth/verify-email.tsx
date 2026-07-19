@@ -1,4 +1,3 @@
-// Components
 import { Form, Head } from '@inertiajs/react';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,11 @@ import AuthLayout from '@/layouts/auth-layout';
 import { logout } from '@/routes';
 import { send } from '@/routes/verification';
 
+/**
+ * Prompt to verify email after registration.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export default function VerifyEmail({ status }: { status?: string }) {
     return (
         <AuthLayout

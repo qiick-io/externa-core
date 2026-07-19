@@ -5,6 +5,9 @@ namespace App\Support\Authorization;
 use Illuminate\Support\Collection;
 use Spatie\Permission\Models\Permission;
 
+/**
+ * Groups Spatie permissions into admin UI sections by can-show-* prefixes.
+ */
 class PermissionGrouper
 {
     /**

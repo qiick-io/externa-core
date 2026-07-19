@@ -7,24 +7,29 @@ import {
     CollectionEditDrawer,
     useCollectionEditDrawer,
 } from '@/components/collections/collection-edit-drawer';
-import { CollectionFieldsList } from '@/components/collections/collection-fields-list';
 import {
     CollectionFieldFormDrawer,
     CollectionFieldTypeDrawer,
 } from '@/components/collections/collection-field-form';
+import { CollectionFieldsList } from '@/components/collections/collection-fields-list';
 import { Button } from '@/components/ui/button';
 import { Drawer, DrawerContent, DrawerNested } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import {
-    fieldTypeLabel,
-    type RelatedCollectionOption,
+    fieldTypeLabel
+    
 } from '@/lib/collection-field-types';
+import type {RelatedCollectionOption} from '@/lib/collection-field-types';
 import collections from '@/routes/collections';
 import type { BreadcrumbItem, CollectionFieldRow } from '@/types';
 import { collectionToFormRow } from '@/types';
 import type { CollectionView } from '@/types/collections';
 
+/**
+ * Field schema editor for a collection.
+ * @returns {JSX.Element}
+ */
 export default function CollectionsFields({
     collection,
     relatedCollections = [],
@@ -60,6 +65,7 @@ export default function CollectionsFields({
 
     const filteredFields = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
+
         if (query === '') {
             return fields;
         }
@@ -194,6 +200,7 @@ export default function CollectionsFields({
                 onOpenChange={(open) => {
                     if (!open) {
                         closeAddFlow();
+
                         return;
                     }
 

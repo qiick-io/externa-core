@@ -6,12 +6,15 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Laravel\Fortify\InteractsWithTwoFactorState;
 
+/**
+ * Gate access to two-factor security settings using Fortify state checks.
+ */
 class TwoFactorAuthenticationRequest extends FormRequest
 {
     use InteractsWithTwoFactorState;
 
     /**
-     * Get the validation rules that apply to the request.
+     * Two-factor settings pages do not accept input fields.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */

@@ -4,7 +4,7 @@ namespace App\Ai\Tools;
 
 use App\Ai\Concerns\ChecksAiPermissions;
 use App\Ai\Concerns\LogsAiToolUse;
-use App\Ai\Support\DecodesToolJson;
+use App\Ai\Support\AiToolJsonDecoder;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Services\Authorization\EffectivePermissionResolver;
@@ -16,16 +16,25 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Stringable;
 
+/**
+ * AI tool for listing and mutating roles and their permissions.
+ */
 class ManageRoles implements Tool
 {
     use ChecksAiPermissions;
     use LogsAiToolUse;
 
+    /**
+     * Describe what this tool does for the model.
+     */
     public function description(): Stringable|string
     {
         return 'List, get, create, update, or delete Spatie roles; sync permission names onto a role; list available permission names. Use list_permissions before creating a role with a permission set.';
     }
 
+    /**
+     * Execute the tool request and return a string result for the model.
+     */
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
@@ -43,6 +52,9 @@ class ManageRoles implements Tool
         });
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function schema(JsonSchema $schema): array
     {
         return [
@@ -284,7 +296,7 @@ class ManageRoles implements Tool
 
     private function syncPermissionsFromRequest(Role $role, Request $request, bool $required): ?string
     {
-        $decoded = DecodesToolJson::optionalArrayFrom($request, 'permission_names_json');
+        $decoded = AiToolJsonDecoder::optionalArrayFrom($request, 'permission_names_json');
 
         if (is_string($decoded)) {
             return $decoded;

@@ -13,6 +13,8 @@ use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
 
 /**
+ * Content collection definition with ordered fields and items; supports singleton mode.
+ *
  * @property-read int $id
  * @property string $name
  * @property string $slug
@@ -44,6 +46,9 @@ class Collection extends Model implements Sortable
         'sort_order',
     ];
 
+    /**
+     * Cascade soft-delete/restore to items when the collection is deleted or restored.
+     */
     protected static function booted(): void
     {
         static::deleting(function (Collection $collection): void {
@@ -78,6 +83,8 @@ class Collection extends Model implements Sortable
     }
 
     /**
+     * Resolve route binding including soft-deleted collections.
+     *
      * @param  mixed  $value
      * @param  string|null  $field
      */

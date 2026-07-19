@@ -2,6 +2,9 @@
 
 namespace App\Enums;
 
+/**
+ * Collection field type identifiers and storage helpers.
+ */
 enum FieldTypeEnum: string
 {
     case String = 'string';
@@ -62,6 +65,9 @@ enum FieldTypeEnum: string
         };
     }
 
+    /**
+     * Whether this field type stores a relation to another collection.
+     */
     public function isRelationType(): bool
     {
         return match ($this) {
@@ -75,6 +81,9 @@ enum FieldTypeEnum: string
         };
     }
 
+    /**
+     * Whether this relation type stores multiple related item IDs.
+     */
     public function isMultipleRelationType(): bool
     {
         return match ($this) {

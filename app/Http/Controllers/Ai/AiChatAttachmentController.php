@@ -13,8 +13,17 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Accept temporary chat attachment uploads for the AI assistant.
+ */
 class AiChatAttachmentController extends Controller
 {
+    /**
+     * Store a validated chat attachment and return its display metadata.
+     *
+     *
+     * @throws ValidationException
+     */
     public function store(Request $request): JsonResponse
     {
         /** @var User $user */

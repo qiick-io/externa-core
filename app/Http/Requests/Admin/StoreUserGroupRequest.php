@@ -6,10 +6,16 @@ use App\Enums\PermissionEnum;
 use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validate creating a user group with memberships and roles.
+ */
 class StoreUserGroupRequest extends FormRequest
 {
     use AuthorizesWithPermission;
 
+    /**
+     * Require permission to create groups.
+     */
     public function authorize(): bool
     {
         $this->authorizePermission(PermissionEnum::CanCreateGroups->value);

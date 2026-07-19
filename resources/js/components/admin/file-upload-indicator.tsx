@@ -93,6 +93,11 @@ function buildSummaryLabel(uploads: FileUploadProgress[]): string {
     return `${completedUploads.length} uploads complete`;
 }
 
+/**
+ * Floating progress indicator for active uploads.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function FileUploadIndicator({
     uploads,
     onDismiss,

@@ -28,6 +28,9 @@ use Spatie\Tags\Tag;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
+/**
+ * File manager HTTP API for browsing, uploading, transforming, and bulk-operating on files.
+ */
 class FileController extends Controller
 {
     /**
@@ -40,6 +43,11 @@ class FileController extends Controller
         protected FileTransformService $fileTransformService,
     ) {}
 
+    /**
+     * Render the file manager index for a folder, bootstrapping page 1 for infinite scroll.
+     *
+     * Grid load-more always starts at page 1; subsequent pages use {@see list()}.
+     */
     public function index(Request $request, ?int $folder = null): InertiaResponse|RedirectResponse
     {
         $parentId = null;
@@ -72,7 +80,6 @@ class FileController extends Controller
         $direction = $validated['direction'] ?? 'asc';
         [$tagIds, $tagNames] = $this->resolveTagFilters($request);
 
-        // Grid + load-more always boots from page 1; further pages use files.list.
         $paginator = $this->folderQuery(
             $request,
             $parentId,
@@ -110,7 +117,6 @@ class FileController extends Controller
             'breadcrumbs' => $breadcrumbs,
             'filters' => [
                 'trashed' => in_array($trashedFilter, ['only', 'with'], true) ? $trashedFilter : null,
-                // Has any of the selected tags (OR). Prefer tag_ids when both are sent.
                 'tag_ids' => $tagIds,
                 'sort' => $sort,
                 'direction' => $direction,
@@ -118,6 +124,9 @@ class FileController extends Controller
         ]);
     }
 
+    /**
+     * Return a paginated JSON listing of files for load-more requests.
+     */
     public function list(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -156,7 +165,7 @@ class FileController extends Controller
     }
 
     /**
-     * Global tag catalog for the file manager picker/filter (shared across all files).
+     * Return the global tag catalog used by the file picker and tag filter.
      */
     public function listTags(): JsonResponse
     {
@@ -174,6 +183,9 @@ class FileController extends Controller
         return response()->json($tags);
     }
 
+    /**
+     * Create a folder in the file manager.
+     */
     public function createFolder(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -193,6 +205,9 @@ class FileController extends Controller
             ->setStatusCode(201);
     }
 
+    /**
+     * Upload a single file into the file manager.
+     */
     public function upload(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -214,6 +229,9 @@ class FileController extends Controller
             ->setStatusCode(201);
     }
 
+    /**
+     * Update editable metadata for a file.
+     */
     public function update(UpdateFileMetadataRequest $request, File $file): JsonResponse
     {
         $updated = $this->fileService->updateMetadata($file, $request->validated());
@@ -221,6 +239,12 @@ class FileController extends Controller
         return (new FileResource($this->withFavoriteFlag($updated, $request)))->response();
     }
 
+    /**
+     * Replace a file's binary content with a compatible upload.
+     *
+     *
+     * @throws ValidationException
+     */
     public function replace(Request $request, File $file): JsonResponse
     {
         if (! $file->isFile()) {
@@ -242,6 +266,9 @@ class FileController extends Controller
         return (new FileResource($this->withFavoriteFlag($replaced, $request)))->response();
     }
 
+    /**
+     * Copy a file or folder synchronously or queue a background duplication job.
+     */
     public function copy(Request $request, File $file): JsonResponse
     {
         $validated = $request->validate([
@@ -261,6 +288,9 @@ class FileController extends Controller
         return $this->queueDuplicate($request, [$file->id], $targetParentId);
     }
 
+    /**
+     * Mark a file as favorited for the authenticated user.
+     */
     public function favorite(Request $request, File $file): JsonResponse
     {
         $this->fileService->favorite($file, $request->user());
@@ -271,6 +301,9 @@ class FileController extends Controller
         return (new FileResource($file))->response();
     }
 
+    /**
+     * Remove a file from the authenticated user's favorites.
+     */
     public function unfavorite(Request $request, File $file): JsonResponse
     {
         $this->fileService->unfavorite($file, $request->user());
@@ -281,6 +314,9 @@ class FileController extends Controller
         return (new FileResource($file))->response();
     }
 
+    /**
+     * Replace the tag set attached to a file.
+     */
     public function syncTags(Request $request, File $file): JsonResponse
     {
         $validated = $request->validate([
@@ -293,6 +329,9 @@ class FileController extends Controller
         return (new FileResource($this->withFavoriteFlag($updated, $request)))->response();
     }
 
+    /**
+     * Stream a file download from storage.
+     */
     public function download(File $file): StreamedResponse|Response
     {
         if (! $file->isFile() || ! $file->storage_path || ! Storage::disk($file->disk)->exists($file->storage_path)) {
@@ -305,6 +344,9 @@ class FileController extends Controller
         );
     }
 
+    /**
+     * Stream a generated thumbnail for an image file.
+     */
     public function thumbnail(Request $request, File $file): StreamedResponse|Response
     {
         if (! $this->fileTransformService->isImage($file)) {
@@ -332,6 +374,9 @@ class FileController extends Controller
         ]);
     }
 
+    /**
+     * Queue a background job to zip and prepare multiple files for download.
+     */
     public function downloadMany(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -353,6 +398,9 @@ class FileController extends Controller
         ], 202);
     }
 
+    /**
+     * Download a prepared zip archive and delete it after sending.
+     */
     public function downloadPreparedZip(Request $request, string $jobId): BinaryFileResponse
     {
         if (! preg_match('/^[0-9a-fA-F-]{36}$/', $jobId)) {
@@ -376,6 +424,9 @@ class FileController extends Controller
         return response()->download($zipPath, 'files.zip')->deleteFileAfterSend(true);
     }
 
+    /**
+     * Execute a bulk file action such as move, delete, tag, or copy.
+     */
     public function bulk(Request $request): JsonResponse|Response
     {
         $validated = $request->validate([
@@ -432,6 +483,9 @@ class FileController extends Controller
         };
     }
 
+    /**
+     * Move a file or folder to another parent or disk.
+     */
     public function move(Request $request, File $file): JsonResponse
     {
         $validated = $request->validate([
@@ -450,6 +504,9 @@ class FileController extends Controller
         return (new FileResource($this->withFavoriteFlag($moved->load('tags'), $request)))->response();
     }
 
+    /**
+     * Rename a file or folder.
+     */
     public function rename(Request $request, File $file): JsonResponse
     {
         $validated = $request->validate([
@@ -461,6 +518,9 @@ class FileController extends Controller
         return (new FileResource($this->withFavoriteFlag($renamed->load('tags'), $request)))->response();
     }
 
+    /**
+     * Soft-delete a file or folder.
+     */
     public function destroy(File $file): Response
     {
         $this->fileService->softDelete($file);
@@ -468,6 +528,9 @@ class FileController extends Controller
         return response()->noContent();
     }
 
+    /**
+     * Restore a soft-deleted file or folder.
+     */
     public function restore(int $file): JsonResponse
     {
         $fileModel = File::query()->onlyTrashed()->findOrFail($file);
@@ -477,6 +540,9 @@ class FileController extends Controller
         return (new FileResource($restored->load('tags')))->response();
     }
 
+    /**
+     * Permanently delete a file or folder.
+     */
     public function forceDelete(int $file): Response
     {
         $fileModel = File::query()->withTrashed()->findOrFail($file);
@@ -486,6 +552,9 @@ class FileController extends Controller
         return response()->noContent();
     }
 
+    /**
+     * Attach a file to a polymorphic model with optional role and order.
+     */
     public function attach(Request $request, File $file): Response
     {
         $validated = $request->validate([
@@ -506,6 +575,9 @@ class FileController extends Controller
         return response()->noContent();
     }
 
+    /**
+     * Detach a file from a polymorphic model.
+     */
     public function detach(Request $request, File $file): Response
     {
         $validated = $request->validate([
@@ -524,6 +596,9 @@ class FileController extends Controller
         return response()->noContent();
     }
 
+    /**
+     * Initialize a resumable chunked upload session.
+     */
     public function initChunkUpload(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -550,6 +625,9 @@ class FileController extends Controller
         ], 201);
     }
 
+    /**
+     * Upload one chunk for an in-progress resumable upload.
+     */
     public function uploadChunk(Request $request): Response
     {
         $validated = $request->validate([
@@ -567,6 +645,9 @@ class FileController extends Controller
         return response()->noContent();
     }
 
+    /**
+     * Finalize a chunked upload and create the file record.
+     */
     public function completeChunkUpload(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -580,6 +661,9 @@ class FileController extends Controller
             ->setStatusCode(201);
     }
 
+    /**
+     * Return progress metadata for an in-progress chunked upload.
+     */
     public function uploadStatus(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -596,6 +680,12 @@ class FileController extends Controller
     }
 
     /**
+     * Build the folder listing query with trash, search, tag, and sort behavior.
+     *
+     * Flat trash shows every soft-deleted item regardless of folder; active views stay scoped
+     * to the current parent. Tag filters match any selected tag (OR). Results order folders
+     * before files, then the requested sort, then id.
+     *
      * @param  list<int>  $tagIds
      * @param  list<string>  $tagNames
      * @return Builder<File>
@@ -624,8 +714,6 @@ class FileController extends Controller
                 $trashedFilter === 'with',
                 fn (Builder $builder) => $builder->withTrashed(),
             )
-            // Flat trash: show every soft-deleted item regardless of folder.
-            // Active/with views stay scoped to the current parent.
             ->when(
                 $trashedFilter !== 'only',
                 fn (Builder $builder) => $builder->when(
@@ -643,14 +731,12 @@ class FileController extends Controller
                 });
             })
             ->when($tagIds !== [], function (Builder $builder) use ($tagIds) {
-                // Has any of the selected tags (OR).
                 $builder->whereHas(
                     'tags',
                     fn (Builder $tagQuery) => $tagQuery->whereIn(File::getTagTablePrimaryKeyName(), $tagIds),
                 );
             })
             ->when($tagIds === [] && $tagNames !== [], function (Builder $builder) use ($tagNames) {
-                // Has any of the named tags (OR); Spatie resolves names via findFromString.
                 $builder->withAnyTags($tagNames);
             })
             ->with('currentVersion');
@@ -661,7 +747,6 @@ class FileController extends Controller
             ])->orderByDesc('is_favorited');
         }
 
-        // Folders before files, then user sort, then stable id.
         return $query
             ->orderByRaw('CASE WHEN type = ? THEN 0 ELSE 1 END', [FileTypeEnum::Folder->value])
             ->orderBy($sortColumn, $sortDirection)
@@ -669,6 +754,8 @@ class FileController extends Controller
     }
 
     /**
+     * Normalize tag id and name filters from the request payload.
+     *
      * @return array{0: list<int>, 1: list<string>}
      */
     protected function resolveTagFilters(Request $request): array
@@ -690,6 +777,14 @@ class FileController extends Controller
         return [$tagIds, $tagNames];
     }
 
+    /**
+     * Ensure a replacement upload matches the stored file extension or mime family.
+     *
+     * ponytail: when no stored/name extension exists, fall back to mime family (image/*, text/*, …).
+     *
+     *
+     * @throws ValidationException
+     */
     protected function assertCompatibleReplaceUpload(File $file, UploadedFile $upload): void
     {
         $expectedExtension = $this->normalizeExtension(
@@ -709,7 +804,6 @@ class FileController extends Controller
             return;
         }
 
-        // ponytail: no stored/name extension — fall back to mime family (image/*, text/*, …).
         $expectedMime = $file->mime_type;
         $uploadedMime = $upload->getMimeType();
 
@@ -727,6 +821,9 @@ class FileController extends Controller
         }
     }
 
+    /**
+     * Normalize a file extension for comparison, returning null when empty.
+     */
     protected function normalizeExtension(?string $extension): ?string
     {
         $normalized = strtolower(ltrim(trim((string) $extension), '.'));
@@ -734,6 +831,9 @@ class FileController extends Controller
         return $normalized === '' ? null : $normalized;
     }
 
+    /**
+     * Load tags and set the favorite flag for the current user when present.
+     */
     protected function withFavoriteFlag(File $file, Request $request): File
     {
         $userId = $request->user()?->id;
@@ -747,7 +847,7 @@ class FileController extends Controller
     }
 
     /**
-     * Sync only for a single non-folder file at or under the configured size threshold.
+     * Decide whether a single non-folder file should duplicate synchronously.
      */
     protected function shouldDuplicateSynchronously(File $file): bool
     {
@@ -761,6 +861,8 @@ class FileController extends Controller
     }
 
     /**
+     * Queue a background duplication job for one or more files.
+     *
      * @param  list<int>  $fileIds
      */
     protected function queueDuplicate(Request $request, array $fileIds, ?int $targetParentId): JsonResponse

@@ -20,6 +20,10 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+/**
+ * User profile settings page.
+ * @returns {JSX.Element}
+ */
 export default function Profile({
     mustVerifyEmail,
     status,
@@ -28,6 +32,11 @@ export default function Profile({
     status?: string;
 }) {
     const { auth } = usePage().props;
+    const user = auth.user;
+
+    if (!user) {
+        return null;
+    }
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -58,7 +67,7 @@ export default function Profile({
                                     <Input
                                         id="first_name"
                                         className="mt-1 block w-full"
-                                        defaultValue={auth.user.first_name}
+                                        defaultValue={user.first_name}
                                         name="first_name"
                                         required
                                         autoComplete="given-name"
@@ -77,7 +86,7 @@ export default function Profile({
                                     <Input
                                         id="last_name"
                                         className="mt-1 block w-full"
-                                        defaultValue={auth.user.last_name ?? ''}
+                                        defaultValue={user.last_name ?? ''}
                                         name="last_name"
                                         required
                                         autoComplete="family-name"
@@ -97,7 +106,7 @@ export default function Profile({
                                         id="email"
                                         type="email"
                                         className="mt-1 block w-full"
-                                        defaultValue={auth.user.email}
+                                        defaultValue={user.email}
                                         name="email"
                                         required
                                         autoComplete="username"
@@ -111,7 +120,7 @@ export default function Profile({
                                 </div>
 
                                 {mustVerifyEmail &&
-                                    auth.user.email_verified_at === null && (
+                                    user.email_verified_at === null && (
                                         <div>
                                             <p className="-mt-4 text-sm text-muted-foreground">
                                                 Your email address is

@@ -6,11 +6,18 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { PermissionEnum } from '@/enums/permission-enum';
+import type { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import type { NavItem } from '@/types';
 
+/**
+ * Permission-gated sidebar group for admin and directory links.
+ * @param {{ items: NavItem[], label?: string }} props - Component props.
+ * @param {NavItem[]} props.items - Nav entries with optional permission metadata.
+ * @param {string} [props.label] - Optional group label above the menu.
+ * @returns {JSX.Element | null}
+ */
 export function NavAdmin({
     items,
     label,

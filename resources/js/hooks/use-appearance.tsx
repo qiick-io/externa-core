@@ -70,6 +70,12 @@ const mediaQuery = (): MediaQueryList | null => {
 
 const handleSystemThemeChange = (): void => applyTheme(currentAppearance);
 
+/**
+ * Applies the stored appearance on first client load and listens for OS theme changes.
+ * Call once from `app.tsx` before React mounts.
+ *
+ * @returns {void}
+ */
 export function initializeTheme(): void {
     if (typeof window === 'undefined') {
         return;
@@ -83,10 +89,15 @@ export function initializeTheme(): void {
     currentAppearance = getStoredAppearance();
     applyTheme(currentAppearance);
 
-    // Set up system theme change listener
     mediaQuery()?.addEventListener('change', handleSystemThemeChange);
 }
 
+/**
+ * Reads and updates the user's light/dark/system appearance preference.
+ * Persists to `localStorage` and a cookie for SSR hydration.
+ *
+ * @returns Current mode, resolved light/dark value, and an updater
+ */
 export function useAppearance(): UseAppearanceReturn {
     const appearance: Appearance = useSyncExternalStore(
         subscribe,
@@ -101,10 +112,7 @@ export function useAppearance(): UseAppearanceReturn {
     const updateAppearance = (mode: Appearance): void => {
         currentAppearance = mode;
 
-        // Store in localStorage for client-side persistence...
         localStorage.setItem('appearance', mode);
-
-        // Store in cookie for SSR...
         setCookie('appearance', mode);
 
         applyTheme(mode);

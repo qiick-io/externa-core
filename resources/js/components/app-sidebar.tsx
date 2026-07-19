@@ -13,11 +13,13 @@ import {
     UsersRound,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavAdmin, type AdminNavItem } from '@/components/nav-admin';
+import { NavAdmin  } from '@/components/nav-admin';
+import type {AdminNavItem} from '@/components/nav-admin';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
-import { NotificationsBell } from '@/components/notifications/notifications-bell';
+import type { MainNavItem } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+import { NotificationsBell } from '@/components/notifications/notifications-bell';
 import {
     Sidebar,
     SidebarContent,
@@ -34,11 +36,10 @@ import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import adminRoutes from '@/lib/admin-routes';
 import { cn } from '@/lib/utils';
+import { dashboard } from '@/routes';
 import { index as aiIndex } from '@/routes/ai';
 import collections from '@/routes/collections';
-import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
-import type { MainNavItem } from '@/components/nav-main';
 
 const mainNavItems: MainNavItem[] = [
     {
@@ -109,6 +110,11 @@ const footerNavItems: NavItem[] = [
     },
 ];
 
+/**
+ * Primary application sidebar with navigation and user menu.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function AppSidebar() {
     const { can } = useCan();
     const { isCurrentUrl } = useCurrentUrl();

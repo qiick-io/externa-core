@@ -7,6 +7,10 @@ import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
 import { store } from '@/routes/password/confirm';
 
+/**
+ * Confirm password before sensitive actions.
+ * @returns {JSX.Element}
+ */
 export default function ConfirmPassword() {
     return (
         <AuthLayout

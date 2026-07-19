@@ -4,7 +4,7 @@ namespace App\Ai\Tools;
 
 use App\Ai\Concerns\ChecksAiPermissions;
 use App\Ai\Concerns\LogsAiToolUse;
-use App\Ai\Support\SafeRemoteUrl;
+use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Enums\PermissionEnum;
 use App\Models\AiSyncSource;
 use App\Models\Collection;
@@ -13,16 +13,25 @@ use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 
+/**
+ * AI tool for configuring and inspecting AI sync sources.
+ */
 class ManageAiSyncSources implements Tool
 {
     use ChecksAiPermissions;
     use LogsAiToolUse;
 
+    /**
+     * Describe what this tool does for the model.
+     */
     public function description(): Stringable|string
     {
         return 'List, create, update, enable, disable, or delete scheduled remote JSON collection sync sources.';
     }
 
+    /**
+     * Execute the tool request and return a string result for the model.
+     */
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
@@ -47,6 +56,9 @@ class ManageAiSyncSources implements Tool
         });
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function schema(JsonSchema $schema): array
     {
         return [
@@ -75,7 +87,7 @@ class ManageAiSyncSources implements Tool
     {
         $url = trim((string) $request->string('url'));
 
-        if ($error = SafeRemoteUrl::validate($url)) {
+        if ($error = SafeRemoteUrlValidator::validate($url)) {
             return $error;
         }
 
@@ -111,7 +123,7 @@ class ManageAiSyncSources implements Tool
         if ($request->filled('url')) {
             $url = trim((string) $request->string('url'));
 
-            if ($error = SafeRemoteUrl::validate($url)) {
+            if ($error = SafeRemoteUrlValidator::validate($url)) {
                 return $error;
             }
 

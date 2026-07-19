@@ -8,10 +8,16 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+/**
+ * Validate creating a role with optional permissions.
+ */
 class StoreRoleRequest extends FormRequest
 {
     use AuthorizesWithPermission;
 
+    /**
+     * Require permission to create roles.
+     */
     public function authorize(): bool
     {
         $this->authorizePermission(PermissionEnum::CanCreateRoles->value);

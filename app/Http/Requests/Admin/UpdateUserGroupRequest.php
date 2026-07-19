@@ -8,10 +8,16 @@ use App\Models\UserGroup;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+/**
+ * Validate updating a user group and its relations.
+ */
 class UpdateUserGroupRequest extends FormRequest
 {
     use AuthorizesWithPermission;
 
+    /**
+     * Require permission to edit groups.
+     */
     public function authorize(): bool
     {
         $this->authorizePermission(PermissionEnum::CanEditGroups->value);

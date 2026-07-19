@@ -5,7 +5,7 @@ use App\Enums\PermissionEnum;
 use App\Jobs\DuplicateFilesJob;
 use App\Models\File;
 use App\Models\User;
-use App\Notifications\FileDuplicationCompleted;
+use App\Notifications\FileDuplicationCompletedNotification;
 use App\Services\FileService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Notification;
@@ -223,7 +223,7 @@ test('duplicate job creates copy and database notification', function () {
 
     expect(File::query()->where('name', 'queued copy.txt')->exists())->toBeTrue();
 
-    Notification::assertSentTo($user, FileDuplicationCompleted::class, function (FileDuplicationCompleted $notification) use ($jobUuid): bool {
+    Notification::assertSentTo($user, FileDuplicationCompletedNotification::class, function (FileDuplicationCompletedNotification $notification) use ($jobUuid): bool {
         return $notification->jobId === $jobUuid
             && $notification->count === 1;
     });

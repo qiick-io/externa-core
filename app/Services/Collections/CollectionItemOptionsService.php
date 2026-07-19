@@ -5,16 +5,19 @@ namespace App\Services\Collections;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
-use App\Support\Collections\ItemDataAccessor;
-use App\Support\Collections\LocaleResolver;
+use App\Support\Collections\CollectionItemDataAccessor;
+use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Paginated id/label options for relation fields and admin selects.
+ */
 class CollectionItemOptionsService
 {
     public function __construct(
-        private ItemDataAccessor $itemDataAccessor,
+        private CollectionItemDataAccessor $itemDataAccessor,
     ) {}
 
     /**
@@ -120,7 +123,7 @@ class CollectionItemOptionsService
     {
         $data = $this->itemDataAccessor->flattenForLocale(
             $item,
-            app(LocaleResolver::class)->resolve(),
+            app(CollectionLocaleResolver::class)->resolve(),
             false,
         );
 

@@ -3,13 +3,19 @@
 namespace App\Http\Requests\Collections;
 
 use App\Models\Collection;
-use App\Support\Collections\UniqueCollectionSlug;
+use App\Support\Collections\UniqueCollectionSlugGenerator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Validates updating a content collection definition.
+ */
 class UpdateContentCollectionRequest extends FormRequest
 {
+    /**
+     * Authorization is enforced by collection route middleware.
+     */
     public function authorize(): bool
     {
         return true;
@@ -49,7 +55,7 @@ class UpdateContentCollectionRequest extends FormRequest
         }
 
         $this->merge([
-            'slug' => app(UniqueCollectionSlug::class)->make($base, $collection->id),
+            'slug' => app(UniqueCollectionSlugGenerator::class)->make($base, $collection->id),
         ]);
     }
 }

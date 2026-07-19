@@ -4,7 +4,7 @@ namespace App\Ai\Tools;
 
 use App\Ai\Concerns\ChecksAiPermissions;
 use App\Ai\Concerns\LogsAiToolUse;
-use App\Ai\Support\DecodesToolJson;
+use App\Ai\Support\AiToolJsonDecoder;
 use App\Enums\FileTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\AiChatAttachment;
@@ -16,16 +16,25 @@ use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 
+/**
+ * AI tool for browsing and mutating files and folders in the file manager.
+ */
 class ManageFiles implements Tool
 {
     use ChecksAiPermissions;
     use LogsAiToolUse;
 
+    /**
+     * Describe what this tool does for the model.
+     */
     public function description(): Stringable|string
     {
         return 'File manager tool. Actions: list/search, create_folder (alias create), rename, move (one file), move_many (bulk: file_ids_json OR source_parent_id into target_parent_id), delete, restore, force_delete, save_attachment. Prefer move_many when relocating multiple items. Never claim move is unavailable.';
     }
 
+    /**
+     * Execute the tool request and return a string result for the model.
+     */
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
@@ -46,6 +55,9 @@ class ManageFiles implements Tool
         });
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function schema(JsonSchema $schema): array
     {
         return [
@@ -236,7 +248,7 @@ class ManageFiles implements Tool
             return 'Error: target_parent_id must be an existing folder.';
         }
 
-        $ids = DecodesToolJson::optionalArrayFrom($request, 'file_ids_json');
+        $ids = AiToolJsonDecoder::optionalArrayFrom($request, 'file_ids_json');
 
         if (is_string($ids)) {
             return $ids;

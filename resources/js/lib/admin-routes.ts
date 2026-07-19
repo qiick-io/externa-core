@@ -1,10 +1,21 @@
-import { queryParams, type RouteQueryOptions } from '@/wayfinder';
+import { queryParams  } from '@/wayfinder';
+import type {RouteQueryOptions} from '@/wayfinder';
 
+/**
+ * Builds an admin URL with optional Wayfinder query parameters.
+ *
+ * @param path - Absolute path under the admin prefix
+ * @param options - Optional query string options
+ * @returns Full URL string
+ */
 function url(path: string, options?: RouteQueryOptions): string {
     return path + queryParams(options);
 }
 
-/** Root admin URLs — replace with Wayfinder routes when generated */
+/**
+ * Hand-maintained admin route URLs until Wayfinder generates equivalent helpers.
+ * Mirrors Laravel admin routes for users, groups, roles, permissions, activity logs, and files.
+ */
 const adminRoutes = {
     users: {
         index: (options?: RouteQueryOptions) => url('/users', options),

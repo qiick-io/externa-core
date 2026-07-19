@@ -10,6 +10,10 @@ import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
+/**
+ * User registration form.
+ * @returns {JSX.Element}
+ */
 export default function Register() {
     return (
         <AuthLayout

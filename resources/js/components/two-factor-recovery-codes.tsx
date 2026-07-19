@@ -18,6 +18,11 @@ type Props = {
     errors: string[];
 };
 
+/**
+ * Displays and regenerates 2FA recovery codes.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export default function TwoFactorRecoveryCodes({
     recoveryCodesList,
     fetchRecoveryCodes,

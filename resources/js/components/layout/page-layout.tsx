@@ -14,6 +14,11 @@ export type PageLayoutProps = {
     scrollContent?: boolean;
 };
 
+/**
+ * Standard admin page scaffold with optional header, scrollable body, and footer.
+ * @param {PageLayoutProps} props - Layout section props.
+ * @returns {JSX.Element}
+ */
 export function PageLayout({
     description,
     subheader,
@@ -60,6 +65,14 @@ export function PageLayout({
     );
 }
 
+/**
+ * Bordered card wrapper for data tables with optional sticky footer.
+ * @param {{ children: ReactNode, className?: string, footer?: ReactNode }} props - Panel props.
+ * @param {ReactNode} props.children - Table or list content.
+ * @param {string} [props.className] - Additional panel classes.
+ * @param {ReactNode} [props.footer] - Optional footer (e.g. pagination).
+ * @returns {JSX.Element}
+ */
 export function TablePanel({
     children,
     className,
@@ -92,6 +105,12 @@ export type TablePaginationLink = {
     active: boolean;
 };
 
+/**
+ * Laravel-style pagination link row that visits URLs via Inertia.
+ * @param {{ links: TablePaginationLink[] }} props - Component props.
+ * @param {TablePaginationLink[]} props.links - Pagination links from the server.
+ * @returns {JSX.Element | null}
+ */
 export function TablePagination({
     links,
 }: {

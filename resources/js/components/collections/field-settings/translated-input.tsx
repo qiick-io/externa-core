@@ -1,10 +1,11 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-    COLLECTION_FIELD_LOCALES,
-    type CollectionFieldLocale,
-    type TranslatedText,
+    COLLECTION_FIELD_LOCALES
+    
+    
 } from '@/lib/collection-field-types';
+import type {CollectionFieldLocale, TranslatedText} from '@/lib/collection-field-types';
 
 type TranslatedInputProps = {
     idPrefix: string;
@@ -20,6 +21,11 @@ const LOCALE_LABELS: Record<CollectionFieldLocale, string> = {
     it: 'Italiano',
 };
 
+/**
+ * Locale-tabbed input for translatable field labels.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function TranslatedInput({
     idPrefix,
     label,

@@ -10,10 +10,16 @@ use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
+/**
+ * Import collection records from signed webhook payloads.
+ */
 class CollectionImportWebhookController extends Controller
 {
     use ImportsCollectionRecords;
 
+    /**
+     * Validate the webhook token and import associative record rows into a collection.
+     */
     public function __invoke(CollectionImportWebhookRequest $request): Response
     {
         $configuredToken = (string) config('ai.webhook_token', '');
@@ -53,8 +59,8 @@ class CollectionImportWebhookController extends Controller
         ]);
     }
 
-    protected function logAiMutation(Model $subject, string $action): void
-    {
-        // Signed webhooks have no interactive user/conversation to attribute.
-    }
+    /**
+     * Skip AI mutation logging because signed webhooks have no interactive user context.
+     */
+    protected function logAiMutation(Model $subject, string $action): void {}
 }

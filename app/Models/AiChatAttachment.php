@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * Temporary chat upload stored on disk with TTL and MIME allowlist enforcement.
+ */
 class AiChatAttachment extends Model
 {
     use HasUuids;
@@ -71,16 +74,25 @@ class AiChatAttachment extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Absolute filesystem path to the stored attachment.
+     */
     public function absolutePath(): string
     {
         return Storage::disk($this->disk)->path($this->path);
     }
 
+    /**
+     * Whether the attachment has passed its expiry time.
+     */
     public function isExpired(): bool
     {
         return $this->expires_at !== null && $this->expires_at->isPast();
     }
 
+    /**
+     * Remove the underlying file from storage when present.
+     */
     public function deleteFile(): void
     {
         if ($this->path !== '' && Storage::disk($this->disk)->exists($this->path)) {
@@ -88,6 +100,9 @@ class AiChatAttachment extends Model
         }
     }
 
+    /**
+     * Delete storage file when the model is removed.
+     */
     protected static function booted(): void
     {
         static::deleting(function (AiChatAttachment $attachment): void {

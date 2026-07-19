@@ -21,6 +21,11 @@ type FileNameDialogProps = {
     onConfirm: (name: string) => Promise<void>;
 };
 
+/**
+ * Dialog to confirm or edit a file or folder name.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function FileNameDialog({
     open,
     onOpenChange,
@@ -46,6 +51,7 @@ export function FileNameDialog({
 
         if (trimmedName === '') {
             setError('Name is required.');
+
             return;
         }
 

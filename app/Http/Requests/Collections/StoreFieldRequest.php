@@ -9,10 +9,16 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Validates creating a collection field definition.
+ */
 class StoreFieldRequest extends FormRequest
 {
     use ValidatesCollectionFieldSettings;
 
+    /**
+     * Authorization is enforced by collection route middleware.
+     */
     public function authorize(): bool
     {
         return true;

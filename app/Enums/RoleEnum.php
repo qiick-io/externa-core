@@ -2,6 +2,9 @@
 
 namespace App\Enums;
 
+/**
+ * Built-in application roles.
+ */
 enum RoleEnum: string
 {
     case SuperAdmin = 'super-admin';

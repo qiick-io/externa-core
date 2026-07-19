@@ -4,13 +4,16 @@ namespace App\Jobs;
 
 use App\Models\File;
 use App\Models\User;
-use App\Notifications\FileDuplicationCompleted;
-use App\Notifications\FileDuplicationFailed;
+use App\Notifications\FileDuplicationCompletedNotification;
+use App\Notifications\FileDuplicationFailedNotification;
 use App\Services\FileService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Throwable;
 
+/**
+ * Queued job that copies one or more files and notifies the requesting user.
+ */
 class DuplicateFilesJob implements ShouldQueue
 {
     use Queueable;
@@ -25,6 +28,9 @@ class DuplicateFilesJob implements ShouldQueue
         public readonly string $jobUuid,
     ) {}
 
+    /**
+     * Copy files and notify the user on success or failure.
+     */
     public function handle(FileService $fileService): void
     {
         $user = User::query()->find($this->userId);
@@ -50,7 +56,7 @@ class DuplicateFilesJob implements ShouldQueue
                     : $firstCopy->parent_id;
             }
 
-            $user->notify(new FileDuplicationCompleted(
+            $user->notify(new FileDuplicationCompletedNotification(
                 jobId: $this->jobUuid,
                 count: count($copiedFiles),
                 firstFileId: $firstCopy?->id,
@@ -60,7 +66,7 @@ class DuplicateFilesJob implements ShouldQueue
         } catch (Throwable $exception) {
             report($exception);
 
-            $user->notify(new FileDuplicationFailed(
+            $user->notify(new FileDuplicationFailedNotification(
                 jobId: $this->jobUuid,
                 message: $exception->getMessage(),
             ));

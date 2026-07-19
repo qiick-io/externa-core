@@ -61,6 +61,10 @@ function wrapSelection(textarea: HTMLTextAreaElement, prefix: string, suffix = p
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+/**
+ * WYSIWYG editor input for collection item fields.
+ * @returns {JSX.Element}
+ */
 export function WysiwygFieldInput({
     id,
     name,
@@ -101,6 +105,7 @@ export function WysiwygFieldInput({
                             className="h-7 px-2 text-xs"
                             onClick={() => {
                                 const textarea = textareaRef.current;
+
                                 if (!textarea) {
                                     return;
                                 }
@@ -143,6 +148,10 @@ export function WysiwygFieldInput({
     );
 }
 
+/**
+ * Markdown editor input for collection item fields.
+ * @returns {JSX.Element}
+ */
 export function MarkdownFieldInput({
     id,
     name,
@@ -214,6 +223,10 @@ export function MarkdownFieldInput({
     );
 }
 
+/**
+ * Code editor input for collection item fields.
+ * @returns {JSX.Element}
+ */
 export function CodeFieldInput({
     id,
     name,
@@ -266,6 +279,10 @@ export function CodeFieldInput({
     );
 }
 
+/**
+ * Tag chip input for collection item fields.
+ * @returns {JSX.Element}
+ */
 export function TagChipInput({
     nameBase,
     settings,
@@ -283,6 +300,7 @@ export function TagChipInput({
 
     const addTag = (raw: string) => {
         const trimmed = raw.trim();
+
         if (!trimmed) {
             return;
         }
@@ -370,6 +388,10 @@ function hexToRgba(hex: string, alpha: number): string {
     return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
+/**
+ * Color picker input for collection item fields.
+ * @returns {JSX.Element}
+ */
 export function ColorFieldInput({
     id,
     name,

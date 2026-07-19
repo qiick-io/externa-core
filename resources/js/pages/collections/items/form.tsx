@@ -17,6 +17,10 @@ type ItemPayload = {
     data: Record<string, unknown>;
 };
 
+/**
+ * Create or edit a collection item.
+ * @returns {JSX.Element}
+ */
 export default function ItemsForm({
     collection,
     item,

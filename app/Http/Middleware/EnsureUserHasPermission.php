@@ -7,6 +7,9 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Abort with 403 when the authenticated user lacks a named permission.
+ */
 class EnsureUserHasPermission
 {
     public function __construct(
@@ -14,6 +17,8 @@ class EnsureUserHasPermission
     ) {}
 
     /**
+     * Resolve the required permission and allow the request to continue when granted.
+     *
      * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next, string $permission): Response

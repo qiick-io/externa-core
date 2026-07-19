@@ -14,6 +14,11 @@ type TagFilterPopoverProps = {
     onChange: (tagIds: number[]) => void;
 };
 
+/**
+ * Popover to filter files by tag.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function TagFilterPopover({
     catalog,
     selectedTagIds,
@@ -24,6 +29,7 @@ export function TagFilterPopover({
     const toggleTagId = (tagId: number): void => {
         if (selectedTagIds.includes(tagId)) {
             onChange(selectedTagIds.filter((entry) => entry !== tagId));
+
             return;
         }
 

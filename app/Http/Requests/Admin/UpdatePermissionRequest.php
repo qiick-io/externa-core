@@ -9,10 +9,16 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Permission;
 
+/**
+ * Validate updating a permission record.
+ */
 class UpdatePermissionRequest extends FormRequest
 {
     use AuthorizesWithPermission;
 
+    /**
+     * Require permission to edit permissions.
+     */
     public function authorize(): bool
     {
         $this->authorizePermission(PermissionEnum::CanEditPermissions->value);

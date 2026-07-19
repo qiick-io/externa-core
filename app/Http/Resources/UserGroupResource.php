@@ -9,11 +9,15 @@ use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 /**
+ * Serialize a user group with optional role and membership payloads.
+ *
  * @mixin UserGroup
  */
 class UserGroupResource extends JsonResource
 {
     /**
+     * Transform the group into an array for admin listings and forms.
+     *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array

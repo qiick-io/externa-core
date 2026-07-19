@@ -1,6 +1,12 @@
 import type { HTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
+/**
+ * Inline validation message for form fields; renders nothing when empty.
+ * @param {HTMLAttributes<HTMLParagraphElement> & { message?: string }} props - Paragraph props plus message.
+ * @param {string} [props.message] - Error text to display.
+ * @returns {JSX.Element | null}
+ */
 export default function InputError({
     message,
     className = '',

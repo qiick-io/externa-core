@@ -1,4 +1,3 @@
-// Components
 import { Form, Head } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import InputError from '@/components/input-error';
@@ -10,6 +9,11 @@ import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
 
+/**
+ * Request a password reset link.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export default function ForgotPassword({ status }: { status?: string }) {
     return (
         <AuthLayout

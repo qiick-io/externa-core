@@ -18,6 +18,10 @@ type Props = {
     canRegister: boolean;
 };
 
+/**
+ * User login form.
+ * @returns {JSX.Element}
+ */
 export default function Login({
     status,
     canResetPassword,

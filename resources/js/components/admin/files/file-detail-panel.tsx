@@ -6,9 +6,10 @@ import {
     MoveHorizontal,
     MoveVertical,
     Scaling,
-    X,
-    type LucideIcon,
+    X
+    
 } from 'lucide-react';
+import type {LucideIcon} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { FilePreview } from '@/components/admin/files/file-preview';
 import { TagPicker } from '@/components/admin/files/tag-picker';
@@ -91,11 +92,13 @@ function DetailMediaPreview({ file }: { file: AdminFileRow }) {
 /** Extension for replace `<input accept>` — prefers `file.extension`, else parsed from name. */
 function replaceAcceptAttribute(file: AdminFileRow): string | undefined {
     const fromField = file.extension?.replace(/^\./, '').trim().toLowerCase();
+
     if (fromField) {
         return `.${fromField}`;
     }
 
     const lastDot = file.name.lastIndexOf('.');
+
     if (lastDot > 0 && lastDot < file.name.length - 1) {
         return `.${file.name.slice(lastDot + 1).toLowerCase()}`;
     }
@@ -103,12 +106,18 @@ function replaceAcceptAttribute(file: AdminFileRow): string | undefined {
     // ponytail: no extension — mime type (or family) as a weak filter.
     if (file.mime_type) {
         const family = file.mime_type.split('/')[0];
+
         return family ? `${family}/*` : file.mime_type;
     }
 
     return undefined;
 }
 
+/**
+ * Side panel showing metadata and preview for one file.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function FileDetailPanel({
     file,
     canUpdateMetadata,
@@ -155,6 +164,7 @@ export function FileDetailPanel({
         }
 
         const parsed = Number(value);
+
         return Number.isFinite(parsed) ? parsed : null;
     };
 
@@ -188,6 +198,7 @@ export function FileDetailPanel({
 
                 if (invalidNumericField) {
                     toast.error(`${invalidNumericField[0]} must be a number`);
+
                     return;
                 }
 

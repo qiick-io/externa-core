@@ -1,5 +1,5 @@
-import { FileIcon, FolderOpen } from 'lucide-react';
 import { Link } from '@inertiajs/react';
+import { FileIcon, FolderOpen } from 'lucide-react';
 import adminRoutes from '@/lib/admin-routes';
 import { filePublicUrl, isImageFile } from '@/lib/files-api';
 import type { AdminFileRow } from '@/types/files';
@@ -52,6 +52,11 @@ function toAdminFileRow(file: AiFileCardItem): AdminFileRow {
     };
 }
 
+/**
+ * Renders file attachment cards in AI chat messages.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function AiFileCards({ files }: Props) {
     if (files.length === 0) {
         return null;
@@ -98,6 +103,10 @@ export function AiFileCards({ files }: Props) {
     );
 }
 
+/**
+ * Builds file card items from multiple tool results.
+ * @returns {*}
+ */
 export function fileCardsFromToolResults(
     toolResults: unknown,
 ): AiFileCardItem[] {
@@ -129,6 +138,10 @@ export function fileCardsFromToolResults(
     return [...byId.values()];
 }
 
+/**
+ * Builds file card items from a single tool result.
+ * @returns {*}
+ */
 export function fileCardsFromToolResult(
     toolName: string,
     result: unknown,

@@ -1,5 +1,10 @@
 import type { SVGAttributes } from 'react';
 
+/**
+ * Externa logo SVG; accepts standard SVG element attributes.
+ * @param {SVGAttributes<SVGElement>} props - SVG attributes (className, size, etc.).
+ * @returns {JSX.Element}
+ */
 export default function AppLogoIcon(props: SVGAttributes<SVGElement>) {
     return (
         <svg {...props} viewBox="0 0 40 42" xmlns="http://www.w3.org/2000/svg">

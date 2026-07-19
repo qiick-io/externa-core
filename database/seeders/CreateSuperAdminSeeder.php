@@ -6,12 +6,15 @@ use App\Enums\RoleEnum;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
+/**
+ * Bootstrap the initial super-admin user from config/super_admin.php.
+ *
+ * Uses updateOrCreate on email so re-seeding is idempotent; always syncs the SuperAdmin role.
+ */
 class CreateSuperAdminSeeder extends Seeder
 {
     /**
      * Create or update the initial application user with the super-admin role.
-     *
-     * Credentials come from config/super_admin.php (env-prefixed keys).
      */
     public function run(): void
     {

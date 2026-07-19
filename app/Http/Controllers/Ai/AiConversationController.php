@@ -13,8 +13,14 @@ use Laravel\Ai\Models\Conversation;
 use Laravel\Ai\Models\ConversationMessage;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * JSON API for listing, creating, and mutating AI chat conversations.
+ */
 class AiConversationController extends Controller
 {
+    /**
+     * Paginate the authenticated user's conversations with pinned items first.
+     */
     public function index(Request $request): JsonResponse
     {
         /** @var User $user */
@@ -31,6 +37,9 @@ class AiConversationController extends Controller
         return response()->json($conversations);
     }
 
+    /**
+     * Return a conversation with normalized message content and tool metadata.
+     */
     public function show(Request $request, string $conversation): JsonResponse
     {
         $owned = $this->ownedConversation($request, $conversation);
@@ -64,6 +73,9 @@ class AiConversationController extends Controller
         ]);
     }
 
+    /**
+     * Create a new conversation for the authenticated user.
+     */
     public function store(Request $request): JsonResponse
     {
         /** @var User $user */
@@ -91,6 +103,9 @@ class AiConversationController extends Controller
         ], Response::HTTP_CREATED);
     }
 
+    /**
+     * Delete a conversation and all of its messages.
+     */
     public function destroy(Request $request, string $conversation): JsonResponse
     {
         $owned = $this->ownedConversation($request, $conversation);
@@ -106,6 +121,9 @@ class AiConversationController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    /**
+     * Delete multiple owned conversations in one transaction.
+     */
     public function bulkDestroy(Request $request): JsonResponse
     {
         /** @var User $user */
@@ -142,6 +160,9 @@ class AiConversationController extends Controller
         ]);
     }
 
+    /**
+     * Toggle the pinned state of a conversation.
+     */
     public function togglePin(Request $request, string $conversation): JsonResponse
     {
         $owned = $this->ownedConversation($request, $conversation);
@@ -194,6 +215,9 @@ class AiConversationController extends Controller
         ]);
     }
 
+    /**
+     * Resolve a conversation owned by the authenticated user or abort with 404.
+     */
     private function ownedConversation(Request $request, string $conversationId): Conversation
     {
         /** @var User $user */
@@ -209,6 +233,9 @@ class AiConversationController extends Controller
         return $conversation;
     }
 
+    /**
+     * Flatten stored message content into display text.
+     */
     private function normalizeMessageContent(mixed $content): string
     {
         if ($content === null) {
@@ -251,6 +278,8 @@ class AiConversationController extends Controller
     }
 
     /**
+     * Decode tool call/result payloads stored as JSON strings.
+     *
      * @return array<int|string, mixed>
      */
     private function normalizeMessageArray(mixed $value): array

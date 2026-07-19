@@ -7,11 +7,12 @@ import {
     PointerSensor,
     pointerWithin,
     useSensor,
-    useSensors,
-    type CollisionDetection,
-    type DragOverEvent,
-    type DragStartEvent,
+    useSensors
+    
+    
+    
 } from '@dnd-kit/core';
+import type {CollisionDetection, DragOverEvent, DragStartEvent} from '@dnd-kit/core';
 import {
     arrayMove,
     SortableContext,
@@ -56,9 +57,10 @@ import {
     getFieldLayoutWidth,
     groupFieldsIntoLayoutRows,
     isFieldHiddenInForm,
-    isFieldRequired,
-    type FieldLayoutWidth,
+    isFieldRequired
+    
 } from '@/lib/collection-field-types';
+import type {FieldLayoutWidth} from '@/lib/collection-field-types';
 import { cn } from '@/lib/utils';
 import type { CollectionFieldRow } from '@/types';
 
@@ -917,6 +919,11 @@ function SortableFieldsList({
     );
 }
 
+/**
+ * Sortable list of fields on a collection schema.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function CollectionFieldsList(props: CollectionFieldsListProps) {
     if (props.reorderEnabled) {
         return (

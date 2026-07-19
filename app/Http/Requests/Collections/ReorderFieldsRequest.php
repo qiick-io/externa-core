@@ -4,8 +4,14 @@ namespace App\Http\Requests\Collections;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates reordering collection fields.
+ */
 class ReorderFieldsRequest extends FormRequest
 {
+    /**
+     * Authorization is enforced by collection route middleware.
+     */
     public function authorize(): bool
     {
         return true;

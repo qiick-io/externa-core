@@ -6,6 +6,9 @@ use App\Models\File;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
+/**
+ * Generates and caches contain-fit image thumbnails on the file disk.
+ */
 class FileTransformService
 {
     public const DEFAULT_SIZE = 128;
@@ -17,6 +20,9 @@ class FileTransformService
      */
     private const CLEANUP_SIZES = [64, 128, 256];
 
+    /**
+     * Whether the file is a raster image eligible for thumbnail generation.
+     */
     public function isImage(File $file): bool
     {
         return $file->isFile()
@@ -25,6 +31,9 @@ class FileTransformService
             && $file->mime_type !== 'image/svg+xml';
     }
 
+    /**
+     * Clamp requested thumbnail edge length to configured bounds.
+     */
     public function clampSize(?int $size): int
     {
         $resolved = $size ?? self::DEFAULT_SIZE;
@@ -73,6 +82,9 @@ class FileTransformService
         return $cachePath;
     }
 
+    /**
+     * Remove cached transform files for the given file across standard sizes.
+     */
     public function clearTransforms(File $file): void
     {
         if (! $file->storage_path) {
@@ -92,6 +104,9 @@ class FileTransformService
         }
     }
 
+    /**
+     * Public storage URL for the file's current bytes, or null for folders.
+     */
     public function publicUrl(File $file): ?string
     {
         if (! $file->isFile() || ! $file->storage_path) {

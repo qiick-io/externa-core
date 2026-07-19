@@ -16,6 +16,7 @@ export type UseTwoFactorAuthReturn = {
     fetchRecoveryCodes: () => Promise<void>;
 };
 
+/** Maximum length for TOTP one-time password input fields. */
 export const OTP_MAX_LENGTH = 6;
 
 const fetchJson = async <T>(url: string): Promise<T> => {
@@ -30,6 +31,11 @@ const fetchJson = async <T>(url: string): Promise<T> => {
     return response.json();
 };
 
+/**
+ * Loads Fortify two-factor setup data (QR code, manual key, recovery codes) from JSON endpoints.
+ *
+ * @returns Setup state, fetch helpers, and accumulated error messages
+ */
 export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
     const [qrCodeSvg, setQrCodeSvg] = useState<string | null>(null);
     const [manualSetupKey, setManualSetupKey] = useState<string | null>(null);

@@ -13,6 +13,9 @@ use Psr\Http\Message\RequestInterface;
  */
 final class CurlSseStreamer
 {
+    /**
+     * @return PromiseInterface<Response>
+     */
     public static function stream(RequestInterface $request): PromiseInterface
     {
         $headers = [];

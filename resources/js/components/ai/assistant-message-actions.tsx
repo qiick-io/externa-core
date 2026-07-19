@@ -16,6 +16,11 @@ type AssistantMessageActionsProps = {
     onRegenerate?: () => void;
 };
 
+/**
+ * Copy and feedback actions on assistant messages.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function AssistantMessageActions({
     content,
     disabled = false,

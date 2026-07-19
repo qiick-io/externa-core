@@ -5,8 +5,14 @@ namespace App\Http\Requests\Collections;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+/**
+ * Validates updating a field layout width in the collection form.
+ */
 class UpdateFieldLayoutWidthRequest extends FormRequest
 {
+    /**
+     * Authorization is enforced by collection route middleware.
+     */
     public function authorize(): bool
     {
         return true;

@@ -1,9 +1,9 @@
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useState } from 'react';
 import { LucideIconPicker } from '@/components/collections/field-settings/lucide-icon-picker';
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { TranslatedInput } from '@/components/collections/field-settings/translated-input';
-import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     STRING_INPUT_TYPES,
     parseApiAutocompleteFieldSettings,
@@ -12,10 +12,11 @@ import {
     parseStringFieldSettings,
     parseTagFieldSettings,
     parseTextareaFieldSettings,
-    serializeStringFieldSettings,
-    type StringFieldSettings,
-    type TranslatedText,
+    serializeStringFieldSettings
+    
+    
 } from '@/lib/collection-field-types';
+import type {StringFieldSettings, TranslatedText} from '@/lib/collection-field-types';
 
 type TextNumbersSettingsProps = {
     fieldType: string;
@@ -26,6 +27,10 @@ type TextNumbersSettingsProps = {
     ) => void;
 };
 
+/**
+ * Settings panel for text and numeric field types.
+ * @returns {JSX.Element}
+ */
 export function TextNumbersSettings({
     fieldType,
     settings,
@@ -470,6 +475,10 @@ function ApiAutocompleteSettingsPanel({
     );
 }
 
+/**
+ * Serializes text/number field settings for API submission.
+ * @returns {*}
+ */
 export function serializeTextNumbersTypeSettings(
     fieldType: string,
     stringSettings: StringFieldSettings,
@@ -487,12 +496,20 @@ export type TextareaLikeSettings = {
     maxLength: number | null;
 };
 
+/**
+ * Parses textarea-like field settings from stored JSON.
+ * @returns {*}
+ */
 export function parseTextareaLikeSettings(
     settings?: Record<string, unknown> | null,
 ): TextareaLikeSettings {
     return parseTextareaFieldSettings(settings);
 }
 
+/**
+ * Serializes textarea-like field settings for API submission.
+ * @returns {*}
+ */
 export function serializeTextareaLikeSettings(
     fieldType: string,
     textareaSettings: TextareaLikeSettings,
@@ -506,6 +523,7 @@ export function serializeTextareaLikeSettings(
     }
 
     const placeholder = textareaSettings.placeholder;
+
     if (placeholder.en || placeholder.it) {
         out.placeholder = {
             ...(placeholder.en ? { en: placeholder.en } : {}),

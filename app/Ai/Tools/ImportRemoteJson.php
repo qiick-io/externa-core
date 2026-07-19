@@ -5,7 +5,7 @@ namespace App\Ai\Tools;
 use App\Ai\Concerns\ChecksAiPermissions;
 use App\Ai\Concerns\ImportsCollectionRecords;
 use App\Ai\Concerns\LogsAiToolUse;
-use App\Ai\Support\SafeRemoteUrl;
+use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Enums\PermissionEnum;
 use App\Jobs\ImportCollectionJob;
 use App\Models\Collection;
@@ -19,6 +19,9 @@ use Laravel\Ai\Tools\Request;
 use Stringable;
 use Throwable;
 
+/**
+ * AI tool that imports collection records from a validated remote JSON URL.
+ */
 class ImportRemoteJson implements Tool
 {
     use ChecksAiPermissions;
@@ -35,6 +38,9 @@ class ImportRemoteJson implements Tool
 
     private const ASYNC_THRESHOLD = 200;
 
+    /**
+     * Describe what this tool does for the model.
+     */
     public function description(): Stringable|string
     {
         return 'Import records from a public (or Bearer-authenticated) JSON/API URL into a collection. '
@@ -43,6 +49,9 @@ class ImportRemoteJson implements Tool
             .'Use when the user pastes an API URL. Optional auth_bearer or auth_header for Authorization.';
     }
 
+    /**
+     * Execute the tool request and return a string result for the model.
+     */
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
@@ -69,7 +78,7 @@ class ImportRemoteJson implements Tool
 
             $limit = min($limit, self::MAX_LIMIT);
 
-            if ($ssrfError = SafeRemoteUrl::validate($url)) {
+            if ($ssrfError = SafeRemoteUrlValidator::validate($url)) {
                 return $ssrfError;
             }
 
@@ -194,6 +203,9 @@ class ImportRemoteJson implements Tool
         });
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function schema(JsonSchema $schema): array
     {
         return [

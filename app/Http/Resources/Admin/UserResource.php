@@ -7,11 +7,15 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
+ * Serialize a user record with optional role and group payloads.
+ *
  * @mixin User
  */
 class UserResource extends JsonResource
 {
     /**
+     * Transform the user into an array for admin listings and forms.
+     *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array

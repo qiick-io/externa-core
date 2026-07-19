@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * Account settings routes.
+ *
+ * Profile viewing and updates require only `auth`. Destructive or security-sensitive
+ * actions (account deletion, password changes) additionally require `verified`.
+ */
+
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Support\Facades\Route;

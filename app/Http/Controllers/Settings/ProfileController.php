@@ -12,10 +12,13 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Manages the authenticated user's profile settings page and updates.
+ */
 class ProfileController extends Controller
 {
     /**
-     * Show the user's profile settings page.
+     * Render the profile settings form.
      */
     public function edit(Request $request): Response
     {
@@ -26,7 +29,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update the user's profile information.
+     * Persist profile changes and reset email verification when the address changes.
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
@@ -42,7 +45,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Delete the user's profile.
+     * Delete the account after password confirmation and invalidate the session.
      */
     public function destroy(ProfileDeleteRequest $request): RedirectResponse
     {

@@ -5,10 +5,13 @@ namespace App\Http\Requests\Ai;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates inbound collection import webhook payloads.
+ */
 class CollectionImportWebhookRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Authorization is enforced by the webhook token in the controller.
      */
     public function authorize(): bool
     {
@@ -16,7 +19,7 @@ class CollectionImportWebhookRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * Validate the target collection and bounded record payload.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */

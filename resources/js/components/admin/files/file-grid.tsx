@@ -1,9 +1,9 @@
 import { FolderOpen, FolderPlus, Upload } from 'lucide-react';
 import type { MouseEvent, ReactNode } from 'react';
-import { FileCard } from '@/components/admin/files/file-card';
 import {
     isInternalFileDrag,
 } from '@/components/admin/file-dropzone';
+import { FileCard } from '@/components/admin/files/file-card';
 import { Button } from '@/components/ui/button';
 import {
     ContextMenu,
@@ -103,6 +103,11 @@ function EmptyAreaContextMenu({
     );
 }
 
+/**
+ * Grid of file cards with selection and drag-and-drop.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function FileGrid({
     files,
     isTrashed,

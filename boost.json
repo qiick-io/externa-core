@@ -8,19 +8,19 @@
         "junie",
         "copilot"
     ],
+    "cloud": false,
     "guidelines": true,
     "herd_mcp": true,
     "mcp": true,
     "nightwatch_mcp": false,
-    "packages": [
-        "laravel/fortify"
-    ],
     "sail": false,
     "skills": [
+        "ai-sdk-development",
+        "fortify-development",
+        "laravel-best-practices",
         "wayfinder-development",
         "pest-testing",
         "inertia-react-development",
-        "tailwindcss-development",
-        "fortify-development"
+        "tailwindcss-development"
     ]
 }

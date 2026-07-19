@@ -15,6 +15,11 @@ export type DataTableToolbarProps = {
     className?: string;
 };
 
+/**
+ * Search and filter toolbar for admin data tables.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function DataTableToolbar({
     search,
     onSearchChange,

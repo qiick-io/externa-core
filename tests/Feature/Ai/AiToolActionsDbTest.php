@@ -15,7 +15,7 @@ use App\Ai\Tools\ManageRoles;
 use App\Ai\Tools\ManageUsers;
 use App\Ai\Tools\QueryCollectionItems;
 use App\Ai\Tools\RollbackLastAiTurn;
-use App\Ai\Tools\SearchSimilarItems;
+use App\Ai\Tools\SearchSimilarCollectionItems;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Jobs\ImportCollectionJob;
@@ -55,6 +55,9 @@ beforeEach(function () {
     $this->actingAs($this->aiToolActor);
 });
 
+/**
+ * Persist a fake AI chat attachment on the local disk for tool-action tests.
+ */
 function aiToolDbAttachment(User $user, string $name, string $content, string $mimeType): AiChatAttachment
 {
     $path = "ai-chat-attachments/{$user->id}/".Str::uuid()."-{$name}";
@@ -71,6 +74,9 @@ function aiToolDbAttachment(User $user, string $name, string $content, string $m
     ]);
 }
 
+/**
+ * Build a minimal valid PDF byte string containing the given visible text.
+ */
 function aiToolDbPdf(string $text): string
 {
     $stream = "BT /F1 18 Tf 72 720 Td ({$text}) Tj ET";
@@ -257,7 +263,7 @@ test('ai tool actions mutate and read expected database state', function () {
         'collection_id' => $collectionId,
         'filter_json' => json_encode(['status' => 'published']),
     ]);
-    $similarResult = $invoke(new SearchSimilarItems, [
+    $similarResult = $invoke(new SearchSimilarCollectionItems, [
         'collection_id' => $collectionId,
         'query' => 'Needle',
     ]);

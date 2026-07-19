@@ -7,11 +7,15 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Spatie\Permission\Models\Permission;
 
 /**
+ * Serialize a Spatie permission record for admin listings.
+ *
  * @mixin Permission
  */
 class PermissionResource extends JsonResource
 {
     /**
+     * Transform the permission into an array for admin listings and forms.
+     *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array

@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Scheduled remote JSON import configuration for a collection.
+ */
 class AiSyncSource extends Model
 {
     /**

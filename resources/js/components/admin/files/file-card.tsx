@@ -1,20 +1,6 @@
 import { Star } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import {
-    ContextMenu,
-    ContextMenuContent,
-    ContextMenuItem,
-    ContextMenuSeparator,
-    ContextMenuTrigger,
-} from '@/components/ui/context-menu';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
     INTERNAL_FILE_DRAG_TYPE,
     isInternalFileDrag,
 } from '@/components/admin/file-dropzone';
@@ -22,6 +8,20 @@ import {
     FilePreview,
     hasCoverMedia,
 } from '@/components/admin/files/file-preview';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuSeparator,
+    ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type {
     AdminFileRow,
@@ -53,6 +53,11 @@ type FileCardProps = {
     onDropOnFolder: (folderId: number) => void;
 };
 
+/**
+ * Single file or folder tile in the manager grid.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function FileCard({
     file,
     selected,
@@ -183,6 +188,7 @@ export function FileCard({
                     onDoubleClick={() => {
                         if (isFolder && !isTrashed) {
                             onOpenFolder(file.id);
+
                             return;
                         }
 

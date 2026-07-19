@@ -17,8 +17,14 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use ZipArchive;
 
+/**
+ * Orchestrates file and folder CRUD, bulk operations, chunked uploads, zips, and attachments.
+ */
 class FileService
 {
+    /**
+     * Create a folder node and persist its computed path.
+     */
     public function createFolder(string $name, ?int $parentId = null, string $disk = 'assets'): File
     {
         return DB::transaction(function () use ($name, $parentId, $disk) {
@@ -38,6 +44,9 @@ class FileService
         });
     }
 
+    /**
+     * Store an uploaded file, deduplicate by hash when possible, and link a version row.
+     */
     public function uploadFile(UploadedFile $uploadedFile, ?int $parentId = null, string $disk = 'assets', ?string $name = null): File
     {
         $fileName = $name ?? $uploadedFile->getClientOriginalName();
@@ -93,6 +102,11 @@ class FileService
         }
     }
 
+    /**
+     * Move a file or folder, optionally across disks, with optimistic locking when version is supplied.
+     *
+     * @throws HttpResponseException When optimistic lock fails (409)
+     */
     public function move(File $file, ?int $targetParentId, ?string $targetDisk = null, ?Carbon $version = null): File
     {
         if ($targetParentId !== null) {
@@ -167,6 +181,9 @@ class FileService
         }
     }
 
+    /**
+     * Rename a file or folder and recalculate descendant paths when needed.
+     */
     public function rename(File $file, string $newName): File
     {
         return DB::transaction(function () use ($file, $newName) {
@@ -222,6 +239,11 @@ class FileService
         return $file->fresh(['tags']);
     }
 
+    /**
+     * Replace file bytes in storage and register a new version row.
+     *
+     * @throws \InvalidArgumentException When the target is not a file
+     */
     public function replaceFile(File $file, UploadedFile $uploadedFile): File
     {
         if (! $file->isFile()) {
@@ -283,6 +305,9 @@ class FileService
         }
     }
 
+    /**
+     * Deep-copy a file or folder tree under an optional new parent.
+     */
     public function copy(File $file, ?int $targetParentId = null): File
     {
         return DB::transaction(function () use ($file, $targetParentId) {
@@ -294,11 +319,17 @@ class FileService
         });
     }
 
+    /**
+     * Mark a file as favorited for the given user.
+     */
     public function favorite(File $file, User $user): void
     {
         $file->favoritedBy()->syncWithoutDetaching([$user->id]);
     }
 
+    /**
+     * Remove a user's favorite marker from a file.
+     */
     public function unfavorite(File $file, User $user): void
     {
         $file->favoritedBy()->detach($user->id);
@@ -419,6 +450,9 @@ class FileService
         }
     }
 
+    /**
+     * Absolute path where a user's async zip job should be written.
+     */
     public function zipStoragePath(int $userId, string $jobId): string
     {
         return storage_path('app/zips/'.$userId.'/'.$jobId.'.zip');
@@ -428,6 +462,8 @@ class FileService
      * Build a zip of the given files/folders. Returns absolute path.
      *
      * @param  list<int>  $fileIds
+     *
+     * @throws \RuntimeException When the archive cannot be created or exceeds max size
      */
     public function buildZipArchive(array $fileIds, ?string $destinationPath = null, ?int $maxBytes = null): string
     {
@@ -455,6 +491,9 @@ class FileService
         return $zipPath;
     }
 
+    /**
+     * Delete zip files older than the configured TTL. Returns count removed.
+     */
     public function cleanupExpiredZips(): int
     {
         $ttlMinutes = (int) config('files.zip_ttl_minutes', 60);
@@ -625,6 +664,9 @@ class FileService
         return $totalBytes + strlen($contents);
     }
 
+    /**
+     * Soft-delete a file or folder and all descendants recursively.
+     */
     public function softDelete(File $file): void
     {
         DB::transaction(function () use ($file) {
@@ -636,6 +678,9 @@ class FileService
         });
     }
 
+    /**
+     * Restore a soft-deleted file or folder and its trashed descendants.
+     */
     public function restore(File $file): File
     {
         return DB::transaction(function () use ($file) {
@@ -649,6 +694,9 @@ class FileService
         });
     }
 
+    /**
+     * Permanently delete a file or folder tree and remove storage bytes.
+     */
     public function forceDelete(File $file): void
     {
         DB::transaction(function () use ($file) {
@@ -665,6 +713,11 @@ class FileService
         });
     }
 
+    /**
+     * Attach a file to a model using the HasFiles trait.
+     *
+     * @throws \InvalidArgumentException When the model class or instance is invalid
+     */
     public function attachToModel(File $file, string $modelType, int $modelId, ?string $role = null, int $order = 0): void
     {
         DB::transaction(function () use ($file, $modelType, $modelId, $role, $order) {
@@ -685,6 +738,11 @@ class FileService
         });
     }
 
+    /**
+     * Detach a file from a model, optionally scoped to a pivot role.
+     *
+     * @throws \InvalidArgumentException When the model class or instance is invalid
+     */
     public function detachFromModel(File $file, string $modelType, int $modelId, ?string $role = null): void
     {
         DB::transaction(function () use ($file, $modelType, $modelId, $role) {
@@ -705,6 +763,9 @@ class FileService
         });
     }
 
+    /**
+     * Begin a chunked upload session and return tracking metadata.
+     */
     public function initChunkUpload(string $fileName, int $totalSize, int $totalChunks, ?string $mimeType = null, ?int $parentId = null, string $disk = 'assets'): FileUpload
     {
         $uploadId = bin2hex(random_bytes(32));
@@ -726,6 +787,12 @@ class FileService
         });
     }
 
+    /**
+     * Persist one chunk for an in-progress upload session.
+     *
+     * @throws \RuntimeException When the session expired or is already complete
+     * @throws \InvalidArgumentException When chunk index is out of range
+     */
     public function uploadChunk(string $uploadId, int $chunkIndex, UploadedFile $chunk): void
     {
         $fileUpload = FileUpload::query()->where('upload_id', $uploadId)->firstOrFail();
@@ -758,6 +825,11 @@ class FileService
         });
     }
 
+    /**
+     * Merge uploaded chunks into a final file record.
+     *
+     * @throws \RuntimeException When session expired, incomplete, or merge fails
+     */
     public function completeChunkUpload(string $uploadId): File
     {
         $fileUpload = FileUpload::query()->where('upload_id', $uploadId)->firstOrFail();
@@ -888,6 +960,9 @@ class FileService
         ];
     }
 
+    /**
+     * Remove expired partial upload sessions and their chunk storage. Returns count cleaned.
+     */
     public function cleanupStaleUploads(?Carbon $before = null): int
     {
         $before ??= now();
@@ -907,6 +982,9 @@ class FileService
         return $cleanedCount;
     }
 
+    /**
+     * Compute the display path from parent hierarchy and name.
+     */
     public function calculatePath(File $file): string
     {
         if ($file->parent_id === null) {
@@ -926,6 +1004,9 @@ class FileService
         return rtrim($parentPath, '/').'/'.$file->name;
     }
 
+    /**
+     * Recalculate and persist paths for all descendants after a folder move or rename.
+     */
     public function updateChildrenPaths(File $folder): void
     {
         foreach ($folder->children as $child) {

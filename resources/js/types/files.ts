@@ -6,6 +6,7 @@ export type FileTag = {
     slug: string;
 };
 
+/** File manager row for files and folders in admin UI and API responses. */
 export type AdminFileRow = {
     id: number;
     uuid: string;
@@ -48,11 +49,13 @@ export type FilesPaginator = {
     total: number;
 };
 
+/** Single segment in the file manager folder breadcrumb trail. */
 export type FileBreadcrumb = {
     id: number;
     name: string;
 };
 
+/** In-memory upload progress tracked by {@link file-upload-store}. */
 export type FileUploadProgress = {
     uploadId: string;
     fileName: string;
@@ -81,6 +84,7 @@ export type FileActionKey =
     | 'restore'
     | 'force_delete';
 
+/** Context menu / overflow action definition for file rows. */
 export type FileActionDefinition = {
     key: FileActionKey;
     label: string;

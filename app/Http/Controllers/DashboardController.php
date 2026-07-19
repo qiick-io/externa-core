@@ -12,8 +12,14 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Activitylog\Models\Activity;
 
+/**
+ * Renders the dashboard with cached operational and storage metrics.
+ */
 class DashboardController
 {
+    /**
+     * Show recent activity, file stats, upload health, and deferred storage breakdowns.
+     */
     public function index(Request $request): Response
     {
         $now = now();

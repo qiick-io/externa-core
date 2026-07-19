@@ -1,8 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Pencil, Plus, Rows3, Trash2 } from 'lucide-react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
-import { PageLayout, TablePanel } from '@/components/layout/page-layout';
 import { CollectionFormDrawer } from '@/components/collections/collection-form-drawer';
+import { PageLayout, TablePanel } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Drawer } from '@/components/ui/drawer';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -13,6 +13,10 @@ import AppLayout from '@/layouts/app-layout';
 import collectionRoutes from '@/routes/collections';
 import type { BreadcrumbItem, CollectionRow } from '@/types';
 
+/**
+ * List of content collections.
+ * @returns {JSX.Element}
+ */
 export default function CollectionsIndex({
     collections,
     filters = {},

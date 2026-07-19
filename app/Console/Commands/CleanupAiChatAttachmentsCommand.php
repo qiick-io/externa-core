@@ -9,8 +9,17 @@ use Illuminate\Console\Command;
 
 #[Signature('ai:cleanup-attachments')]
 #[Description('Remove expired AI chat attachments and their temporary files')]
+/**
+ * Artisan command that purges expired AI chat attachments from storage.
+ */
 class CleanupAiChatAttachmentsCommand extends Command
 {
+    /**
+     * Execute the command.
+     */
+    /**
+     * Delete expired attachment records and their storage files.
+     */
     public function handle(): int
     {
         $expired = AiChatAttachment::query()

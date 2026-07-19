@@ -19,6 +19,9 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
+/**
+ * Admin CRUD, bulk actions, and permission assignment for application roles.
+ */
 class RoleController extends Controller
 {
     use AuthorizesWithPermission;
@@ -27,6 +30,9 @@ class RoleController extends Controller
         private readonly PermissionGrouper $permissionGrouper,
     ) {}
 
+    /**
+     * List roles with search and sort filters.
+     */
     public function index(Request $request): Response
     {
         $this->authorizePermission(PermissionEnum::CanShowRoles->value);
@@ -61,6 +67,9 @@ class RoleController extends Controller
         ]);
     }
 
+    /**
+     * Render the create-role form with grouped permission options.
+     */
     public function create(): Response
     {
         $this->authorizePermission(PermissionEnum::CanCreateRoles->value);
@@ -68,6 +77,9 @@ class RoleController extends Controller
         return Inertia::render('admin/roles/form', $this->roleFormProps());
     }
 
+    /**
+     * Create a role and sync its permissions.
+     */
     public function store(StoreRoleRequest $request): RedirectResponse
     {
         $data = $request->validated();
@@ -85,6 +97,9 @@ class RoleController extends Controller
             ->with('success', __('Role created.'));
     }
 
+    /**
+     * Render the edit-role form for the given role.
+     */
     public function edit(Role $role): Response
     {
         $this->authorizePermission(PermissionEnum::CanEditRoles->value);
@@ -97,6 +112,9 @@ class RoleController extends Controller
         ]);
     }
 
+    /**
+     * Update a role name and/or permissions.
+     */
     public function update(UpdateRoleRequest $request, Role $role): RedirectResponse
     {
         $data = $request->validated();
@@ -116,6 +134,9 @@ class RoleController extends Controller
             ->with('success', __('Role updated.'));
     }
 
+    /**
+     * Delete a role unless it is the protected super-admin role.
+     */
     public function destroy(Role $role): RedirectResponse
     {
         $this->authorizePermission(PermissionEnum::CanDeleteRoles->value);
@@ -131,6 +152,9 @@ class RoleController extends Controller
             ->with('success', __('Role deleted.'));
     }
 
+    /**
+     * Bulk-delete roles, skipping the protected super-admin role.
+     */
     public function bulkActions(BulkRoleActionRequest $request): RedirectResponse
     {
         $ids = $request->deletableIds();
@@ -147,6 +171,8 @@ class RoleController extends Controller
     }
 
     /**
+     * Replace a role's permissions and flush the permission cache.
+     *
      * @param  list<int>  $permissionIds
      */
     private function syncPermissions(Role $role, array $permissionIds): void
@@ -157,6 +183,8 @@ class RoleController extends Controller
     }
 
     /**
+     * Build shared props for the role create/edit Inertia forms.
+     *
      * @return array<string, mixed>
      */
     private function roleFormProps(): array

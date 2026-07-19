@@ -1,3 +1,27 @@
+/** Normalized Laravel paginator shape used across admin list views. */
+export type Paginated<T> = {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    links?: { url: string | null; label: string; active: boolean }[];
+};
+
+/** Permission names grouped by admin section for the permissions matrix UI. */
+export type PermissionGroup = {
+    section: string;
+    label: string;
+    show_permission: { id: number; name: string } | null;
+    child_permissions: { id: number; name: string }[];
+};
+
+/** Generic id/label pair for admin select components. */
+export type AdminSelectOption = {
+    id: number;
+    label: string;
+};
+
 export type AdminRoleRef = {
     id: number;
     name: string;
@@ -77,25 +101,4 @@ export type AdminActivityLogRow = {
         ip: string | null;
         user_agent: string | null;
     };
-};
-
-export type PermissionGroup = {
-    section: string;
-    label: string;
-    show_permission: { id: number; name: string } | null;
-    child_permissions: { id: number; name: string }[];
-};
-
-export type Paginated<T> = {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    links?: { url: string | null; label: string; active: boolean }[];
-};
-
-export type AdminSelectOption = {
-    id: number;
-    label: string;
 };

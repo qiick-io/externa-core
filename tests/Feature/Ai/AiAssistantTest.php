@@ -75,7 +75,7 @@ test('ai status reports online when models endpoint succeeds', function () {
     $this->getJson(route('ai.status'))
         ->assertOk()
         ->assertJsonPath('online', true)
-        ->assertJsonPath('model', 'local-model');
+        ->assertJsonPath('model', config('ai.providers.local.models.text.default'));
 });
 
 test('users only see their own conversations', function () {

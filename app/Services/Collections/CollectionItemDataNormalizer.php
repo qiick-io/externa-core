@@ -7,9 +7,14 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use Illuminate\Support\Str;
 
+/**
+ * Coerces inbound item payloads to storable shapes per field type and locale.
+ */
 class CollectionItemDataNormalizer
 {
     /**
+     * Normalize raw item data against the collection field definitions.
+     *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */

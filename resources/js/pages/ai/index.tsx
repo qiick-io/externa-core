@@ -15,9 +15,10 @@ import { AiComposer } from '@/components/ai/ai-composer';
 import {
     AiFileCards,
     fileCardsFromToolResult,
-    fileCardsFromToolResults,
-    type AiFileCardItem,
+    fileCardsFromToolResults
+    
 } from '@/components/ai/ai-file-cards';
+import type {AiFileCardItem} from '@/components/ai/ai-file-cards';
 import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
 import { AssistantMessageActions } from '@/components/ai/assistant-message-actions';
 import { ThinkingDots } from '@/components/ai/thinking-dots';
@@ -272,6 +273,12 @@ function conversationUrl(conversationId: string | null): string {
     return aiShow.url(conversationId);
 }
 
+/**
+ * Full-page AI assistant chat interface.
+ * @param {*} props.conversations - conversations.
+ * @param {*} props.messages - messages.
+ * @returns {JSX.Element}
+ */
 export default function AiIndexPage({
     conversations: conversationsProp,
     selectedConversation,

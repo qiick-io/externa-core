@@ -22,7 +22,8 @@ import {
     Tags,
     TextQuote,
 } from 'lucide-react';
-import { useMemo, useState, type ComponentType, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
+import type { ComponentType } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { CommonAdvancedSettings } from '@/components/collections/field-settings/common-advanced-settings';
 import {
@@ -69,15 +70,16 @@ import {
     parseFieldTreeOptions,
     parseSliderFieldSettings,
     parseSliderSettings,
-    parseStringFieldSettings,
-    type CommonFieldSettings,
-    type CollectionFieldTypeOption,
-    type FieldOptionRow,
-    type FieldTreeOptionRow,
-    type RelatedCollectionOption,
-    type SliderFieldSettings,
-    type StringFieldSettings,
+    parseStringFieldSettings
+    
+    
+    
+    
+    
+    
+    
 } from '@/lib/collection-field-types';
+import type {CommonFieldSettings, CollectionFieldTypeOption, FieldOptionRow, FieldTreeOptionRow, RelatedCollectionOption, SliderFieldSettings, StringFieldSettings} from '@/lib/collection-field-types';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import type { CollectionFieldRow } from '@/types';
 
@@ -398,52 +400,6 @@ function TreeOptionsEditor({
     );
 }
 
-function renderTreeOptionHiddenFields(
-    options: FieldTreeOptionRow[],
-    baseName = 'settings[options]',
-): React.ReactNode[] {
-    return options.flatMap((option, index) => {
-        const prefix = `${baseName}[${index}]`;
-        const fields: React.ReactNode[] = [
-            <input
-                key={`${prefix}-value`}
-                type="hidden"
-                name={`${prefix}[value]`}
-                value={option.value}
-            />,
-            <input
-                key={`${prefix}-label`}
-                type="hidden"
-                name={`${prefix}[label]`}
-                value={option.label || option.value}
-            />,
-        ];
-
-        if (option.children !== undefined && option.children.length > 0) {
-            fields.push(
-                ...renderTreeOptionHiddenFields(
-                    option.children,
-                    `${prefix}[children]`,
-                ),
-            );
-        }
-
-        return fields;
-    });
-}
-
-function filterTreeOptions(options: FieldTreeOptionRow[]): FieldTreeOptionRow[] {
-    return options
-        .filter(
-            (option) =>
-                option.value.trim() !== '' || option.label.trim() !== '',
-        )
-        .map((option) => ({
-            ...option,
-            children: filterTreeOptions(option.children ?? []),
-        }));
-}
-
 function SettingsHiddenFields({
     settings,
 }: {
@@ -740,6 +696,11 @@ export type CollectionFieldTypeDrawerProps = {
     onSelectType: (type: string) => void;
 };
 
+/**
+ * Drawer for choosing a collection field type.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function CollectionFieldTypeDrawer({
     onSelectType,
 }: CollectionFieldTypeDrawerProps) {
@@ -768,6 +729,11 @@ export type CollectionFieldFormDrawerProps = {
     onSuccess: () => void;
 };
 
+/**
+ * Drawer form for editing a collection field schema.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function CollectionFieldFormDrawer({
     mode,
     collectionId,
@@ -820,12 +786,15 @@ export function CollectionFieldFormDrawer({
             if (relatedCollectionId) {
                 typeSettings.related_collection_id = relatedCollectionId;
             }
+
             if (displayField) {
                 typeSettings.display_field = displayField;
             }
+
             if (fieldType === 'image') {
                 typeSettings.allow_multiple = allowMultipleImages ? '1' : '0';
             }
+
             if (fieldType === 'm2a') {
                 typeSettings.allowed_collection_ids = allowedCollectionIds;
             }

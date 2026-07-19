@@ -9,10 +9,16 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
+/**
+ * Validate creating a new admin user with optional role and group assignments.
+ */
 class StoreUserRequest extends FormRequest
 {
     use AuthorizesWithPermission;
 
+    /**
+     * Require permission to create users.
+     */
     public function authorize(): bool
     {
         $this->authorizePermission(PermissionEnum::CanCreateUsers->value);
@@ -21,6 +27,8 @@ class StoreUserRequest extends FormRequest
     }
 
     /**
+     * Validate new user attributes, credentials, and relation ids.
+     *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array

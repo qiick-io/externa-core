@@ -1,12 +1,13 @@
+import { TranslatedInput } from '@/components/collections/field-settings/translated-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { TranslatedInput } from '@/components/collections/field-settings/translated-input';
 import {
-    FIELD_VALIDATION_OPERATORS,
-    type FieldValidationRule,
-    type TranslatedText,
+    FIELD_VALIDATION_OPERATORS
+    
+    
 } from '@/lib/collection-field-types';
+import type {FieldValidationRule, TranslatedText} from '@/lib/collection-field-types';
 
 type ValidationRuleBuilderProps = {
     rules: FieldValidationRule[];
@@ -15,6 +16,11 @@ type ValidationRuleBuilderProps = {
     onValidationMessageChange: (next: TranslatedText) => void;
 };
 
+/**
+ * UI for assembling collection field validation rules.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function ValidationRuleBuilder({
     rules,
     validationMessage,

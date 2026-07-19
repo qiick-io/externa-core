@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
+/** Shared Tailwind classes for filter select elements in page headers. */
 export const filterSelectClassName =
     'border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 min-w-[10rem] rounded-md border px-3 py-1 text-sm focus-visible:ring-2 focus-visible:outline-none';
 
@@ -13,6 +14,11 @@ export type PageHeaderProps = {
     filtersRight?: ReactNode;
 };
 
+/**
+ * Page description, subheader, and filter row used inside {@link PageLayout}.
+ * @param {PageHeaderProps} props - Header section props.
+ * @returns {JSX.Element}
+ */
 export function PageHeader({
     description,
     subheader,
@@ -55,6 +61,11 @@ export type FilterSearchProps = {
     id?: string;
 };
 
+/**
+ * Search input with icon for list and table filter toolbars.
+ * @param {FilterSearchProps} props - Controlled search field props.
+ * @returns {JSX.Element}
+ */
 export function FilterSearch({
     value,
     onChange,

@@ -388,7 +388,7 @@ test('collection items options endpoint returns related items', function () {
         ],
     ]);
 
-    $response = $this->getJson(route('collections.items.options', $books).'?'.http_build_query([
+    $response = $this->getJson(route('collections.items.field-options', $books).'?'.http_build_query([
         'field_id' => $relationField->id,
         'search' => 'Jane',
     ]));

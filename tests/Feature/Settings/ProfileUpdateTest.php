@@ -67,7 +67,9 @@ test('user can delete their account', function () {
         ->assertRedirect(route('home'));
 
     $this->assertGuest();
-    expect($user->fresh())->toBeNull();
+    // SoftDeletes: fresh() bypasses global scopes, so assert via the default query.
+    expect(User::query()->find($user->id))->toBeNull();
+    expect($user->fresh()->trashed())->toBeTrue();
 });
 
 test('correct password must be provided to delete account', function () {

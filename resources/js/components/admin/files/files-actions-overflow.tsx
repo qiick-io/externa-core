@@ -24,6 +24,11 @@ type FilesActionsOverflowProps = {
 
 const MIN_VALID_ACTION_WIDTH = 24;
 
+/**
+ * Responsive overflow menu for file bulk actions.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function FilesActionsOverflow({
     actions,
     onAction,
@@ -56,6 +61,7 @@ export function FilesActionsOverflow({
             actionButtonRefs.current.size < totalActions
         ) {
             setOverflowStart(totalActions);
+
             return;
         }
 
@@ -86,6 +92,7 @@ export function FilesActionsOverflow({
 
             if (cached && /^\d+(\.\d+)?$/.test(cached)) {
                 buttonWidth = Number.parseFloat(cached);
+
                 if (
                     Number.isNaN(buttonWidth) ||
                     buttonWidth < MIN_VALID_ACTION_WIDTH
@@ -136,6 +143,7 @@ export function FilesActionsOverflow({
 
     useLayoutEffect(() => {
         const container = containerRef.current;
+
         if (!container) {
             return;
         }

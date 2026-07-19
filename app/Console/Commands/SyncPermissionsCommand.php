@@ -8,12 +8,25 @@ use Illuminate\Support\Facades\File;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 
+/**
+ * Artisan command that syncs PermissionEnum definitions into the database.
+ */
+/**
+ * Artisan command to sync PermissionEnum cases to the database and TypeScript enum.
+ */
 class SyncPermissionsCommand extends Command
 {
     protected $signature = 'permissions:sync {--prune : Remove permissions that are no longer defined in PermissionEnum}';
 
     protected $description = 'Sync PermissionEnum cases to the database and generate TypeScript enum';
 
+    /**
+     * Execute the command.
+     */
+
+    /**
+     * Sync PermissionEnum cases to the database and regenerate the TypeScript enum.
+     */
     public function handle(): int
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -44,6 +57,9 @@ class SyncPermissionsCommand extends Command
         return self::SUCCESS;
     }
 
+    /**
+     * Write the generated PermissionEnum TypeScript file to resources/js/enums.
+     */
     protected function generateTypeScriptEnum(): void
     {
         $lines = [

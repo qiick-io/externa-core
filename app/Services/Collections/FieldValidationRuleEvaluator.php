@@ -9,6 +9,9 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Translation\PotentiallyTranslatedString;
 
+/**
+ * Maps field settings validation_rules to Laravel rule objects and custom rules.
+ */
 class FieldValidationRuleEvaluator
 {
     /**
@@ -76,6 +79,9 @@ class FieldValidationRuleEvaluator
         };
     }
 
+    /**
+     * Localized custom validation message from field settings, if configured.
+     */
     public function customMessage(CollectionField $field): ?string
     {
         $message = data_get($field->settings, 'validation_message');
@@ -107,6 +113,9 @@ class FieldValidationRuleEvaluator
     }
 }
 
+/**
+ * Ensures a field value is unique among rows for the same field_id.
+ */
 class FieldValueUniqueRule implements ValidationRule
 {
     public function __construct(
@@ -148,6 +157,9 @@ class FieldValueUniqueRule implements ValidationRule
     }
 }
 
+/**
+ * Validates that a string field value contains or excludes a needle substring.
+ */
 class FieldValueContainsRule implements ValidationRule
 {
     public function __construct(
@@ -182,6 +194,9 @@ class FieldValueContainsRule implements ValidationRule
     }
 }
 
+/**
+ * Rejects values equal to a forbidden scalar.
+ */
 class FieldValueNotEqualsRule implements ValidationRule
 {
     public function __construct(private mixed $forbiddenValue) {}

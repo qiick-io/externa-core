@@ -1,6 +1,8 @@
+type InertiaFormMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
+
 type WayfinderFormProps = {
     action: string;
-    method: string;
+    method: InertiaFormMethod;
 };
 
 type WayfinderRouteWithForm<TArgs> = {
@@ -10,13 +12,26 @@ type WayfinderRouteWithForm<TArgs> = {
     post?: (args: TArgs) => { url: string; method: 'post' };
 };
 
+/**
+ * Builds Inertia `<Form>` props from a Wayfinder route, preferring generated `.form()` helpers.
+ *
+ * @param route - Wayfinder route object with optional `form`, `patch`, or `post` helpers
+ * @param args - Route parameters passed to the Wayfinder helpers
+ * @param fallbackMethod - HTTP method when no generated form helper exists
+ * @returns `action` and `method` suitable for Inertia forms
+ */
 export function wayfinderInertiaFormProps<TArgs>(
     route: WayfinderRouteWithForm<TArgs>,
     args: TArgs,
     fallbackMethod: 'post' | 'patch',
 ): WayfinderFormProps {
     if (typeof route.form === 'function') {
-        return route.form(args);
+        const formProps = route.form(args);
+
+        return {
+            action: formProps.action,
+            method: formProps.method as InertiaFormMethod,
+        };
     }
 
     if (fallbackMethod === 'patch' && typeof route.patch === 'function') {

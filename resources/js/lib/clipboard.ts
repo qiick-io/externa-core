@@ -1,7 +1,10 @@
 /**
- * Copy text with Clipboard API, falling back to a temporary textarea.
- * navigator.clipboard often fails when focus leaves the document (e.g. Radix tooltips)
+ * Copies text using the Clipboard API, falling back to a temporary textarea.
+ * `navigator.clipboard` often fails when focus leaves the document (e.g. Radix tooltips)
  * or outside a secure context.
+ *
+ * @param text - Plain text to copy
+ * @returns Whether the copy succeeded
  */
 export async function copyTextToClipboard(text: string): Promise<boolean> {
     if (text === '') {
@@ -15,7 +18,7 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
             return true;
         }
     } catch {
-        // fall through
+        /* Clipboard API unavailable — try execCommand fallback */
     }
 
     try {

@@ -8,8 +8,17 @@ use Laravel\Ai\Tools\Request;
 use Stringable;
 use Throwable;
 
+/**
+ * Concern that wraps AI tool handlers with activity logging.
+ */
+/**
+ * Wraps AI tool execution with activity logging and safe error text responses.
+ */
 trait LogsAiToolUse
 {
+    /**
+     * Execute a tool callback with activity logging and exception-to-text handling.
+     */
     protected function withAiToolLogging(Request $request, callable $callback): Stringable|string
     {
         $user = $this->resolveToolUser();
@@ -66,6 +75,9 @@ trait LogsAiToolUse
         return is_string($conversationId) && $conversationId !== '' ? $conversationId : null;
     }
 
+    /**
+     * Record an AI-driven mutation on a model subject when possible.
+     */
     protected function logAiMutation(mixed $subject, string $action): void
     {
         $user = $this->resolveToolUser();

@@ -6,10 +6,13 @@ use App\Services\Authorization\EffectivePermissionResolver;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
+/**
+ * Share auth, sidebar, locale, and notification props with every Inertia page.
+ */
 class HandleInertiaRequests extends Middleware
 {
     /**
-     * The root template that's loaded on the first page visit.
+     * Blade root view used for the initial Inertia document shell.
      *
      * @see https://inertiajs.com/server-side-setup#root-template
      *
@@ -18,7 +21,7 @@ class HandleInertiaRequests extends Middleware
     protected $rootView = 'app';
 
     /**
-     * Determines the current asset version.
+     * Resolve the asset version used to bust cached frontend bundles.
      *
      * @see https://inertiajs.com/asset-versioning
      */
@@ -28,7 +31,7 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * Define the props that are shared by default.
+     * Merge application-wide props into the Inertia shared payload.
      *
      * @see https://inertiajs.com/shared-data
      *

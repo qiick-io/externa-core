@@ -13,13 +13,22 @@ use Laravel\Ai\Models\Conversation;
 use Laravel\Ai\Models\ConversationMessage;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
+/**
+ * Render the Inertia AI chat page with conversation and message props.
+ */
 class AiPageController extends Controller
 {
+    /**
+     * Render the chat page without a preselected conversation.
+     */
     public function index(Request $request): Response
     {
         return $this->renderPage($request, null);
     }
 
+    /**
+     * Render the chat page for a specific owned conversation.
+     */
     public function show(Request $request, string $conversation): Response
     {
         /** @var User $user */
@@ -35,6 +44,11 @@ class AiPageController extends Controller
         return $this->renderPage($request, $conversation);
     }
 
+    /**
+     * Build Inertia props for the chat page, optionally loading a selected conversation.
+     *
+     * ponytail: keep the open chat visible even when it falls outside page 1 of the sidebar list.
+     */
     private function renderPage(Request $request, ?string $selectedId): Response
     {
         /** @var User $user */
@@ -85,7 +99,6 @@ class AiPageController extends Controller
                 })
                 ->all();
 
-            // ponytail: keep the open chat visible even when it falls outside page 1
             if ($conversations->getCollection()->where('id', $selected->id)->isEmpty()) {
                 $conversations->setCollection(
                     $conversations->getCollection()->prepend($this->conversationSummary($selected))
@@ -101,6 +114,8 @@ class AiPageController extends Controller
     }
 
     /**
+     * Build a lightweight conversation summary for the chat sidebar.
+     *
      * @return array{id: string, title: string|null, pinned_at: string|null, created_at: string|null, updated_at: string|null}
      */
     private function conversationSummary(Conversation $conversation): array
@@ -114,6 +129,9 @@ class AiPageController extends Controller
         ];
     }
 
+    /**
+     * Convert a datetime value to an ISO-8601 string when present.
+     */
     private function toIso8601(mixed $value): ?string
     {
         if ($value === null) {
@@ -123,6 +141,9 @@ class AiPageController extends Controller
         return Carbon::parse($value)->toIso8601String();
     }
 
+    /**
+     * Flatten stored message content into display text.
+     */
     private function normalizeMessageContent(mixed $content): string
     {
         if ($content === null) {
@@ -165,6 +186,8 @@ class AiPageController extends Controller
     }
 
     /**
+     * Decode tool call/result payloads stored as JSON strings.
+     *
      * @return array<int|string, mixed>
      */
     private function normalizeMessageArray(mixed $value): array
@@ -181,6 +204,8 @@ class AiPageController extends Controller
     }
 
     /**
+     * Normalize attachment metadata stored on chat messages.
+     *
      * @return list<array{id?: string, name: string, mime?: string|null, size?: int|null}>
      */
     private function normalizeMessageAttachments(mixed $value): array

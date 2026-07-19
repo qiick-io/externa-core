@@ -15,6 +15,11 @@ type UserMessageActionsProps = {
     onEdit: () => void;
 };
 
+/**
+ * Edit and delete actions on user chat messages.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function UserMessageActions({
     content,
     disabled = false,

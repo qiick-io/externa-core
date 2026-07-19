@@ -1,5 +1,9 @@
 import AppLogoIcon from '@/components/app-logo-icon';
 
+/**
+ * Brand mark and application name for sidebar and header chrome.
+ * @returns {JSX.Element}
+ */
 export default function AppLogo() {
     return (
         <>

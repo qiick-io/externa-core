@@ -10,6 +10,9 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
 use Illuminate\Validation\Rules\In;
 
+/**
+ * Builds Laravel validation rules for collection item data payloads.
+ */
 class CollectionItemDataRuleBuilder
 {
     public function __construct(
@@ -17,6 +20,8 @@ class CollectionItemDataRuleBuilder
     ) {}
 
     /**
+     * Validation rules for the full data payload on create or update.
+     *
      * @return array<string, mixed>
      */
     public function rules(Collection $collection, bool $creating, ?int $excludeItemId = null): array

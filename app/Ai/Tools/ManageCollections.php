@@ -18,16 +18,25 @@ use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 
+/**
+ * AI tool for listing and mutating content collections and their settings.
+ */
 class ManageCollections implements Tool
 {
     use ChecksAiPermissions;
     use LogsAiToolUse;
 
+    /**
+     * Describe what this tool does for the model.
+     */
     public function description(): Stringable|string
     {
         return 'List, get, create, update, soft-delete, restore, or force-delete content collections; and create, update, or delete fields on a collection.';
     }
 
+    /**
+     * Execute the tool request and return a string result for the model.
+     */
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
@@ -50,6 +59,9 @@ class ManageCollections implements Tool
         });
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function schema(JsonSchema $schema): array
     {
         return [

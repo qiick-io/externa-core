@@ -1,3 +1,4 @@
+/** Authenticated user record from shared Inertia props. */
 export type User = {
     id: number;
     first_name: string;
@@ -11,6 +12,7 @@ export type User = {
     [key: string]: unknown;
 };
 
+/** Shared auth context: user, permissions, roles, and super-admin flag. */
 export type Auth = {
     user: User | null;
     permissions: string[];
@@ -18,11 +20,13 @@ export type Auth = {
     isSuperAdmin: boolean;
 };
 
+/** QR code payload returned during two-factor enrollment. */
 export type TwoFactorSetupData = {
     svg: string;
     url: string;
 };
 
+/** Manual TOTP secret key for authenticator apps. */
 export type TwoFactorSecretKey = {
     secretKey: string;
 };

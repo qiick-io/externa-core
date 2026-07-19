@@ -9,6 +9,10 @@ export type CollectionEditSource = Pick<
     'id' | 'name' | 'slug' | 'is_singleton' | 'sort_order'
 >;
 
+/**
+ * Hook exposing open/close state for collection edit drawer.
+ * @returns {Object}
+ */
 export function useCollectionEditDrawer() {
     return useCollections();
 }
@@ -17,6 +21,10 @@ export type CollectionEditDrawerProps = {
     collectionForm: ReturnType<typeof useCollections>;
 };
 
+/**
+ * Drawer shell for editing collection metadata.
+ * @returns {JSX.Element}
+ */
 export function CollectionEditDrawer({
     collectionForm,
 }: CollectionEditDrawerProps) {
@@ -38,6 +46,10 @@ export function CollectionEditDrawer({
     );
 }
 
+/**
+ * Button that opens the collection edit drawer.
+ * @returns {JSX.Element}
+ */
 export function CollectionEditButton({
     collectionForm,
     collection,

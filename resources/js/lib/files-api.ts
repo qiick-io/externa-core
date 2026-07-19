@@ -2,8 +2,11 @@ import adminRoutes from '@/lib/admin-routes';
 import { formRequestHeaders, jsonRequestHeaders } from '@/lib/csrf';
 import type { AdminFileRow, FileTag } from '@/types/files';
 
+/** Size of each chunk for resumable large file uploads (10 MiB). */
 export const CHUNK_SIZE_BYTES = 10 * 1024 * 1024;
+/** Maximum retry attempts per failed upload chunk. */
 export const MAX_CHUNK_RETRIES = 3;
+/** Base delay in milliseconds between chunk retry attempts (multiplied by attempt index). */
 export const CHUNK_RETRY_BASE_DELAY_MS = 1000;
 
 function sleep(milliseconds: number): Promise<void> {
@@ -12,6 +15,12 @@ function sleep(milliseconds: number): Promise<void> {
     });
 }
 
+/**
+ * Resolves the public URL for a file row, preferring server-provided `url`.
+ *
+ * @param file - File manager row
+ * @returns Public URL, or `null` for folders or files without storage
+ */
 export function filePublicUrl(file: AdminFileRow): string | null {
     if (file.url) {
         return file.url;
@@ -24,18 +33,42 @@ export function filePublicUrl(file: AdminFileRow): string | null {
     return `/storage/assets/${file.storage_path}`;
 }
 
+/**
+ * Is Image File.
+ *
+ * @param file - File manager row
+ * @returns Whether the mime type indicates an image
+ */
 export function isImageFile(file: AdminFileRow): boolean {
     return Boolean(file.mime_type?.startsWith('image/'));
 }
 
+/**
+ * Is Video File.
+ *
+ * @param file - File manager row
+ * @returns Whether the mime type indicates a video
+ */
 export function isVideoFile(file: AdminFileRow): boolean {
     return Boolean(file.mime_type?.startsWith('video/'));
 }
 
+/**
+ * Is Playable Video.
+ *
+ * @param file - File manager row
+ * @returns Whether the browser can play this video inline (MP4 or WebM)
+ */
 export function isPlayableVideo(file: AdminFileRow): boolean {
     return file.mime_type === 'video/mp4' || file.mime_type === 'video/webm';
 }
 
+/**
+ * Formats a byte count for display in the file manager.
+ *
+ * @param bytes - File size in bytes, or null
+ * @returns Human-readable size string
+ */
 export function formatFileSize(bytes: number | null): string {
     if (bytes === null || bytes === 0) {
         return '—';
@@ -75,7 +108,7 @@ async function parseResponseError(
             return payload.message;
         }
     } catch {
-        // Ignore JSON parse failures.
+        /* Non-JSON error body — use fallback message */
     }
 
     return fallbackMessage;
@@ -108,6 +141,13 @@ async function request(
     }
 }
 
+/**
+ * Creates a folder under an optional parent via the file manager API.
+ *
+ * @param name - Folder name
+ * @param parentId - Parent folder id, or null for root
+ * @returns Created folder row
+ */
 export async function createFolder(
     name: string,
     parentId: number | null,
@@ -128,12 +168,20 @@ export async function createFolder(
     return (await response.json()) as AdminFileRow;
 }
 
+/**
+ * Uploads a file in a single request (non-chunked).
+ *
+ * @param file - Browser file to upload
+ * @param parentId - Destination folder id, or null for root
+ * @returns Created file row
+ */
 export async function uploadFileDirect(
     file: File,
     parentId: number | null,
 ): Promise<AdminFileRow> {
     const formData = new FormData();
     formData.append('file', file);
+
     if (parentId !== null) {
         formData.append('parent_id', String(parentId));
     }
@@ -154,6 +202,13 @@ export async function uploadFileDirect(
     return (await response.json()) as AdminFileRow;
 }
 
+/**
+ * Moves a file or folder to a new parent.
+ *
+ * @param fileId - Id of the item to move
+ * @param parentId - Destination folder id, or null for root
+ * @returns Updated file row
+ */
 export async function moveFile(
     fileId: number,
     parentId: number | null,
@@ -170,6 +225,13 @@ export async function moveFile(
     return (await response.json()) as AdminFileRow;
 }
 
+/**
+ * Renames a file or folder.
+ *
+ * @param fileId - Id of the item to rename
+ * @param name - New name
+ * @returns Updated file row
+ */
 export async function renameFile(
     fileId: number,
     name: string,
@@ -186,6 +248,12 @@ export async function renameFile(
     return (await response.json()) as AdminFileRow;
 }
 
+/**
+ * Soft-deletes a file or folder.
+ *
+ * @param fileId - Id of the item to delete
+ * @returns {void}
+ */
 export async function deleteFile(fileId: number): Promise<void> {
     const response = await fetch(adminRoutes.files.destroy(fileId), {
         method: 'DELETE',
@@ -196,6 +264,12 @@ export async function deleteFile(fileId: number): Promise<void> {
     await assertOkResponse(response, 'Failed to delete file');
 }
 
+/**
+ * Restores a soft-deleted file or folder.
+ *
+ * @param fileId - Id of the trashed item
+ * @returns Restored file row
+ */
 export async function restoreFile(fileId: number): Promise<AdminFileRow> {
     const response = await fetch(adminRoutes.files.restore(fileId), {
         method: 'POST',
@@ -208,6 +282,12 @@ export async function restoreFile(fileId: number): Promise<AdminFileRow> {
     return (await response.json()) as AdminFileRow;
 }
 
+/**
+ * Permanently deletes a trashed file or folder.
+ *
+ * @param fileId - Id of the trashed item
+ * @returns {void}
+ */
 export async function forceDeleteFile(fileId: number): Promise<void> {
     const response = await fetch(adminRoutes.files.forceDelete(fileId), {
         method: 'DELETE',
@@ -218,6 +298,13 @@ export async function forceDeleteFile(fileId: number): Promise<void> {
     await assertOkResponse(response, 'Failed to permanently delete file');
 }
 
+/**
+ * Updates editable metadata fields on a file row.
+ *
+ * @param fileId - Id of the file to update
+ * @param payload - Partial metadata fields to persist
+ * @returns Updated file row
+ */
 export async function updateFileMetadata(
     fileId: number,
     payload: Partial<{
@@ -244,6 +331,13 @@ export async function updateFileMetadata(
     return (await response.json()) as AdminFileRow;
 }
 
+/**
+ * Replaces file binary content while keeping the same file row id.
+ *
+ * @param fileId - Id of the file to replace
+ * @param file - New file content
+ * @returns Updated file row
+ */
 export async function replaceFile(
     fileId: number,
     file: File,
@@ -267,10 +361,19 @@ export async function replaceFile(
     return (await response.json()) as AdminFileRow;
 }
 
+/** Result of a duplicate/copy request — immediate row or queued background job. */
 export type DuplicateFileResult =
     | { queued: false; file: AdminFileRow }
     | { queued: true; job_id: string };
 
+/**
+ * Duplicates a file or folder, optionally under a different parent.
+ * Large copies may return HTTP 202 with a background job id.
+ *
+ * @param fileId - Source file or folder id
+ * @param parentId - Destination parent id (defaults to same parent)
+ * @returns Immediate file row or queued job handle
+ */
 export async function copyFile(
     fileId: number,
     parentId?: number | null,
@@ -299,6 +402,12 @@ export async function copyFile(
     };
 }
 
+/**
+ * Marks a file as favorited for the current user.
+ *
+ * @param fileId - File id
+ * @returns Updated file row
+ */
 export async function favoriteFile(fileId: number): Promise<AdminFileRow> {
     const response = await fetch(adminRoutes.files.favorite(fileId), {
         method: 'POST',
@@ -311,6 +420,12 @@ export async function favoriteFile(fileId: number): Promise<AdminFileRow> {
     return (await response.json()) as AdminFileRow;
 }
 
+/**
+ * Removes the favorite flag from a file.
+ *
+ * @param fileId - File id
+ * @returns Updated file row
+ */
 export async function unfavoriteFile(fileId: number): Promise<AdminFileRow> {
     const response = await fetch(adminRoutes.files.favorite(fileId), {
         method: 'DELETE',
@@ -323,6 +438,13 @@ export async function unfavoriteFile(fileId: number): Promise<AdminFileRow> {
     return (await response.json()) as AdminFileRow;
 }
 
+/**
+ * Replaces the tag list on a file.
+ *
+ * @param fileId - File id
+ * @param tags - Tag names to attach
+ * @returns Updated file row
+ */
 export async function syncFileTags(
     fileId: number,
     tags: string[],
@@ -339,6 +461,11 @@ export async function syncFileTags(
     return (await response.json()) as AdminFileRow;
 }
 
+/**
+ * Loads the global tag catalog for the file manager.
+ *
+ * @returns All known tags
+ */
 export async function listFileTagsCatalog(): Promise<FileTag[]> {
     const response = await fetch(adminRoutes.files.tagsCatalog(), {
         headers: jsonRequestHeaders(),
@@ -350,16 +477,35 @@ export async function listFileTagsCatalog(): Promise<FileTag[]> {
     return (await response.json()) as FileTag[];
 }
 
+/**
+ * Download File Url.
+ *
+ * @param fileId - File id
+ * @returns Download URL for a single file
+ */
 export function downloadFileUrl(fileId: number): string {
     return adminRoutes.files.download(fileId);
 }
 
+/**
+ * Download Prepared Zip Url.
+ *
+ * @param jobId - Background zip preparation job id
+ * @returns Download URL for a prepared zip archive
+ */
 export function downloadPreparedZipUrl(jobId: string): string {
     return adminRoutes.files.downloadZip(jobId);
 }
 
+/** Handle returned when a multi-file zip download is queued asynchronously. */
 export type QueueZipDownloadResult = { queued: true; job_id: string };
 
+/**
+ * Queues a background job to zip and download multiple files.
+ *
+ * @param fileIds - Ids of files and folders to include
+ * @returns Job handle for polling and download
+ */
 export async function queueFilesZipDownload(
     fileIds: number[],
 ): Promise<QueueZipDownloadResult> {
@@ -380,10 +526,19 @@ export async function queueFilesZipDownload(
     return { queued: true, job_id: payload.job_id };
 }
 
+/** Result of a bulk file action — immediate completion or queued job. */
 export type BulkFileActionResult =
     | { queued: false }
     | { queued: true; job_id: string };
 
+/**
+ * Runs a bulk action (move, delete, restore, etc.) on multiple file ids.
+ *
+ * @param action - Server-recognized bulk action name
+ * @param ids - Target file/folder ids
+ * @param extra - Additional payload fields for the action
+ * @returns Whether the action completed immediately or was queued
+ */
 export async function bulkFileAction(
     action: string,
     ids: number[],
@@ -410,6 +565,12 @@ export async function bulkFileAction(
     return { queued: false };
 }
 
+/**
+ * Fetches a paginated file listing for a folder with optional filters.
+ *
+ * @param options - Folder, trash mode, pagination, search, tags, and sort options
+ * @returns Paginated file rows
+ */
 export async function listFilesPage(options: {
     parentId: number | null;
     trashed?: 'only' | 'with' | null;
@@ -511,6 +672,14 @@ async function uploadChunkWithRetry(
     );
 }
 
+/**
+ * Uploads a large file in fixed-size chunks with per-chunk retries.
+ *
+ * @param file - File to upload
+ * @param parentId - Destination folder id, or null for root
+ * @param onProgress - Optional callback after each chunk completes
+ * @returns Created file row after assembly completes
+ */
 export async function uploadFileChunked(
     file: File,
     parentId: number | null,

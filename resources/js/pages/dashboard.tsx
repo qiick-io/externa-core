@@ -1,7 +1,4 @@
 import { Deferred, Head, Link } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import { dashboard } from '@/routes';
-import adminRoutes from '@/lib/admin-routes';
 import { PageLayout } from '@/components/layout/page-layout';
 import {
     Card,
@@ -18,6 +15,9 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import AppLayout from '@/layouts/app-layout';
+import adminRoutes from '@/lib/admin-routes';
+import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -91,6 +91,11 @@ type DashboardProps = {
     storageTrend?: StorageTrendItem[];
 };
 
+/**
+ * Formats a byte count using binary units (B through TB).
+ * @param {number} bytes - Raw byte count.
+ * @returns {string} Human-readable size string.
+ */
 function formatBytes(bytes: number): string {
     const units = ['B', 'KB', 'MB', 'GB', 'TB'];
     let unitIndex = 0;
@@ -102,9 +107,14 @@ function formatBytes(bytes: number): string {
     }
 
     const rounded = unitIndex === 0 ? value.toFixed(0) : value.toFixed(1);
+
     return `${rounded} ${units[unitIndex]}`;
 }
 
+/**
+ * Main dashboard with activity, storage, and upload health widgets.
+ * @returns {JSX.Element}
+ */
 export default function Dashboard({
     latestActivity,
     fileStats,

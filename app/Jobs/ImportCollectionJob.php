@@ -13,6 +13,9 @@ use Illuminate\Support\Str;
 use Laravel\Ai\Tools\Request;
 use Throwable;
 
+/**
+ * Queued collection import from CSV, Excel, or remote JSON with cache-backed status.
+ */
 class ImportCollectionJob implements ShouldQueue
 {
     use Queueable;
@@ -45,6 +48,9 @@ class ImportCollectionJob implements ShouldQueue
         ]);
     }
 
+    /**
+     * Run the import under the owning user's auth context and persist final status.
+     */
     public function handle(AuthManager $auth): void
     {
         $queuedTotal = self::status($this->jobId)['total'] ?? null;
@@ -88,6 +94,9 @@ class ImportCollectionJob implements ShouldQueue
         }
     }
 
+    /**
+     * Persist failed status when the job exhausts retries.
+     */
     public function failed(?Throwable $exception): void
     {
         $this->putStatus([
@@ -106,6 +115,8 @@ class ImportCollectionJob implements ShouldQueue
     }
 
     /**
+     * Read cached import status for a job id.
+     *
      * @return array<string, mixed>|null
      */
     public static function status(string $jobId): ?array
@@ -115,6 +126,9 @@ class ImportCollectionJob implements ShouldQueue
         return is_array($status) ? $status : null;
     }
 
+    /**
+     * Update queued status with an optional total row estimate.
+     */
     public function setQueuedTotal(?int $total): void
     {
         $this->putStatus([

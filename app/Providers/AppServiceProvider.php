@@ -19,6 +19,12 @@ use Illuminate\Validation\Rules\Password;
 use Spatie\Activitylog\Facades\Activity;
 use Throwable;
 
+/**
+ * Registers application service container bindings and boot-time hooks.
+ */
+/**
+ * Core application service provider: auth, activity logging, HTTP streaming, defaults.
+ */
 class AppServiceProvider extends ServiceProvider
 {
     /**

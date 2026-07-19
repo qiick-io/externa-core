@@ -7,10 +7,16 @@ use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates file metadata updates in the file manager.
+ */
 class UpdateFileMetadataRequest extends FormRequest
 {
     use AuthorizesWithPermission;
 
+    /**
+     * Require permission to update file metadata.
+     */
     public function authorize(): bool
     {
         $this->authorizePermission(PermissionEnum::CanUpdateFileMetadata->value);

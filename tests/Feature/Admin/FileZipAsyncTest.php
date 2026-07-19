@@ -5,7 +5,7 @@ use App\Enums\PermissionEnum;
 use App\Jobs\PrepareFilesZipJob;
 use App\Models\File;
 use App\Models\User;
-use App\Notifications\FileZipReady;
+use App\Notifications\FileZipReadyNotification;
 use App\Services\FileService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Notification;
@@ -163,7 +163,7 @@ test('zip job creates archive and database notification', function () {
     $zipPath = app(FileService::class)->zipStoragePath($user->id, $jobUuid);
     expect(is_file($zipPath))->toBeTrue();
 
-    Notification::assertSentTo($user, FileZipReady::class, function (FileZipReady $notification) use ($jobUuid): bool {
+    Notification::assertSentTo($user, FileZipReadyNotification::class, function (FileZipReadyNotification $notification) use ($jobUuid): bool {
         return $notification->jobId === $jobUuid
             && str_contains($notification->downloadUrl, $jobUuid);
     });

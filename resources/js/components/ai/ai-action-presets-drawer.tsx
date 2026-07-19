@@ -1,5 +1,6 @@
 import { Search, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -17,16 +18,16 @@ import {
     DrawerNested,
     DrawerTitle,
 } from '@/components/ui/drawer';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCan } from '@/hooks/use-can';
 import {
     AI_ACTION_PRESET_CATEGORY_LABELS,
     AI_ACTION_PRESETS,
-    filterAiActionPresets,
-    type AiActionPreset,
-    type AiActionPresetCategory,
+    filterAiActionPresets
+    
+    
 } from '@/lib/ai-action-presets';
+import type {AiActionPreset, AiActionPresetCategory} from '@/lib/ai-action-presets';
 import { cn } from '@/lib/utils';
 
 const CATEGORY_ORDER: AiActionPresetCategory[] = [
@@ -45,6 +46,11 @@ type AiActionPresetsDrawerProps = {
     nested?: boolean;
 };
 
+/**
+ * Drawer listing saved AI action presets.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function AiActionPresetsDrawer({
     open,
     onOpenChange,
@@ -107,6 +113,7 @@ export function AiActionPresetsDrawer({
                 open={open}
                 onOpenChange={(nextOpen) => {
                     onOpenChange(nextOpen);
+
                     if (!nextOpen) {
                         setSearch('');
                         setPendingDestructive(null);

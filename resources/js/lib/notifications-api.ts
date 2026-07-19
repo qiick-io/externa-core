@@ -1,12 +1,18 @@
 import { jsonRequestHeaders } from '@/lib/csrf';
 
-/** Fired when unread notifications may have changed (e.g. after a polled job completes). */
+/** Custom event name fired when unread notification counts may have changed. */
 export const NOTIFICATIONS_UPDATED_EVENT = 'notifications:updated';
 
+/**
+ * Dispatches {@link NOTIFICATIONS_UPDATED_EVENT} so UI hooks can refresh unread counts.
+ *
+ * @returns {void}
+ */
 export function notifyNotificationsUpdated(): void {
     window.dispatchEvent(new Event(NOTIFICATIONS_UPDATED_EVENT));
 }
 
+/** Database notification row as returned by the notifications API. */
 export type AppNotification = {
     id: string;
     type: string;
@@ -41,7 +47,7 @@ async function parseResponseError(
             return payload.message;
         }
     } catch {
-        // Ignore JSON parse failures.
+        /* Non-JSON error body — use fallback message */
     }
 
     return fallbackMessage;
@@ -56,6 +62,12 @@ async function assertOkResponse(
     }
 }
 
+/**
+ * Fetches a paginated page of notifications for the authenticated user.
+ *
+ * @param page - 1-based page number
+ * @returns Paginated notification list
+ */
 export async function fetchNotifications(page = 1): Promise<{
     data: AppNotification[];
     current_page: number;
@@ -77,6 +89,11 @@ export async function fetchNotifications(page = 1): Promise<{
     };
 }
 
+/**
+ * Returns the current unread notification count.
+ *
+ * @returns Unread count
+ */
 export async function fetchUnreadNotificationCount(): Promise<number> {
     const response = await fetch('/notifications/unread-count', {
         headers: jsonRequestHeaders(),
@@ -90,6 +107,12 @@ export async function fetchUnreadNotificationCount(): Promise<number> {
     return payload.count;
 }
 
+/**
+ * Marks notifications as read by id or in bulk.
+ *
+ * @param options - Optional ids to mark, or `all: true` for every notification
+ * @returns Updated unread count after the operation
+ */
 export async function markNotificationsRead(options?: {
     ids?: string[];
     all?: boolean;

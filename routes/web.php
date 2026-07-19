@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * Application web routes: home redirect, authenticated shell, and domain route composition.
+ *
+ * Authenticated routes require `auth` and `verified`. Feature modules are loaded from sibling
+ * route files (admin, settings, collections, ai).
+ */
+
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;

@@ -17,8 +17,19 @@ use Laravel\Ai\Responses\StreamedAgentResponse;
 use Spatie\Activitylog\Models\Activity;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Stream AI assistant responses over SSE for the in-app chat UI.
+ */
 class AiChatController extends Controller
 {
+    /**
+     * Validate the prompt, run the assistant stream, and emit SSE events to the client.
+     *
+     * ponytail: sync SSE holds the PHP worker for the whole tool loop — raise ceiling above max_execution_time=30.
+     * Tool-only turns backfill empty assistant rows with a short summary. User messages are rewritten
+     * after streaming to restore clean text and display-only attachment metadata.
+     * ponytail: in FPM, output buffers are ended so SSE reaches the browser; tests keep buffers.
+     */
     public function __invoke(Request $request): Response
     {
         /** @var User $user */
@@ -61,7 +72,6 @@ class AiChatController extends Controller
 
         $attachments = $this->resolveAttachments($user, $validated['attachment_ids'] ?? []);
 
-        // ponytail: sync SSE holds the PHP worker for the whole tool loop — raise ceiling above max_execution_time=30
         if (! app()->runningUnitTests()) {
             @ini_set('max_execution_time', '600');
             set_time_limit(600);
@@ -97,7 +107,6 @@ class AiChatController extends Controller
             ->then(function (StreamedAgentResponse $response) use ($user, $displayMessage, $displayAttachmentMeta): void {
                 $text = trim((string) ($response->text ?? ''));
 
-                // Tool-only turns often persist empty assistant rows; backfill a short summary.
                 if ($text === '' && $response->toolResults->isNotEmpty()) {
                     $text = AiToolTurnSummary::fromResponse($response);
 
@@ -121,7 +130,6 @@ class AiChatController extends Controller
                         ->first();
 
                     if ($userMessage !== null) {
-                        // Restore clean user text + display-only attachment meta (unknown type → not rehydrated to provider).
                         $userMessage->content = $displayMessage;
                         $userMessage->attachments = $displayAttachmentMeta;
                         $userMessage->save();
@@ -138,7 +146,6 @@ class AiChatController extends Controller
             });
 
         return response()->stream(function () use ($stream): void {
-            // ponytail: in FPM, end buffers so SSE reaches the browser; keep them in tests
             if (! app()->runningUnitTests()) {
                 while (ob_get_level() > 0) {
                     ob_end_flush();
@@ -189,6 +196,8 @@ class AiChatController extends Controller
     }
 
     /**
+     * Load and validate chat attachments owned by the current user.
+     *
      * @param  list<string>|null  $attachmentIds
      * @return SupportCollection<int, AiChatAttachment>
      */
@@ -215,6 +224,8 @@ class AiChatController extends Controller
     }
 
     /**
+     * Append structured attachment metadata to the model prompt.
+     *
      * @param  SupportCollection<int, AiChatAttachment>  $attachments
      */
     private function promptWithAttachmentContext(string $message, SupportCollection $attachments): string
@@ -238,15 +249,15 @@ class AiChatController extends Controller
     }
 
     /**
-     * Provider multimodal attachments (Laravel\Ai Document/Image).
-     * CSV/TXT use ImportCollectionCsv — no multimodal model required.
+     * Build provider multimodal attachments for supported file types.
+     *
+     * ponytail: local OpenAI-compatible servers often reject input_file parts; structured files
+     * stay on the PHP import tool until Document/Image attachments are enabled here.
      *
      * @return list<File>
      */
     private function providerAttachments(): array
     {
-        // ponytail: local OpenAI-compatible servers often reject input_file parts.
-        // Structured files stay on the PHP import tool; pass Document/Image here when the provider supports them.
         return [];
     }
 }

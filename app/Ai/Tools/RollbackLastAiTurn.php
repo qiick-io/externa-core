@@ -14,16 +14,25 @@ use Laravel\Ai\Tools\Request;
 use Spatie\Activitylog\Models\Activity;
 use Stringable;
 
+/**
+ * AI tool that rolls back side effects from the previous AI assistant turn.
+ */
 class RollbackLastAiTurn implements Tool
 {
     use ChecksAiPermissions;
     use LogsAiToolUse;
 
+    /**
+     * Describe what this tool does for the model.
+     */
     public function description(): Stringable|string
     {
         return 'Undo safely created collections/items from the latest AI turn in a conversation by soft-deleting them. Force-deletes cannot be undone.';
     }
 
+    /**
+     * Execute the tool request and return a string result for the model.
+     */
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
@@ -97,6 +106,9 @@ class RollbackLastAiTurn implements Tool
         });
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function schema(JsonSchema $schema): array
     {
         return [

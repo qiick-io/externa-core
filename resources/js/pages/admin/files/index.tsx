@@ -10,32 +10,27 @@ import {
     Upload,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PageLayout } from '@/components/layout/page-layout';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import {
     FileDropzone,
 } from '@/components/admin/file-dropzone';
 import { FileNameDialog } from '@/components/admin/file-name-dialog';
 import { FileUploadIndicator } from '@/components/admin/file-upload-indicator';
-import { FileDetailPanel } from '@/components/admin/files/file-detail-panel';
-import { FileGrid } from '@/components/admin/files/file-grid';
 import {
     resolveContextMenuTargets,
-    resolveFileActions,
-    type FileActionPermissions,
+    resolveFileActions
+    
 } from '@/components/admin/files/file-actions';
-import { FolderPickerDialog } from '@/components/admin/files/folder-picker-dialog';
+import type {FileActionPermissions} from '@/components/admin/files/file-actions';
+import { FileDetailPanel } from '@/components/admin/files/file-detail-panel';
+import { FileGrid } from '@/components/admin/files/file-grid';
 import { FilesSelectionToolbar } from '@/components/admin/files/files-selection-toolbar';
+import { FolderPickerDialog } from '@/components/admin/files/folder-picker-dialog';
 import { TagFilterPopover } from '@/components/admin/files/tag-filter-popover';
 import { TagPicker } from '@/components/admin/files/tag-picker';
 import { useFilesSelection } from '@/components/admin/files/use-files-selection';
+import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
     Dialog,
     DialogContent,
@@ -43,6 +38,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
     Select,
     SelectContent,
@@ -55,7 +56,6 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
-import { toast } from '@/lib/toast';
 import {
     addFileUpload,
     createUploadId,
@@ -85,19 +85,22 @@ import {
     uploadFileDirect,
 } from '@/lib/files-api';
 import {
-    fetchNotifications,
-    notifyNotificationsUpdated,
-} from '@/lib/notifications-api';
-import {
     collectFilesFromDataTransferItems,
     collectFilesFromFileList,
     ensureAllFolderPaths,
     ensureFolderPath,
-    type FileWithDirectoryPath,
+    
     hasDirectoryInDataTransferItems,
     inferFolderUploadLabel,
-    runWithConcurrencyLimit,
+    runWithConcurrencyLimit
 } from '@/lib/folder-upload';
+import type {FileWithDirectoryPath} from '@/lib/folder-upload';
+import {
+    fetchNotifications,
+    notifyNotificationsUpdated,
+} from '@/lib/notifications-api';
+import { toast } from '@/lib/toast';
+import type { BreadcrumbItem } from '@/types';
 import type {
     AdminFileRow,
     FileActionKey,
@@ -106,7 +109,6 @@ import type {
     FilesPaginator,
     FileUploadProgress,
 } from '@/types/files';
-import type { BreadcrumbItem } from '@/types';
 
 type FileSortField = 'name' | 'size' | 'created_at' | 'updated_at';
 type FileSortDirection = 'asc' | 'desc';
@@ -128,6 +130,12 @@ const FILE_SORT_FIELDS: { value: FileSortField; label: string }[] = [
 // ponytail: no websockets — poll notifications while duplication jobs are pending.
 const BACKGROUND_JOB_POLL_INTERVAL_MS = 2_500;
 
+/**
+ * Admin file manager with grid, uploads, and bulk actions.
+ * @param {*} props.files - files.
+ * @param {*} props.breadcrumbs - breadcrumbs.
+ * @returns {JSX.Element}
+ */
 export default function AdminFilesIndex({
     files: initialFiles,
     parentId = null,
@@ -359,10 +367,9 @@ export default function AdminFilesIndex({
         listGenerationRef.current += 1;
         loadingMoreRef.current = false;
         setLoadingMore(false);
+        // Inertia reload always preserves scroll/state; those options were removed from ReloadOptions.
         router.reload({
             only: ['files'],
-            preserveState: true,
-            preserveScroll: true,
         });
     }, []);
 
@@ -894,6 +901,7 @@ export default function AdminFilesIndex({
                         const filesToUpload =
                             await collectFilesFromDataTransferItems(items);
                         await uploadFilesWithStructure(filesToUpload);
+
                         return;
                     }
 
@@ -985,6 +993,7 @@ export default function AdminFilesIndex({
                         if (selected[0]) {
                             openFileDetails(selected[0]);
                         }
+
                         break;
                     case 'download':
                         if (selected.length === 1 && selected[0].type === 'file') {
@@ -997,6 +1006,7 @@ export default function AdminFilesIndex({
                             trackPendingZip(result.job_id);
                             selection.clearSelection();
                         }
+
                         break;
                     case 'move':
                         setMoveTargetFiles(selected);
@@ -1006,6 +1016,7 @@ export default function AdminFilesIndex({
                         if (selected[0]) {
                             openRenameDialog(selected[0]);
                         }
+
                         break;
                     case 'duplicate': {
                         if (ids.length === 1) {
@@ -1032,6 +1043,7 @@ export default function AdminFilesIndex({
                                 trackPendingDuplication(result.job_id);
                             }
                         }
+
                         selection.clearSelection();
                         break;
                     }
@@ -1041,6 +1053,7 @@ export default function AdminFilesIndex({
                         } else {
                             await bulkFileAction('favorite', ids);
                         }
+
                         refreshPage();
                         break;
                     case 'unfavorite':
@@ -1049,12 +1062,14 @@ export default function AdminFilesIndex({
                         } else {
                             await bulkFileAction('unfavorite', ids);
                         }
+
                         refreshPage();
                         break;
                     case 'replace':
                         if (selected[0]) {
                             openFileDetails(selected[0]);
                         }
+
                         break;
                     case 'tag':
                         setTagDialogOpen(true);
@@ -1065,6 +1080,7 @@ export default function AdminFilesIndex({
                         } else {
                             await bulkFileAction('delete', ids);
                         }
+
                         selection.clearSelection();
                         setDetailFile(null);
                         refreshPage();
@@ -1075,6 +1091,7 @@ export default function AdminFilesIndex({
                         } else {
                             await bulkFileAction('restore', ids);
                         }
+
                         selection.clearSelection();
                         refreshPage();
                         break;
@@ -1084,6 +1101,7 @@ export default function AdminFilesIndex({
                         } else {
                             await bulkFileAction('force_delete', ids);
                         }
+
                         selection.clearSelection();
                         setDetailFile(null);
                         refreshPage();
@@ -1479,6 +1497,7 @@ export default function AdminFilesIndex({
                 open={tagDialogOpen}
                 onOpenChange={(open) => {
                     setTagDialogOpen(open);
+
                     if (!open) {
                         resetBulkTagDialog();
                     }
@@ -1516,6 +1535,7 @@ export default function AdminFilesIndex({
                 open={moveDialogOpen}
                 onOpenChange={(open) => {
                     setMoveDialogOpen(open);
+
                     if (!open) {
                         setMoveTargetFiles([]);
                     }

@@ -34,6 +34,11 @@ type MapCoordinateInputProps = {
     defaultValue?: unknown;
 };
 
+/**
+ * Latitude and longitude input pair for map field types.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function MapCoordinateInput({
     idPrefix,
     nameBase,
@@ -58,8 +63,11 @@ export function MapCoordinateInput({
         Number.isFinite(parsedLatitude) &&
         Number.isFinite(parsedLongitude);
 
-    const openStreetMapUrl = hasValidCoordinates
-        ? `https://www.openstreetmap.org/?mlat=${parsedLatitude}&mlon=${parsedLongitude}#map=14/${parsedLatitude}/${parsedLongitude}`
+    const mapLinks = hasValidCoordinates
+        ? {
+              openStreetMapUrl: `https://www.openstreetmap.org/?mlat=${parsedLatitude}&mlon=${parsedLongitude}#map=14/${parsedLatitude}/${parsedLongitude}`,
+              embedUrl: `https://www.openstreetmap.org/export/embed.html?bbox=${parsedLongitude - 0.05}%2C${parsedLatitude - 0.03}%2C${parsedLongitude + 0.05}%2C${parsedLatitude + 0.03}&layer=mapnik&marker=${parsedLatitude}%2C${parsedLongitude}`,
+          }
         : null;
 
     return (
@@ -95,18 +103,18 @@ export function MapCoordinateInput({
                 </div>
             </div>
 
-            {openStreetMapUrl !== null && (
+            {mapLinks !== null && (
                 <div className="space-y-2">
                     <div className="overflow-hidden rounded-lg border">
                         <iframe
                             title="OpenStreetMap preview"
                             className="h-48 w-full border-0"
                             loading="lazy"
-                            src={`https://www.openstreetmap.org/export/embed.html?bbox=${parsedLongitude - 0.05}%2C${parsedLatitude - 0.03}%2C${parsedLongitude + 0.05}%2C${parsedLatitude + 0.03}&layer=mapnik&marker=${parsedLatitude}%2C${parsedLongitude}`}
+                            src={mapLinks.embedUrl}
                         />
                     </div>
                     <a
-                        href={openStreetMapUrl}
+                        href={mapLinks.openStreetMapUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="text-sm text-primary underline-offset-4 hover:underline"

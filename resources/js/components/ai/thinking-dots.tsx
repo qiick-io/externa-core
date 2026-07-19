@@ -5,6 +5,13 @@ type ThinkingDotsProps = {
     label?: string;
 };
 
+/**
+ * Animated loading indicator for assistant responses in progress.
+ * @param {ThinkingDotsProps} props - Component props.
+ * @param {string} [props.className] - Additional wrapper classes.
+ * @param {string} [props.label='Sto pensando'] - Accessible status label.
+ * @returns {JSX.Element}
+ */
 export function ThinkingDots({
     className,
     label = 'Sto pensando',

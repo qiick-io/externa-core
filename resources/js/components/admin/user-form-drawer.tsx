@@ -1,8 +1,8 @@
 import { useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
-import InputError from '@/components/input-error';
 import { RoleMultiSelect } from '@/components/admin/role-multi-select';
 import { UserGroupMultiSelect } from '@/components/admin/user-group-multi-select';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     DrawerBody,
@@ -24,6 +24,11 @@ export type UserFormDrawerProps = {
     onSuccess?: () => void;
 };
 
+/**
+ * Drawer form for creating and editing admin users.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function UserFormDrawer({
     editing,
     readOnly = false,
@@ -96,6 +101,7 @@ export function UserFormDrawer({
                 className="flex min-h-0 flex-1 flex-col overflow-hidden"
                 onSubmit={(e) => {
                     e.preventDefault();
+
                     if (!readOnly) {
                         submit();
                     }

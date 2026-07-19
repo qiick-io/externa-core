@@ -49,6 +49,11 @@ function mapResponse(data: unknown): Paginated<AdminSelectOption> {
     };
 }
 
+/**
+ * Reusable multi-select with server-side pagination.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function PaginatedMultiSelect({
     value = [],
     onChange,
@@ -81,6 +86,7 @@ export function PaginatedMultiSelect({
 
     const selectedLabels = useMemo(() => {
         const map = new Map(options.map((o) => [o.id, o.label]));
+
         for (const opt of initialOptions) {
             map.set(opt.id, opt.label);
         }
@@ -161,6 +167,7 @@ export function PaginatedMultiSelect({
 
     const handleScroll = (): void => {
         const el = listRef.current;
+
         if (!el || loading || !hasMore) {
             return;
         }

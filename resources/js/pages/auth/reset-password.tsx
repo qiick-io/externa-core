@@ -13,6 +13,11 @@ type Props = {
     email: string;
 };
 
+/**
+ * Set a new password from a reset token.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export default function ResetPassword({ token, email }: Props) {
     return (
         <AuthLayout

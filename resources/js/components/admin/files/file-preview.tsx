@@ -25,6 +25,11 @@ const sizeClass = {
     lg: 'size-40',
 };
 
+/**
+ * Thumbnail or icon preview for a file row.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function FilePreview({
     file,
     className,

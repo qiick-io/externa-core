@@ -2,7 +2,7 @@
 
 use App\Enums\FieldTypeEnum;
 use App\Enums\FileTypeEnum;
-use App\Http\Resources\ItemResource;
+use App\Http\Resources\CollectionItemResource;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
@@ -129,7 +129,7 @@ test('item resource flattens translations for current locale', function () {
     $request = Request::create('/test', 'GET', ['locale' => 'it']);
     app()->instance('request', $request);
 
-    $payload = (new ItemResource($item))->toArray($request);
+    $payload = (new CollectionItemResource($item))->toArray($request);
 
     expect($payload['data']['title'])->toBe('Ciao');
 });
@@ -1240,7 +1240,7 @@ test('relation options endpoint supports display template and filter', function 
         ],
     ]);
 
-    $response = $this->getJson(route('collections.items.options', [
+    $response = $this->getJson(route('collections.items.field-options', [
         'collection' => $host->id,
         'field_id' => $relationField->id,
     ]));

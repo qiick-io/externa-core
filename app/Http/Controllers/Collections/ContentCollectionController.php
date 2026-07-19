@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Collections;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Collections\StoreContentCollectionRequest;
 use App\Http\Requests\Collections\UpdateContentCollectionRequest;
-use App\Http\Requests\Collections\UpsertSingletonItemRequest;
+use App\Http\Requests\Collections\UpsertSingletonCollectionItemRequest;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Services\Collections\CollectionItemDataNormalizer;
@@ -17,6 +17,9 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Manages content collection definitions and singleton content editing.
+ */
 class ContentCollectionController extends Controller
 {
     public function __construct(
@@ -26,6 +29,9 @@ class ContentCollectionController extends Controller
         private CollectionItemOptionsService $collectionItemOptionsService,
     ) {}
 
+    /**
+     * List collections, optionally including soft-deleted records.
+     */
     public function index(Request $request): Response
     {
         $trashed = $request->boolean('trashed');
@@ -42,6 +48,9 @@ class ContentCollectionController extends Controller
         ]);
     }
 
+    /**
+     * Create a collection and seed an empty singleton item when required.
+     */
     public function store(StoreContentCollectionRequest $request): RedirectResponse
     {
         $collection = Collection::query()->create($request->validated());
@@ -54,6 +63,9 @@ class ContentCollectionController extends Controller
             ->with('success', __('Collection created.'));
     }
 
+    /**
+     * Show a singleton collection editor or redirect list collections to their items index.
+     */
     public function show(Request $request, Collection $collection): Response|RedirectResponse
     {
         if (! $collection->is_singleton) {
@@ -77,6 +89,9 @@ class ContentCollectionController extends Controller
         ]);
     }
 
+    /**
+     * Update collection metadata.
+     */
     public function update(UpdateContentCollectionRequest $request, Collection $collection): RedirectResponse
     {
         $collection->update($request->validated());
@@ -85,6 +100,9 @@ class ContentCollectionController extends Controller
             ->with('success', __('Collection updated.'));
     }
 
+    /**
+     * Soft-delete a collection.
+     */
     public function destroy(Collection $collection): RedirectResponse
     {
         $collection->delete();
@@ -93,6 +111,9 @@ class ContentCollectionController extends Controller
             ->with('success', __('Collection deleted.'));
     }
 
+    /**
+     * Restore a soft-deleted collection.
+     */
     public function restore(Collection $collection): RedirectResponse
     {
         $collection->restore();
@@ -101,6 +122,9 @@ class ContentCollectionController extends Controller
             ->with('success', __('Collection restored.'));
     }
 
+    /**
+     * Permanently delete a collection.
+     */
     public function forceDelete(Collection $collection): RedirectResponse
     {
         $collection->forceDelete();
@@ -109,7 +133,10 @@ class ContentCollectionController extends Controller
             ->with('success', __('Collection permanently deleted.'));
     }
 
-    public function upsertSingletonContent(UpsertSingletonItemRequest $request, Collection $collection): RedirectResponse
+    /**
+     * Create or merge singleton collection content while preserving readonly fields.
+     */
+    public function upsertSingletonContent(UpsertSingletonCollectionItemRequest $request, Collection $collection): RedirectResponse
     {
         abort_unless($collection->is_singleton, 404);
 

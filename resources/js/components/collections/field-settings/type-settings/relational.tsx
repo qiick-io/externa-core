@@ -1,13 +1,14 @@
+import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import {
     parseFilesFieldSettings,
     parseImageFieldSettings,
     parseM2aFieldSettings,
-    parseRelationFieldSettings,
-    type RelatedCollectionOption,
+    parseRelationFieldSettings
+    
 } from '@/lib/collection-field-types';
+import type {RelatedCollectionOption} from '@/lib/collection-field-types';
 
 type RelationalSettingsProps = {
     fieldType: string;
@@ -23,6 +24,10 @@ type RelationalSettingsProps = {
     onAllowedCollectionIdsChange: (next: number[]) => void;
 };
 
+/**
+ * Settings panel for relational collection fields.
+ * @returns {JSX.Element}
+ */
 export function RelationalSettings({
     fieldType,
     settings,

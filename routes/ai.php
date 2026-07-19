@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * AI assistant routes: webhook ingestion, chat UI, conversations, attachments, and imports.
+ *
+ * Authenticated routes require `auth`, `verified`, and `CanUseAi`. Chat and attachment
+ * endpoints are rate-limited; import job status additionally requires `CanCreateCollections`.
+ */
+
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Ai\AiChatAttachmentController;
 use App\Http\Controllers\Ai\AiChatController;
@@ -46,7 +53,10 @@ Route::middleware([
         ->whereUuid('jobId')
         ->name('import-jobs.show');
 
-    // UUID show route after static `/ai/*` paths so they are not captured as conversations.
+    /*
+     * Conversation deep-link. Registered last so static `/ai/*` paths are not captured
+     * as `{conversation}` UUIDs.
+     */
     Route::get('/{conversation}', [AiPageController::class, 'show'])
         ->whereUuid('conversation')
         ->name('show');

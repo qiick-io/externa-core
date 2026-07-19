@@ -13,8 +13,14 @@ use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Manage collection field definitions, layout, and ordering.
+ */
 class FieldController extends Controller
 {
+    /**
+     * Render the field builder for a collection.
+     */
     public function index(Collection $collection): Response
     {
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
@@ -30,6 +36,9 @@ class FieldController extends Controller
         ]);
     }
 
+    /**
+     * Create a field on the collection.
+     */
     public function store(StoreFieldRequest $request, Collection $collection): RedirectResponse
     {
         $collection->fields()->create([
@@ -41,6 +50,9 @@ class FieldController extends Controller
             ->with('success', __('Field created.'));
     }
 
+    /**
+     * Update a collection field definition.
+     */
     public function update(UpdateFieldRequest $request, Collection $collection, CollectionField $field): RedirectResponse
     {
         $this->assertFieldBelongsToCollection($collection, $field);
@@ -54,6 +66,9 @@ class FieldController extends Controller
             ->with('success', __('Field updated.'));
     }
 
+    /**
+     * Delete a collection field.
+     */
     public function destroy(Collection $collection, CollectionField $field): RedirectResponse
     {
         $this->assertFieldBelongsToCollection($collection, $field);
@@ -64,6 +79,9 @@ class FieldController extends Controller
             ->with('success', __('Field deleted.'));
     }
 
+    /**
+     * Reorder fields and persist row-break layout settings.
+     */
     public function reorder(ReorderFieldsRequest $request, Collection $collection): RedirectResponse
     {
         $ids = $request->validated('ids');
@@ -93,6 +111,9 @@ class FieldController extends Controller
             ->with('success', __('Fields reordered.'));
     }
 
+    /**
+     * Duplicate a field with a unique generated name.
+     */
     public function duplicate(Collection $collection, CollectionField $field): RedirectResponse
     {
         $this->assertFieldBelongsToCollection($collection, $field);
@@ -105,6 +126,9 @@ class FieldController extends Controller
             ->with('success', __('Field duplicated.'));
     }
 
+    /**
+     * Toggle whether a field is hidden on the item form.
+     */
     public function toggleFormVisibility(Collection $collection, CollectionField $field): RedirectResponse
     {
         $this->assertFieldBelongsToCollection($collection, $field);
@@ -120,6 +144,9 @@ class FieldController extends Controller
                 : __('Field shown in item form.'));
     }
 
+    /**
+     * Update the layout width setting for a field.
+     */
     public function updateLayoutWidth(
         UpdateFieldLayoutWidthRequest $request,
         Collection $collection,
@@ -135,6 +162,9 @@ class FieldController extends Controller
             ->with('success', __('Field layout width updated.'));
     }
 
+    /**
+     * Generate a unique duplicate field name within the collection.
+     */
     private function uniqueDuplicateFieldName(Collection $collection, string $baseName): string
     {
         $candidate = $baseName.'_copy';
@@ -148,6 +178,9 @@ class FieldController extends Controller
         return $candidate;
     }
 
+    /**
+     * Abort when the field does not belong to the route collection.
+     */
     private function assertFieldBelongsToCollection(Collection $collection, CollectionField $field): void
     {
         abort_if($field->collection_id !== $collection->id, 404);

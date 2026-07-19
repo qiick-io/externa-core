@@ -1,12 +1,13 @@
 import { Upload } from 'lucide-react';
 import {
-    type DragEvent,
-    type ReactNode,
+    
+    
     useCallback,
     useEffect,
     useRef,
-    useState,
+    useState
 } from 'react';
+import type {DragEvent, ReactNode} from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +37,11 @@ type FileDropzoneProps = {
     showInlineEmptyState?: boolean;
 };
 
+/**
+ * Drag-and-drop upload zone for the file manager.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function FileDropzone({
     onFilesSelected,
     onItemsDropped,
@@ -133,6 +139,7 @@ export function FileDropzone({
 
         if (items && items.length > 0 && onItemsDropped) {
             onItemsDropped(items);
+
             return;
         }
 
@@ -222,6 +229,7 @@ export function FileDropzone({
 
                 if (items && items.length > 0 && onItemsDropped) {
                     onItemsDropped(items);
+
                     return;
                 }
 

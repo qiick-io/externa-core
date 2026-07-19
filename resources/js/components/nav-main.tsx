@@ -12,6 +12,12 @@ import type { NavItem } from '@/types';
 
 export type MainNavItem = NavItem & { permission?: string };
 
+/**
+ * Primary sidebar navigation filtered by permission.
+ * @param {{ items?: MainNavItem[] }} props - Component props.
+ * @param {MainNavItem[]} [props.items=[]] - Nav entries with optional permission gates.
+ * @returns {JSX.Element | null}
+ */
 export function NavMain({ items = [] }: { items?: MainNavItem[] }) {
     const { isCurrentUrl } = useCurrentUrl();
     const { can } = useCan();

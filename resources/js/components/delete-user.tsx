@@ -16,6 +16,11 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
+/**
+ * Account deletion confirmation flow in settings.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export default function DeleteUser() {
     const passwordInput = useRef<HTMLInputElement>(null);
 

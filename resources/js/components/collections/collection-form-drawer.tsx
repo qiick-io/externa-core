@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { slugify, type UseCollectionsReturn } from '@/hooks/use-collections';
+import { slugify  } from '@/hooks/use-collections';
+import type {UseCollectionsReturn} from '@/hooks/use-collections';
 import type { CollectionRow } from '@/types/collections';
 
 export type CollectionFormDrawerProps = {
@@ -23,6 +24,11 @@ export type CollectionFormDrawerProps = {
     submit: () => void;
 };
 
+/**
+ * Drawer for creating and editing collections.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function CollectionFormDrawer({
     editing,
     slugManual,

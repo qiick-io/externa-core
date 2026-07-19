@@ -10,10 +10,16 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
+/**
+ * Validate updating a role and its permissions.
+ */
 class UpdateRoleRequest extends FormRequest
 {
     use AuthorizesWithPermission;
 
+    /**
+     * Require permission to edit roles.
+     */
     public function authorize(): bool
     {
         $this->authorizePermission(PermissionEnum::CanEditRoles->value);

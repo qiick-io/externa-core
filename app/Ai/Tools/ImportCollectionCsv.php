@@ -16,6 +16,9 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use Stringable;
 use Throwable;
 
+/**
+ * AI tool that imports collection records from an uploaded CSV attachment.
+ */
 class ImportCollectionCsv implements Tool
 {
     use ChecksAiPermissions;
@@ -26,6 +29,9 @@ class ImportCollectionCsv implements Tool
 
     private const ASYNC_THRESHOLD = 200;
 
+    /**
+     * Describe what this tool does for the model.
+     */
     public function description(): Stringable|string
     {
         return 'Import rows from an uploaded CSV/TXT/XLSX chat attachment into a collection. '
@@ -33,6 +39,9 @@ class ImportCollectionCsv implements Tool
             .'Infers missing field types, supports upsert_key, and supports a zero-write dry_run preview.';
     }
 
+    /**
+     * Execute the tool request and return a string result for the model.
+     */
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
@@ -165,6 +174,9 @@ class ImportCollectionCsv implements Tool
         });
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function schema(JsonSchema $schema): array
     {
         return [

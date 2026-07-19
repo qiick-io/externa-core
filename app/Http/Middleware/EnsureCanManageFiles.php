@@ -8,6 +8,9 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Map file-manager routes and bulk actions to the matching file permission.
+ */
 class EnsureCanManageFiles
 {
     public function __construct(
@@ -15,7 +18,9 @@ class EnsureCanManageFiles
     ) {}
 
     /**
-     * @param  Closure(Request): (Response)  $next
+     * Resolve the permission for the current route or bulk action and abort when denied.
+     *
+     * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -53,6 +58,9 @@ class EnsureCanManageFiles
         return $next($request);
     }
 
+    /**
+     * Resolve the permission required for a file bulk action payload.
+     */
     protected function bulkPermission(Request $request): PermissionEnum
     {
         return match ($request->input('action')) {

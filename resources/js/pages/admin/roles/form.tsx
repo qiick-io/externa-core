@@ -13,6 +13,10 @@ type RoleFormRole = AdminRoleRow & {
     permissions?: { id: number; name: string }[];
 };
 
+/**
+ * Create or edit role with permission matrix.
+ * @returns {JSX.Element}
+ */
 export default function AdminRoleForm({
     role,
     permissionGroups,

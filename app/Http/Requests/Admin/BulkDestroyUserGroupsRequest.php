@@ -6,10 +6,16 @@ use App\Enums\PermissionEnum;
 use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates bulk deletion of user groups.
+ */
 class BulkDestroyUserGroupsRequest extends FormRequest
 {
     use AuthorizesWithPermission;
 
+    /**
+     * Require permission to delete groups.
+     */
     public function authorize(): bool
     {
         $this->authorizePermission(PermissionEnum::CanDeleteGroups->value);

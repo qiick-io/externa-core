@@ -3,6 +3,14 @@ import AppLogoIcon from '@/components/app-logo-icon';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
 
+/**
+ * Centered auth layout with logo, title, and description above the form.
+ * @param {AuthLayoutProps} props - Auth layout props.
+ * @param {React.ReactNode} props.children - Auth form content.
+ * @param {string} props.title - Page heading.
+ * @param {string} props.description - Subheading shown below the title.
+ * @returns {JSX.Element}
+ */
 export default function AuthSimpleLayout({
     children,
     title,

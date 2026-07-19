@@ -1,9 +1,11 @@
+/** Select option describing one collection field type in the admin UI. */
 export type CollectionFieldTypeOption = {
     value: string;
     label: string;
     description?: string;
 };
 
+/** Catalog of supported collection field types with UI labels. */
 export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
     { value: 'string', label: 'Text Input', description: 'Single line text' },
     {
@@ -113,6 +115,7 @@ export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
     },
 ];
 
+/** Field type groupings used in the field type picker UI. */
 export const COLLECTION_FIELD_TYPE_GROUPS: {
     label: string;
     types: string[];
@@ -163,10 +166,20 @@ export const COLLECTION_FIELD_TYPE_GROUPS: {
     },
 ];
 
+/**
+ * @param type - Field type key
+ * @returns Human-readable label, or the raw type when unknown
+ */
 export function fieldTypeLabel(type: string): string {
     return COLLECTION_FIELD_TYPES.find((option) => option.value === type)?.label ?? type;
 }
 
+/**
+ * Whether the field type requires static option configuration.
+ *
+ * @param type - Field type key
+ * @returns Whether the type requires static option rows in settings
+ */
 export function fieldTypeNeedsOptions(type: string): boolean {
     return (
         type === 'select' ||
@@ -178,10 +191,22 @@ export function fieldTypeNeedsOptions(type: string): boolean {
     );
 }
 
+/**
+ * Whether the field type uses a nested tree option editor.
+ *
+ * @param type - Field type key
+ * @returns Whether the type uses a nested tree option editor
+ */
 export function fieldTypeNeedsTreeOptions(type: string): boolean {
     return type === 'checkbox_group_tree';
 }
 
+/**
+ * Whether the field type links to another collection.
+ *
+ * @param type - Field type key
+ * @returns Whether the type links to another collection
+ */
 export function fieldTypeNeedsRelation(type: string): boolean {
     return [
         'relation',
@@ -193,26 +218,57 @@ export function fieldTypeNeedsRelation(type: string): boolean {
     ].includes(type);
 }
 
+/**
+ * Whether the relation field allows selecting many related items.
+ *
+ * @param type - Field type key
+ * @returns Whether the relation allows selecting many related items
+ */
 export function fieldTypeIsMultipleRelation(type: string): boolean {
     return ['relation_many', 'one_to_many', 'many_to_many'].includes(type);
 }
 
+/**
+ * Whether the field type needs many-to-any (M2A) settings.
+ *
+ * @param type - Field type key
+ * @returns Whether the type is many-to-any (M2A) builder settings
+ */
 export function fieldTypeNeedsM2aSettings(type: string): boolean {
     return type === 'm2a';
 }
 
+/**
+ * Whether the field type stores one or more file references.
+ *
+ * @param type - Field type key
+ * @returns Whether the type stores file manager references
+ */
 export function fieldTypeIsFilesField(type: string): boolean {
     return type === 'files' || type === 'file';
 }
 
+/**
+ * Whether the field type stores image file references.
+ *
+ * @param type - Field type key
+ * @returns Whether the type is an image picker field
+ */
 export function fieldTypeIsImageField(type: string): boolean {
     return type === 'image';
 }
 
+/**
+ * Field Type Needs Slider Settings.
+ *
+ * @param type - Field type key
+ * @returns Whether the type exposes slider min/max/step settings
+ */
 export function fieldTypeNeedsSliderSettings(type: string): boolean {
     return type === 'slider';
 }
 
+/** Numeric bounds and defaults for slider field settings. */
 export type SliderFieldSettings = {
     min: number;
     max: number;
@@ -220,6 +276,10 @@ export type SliderFieldSettings = {
     defaultValue: number;
 };
 
+/**
+ * @param settings - Raw field settings object
+ * @returns Normalized slider min, max, step, and default value
+ */
 export function parseSliderSettings(
     settings?: Record<string, unknown> | null,
 ): SliderFieldSettings {
@@ -236,6 +296,12 @@ export function parseSliderSettings(
     };
 }
 
+/**
+ * Whether an image field is configured for multiple images.
+ *
+ * @param settings - Raw field settings object
+ * @returns Whether multiple images are allowed
+ */
 export function isImageFieldMultiple(
     settings?: Record<string, unknown> | null,
 ): boolean {
@@ -244,6 +310,12 @@ export function isImageFieldMultiple(
     return value === true || value === 1 || value === '1';
 }
 
+/**
+ * Parse allowed related collection IDs from field settings.
+ *
+ * @param settings - Raw M2A field settings
+ * @returns Allowed related collection ids
+ */
 export function parseAllowedCollectionIds(
     settings?: Record<string, unknown> | null,
 ): number[] {
@@ -258,16 +330,23 @@ export function parseAllowedCollectionIds(
         .filter((entry) => Number.isFinite(entry) && entry > 0);
 }
 
+/** Flat select/radio option row stored in field settings. */
 export type FieldOptionRow = { value: string; label: string };
 
+/** Nested option row for checkbox tree fields. */
 export type FieldTreeOptionRow = FieldOptionRow & {
     children?: FieldTreeOptionRow[];
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns Option rows, or a single empty row when none configured
+ */
 export function parseFieldOptions(
     settings?: Record<string, unknown> | null,
 ): FieldOptionRow[] {
     const raw = settings?.options;
+
     if (!Array.isArray(raw) || raw.length === 0) {
         return [{ value: '', label: '' }];
     }
@@ -282,10 +361,17 @@ export function parseFieldOptions(
     });
 }
 
+/**
+ * Parse nested tree options from field settings.
+ *
+ * @param settings - Raw field settings
+ * @returns Tree option nodes, or a single empty root when none configured
+ */
 export function parseFieldTreeOptions(
     settings?: Record<string, unknown> | null,
 ): FieldTreeOptionRow[] {
     const raw = settings?.options;
+
     if (!Array.isArray(raw) || raw.length === 0) {
         return [{ value: '', label: '', children: [] }];
     }
@@ -310,6 +396,12 @@ export function parseFieldTreeOptions(
     return raw.map(parseNode);
 }
 
+/**
+ * Flattens a tree option list into value/label pairs (depth-first).
+ *
+ * @param options - Tree nodes to flatten
+ * @returns Flat option rows including all descendants
+ */
 export function flattenFieldTreeOptions(
     options: FieldTreeOptionRow[],
 ): FieldOptionRow[] {
@@ -326,6 +418,7 @@ export function flattenFieldTreeOptions(
     return flattened;
 }
 
+/** Lightweight collection reference for relation field pickers. */
 export type RelatedCollectionOption = {
     id: number;
     name: string;
@@ -343,16 +436,32 @@ export const STRING_INPUT_TYPES: { value: string; label: string }[] = [
     { value: 'uuid', label: 'UUID' },
 ];
 
+/**
+ * @param type - Field type key
+ * @returns Whether the type exposes string input subtype settings
+ */
 export function fieldTypeUsesStringInputSettings(type: string): boolean {
     return type === 'string';
 }
 
+/**
+ * Whether the field is marked required in its settings.
+ *
+ * @param settings - Raw field settings
+ * @returns Whether the field is required in forms
+ */
 export function isFieldRequired(settings?: Record<string, unknown> | null): boolean {
     const value = settings?.required;
 
     return value === true || value === 1 || value === '1';
 }
 
+/**
+ * Whether the field should be hidden on item forms.
+ *
+ * @param settings - Raw field settings
+ * @returns Whether the field is hidden on item edit forms
+ */
 export function isFieldHiddenInForm(
     settings?: Record<string, unknown> | null,
 ): boolean {
@@ -361,14 +470,22 @@ export function isFieldHiddenInForm(
     return value === true || value === 1 || value === '1';
 }
 
+/**
+ * Filter fields to those visible on the item form.
+ *
+ * @param fields - Field definitions with optional settings
+ * @returns Fields that should render on item edit forms
+ */
 export function fieldsVisibleInForm<T extends { settings?: Record<string, unknown> | null }>(
     fields: T[],
 ): T[] {
     return fields.filter((field) => !isFieldHiddenInForm(field.settings));
 }
 
+/** Grid column width token for collection field layout. */
 export type FieldLayoutWidth = 'half' | 'full' | 'fill';
 
+/** Selectable layout width options for field settings UI. */
 export const FIELD_LAYOUT_WIDTH_OPTIONS: {
     value: FieldLayoutWidth;
     label: string;
@@ -378,6 +495,10 @@ export const FIELD_LAYOUT_WIDTH_OPTIONS: {
     { value: 'fill', label: 'Riempi larghezza' },
 ];
 
+/**
+ * @param settings - Raw field settings
+ * @returns Layout width token, defaulting to `full`
+ */
 export function getFieldLayoutWidth(
     settings?: Record<string, unknown> | null,
 ): FieldLayoutWidth {
@@ -390,6 +511,12 @@ export function getFieldLayoutWidth(
     return 'full';
 }
 
+/**
+ * Human-readable label for a field layout width.
+ *
+ * @param width - Layout width token
+ * @returns Localized label for the width option
+ */
 export function fieldLayoutWidthLabel(width: FieldLayoutWidth): string {
     return (
         FIELD_LAYOUT_WIDTH_OPTIONS.find((option) => option.value === width)
@@ -397,6 +524,12 @@ export function fieldLayoutWidthLabel(width: FieldLayoutWidth): string {
     );
 }
 
+/**
+ * Whether the field should start a new layout row.
+ *
+ * @param settings - Raw field settings
+ * @returns Whether this field forces a new grid row before rendering
+ */
 export function fieldStartsNewLayoutRow(
     settings?: Record<string, unknown> | null,
 ): boolean {
@@ -405,6 +538,7 @@ export function fieldStartsNewLayoutRow(
     return value === true || value === 1 || value === '1';
 }
 
+/** One field placed on a layout row with its computed column span. */
 export type FieldLayoutRowItem<T> = {
     field: T;
     colSpan: 1 | 2;
@@ -413,6 +547,9 @@ export type FieldLayoutRowItem<T> = {
 /**
  * Computes grid column span (1 or 2) for each field in sort order.
  * Used by both the schema list and item form layouts.
+ *
+ * @param fields - Ordered field definitions
+ * @returns Column span per field index
  */
 export function getFieldGridColSpans<T extends { settings?: Record<string, unknown> | null }>(
     fields: T[],
@@ -460,6 +597,9 @@ export function getFieldGridColSpans<T extends { settings?: Record<string, unkno
 /**
  * Groups ordered fields into grid rows. Full-width fields always start a new row.
  * Half-width fields pair on one row; fill completes a row opened by a half field.
+ *
+ * @param fields - Ordered field definitions
+ * @returns Rows of fields with column spans
  */
 export function groupFieldsIntoLayoutRows<T extends { settings?: Record<string, unknown> | null }>(
     fields: T[],
@@ -495,6 +635,12 @@ export function groupFieldsIntoLayoutRows<T extends { settings?: Record<string, 
     return rows;
 }
 
+/**
+ * Parse string-input settings from a field settings blob.
+ *
+ * @param settings - Raw string field settings
+ * @returns Input subtype, default value, and required flag for forms
+ */
 export function parseStringInputSettings(settings?: Record<string, unknown> | null): {
     inputType: string;
     defaultValue: string;
@@ -509,13 +655,14 @@ export function parseStringInputSettings(settings?: Record<string, unknown> | nu
     };
 }
 
-// --- Directus-like field settings (common + per-type) ---
-
+/** Supported locales for translated field metadata. */
 export const COLLECTION_FIELD_LOCALES = ['en', 'it'] as const;
 export type CollectionFieldLocale = (typeof COLLECTION_FIELD_LOCALES)[number];
 
+/** Partial map of locale code to translated string. */
 export type TranslatedText = Partial<Record<CollectionFieldLocale, string>>;
 
+/** Validation operators available in the field rule builder. */
 export const FIELD_VALIDATION_OPERATORS = [
     { value: 'required', label: 'Required', needsValue: false },
     { value: 'unique', label: 'Unique', needsValue: false },
@@ -530,14 +677,17 @@ export const FIELD_VALIDATION_OPERATORS = [
     { value: 'not_equals', label: 'Does not equal', needsValue: true },
 ] as const;
 
+/** Supported validation operator keys for the field rule builder. */
 export type FieldValidationOperator =
     (typeof FIELD_VALIDATION_OPERATORS)[number]['value'];
 
+/** Single validation rule stored in field settings. */
 export type FieldValidationRule = {
     operator: FieldValidationOperator;
     value?: string | number;
 };
 
+/** Cross-cutting field settings shared by all field types. */
 export type CommonFieldSettings = {
     displayName: TranslatedText;
     note: TranslatedText;
@@ -553,6 +703,10 @@ function settingsFlag(value: unknown): boolean {
     return value === true || value === 1 || value === '1';
 }
 
+/**
+ * @param raw - Stored translated text object
+ * @returns Normalized locale map with non-empty strings only
+ */
 export function parseTranslatedText(
     raw: unknown,
 ): TranslatedText {
@@ -565,6 +719,7 @@ export function parseTranslatedText(
 
     for (const locale of COLLECTION_FIELD_LOCALES) {
         const value = record[locale];
+
         if (typeof value === 'string' && value.trim() !== '') {
             out[locale] = value;
         }
@@ -573,6 +728,12 @@ export function parseTranslatedText(
     return out;
 }
 
+/**
+ * Serialize translated text for persistence in field settings.
+ *
+ * @param text - In-memory translated text map
+ * @returns Storage object, or undefined when all locales are empty
+ */
 export function serializeTranslatedText(
     text: TranslatedText,
 ): Record<string, string> | undefined {
@@ -580,6 +741,7 @@ export function serializeTranslatedText(
 
     for (const locale of COLLECTION_FIELD_LOCALES) {
         const value = text[locale]?.trim();
+
         if (value) {
             out[locale] = value;
         }
@@ -588,6 +750,14 @@ export function serializeTranslatedText(
     return Object.keys(out).length > 0 ? out : undefined;
 }
 
+/**
+ * Picks the first non-empty translation for preferred locales, then any configured locale.
+ *
+ * @param text - Translated text map
+ * @param locales - Preferred locale order
+ * @param fallback - Value when no translation exists
+ * @returns Resolved display string
+ */
 export function resolveTranslatedText(
     text: TranslatedText | undefined,
     locales: readonly string[],
@@ -595,6 +765,7 @@ export function resolveTranslatedText(
 ): string {
     for (const locale of locales) {
         const value = text?.[locale as CollectionFieldLocale];
+
         if (typeof value === 'string' && value.trim() !== '') {
             return value;
         }
@@ -602,6 +773,7 @@ export function resolveTranslatedText(
 
     for (const locale of COLLECTION_FIELD_LOCALES) {
         const value = text?.[locale];
+
         if (typeof value === 'string' && value.trim() !== '') {
             return value;
         }
@@ -610,10 +782,17 @@ export function resolveTranslatedText(
     return fallback;
 }
 
+/**
+ * Parse custom validation rules from field settings.
+ *
+ * @param settings - Raw field settings
+ * @returns Parsed validation rules, skipping invalid entries
+ */
 export function parseValidationRules(
     settings?: Record<string, unknown> | null,
 ): FieldValidationRule[] {
     const raw = settings?.validation_rules;
+
     if (!Array.isArray(raw)) {
         return [];
     }
@@ -638,6 +817,7 @@ export function parseValidationRules(
 
             if (meta?.needsValue) {
                 const value = rule.value;
+
                 if (value === undefined || value === null || value === '') {
                     return null;
                 }
@@ -659,6 +839,12 @@ export function parseValidationRules(
         .filter((rule): rule is FieldValidationRule => rule !== null);
 }
 
+/**
+ * Parse shared advanced settings common to most field types.
+ *
+ * @param settings - Raw field settings
+ * @returns Common settings normalized for UI state
+ */
 export function parseCommonFieldSettings(
     settings?: Record<string, unknown> | null,
 ): CommonFieldSettings {
@@ -674,6 +860,12 @@ export function parseCommonFieldSettings(
     };
 }
 
+/**
+ * Serialize common advanced field settings for persistence.
+ *
+ * @param common - Common settings from the field editor
+ * @returns Settings object ready to persist on the field
+ */
 export function serializeCommonFieldSettings(
     common: CommonFieldSettings,
 ): Record<string, unknown> {
@@ -684,16 +876,19 @@ export function serializeCommonFieldSettings(
     };
 
     const displayName = serializeTranslatedText(common.displayName);
+
     if (displayName) {
         out.display_name = displayName;
     }
 
     const note = serializeTranslatedText(common.note);
+
     if (note) {
         out.note = note;
     }
 
     const validationMessage = serializeTranslatedText(common.validationMessage);
+
     if (validationMessage) {
         out.validation_message = validationMessage;
     }
@@ -716,12 +911,26 @@ export function serializeCommonFieldSettings(
     return out;
 }
 
+/**
+ * Whether the field is marked read-only in its settings.
+ *
+ * @param settings - Raw field settings
+ * @returns Whether the field is read-only in forms
+ */
 export function isFieldReadonly(
     settings?: Record<string, unknown> | null,
 ): boolean {
     return settingsFlag(settings?.readonly);
 }
 
+/**
+ * Resolve the display name for a field in the active locale.
+ *
+ * @param settings - Raw field settings
+ * @param fieldKey - Fallback label when display name is unset
+ * @param locales - Preferred locale order
+ * @returns Resolved field label for forms
+ */
 export function getFieldDisplayName(
     settings: Record<string, unknown> | null | undefined,
     fieldKey: string,
@@ -732,6 +941,13 @@ export function getFieldDisplayName(
     return resolveTranslatedText(common.displayName, locales, fieldKey);
 }
 
+/**
+ * Resolve the helper note for a field in the active locale.
+ *
+ * @param settings - Raw field settings
+ * @param locales - Preferred locale order
+ * @returns Resolved helper note text, or empty string
+ */
 export function getFieldNote(
     settings: Record<string, unknown> | null | undefined,
     locales: readonly string[] = COLLECTION_FIELD_LOCALES,
@@ -739,6 +955,13 @@ export function getFieldNote(
     return resolveTranslatedText(parseCommonFieldSettings(settings).note, locales);
 }
 
+/**
+ * Resolve the placeholder text for a field in the active locale.
+ *
+ * @param settings - Raw field settings
+ * @param locales - Preferred locale order
+ * @returns Resolved placeholder text, or empty string
+ */
 export function getFieldPlaceholder(
     settings: Record<string, unknown> | null | undefined,
     locales: readonly string[] = COLLECTION_FIELD_LOCALES,
@@ -750,6 +973,7 @@ export function getFieldPlaceholder(
     return resolveTranslatedText(placeholder, locales);
 }
 
+/** Parsed settings for string/text input fields. */
 export type StringFieldSettings = {
     inputType: string;
     placeholder: TranslatedText;
@@ -762,6 +986,10 @@ export type StringFieldSettings = {
     defaultValue: string;
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns String field settings with sane defaults
+ */
 export function parseStringFieldSettings(
     settings?: Record<string, unknown> | null,
 ): StringFieldSettings {
@@ -792,6 +1020,12 @@ export function parseStringFieldSettings(
     };
 }
 
+/**
+ * Serialize string-like field settings for persistence.
+ *
+ * @param stringSettings - String field editor state
+ * @returns Settings object ready to persist
+ */
 export function serializeStringFieldSettings(
     stringSettings: StringFieldSettings,
 ): Record<string, unknown> {
@@ -803,6 +1037,7 @@ export function serializeStringFieldSettings(
     };
 
     const placeholder = serializeTranslatedText(stringSettings.placeholder);
+
     if (placeholder) {
         out.placeholder = placeholder;
     }
@@ -826,12 +1061,17 @@ export function serializeStringFieldSettings(
     return out;
 }
 
+/** Parsed settings for textarea fields. */
 export type TextareaFieldSettings = {
     placeholder: TranslatedText;
     rows: number;
     maxLength: number | null;
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns Textarea settings with row count and length limits
+ */
 export function parseTextareaFieldSettings(
     settings?: Record<string, unknown> | null,
 ): TextareaFieldSettings {
@@ -844,6 +1084,7 @@ export function parseTextareaFieldSettings(
     };
 }
 
+/** Parsed settings for numeric fields. */
 export type NumberFieldSettings = {
     min: number | null;
     max: number | null;
@@ -851,6 +1092,10 @@ export type NumberFieldSettings = {
     placeholder: TranslatedText;
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns Number field bounds and placeholder
+ */
 export function parseNumberFieldSettings(
     settings?: Record<string, unknown> | null,
 ): NumberFieldSettings {
@@ -862,11 +1107,16 @@ export function parseNumberFieldSettings(
     };
 }
 
+/** On/off labels for boolean toggle fields. */
 export type BooleanFieldSettings = {
     labelOn: TranslatedText;
     labelOff: TranslatedText;
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns Boolean toggle label translations
+ */
 export function parseBooleanFieldSettings(
     settings?: Record<string, unknown> | null,
 ): BooleanFieldSettings {
@@ -876,11 +1126,16 @@ export function parseBooleanFieldSettings(
     };
 }
 
+/** Date/time picker display options. */
 export type DateFieldSettings = {
     includeSeconds: boolean;
     use24h: boolean;
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns Date picker formatting options
+ */
 export function parseDateFieldSettings(
     settings?: Record<string, unknown> | null,
 ): DateFieldSettings {
@@ -890,6 +1145,7 @@ export function parseDateFieldSettings(
     };
 }
 
+/** Remote autocomplete endpoint and mapping settings. */
 export type ApiAutocompleteFieldSettings = {
     url: string;
     resultsPath: string;
@@ -902,6 +1158,10 @@ export type ApiAutocompleteFieldSettings = {
     iconRight: string;
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns API autocomplete configuration
+ */
 export function parseApiAutocompleteFieldSettings(
     settings?: Record<string, unknown> | null,
 ): ApiAutocompleteFieldSettings {
@@ -922,11 +1182,16 @@ export function parseApiAutocompleteFieldSettings(
     };
 }
 
+/** Select field behavior flags. */
 export type SelectFieldSettings = {
     allowNone: boolean;
     allowOther: boolean;
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns Select allow-none and allow-other flags
+ */
 export function parseSelectFieldSettings(
     settings?: Record<string, unknown> | null,
 ): SelectFieldSettings {
@@ -936,6 +1201,7 @@ export function parseSelectFieldSettings(
     };
 }
 
+/** Tag field presets and normalization options. */
 export type TagFieldSettings = {
     presets: string[];
     allowOther: boolean;
@@ -944,6 +1210,10 @@ export type TagFieldSettings = {
     separator: string;
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns Tag field presets and formatting options
+ */
 export function parseTagFieldSettings(
     settings?: Record<string, unknown> | null,
 ): TagFieldSettings {
@@ -960,6 +1230,7 @@ export function parseTagFieldSettings(
     };
 }
 
+/** Code editor field display options. */
 export type CodeFieldSettings = {
     language: string;
     lineNumbers: boolean;
@@ -967,6 +1238,10 @@ export type CodeFieldSettings = {
     template: string;
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns Code editor language and display flags
+ */
 export function parseCodeFieldSettings(
     settings?: Record<string, unknown> | null,
 ): CodeFieldSettings {
@@ -978,12 +1253,17 @@ export function parseCodeFieldSettings(
     };
 }
 
+/** Map field default viewport center and zoom. */
 export type MapFieldSettings = {
     defaultLat: number | null;
     defaultLng: number | null;
     defaultZoom: number;
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns Default map coordinates and zoom
+ */
 export function parseMapFieldSettings(
     settings?: Record<string, unknown> | null,
 ): MapFieldSettings {
@@ -996,11 +1276,16 @@ export function parseMapFieldSettings(
     };
 }
 
+/** Color picker opacity and preset swatches. */
 export type ColorFieldSettings = {
     opacity: boolean;
     presetColors: string[];
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns Color picker options
+ */
 export function parseColorFieldSettings(
     settings?: Record<string, unknown> | null,
 ): ColorFieldSettings {
@@ -1014,12 +1299,17 @@ export function parseColorFieldSettings(
     };
 }
 
+/** Image picker constraints and display options. */
 export type ImageFieldSettings = {
     allowMultiple: boolean;
     allowedMimeTypes: string[];
     cropToFit: boolean;
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns Image field mime and layout options
+ */
 export function parseImageFieldSettings(
     settings?: Record<string, unknown> | null,
 ): ImageFieldSettings {
@@ -1030,10 +1320,15 @@ export function parseImageFieldSettings(
     };
 }
 
+/** Generic files field mime constraints. */
 export type FilesFieldSettings = {
     allowedMimeTypes: string[];
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns Allowed mime types for files fields
+ */
 export function parseFilesFieldSettings(
     settings?: Record<string, unknown> | null,
 ): FilesFieldSettings {
@@ -1042,6 +1337,7 @@ export function parseFilesFieldSettings(
     };
 }
 
+/** Relation field target collection and display configuration. */
 export type RelationFieldSettings = {
     relatedCollectionId: string;
     displayField: string;
@@ -1051,6 +1347,10 @@ export type RelationFieldSettings = {
     layout: 'list' | 'table';
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns Relation picker configuration
+ */
 export function parseRelationFieldSettings(
     settings?: Record<string, unknown> | null,
 ): RelationFieldSettings {
@@ -1072,11 +1372,16 @@ export function parseRelationFieldSettings(
     };
 }
 
+/** Many-to-any builder allowed collections and duplication flag. */
 export type M2aFieldSettings = {
     allowedCollectionIds: number[];
     allowDuplicates: boolean;
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns M2A builder settings
+ */
 export function parseM2aFieldSettings(
     settings?: Record<string, unknown> | null,
 ): M2aFieldSettings {
@@ -1086,20 +1391,30 @@ export function parseM2aFieldSettings(
     };
 }
 
+/** Hash field display options. */
 export type HashFieldSettings = {
     masked: boolean;
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns Hash field display flags
+ */
 export function parseHashFieldSettings(
     settings?: Record<string, unknown> | null,
 ): HashFieldSettings {
     return { masked: settingsFlag(settings?.masked) };
 }
 
+/** Slider field settings including live value display. */
 export type SliderFieldSettingsExtended = SliderFieldSettings & {
     showValue: boolean;
 };
 
+/**
+ * @param settings - Raw field settings
+ * @returns Slider bounds plus show-value flag
+ */
 export function parseSliderFieldSettings(
     settings?: Record<string, unknown> | null,
 ): SliderFieldSettingsExtended {
@@ -1129,6 +1444,12 @@ function parseStringArraySetting(value: unknown): string[] {
     return value.map((entry) => String(entry)).filter(Boolean);
 }
 
+/**
+ * Field Type Group For Type.
+ *
+ * @param type - Field type key
+ * @returns UI group label for the type picker
+ */
 export function fieldTypeGroupForType(type: string): string {
     for (const group of COLLECTION_FIELD_TYPE_GROUPS) {
         if (group.types.includes(type)) {
@@ -1139,6 +1460,12 @@ export function fieldTypeGroupForType(type: string): string {
     return 'Altro';
 }
 
+/**
+ * Supports Default Value.
+ *
+ * @param fieldType - Field type key
+ * @returns Whether the type supports a default value in settings
+ */
 export function supportsDefaultValue(fieldType: string): boolean {
     return ![
         'hash',
@@ -1155,6 +1482,13 @@ export function supportsDefaultValue(fieldType: string): boolean {
     ].includes(fieldType);
 }
 
+/**
+ * Flattens nested settings into Inertia form `{ name, value }` pairs.
+ *
+ * @param settings - Nested settings object
+ * @param prefix - Root form key prefix (default `settings`)
+ * @returns Flat form field entries
+ */
 export function flattenSettingsForForm(
     settings: Record<string, unknown>,
     prefix = 'settings',
@@ -1199,6 +1533,16 @@ export function flattenSettingsForForm(
     return entries;
 }
 
+/**
+ * Builds the persisted settings payload for a field, merging common, type-specific, and option data.
+ *
+ * @param fieldType - Field type key
+ * @param common - Common settings from the editor
+ * @param typeSettings - Type-specific settings object
+ * @param options - Flat options when the type needs them
+ * @param treeOptions - Tree options when the type needs them
+ * @returns Combined settings object for save requests
+ */
 export function buildFieldSettingsPayload(
     fieldType: string,
     common: CommonFieldSettings,

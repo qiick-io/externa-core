@@ -5,6 +5,9 @@ namespace App\Concerns;
 use App\Models\User;
 use Illuminate\Validation\Rule;
 
+/**
+ * Shared profile field validation rules for Fortify registration and updates.
+ */
 trait ProfileValidationRules
 {
     /**

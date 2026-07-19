@@ -13,6 +13,10 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+/**
+ * Theme and appearance preferences.
+ * @returns {JSX.Element}
+ */
 export default function Appearance() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

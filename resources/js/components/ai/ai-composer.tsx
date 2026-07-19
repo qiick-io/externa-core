@@ -45,6 +45,11 @@ type AiComposerProps = {
     attachTooltip?: string;
 };
 
+/**
+ * Chat input with attachments, voice, and preset actions.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function AiComposer({
     value,
     onChange,

@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Permission\Models\Role;
 
+/**
+ * Named group of users that can carry attached Spatie roles.
+ */
 class UserGroup extends Model
 {
     /** @use HasFactory<UserGroupFactory> */

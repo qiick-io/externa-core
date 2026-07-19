@@ -19,6 +19,11 @@ function findExactCatalogMatch(
     return catalog.find((tag) => tag.name === typedName);
 }
 
+/**
+ * Multi-select for assigning tags to files.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function TagPicker({
     value,
     onChange,
@@ -36,8 +41,10 @@ export function TagPicker({
 
     const addTagName = (rawName: string): void => {
         const trimmedName = rawName.trim();
+
         if (!trimmedName) {
             setInputValue('');
+
             return;
         }
 
@@ -54,6 +61,7 @@ export function TagPicker({
     const toggleCatalogTag = (tagName: string): void => {
         if (value.includes(tagName)) {
             onChange(value.filter((entry) => entry !== tagName));
+
             return;
         }
 

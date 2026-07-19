@@ -7,6 +7,9 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
 
+/**
+ * Persists collection item field values, including translatable and relational data.
+ */
 class CollectionItemValuesWriter
 {
     /**

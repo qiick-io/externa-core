@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * Content collection routes: collection CRUD, field schema, and item management.
+ *
+ * All routes require `auth` and `verified`. Soft-delete restore/force-delete and singleton
+ * content upsert are registered alongside the resource controllers.
+ */
+
 use App\Http\Controllers\Collections\ContentCollectionController;
 use App\Http\Controllers\Collections\FieldController;
 use App\Http\Controllers\Collections\ItemController;
@@ -25,8 +32,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('collections/{collection}/items/new', [ItemController::class, 'newItem'])
         ->name('collections.items.new');
 
-    Route::get('collections/{collection}/items/options', [ItemController::class, 'options'])
-        ->name('collections.items.options');
+    Route::get('collections/{collection}/items/options', [ItemController::class, 'fieldOptions'])
+        ->name('collections.items.field-options');
 
     Route::post('collections/{collection}/items/{item}/restore', [ItemController::class, 'restore'])
         ->name('collections.items.restore');

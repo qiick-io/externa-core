@@ -1,6 +1,9 @@
 /**
- * Collect user-facing validation messages for collection item `data` payloads from Inertia form errors.
+ * Collects user-facing validation messages for collection item `data` payloads from Inertia form errors.
  * Supports flat keys (`data.title`), dot paths, and nested `errors.data` objects.
+ *
+ * @param errors - Inertia validation errors object
+ * @returns De-duplicated list of message strings
  */
 export function collectCollectionDataErrorMessages(
     errors: Record<string, unknown> | undefined,
@@ -31,17 +34,17 @@ export function collectCollectionDataErrorMessages(
         }
 
         if (Array.isArray(obj)) {
-            for (const [i, item] of obj.entries()) {
-                walk(item, `${path}[${i}]`);
+            for (const [index, item] of obj.entries()) {
+                walk(item, `${path}[${index}]`);
             }
 
             return;
         }
 
         if (typeof obj === 'object') {
-            for (const [k, v] of Object.entries(obj)) {
-                const next = path === '' ? k : `${path}.${k}`;
-                walk(v, next);
+            for (const [key, nestedValue] of Object.entries(obj)) {
+                const nextPath = path === '' ? key : `${path}.${key}`;
+                walk(nestedValue, nextPath);
             }
         }
     };

@@ -53,6 +53,13 @@ expect()->extend('toBeOne', function () {
 |
 */
 
+/**
+ * Assign AI-related permissions to a user via a disposable test role.
+ *
+ * Creates a unique role per call so parallel tests do not share permission state.
+ *
+ * @param  list<string>  $permissions  Spatie permission names.
+ */
 function grantAiPermissions(User $user, array $permissions): User
 {
     $role = Role::query()->firstOrCreate([

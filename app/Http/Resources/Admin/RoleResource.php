@@ -7,11 +7,15 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Spatie\Permission\Models\Role;
 
 /**
+ * Serialize a Spatie role record with optional permission payloads.
+ *
  * @mixin Role
  */
 class RoleResource extends JsonResource
 {
     /**
+     * Transform the role into an array for admin listings and forms.
+     *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array

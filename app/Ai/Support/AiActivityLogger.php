@@ -6,10 +6,19 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
+/**
+ * Writes activity-log entries for AI tool usage.
+ */
+/**
+ * Writes AI prompts, responses, tool calls, and mutations to the activity log.
+ */
 class AiActivityLogger
 {
     private const MAX_TEXT_LENGTH = 4000;
 
+    /**
+     * Log an AI prompt to the activity log.
+     */
     public static function prompt(User $user, string $prompt, ?string $conversationId = null): void
     {
         activity()
@@ -23,6 +32,9 @@ class AiActivityLogger
             ->log('AI prompt');
     }
 
+    /**
+     * Log an AI model response to the activity log.
+     */
     public static function response(
         User $user,
         string $response,

@@ -1,5 +1,6 @@
 import { PermissionEnum } from '@/enums/permission-enum';
 
+/** UI category bucket for grouping AI action presets in the drawer. */
 export type AiActionPresetCategory =
     | 'comuni'
     | 'dati'
@@ -7,6 +8,7 @@ export type AiActionPresetCategory =
     | 'admin'
     | 'avanzate';
 
+/** Pre-built AI prompt template shown in the action presets drawer. */
 export type AiActionPreset = {
     id: string;
     category: AiActionPresetCategory;
@@ -18,6 +20,7 @@ export type AiActionPreset = {
     destructive?: boolean;
 };
 
+/** Localized labels for {@link AiActionPresetCategory} values. */
 export const AI_ACTION_PRESET_CATEGORY_LABELS: Record<
     AiActionPresetCategory,
     string
@@ -29,6 +32,7 @@ export const AI_ACTION_PRESET_CATEGORY_LABELS: Record<
     avanzate: 'Avanzate',
 };
 
+/** Built-in AI action presets shipped with the assistant UI. */
 export const AI_ACTION_PRESETS: AiActionPreset[] = [
     {
         id: 'new-typed-collection',
@@ -287,6 +291,13 @@ export const AI_ACTION_PRESETS: AiActionPreset[] = [
     },
 ];
 
+/**
+ * Filters presets to those the current user may run based on Spatie permissions.
+ *
+ * @param presets - Preset list to filter
+ * @param can - Permission check from {@link useCan}
+ * @returns Presets where at least one required permission passes (or none required)
+ */
 export function filterAiActionPresets(
     presets: AiActionPreset[],
     can: (permission: string) => boolean,

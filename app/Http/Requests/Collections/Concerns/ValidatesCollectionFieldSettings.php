@@ -5,9 +5,14 @@ namespace App\Http\Requests\Collections\Concerns;
 use App\Enums\FieldTypeEnum;
 use Illuminate\Validation\Rule;
 
+/**
+ * Shared validation rules and normalization for collection field settings payloads.
+ */
 trait ValidatesCollectionFieldSettings
 {
     /**
+     * Build validation rules for field settings, including locale-specific keys.
+     *
      * @return array<string, mixed>
      */
     protected function fieldSettingsRules(?FieldTypeEnum $fieldType = null): array
@@ -115,6 +120,8 @@ trait ValidatesCollectionFieldSettings
     }
 
     /**
+     * Decode string filter values and drop empty filters before validation.
+     *
      * @param  array<string, mixed>  $settings
      * @return array<string, mixed>
      */

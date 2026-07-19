@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Collection;
 
 /**
+ * Polymorphic file attachments with optional pivot role and ordering.
+ *
  * @mixin Model
  */
 trait HasFiles
@@ -23,6 +25,9 @@ trait HasFiles
             ->withTimestamps();
     }
 
+    /**
+     * Attach a file, updating pivot data when the same file+role already exists.
+     */
     public function attachFile(File $file, ?string $role = null, int $order = 0): void
     {
         $pivot = [
@@ -52,6 +57,9 @@ trait HasFiles
         ]);
     }
 
+    /**
+     * Detach a file, optionally scoped to a pivot role.
+     */
     public function detachFile(File $file, ?string $role = null): void
     {
         $relation = $this->files();
@@ -63,6 +71,9 @@ trait HasFiles
         $relation->detach($file->id);
     }
 
+    /**
+     * Attach or update pivot metadata for an existing file association.
+     */
     public function updateFile(File $file, ?string $role = null, int $order = 0): void
     {
         $pivot = [
@@ -120,6 +131,9 @@ trait HasFiles
             ->get();
     }
 
+    /**
+     * First file attached with the given pivot role, if any.
+     */
     public function firstFileByRole(string $role): ?File
     {
         return $this->files()

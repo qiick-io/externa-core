@@ -2,6 +2,9 @@
 
 namespace App\Enums;
 
+/**
+ * Application permission names synced to the database and frontend enum.
+ */
 enum PermissionEnum: string
 {
     case CanShowDashboard = 'can-show-dashboard';

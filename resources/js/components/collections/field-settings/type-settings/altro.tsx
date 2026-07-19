@@ -1,10 +1,11 @@
+import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import {
-    parseHashFieldSettings,
-    type SliderFieldSettings,
+    parseHashFieldSettings
+    
 } from '@/lib/collection-field-types';
+import type {SliderFieldSettings} from '@/lib/collection-field-types';
 
 type AltroSettingsProps = {
     fieldType: string;
@@ -17,6 +18,10 @@ type AltroSettingsProps = {
     onSliderShowValueChange: (value: boolean) => void;
 };
 
+/**
+ * Settings panel for miscellaneous field types (slider, etc.).
+ * @returns {JSX.Element}
+ */
 export function AltroSettings({
     fieldType,
     settings,
@@ -125,6 +130,10 @@ export function AltroSettings({
     return null;
 }
 
+/**
+ * Serializes slider field settings for API submission.
+ * @returns {*}
+ */
 export function serializeSliderTypeSettings(
     sliderSettings: SliderFieldSettings,
     showValue: boolean,

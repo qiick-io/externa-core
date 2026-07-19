@@ -2,7 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Models\User;
-use App\Notifications\FileDuplicationCompleted;
+use App\Notifications\FileDuplicationCompletedNotification;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
@@ -22,14 +22,14 @@ test('users can list only their notifications and mark them read', function () {
     $owner = User::factory()->create();
     $other = User::factory()->create();
 
-    $owner->notify(new FileDuplicationCompleted(
+    $owner->notify(new FileDuplicationCompletedNotification(
         jobId: (string) Str::uuid(),
         count: 1,
         firstFileId: 10,
         firstFilePath: '/Docs copy',
         folderId: 10,
     ));
-    $other->notify(new FileDuplicationCompleted(
+    $other->notify(new FileDuplicationCompletedNotification(
         jobId: (string) Str::uuid(),
         count: 2,
         firstFileId: 20,
@@ -65,14 +65,14 @@ test('users can list only their notifications and mark them read', function () {
 test('users can mark all notifications read', function () {
     $user = User::factory()->create();
 
-    $user->notify(new FileDuplicationCompleted(
+    $user->notify(new FileDuplicationCompletedNotification(
         jobId: (string) Str::uuid(),
         count: 1,
         firstFileId: 1,
         firstFilePath: '/a',
         folderId: null,
     ));
-    $user->notify(new FileDuplicationCompleted(
+    $user->notify(new FileDuplicationCompletedNotification(
         jobId: (string) Str::uuid(),
         count: 1,
         firstFileId: 2,
@@ -100,7 +100,7 @@ test('inertia shares unread notification count', function () {
 
     $user = User::factory()->create();
     $user->syncRoles([$role]);
-    $user->notify(new FileDuplicationCompleted(
+    $user->notify(new FileDuplicationCompletedNotification(
         jobId: (string) Str::uuid(),
         count: 1,
         firstFileId: null,

@@ -22,7 +22,8 @@ import {
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
-import { normalizePaginated, type LaravelPaginated } from '@/lib/pagination';
+import { normalizePaginated  } from '@/lib/pagination';
+import type {LaravelPaginated} from '@/lib/pagination';
 import type {
     AdminActivityLogRow,
     AdminUserRow,
@@ -39,6 +40,12 @@ type Filters = {
     date_to?: string;
 };
 
+/**
+ * Searchable activity log for administrators.
+ * @param {*} props.activityLogs - activityLogs.
+ * @param {*} props.users - users.
+ * @returns {JSX.Element}
+ */
 export default function AdminActivityLogsIndex({
     activityLogs: activityLogsProp,
     users: usersProp,

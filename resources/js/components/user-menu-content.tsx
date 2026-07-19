@@ -16,9 +16,16 @@ type Props = {
     user: User;
 };
 
+/**
+ * Dropdown menu body for profile settings and logout.
+ * @param {Props} props - Component props.
+ * @param {User} props.user - Authenticated user shown in the menu header.
+ * @returns {JSX.Element}
+ */
 export function UserMenuContent({ user }: Props) {
     const cleanup = useMobileNavigation();
 
+    /** Clears mobile nav state and Inertia page cache before logout. */
     const handleLogout = () => {
         cleanup();
         router.flushAll();

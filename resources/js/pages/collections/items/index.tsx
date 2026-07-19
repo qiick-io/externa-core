@@ -2,17 +2,17 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Rows3 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
-import {
-    PageLayout,
-    TablePagination,
-    TablePanel,
-} from '@/components/layout/page-layout';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import {
     CollectionEditButton,
     CollectionEditDrawer,
     useCollectionEditDrawer,
 } from '@/components/collections/collection-edit-drawer';
+import {
+    PageLayout,
+    TablePagination,
+    TablePanel,
+} from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import {
     Table,
@@ -49,6 +49,10 @@ type Paginator<T> = {
     links: { url: string | null; label: string; active: boolean }[];
 };
 
+/**
+ * Paginated list of items in a collection.
+ * @returns {JSX.Element}
+ */
 export default function ItemsIndex({
     collection,
     items,

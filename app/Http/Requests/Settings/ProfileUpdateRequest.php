@@ -6,12 +6,15 @@ use App\Concerns\ProfileValidationRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validate profile updates for the authenticated user.
+ */
 class ProfileUpdateRequest extends FormRequest
 {
     use ProfileValidationRules;
 
     /**
-     * Get the validation rules that apply to the request.
+     * Apply shared profile validation rules for the current user id.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */

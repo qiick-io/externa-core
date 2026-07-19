@@ -16,10 +16,16 @@ use Inertia\Response;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 
+/**
+ * Admin CRUD and sync actions for Spatie permission records.
+ */
 class PermissionController extends Controller
 {
     use AuthorizesWithPermission;
 
+    /**
+     * List permissions with search and sort filters.
+     */
     public function index(Request $request): Response
     {
         $this->authorizePermission(PermissionEnum::CanShowPermissions->value);
@@ -57,6 +63,9 @@ class PermissionController extends Controller
         ]);
     }
 
+    /**
+     * Create a permission and flush the permission cache.
+     */
     public function store(StorePermissionRequest $request): RedirectResponse
     {
         $data = $request->validated();
@@ -73,6 +82,9 @@ class PermissionController extends Controller
             ->with('success', __('Permission created.'));
     }
 
+    /**
+     * Update a permission and flush the permission cache.
+     */
     public function update(UpdatePermissionRequest $request, Permission $permission): RedirectResponse
     {
         $permission->update($request->validated());
@@ -84,6 +96,9 @@ class PermissionController extends Controller
             ->with('success', __('Permission updated.'));
     }
 
+    /**
+     * Delete a permission and flush the permission cache.
+     */
     public function destroy(Permission $permission): RedirectResponse
     {
         $this->authorizePermission(PermissionEnum::CanDeletePermissions->value);
@@ -97,6 +112,9 @@ class PermissionController extends Controller
             ->with('success', __('Permission deleted.'));
     }
 
+    /**
+     * Run the permissions sync artisan command, optionally pruning stale records.
+     */
     public function sync(Request $request): RedirectResponse
     {
         $this->authorizePermission(PermissionEnum::CanEditPermissions->value);

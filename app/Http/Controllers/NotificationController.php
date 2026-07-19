@@ -7,8 +7,14 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 
+/**
+ * Exposes paginated in-app notifications and read-state mutations for the current user.
+ */
 class NotificationController extends Controller
 {
+    /**
+     * List the authenticated user's notifications with pagination metadata.
+     */
     public function index(Request $request): JsonResponse
     {
         $paginator = $request->user()
@@ -27,6 +33,9 @@ class NotificationController extends Controller
         ]);
     }
 
+    /**
+     * Return the count of unread notifications for the authenticated user.
+     */
     public function unreadCount(Request $request): JsonResponse
     {
         return response()->json([
@@ -34,13 +43,17 @@ class NotificationController extends Controller
         ]);
     }
 
+    /**
+     * Mark selected notifications, or all unread notifications, as read.
+     *
+     * ponytail: empty or missing ids (or all=true) marks every unread notification.
+     */
     public function markRead(MarkNotificationsReadRequest $request): JsonResponse
     {
         $validated = $request->validated();
         $user = $request->user();
         $query = $user->unreadNotifications();
 
-        // ponytail: empty/missing ids (or all=true) marks every unread notification.
         if (! empty($validated['ids'])) {
             $query->whereIn('id', $validated['ids']);
         }
@@ -53,6 +66,8 @@ class NotificationController extends Controller
     }
 
     /**
+     * Serialize a database notification for JSON responses.
+     *
      * @return array{id: string, type: string, data: array<string, mixed>, read_at: string|null, created_at: string}
      */
     protected function serializeNotification(DatabaseNotification $notification): array

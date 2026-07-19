@@ -1,8 +1,8 @@
 import { useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
-import InputError from '@/components/input-error';
 import { RoleMultiSelect } from '@/components/admin/role-multi-select';
 import { UserMultiSelect } from '@/components/admin/user-multi-select';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     DrawerBody,
@@ -24,6 +24,11 @@ export type GroupFormDrawerProps = {
     onSuccess?: () => void;
 };
 
+/**
+ * Drawer form for creating and editing user groups.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function GroupFormDrawer({
     editing,
     readOnly = false,
@@ -82,6 +87,7 @@ export function GroupFormDrawer({
                 className="flex min-h-0 flex-1 flex-col overflow-hidden"
                 onSubmit={(e) => {
                     e.preventDefault();
+
                     if (!readOnly) {
                         submit();
                     }

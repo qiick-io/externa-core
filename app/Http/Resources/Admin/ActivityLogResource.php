@@ -9,11 +9,15 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Spatie\Activitylog\Models\Activity;
 
 /**
+ * Serialize an activity log entry for the admin audit UI.
+ *
  * @mixin Activity
  */
 class ActivityLogResource extends JsonResource
 {
     /**
+     * Transform the activity record into a display-friendly array.
+     *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array
@@ -44,6 +48,9 @@ class ActivityLogResource extends JsonResource
         ];
     }
 
+    /**
+     * Resolve a human-readable label for an activity subject model.
+     */
     protected function resolveSubjectLabel(Model $subject): string
     {
         if ($subject instanceof User) {

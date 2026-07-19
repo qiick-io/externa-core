@@ -34,6 +34,9 @@ beforeEach(function () {
     Storage::fake('assets');
 });
 
+/**
+ * Persist a fake AI chat attachment on the local disk for phase-two tool tests.
+ */
 function phaseTwoAttachment(User $user, string $name, string $content, string $mime): AiChatAttachment
 {
     $path = "ai-chat-attachments/{$user->id}/{$name}";
@@ -50,6 +53,9 @@ function phaseTwoAttachment(User $user, string $name, string $content, string $m
     ]);
 }
 
+/**
+ * Create a collection item and write normalized field values through the production pipeline.
+ */
 function phaseTwoWriteItem(Collection $collection, array $data): CollectionItem
 {
     $item = $collection->items()->create([]);
@@ -59,6 +65,9 @@ function phaseTwoWriteItem(Collection $collection, array $data): CollectionItem
     return $item;
 }
 
+/**
+ * Build a minimal valid PDF byte string containing the given visible text.
+ */
 function phaseTwoPdf(string $text): string
 {
     $stream = "BT /F1 18 Tf 72 720 Td ({$text}) Tj ET";

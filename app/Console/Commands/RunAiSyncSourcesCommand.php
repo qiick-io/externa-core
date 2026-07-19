@@ -10,8 +10,17 @@ use Illuminate\Console\Command;
 
 #[Signature('ai:run-sync-sources')]
 #[Description('Queue due AI remote collection sync sources')]
+/**
+ * Artisan command that runs configured AI sync sources on a schedule or demand.
+ */
 class RunAiSyncSourcesCommand extends Command
 {
+    /**
+     * Execute the command.
+     */
+    /**
+     * Queue import jobs for sync sources that are due to run.
+     */
     public function handle(): int
     {
         $queued = 0;

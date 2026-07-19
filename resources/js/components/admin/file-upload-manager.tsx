@@ -9,6 +9,11 @@ type FileUploadManagerProps = {
     className?: string;
 };
 
+/**
+ * Orchestrates chunked uploads and progress UI.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function FileUploadManager({
     uploads,
     onDismiss,

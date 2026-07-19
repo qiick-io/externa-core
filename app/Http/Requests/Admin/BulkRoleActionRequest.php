@@ -10,10 +10,16 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
+/**
+ * Validates bulk admin actions against roles.
+ */
 class BulkRoleActionRequest extends FormRequest
 {
     use AuthorizesWithPermission;
 
+    /**
+     * Require permission to delete roles.
+     */
     public function authorize(): bool
     {
         $this->authorizePermission(PermissionEnum::CanDeleteRoles->value);

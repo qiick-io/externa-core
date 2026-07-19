@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
+ * In-progress chunked upload session tracked until merge completes or expiry.
+ *
  * @property int $id
  * @property string $upload_id
  * @property string $file_name
@@ -65,11 +67,17 @@ class FileUpload extends Model
         return $this->belongsTo(File::class, 'parent_id');
     }
 
+    /**
+     * Whether the upload session has passed its expiry time.
+     */
     public function isExpired(): bool
     {
         return $this->expires_at->isPast();
     }
 
+    /**
+     * Whether all chunks have been received.
+     */
     public function isComplete(): bool
     {
         return $this->uploaded_chunks >= $this->total_chunks;

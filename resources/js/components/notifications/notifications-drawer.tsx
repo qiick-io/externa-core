@@ -12,9 +12,10 @@ import adminRoutes from '@/lib/admin-routes';
 import { downloadPreparedZipUrl } from '@/lib/files-api';
 import {
     fetchNotifications,
-    markNotificationsRead,
-    type AppNotification,
+    markNotificationsRead
+    
 } from '@/lib/notifications-api';
+import type {AppNotification} from '@/lib/notifications-api';
 import { cn } from '@/lib/utils';
 
 type NotificationsDrawerProps = {
@@ -54,6 +55,11 @@ function zipDownloadHref(notification: AppNotification): string | null {
     return null;
 }
 
+/**
+ * Drawer listing user notifications.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function NotificationsDrawer({
     open,
     onOpenChange,

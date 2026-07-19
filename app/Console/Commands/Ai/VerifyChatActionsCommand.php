@@ -22,6 +22,12 @@ use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\Process\Process;
 
+/**
+ * Artisan command that verifies AI chat tool actions against expected outcomes.
+ */
+/**
+ * E2E verification command that prompts the live AI agent and checks DB side effects.
+ */
 class VerifyChatActionsCommand extends Command
 {
     protected $signature = 'ai:verify-chat-actions
@@ -33,6 +39,13 @@ class VerifyChatActionsCommand extends Command
 
     protected $description = 'Ask the live AI agent to perform actions and verify tool calls + DB state; retry until green';
 
+    /**
+     * Execute the command.
+     */
+
+    /**
+     * Run chat scenarios against the live agent and optional browser/tool suites.
+     */
     public function handle(): int
     {
         $user = User::query()->where('email', config('super_admin.email'))->first()

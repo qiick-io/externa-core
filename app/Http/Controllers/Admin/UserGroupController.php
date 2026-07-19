@@ -14,6 +14,9 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
 
+/**
+ * Admin CRUD and bulk delete actions for user groups and their memberships.
+ */
 class UserGroupController extends Controller
 {
     /**
@@ -21,6 +24,9 @@ class UserGroupController extends Controller
      */
     private const SORTABLE_COLUMNS = ['name', 'created_at', 'updated_at'];
 
+    /**
+     * List user groups with search, sort, and role assignment context.
+     */
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->toString();
@@ -64,6 +70,9 @@ class UserGroupController extends Controller
         ]);
     }
 
+    /**
+     * Create a user group and sync members and roles.
+     */
     public function store(StoreUserGroupRequest $request): RedirectResponse
     {
         $validated = $request->validated();
@@ -80,6 +89,9 @@ class UserGroupController extends Controller
             ->with('success', __('User group created.'));
     }
 
+    /**
+     * Update a user group and optionally sync members and roles.
+     */
     public function update(UpdateUserGroupRequest $request, UserGroup $group): RedirectResponse
     {
         $validated = $request->validated();
@@ -101,6 +113,9 @@ class UserGroupController extends Controller
             ->with('success', __('User group updated.'));
     }
 
+    /**
+     * Delete a user group.
+     */
     public function destroy(UserGroup $group): RedirectResponse
     {
         $group->delete();
@@ -109,6 +124,9 @@ class UserGroupController extends Controller
             ->with('success', __('User group deleted.'));
     }
 
+    /**
+     * Delete multiple user groups in one request.
+     */
     public function bulkDestroy(BulkDestroyUserGroupsRequest $request): RedirectResponse
     {
         UserGroup::query()->whereIn('id', $request->validated('ids'))->delete();

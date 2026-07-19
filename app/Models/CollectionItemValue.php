@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
+ * Stored value for one collection item field (scalar, array element, or locale variant).
+ *
  * @property-read int $id
  * @property int $item_id
  * @property int $field_id

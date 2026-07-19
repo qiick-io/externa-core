@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * Console commands and scheduled maintenance tasks.
+ *
+ * Schedules clean up activity logs, stale uploads/zips, AI attachments, and sync sources.
+ */
+
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;

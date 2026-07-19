@@ -5,6 +5,12 @@ namespace App\Ai\Support;
 use Illuminate\Support\Collection;
 use Laravel\Ai\Responses\StreamedAgentResponse;
 
+/**
+ * Summarizes tool calls and outcomes for an AI conversation turn.
+ */
+/**
+ * Builds fallback Italian summaries when the model finishes tools without final text.
+ */
 final class AiToolTurnSummary
 {
     /**

@@ -33,6 +33,9 @@ class CurlMultiReadableStream implements StreamInterface
         private readonly array $curlOptions = [],
     ) {}
 
+    /**
+     * HTTP status code from the completed curl transfer, if available.
+     */
     public function statusCode(): int
     {
         $this->ensureStarted();
@@ -40,6 +43,9 @@ class CurlMultiReadableStream implements StreamInterface
         return $this->statusCode > 0 ? $this->statusCode : 200;
     }
 
+    /**
+     * Return remaining stream contents as a string.
+     */
     public function __toString(): string
     {
         try {
@@ -49,11 +55,21 @@ class CurlMultiReadableStream implements StreamInterface
         }
     }
 
+    /**
+     * Close the underlying curl multi handle and free resources.
+     */
     public function close(): void
     {
         $this->detach();
     }
 
+    /**
+     * Detach and return the underlying resource, if any.
+
+     *
+
+     * @return resource|null
+     */
     public function detach()
     {
         if ($this->multiHandle !== null && $this->curlHandle !== null) {
@@ -75,16 +91,25 @@ class CurlMultiReadableStream implements StreamInterface
         return null;
     }
 
+    /**
+     * @return int|null Stream size in bytes when known
+     */
     public function getSize(): ?int
     {
         return null;
     }
 
+    /**
+     * @return int Current read offset
+     */
     public function tell(): int
     {
         throw new RuntimeException('CurlMultiReadableStream does not support tell()');
     }
 
+    /**
+     * @return bool Whether the stream is at end-of-file
+     */
     public function eof(): bool
     {
         $this->ensureStarted();
@@ -92,36 +117,57 @@ class CurlMultiReadableStream implements StreamInterface
         return $this->eof && $this->buffer === '';
     }
 
+    /**
+     * @return bool Whether seeking is supported
+     */
     public function isSeekable(): bool
     {
         return false;
     }
 
+    /**
+     * Seek to a position in the stream.
+     */
     public function seek(int $offset, int $whence = SEEK_SET): void
     {
         throw new RuntimeException('CurlMultiReadableStream is not seekable');
     }
 
+    /**
+     * Seek to the beginning of the stream.
+     */
     public function rewind(): void
     {
         throw new RuntimeException('CurlMultiReadableStream is not seekable');
     }
 
+    /**
+     * @return bool Always false; this stream is read-only
+     */
     public function isWritable(): bool
     {
         return false;
     }
 
+    /**
+     * Unsupported write operation for a read-only stream.
+     */
     public function write(string $string): int
     {
         throw new RuntimeException('CurlMultiReadableStream is not writable');
     }
 
+    /**
+     * @return bool Always true for this readable stream
+     */
     public function isReadable(): bool
     {
         return true;
     }
 
+    /**
+     * Read up to the given number of bytes from the stream.
+     */
     public function read(int $length): string
     {
         if ($length < 1) {
@@ -141,6 +187,9 @@ class CurlMultiReadableStream implements StreamInterface
         return $chunk;
     }
 
+    /**
+     * @return string Remaining contents of the stream
+     */
     public function getContents(): string
     {
         $contents = '';
@@ -152,6 +201,9 @@ class CurlMultiReadableStream implements StreamInterface
         return $contents;
     }
 
+    /**
+     * @return mixed Stream metadata or a single key value
+     */
     public function getMetadata(?string $key = null)
     {
         $meta = [

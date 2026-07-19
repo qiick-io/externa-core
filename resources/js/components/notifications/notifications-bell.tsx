@@ -15,6 +15,11 @@ import { cn } from '@/lib/utils';
 
 const UNREAD_POLL_INTERVAL_MS = 60_000;
 
+/**
+ * Sidebar bell trigger for the notifications drawer.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function NotificationsBell() {
     const page = usePage();
     const sharedUnreadCount = page.props.notifications?.unread_count ?? 0;

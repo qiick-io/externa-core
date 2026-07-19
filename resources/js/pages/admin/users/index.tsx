@@ -1,13 +1,13 @@
 import { Head, router } from '@inertiajs/react';
 import { Trash2, UserPlus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
+import { UserFormDrawer } from '@/components/admin/user-form-drawer';
 import {
     PageLayout,
     TablePagination,
     TablePanel,
 } from '@/components/layout/page-layout';
-import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
-import { UserFormDrawer } from '@/components/admin/user-form-drawer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -25,7 +25,8 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
-import { normalizePaginated, type LaravelPaginated } from '@/lib/pagination';
+import { normalizePaginated  } from '@/lib/pagination';
+import type {LaravelPaginated} from '@/lib/pagination';
 import type { AdminUserRow, BreadcrumbItem, Paginated } from '@/types';
 
 type Filters = {
@@ -35,6 +36,11 @@ type Filters = {
     direction?: 'asc' | 'desc';
 };
 
+/**
+ * Admin users list with search and form drawer.
+ * @param {*} props.users - users.
+ * @returns {JSX.Element}
+ */
 export default function AdminUsersIndex({
     users: usersProp,
     filters = {},
@@ -138,6 +144,7 @@ export default function AdminUsersIndex({
                 open={drawerOpen}
                 onOpenChange={(open) => {
                     setDrawerOpen(open);
+
                     if (!open) {
                         setEditing(null);
                     }

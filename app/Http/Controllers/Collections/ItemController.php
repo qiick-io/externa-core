@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Collections;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Collections\StoreItemRequest;
-use App\Http\Requests\Collections\UpdateItemRequest;
-use App\Http\Resources\ItemResource;
+use App\Http\Requests\Collections\StoreCollectionItemRequest;
+use App\Http\Requests\Collections\UpdateCollectionItemRequest;
+use App\Http\Resources\CollectionItemResource;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
@@ -20,6 +20,9 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * CRUD and relational field option endpoints for non-singleton collection items.
+ */
 class ItemController extends Controller
 {
     public function __construct(
@@ -30,6 +33,9 @@ class ItemController extends Controller
         private CollectionItemOptionsService $collectionItemOptionsService,
     ) {}
 
+    /**
+     * List collection items or redirect singleton collections to their editor.
+     */
     public function index(Request $request, Collection $collection): Response|RedirectResponse
     {
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
@@ -67,7 +73,7 @@ class ItemController extends Controller
 
         $paginator = $query->latest('id')->paginate(15)->withQueryString();
         $paginator->setCollection(
-            $paginator->getCollection()->map(fn (CollectionItem $item): array => (new ItemResource($item))->toArray($request))
+            $paginator->getCollection()->map(fn (CollectionItem $item): array => (new CollectionItemResource($item))->toArray($request))
         );
 
         return Inertia::render('collections/items/index', [
@@ -80,6 +86,9 @@ class ItemController extends Controller
         ]);
     }
 
+    /**
+     * Render the create-item form or redirect singleton collections.
+     */
     public function newItem(Request $request, Collection $collection): Response|RedirectResponse
     {
         if ($collection->is_singleton && $collection->items()->exists()) {
@@ -101,7 +110,10 @@ class ItemController extends Controller
         ]);
     }
 
-    public function store(StoreItemRequest $request, Collection $collection): RedirectResponse
+    /**
+     * Create a collection item from validated field data.
+     */
+    public function store(StoreCollectionItemRequest $request, Collection $collection): RedirectResponse
     {
         if ($collection->is_singleton && $collection->items()->exists()) {
             abort(422, __('A singleton collection already has its content item.'));
@@ -121,6 +133,9 @@ class ItemController extends Controller
             ->with('success', __('Item created.'));
     }
 
+    /**
+     * Show the item editor or redirect singleton collections.
+     */
     public function show(Request $request, Collection $collection, CollectionItem $item): Response|RedirectResponse
     {
         $this->assertItemBelongsToCollection($collection, $item);
@@ -136,14 +151,17 @@ class ItemController extends Controller
 
         return Inertia::render('collections/items/form', [
             'collection' => $collection,
-            'item' => (new ItemResource($item))->toArray($request),
+            'item' => (new CollectionItemResource($item))->toArray($request),
             'rawData' => $rawData,
             'isNew' => false,
             'relatedCollections' => $this->relatedCollectionsForSelect(),
         ]);
     }
 
-    public function update(UpdateItemRequest $request, Collection $collection, CollectionItem $item): RedirectResponse
+    /**
+     * Update a collection item while preserving readonly field values.
+     */
+    public function update(UpdateCollectionItemRequest $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
         $this->assertItemBelongsToCollection($collection, $item);
 
@@ -175,6 +193,9 @@ class ItemController extends Controller
             ->with('success', __('Item updated.'));
     }
 
+    /**
+     * Soft-delete a collection item.
+     */
     public function destroy(Collection $collection, CollectionItem $item): RedirectResponse
     {
         $this->assertItemBelongsToCollection($collection, $item);
@@ -185,6 +206,9 @@ class ItemController extends Controller
             ->with('success', __('Item deleted.'));
     }
 
+    /**
+     * Restore a soft-deleted collection item.
+     */
     public function restore(Collection $collection, CollectionItem $item): RedirectResponse
     {
         $this->assertItemBelongsToCollection($collection, $item);
@@ -197,6 +221,9 @@ class ItemController extends Controller
         ])->with('success', __('Item restored.'));
     }
 
+    /**
+     * Permanently delete a collection item.
+     */
     public function forceDelete(Collection $collection, CollectionItem $item): RedirectResponse
     {
         $this->assertItemBelongsToCollection($collection, $item);
@@ -209,7 +236,12 @@ class ItemController extends Controller
         ])->with('success', __('Item permanently deleted.'));
     }
 
-    public function options(Request $request, Collection $collection): JsonResponse
+    /**
+     * Paginate selectable options for a relational collection field.
+     *
+     * ponytail: renamed from `options` because Wayfinder codegen shadows RouteQueryOptions.
+     */
+    public function fieldOptions(Request $request, Collection $collection): JsonResponse
     {
         $validated = $request->validate([
             'field_id' => ['required', 'integer'],
@@ -238,12 +270,17 @@ class ItemController extends Controller
         return response()->json($paginator);
     }
 
+    /**
+     * Abort when the item does not belong to the route collection.
+     */
     private function assertItemBelongsToCollection(Collection $collection, CollectionItem $item): void
     {
         abort_if($item->collection_id !== $collection->id, 404);
     }
 
     /**
+     * Load related collections for relational field pickers.
+     *
      * @return list<array{id: int, name: string, slug: string}>
      */
     private function relatedCollectionsForSelect(): array

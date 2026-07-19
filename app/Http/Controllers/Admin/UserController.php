@@ -16,6 +16,9 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
 
+/**
+ * Admin CRUD and bulk actions for application users, roles, and groups.
+ */
 class UserController extends Controller
 {
     use AuthorizesWithPermission;
@@ -33,6 +36,9 @@ class UserController extends Controller
         'updated_at',
     ];
 
+    /**
+     * List users with search, trash, and sort filters for the admin index page.
+     */
     public function index(Request $request): Response
     {
         $this->authorizePermission(PermissionEnum::CanShowUsers->value);
@@ -77,6 +83,9 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * Create a user and sync optional role and group assignments.
+     */
     public function store(StoreUserRequest $request): RedirectResponse
     {
         $data = $request->validated();
@@ -97,6 +106,9 @@ class UserController extends Controller
             ->with('success', __('User created.'));
     }
 
+    /**
+     * Update a user and sync optional role and group assignments.
+     */
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
         $data = $request->validated();
@@ -122,6 +134,9 @@ class UserController extends Controller
             ->with('success', __('User updated.'));
     }
 
+    /**
+     * Soft-delete a user.
+     */
     public function destroy(User $user): RedirectResponse
     {
         $this->authorizePermission(PermissionEnum::CanDeleteUsers->value);
@@ -133,6 +148,9 @@ class UserController extends Controller
             ->with('success', __('User deleted.'));
     }
 
+    /**
+     * Restore a soft-deleted user.
+     */
     public function restore(User $user): RedirectResponse
     {
         $this->authorizePermission(PermissionEnum::CanRestoreUsers->value);
@@ -144,6 +162,9 @@ class UserController extends Controller
             ->with('success', __('User restored.'));
     }
 
+    /**
+     * Permanently delete a soft-deleted user.
+     */
     public function forceDelete(User $user): RedirectResponse
     {
         $this->authorizePermission(PermissionEnum::CanForceDeleteUsers->value);
@@ -155,6 +176,9 @@ class UserController extends Controller
             ->with('success', __('User permanently deleted.'));
     }
 
+    /**
+     * Run a bulk delete, restore, or force-delete action on selected users.
+     */
     public function bulkActions(BulkUserActionRequest $request): RedirectResponse
     {
         $action = $request->validated('action');
@@ -172,6 +196,8 @@ class UserController extends Controller
     }
 
     /**
+     * Sync role and group relations when the request includes their id lists.
+     *
      * @param  array<string, mixed>  $data
      */
     private function syncRolesAndGroups(User $user, array $data): void

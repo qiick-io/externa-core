@@ -4,6 +4,11 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
+/**
+ * Password input with toggle to reveal or hide the value.
+ * @param {Omit<ComponentProps<'input'>, 'type'> & { ref?: Ref<HTMLInputElement> }} props - Standard input props without type.
+ * @returns {JSX.Element}
+ */
 export default function PasswordInput({
     className,
     ref,

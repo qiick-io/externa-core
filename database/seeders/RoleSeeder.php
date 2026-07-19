@@ -9,8 +9,16 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
+/**
+ * Seed default application roles and attach permissions from {@see PermissionSeeder}.
+ *
+ * Super-admin and admin receive every permission; reader receives only `can-show-*` permissions.
+ */
 class RoleSeeder extends Seeder
 {
+    /**
+     * Create roles and sync their permission sets.
+     */
     public function run(): void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();

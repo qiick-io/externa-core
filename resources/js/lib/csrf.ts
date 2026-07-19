@@ -3,6 +3,12 @@ type CsrfHeader = {
     token: string;
 };
 
+/**
+ * Resolves the CSRF token and header name for same-origin fetch requests.
+ * Prefers the `XSRF-TOKEN` cookie; falls back to the `csrf-token` meta tag.
+ *
+ * @returns Header name and token value (token may be empty when unavailable)
+ */
 export function getCsrfHeader(): CsrfHeader {
     const cookieMatch = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
 
@@ -31,6 +37,11 @@ function csrfHeaders(): HeadersInit {
     };
 }
 
+/**
+ * Standard JSON fetch headers including CSRF and Inertia-friendly `Accept`.
+ *
+ * @returns Headers for JSON API requests
+ */
 export function jsonRequestHeaders(): HeadersInit {
     return {
         Accept: 'application/json',
@@ -40,6 +51,11 @@ export function jsonRequestHeaders(): HeadersInit {
     };
 }
 
+/**
+ * Multipart/form fetch headers including CSRF (no `Content-Type`; boundary is set by the browser).
+ *
+ * @returns Headers for form uploads
+ */
 export function formRequestHeaders(): HeadersInit {
     return {
         Accept: 'application/json',

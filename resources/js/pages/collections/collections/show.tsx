@@ -16,6 +16,10 @@ import type { CollectionView } from '@/types/collections';
 
 const COLLECTION_CONTENT_FORM_ID = 'collection-content-form';
 
+/**
+ * Singleton collection item editor.
+ * @returns {JSX.Element}
+ */
 export default function CollectionsShow({
     collection,
     singletonRawData,

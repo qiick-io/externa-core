@@ -1,12 +1,12 @@
 import { Head, router } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
+import { GroupFormDrawer } from '@/components/admin/group-form-drawer';
 import {
     PageLayout,
     TablePanel,
 } from '@/components/layout/page-layout';
-import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
-import { GroupFormDrawer } from '@/components/admin/group-form-drawer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -23,9 +23,15 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
-import { normalizePaginated, type LaravelPaginated } from '@/lib/pagination';
+import { normalizePaginated  } from '@/lib/pagination';
+import type {LaravelPaginated} from '@/lib/pagination';
 import type { AdminGroupRow, BreadcrumbItem, Paginated } from '@/types';
 
+/**
+ * Admin groups list with search and form drawer.
+ * @param {*} props.groups - groups.
+ * @returns {JSX.Element}
+ */
 export default function AdminGroupsIndex({
     groups: groupsProp,
     filters = {},
@@ -94,6 +100,7 @@ export default function AdminGroupsIndex({
                 open={drawerOpen}
                 onOpenChange={(open) => {
                     setDrawerOpen(open);
+
                     if (!open) {
                         setEditing(null);
                     }

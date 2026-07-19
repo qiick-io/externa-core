@@ -10,6 +10,10 @@ type SettingsPanelProps = {
     className?: string;
 };
 
+/**
+ * Layout wrapper for a field settings section.
+ * @returns {JSX.Element}
+ */
 export function SettingsPanel({
     title,
     description,
@@ -64,6 +68,10 @@ type SettingCheckboxProps =
     | SettingCheckboxControlledProps
     | SettingCheckboxUncontrolledProps;
 
+/**
+ * Labeled checkbox row for field settings.
+ * @returns {JSX.Element}
+ */
 export function SettingCheckbox(props: SettingCheckboxProps) {
     const { id, label, description } = props;
 
@@ -99,6 +107,11 @@ export function SettingCheckbox(props: SettingCheckboxProps) {
     );
 }
 
+/**
+ * Section divider with optional label in field settings.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function SettingsDivider({ label }: { label: string }) {
     return (
         <div className="flex items-center gap-4">

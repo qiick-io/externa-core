@@ -30,6 +30,9 @@ beforeEach(function () {
     Cache::clear();
 });
 
+/**
+ * Persist a large CSV attachment used to trigger async import job dispatching.
+ */
 function phaseThreeAttachment(User $user, string $content): AiChatAttachment
 {
     $path = "ai-chat-attachments/{$user->id}/large.csv";

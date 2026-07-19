@@ -4,7 +4,7 @@ namespace App\Ai\Tools;
 
 use App\Ai\Concerns\ChecksAiPermissions;
 use App\Ai\Concerns\LogsAiToolUse;
-use App\Ai\Support\DecodesToolJson;
+use App\Ai\Support\AiToolJsonDecoder;
 use App\Enums\PermissionEnum;
 use App\Models\User;
 use App\Models\UserGroup;
@@ -14,16 +14,25 @@ use Laravel\Ai\Tools\Request;
 use Spatie\Permission\Models\Role;
 use Stringable;
 
+/**
+ * AI tool for listing and mutating user groups and memberships.
+ */
 class ManageGroups implements Tool
 {
     use ChecksAiPermissions;
     use LogsAiToolUse;
 
+    /**
+     * Describe what this tool does for the model.
+     */
     public function description(): Stringable|string
     {
         return 'List, get, create, update, soft-delete, restore, or force-delete user groups; sync member user IDs and role names onto a group.';
     }
 
+    /**
+     * Execute the tool request and return a string result for the model.
+     */
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
@@ -42,6 +51,9 @@ class ManageGroups implements Tool
         });
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function schema(JsonSchema $schema): array
     {
         return [
@@ -257,7 +269,7 @@ class ManageGroups implements Tool
 
     private function syncMembers(UserGroup $group, Request $request, bool $required): ?string
     {
-        $decoded = DecodesToolJson::optionalArrayFrom($request, 'user_ids_json');
+        $decoded = AiToolJsonDecoder::optionalArrayFrom($request, 'user_ids_json');
 
         if (is_string($decoded)) {
             return $decoded;
@@ -290,7 +302,7 @@ class ManageGroups implements Tool
 
     private function syncRoles(UserGroup $group, Request $request, bool $required): ?string
     {
-        $decoded = DecodesToolJson::optionalArrayFrom($request, 'role_names_json');
+        $decoded = AiToolJsonDecoder::optionalArrayFrom($request, 'role_names_json');
 
         if (is_string($decoded)) {
             return $decoded;

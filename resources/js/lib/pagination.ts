@@ -1,5 +1,6 @@
 import type { Paginated } from '@/types/admin';
 
+/** Laravel paginator JSON shape before normalization (meta wrapper or flat keys). */
 export type LaravelPaginated<T> = {
     data: T[];
     meta?: {
@@ -16,6 +17,12 @@ export type LaravelPaginated<T> = {
     total?: number;
 };
 
+/**
+ * Normalizes Laravel paginator responses into the flat `Paginated<T>` shape used by the UI.
+ *
+ * @param payload - Raw paginator JSON from the API
+ * @returns Normalized pagination object
+ */
 export function normalizePaginated<T>(
     payload: LaravelPaginated<T> | Paginated<T>,
 ): Paginated<T> {

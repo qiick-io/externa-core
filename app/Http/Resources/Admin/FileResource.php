@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
+ * Serialize a file or folder record for the file manager UI.
+ *
  * @mixin File
  */
 class FileResource extends JsonResource
@@ -15,6 +17,8 @@ class FileResource extends JsonResource
     public static $wrap = null;
 
     /**
+     * Transform the file into an array with URLs, tags, and favorite state.
+     *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array

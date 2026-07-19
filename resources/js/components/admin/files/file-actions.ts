@@ -47,7 +47,10 @@ const ACTION_ICONS: Record<FileActionKey, FileActionDefinition['icon']> = {
 
 /**
  * Single source of truth for file manager actions (toolbar + context menu).
- * Returns the ordered, available actions for the given selection.
+ * @param {AdminFileRow[]} selected - Currently selected file rows.
+ * @param {FileActionPermissions} permissions - Capability flags for the current user.
+ * @param {boolean} isTrashed - Whether the view shows trashed items.
+ * @returns {FileActionDefinition[]} Ordered actions available for the selection.
  */
 export function resolveFileActions(
     selected: AdminFileRow[],
@@ -154,7 +157,13 @@ export function resolveFileActions(
         }));
 }
 
-/** Drive-like: multi-selection actions if clicked file is selected, else that file alone. */
+/**
+ * Resolves context-menu targets using drive-like selection semantics.
+ * @param {AdminFileRow} file - File row that was right-clicked.
+ * @param {number[]} selectedIds - IDs in the current selection.
+ * @param {AdminFileRow[]} selectedFiles - Full rows for the current selection.
+ * @returns {AdminFileRow[]} Rows the context menu should act on.
+ */
 export function resolveContextMenuTargets(
     file: AdminFileRow,
     selectedIds: number[],

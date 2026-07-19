@@ -45,6 +45,11 @@ function isBlockedFolder(
     });
 }
 
+/**
+ * Modal tree for choosing a destination folder.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function FolderPickerDialog({
     open,
     onOpenChange,
@@ -154,6 +159,7 @@ export function FolderPickerDialog({
             setBrowseParentId(null);
             setBreadcrumbs([]);
             setSearch('');
+
             return;
         }
 
@@ -166,6 +172,7 @@ export function FolderPickerDialog({
     const submit = async (): Promise<void> => {
         if (locationIsBlocked) {
             setError('Cannot move into a selected folder or its descendants.');
+
             return;
         }
 

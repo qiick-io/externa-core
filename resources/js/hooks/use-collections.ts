@@ -3,6 +3,12 @@ import { useEffect, useState } from 'react';
 import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
 import type { CollectionRow } from '@/types/collections';
 
+/**
+ * Converts a collection display name to a URL-safe slug.
+ *
+ * @param value - Raw collection name
+ * @returns Slug with non-alphanumeric segments replaced by hyphens
+ */
 export function slugify(value: string): string {
     const s = value
         .trim()
@@ -13,6 +19,11 @@ export function slugify(value: string): string {
     return s || 'collection';
 }
 
+/**
+ * Manages the create/edit collection drawer form state and Inertia submit handlers.
+ *
+ * @returns Drawer open state, form instance, slug manual override flag, and submit helpers
+ */
 export function useCollections() {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<CollectionRow | null>(null);
@@ -28,6 +39,7 @@ export function useCollections() {
         if (!open) {
             return;
         }
+
         if (editing) {
             form.setData({
                 name: editing.name,
@@ -40,7 +52,7 @@ export function useCollections() {
             form.clearErrors();
             setSlugManual(false);
         }
-        // Omit `form` from deps: Inertia useForm's object identity can change every render and retrigger this effect (infinite updates).
+        /* `form` omitted from deps: Inertia useForm identity can change every render */
     }, [open, editing]);
 
     const title = editing ? 'Edit collection' : 'New collection';
@@ -77,8 +89,15 @@ export function useCollections() {
         }
     };
 
+    /**
+     * Handles drawer open/close; clears editing state when the drawer closes.
+     *
+     * @param next - Whether the drawer should be open
+     * @returns {void}
+     */
     const handleDrawerOpenChange = (next: boolean): void => {
         setOpen(next);
+
         if (!next) {
             setEditing(null);
         }

@@ -13,6 +13,12 @@ use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 
+/**
+ * Configures Laravel Fortify authentication views, actions, and rate limiting.
+ */
+/**
+ * Registers Fortify views, actions, and authentication rate limiting.
+ */
 class FortifyServiceProvider extends ServiceProvider
 {
     /**

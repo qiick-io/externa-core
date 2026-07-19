@@ -28,10 +28,15 @@ const sidebarNavItems: NavItem[] = [
     },
 ];
 
+/**
+ * Settings section layout with sidebar nav (client-only to avoid SSR mismatch).
+ * @param {PropsWithChildren} props - Layout props.
+ * @param {React.ReactNode} props.children - Active settings page content.
+ * @returns {JSX.Element | null}
+ */
 export default function SettingsLayout({ children }: PropsWithChildren) {
     const { isCurrentOrParentUrl } = useCurrentUrl();
 
-    // When server-side rendering, we only render the layout on the client...
     if (typeof window === 'undefined') {
         return null;
     }

@@ -8,8 +8,14 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
+/**
+ * Report whether the configured local AI provider is reachable.
+ */
 class AiStatusController extends Controller
 {
+    /**
+     * Return cached online/model status for the local AI provider.
+     */
     public function __invoke(): JsonResponse
     {
         $status = Cache::remember('ai.status', 15, function (): array {

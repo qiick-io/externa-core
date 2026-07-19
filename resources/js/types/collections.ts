@@ -1,3 +1,4 @@
+/** Collection row as stored in list/admin tables (without embedded fields). */
 export type CollectionRow = {
     id: number;
     name: string;
@@ -7,6 +8,7 @@ export type CollectionRow = {
     deleted_at?: string | null;
 };
 
+/** Field definition row attached to a collection schema. */
 export type CollectionFieldRow = {
     id: number;
     name: string;
@@ -26,6 +28,12 @@ export type CollectionView = {
     fields: CollectionFieldRow[];
 };
 
+/**
+ * Strips embedded fields from a {@link CollectionView} for collection metadata forms.
+ *
+ * @param collection - Full collection view from the server
+ * @returns Row suitable for create/edit collection drawer state
+ */
 export function collectionToFormRow(collection: CollectionView): CollectionRow {
     return {
         id: collection.id,
@@ -36,6 +44,7 @@ export function collectionToFormRow(collection: CollectionView): CollectionRow {
     };
 }
 
+/** Minimal item row for relation/M2A pickers (id + display label). */
 export type ItemPickerRow = {
     id: number;
     label: string;

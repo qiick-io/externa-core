@@ -8,6 +8,9 @@ use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
+/**
+ * Fortify action that registers a new user from validated input.
+ */
 class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules, ProfileValidationRules;

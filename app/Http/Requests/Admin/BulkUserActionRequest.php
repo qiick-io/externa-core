@@ -8,10 +8,16 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+/**
+ * Validates bulk admin actions against users.
+ */
 class BulkUserActionRequest extends FormRequest
 {
     use AuthorizesWithPermission;
 
+    /**
+     * Require the permission that matches the requested bulk action.
+     */
     public function authorize(): bool
     {
         $permission = match ($this->input('action')) {

@@ -1,3 +1,4 @@
+/** Follow-up prompt chip shown after an AI tool completes. */
 export type AiSuggestedAction = {
     label: string;
     prompt: string;
@@ -47,6 +48,13 @@ const suggestionsByTool: Record<string, AiSuggestedAction[]> = {
     ],
 };
 
+/**
+ * Returns suggested follow-up actions for the most recently used AI tool in the list.
+ * Walks `toolNames` from last to first and returns the first matching preset set.
+ *
+ * @param toolNames - Tool names invoked in the current turn, oldest to newest
+ * @returns Matching suggestions, or an empty array when none apply
+ */
 export function suggestedActionsForTools(
     toolNames: string[],
 ): AiSuggestedAction[] {

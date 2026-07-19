@@ -1,9 +1,10 @@
 import adminRoutes from '@/lib/admin-routes';
 import type { AdminSelectOption } from '@/types/admin';
 import {
-    PaginatedMultiSelect,
-    type PaginatedMultiSelectProps,
+    PaginatedMultiSelect
+    
 } from './paginated-multi-select';
+import type {PaginatedMultiSelectProps} from './paginated-multi-select';
 
 export type RoleMultiSelectProps = Omit<
     PaginatedMultiSelectProps,
@@ -13,6 +14,11 @@ export type RoleMultiSelectProps = Omit<
     initialRoles?: { id: number; name: string }[] | null;
 };
 
+/**
+ * Role picker backed by paginated search.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export function RoleMultiSelect({
     placeholder = 'Select roles…',
     initialRoles,

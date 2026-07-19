@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Concerns\LogsApplicationActivity;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -31,11 +30,17 @@ use Spatie\Permission\Traits\HasRoles;
     'password',
 ])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
+/**
+ * Authenticated application user with roles, groups, soft deletes, and AI conversations.
+ */
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasConversations, HasFactory, HasRoles, LogsApplicationActivity, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
 
+    /**
+     * Activity log options excluding sensitive credential fields.
+     */
     public function getActivitylogOptions(): LogOptions
     {
         return $this->applicationActivityLogOptions()
@@ -66,12 +71,17 @@ class User extends Authenticatable
         return $this->belongsToMany(UserGroup::class, 'user_group_user');
     }
 
+    /**
+     * Full display name composed from first and last name.
+     */
     public function getNameAttribute(): string
     {
         return trim("{$this->first_name} {$this->last_name}");
     }
 
     /**
+     * Resolve route binding including soft-deleted users.
+     *
      * @param  mixed  $value
      * @param  string|null  $field
      */

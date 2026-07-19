@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
+ * Immutable snapshot of file bytes and metadata for deduplication and history.
+ *
  * @property int $id
  * @property int|null $file_id
  * @property string $disk

@@ -14,6 +14,8 @@ use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
 
 /**
+ * Field schema for a collection, including type, settings, and sort order.
+ *
  * @property-read int $id
  * @property int $collection_id
  * @property string $name
@@ -64,26 +66,41 @@ class CollectionField extends Model implements Sortable
         return $this->hasMany(CollectionItemValue::class, 'field_id');
     }
 
+    /**
+     * Scope sortable reordering to fields within the same collection.
+     */
     public function buildSortQuery(): Builder
     {
         return static::query()->where('collection_id', $this->collection_id);
     }
 
+    /**
+     * Whether the field is hidden from create/edit forms.
+     */
     public function isHiddenInForm(): bool
     {
         return self::settingsFlagIsEnabled(data_get($this->settings, 'hidden_in_form', false));
     }
 
+    /**
+     * Whether the field is read-only in forms.
+     */
     public function isReadonly(): bool
     {
         return self::settingsFlagIsEnabled(data_get($this->settings, 'readonly', false));
     }
 
+    /**
+     * Whether the field is required based on settings.
+     */
     public function isRequired(): bool
     {
         return self::settingsFlagIsEnabled(data_get($this->settings, 'required', false));
     }
 
+    /**
+     * Localized display label from settings, falling back to the internal field name.
+     */
     public function displayName(?string $locale = null): string
     {
         $locale ??= app()->getLocale();
@@ -107,6 +124,9 @@ class CollectionField extends Model implements Sortable
         return $this->name;
     }
 
+    /**
+     * Localized helper note from settings, or null when unset.
+     */
     public function note(?string $locale = null): ?string
     {
         $locale ??= app()->getLocale();
@@ -130,11 +150,17 @@ class CollectionField extends Model implements Sortable
         return null;
     }
 
+    /**
+     * Default value from field settings.
+     */
     public function defaultValue(): mixed
     {
         return data_get($this->settings, 'default_value');
     }
 
+    /**
+     * Form layout width token: half, full, or fill.
+     */
     public function layoutWidth(): string
     {
         $width = data_get($this->settings, 'layout_width', 'full');
@@ -142,6 +168,9 @@ class CollectionField extends Model implements Sortable
         return in_array($width, ['half', 'full', 'fill'], true) ? $width : 'full';
     }
 
+    /**
+     * Normalize settings flag values stored as bool, int, or string.
+     */
     public static function settingsFlagIsEnabled(mixed $value): bool
     {
         if (is_bool($value)) {
@@ -151,6 +180,9 @@ class CollectionField extends Model implements Sortable
         return in_array($value, [1, '1', 'true', 'on'], true);
     }
 
+    /**
+     * Whether values for this field are stored as multiple rows (array storage).
+     */
     public function usesArrayStorage(): bool
     {
         if ($this->type === FieldTypeEnum::Image) {
