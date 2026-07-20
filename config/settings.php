@@ -64,8 +64,6 @@ return [
                 ['id' => 'activity', 'enabled' => true, 'locked' => false],
                 ['id' => 'users', 'enabled' => true, 'locked' => false],
                 ['id' => 'groups', 'enabled' => true, 'locked' => false],
-                ['id' => 'roles', 'enabled' => true, 'locked' => false],
-                ['id' => 'permissions', 'enabled' => true, 'locked' => false],
                 ['id' => 'settings', 'enabled' => true, 'locked' => false],
             ],
             // ponytail: weak matches prior non-prod Password::defaults(null); tighten via settings UI
@@ -119,8 +117,6 @@ return [
             'activity',
             'users',
             'groups',
-            'roles',
-            'permissions',
             'settings',
         ],
         // Always rendered/stored first; not drag-reorderable in settings UI

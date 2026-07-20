@@ -81,12 +81,18 @@ export default function AdminUsersIndex({
     );
 
     useEffect(() => {
+        // Only refetch when the user changes search. Mount / pagination remounts
+        // leave search === filters.search; visiting without `page` would reset to page 1.
+        if (search === (filters.search ?? '')) {
+            return;
+        }
+
         const timer = setTimeout(() => {
             visit({ search: search || undefined });
         }, 350);
 
         return () => clearTimeout(timer);
-    }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [search, filters.search]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const toggleAll = (checked: boolean): void => {
         setSelected(checked ? users.data.map((u) => u.id) : []);

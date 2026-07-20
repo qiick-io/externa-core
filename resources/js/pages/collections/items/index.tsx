@@ -93,12 +93,19 @@ export default function ItemsIndex({
     );
 
     useEffect(() => {
+        // Only refetch when the user changes the title filter. Mount / pagination
+        // remounts leave filterTitle === filters.title; visiting without `page`
+        // would reset to page 1.
+        if (filterTitle === (filters.title ?? '')) {
+            return;
+        }
+
         const timer = setTimeout(() => {
             visit(filterTitle || undefined);
         }, 350);
 
         return () => clearTimeout(timer);
-    }, [filterTitle]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [filterTitle, filters.title]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const collectionForm = useCollectionEditDrawer();
 

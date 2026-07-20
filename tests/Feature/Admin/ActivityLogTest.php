@@ -97,6 +97,30 @@ test('activity log index requires permission', function () {
     $this->get(route('activity-logs.index'))->assertForbidden();
 });
 
+test('authorized users can paginate activity logs', function () {
+    $actor = grantActivityLogPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowActivityLogs->value,
+    ]);
+    $this->actingAs($actor);
+
+    Activity::query()->delete();
+
+    foreach (range(1, 26) as $index) {
+        activity()
+            ->causedBy($actor)
+            ->event('created')
+            ->log("Activity {$index}");
+    }
+
+    $this->get(route('activity-logs.index', ['page' => 2, 'per_page' => 25]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('admin/activity-logs/index')
+            ->where('activityLogs.meta.current_page', 2)
+            ->where('activityLogs.meta.last_page', 2)
+            ->has('activityLogs.data', 1));
+});
+
 test('authorized users can filter activity logs by user and date range', function () {
     $actor = grantActivityLogPermissions(User::factory()->create(), [
         PermissionEnum::CanShowActivityLogs->value,

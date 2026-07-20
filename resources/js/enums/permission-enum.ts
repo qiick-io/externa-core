@@ -44,6 +44,8 @@ export enum PermissionEnum {
     CanShowActivityLogs = 'can-show-activity-logs',
     CanUseAi = 'can-use-ai',
     CanManageProjectSettings = 'can-manage-project-settings',
+    CanShowApiKeys = 'can-show-api-keys',
+    CanManageApiKeys = 'can-manage-api-keys',
 }
 
 /** @deprecated Use PermissionEnum — kept for backwards compatibility */

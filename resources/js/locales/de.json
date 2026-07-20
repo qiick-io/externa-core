@@ -24,6 +24,7 @@
         "users": "Benutzer",
         "groups": "Gruppen",
         "roles": "Rollen",
+        "apiKeys": "API-Schlüssel",
         "permissions": "Berechtigungen",
         "admin": "Admin",
         "assistant": "Assistent",
@@ -103,10 +104,14 @@
             "navAria": "Einstellungen",
             "sectionAccount": "Konto",
             "sectionProject": "Projekt",
+            "sectionAccess": "Zugriff",
             "profile": "Profil",
             "security": "Sicherheit",
             "project": "Projekt",
             "appearance": "Darstellung",
+            "roles": "Rollen",
+            "permissions": "Berechtigungen",
+            "apiKeys": "API-Schlüssel",
             "reportBug": "Bug melden"
         },
         "profile": {
@@ -225,6 +230,7 @@
                 "users": "Benutzer",
                 "groups": "Gruppen",
                 "roles": "Rollen",
+                "apiKeys": "API-Schlüssel",
                 "permissions": "Berechtigungen",
                 "settings": "Einstellungen"
             }

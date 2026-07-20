@@ -14,7 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 
 /**
  * Admin CRUD and bulk actions for application users, roles, and groups.

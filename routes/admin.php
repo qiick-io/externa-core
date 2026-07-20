@@ -9,6 +9,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\ApiKeyController;
 use App\Http\Controllers\Admin\FileController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
@@ -64,52 +65,76 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:'.PermissionEnum::CanDeleteGroups->value)
         ->name('groups.bulk-destroy');
 
-    Route::get('roles', [RoleController::class, 'index'])
-        ->middleware('permission:'.PermissionEnum::CanShowRoles->value)
-        ->name('roles.index');
+    /*
+     * Access settings: roles, permissions, API keys live under /settings/*.
+     * Legacy /roles, /permissions, /api-keys GET paths redirect below.
+     */
+    Route::prefix('settings')->group(function () {
+        Route::get('roles', [RoleController::class, 'index'])
+            ->middleware('permission:'.PermissionEnum::CanShowRoles->value)
+            ->name('roles.index');
 
-    Route::get('roles/create', [RoleController::class, 'create'])
-        ->middleware('permission:'.PermissionEnum::CanCreateRoles->value)
-        ->name('roles.create');
+        Route::get('roles/create', [RoleController::class, 'create'])
+            ->middleware('permission:'.PermissionEnum::CanCreateRoles->value)
+            ->name('roles.create');
 
-    Route::post('roles', [RoleController::class, 'store'])
-        ->middleware('permission:'.PermissionEnum::CanCreateRoles->value)
-        ->name('roles.store');
+        Route::post('roles', [RoleController::class, 'store'])
+            ->middleware('permission:'.PermissionEnum::CanCreateRoles->value)
+            ->name('roles.store');
 
-    Route::get('roles/{role}/edit', [RoleController::class, 'edit'])
-        ->middleware('permission:'.PermissionEnum::CanEditRoles->value)
-        ->name('roles.edit');
+        Route::get('roles/{role}/edit', [RoleController::class, 'edit'])
+            ->middleware('permission:'.PermissionEnum::CanEditRoles->value)
+            ->name('roles.edit');
 
-    Route::put('roles/{role}', [RoleController::class, 'update'])
-        ->middleware('permission:'.PermissionEnum::CanEditRoles->value)
-        ->name('roles.update');
+        Route::put('roles/{role}', [RoleController::class, 'update'])
+            ->middleware('permission:'.PermissionEnum::CanEditRoles->value)
+            ->name('roles.update');
 
-    Route::delete('roles/{role}', [RoleController::class, 'destroy'])
-        ->middleware('permission:'.PermissionEnum::CanDeleteRoles->value)
-        ->name('roles.destroy');
+        Route::delete('roles/{role}', [RoleController::class, 'destroy'])
+            ->middleware('permission:'.PermissionEnum::CanDeleteRoles->value)
+            ->name('roles.destroy');
 
-    Route::post('roles/bulk-actions', [RoleController::class, 'bulkActions'])
-        ->name('roles.bulk-actions');
+        Route::post('roles/bulk-actions', [RoleController::class, 'bulkActions'])
+            ->name('roles.bulk-actions');
 
-    Route::get('permissions', [PermissionController::class, 'index'])
-        ->middleware('permission:'.PermissionEnum::CanShowPermissions->value)
-        ->name('permissions.index');
+        Route::get('api-keys', [ApiKeyController::class, 'index'])
+            ->middleware('permission:'.PermissionEnum::CanShowApiKeys->value)
+            ->name('api-keys.index');
 
-    Route::post('permissions', [PermissionController::class, 'store'])
-        ->middleware('permission:'.PermissionEnum::CanCreatePermissions->value)
-        ->name('permissions.store');
+        Route::post('api-keys', [ApiKeyController::class, 'store'])
+            ->middleware('permission:'.PermissionEnum::CanManageApiKeys->value)
+            ->name('api-keys.store');
 
-    Route::put('permissions/{permission}', [PermissionController::class, 'update'])
-        ->middleware('permission:'.PermissionEnum::CanEditPermissions->value)
-        ->name('permissions.update');
+        Route::delete('api-keys/{apiKey}', [ApiKeyController::class, 'destroy'])
+            ->middleware('permission:'.PermissionEnum::CanManageApiKeys->value)
+            ->name('api-keys.destroy');
 
-    Route::delete('permissions/{permission}', [PermissionController::class, 'destroy'])
-        ->middleware('permission:'.PermissionEnum::CanDeletePermissions->value)
-        ->name('permissions.destroy');
+        Route::get('permissions', [PermissionController::class, 'index'])
+            ->middleware('permission:'.PermissionEnum::CanShowPermissions->value)
+            ->name('permissions.index');
 
-    Route::post('permissions/sync', [PermissionController::class, 'sync'])
-        ->middleware('permission:'.PermissionEnum::CanEditPermissions->value)
-        ->name('permissions.sync');
+        Route::post('permissions', [PermissionController::class, 'store'])
+            ->middleware('permission:'.PermissionEnum::CanCreatePermissions->value)
+            ->name('permissions.store');
+
+        Route::put('permissions/{permission}', [PermissionController::class, 'update'])
+            ->middleware('permission:'.PermissionEnum::CanEditPermissions->value)
+            ->name('permissions.update');
+
+        Route::delete('permissions/{permission}', [PermissionController::class, 'destroy'])
+            ->middleware('permission:'.PermissionEnum::CanDeletePermissions->value)
+            ->name('permissions.destroy');
+
+        Route::post('permissions/sync', [PermissionController::class, 'sync'])
+            ->middleware('permission:'.PermissionEnum::CanEditPermissions->value)
+            ->name('permissions.sync');
+    });
+
+    Route::redirect('roles', '/settings/roles');
+    Route::redirect('roles/create', '/settings/roles/create');
+    Route::redirect('roles/{role}/edit', '/settings/roles/{role}/edit');
+    Route::redirect('api-keys', '/settings/api-keys');
+    Route::redirect('permissions', '/settings/permissions');
 
     Route::get('activity-logs', [ActivityLogController::class, 'index'])
         ->middleware('permission:'.PermissionEnum::CanShowActivityLogs->value)

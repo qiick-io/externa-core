@@ -52,26 +52,37 @@ const adminRoutes = {
         bulkDestroy: () => url('/groups/bulk/destroy'),
     },
     roles: {
-        index: (options?: RouteQueryOptions) => url('/roles', options),
-        create: () => url('/roles/create'),
+        index: (options?: RouteQueryOptions) =>
+            url('/settings/roles', options),
+        create: () => url('/settings/roles/create'),
         edit: (role: number | { role: number }) =>
             url(
-                `/roles/${typeof role === 'number' ? role : role.role}/edit`,
+                `/settings/roles/${typeof role === 'number' ? role : role.role}/edit`,
             ),
-        store: () => url('/roles'),
+        store: () => url('/settings/roles'),
         update: (role: number | { role: number }) =>
             url(
-                `/roles/${typeof role === 'number' ? role : role.role}`,
+                `/settings/roles/${typeof role === 'number' ? role : role.role}`,
             ),
         destroy: (role: number | { role: number }) =>
             url(
-                `/roles/${typeof role === 'number' ? role : role.role}`,
+                `/settings/roles/${typeof role === 'number' ? role : role.role}`,
             ),
-        bulkActions: () => url('/roles/bulk-actions'),
+        bulkActions: () => url('/settings/roles/bulk-actions'),
+    },
+    apiKeys: {
+        index: (options?: RouteQueryOptions) =>
+            url('/settings/api-keys', options),
+        store: () => url('/settings/api-keys'),
+        destroy: (apiKey: number | { apiKey: number }) =>
+            url(
+                `/settings/api-keys/${typeof apiKey === 'number' ? apiKey : apiKey.apiKey}`,
+            ),
     },
     permissions: {
-        index: (options?: RouteQueryOptions) => url('/permissions', options),
-        sync: () => url('/permissions/sync'),
+        index: (options?: RouteQueryOptions) =>
+            url('/settings/permissions', options),
+        sync: () => url('/settings/permissions/sync'),
     },
     activityLogs: {
         index: (options?: RouteQueryOptions) =>

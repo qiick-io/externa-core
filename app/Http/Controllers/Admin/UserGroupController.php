@@ -12,7 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 
 /**
  * Admin CRUD and bulk delete actions for user groups and their memberships.
@@ -66,7 +66,7 @@ class UserGroupController extends Controller
                 'sort' => $sort,
                 'direction' => $direction,
             ],
-            'roles' => Role::query()->orderBy('name')->get(['id', 'name']),
+            'roles' => Role::query()->where('is_assignable', true)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 

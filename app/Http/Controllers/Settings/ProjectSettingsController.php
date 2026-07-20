@@ -9,7 +9,7 @@ use App\Services\Settings\SettingsRepository;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 
 /**
  * Project-level configuration (general, security, registration, files, reporting).
@@ -32,6 +32,7 @@ class ProjectSettingsController extends Controller
             'project' => $this->projectSettings->forEdit(),
             'roles' => Role::query()
                 ->where('guard_name', $guard)
+                ->where('is_assignable', true)
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->map(fn (Role $role): array => [

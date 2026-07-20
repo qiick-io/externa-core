@@ -39,7 +39,7 @@ class UpdateUserGroupRequest extends FormRequest
             'user_ids' => ['sometimes', 'array'],
             'user_ids.*' => ['integer', 'exists:users,id'],
             'role_ids' => ['sometimes', 'array'],
-            'role_ids.*' => ['integer', 'exists:roles,id'],
+            'role_ids.*' => ['integer', 'exists:roles,id,is_assignable,1'],
         ];
     }
 }

@@ -133,9 +133,26 @@ test('authorized users can manage permissions and sync from enum', function () {
     ]);
     $this->actingAs($actor);
 
+    $totalPermissions = count(PermissionEnum::cases());
+    $perPage = 15;
+
     $this->get(route('permissions.index'))
         ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page->component('admin/permissions/index'));
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('admin/permissions/index')
+            ->has('permissions.data', min($perPage, $totalPermissions))
+            ->where('permissions.meta.total', $totalPermissions)
+            ->where('permissions.meta.per_page', $perPage)
+            ->where('permissions.meta.current_page', 1));
+
+    $pageTwoCount = min($perPage, max(0, $totalPermissions - $perPage));
+
+    $this->get(route('permissions.index', ['page' => 2]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('admin/permissions/index')
+            ->where('permissions.meta.current_page', 2)
+            ->has('permissions.data', $pageTwoCount));
 
     $this->post(route('permissions.store'), [
         'name' => 'can-custom-action',
@@ -160,4 +177,21 @@ test('authorized users can manage permissions and sync from enum', function () {
         ->assertRedirect(route('permissions.index'));
 
     expect(Permission::query()->whereKey($permission->id)->exists())->toBeFalse();
+});
+
+test('legacy access paths redirect under settings', function () {
+    $actor = grantRolePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowRoles->value,
+        PermissionEnum::CanShowPermissions->value,
+        PermissionEnum::CanShowApiKeys->value,
+    ]);
+    $this->actingAs($actor);
+
+    expect(route('roles.index', absolute: false))->toBe('/settings/roles');
+    expect(route('permissions.index', absolute: false))->toBe('/settings/permissions');
+    expect(route('api-keys.index', absolute: false))->toBe('/settings/api-keys');
+
+    $this->get('/roles')->assertRedirect('/settings/roles');
+    $this->get('/permissions')->assertRedirect('/settings/permissions');
+    $this->get('/api-keys')->assertRedirect('/settings/api-keys');
 });

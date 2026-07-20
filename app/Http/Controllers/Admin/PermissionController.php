@@ -24,42 +24,19 @@ class PermissionController extends Controller
     use AuthorizesWithPermission;
 
     /**
-     * List permissions with search and sort filters.
+     * List synced permissions with pagination.
      */
     public function index(Request $request): Response
     {
         $this->authorizePermission(PermissionEnum::CanShowPermissions->value);
 
-        $query = Permission::query();
-
-        if ($search = $request->string('search')->trim()->toString()) {
-            $term = '%'.$search.'%';
-            $query->where(function ($inner) use ($term): void {
-                $inner->where('name', 'like', $term)
-                    ->orWhere('guard_name', 'like', $term);
-            });
-        }
-
-        $sortColumn = $request->string('sort')->toString();
-        $sortDirection = $request->string('direction', 'asc')->toString() === 'desc' ? 'desc' : 'asc';
-
-        if (in_array($sortColumn, ['name', 'guard_name', 'created_at'], true)) {
-            $query->orderBy($sortColumn, $sortDirection);
-        } else {
-            $query->orderBy('name');
-        }
-
-        $permissions = $query
+        $permissions = Permission::query()
+            ->orderBy('name')
             ->paginate($request->integer('per_page', 15))
             ->withQueryString();
 
         return Inertia::render('admin/permissions/index', [
             'permissions' => PermissionResource::collection($permissions),
-            'filters' => [
-                'search' => $search ?? '',
-                'sort' => in_array($sortColumn, ['name', 'guard_name', 'created_at'], true) ? $sortColumn : 'name',
-                'direction' => $sortDirection,
-            ],
         ]);
     }
 

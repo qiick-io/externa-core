@@ -2,12 +2,12 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Spatie\Permission\Models\Role;
 
 /**
- * Serialize a Spatie role record with optional permission payloads.
+ * Serialize a role record with optional permission payloads.
  *
  * @mixin Role
  */
@@ -24,6 +24,8 @@ class RoleResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'guard_name' => $this->guard_name,
+            'is_system' => (bool) $this->is_system,
+            'is_assignable' => (bool) $this->is_assignable,
             'permissions_count' => $this->when(
                 $this->relationLoaded('permissions'),
                 fn () => $this->permissions->count(),

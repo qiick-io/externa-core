@@ -59,6 +59,9 @@ enum PermissionEnum: string
 
     case CanManageProjectSettings = 'can-manage-project-settings';
 
+    case CanShowApiKeys = 'can-show-api-keys';
+    case CanManageApiKeys = 'can-manage-api-keys';
+
     /**
      * @return list<string>
      */

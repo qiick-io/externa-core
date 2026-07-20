@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Laravel\Fortify\Features;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 
 /**
  * Fortify action that registers a new user from validated input.
@@ -71,6 +71,7 @@ class CreateNewUser implements CreatesNewUsers
             $role = Role::query()
                 ->where('name', $roleName)
                 ->where('guard_name', config('auth.defaults.guard', 'web'))
+                ->where('is_assignable', true)
                 ->first();
 
             if ($role !== null) {

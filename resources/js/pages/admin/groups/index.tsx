@@ -5,6 +5,7 @@ import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { GroupFormDrawer } from '@/components/admin/group-form-drawer';
 import {
     PageLayout,
+    TablePagination,
     TablePanel,
 } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
@@ -62,10 +63,16 @@ export default function AdminGroupsIndex({
     }, [search]);
 
     useEffect(() => {
+        // Only refetch when the user changes search. Mount / pagination remounts
+        // leave search === filters.search; visiting without `page` would reset to page 1.
+        if (search === (filters.search ?? '')) {
+            return;
+        }
+
         const timer = setTimeout(visit, 350);
 
         return () => clearTimeout(timer);
-    }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [search, filters.search]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const openCreate = (): void => {
         setEditing(null);
@@ -139,7 +146,13 @@ export default function AdminGroupsIndex({
                         />
                     }
                 >
-                    <TablePanel>
+                    <TablePanel
+                        footer={
+                            groups.last_page > 1 ? (
+                                <TablePagination links={groups.links ?? []} />
+                            ) : undefined
+                        }
+                    >
                         <Table>
                             <TableHeader>
                                 <TableRow>

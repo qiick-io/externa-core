@@ -41,7 +41,7 @@ class StoreUserRequest extends FormRequest
             'password' => ['required', 'string', Password::defaults()],
             'is_active' => ['sometimes', 'boolean'],
             'role_ids' => ['sometimes', 'array'],
-            'role_ids.*' => ['integer', Rule::exists('roles', 'id')],
+            'role_ids.*' => ['integer', Rule::exists('roles', 'id')->where('is_assignable', true)],
             'group_ids' => ['sometimes', 'array'],
             'group_ids.*' => ['integer', Rule::exists('user_groups', 'id')],
         ];

@@ -8,7 +8,7 @@ use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 
 /**
  * Validates bulk admin actions against roles.
@@ -45,10 +45,13 @@ class BulkRoleActionRequest extends FormRequest
     public function deletableIds(): array
     {
         return collect($this->validated('ids'))
-            ->reject(fn (int $id): bool => Role::query()
-                ->whereKey($id)
-                ->where('name', RoleEnum::SuperAdmin->value)
-                ->exists())
+            ->reject(function (int $id): bool {
+                $role = Role::query()->whereKey($id)->first();
+
+                return $role === null
+                    || $role->name === RoleEnum::SuperAdmin->value
+                    || $role->isLockedSystemRole();
+            })
             ->values()
             ->all();
     }

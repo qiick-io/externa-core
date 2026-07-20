@@ -63,6 +63,8 @@ export type AdminGroupRow = {
 export type AdminRoleRow = {
     id: number;
     name: string;
+    is_system?: boolean;
+    is_assignable?: boolean;
     permissions_count?: number;
     created_at: string;
     updated_at: string;

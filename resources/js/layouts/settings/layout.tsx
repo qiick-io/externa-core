@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
+import adminRoutes from '@/lib/admin-routes';
 import { cn, toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit } from '@/routes/profile';
@@ -18,10 +19,18 @@ import type { NavItem } from '@/types';
 const DEFAULT_REPORT_BUG_URL =
     'https://github.com/qiick-io/externa-core/issues/new?template=bug_report.yml';
 
+type SettingsLayoutProps = PropsWithChildren<{
+    /** Wider content pane for tables / matrices (Access pages). */
+    wide?: boolean;
+}>;
+
 /**
  * Settings section layout with sidebar nav (client-only to avoid SSR mismatch).
  */
-export default function SettingsLayout({ children }: PropsWithChildren) {
+export default function SettingsLayout({
+    children,
+    wide = false,
+}: SettingsLayoutProps) {
     const { t } = useTranslation();
     const { isCurrentOrParentUrl } = useCurrentUrl();
     const { can } = useCan();
@@ -56,6 +65,30 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
               },
           ]
         : [];
+
+    const accessNavItems: NavItem[] = [
+        can(PermissionEnum.CanShowRoles)
+            ? {
+                  title: t('settings.layout.roles'),
+                  href: adminRoutes.roles.index(),
+                  icon: null,
+              }
+            : null,
+        can(PermissionEnum.CanShowPermissions)
+            ? {
+                  title: t('settings.layout.permissions'),
+                  href: adminRoutes.permissions.index(),
+                  icon: null,
+              }
+            : null,
+        can(PermissionEnum.CanShowApiKeys)
+            ? {
+                  title: t('settings.layout.apiKeys'),
+                  href: adminRoutes.apiKeys.index(),
+                  icon: null,
+              }
+            : null,
+    ].filter((item): item is NavItem => item !== null);
 
     const reportBugUrl =
         projectSettings?.reportBugUrl?.trim() || DEFAULT_REPORT_BUG_URL;
@@ -110,6 +143,16 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                             </>
                         )}
 
+                        {accessNavItems.length > 0 && (
+                            <>
+                                <Separator className="my-2" />
+                                <p className="text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wide uppercase">
+                                    {t('settings.layout.sectionAccess')}
+                                </p>
+                                {accessNavItems.map(renderNavItem)}
+                            </>
+                        )}
+
                         <Separator className="my-2" />
                         <Button
                             size="sm"
@@ -132,8 +175,18 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                 <Separator className="my-6 shrink-0 lg:hidden" />
 
                 {/* Scroll pane: sticky Save bars pin to this box, not the viewport. */}
-                <div className="min-h-0 flex-1 overflow-y-auto md:max-w-2xl">
-                    <section className="max-w-xl space-y-12 pb-6">
+                <div
+                    className={cn(
+                        'min-h-0 flex-1 overflow-y-auto',
+                        wide ? 'md:max-w-4xl' : 'md:max-w-2xl',
+                    )}
+                >
+                    <section
+                        className={cn(
+                            'space-y-12 pb-6',
+                            wide ? 'max-w-4xl' : 'max-w-xl',
+                        )}
+                    >
                         {children}
                     </section>
                 </div>

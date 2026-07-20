@@ -1,8 +1,10 @@
 import { Head, router } from '@inertiajs/react';
 import { RefreshCw } from 'lucide-react';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     PageLayout,
+    TablePagination,
     TablePanel,
 } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
@@ -17,9 +19,11 @@ import {
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
+import SettingsLayout from '@/layouts/settings/layout';
 import adminRoutes from '@/lib/admin-routes';
-import { normalizePaginated  } from '@/lib/pagination';
-import type {LaravelPaginated} from '@/lib/pagination';
+import { normalizePaginated } from '@/lib/pagination';
+import type { LaravelPaginated } from '@/lib/pagination';
+import { edit as editProfile } from '@/routes/profile';
 import type { AdminPermissionRow, BreadcrumbItem, Paginated } from '@/types';
 
 /**
@@ -34,17 +38,22 @@ export default function AdminPermissionsIndex({
         | LaravelPaginated<AdminPermissionRow>
         | Paginated<AdminPermissionRow>;
 }) {
-    const permissions = normalizePaginated(permissionsProp).data;
+    const { t } = useTranslation();
+    const permissions = normalizePaginated(permissionsProp);
     const { can } = useCan();
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [
             {
-                title: 'Permissions',
+                title: t('settings.layout.title'),
+                href: editProfile(),
+            },
+            {
+                title: t('settings.layout.permissions'),
                 href: adminRoutes.permissions.index(),
             },
         ],
-        [],
+        [t],
     );
 
     const sync = (): void => {
@@ -67,9 +76,11 @@ export default function AdminPermissionsIndex({
                 ) : undefined
             }
         >
-            <Head title="Permissions" />
+            <Head title={t('settings.layout.permissions')} />
 
+            <SettingsLayout wide>
             <PageLayout
+                className="p-0"
                 description={
                     <>
                         Permissions are defined in{' '}
@@ -79,7 +90,15 @@ export default function AdminPermissionsIndex({
                     </>
                 }
             >
-                <TablePanel>
+                <TablePanel
+                    footer={
+                        permissions.last_page > 1 ? (
+                            <TablePagination
+                                links={permissions.links ?? []}
+                            />
+                        ) : undefined
+                    }
+                >
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -88,7 +107,7 @@ export default function AdminPermissionsIndex({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {permissions.length === 0 ? (
+                            {(permissions.data ?? []).length === 0 ? (
                                 <TableRow>
                                     <TableCell
                                         colSpan={2}
@@ -98,7 +117,7 @@ export default function AdminPermissionsIndex({
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                permissions.map((perm) => (
+                                (permissions.data ?? []).map((perm) => (
                                     <TableRow key={perm.id}>
                                         <TableCell className="font-mono text-sm">
                                             {perm.name}
@@ -113,6 +132,7 @@ export default function AdminPermissionsIndex({
                     </Table>
                 </TablePanel>
             </PageLayout>
+            </SettingsLayout>
         </AppLayout>
     );
 }

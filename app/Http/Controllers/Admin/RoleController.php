@@ -10,13 +10,14 @@ use App\Http\Requests\Admin\StoreRoleRequest;
 use App\Http\Requests\Admin\UpdateRoleRequest;
 use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Http\Resources\Admin\RoleResource;
+use App\Models\Role;
+use App\Services\Api\CollectionPermissionSync;
 use App\Support\Authorization\PermissionGrouper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
@@ -28,6 +29,7 @@ class RoleController extends Controller
 
     public function __construct(
         private readonly PermissionGrouper $permissionGrouper,
+        private readonly CollectionPermissionSync $collectionPermissionSync,
     ) {}
 
     /**
@@ -88,9 +90,15 @@ class RoleController extends Controller
         $role = Role::query()->create([
             'name' => $data['name'],
             'guard_name' => $guard,
+            'is_system' => false,
+            'is_assignable' => true,
         ]);
 
         $this->syncPermissions($role, $data['permission_ids'] ?? []);
+
+        if (array_key_exists('collection_permissions', $data)) {
+            $this->collectionPermissionSync->sync($role, $data['collection_permissions'] ?? []);
+        }
 
         return redirect()
             ->route('roles.index')
@@ -107,8 +115,9 @@ class RoleController extends Controller
         $role->load('permissions');
 
         return Inertia::render('admin/roles/form', [
-            ...$this->roleFormProps(),
-            'role' => RoleResource::make($role),
+            ...$this->roleFormProps($role),
+            // Resolve JsonResource so Inertia gets a flat object (not { data: ... })
+            'role' => (new RoleResource($role))->resolve(),
         ]);
     }
 
@@ -119,12 +128,20 @@ class RoleController extends Controller
     {
         $data = $request->validated();
 
-        if (array_key_exists('name', $data)) {
+        if ($role->isLockedSystemRole()) {
+            if (array_key_exists('name', $data) && $data['name'] !== $role->name) {
+                abort(403, 'System roles cannot be renamed.');
+            }
+        } elseif (array_key_exists('name', $data)) {
             $role->update(['name' => $data['name']]);
         }
 
-        if (array_key_exists('permission_ids', $data)) {
+        if (! $role->isPublic() && array_key_exists('permission_ids', $data)) {
             $this->syncPermissions($role, $data['permission_ids']);
+        }
+
+        if (array_key_exists('collection_permissions', $data)) {
+            $this->collectionPermissionSync->sync($role, $data['collection_permissions'] ?? []);
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -135,14 +152,14 @@ class RoleController extends Controller
     }
 
     /**
-     * Delete a role unless it is the protected super-admin role.
+     * Delete a role unless it is a protected system role.
      */
     public function destroy(Role $role): RedirectResponse
     {
         $this->authorizePermission(PermissionEnum::CanDeleteRoles->value);
 
-        if ($role->name === RoleEnum::SuperAdmin->value) {
-            abort(403, 'The super-admin role cannot be deleted.');
+        if ($role->name === RoleEnum::SuperAdmin->value || $role->isLockedSystemRole()) {
+            abort(403, 'This role cannot be deleted.');
         }
 
         $role->delete();
@@ -153,7 +170,7 @@ class RoleController extends Controller
     }
 
     /**
-     * Bulk-delete roles, skipping the protected super-admin role.
+     * Bulk-delete roles, skipping protected roles.
      */
     public function bulkActions(BulkRoleActionRequest $request): RedirectResponse
     {
@@ -187,16 +204,24 @@ class RoleController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function roleFormProps(): array
+    private function roleFormProps(?Role $role = null): array
     {
         $permissions = Permission::query()->orderBy('name')->get();
 
         return [
-            'permissionGroups' => $this->permissionGrouper->group($permissions),
-            'allPermissions' => $permissions->map(fn (Permission $permission) => [
-                'id' => $permission->id,
-                'name' => $permission->name,
-            ])->values()->all(),
+            'permissionGroups' => $role?->isPublic()
+                ? []
+                : $this->permissionGrouper->group($permissions),
+            'allPermissions' => $role?->isPublic()
+                ? []
+                : $permissions->map(fn (Permission $permission) => [
+                    'id' => $permission->id,
+                    'name' => $permission->name,
+                ])->values()->all(),
+            'collections' => $this->collectionPermissionSync->collectionsPayload(),
+            'collectionPermissions' => $role
+                ? $this->collectionPermissionSync->matrixForRole($role)
+                : [],
         ];
     }
 }
