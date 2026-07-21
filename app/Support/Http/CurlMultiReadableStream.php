@@ -246,7 +246,8 @@ class CurlMultiReadableStream implements StreamInterface
             CURLOPT_HEADER => false,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_WRITEFUNCTION => function ($curlHandle, string $data): int {
-                $this->buffer .= $data;
+                // Normalize before buffer so laravel/ai sees OpenAI-shaped reasoning events.
+                $this->buffer .= LmStudioSseNormalizer::normalize($data);
 
                 return strlen($data);
             },

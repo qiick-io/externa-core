@@ -475,10 +475,15 @@ export async function streamAiChat(
             return;
         }
 
-        const streamError =
-            error instanceof Error
-                ? error
-                : new Error('Errore durante lo stream');
+        // Browsers surface mid-SSE disconnects as TypeError "network error" (Herd nginx
+        // fastcgi_read_timeout 60s when the local model thinks without emitting events).
+        const streamError = new Error(
+            error instanceof TypeError
+                ? 'Connessione interrotta durante lo stream AI (timeout proxy/nginx o modello locale lento). Controlla LM Studio e che fastcgi_read_timeout sia ≥ 600s, poi riprova.'
+                : error instanceof Error
+                  ? error.message
+                  : 'Errore durante lo stream',
+        );
         handlers.onError?.(streamError);
 
         throw streamError;
