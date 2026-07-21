@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import ProjectSettingsController from '@/actions/App/Http/Controllers/Settings/ProjectSettingsController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { ContentLocalesField } from '@/components/settings/content-locales-field';
 import { TransformPresetsField } from '@/components/settings/transform-presets-field';
 import { SettingsFormActions } from '@/components/settings-form-actions';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -37,6 +38,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import type { ContentLocaleCatalogEntry } from '@/lib/content-locales-catalog';
 import { cn } from '@/lib/utils';
 import { edit as editProject } from '@/routes/project';
 import type {
@@ -51,6 +53,7 @@ type Props = {
     project: ProjectSettingsForm;
     roles: ProjectRoleOption[];
     availableLocales: Record<string, string>;
+    contentLocaleCatalog: ContentLocaleCatalogEntry[];
     passwordPolicies: Array<'weak' | 'medium' | 'strong'>;
     transformationOptions: string[];
     transformFits: TransformPreset['fit'][];
@@ -197,6 +200,7 @@ export default function ProjectSettingsPage({
     project,
     roles,
     availableLocales,
+    contentLocaleCatalog,
     passwordPolicies,
     transformationOptions,
     transformFits,
@@ -216,6 +220,15 @@ export default function ProjectSettingsPage({
         report_error_url: project.report_error_url ?? '',
         sidebar_modules: pinSidebarModules(project.sidebar_modules),
         allowed_transformations: project.allowed_transformations ?? [],
+        content_locales: project.content_locales ?? ['en', 'it'],
+        default_content_locale:
+            project.default_content_locale ??
+            project.content_locales?.[0] ??
+            'en',
+        fallback_content_locales:
+            project.fallback_content_locales ??
+            project.content_locales ??
+            ['en', 'it'],
     });
 
     const sensors = useSensors(
@@ -343,6 +356,23 @@ export default function ProjectSettingsPage({
                             />
                             <input
                                 type="hidden"
+                                name="content_locales"
+                                value={JSON.stringify(form.content_locales)}
+                            />
+                            <input
+                                type="hidden"
+                                name="default_content_locale"
+                                value={form.default_content_locale}
+                            />
+                            <input
+                                type="hidden"
+                                name="fallback_content_locales"
+                                value={JSON.stringify(
+                                    form.fallback_content_locales,
+                                )}
+                            />
+                            <input
+                                type="hidden"
                                 name="password_policy"
                                 value={form.password_policy}
                             />
@@ -453,6 +483,46 @@ export default function ProjectSettingsPage({
                                         message={errors.default_language}
                                     />
                                 </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t(
+                                        'settings.project.contentLocalesTitle',
+                                    )}
+                                    description={t(
+                                        'settings.project.contentLocalesDescription',
+                                    )}
+                                />
+
+                                <ContentLocalesField
+                                    catalog={contentLocaleCatalog}
+                                    value={form.content_locales}
+                                    defaultLocale={form.default_content_locale}
+                                    onChange={(locales, defaultLocale) =>
+                                        setForm((current) => ({
+                                            ...current,
+                                            content_locales: locales,
+                                            default_content_locale:
+                                                defaultLocale,
+                                            fallback_content_locales: [
+                                                defaultLocale,
+                                                ...locales.filter(
+                                                    (code) =>
+                                                        code !== defaultLocale,
+                                                ),
+                                            ],
+                                        }))
+                                    }
+                                />
+                                <InputError
+                                    message={
+                                        errors.content_locales ??
+                                        errors.default_content_locale ??
+                                        errors['content_locales.0']
+                                    }
+                                />
                             </div>
 
                             <div className="space-y-6">

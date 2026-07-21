@@ -74,7 +74,13 @@ class CollectionItemDataAccessor
             }
 
             if ($includeAllTranslations && is_array($raw)) {
-                $out[$key] = $raw;
+                $filtered = [];
+                foreach ($this->localeResolver->allowedLocales() as $enabledLocale) {
+                    if (array_key_exists($enabledLocale, $raw)) {
+                        $filtered[$enabledLocale] = $raw[$enabledLocale];
+                    }
+                }
+                $out[$key] = $filtered;
             } else {
                 $out[$key] = $this->getTranslated($item, $key, $locale);
             }

@@ -58,7 +58,9 @@ class HandleInertiaRequests extends Middleware
             'locale' => app()->getLocale(),
             'availableLocales' => config('i18n.available_locales', ['en' => 'English']),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'collectionLocales' => config('collections.locales', ['en', 'it']),
+            'collectionLocales' => $projectSettings->contentLocales(),
+            'collectionLocaleMeta' => $projectSettings->contentLocaleMeta(),
+            'defaultContentLocale' => $projectSettings->defaultContentLocale(),
             'notifications' => [
                 'unread_count' => $user ? $user->unreadNotifications()->count() : 0,
             ],

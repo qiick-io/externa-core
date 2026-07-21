@@ -11,6 +11,12 @@ declare module '@inertiajs/core' {
             availableLocales: Record<string, string>;
             sidebarOpen: boolean;
             collectionLocales: string[];
+            collectionLocaleMeta: Array<{
+                code: string;
+                name: string;
+                flag: string;
+            }>;
+            defaultContentLocale: string;
             notifications: {
                 unread_count: number;
             };

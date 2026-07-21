@@ -148,6 +148,13 @@
             "description": "Descrizione progetto",
             "url": "URL progetto",
             "defaultLanguage": "Lingua predefinita",
+            "contentLocalesTitle": "Lingue dei contenuti",
+            "contentLocalesDescription": "Locali usati per i contenuti traducibili delle collection. Distinti dalla lingua dell'interfaccia admin sopra.",
+            "contentLocalesAdd": "Aggiungi lingue",
+            "contentLocalesSearch": "Cerca lingue…",
+            "contentLocalesSelected": "Lingue selezionate (trascina per riordinare)",
+            "contentLocalesEmpty": "Nessuna lingua corrisponde alla ricerca.",
+            "defaultContentLocale": "Locale contenuto predefinito",
             "sidebarTitle": "Moduli sidebar",
             "sidebarDescription": "Riordina i moduli e scegli quali mostrare. Gli elementi bloccati restano sempre attivi.",
             "securityTitle": "Sicurezza",
@@ -283,6 +290,12 @@
             "codesAria": "Codici di recupero",
             "loadingAria": "Caricamento codici di recupero",
             "regenerateWarning": "Ogni codice di recupero può essere usato una sola volta e verrà rimosso dopo l'uso. Se ne servono altri, clicca <bold>Rigenera codici</bold> sopra."
+        }
+    },
+    "collections": {
+        "localized": {
+            "applyAll": "Applica a tutte le lingue",
+            "applyEmpty": "Applica alle lingue vuote"
         }
     }
 }

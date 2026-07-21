@@ -655,12 +655,12 @@ export function parseStringInputSettings(settings?: Record<string, unknown> | nu
     };
 }
 
-/** Supported locales for translated field metadata. */
+/** Seed fallback when shared collectionLocales are unavailable. */
 export const COLLECTION_FIELD_LOCALES = ['en', 'it'] as const;
-export type CollectionFieldLocale = (typeof COLLECTION_FIELD_LOCALES)[number];
+export type CollectionFieldLocale = string;
 
 /** Partial map of locale code to translated string. */
-export type TranslatedText = Partial<Record<CollectionFieldLocale, string>>;
+export type TranslatedText = Partial<Record<string, string>>;
 
 /** Validation operators available in the field rule builder. */
 export const FIELD_VALIDATION_OPERATORS = [
@@ -717,9 +717,7 @@ export function parseTranslatedText(
     const record = raw as Record<string, unknown>;
     const out: TranslatedText = {};
 
-    for (const locale of COLLECTION_FIELD_LOCALES) {
-        const value = record[locale];
-
+    for (const [locale, value] of Object.entries(record)) {
         if (typeof value === 'string' && value.trim() !== '') {
             out[locale] = value;
         }
@@ -739,8 +737,8 @@ export function serializeTranslatedText(
 ): Record<string, string> | undefined {
     const out: Record<string, string> = {};
 
-    for (const locale of COLLECTION_FIELD_LOCALES) {
-        const value = text[locale]?.trim();
+    for (const [locale, raw] of Object.entries(text)) {
+        const value = raw?.trim();
 
         if (value) {
             out[locale] = value;
@@ -751,7 +749,7 @@ export function serializeTranslatedText(
 }
 
 /**
- * Picks the first non-empty translation for preferred locales, then any configured locale.
+ * Picks the first non-empty translation for preferred locales, then any key.
  *
  * @param text - Translated text map
  * @param locales - Preferred locale order
@@ -764,18 +762,18 @@ export function resolveTranslatedText(
     fallback = '',
 ): string {
     for (const locale of locales) {
-        const value = text?.[locale as CollectionFieldLocale];
+        const value = text?.[locale];
 
         if (typeof value === 'string' && value.trim() !== '') {
             return value;
         }
     }
 
-    for (const locale of COLLECTION_FIELD_LOCALES) {
-        const value = text?.[locale];
-
-        if (typeof value === 'string' && value.trim() !== '') {
-            return value;
+    if (text) {
+        for (const value of Object.values(text)) {
+            if (typeof value === 'string' && value.trim() !== '') {
+                return value;
+            }
         }
     }
 

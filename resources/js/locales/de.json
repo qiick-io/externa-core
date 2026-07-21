@@ -148,6 +148,13 @@
             "description": "Projektbeschreibung",
             "url": "Projekt-URL",
             "defaultLanguage": "Standardsprache",
+            "contentLocalesTitle": "Inhaltssprachen",
+            "contentLocalesDescription": "Locales für übersetzbare Collection-Inhalte. Unabhängig von der Admin-UI-Sprache oben.",
+            "contentLocalesAdd": "Sprachen hinzufügen",
+            "contentLocalesSearch": "Sprachen suchen…",
+            "contentLocalesSelected": "Ausgewählte Sprachen (zum Sortieren ziehen)",
+            "contentLocalesEmpty": "Keine Sprache entspricht der Suche.",
+            "defaultContentLocale": "Standard-Inhaltslocale",
             "sidebarTitle": "Sidebar-Module",
             "sidebarDescription": "Module neu anordnen und auswählen. Gesperrte Einträge bleiben immer aktiv.",
             "securityTitle": "Sicherheit",
@@ -283,6 +290,12 @@
             "codesAria": "Wiederherstellungscodes",
             "loadingAria": "Wiederherstellungscodes werden geladen",
             "regenerateWarning": "Jeder Wiederherstellungscode kann einmal verwendet werden und wird danach entfernt. Wenn Sie mehr benötigen, klicken Sie oben auf <bold>Codes neu generieren</bold>."
+        }
+    },
+    "collections": {
+        "localized": {
+            "applyAll": "Auf alle Locales anwenden",
+            "applyEmpty": "Auf leere Locales anwenden"
         }
     }
 }

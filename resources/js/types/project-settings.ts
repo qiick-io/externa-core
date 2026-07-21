@@ -19,6 +19,9 @@ export type ProjectSettingsForm = {
     description: string | null;
     url: string | null;
     default_language: string;
+    content_locales: string[];
+    default_content_locale: string;
+    fallback_content_locales: string[];
     sidebar_modules: SidebarModuleSetting[];
     password_policy: 'weak' | 'medium' | 'strong';
     login_max_attempts: number;

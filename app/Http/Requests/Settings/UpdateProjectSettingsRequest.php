@@ -4,6 +4,7 @@ namespace App\Http\Requests\Settings;
 
 use App\Enums\PermissionEnum;
 use App\Services\Authorization\EffectivePermissionResolver;
+use App\Support\Collections\ContentLocaleCatalog;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -31,6 +32,7 @@ class UpdateProjectSettingsRequest extends FormRequest
     public function rules(): array
     {
         $locales = array_keys(config('i18n.available_locales', ['en' => 'English']));
+        $contentCatalog = ContentLocaleCatalog::codes();
         $moduleIds = config('settings.project.sidebar_module_ids', []);
         $policies = config('settings.project.password_policies', ['medium']);
         $transformations = config('settings.project.allowed_transformations', ['thumbnail']);
@@ -43,6 +45,11 @@ class UpdateProjectSettingsRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:5000'],
             'url' => ['nullable', 'url', 'max:2048'],
             'default_language' => ['required', 'string', Rule::in($locales)],
+            'content_locales' => ['required', 'array', 'min:1'],
+            'content_locales.*' => ['required', 'string', 'distinct', Rule::in($contentCatalog)],
+            'default_content_locale' => ['required', 'string'],
+            'fallback_content_locales' => ['nullable', 'array'],
+            'fallback_content_locales.*' => ['string'],
             'sidebar_modules' => ['required', 'array', 'min:1'],
             'sidebar_modules.*.id' => ['required', 'string', Rule::in($moduleIds)],
             'sidebar_modules.*.enabled' => ['required', 'boolean'],
@@ -77,6 +84,29 @@ class UpdateProjectSettingsRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator): void {
+            $contentLocales = $this->input('content_locales', []);
+            if (is_array($contentLocales)) {
+                $default = $this->input('default_content_locale');
+                if (is_string($default) && $default !== '' && ! in_array($default, $contentLocales, true)) {
+                    $validator->errors()->add(
+                        'default_content_locale',
+                        'The default content locale must be one of the selected content locales.',
+                    );
+                }
+
+                $fallbacks = $this->input('fallback_content_locales', []);
+                if (is_array($fallbacks)) {
+                    foreach ($fallbacks as $index => $locale) {
+                        if (is_string($locale) && $locale !== '' && ! in_array($locale, $contentLocales, true)) {
+                            $validator->errors()->add(
+                                "fallback_content_locales.{$index}",
+                                'Fallback locales must be selected content locales.',
+                            );
+                        }
+                    }
+                }
+            }
+
             foreach ($this->input('preset_transformations', []) as $index => $preset) {
                 if (! is_array($preset)) {
                     continue;
@@ -146,6 +176,9 @@ class UpdateProjectSettingsRequest extends FormRequest
             'description' => $validated['description'] ?? null,
             'url' => $validated['url'] ?? null,
             'default_language' => $validated['default_language'],
+            'content_locales' => array_values($validated['content_locales']),
+            'default_content_locale' => $validated['default_content_locale'],
+            'fallback_content_locales' => array_values($validated['fallback_content_locales'] ?? []),
             'sidebar_modules' => $modules,
             'password_policy' => $validated['password_policy'],
             'login_max_attempts' => (int) $validated['login_max_attempts'],
@@ -235,6 +268,20 @@ class UpdateProjectSettingsRequest extends FormRequest
             $decoded = json_decode((string) $this->input('allowed_transformations'), true);
             if (is_array($decoded)) {
                 $merge['allowed_transformations'] = $decoded;
+            }
+        }
+
+        if ($this->has('content_locales') && is_string($this->input('content_locales'))) {
+            $decoded = json_decode((string) $this->input('content_locales'), true);
+            if (is_array($decoded)) {
+                $merge['content_locales'] = $decoded;
+            }
+        }
+
+        if ($this->has('fallback_content_locales') && is_string($this->input('fallback_content_locales'))) {
+            $decoded = json_decode((string) $this->input('fallback_content_locales'), true);
+            if (is_array($decoded)) {
+                $merge['fallback_content_locales'] = $decoded;
             }
         }
 

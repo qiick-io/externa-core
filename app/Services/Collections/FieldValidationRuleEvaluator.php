@@ -91,21 +91,18 @@ class FieldValidationRuleEvaluator
         }
 
         $locale = app()->getLocale();
-        $fallbacks = config('collections.fallback_locales', ['en', 'it']);
+        $fallbacks = app(\App\Support\Collections\CollectionLocaleResolver::class)->fallbackChain($locale);
 
         if (is_string($message[$locale] ?? null) && trim($message[$locale]) !== '') {
             return trim($message[$locale]);
         }
 
-        if (is_array($fallbacks)) {
-            foreach ($fallbacks as $fallbackLocale) {
-                if (
-                    is_string($fallbackLocale)
-                    && is_string($message[$fallbackLocale] ?? null)
-                    && trim($message[$fallbackLocale]) !== ''
-                ) {
-                    return trim($message[$fallbackLocale]);
-                }
+        foreach ($fallbacks as $fallbackLocale) {
+            if (
+                is_string($message[$fallbackLocale] ?? null)
+                && trim($message[$fallbackLocale]) !== ''
+            ) {
+                return trim($message[$fallbackLocale]);
             }
         }
 

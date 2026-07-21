@@ -1,11 +1,10 @@
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { usePage } from '@inertiajs/react';
+import { useState } from 'react';
+import { LocalizedField } from '@/components/collections/localized-field';
 import {
-    COLLECTION_FIELD_LOCALES
-    
-    
+    COLLECTION_FIELD_LOCALES,
+    type TranslatedText,
 } from '@/lib/collection-field-types';
-import type {CollectionFieldLocale, TranslatedText} from '@/lib/collection-field-types';
 
 type TranslatedInputProps = {
     idPrefix: string;
@@ -14,17 +13,11 @@ type TranslatedInputProps = {
     value: TranslatedText;
     onChange: (next: TranslatedText) => void;
     namePrefix?: string;
-};
-
-const LOCALE_LABELS: Record<CollectionFieldLocale, string> = {
-    en: 'English',
-    it: 'Italiano',
+    locales?: string[];
 };
 
 /**
- * Locale-tabbed input for translatable field labels.
- * @param {*} props - Component props.
- * @returns {JSX.Element}
+ * Locale-switcher input for translatable field labels/settings.
  */
 export function TranslatedInput({
     idPrefix,
@@ -33,41 +26,27 @@ export function TranslatedInput({
     value,
     onChange,
     namePrefix,
+    locales: localesProp,
 }: TranslatedInputProps) {
+    const { collectionLocales } = usePage().props;
+    const locales =
+        localesProp ??
+        (Array.isArray(collectionLocales) && collectionLocales.length > 0
+            ? collectionLocales
+            : [...COLLECTION_FIELD_LOCALES]);
+    const [locale, setLocale] = useState(locales[0] ?? 'en');
+
     return (
-        <div className="space-y-3">
-            <div>
-                <Label>{label}</Label>
-                {description ? (
-                    <p className="mt-1.5 text-sm text-muted-foreground">
-                        {description}
-                    </p>
-                ) : null}
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-                {COLLECTION_FIELD_LOCALES.map((locale) => (
-                    <div key={locale} className="grid gap-2">
-                        <Label htmlFor={`${idPrefix}_${locale}`}>
-                            {LOCALE_LABELS[locale]}
-                        </Label>
-                        <Input
-                            id={`${idPrefix}_${locale}`}
-                            name={
-                                namePrefix
-                                    ? `${namePrefix}[${locale}]`
-                                    : undefined
-                            }
-                            value={value[locale] ?? ''}
-                            onChange={(event) =>
-                                onChange({
-                                    ...value,
-                                    [locale]: event.target.value,
-                                })
-                            }
-                        />
-                    </div>
-                ))}
-            </div>
-        </div>
+        <LocalizedField
+            locales={locales}
+            locale={locale}
+            onLocaleChange={setLocale}
+            value={value}
+            onChange={onChange}
+            label={label}
+            description={description}
+            idPrefix={idPrefix}
+            namePrefix={namePrefix}
+        />
     );
 }

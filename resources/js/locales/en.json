@@ -148,6 +148,13 @@
             "description": "Project description",
             "url": "Project URL",
             "defaultLanguage": "Default language",
+            "contentLocalesTitle": "Content languages",
+            "contentLocalesDescription": "Locales used for translatable collection content. Separate from the admin UI language above.",
+            "contentLocalesAdd": "Add languages",
+            "contentLocalesSearch": "Search languages…",
+            "contentLocalesSelected": "Selected languages (drag to reorder)",
+            "contentLocalesEmpty": "No languages match your search.",
+            "defaultContentLocale": "Default content locale",
             "sidebarTitle": "Sidebar modules",
             "sidebarDescription": "Reorder modules and choose which appear in the sidebar. Locked items always stay enabled.",
             "securityTitle": "Security",
@@ -283,6 +290,12 @@
             "codesAria": "Recovery codes",
             "loadingAria": "Loading recovery codes",
             "regenerateWarning": "Each recovery code can be used once to access your account and will be removed after use. If you need more, click <bold>Regenerate codes</bold> above."
+        }
+    },
+    "collections": {
+        "localized": {
+            "applyAll": "Apply to all locales",
+            "applyEmpty": "Apply to empty locales"
         }
     }
 }

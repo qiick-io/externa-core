@@ -5,6 +5,7 @@ namespace App\Services\Collections;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
+use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Support\Str;
 
 /**
@@ -12,6 +13,9 @@ use Illuminate\Support\Str;
  */
 class CollectionItemDataNormalizer
 {
+    public function __construct(
+        private CollectionLocaleResolver $localeResolver,
+    ) {}
     /**
      * Normalize raw item data against the collection field definitions.
      *
@@ -405,8 +409,6 @@ class CollectionItemDataNormalizer
      */
     private function allowedLocales(): array
     {
-        $locales = config('collections.locales', ['en']);
-
-        return is_array($locales) ? array_values(array_filter($locales, fn ($l) => is_string($l))) : ['en'];
+        return $this->localeResolver->allowedLocales();
     }
 }

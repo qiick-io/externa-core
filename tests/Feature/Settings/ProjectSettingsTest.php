@@ -57,6 +57,26 @@ test('guests are redirected from project settings', function () {
     $this->get(route('project.edit'))->assertRedirect(route('login'));
 });
 
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function baseProjectPayload(array $overrides = []): array
+{
+    return array_merge([
+        'default_language' => 'en',
+        'content_locales' => ['en', 'it'],
+        'default_content_locale' => 'en',
+        'fallback_content_locales' => ['en', 'it'],
+        'password_policy' => 'weak',
+        'login_max_attempts' => 5,
+        'registration_enabled' => true,
+        'email_verification_required' => false,
+        'sidebar_modules' => config('settings.project.defaults.sidebar_modules'),
+        'preset_transformations' => sampleTransformPresets(),
+    ], $overrides);
+}
+
 test('users without permission receive 403 on project get and put', function () {
     $user = User::factory()->create();
 
@@ -65,15 +85,7 @@ test('users without permission receive 403 on project get and put', function () 
         ->assertForbidden();
 
     $this->actingAs($user)
-        ->put(route('project.update'), [
-            'default_language' => 'en',
-            'password_policy' => 'weak',
-            'login_max_attempts' => 5,
-            'registration_enabled' => true,
-            'email_verification_required' => false,
-            'sidebar_modules' => config('settings.project.defaults.sidebar_modules'),
-            'preset_transformations' => sampleTransformPresets(),
-        ])
+        ->put(route('project.update'), baseProjectPayload())
         ->assertForbidden();
 });
 
@@ -105,7 +117,7 @@ test('authorized users can view and update project settings', function () {
     $presets = sampleTransformPresets();
 
     $this->actingAs($user)
-        ->put(route('project.update'), [
+        ->put(route('project.update'), baseProjectPayload([
             'name' => 'Externa HQ',
             'description' => 'Project description',
             'url' => 'https://example.com',
@@ -122,7 +134,7 @@ test('authorized users can view and update project settings', function () {
             'report_issue_url' => 'https://example.com/issues',
             'report_bug_url' => 'https://example.com/bugs',
             'report_error_url' => null,
-        ])
+        ]))
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.edit'));
 
@@ -197,15 +209,9 @@ test('ai sidebar module stays pinned first and locked', function () {
     ];
 
     $this->actingAs($user)
-        ->put(route('project.update'), [
-            'default_language' => 'en',
-            'password_policy' => 'weak',
-            'login_max_attempts' => 5,
-            'registration_enabled' => true,
-            'email_verification_required' => false,
+        ->put(route('project.update'), baseProjectPayload([
             'sidebar_modules' => $modules,
-            'preset_transformations' => sampleTransformPresets(),
-        ])
+        ]))
         ->assertSessionHasNoErrors();
 
     $this->actingAs($user)
@@ -235,15 +241,9 @@ test('registration is blocked when disabled in project settings', function () {
     ]);
 
     $this->actingAs($admin)
-        ->put(route('project.update'), [
-            'default_language' => 'en',
-            'password_policy' => 'weak',
-            'login_max_attempts' => 5,
+        ->put(route('project.update'), baseProjectPayload([
             'registration_enabled' => false,
-            'email_verification_required' => false,
-            'sidebar_modules' => config('settings.project.defaults.sidebar_modules'),
-            'preset_transformations' => sampleTransformPresets(),
-        ])
+        ]))
         ->assertSessionHasNoErrors();
 
     auth()->logout();

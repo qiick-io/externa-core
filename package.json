@@ -58,6 +58,7 @@
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "concurrently": "^9.2.4",
+        "country-flag-icons": "^1.6.20",
         "globals": "^17.7.0",
         "i18next": "^26.3.6",
         "input-otp": "^1.4.2",

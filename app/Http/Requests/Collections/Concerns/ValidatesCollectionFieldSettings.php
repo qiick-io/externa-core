@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Collections\Concerns;
 
 use App\Enums\FieldTypeEnum;
+use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Validation\Rule;
 
 /**
@@ -17,8 +18,10 @@ trait ValidatesCollectionFieldSettings
      */
     protected function fieldSettingsRules(?FieldTypeEnum $fieldType = null): array
     {
-        $locales = config('collections.locales', ['en', 'it']);
-        $localeList = is_array($locales) ? $locales : ['en'];
+        $localeList = app(CollectionLocaleResolver::class)->allowedLocales();
+        if ($localeList === []) {
+            $localeList = ['en'];
+        }
 
         $rules = [
             'settings' => ['nullable', 'array'],

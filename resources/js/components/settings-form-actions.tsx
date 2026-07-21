@@ -1,4 +1,5 @@
 import { Transition } from '@headlessui/react';
+import { Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 
@@ -21,14 +22,7 @@ export function SettingsFormActions({
 
     return (
         <div className="sticky bottom-0 z-10 -mx-1 border-t border-border/80 bg-background/90 px-1 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md supports-backdrop-filter:bg-background/75">
-            <div className="flex w-full items-center gap-4">
-                <Button
-                    type="submit"
-                    disabled={processing}
-                    data-test={dataTest}
-                >
-                    {t('common.save')}
-                </Button>
+            <div className="flex w-full items-center justify-end gap-4">
                 <Transition
                     show={recentlySuccessful}
                     enter="transition ease-in-out"
@@ -40,6 +34,14 @@ export function SettingsFormActions({
                         {t('common.saved')}
                     </p>
                 </Transition>
+                <Button
+                    type="submit"
+                    disabled={processing}
+                    data-test={dataTest}
+                >
+                    <Save className="size-4" />
+                    {t('common.save')}
+                </Button>
             </div>
         </div>
     );

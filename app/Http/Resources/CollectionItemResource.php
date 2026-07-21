@@ -29,7 +29,11 @@ class CollectionItemResource extends JsonResource
         $item->loadMissing('collection.fields');
 
         $includeAll = $request->boolean('include_all_translations');
-        $locale = app(CollectionLocaleResolver::class)->resolve($request->query('locale') ? (string) $request->query('locale') : null);
+        $resolver = app(CollectionLocaleResolver::class);
+        $queryLocale = $request->query('locale');
+        $override = is_string($queryLocale) && $queryLocale !== '' ? $queryLocale : null;
+        $resolver->assertRequestedLocaleAllowed($override);
+        $locale = $resolver->resolve($override);
 
         $data = app(CollectionItemDataAccessor::class)->flattenForLocale($item, $locale, $includeAll);
 

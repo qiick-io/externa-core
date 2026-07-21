@@ -4,12 +4,13 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\UpdateProjectSettingsRequest;
+use App\Models\Role;
 use App\Services\Settings\ProjectSettings;
 use App\Services\Settings\SettingsRepository;
+use App\Support\Collections\ContentLocaleCatalog;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Models\Role;
 
 /**
  * Project-level configuration (general, security, registration, files, reporting).
@@ -42,6 +43,7 @@ class ProjectSettingsController extends Controller
                 ->values()
                 ->all(),
             'availableLocales' => config('i18n.available_locales', ['en' => 'English']),
+            'contentLocaleCatalog' => ContentLocaleCatalog::all(),
             'passwordPolicies' => config('settings.project.password_policies', ['medium']),
             'transformationOptions' => config('settings.project.allowed_transformations', ['thumbnail']),
             'transformFits' => config('settings.project.transform_fits', ['contain']),

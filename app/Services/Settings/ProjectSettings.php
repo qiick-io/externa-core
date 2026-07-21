@@ -2,6 +2,7 @@
 
 namespace App\Services\Settings;
 
+use App\Support\Collections\ContentLocaleCatalog;
 use Illuminate\Validation\Rules\Password;
 
 /**
@@ -83,6 +84,41 @@ class ProjectSettings
     public function defaultLanguage(): string
     {
         return $this->raw()['default_language'];
+    }
+
+    /**
+     * Ordered content locales enabled for CMS translations.
+     *
+     * @return list<string>
+     */
+    public function contentLocales(): array
+    {
+        return $this->raw()['content_locales'];
+    }
+
+    public function defaultContentLocale(): string
+    {
+        return $this->raw()['default_content_locale'];
+    }
+
+    /**
+     * Ordered fallback chain for missing translations.
+     *
+     * @return list<string>
+     */
+    public function fallbackContentLocales(): array
+    {
+        return $this->raw()['fallback_content_locales'];
+    }
+
+    /**
+     * Catalog metadata for enabled content locales (Inertia share / settings UI).
+     *
+     * @return list<array{code: string, name: string, flag: string}>
+     */
+    public function contentLocaleMeta(): array
+    {
+        return ContentLocaleCatalog::metaFor($this->contentLocales());
     }
 
     public function registrationEnabled(): bool
@@ -235,6 +271,11 @@ class ProjectSettings
                 ? trim($raw['url'])
                 : null,
             'default_language' => $language,
+            ...$this->normalizeContentLocales(
+                $raw['content_locales'] ?? null,
+                $raw['default_content_locale'] ?? null,
+                $raw['fallback_content_locales'] ?? null,
+            ),
             'sidebar_modules' => $this->normalizeSidebarModules($raw['sidebar_modules'] ?? null),
             'password_policy' => $policy,
             'login_max_attempts' => max(1, min(100, $attempts)),
@@ -250,6 +291,100 @@ class ProjectSettings
             'report_bug_url' => $this->nullableUrl($raw['report_bug_url'] ?? null),
             'report_error_url' => $this->nullableUrl($raw['report_error_url'] ?? null),
         ];
+    }
+
+    /**
+     * @return array{
+     *     content_locales: list<string>,
+     *     default_content_locale: string,
+     *     fallback_content_locales: list<string>
+     * }
+     */
+    private function normalizeContentLocales(
+        mixed $locales,
+        mixed $default,
+        mixed $fallbacks,
+    ): array {
+        $seedLocales = $this->configLocaleList('collections.locales', ['en', 'it']);
+        $seedFallbacks = $this->configLocaleList('collections.fallback_locales', $seedLocales);
+
+        $normalized = [];
+        if (is_array($locales)) {
+            foreach ($locales as $locale) {
+                if (! is_string($locale)) {
+                    continue;
+                }
+                $code = trim($locale);
+                if ($code === '' || isset($normalized[$code])) {
+                    continue;
+                }
+                // Allow catalog codes and any already-seeded/config codes
+                if (! ContentLocaleCatalog::isKnown($code) && ! in_array($code, $seedLocales, true)) {
+                    continue;
+                }
+                $normalized[$code] = $code;
+            }
+        }
+
+        $contentLocales = array_values($normalized);
+        if ($contentLocales === []) {
+            $contentLocales = $seedLocales !== [] ? $seedLocales : ['en'];
+        }
+
+        $defaultLocale = is_string($default) && trim($default) !== '' ? trim($default) : null;
+        if ($defaultLocale === null || ! in_array($defaultLocale, $contentLocales, true)) {
+            $defaultLocale = $contentLocales[0];
+        }
+
+        $fallbackList = [];
+        if (is_array($fallbacks)) {
+            foreach ($fallbacks as $locale) {
+                if (! is_string($locale)) {
+                    continue;
+                }
+                $code = trim($locale);
+                if ($code === '' || ! in_array($code, $contentLocales, true) || in_array($code, $fallbackList, true)) {
+                    continue;
+                }
+                $fallbackList[] = $code;
+            }
+        }
+
+        if ($fallbackList === []) {
+            // default + remaining content locales in order (seed fallbacks preferred when matching)
+            $fallbackList = [$defaultLocale];
+            foreach ($seedFallbacks as $locale) {
+                if (in_array($locale, $contentLocales, true) && ! in_array($locale, $fallbackList, true)) {
+                    $fallbackList[] = $locale;
+                }
+            }
+            foreach ($contentLocales as $locale) {
+                if (! in_array($locale, $fallbackList, true)) {
+                    $fallbackList[] = $locale;
+                }
+            }
+        }
+
+        return [
+            'content_locales' => $contentLocales,
+            'default_content_locale' => $defaultLocale,
+            'fallback_content_locales' => $fallbackList,
+        ];
+    }
+
+    /**
+     * @param  list<string>  $fallback
+     * @return list<string>
+     */
+    private function configLocaleList(string $key, array $fallback): array
+    {
+        $locales = config($key, $fallback);
+
+        if (! is_array($locales)) {
+            return $fallback;
+        }
+
+        return array_values(array_filter($locales, fn (mixed $locale): bool => is_string($locale) && $locale !== ''));
     }
 
     /**

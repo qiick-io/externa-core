@@ -11,7 +11,9 @@ import type {ReactNode} from 'react';
 
 import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
 import { PaginatedMultiSelect } from '@/components/admin/paginated-multi-select';
+import { ContentLocaleProvider } from '@/components/collections/content-locale-provider';
 import { LucideIconByName } from '@/components/collections/field-settings/lucide-icon-picker';
+import { LocalizedField } from '@/components/collections/localized-field';
 import {
     CodeFieldInput,
     ColorFieldInput,
@@ -1610,6 +1612,70 @@ function renderFieldControl(context: FieldRenderContext) {
 }
 
 /**
+ * Translatable item field with shared locale switcher (one control visible).
+ */
+function TranslatableItemField({
+    field,
+    locales,
+    displayName,
+    showFieldNameHeading,
+    readonly,
+    collectionId,
+    relatedCollections,
+    defaults,
+}: {
+    field: FieldDef;
+    locales: string[];
+    displayName: string;
+    showFieldNameHeading: boolean;
+    readonly: boolean;
+    collectionId: number;
+    relatedCollections: RelatedCollectionOption[];
+    defaults?: Record<string, unknown>;
+}) {
+    return (
+        <LocalizedField
+            locales={locales}
+            label={showFieldNameHeading ? displayName : undefined}
+            showCopyActions={false}
+        >
+            {({ locale }) => (
+                <div className="space-y-2">
+                    <FieldNote settings={field.settings} locales={locales} />
+                    {locales.map((code) => {
+                        const inputId = `data_${field.name}_${code}`;
+                        const isActive = code === locale;
+
+                        return (
+                            <div
+                                key={code}
+                                className={isActive ? 'grid gap-2' : 'hidden'}
+                                aria-hidden={!isActive}
+                            >
+                                {renderFieldControl({
+                                    field,
+                                    name: `data[${field.name}][${code}]`,
+                                    id: inputId,
+                                    collectionId,
+                                    locales,
+                                    readonly,
+                                    relatedCollections,
+                                    defaultValue: getDefaultLocale(
+                                        defaults,
+                                        field.name,
+                                        code,
+                                    ),
+                                })}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </LocalizedField>
+    );
+}
+
+/**
  * Renders all dynamic fields for a collection item form.
  * @param {*} props - Component props.
  * @returns {JSX.Element}
@@ -1635,103 +1701,89 @@ export function DynamicItemFields({
     const gapClass = variant === 'cards' ? 'space-y-4' : 'space-y-6';
 
     return (
-        <div className={gapClass}>
-            {fields.map((field) => {
-                const displayName = getFieldDisplayName(
-                    field.settings,
-                    field.name,
-                    locales,
-                );
-                const readonly = isFieldReadonly(field.settings);
+        <ContentLocaleProvider locales={locales}>
+            <div className={gapClass}>
+                {fields.map((field) => {
+                    const displayName = getFieldDisplayName(
+                        field.settings,
+                        field.name,
+                        locales,
+                    );
+                    const readonly = isFieldReadonly(field.settings);
 
-                const inner = field.translatable ? (
-                    <div className="space-y-3">
-                        {showFieldNameHeading && (
-                            <p className="text-sm font-medium">{displayName}</p>
-                        )}
-                        <FieldNote settings={field.settings} locales={locales} />
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {locales.map((locale) => {
-                                const inputId = `data_${field.name}_${locale}`;
-
-                                return (
-                                    <div key={locale} className="grid gap-2">
-                                        <Label htmlFor={inputId}>
-                                            {displayName} ({locale})
-                                        </Label>
-                                        {renderFieldControl({
-                                            field,
-                                            name: `data[${field.name}][${locale}]`,
-                                            id: inputId,
-                                            collectionId,
-                                            locales,
-                                            readonly,
-                                            relatedCollections,
-                                            defaultValue: getDefaultLocale(
-                                                defaults,
-                                                field.name,
-                                                locale,
-                                            ),
-                                        })}
-                                    </div>
-                                );
+                    const inner = field.translatable ? (
+                        <TranslatableItemField
+                            field={field}
+                            locales={locales}
+                            displayName={displayName}
+                            showFieldNameHeading={showFieldNameHeading}
+                            readonly={readonly}
+                            collectionId={collectionId}
+                            relatedCollections={relatedCollections}
+                            defaults={defaults}
+                        />
+                    ) : (
+                        <div className="grid gap-2">
+                            {showFieldNameHeading && (
+                                <Label htmlFor={`data_${field.name}`}>
+                                    {displayName}
+                                </Label>
+                            )}
+                            <FieldNote
+                                settings={field.settings}
+                                locales={locales}
+                            />
+                            {renderFieldControl({
+                                field,
+                                name: `data[${field.name}]`,
+                                id: `data_${field.name}`,
+                                collectionId,
+                                locales,
+                                readonly,
+                                relatedCollections,
+                                defaultValue: getDefaultScalar(
+                                    defaults,
+                                    field.name,
+                                ),
                             })}
                         </div>
-                    </div>
-                ) : (
-                    <div className="grid gap-2">
-                        {showFieldNameHeading && (
-                            <Label htmlFor={`data_${field.name}`}>
-                                {displayName}
-                            </Label>
-                        )}
-                        <FieldNote settings={field.settings} locales={locales} />
-                        {renderFieldControl({
-                            field,
-                            name: `data[${field.name}]`,
-                            id: `data_${field.name}`,
-                            collectionId,
-                            locales,
-                            readonly,
-                            relatedCollections,
-                            defaultValue: getDefaultScalar(
-                                defaults,
-                                field.name,
-                            ),
-                        })}
-                    </div>
-                );
-
-                if (variant === 'cards') {
-                    return (
-                        <div
-                            key={field.id}
-                            className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border"
-                        >
-                            <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-sidebar-border/70 pb-3 dark:border-sidebar-border">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <span className="font-mono text-sm font-medium">
-                                        {displayName}
-                                    </span>
-                                    <Badge variant="outline">{field.type}</Badge>
-                                    {field.translatable && (
-                                        <Badge variant="secondary">
-                                            Translatable
-                                        </Badge>
-                                    )}
-                                    {readonly && (
-                                        <Badge variant="secondary">Readonly</Badge>
-                                    )}
-                                </div>
-                                {fieldActions?.(field)}
-                            </div>
-                            {inner}
-                        </div>
                     );
-                }
 
-                return <Fragment key={field.id}>{inner}</Fragment>;
-            })}
-        </div>
+                    if (variant === 'cards') {
+                        return (
+                            <div
+                                key={field.id}
+                                className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border"
+                            >
+                                <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-sidebar-border/70 pb-3 dark:border-sidebar-border">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="font-mono text-sm font-medium">
+                                            {displayName}
+                                        </span>
+                                        <Badge variant="outline">
+                                            {field.type}
+                                        </Badge>
+                                        {field.translatable && (
+                                            <Badge variant="secondary">
+                                                Translatable
+                                            </Badge>
+                                        )}
+                                        {readonly && (
+                                            <Badge variant="secondary">
+                                                Readonly
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    {fieldActions?.(field)}
+                                </div>
+                                {inner}
+                            </div>
+                        );
+                    }
+
+                    return <Fragment key={field.id}>{inner}</Fragment>;
+                })}
+            </div>
+        </ContentLocaleProvider>
     );
 }

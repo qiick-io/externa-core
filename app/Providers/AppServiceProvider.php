@@ -64,6 +64,8 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Herd PHP-FPM + Guzzle `stream => true` returns HTTP 200 with a 0-byte body for
      * LM Studio SSE. Prefer curl_multi progressive streaming; fall back to buffering.
+     * CurlMultiReadableStream also remaps LM Studio reasoning_text → summary_text events
+     * so laravel/ai yields tokens (keeps nginx fastcgi_read_timeout from idling at 60s).
      */
     protected function configureHttpClientStreaming(): void
     {

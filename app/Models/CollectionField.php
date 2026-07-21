@@ -110,10 +110,9 @@ class CollectionField extends Model implements Sortable
             return trim($displayName[$locale]);
         }
 
-        foreach (config('collections.fallback_locales', ['en', 'it']) as $fallbackLocale) {
+        foreach (app(\App\Support\Collections\CollectionLocaleResolver::class)->fallbackChain($locale) as $fallbackLocale) {
             if (
-                is_string($fallbackLocale)
-                && is_array($displayName)
+                is_array($displayName)
                 && is_string($displayName[$fallbackLocale] ?? null)
                 && trim($displayName[$fallbackLocale]) !== ''
             ) {
@@ -136,10 +135,9 @@ class CollectionField extends Model implements Sortable
             return trim($note[$locale]);
         }
 
-        foreach (config('collections.fallback_locales', ['en', 'it']) as $fallbackLocale) {
+        foreach (app(\App\Support\Collections\CollectionLocaleResolver::class)->fallbackChain($locale) as $fallbackLocale) {
             if (
-                is_string($fallbackLocale)
-                && is_array($note)
+                is_array($note)
                 && is_string($note[$fallbackLocale] ?? null)
                 && trim($note[$fallbackLocale]) !== ''
             ) {

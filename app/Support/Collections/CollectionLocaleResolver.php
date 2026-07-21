@@ -2,6 +2,7 @@
 
 namespace App\Support\Collections;
 
+use App\Services\Settings\ProjectSettings;
 use Illuminate\Http\Request;
 
 /**
@@ -11,10 +12,11 @@ class CollectionLocaleResolver
 {
     public function __construct(
         private Request $request,
+        private ProjectSettings $projectSettings,
     ) {}
 
     /**
-     * Resolve the active locale for collection content from query, header, or config.
+     * Resolve the active locale for collection content from query, header, or settings.
      */
     public function resolve(?string $override = null): string
     {
@@ -35,14 +37,39 @@ class CollectionLocaleResolver
             }
         }
 
-        $default = config('app.locale');
-        if (is_string($default) && $this->isAllowed($default)) {
+        $default = $this->projectSettings->defaultContentLocale();
+        if ($this->isAllowed($default)) {
             return $default;
         }
 
-        $locales = config('collections.locales', ['en']);
+        $appDefault = config('app.locale');
+        if (is_string($appDefault) && $this->isAllowed($appDefault)) {
+            return $appDefault;
+        }
 
-        return is_array($locales) && $locales !== [] ? (string) $locales[0] : 'en';
+        $locales = $this->allowedLocales();
+
+        return $locales[0] ?? 'en';
+    }
+
+    /**
+     * Abort when an explicit locale query/override is present but not enabled.
+     */
+    public function assertRequestedLocaleAllowed(?string $override = null): void
+    {
+        $candidate = $override;
+        if ($candidate === null) {
+            $query = $this->request->query('locale');
+            $candidate = is_string($query) && $query !== '' ? $query : null;
+        }
+
+        if ($candidate === null) {
+            return;
+        }
+
+        if (! $this->isAllowed($candidate)) {
+            abort(422, __('The locale :locale is not enabled for this project.', ['locale' => $candidate]));
+        }
     }
 
     /**
@@ -53,8 +80,8 @@ class CollectionLocaleResolver
     public function fallbackChain(string $preferred): array
     {
         $allowed = array_values(array_filter(
-            config('collections.fallback_locales', []),
-            fn (mixed $locale): bool => is_string($locale) && $this->isAllowed($locale)
+            $this->projectSettings->fallbackContentLocales(),
+            fn (string $locale): bool => $this->isAllowed($locale)
         ));
 
         $chain = [$preferred];
@@ -73,13 +100,11 @@ class CollectionLocaleResolver
     }
 
     /**
-     * Whether the locale is configured as allowed for collections.
+     * Whether the locale is enabled for collection content.
      */
     public function isAllowed(string $locale): bool
     {
-        $locales = config('collections.locales', []);
-
-        return is_array($locales) && in_array($locale, $locales, true);
+        return in_array($locale, $this->allowedLocales(), true);
     }
 
     /**
@@ -87,11 +112,7 @@ class CollectionLocaleResolver
      */
     public function allowedLocales(): array
     {
-        $locales = config('collections.locales', []);
-
-        return is_array($locales)
-            ? array_values(array_filter($locales, fn (mixed $locale): bool => is_string($locale)))
-            : [];
+        return $this->projectSettings->contentLocales();
     }
 
     private function parseFirstLanguage(string $acceptLanguage): ?string

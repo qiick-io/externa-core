@@ -4,10 +4,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Supported locales
+    | Supported locales (seed / fallback)
     |--------------------------------------------------------------------------
     |
-    | Locales allowed for translatable dynamic fields (items.data).
+    | Used when project settings have not yet configured content_locales.
+    | Runtime source of truth: ProjectSettings → content_locales.
     |
     */
 
@@ -18,11 +19,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Fallback locale chain
+    | Fallback locale chain (seed / fallback)
     |--------------------------------------------------------------------------
     |
-    | When resolving a translation, try locales in order after the requested one.
-    | Typically includes the app fallback locale and default locale.
+    | Used when project settings have not yet configured fallback_content_locales.
+    | Runtime source of truth: ProjectSettings → fallback_content_locales.
     |
     */
 

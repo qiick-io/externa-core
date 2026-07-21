@@ -5,6 +5,7 @@ namespace App\Services\Collections;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
+use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
@@ -17,6 +18,7 @@ class CollectionItemDataRuleBuilder
 {
     public function __construct(
         private FieldValidationRuleEvaluator $validationRuleEvaluator,
+        private CollectionLocaleResolver $localeResolver,
     ) {}
 
     /**
@@ -52,10 +54,25 @@ class CollectionItemDataRuleBuilder
         $presence = $this->presenceRule($field, $creating);
 
         if ($field->translatable) {
+            $allowedLocales = $this->allowedLocales();
             $rules = [
-                $prefix => [$presence, 'array'],
+                $prefix => [
+                    $presence,
+                    'array',
+                    function (string $attribute, mixed $value, \Closure $fail) use ($allowedLocales): void {
+                        if (! is_array($value)) {
+                            return;
+                        }
+
+                        foreach (array_keys($value) as $locale) {
+                            if (! is_string($locale) || ! in_array($locale, $allowedLocales, true)) {
+                                $fail(__('Locale :locale is not enabled.', ['locale' => (string) $locale]));
+                            }
+                        }
+                    },
+                ],
             ];
-            foreach ($this->allowedLocales() as $locale) {
+            foreach ($allowedLocales as $locale) {
                 $rules = array_merge(
                     $rules,
                     $this->rulesForTranslatableLocale(
@@ -390,9 +407,7 @@ class CollectionItemDataRuleBuilder
      */
     private function allowedLocales(): array
     {
-        $locales = config('collections.locales', ['en']);
-
-        return is_array($locales) ? array_values(array_filter($locales, fn ($l) => is_string($l))) : ['en'];
+        return $this->localeResolver->allowedLocales();
     }
 
     /**

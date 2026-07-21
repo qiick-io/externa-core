@@ -37,6 +37,9 @@ return [
             'description',
             'url',
             'default_language',
+            'content_locales',
+            'default_content_locale',
+            'fallback_content_locales',
             'sidebar_modules',
             'password_policy',
             'login_max_attempts',
@@ -55,6 +58,10 @@ return [
             'description' => null,
             'url' => null,
             'default_language' => 'en',
+            // Seed from config/collections.php; project settings become source of truth once saved
+            'content_locales' => null,
+            'default_content_locale' => null,
+            'fallback_content_locales' => null,
             'sidebar_modules' => [
                 // ai is pinned first + locked (always on); dashboard is locked but reorderable below
                 ['id' => 'ai', 'enabled' => true, 'locked' => true],
