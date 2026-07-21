@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\FileTypeEnum;
+use App\Jobs\WarmFileThumbnailJob;
 use App\Models\File;
 use App\Models\FileUpload;
 use App\Models\FileVersion;
@@ -62,8 +63,10 @@ class FileService
                 basename($storagePath)
             );
 
-            [$width, $height, $meta] = $this->extractImageMeta($disk, $storedPath, $mimeType, $uploadedFile->getContent());
-            $fileHash = hash('sha256', $uploadedFile->getContent());
+            // ponytail: single getContent() for meta + hash (ceiling: loads whole file into memory)
+            $bytes = $uploadedFile->getContent();
+            [$width, $height, $meta] = $this->extractImageMeta($disk, $storedPath, $mimeType, $bytes);
+            $fileHash = hash('sha256', $bytes);
 
             return DB::transaction(function () use ($parentId, $disk, $fileName, $mimeType, $size, $width, $height, $meta, $storedPath, $fileHash) {
                 $version = $this->resolveOrCreateVersion($disk, $storedPath, $fileHash, $mimeType, $size, $width, $height, $meta);
@@ -90,6 +93,8 @@ class FileService
                 $file->current_version_id = $version->id;
                 $file->path = $this->calculatePath($file);
                 $file->save();
+
+                $this->dispatchThumbnailWarmup($file);
 
                 return $file;
             });
@@ -217,13 +222,22 @@ class FileService
                 'scale',
             ];
 
+            $focalChanged = false;
             foreach ($allowed as $key) {
                 if (array_key_exists($key, $attributes)) {
+                    if (in_array($key, ['focal_point_x', 'focal_point_y'], true)
+                        && (float) ($file->{$key} ?? 0) !== (float) ($attributes[$key] ?? 0)) {
+                        $focalChanged = true;
+                    }
                     $file->{$key} = $attributes[$key];
                 }
             }
 
             $file->save();
+
+            if ($focalChanged) {
+                app(FileTransformService::class)->clearTransforms($file);
+            }
 
             return $file->fresh(['tags']);
         });
@@ -264,8 +278,10 @@ class FileService
                 basename($storagePath)
             );
 
-            [$width, $height, $meta] = $this->extractImageMeta($file->disk, $storedPath, $mimeType, $uploadedFile->getContent());
-            $fileHash = hash('sha256', $uploadedFile->getContent());
+            // ponytail: single getContent() for meta + hash (ceiling: loads whole file into memory)
+            $bytes = $uploadedFile->getContent();
+            [$width, $height, $meta] = $this->extractImageMeta($file->disk, $storedPath, $mimeType, $bytes);
+            $fileHash = hash('sha256', $bytes);
 
             return DB::transaction(function () use ($file, $storedPath, $fileHash, $mimeType, $size, $width, $height, $meta) {
                 $version = $this->resolveOrCreateVersion(
@@ -293,6 +309,8 @@ class FileService
                 $file->hash = $fileHash;
                 $file->current_version_id = $version->id;
                 $file->save();
+
+                $this->dispatchThumbnailWarmup($file);
 
                 return $file->fresh(['tags']);
             });
@@ -926,6 +944,8 @@ class FileService
             $this->cleanupChunks($uploadId, $fileUpload->disk);
             $fileUpload->delete();
 
+            $this->dispatchThumbnailWarmup($file);
+
             return $file;
         } catch (\Throwable $e) {
             if ($storage->exists($tempFilePath)) {
@@ -1166,5 +1186,17 @@ class FileService
     protected function isLocalDisk(string $disk): bool
     {
         return Config::get("filesystems.disks.{$disk}.driver", '') === 'local';
+    }
+
+    /**
+     * Queue a best-effort thumbnail warm-up for raster images.
+     */
+    protected function dispatchThumbnailWarmup(File $file): void
+    {
+        if (! app(FileTransformService::class)->isImage($file)) {
+            return;
+        }
+
+        WarmFileThumbnailJob::dispatch($file->id);
     }
 }

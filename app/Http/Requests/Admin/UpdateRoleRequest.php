@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\CollectionPermissionAction;
+use App\Enums\FilePermissionAction;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Http\Requests\Concerns\AuthorizesWithPermission;
@@ -58,6 +59,11 @@ class UpdateRoleRequest extends FormRequest
             'collection_permissions.*.read' => ['sometimes', 'boolean'],
             'collection_permissions.*.update' => ['sometimes', 'boolean'],
             'collection_permissions.*.delete' => ['sometimes', 'boolean'],
+            'file_permissions' => ['sometimes', 'array'],
+            'file_permissions.create' => ['sometimes', 'boolean'],
+            'file_permissions.read' => ['sometimes', 'boolean'],
+            'file_permissions.update' => ['sometimes', 'boolean'],
+            'file_permissions.delete' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -85,6 +91,14 @@ class UpdateRoleRequest extends FormRequest
                 $normalized[(string) $collectionId] = $row;
             }
             $data['collection_permissions'] = $normalized;
+        }
+
+        if (isset($data['file_permissions']) && is_array($data['file_permissions'])) {
+            $normalized = [];
+            foreach (FilePermissionAction::values() as $action) {
+                $normalized[$action] = (bool) ($data['file_permissions'][$action] ?? false);
+            }
+            $data['file_permissions'] = $normalized;
         }
 
         return $data;

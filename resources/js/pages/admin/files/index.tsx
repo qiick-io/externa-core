@@ -289,8 +289,69 @@ export default function AdminFilesIndex({
     }, []);
 
     useEffect(() => {
+        if (search.trim() !== '') {
+            return;
+        }
+
         applyServerPage(initialFiles);
-    }, [applyServerPage, initialFiles]);
+    }, [applyServerPage, initialFiles, search]);
+
+    useEffect(() => {
+        const term = search.trim();
+        if (term === '') {
+            return;
+        }
+
+        const requestGeneration = listGenerationRef.current + 1;
+        listGenerationRef.current = requestGeneration;
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+
+        const timer = window.setTimeout(() => {
+            void (async () => {
+                try {
+                    const next = await listFilesPage({
+                        parentId,
+                        trashed: isTrashed ? 'only' : null,
+                        page: 1,
+                        search: term,
+                        tagIds: selectedTagIds,
+                        sort,
+                        direction,
+                    });
+
+                    if (requestGeneration !== listGenerationRef.current) {
+                        return;
+                    }
+
+                    setFiles(next.data);
+                    setPage(next.current_page);
+                    setLastPage(next.last_page);
+                } catch (error) {
+                    if (requestGeneration !== listGenerationRef.current) {
+                        return;
+                    }
+
+                    toast.error(
+                        error instanceof Error
+                            ? error.message
+                            : 'Failed to search files',
+                    );
+                }
+            })();
+        }, 300);
+
+        return () => {
+            window.clearTimeout(timer);
+        };
+    }, [
+        direction,
+        isTrashed,
+        parentId,
+        search,
+        selectedTagIds,
+        sort,
+    ]);
 
     useEffect(() => {
         setSelectedTagIds(filters.tag_ids ?? []);
@@ -574,20 +635,6 @@ export default function AdminFilesIndex({
         );
     };
 
-    const filteredFiles = useMemo(() => {
-        const term = search.trim().toLowerCase();
-
-        if (!term) {
-            return files;
-        }
-
-        return files.filter(
-            (file) =>
-                file.name.toLowerCase().includes(term) ||
-                (file.title ?? '').toLowerCase().includes(term),
-        );
-    }, [files, search]);
-
     const toolbarActions = useMemo(
         () =>
             resolveFileActions(
@@ -613,6 +660,7 @@ export default function AdminFilesIndex({
                 parentId,
                 trashed: isTrashed ? 'only' : null,
                 page: nextPage,
+                search: search.trim() || undefined,
                 tagIds: selectedTagIds,
                 sort,
                 direction,
@@ -656,6 +704,7 @@ export default function AdminFilesIndex({
         lastPage,
         page,
         parentId,
+        search,
         selectedTagIds,
         sort,
     ]);
@@ -1261,8 +1310,8 @@ export default function AdminFilesIndex({
                                     onSearchChange={setSearch}
                                     searchPlaceholder={
                                         isTrashed
-                                            ? 'Filter trash…'
-                                            : 'Filter current folder…'
+                                            ? 'Search trash…'
+                                            : 'Search files…'
                                     }
                                     trailing={
                                         <TagFilterPopover
@@ -1363,14 +1412,14 @@ export default function AdminFilesIndex({
                         }
                     >
                         <FileGrid
-                            files={filteredFiles}
+                            files={files}
                             isTrashed={isTrashed}
                             uploadsEnabled={uploadsEnabled}
                             canEdit={canEdit}
                             selectedIds={selection.selectedIds}
                             multiSelectMode={selection.multiSelectMode}
                             dropTargetFolderId={dropTargetFolderId}
-                            hasMore={page < lastPage && search.trim() === ''}
+                            hasMore={page < lastPage}
                             loadingMore={loadingMore}
                             onLoadMore={() => {
                                 void loadMore();

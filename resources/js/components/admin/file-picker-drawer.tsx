@@ -13,11 +13,11 @@ import {
     DrawerTitle,
 } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
-import adminRoutes from '@/lib/admin-routes';
 import {
     CHUNK_SIZE_BYTES,
     filePublicUrl,
     isImageFile,
+    listFilesPage,
     uploadFileChunked,
     uploadFileDirect,
 } from '@/lib/files-api';
@@ -34,8 +34,6 @@ type FilePickerDrawerProps = {
 
 /**
  * Drawer for browsing and selecting existing files.
- * @param {*} props - Component props.
- * @returns {JSX.Element}
  */
 export function FilePickerDrawer({
     open,
@@ -48,53 +46,65 @@ export function FilePickerDrawer({
     const [breadcrumbs, setBreadcrumbs] = useState<FileBreadcrumb[]>([]);
     const [files, setFiles] = useState<AdminFileRow[]>([]);
     const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [lastPage, setLastPage] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [uploading, setUploading] = useState(false);
 
-    const loadFiles = useCallback(async () => {
-        setLoading(true);
-
-        try {
-            const params = new URLSearchParams();
-
-            if (parentId !== null) {
-                params.set('parent_id', String(parentId));
+    const loadFiles = useCallback(
+        async (pageToLoad = 1, append = false): Promise<void> => {
+            if (append) {
+                setLoadingMore(true);
+            } else {
+                setLoading(true);
             }
 
-            if (search.trim()) {
-                params.set('search', search.trim());
+            try {
+                const payload = await listFilesPage({
+                    parentId,
+                    page: pageToLoad,
+                    search: search.trim() || undefined,
+                });
+
+                setFiles((current) => {
+                    if (!append) {
+                        return payload.data;
+                    }
+
+                    const seenIds = new Set(current.map((file) => file.id));
+                    const appended = payload.data.filter(
+                        (file) => !seenIds.has(file.id),
+                    );
+
+                    return appended.length === 0
+                        ? current
+                        : [...current, ...appended];
+                });
+                setPage(payload.current_page);
+                setLastPage(payload.last_page);
+            } finally {
+                if (append) {
+                    setLoadingMore(false);
+                } else {
+                    setLoading(false);
+                }
             }
-
-            const response = await fetch(
-                `${adminRoutes.files.list()}?${params.toString()}`,
-                {
-                    headers: {
-                        Accept: 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    credentials: 'same-origin',
-                },
-            );
-
-            if (!response.ok) {
-                return;
-            }
-
-            const payload = (await response.json()) as { data: AdminFileRow[] };
-            setFiles(payload.data);
-        } finally {
-            setLoading(false);
-        }
-    }, [parentId, search]);
+        },
+        [parentId, search],
+    );
 
     useEffect(() => {
         if (!open) {
             return;
         }
 
-        const timer = setTimeout(() => {
-            void loadFiles();
-        }, search ? 300 : 0);
+        const timer = setTimeout(
+            () => {
+                void loadFiles(1, false);
+            },
+            search ? 300 : 0,
+        );
 
         return () => clearTimeout(timer);
     }, [open, loadFiles, search]);
@@ -104,6 +114,9 @@ export function FilePickerDrawer({
             setParentId(null);
             setBreadcrumbs([]);
             setSearch('');
+            setPage(1);
+            setLastPage(1);
+            setFiles([]);
         }
     }, [open]);
 
@@ -128,7 +141,9 @@ export function FilePickerDrawer({
         setBreadcrumbs(breadcrumbs.slice(0, index + 1));
     };
 
-    const handleUpload = async (selectedFiles: FileList | File[]): Promise<void> => {
+    const handleUpload = async (
+        selectedFiles: FileList | File[],
+    ): Promise<void> => {
         const fileList = Array.from(selectedFiles);
         setUploading(true);
 
@@ -145,17 +160,17 @@ export function FilePickerDrawer({
                 }
             }
 
-            await loadFiles();
+            await loadFiles(1, false);
         } finally {
             setUploading(false);
         }
     };
 
     const visibleFiles = acceptImagesOnly
-        ? files.filter(
-              (file) => file.type === 'folder' || isImageFile(file),
-          )
+        ? files.filter((file) => file.type === 'folder' || isImageFile(file))
         : files;
+
+    const hasMore = page < lastPage;
 
     return (
         <Drawer open={open} onOpenChange={onOpenChange} direction="right">
@@ -183,7 +198,10 @@ export function FilePickerDrawer({
                             Root
                         </button>
                         {breadcrumbs.map((crumb, index) => (
-                            <span key={crumb.id} className="flex items-center gap-1">
+                            <span
+                                key={crumb.id}
+                                className="flex items-center gap-1"
+                            >
                                 <span>/</span>
                                 <button
                                     type="button"
@@ -200,7 +218,9 @@ export function FilePickerDrawer({
                         compact
                         showInlineEmptyState
                         disabled={uploading}
-                        onFilesSelected={(selected) => void handleUpload(selected)}
+                        onFilesSelected={(selected) =>
+                            void handleUpload(selected)
+                        }
                     />
 
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -255,6 +275,18 @@ export function FilePickerDrawer({
                             );
                         })}
                     </div>
+
+                    {hasMore && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full"
+                            disabled={loading || loadingMore}
+                            onClick={() => void loadFiles(page + 1, true)}
+                        >
+                            {loadingMore ? 'Loading…' : 'Load more'}
+                        </Button>
+                    )}
                 </DrawerBody>
 
                 <DrawerFooter>

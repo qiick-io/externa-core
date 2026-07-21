@@ -3,6 +3,8 @@
 namespace App\Http\Resources;
 
 use App\Models\CollectionItem;
+use App\Services\Api\FileFieldExpander;
+use App\Support\Api\ApiAccess;
 use App\Support\Collections\CollectionItemDataAccessor;
 use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Http\Request;
@@ -30,6 +32,20 @@ class CollectionItemResource extends JsonResource
         $locale = app(CollectionLocaleResolver::class)->resolve($request->query('locale') ? (string) $request->query('locale') : null);
 
         $data = app(CollectionItemDataAccessor::class)->flattenForLocale($item, $locale, $includeAll);
+
+        // Expand file fields only on public CMS API surfaces (admin forms keep raw IDs).
+        if ($request->is('api/*') && $item->collection !== null) {
+            $access = $request->attributes->get('apiAccess');
+            if (! $access instanceof ApiAccess) {
+                try {
+                    $access = app(ApiAccess::class);
+                } catch (\Throwable) {
+                    $access = null;
+                }
+            }
+
+            $data = app(FileFieldExpander::class)->expand($data, $item->collection, $access);
+        }
 
         return [
             'id' => $item->id,

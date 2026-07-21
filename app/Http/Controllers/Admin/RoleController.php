@@ -12,6 +12,7 @@ use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Http\Resources\Admin\RoleResource;
 use App\Models\Role;
 use App\Services\Api\CollectionPermissionSync;
+use App\Services\Api\FilePermissionSync;
 use App\Support\Authorization\PermissionGrouper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +31,7 @@ class RoleController extends Controller
     public function __construct(
         private readonly PermissionGrouper $permissionGrouper,
         private readonly CollectionPermissionSync $collectionPermissionSync,
+        private readonly FilePermissionSync $filePermissionSync,
     ) {}
 
     /**
@@ -100,6 +102,10 @@ class RoleController extends Controller
             $this->collectionPermissionSync->sync($role, $data['collection_permissions'] ?? []);
         }
 
+        if (array_key_exists('file_permissions', $data)) {
+            $this->filePermissionSync->sync($role, $data['file_permissions'] ?? []);
+        }
+
         return redirect()
             ->route('roles.index')
             ->with('success', __('Role created.'));
@@ -142,6 +148,10 @@ class RoleController extends Controller
 
         if (array_key_exists('collection_permissions', $data)) {
             $this->collectionPermissionSync->sync($role, $data['collection_permissions'] ?? []);
+        }
+
+        if (array_key_exists('file_permissions', $data)) {
+            $this->filePermissionSync->sync($role, $data['file_permissions'] ?? []);
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -222,6 +232,14 @@ class RoleController extends Controller
             'collectionPermissions' => $role
                 ? $this->collectionPermissionSync->matrixForRole($role)
                 : [],
+            'filePermissions' => $role
+                ? $this->filePermissionSync->grantsForRole($role)
+                : [
+                    'create' => false,
+                    'read' => false,
+                    'update' => false,
+                    'delete' => false,
+                ],
         ];
     }
 }

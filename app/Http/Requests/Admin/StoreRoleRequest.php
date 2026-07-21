@@ -42,6 +42,11 @@ class StoreRoleRequest extends FormRequest
             'collection_permissions.*.read' => ['sometimes', 'boolean'],
             'collection_permissions.*.update' => ['sometimes', 'boolean'],
             'collection_permissions.*.delete' => ['sometimes', 'boolean'],
+            'file_permissions' => ['sometimes', 'array'],
+            'file_permissions.create' => ['sometimes', 'boolean'],
+            'file_permissions.read' => ['sometimes', 'boolean'],
+            'file_permissions.update' => ['sometimes', 'boolean'],
+            'file_permissions.delete' => ['sometimes', 'boolean'],
         ];
     }
 }

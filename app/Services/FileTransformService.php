@@ -105,6 +105,8 @@ class FileTransformService
         }
 
         $preset = $this->normalizePresetInput($preset);
+        $preset['focal_x'] = $this->clampFocal($file->focal_point_x);
+        $preset['focal_y'] = $this->clampFocal($file->focal_point_y);
         $disk = Storage::disk($file->disk);
         $extension = $this->resolveExtension($preset['format']);
 
@@ -361,6 +363,8 @@ class FileTransformService
             $preset['height'],
             $preset['fit'],
             $preset['without_enlargement'],
+            $preset['focal_x'] ?? null,
+            $preset['focal_y'] ?? null,
         );
 
         $canvas = imagecreatetruecolor($geometry['canvas_w'], $geometry['canvas_h']);
@@ -415,12 +419,14 @@ class FileTransformService
         ?int $height,
         string $fit,
         bool $withoutEnlargement,
+        ?float $focalX = null,
+        ?float $focalY = null,
     ): array {
         $targetW = $width ?? $height ?? $sourceWidth;
         $targetH = $height ?? $width ?? $sourceHeight;
 
         return match ($fit) {
-            'cover' => $this->geometryCover($sourceWidth, $sourceHeight, $targetW, $targetH, $withoutEnlargement),
+            'cover' => $this->geometryCover($sourceWidth, $sourceHeight, $targetW, $targetH, $withoutEnlargement, $focalX, $focalY),
             'outside' => $this->geometryOutside($sourceWidth, $sourceHeight, $targetW, $targetH, $withoutEnlargement),
             'contain' => $this->geometryContain($sourceWidth, $sourceHeight, $targetW, $targetH, $withoutEnlargement, pad: true),
             default => $this->geometryContain($sourceWidth, $sourceHeight, $targetW, $targetH, $withoutEnlargement, pad: false),
@@ -506,10 +512,15 @@ class FileTransformService
         int $tw,
         int $th,
         bool $withoutEnlargement,
+        ?float $focalX = null,
+        ?float $focalY = null,
     ): array {
+        $fx = $focalX ?? 0.5;
+        $fy = $focalY ?? 0.5;
+
         $scale = max($tw / $sw, $th / $sh);
 
-        // Sharp-like: do not upscale — emit source (centered crop only if larger)
+        // Sharp-like: do not upscale — emit source (focal crop only if larger)
         if ($withoutEnlargement && $scale > 1) {
             $cropW = min($sw, $tw);
             $cropH = min($sh, $th);
@@ -521,8 +532,8 @@ class FileTransformService
                 'dst_y' => 0,
                 'dst_w' => $cropW,
                 'dst_h' => $cropH,
-                'src_x' => (int) floor(($sw - $cropW) / 2),
-                'src_y' => (int) floor(($sh - $cropH) / 2),
+                'src_x' => $this->focalOffset($sw, $cropW, $fx),
+                'src_y' => $this->focalOffset($sh, $cropH, $fy),
                 'src_w' => $cropW,
                 'src_h' => $cropH,
             ];
@@ -538,11 +549,30 @@ class FileTransformService
             'dst_y' => 0,
             'dst_w' => $tw,
             'dst_h' => $th,
-            'src_x' => (int) floor(($sw - $srcW) / 2),
-            'src_y' => (int) floor(($sh - $srcH) / 2),
+            'src_x' => $this->focalOffset($sw, $srcW, $fx),
+            'src_y' => $this->focalOffset($sh, $srcH, $fy),
             'src_w' => $srcW,
             'src_h' => $srcH,
         ];
+    }
+
+    /**
+     * Place a crop window so focal (0–1) stays near the center; clamp to edges.
+     */
+    private function focalOffset(int $source, int $crop, float $focal): int
+    {
+        $ideal = (int) round(($source * $focal) - ($crop / 2));
+
+        return max(0, min($source - $crop, $ideal));
+    }
+
+    private function clampFocal(mixed $value): ?float
+    {
+        if ($value === null || ! is_numeric($value)) {
+            return null;
+        }
+
+        return max(0.0, min(1.0, (float) $value));
     }
 
     /**
@@ -663,6 +693,8 @@ class FileTransformService
             (string) $preset['quality'],
             $preset['without_enlargement'] ? '1' : '0',
             $preset['format'],
+            (string) ($preset['focal_x'] ?? ''),
+            (string) ($preset['focal_y'] ?? ''),
             $extension,
         ]));
 

@@ -591,6 +591,40 @@ test('file manager list json paginates and returns coherent page totals', functi
         ->and($pageOneIds->merge($pageTwoIds)->unique())->toHaveCount(55);
 });
 
+test('file manager list json searches name path and title on the backend', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'alpha.txt',
+        'title' => 'First',
+        'path' => '/alpha.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/alpha.txt',
+    ]);
+    File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'beta.txt',
+        'title' => 'Needle match',
+        'path' => '/beta.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/beta.txt',
+    ]);
+
+    $byName = $this->getJson(route('files.list', ['search' => 'alpha', 'page' => 1]))
+        ->assertOk()
+        ->json('data');
+    expect($byName)->toHaveCount(1)->and($byName[0]['name'])->toBe('alpha.txt');
+
+    $byTitle = $this->getJson(route('files.list', ['search' => 'Needle', 'page' => 1]))
+        ->assertOk()
+        ->json('data');
+    expect($byTitle)->toHaveCount(1)->and($byTitle[0]['name'])->toBe('beta.txt');
+});
+
 test('file manager index and list reset to page one when sort changes', function () {
     $user = grantFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,

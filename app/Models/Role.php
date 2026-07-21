@@ -45,6 +45,14 @@ class Role extends SpatieRole
     }
 
     /**
+     * @return HasMany<FilePermission, $this>
+     */
+    public function filePermissions(): HasMany
+    {
+        return $this->hasMany(FilePermission::class);
+    }
+
+    /**
      * @return HasMany<ApiKey, $this>
      */
     public function apiKeys(): HasMany

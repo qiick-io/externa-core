@@ -29,6 +29,8 @@ type CollectionActions = {
     delete: boolean;
 };
 
+type FileActions = CollectionActions;
+
 const ACTIONS = [
     { key: 'create' as const, label: 'Create' },
     { key: 'read' as const, label: 'Read' },
@@ -44,11 +46,18 @@ export default function AdminRoleForm({
     permissionGroups,
     collections = [],
     collectionPermissions = {},
+    filePermissions = {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+    },
 }: {
     role?: RoleFormRole | { data: RoleFormRole } | null;
     permissionGroups: PermissionGroup[];
     collections?: CollectionRow[];
     collectionPermissions?: Record<string, CollectionActions>;
+    filePermissions?: FileActions;
 }) {
     // Tolerate accidental JsonResource wrapping ({ data: role })
     const role: RoleFormRole | null | undefined =
@@ -79,6 +88,12 @@ export default function AdminRoleForm({
         name: role?.name ?? '',
         permission_ids: [] as number[],
         collection_permissions: emptyMatrix(),
+        file_permissions: {
+            create: filePermissions.create ?? false,
+            read: filePermissions.read ?? false,
+            update: filePermissions.update ?? false,
+            delete: filePermissions.delete ?? false,
+        } as FileActions,
     });
 
     useEffect(() => {
@@ -89,6 +104,12 @@ export default function AdminRoleForm({
             );
         }
         form.setData('collection_permissions', emptyMatrix());
+        form.setData('file_permissions', {
+            create: filePermissions.create ?? false,
+            read: filePermissions.read ?? false,
+            update: filePermissions.update ?? false,
+            delete: filePermissions.delete ?? false,
+        });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [role?.id, collections.length]);
 
@@ -156,6 +177,16 @@ export default function AdminRoleForm({
                 ...form.data.collection_permissions[key],
                 [action]: checked,
             },
+        });
+    };
+
+    const toggleFileAction = (
+        action: keyof FileActions,
+        checked: boolean,
+    ): void => {
+        form.setData('file_permissions', {
+            ...form.data.file_permissions,
+            [action]: checked,
         });
     };
 
@@ -313,6 +344,101 @@ export default function AdminRoleForm({
                             })}
                         </div>
                     )}
+
+                    <section className="space-y-3">
+                        <div>
+                            <h2 className="text-lg font-medium">
+                                Files access
+                            </h2>
+                            <p className="text-muted-foreground text-sm">
+                                Public CMS API file permissions (create / read /
+                                update / delete). Global for all files — missing
+                                grant = deny.
+                            </p>
+                        </div>
+
+                        <div className="overflow-x-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b bg-muted/40">
+                                        <th className="px-3 py-2 text-left font-medium">
+                                            Resource
+                                        </th>
+                                        {ACTIONS.map((action) => (
+                                            <th
+                                                key={action.key}
+                                                className="px-2 py-2 text-center font-medium"
+                                            >
+                                                {action.label}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr className="border-b last:border-0">
+                                        <td className="px-3 py-2">
+                                            <div className="font-medium">
+                                                Files
+                                            </div>
+                                            <div className="text-muted-foreground text-xs">
+                                                /api/v1/files
+                                            </div>
+                                        </td>
+                                        {ACTIONS.map((action) => {
+                                            const allowed =
+                                                form.data.file_permissions[
+                                                    action.key
+                                                ];
+                                            return (
+                                                <td
+                                                    key={action.key}
+                                                    className="px-2 py-2 text-center"
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        aria-pressed={allowed}
+                                                        aria-label={`${action.label} for files: ${allowed ? 'allowed' : 'denied'}`}
+                                                        title={`${action.label}: ${allowed ? 'Allowed' : 'Denied'}`}
+                                                        className={cn(
+                                                            'inline-flex size-8 items-center justify-center rounded-md border transition-colors',
+                                                            allowed
+                                                                ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                                                : 'border-destructive/50 bg-destructive/10 text-destructive',
+                                                        )}
+                                                        onClick={() =>
+                                                            toggleFileAction(
+                                                                action.key,
+                                                                !allowed,
+                                                            )
+                                                        }
+                                                    >
+                                                        {allowed ? (
+                                                            <Check
+                                                                className="size-4"
+                                                                strokeWidth={
+                                                                    2.5
+                                                                }
+                                                                aria-hidden
+                                                            />
+                                                        ) : (
+                                                            <X
+                                                                className="size-4"
+                                                                strokeWidth={
+                                                                    2.5
+                                                                }
+                                                                aria-hidden
+                                                            />
+                                                        )}
+                                                    </button>
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <InputError message={form.errors.file_permissions} />
+                    </section>
 
                     <section className="space-y-3">
                         <div>
