@@ -14,6 +14,7 @@ use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,6 +23,15 @@ use Inertia\Response;
  */
 class ContentCollectionController extends Controller
 {
+    /**
+     * @var list<string>
+     */
+    private const SORTABLE_COLUMNS = [
+        'name',
+        'slug',
+        'updated_at',
+    ];
+
     public function __construct(
         private CollectionItemDataNormalizer $itemDataNormalizer,
         private CollectionItemValuesWriter $collectionItemValuesWriter,
@@ -34,16 +44,39 @@ class ContentCollectionController extends Controller
      */
     public function index(Request $request): Response
     {
+        $validated = $request->validate([
+            'trashed' => ['sometimes', 'boolean'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'sort' => ['nullable', 'string', Rule::in(self::SORTABLE_COLUMNS)],
+            'direction' => ['nullable', 'string', Rule::in(['asc', 'desc'])],
+        ]);
+
         $trashed = $request->boolean('trashed');
+        $search = isset($validated['search'])
+            ? trim((string) $validated['search'])
+            : '';
+        $sort = $validated['sort'] ?? 'name';
+        $direction = ($validated['direction'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
+
         $collections = Collection::query()
             ->when($trashed, fn ($query) => $query->onlyTrashed())
-            ->ordered()
+            ->when($search !== '', function ($query) use ($search) {
+                $term = '%'.$search.'%';
+                $query->where(function ($inner) use ($term): void {
+                    $inner->where('name', 'like', $term)
+                        ->orWhere('slug', 'like', $term);
+                });
+            })
+            ->orderBy($sort, $direction)
             ->get();
 
         return Inertia::render('collections/collections/index', [
             'collections' => $collections,
             'filters' => [
                 'trashed' => $trashed,
+                'search' => $search,
+                'sort' => $sort,
+                'direction' => $direction,
             ],
         ]);
     }

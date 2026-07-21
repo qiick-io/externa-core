@@ -1,10 +1,27 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Pencil, Plus, Rows3, Trash2 } from 'lucide-react';
+import {
+    ArrowDownAZ,
+    ArrowUpAZ,
+    FolderOpen,
+    Pencil,
+    Plus,
+    Rows3,
+    Trash2,
+} from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { CollectionFormDrawer } from '@/components/collections/collection-form-drawer';
 import { PageLayout, TablePanel } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Drawer } from '@/components/ui/drawer';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
@@ -12,6 +29,25 @@ import { useCollections } from '@/hooks/use-collections';
 import AppLayout from '@/layouts/app-layout';
 import collectionRoutes from '@/routes/collections';
 import type { BreadcrumbItem, CollectionRow } from '@/types';
+
+type CollectionSortField = 'name' | 'slug' | 'updated_at';
+type CollectionSortDirection = 'asc' | 'desc';
+
+type CollectionFilters = {
+    trashed?: boolean;
+    search?: string;
+    sort?: CollectionSortField;
+    direction?: CollectionSortDirection;
+};
+
+const COLLECTION_SORT_FIELDS: {
+    value: CollectionSortField;
+    label: string;
+}[] = [
+    { value: 'name', label: 'Name' },
+    { value: 'slug', label: 'Slug' },
+    { value: 'updated_at', label: 'Updated' },
+];
 
 /**
  * List of content collections.
@@ -22,10 +58,18 @@ export default function CollectionsIndex({
     filters = {},
 }: {
     collections: CollectionRow[];
-    filters?: { trashed?: boolean };
+    filters?: CollectionFilters;
 }) {
     const { can } = useCan();
     const isTrashed = filters.trashed === true;
+    const [search, setSearch] = useState(filters.search ?? '');
+    const [sort, setSort] = useState<CollectionSortField>(
+        filters.sort ?? 'name',
+    );
+    const [direction, setDirection] = useState<CollectionSortDirection>(
+        filters.direction ?? 'asc',
+    );
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Collections', href: collectionRoutes.index.url() },
     ];
@@ -42,6 +86,54 @@ export default function CollectionsIndex({
         submit,
         handleDrawerOpenChange,
     } = useCollections();
+
+    const visit = useCallback(
+        (overrides: Partial<CollectionFilters> = {}) => {
+            const nextSearch =
+                overrides.search !== undefined ? overrides.search : search;
+            const nextSort = overrides.sort ?? sort;
+            const nextDirection = overrides.direction ?? direction;
+            const nextTrashed =
+                overrides.trashed !== undefined
+                    ? overrides.trashed
+                    : isTrashed;
+
+            router.get(
+                collectionRoutes.index.url({
+                    query: {
+                        search: nextSearch || undefined,
+                        sort: nextSort,
+                        direction: nextDirection,
+                        trashed: nextTrashed ? true : undefined,
+                    },
+                }),
+                {},
+                {
+                    preserveState: true,
+                    preserveScroll: true,
+                },
+            );
+        },
+        [direction, isTrashed, search, sort],
+    );
+
+    useEffect(() => {
+        setSearch(filters.search ?? '');
+        setSort(filters.sort ?? 'name');
+        setDirection(filters.direction ?? 'asc');
+    }, [filters.search, filters.sort, filters.direction]);
+
+    useEffect(() => {
+        if (search === (filters.search ?? '')) {
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            visit({ search: search || undefined });
+        }, 350);
+
+        return () => clearTimeout(timer);
+    }, [search, filters.search]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <AppLayout
@@ -69,45 +161,102 @@ export default function CollectionsIndex({
                 onOpenChange={handleDrawerOpenChange}
             >
                 <PageLayout
+                    filters={
+                        <DataTableToolbar
+                            search={search}
+                            onSearchChange={setSearch}
+                            searchPlaceholder={
+                                isTrashed
+                                    ? 'Search trash…'
+                                    : 'Search collections…'
+                            }
+                        />
+                    }
                     filtersRight={
-                        <ToggleGroup
-                            type="single"
-                            value={isTrashed ? 'trashed' : 'active'}
-                            onValueChange={(value) => {
-                                if (!value) {
-                                    return;
+                        <div className="flex items-center gap-1.5">
+                            <Select
+                                value={sort}
+                                onValueChange={(value) => {
+                                    if (
+                                        value === 'name' ||
+                                        value === 'slug' ||
+                                        value === 'updated_at'
+                                    ) {
+                                        setSort(value);
+                                        visit({ sort: value });
+                                    }
+                                }}
+                            >
+                                <SelectTrigger
+                                    size="sm"
+                                    aria-label="Sort by"
+                                    className="w-[7.5rem]"
+                                >
+                                    <SelectValue placeholder="Sort" />
+                                </SelectTrigger>
+                                <SelectContent align="end">
+                                    {COLLECTION_SORT_FIELDS.map((field) => (
+                                        <SelectItem
+                                            key={field.value}
+                                            value={field.value}
+                                        >
+                                            {field.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="size-8"
+                                aria-label={
+                                    direction === 'asc'
+                                        ? 'Sort ascending'
+                                        : 'Sort descending'
                                 }
+                                onClick={() => {
+                                    const nextDirection =
+                                        direction === 'asc' ? 'desc' : 'asc';
+                                    setDirection(nextDirection);
+                                    visit({ direction: nextDirection });
+                                }}
+                            >
+                                {direction === 'asc' ? (
+                                    <ArrowUpAZ className="size-4" />
+                                ) : (
+                                    <ArrowDownAZ className="size-4" />
+                                )}
+                            </Button>
+                            <ToggleGroup
+                                type="single"
+                                value={isTrashed ? 'trashed' : 'active'}
+                                onValueChange={(value) => {
+                                    if (!value) {
+                                        return;
+                                    }
 
-                                router.get(
-                                    collectionRoutes.index.url({
-                                        query: {
-                                            trashed:
-                                                value === 'trashed'
-                                                    ? true
-                                                    : undefined,
-                                        },
-                                    }),
-                                    {},
-                                    {
-                                        preserveState: true,
-                                        preserveScroll: true,
-                                    },
-                                );
-                            }}
-                        >
-                            <ToggleGroupItem
-                                value="active"
-                                aria-label="Active collections"
+                                    visit({
+                                        trashed: value === 'trashed',
+                                    });
+                                }}
                             >
-                                Active
-                            </ToggleGroupItem>
-                            <ToggleGroupItem
-                                value="trashed"
-                                aria-label="Trashed collections"
-                            >
-                                <Trash2 className="size-4" />
-                            </ToggleGroupItem>
-                        </ToggleGroup>
+                                <ToggleGroupItem
+                                    value="active"
+                                    aria-label="Active collections"
+                                    className="px-2.5"
+                                >
+                                    <FolderOpen className="size-4" />
+                                </ToggleGroupItem>
+                                <ToggleGroupItem
+                                    value="trashed"
+                                    aria-label="Trash"
+                                    className="px-2.5"
+                                >
+                                    <Trash2 className="size-4" />
+                                </ToggleGroupItem>
+                            </ToggleGroup>
+                        </div>
                     }
                 >
                     <TablePanel>
@@ -129,7 +278,9 @@ export default function CollectionsIndex({
                                             colSpan={4}
                                             className="p-4 text-muted-foreground"
                                         >
-                                            No collections yet.
+                                            {search
+                                                ? 'No collections match your search.'
+                                                : 'No collections yet.'}
                                         </td>
                                     </tr>
                                 ) : (
@@ -200,7 +351,8 @@ export default function CollectionsIndex({
                                                     ) : (
                                                         <>
                                                             <Button
-                                                                variant="link"
+                                                                variant="outline"
+                                                                size="sm"
                                                                 asChild
                                                             >
                                                                 <Link

@@ -1344,6 +1344,86 @@ test('trashed collections filter only shows soft deleted collections', function 
             ->where('filters.trashed', true));
 });
 
+test('collections index can be searched by name or slug', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $match = Collection::factory()->create([
+        'name' => 'Alpha Pages',
+        'slug' => 'alpha-pages',
+    ]);
+    Collection::factory()->create([
+        'name' => 'Beta Posts',
+        'slug' => 'beta-posts',
+    ]);
+
+    $this->get(route('collections.index', ['search' => 'alpha']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('collections/collections/index')
+            ->has('collections', 1)
+            ->where('collections.0.id', $match->id)
+            ->where('filters.search', 'alpha'));
+
+    $this->get(route('collections.index', ['search' => 'beta-posts']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('collections/collections/index')
+            ->has('collections', 1)
+            ->where('collections.0.slug', 'beta-posts'));
+});
+
+test('collections index can be sorted by name slug and updated_at', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $zebra = Collection::factory()->create([
+        'name' => 'Zebra',
+        'slug' => 'zebra',
+        'updated_at' => now()->subDay(),
+    ]);
+    $alpha = Collection::factory()->create([
+        'name' => 'Alpha',
+        'slug' => 'alpha',
+        'updated_at' => now(),
+    ]);
+
+    $this->get(route('collections.index', [
+        'sort' => 'name',
+        'direction' => 'asc',
+    ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('collections/collections/index')
+            ->where('collections.0.id', $alpha->id)
+            ->where('collections.1.id', $zebra->id)
+            ->where('filters.sort', 'name')
+            ->where('filters.direction', 'asc'));
+
+    $this->get(route('collections.index', [
+        'sort' => 'slug',
+        'direction' => 'desc',
+    ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('collections/collections/index')
+            ->where('collections.0.id', $zebra->id)
+            ->where('collections.1.id', $alpha->id)
+            ->where('filters.sort', 'slug')
+            ->where('filters.direction', 'desc'));
+
+    $this->get(route('collections.index', [
+        'sort' => 'updated_at',
+        'direction' => 'desc',
+    ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('collections/collections/index')
+            ->where('collections.0.id', $alpha->id)
+            ->where('filters.sort', 'updated_at')
+            ->where('filters.direction', 'desc'));
+});
+
 test('restoring a collection restores its soft deleted items', function () {
     $user = User::factory()->create();
     $this->actingAs($user);

@@ -180,7 +180,11 @@ export default function ItemsIndex({
                                             {JSON.stringify(row.data)}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Button variant="link" asChild>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                asChild
+                                            >
                                                 <Link
                                                     href={collections.items.show.url(
                                                         {
