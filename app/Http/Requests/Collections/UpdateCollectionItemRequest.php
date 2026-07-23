@@ -14,8 +14,6 @@ class UpdateCollectionItemRequest extends FormRequest
 {
     /**
      * Authorization is enforced by collection route middleware.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -32,21 +30,17 @@ class UpdateCollectionItemRequest extends FormRequest
         $item = $this->route('item');
         $excludeItemId = $item?->id;
 
-        return app(CollectionItemDataRuleBuilder::class)->rules($collection, false, $excludeItemId);
+        return app(CollectionItemDataRuleBuilder::class)->rules(
+            $collection,
+            false,
+            $excludeItemId,
+            is_array($this->input('data')) ? $this->input('data') : [],
+        );
     }
 
     /**
-
      * Attach after-validation hooks for collection item data constraints.
-
-     *
-
-     * @param  \Illuminate\Validation\Validator  $validator
-
-     * @return void
-
      */
-
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {

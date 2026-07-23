@@ -119,7 +119,10 @@ class CollectionItemOptionsService
         }
     }
 
-    private function resolveLabel(CollectionItem $item, string $displayField, ?string $displayTemplate): string
+    /**
+     * Resolve a human-readable label for a related collection item.
+     */
+    public function resolveLabel(CollectionItem $item, string $displayField, ?string $displayTemplate): string
     {
         $data = $this->itemDataAccessor->flattenForLocale(
             $item,

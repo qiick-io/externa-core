@@ -31,8 +31,8 @@ export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
     { value: 'boolean', label: 'Toggle', description: 'On / off switch' },
     {
         value: 'date',
-        label: 'DateTime Picker',
-        description: 'Date and time selection',
+        label: 'Date / Time',
+        description: 'Date, time, or datetime (mode in settings)',
     },
     {
         value: 'map',
@@ -87,31 +87,36 @@ export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
         description: 'Link this item to many children in another collection (O2M)',
     },
     {
-        value: 'relation_tree',
-        label: 'Struttura ad albero',
-        description: 'Pick a node from a hierarchical related collection',
-    },
-    {
         value: 'many_to_one',
         label: 'Molti a Uno',
         description: 'Link this item to one related item (M2O)',
     },
     {
         value: 'hash',
-        label: 'Hash',
-        description: 'Auto-generated unique hash identifier',
+        label: 'Fingerprint ID',
+        description: 'Auto-generated unique identifier (sha256), not a password hash',
     },
     {
         value: 'slider',
         label: 'Cursore',
         description: 'Numeric value selected with a slider control',
     },
-    { value: 'file', label: 'File', description: 'Single file (legacy)' },
-    { value: 'relation', label: 'Relation', description: 'Legacy alias for Molti a Uno' },
+    // Legacy aliases kept for existing fields / labels — hidden from picker groups below
+    { value: 'file', label: 'File (legacy)', description: 'Legacy single file; prefer Files' },
+    {
+        value: 'relation',
+        label: 'Relation (legacy)',
+        description: 'Legacy alias for Molti a Uno',
+    },
     {
         value: 'relation_many',
-        label: 'Relation (many)',
-        description: 'Legacy alias for relational collections',
+        label: 'Relation many (legacy)',
+        description: 'Legacy multi-relation alias',
+    },
+    {
+        value: 'relation_tree',
+        label: 'Relation tree (alias)',
+        description: 'Alias of Molti a Uno — no tree UI yet',
     },
 ];
 
@@ -156,8 +161,8 @@ export const COLLECTION_FIELD_TYPE_GROUPS: {
             'm2a',
             'many_to_many',
             'one_to_many',
-            'relation_tree',
             'many_to_one',
+            // TODO: relation_tree real tree UI — hidden until then (enum alias of M2O remains)
         ],
     },
     {
@@ -189,6 +194,26 @@ export function fieldTypeNeedsOptions(type: string): boolean {
         type === 'checkbox_group' ||
         type === 'checkbox_group_tree'
     );
+}
+
+/**
+ * Whether editors may mark this field as per-locale (translatable).
+ * Hash fingerprints and relation IDs are shared across locales.
+ *
+ * @param type - Field type key
+ * @returns Whether the Translatable checkbox should be shown
+ */
+export function fieldTypeSupportsTranslatable(type: string): boolean {
+    return ![
+        'hash',
+        'relation',
+        'relation_many',
+        'many_to_one',
+        'one_to_many',
+        'many_to_many',
+        'm2a',
+        'relation_tree',
+    ].includes(type);
 }
 
 /**
@@ -1125,21 +1150,27 @@ export function parseBooleanFieldSettings(
 }
 
 /** Date/time picker display options. */
+export type DateFieldMode = 'date' | 'time' | 'datetime';
+
 export type DateFieldSettings = {
     includeSeconds: boolean;
-    use24h: boolean;
+    mode: DateFieldMode;
 };
 
 /**
  * @param settings - Raw field settings
- * @returns Date picker formatting options
+ * @returns Date picker mode and seconds flag
  */
 export function parseDateFieldSettings(
     settings?: Record<string, unknown> | null,
 ): DateFieldSettings {
+    const modeRaw = String(settings?.date_mode ?? 'datetime');
+    const mode: DateFieldMode =
+        modeRaw === 'date' || modeRaw === 'time' ? modeRaw : 'datetime';
+
     return {
         includeSeconds: settingsFlag(settings?.include_seconds),
-        use24h: settings?.use_24h !== false && settings?.use_24h !== '0',
+        mode,
     };
 }
 
@@ -1453,6 +1484,16 @@ export function fieldTypeGroupForType(type: string): string {
         if (group.types.includes(type)) {
             return group.label;
         }
+    }
+
+    // Legacy aliases kept in enum but hidden from the picker.
+    if (
+        type === 'relation' ||
+        type === 'relation_many' ||
+        type === 'relation_tree' ||
+        type === 'file'
+    ) {
+        return 'Relational';
     }
 
     return 'Altro';

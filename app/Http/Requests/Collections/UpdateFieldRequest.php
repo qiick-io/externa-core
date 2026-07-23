@@ -27,6 +27,8 @@ class UpdateFieldRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $this->coerceDisallowedTranslatable();
+
         if (! $this->has('settings')) {
             return;
         }

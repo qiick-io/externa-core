@@ -36,14 +36,16 @@ export function AltroSettings({
         return (
             <div className="space-y-4">
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                    A unique hash is generated automatically when an item is
-                    saved.
+                    Stores an auto-generated fingerprint ID (`sha256` of a UUID)
+                    when empty on save. This is <strong>not</strong> a password
+                    hash — values are identifiers, not secrets derived from user
+                    input.
                 </p>
                 <SettingCheckbox
                     id="hash_masked"
                     name="settings[masked]"
-                    label="Mask value before save"
-                    description="Hide the generated hash in the editor after saving."
+                    label="Mask value in editor"
+                    description="Show only a short prefix of the fingerprint after save."
                     defaultChecked={hashSettings.masked}
                 />
             </div>

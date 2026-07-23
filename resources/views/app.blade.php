@@ -48,13 +48,14 @@
         @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         @inertiaHead
 
-        {{-- After Vite so project branding overrides theme :root / .dark tokens --}}
+        {{-- Brand hex as-is; .dark switches to --brand-primary-dark via app.css --}}
         @if (! empty($projectColor))
             <style>
-                :root,
-                .dark {
-                    --primary: {{ $projectColor }};
-                    --primary-foreground: {{ $projectColorForeground ?? '#ffffff' }};
+                :root {
+                    --brand-primary: {{ $projectColor }};
+                    --brand-primary-foreground: {{ $projectColorForeground ?? '#ffffff' }};
+                    --brand-primary-dark: {{ $projectColorDark ?? $projectColor }};
+                    --brand-primary-dark-foreground: {{ $projectColorDarkForeground ?? $projectColorForeground ?? '#ffffff' }};
                 }
             </style>
         @endif

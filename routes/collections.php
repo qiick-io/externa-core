@@ -35,6 +35,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('collections/{collection}/items/options', [ItemController::class, 'fieldOptions'])
         ->name('collections.items.field-options');
 
+    Route::put('collections/{collection}/list-columns', [ItemController::class, 'updateListColumns'])
+        ->name('collections.items.list-columns.update');
+
     Route::post('collections/{collection}/items/{item}/restore', [ItemController::class, 'restore'])
         ->name('collections.items.restore');
     Route::delete('collections/{collection}/items/{item}/force', [ItemController::class, 'forceDelete'])
@@ -49,4 +52,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('collections/{collection}/fields/{field}/duplicate', [FieldController::class, 'duplicate'])->name('collections.fields.duplicate');
     Route::post('collections/{collection}/fields/{field}/toggle-form-visibility', [FieldController::class, 'toggleFormVisibility'])->name('collections.fields.toggle-form-visibility');
     Route::post('collections/{collection}/fields/{field}/layout-width', [FieldController::class, 'updateLayoutWidth'])->name('collections.fields.update-layout-width');
+    Route::put('collections/{collection}/form-layout', [FieldController::class, 'updateFormLayout'])->name('collections.form-layout.update');
 });

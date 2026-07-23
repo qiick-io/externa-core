@@ -468,7 +468,7 @@ function CollectionFieldRow({
                 )}
             >
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted/30">
-                    <Icon className="size-5 text-primary" />
+                    <Icon className="size-5 text-muted-foreground" />
                 </div>
                 <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">

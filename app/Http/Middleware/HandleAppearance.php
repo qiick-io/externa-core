@@ -33,6 +33,8 @@ class HandleAppearance
         View::share('projectFaviconUrl', $projectAppearance['faviconUrl']);
         View::share('projectColor', $projectAppearance['projectColor']);
         View::share('projectColorForeground', $projectAppearance['primaryForeground']);
+        View::share('projectColorDark', $projectAppearance['projectColorDark']);
+        View::share('projectColorDarkForeground', $projectAppearance['primaryForegroundDark']);
         View::share('projectName', app(ProjectSettings::class)->displayName());
 
         return $next($request);

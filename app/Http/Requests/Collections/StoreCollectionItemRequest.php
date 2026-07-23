@@ -14,8 +14,6 @@ class StoreCollectionItemRequest extends FormRequest
 {
     /**
      * Authorization is enforced by collection route middleware.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -32,13 +30,16 @@ class StoreCollectionItemRequest extends FormRequest
         /** @var Collection $collection */
         $collection = $this->route('collection');
 
-        return app(CollectionItemDataRuleBuilder::class)->rules($collection, true);
+        return app(CollectionItemDataRuleBuilder::class)->rules(
+            $collection,
+            true,
+            null,
+            is_array($this->input('data')) ? $this->input('data') : [],
+        );
     }
 
     /**
      * Reject unknown field keys after base validation completes.
-     *
-     * @return void
      */
     public function withValidator(Validator $validator): void
     {

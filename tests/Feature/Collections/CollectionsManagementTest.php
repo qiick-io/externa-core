@@ -809,6 +809,50 @@ test('other field types can be created', function () {
     )->toBe(['hash', 'slider']);
 });
 
+test('cannot set translatable true on many_to_one or hash fields', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+    $related = Collection::factory()->create();
+
+    $this->post(route('collections.fields.store', $collection), [
+        'name' => 'author',
+        'type' => FieldTypeEnum::ManyToOne->value,
+        'translatable' => '1',
+        'settings' => [
+            'related_collection_id' => $related->id,
+            'display_field' => 'title',
+        ],
+    ])->assertRedirect(route('collections.fields.index', $collection));
+
+    $relationField = CollectionField::query()
+        ->where('collection_id', $collection->id)
+        ->where('name', 'author')
+        ->firstOrFail();
+    expect($relationField->translatable)->toBeFalse();
+
+    $this->post(route('collections.fields.store', $collection), [
+        'name' => 'fingerprint',
+        'type' => FieldTypeEnum::Hash->value,
+        'translatable' => '1',
+    ])->assertRedirect(route('collections.fields.index', $collection));
+
+    $hashField = CollectionField::query()
+        ->where('collection_id', $collection->id)
+        ->where('name', 'fingerprint')
+        ->firstOrFail();
+    expect($hashField->translatable)->toBeFalse();
+
+    // Legacy true flag is coerced false on next update for disallowed types.
+    $hashField->update(['translatable' => true]);
+    $this->patch(route('collections.fields.update', [$collection, $hashField]), [
+        'name' => 'fingerprint',
+    ])->assertRedirect(route('collections.fields.index', $collection));
+
+    expect($hashField->fresh()->translatable)->toBeFalse();
+});
+
 test('hash field value is auto generated on item create', function () {
     $user = User::factory()->create();
     $this->actingAs($user);

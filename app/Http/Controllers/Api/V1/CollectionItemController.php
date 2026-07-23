@@ -160,7 +160,13 @@ class CollectionItemController extends Controller
 
     private function validateItemPayload(Request $request, $collection, bool $creating): void
     {
-        $rules = app(CollectionItemDataRuleBuilder::class)->rules($collection, $creating);
+        $data = $request->input('data');
+        $rules = app(CollectionItemDataRuleBuilder::class)->rules(
+            $collection,
+            $creating,
+            null,
+            is_array($data) ? $data : [],
+        );
         $validator = Validator::make($request->all(), $rules);
         $validator->after(function ($validator) use ($request, $collection): void {
             $data = $request->input('data');

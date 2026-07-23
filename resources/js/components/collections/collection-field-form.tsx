@@ -25,6 +25,7 @@ import {
 import { useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import { FieldConditionsSettings } from '@/components/collections/field-settings/field-conditions-settings';
 import { CommonAdvancedSettings } from '@/components/collections/field-settings/common-advanced-settings';
 import {
     SettingsDivider,
@@ -62,6 +63,7 @@ import {
     fieldTypeGroupForType,
     fieldTypeNeedsOptions,
     fieldTypeNeedsTreeOptions,
+    fieldTypeSupportsTranslatable,
     flattenSettingsForForm,
     isImageFieldMultiple,
     parseAllowedCollectionIds,
@@ -70,16 +72,11 @@ import {
     parseFieldTreeOptions,
     parseSliderFieldSettings,
     parseSliderSettings,
-    parseStringFieldSettings
-    
-    
-    
-    
-    
-    
-    
+    parseStringFieldSettings,
 } from '@/lib/collection-field-types';
 import type {CommonFieldSettings, CollectionFieldTypeOption, FieldOptionRow, FieldTreeOptionRow, RelatedCollectionOption, SliderFieldSettings, StringFieldSettings} from '@/lib/collection-field-types';
+import type { FieldConditions } from '@/lib/field-conditions';
+import { parseFieldConditions } from '@/lib/field-conditions';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import type { CollectionFieldRow } from '@/types';
 
@@ -201,7 +198,7 @@ function FieldTypeHeader({
         <DrawerHeader>
             <div className="flex items-start gap-4">
                 <div className="flex size-12 shrink-0 items-center justify-center rounded-lg border bg-muted/30">
-                    <Icon className="size-6 text-primary" />
+                    <Icon className="size-6 text-muted-foreground" />
                 </div>
                 <div className="min-w-0 flex-1">
                     <DrawerTitle>{option.label}</DrawerTitle>
@@ -457,6 +454,9 @@ type FieldConfigPanelProps = {
     ) => void;
     sliderShowValue: boolean;
     onSliderShowValueChange: (value: boolean) => void;
+    siblingFieldNames: string[];
+    fieldConditions: FieldConditions | null;
+    onFieldConditionsChange: (next: FieldConditions | null) => void;
 };
 
 function FieldConfigPanel({
@@ -487,6 +487,9 @@ function FieldConfigPanel({
     onSliderSettingsChange,
     sliderShowValue,
     onSliderShowValueChange,
+    siblingFieldNames,
+    fieldConditions,
+    onFieldConditionsChange,
 }: FieldConfigPanelProps) {
     const typeGroup = fieldTypeGroupForType(fieldType);
     const typeMeta = fieldTypeMeta(fieldType);
@@ -597,7 +600,11 @@ function FieldConfigPanel({
                         }
                     />
 
-                    <TranslatableField mode={mode} field={field} />
+                    {fieldTypeSupportsTranslatable(fieldType) ? (
+                        <TranslatableField mode={mode} field={field} />
+                    ) : (
+                        <input type="hidden" name="translatable" value="0" />
+                    )}
 
                     <TranslatedInput
                         idPrefix={`note_${mode}`}
@@ -621,6 +628,18 @@ function FieldConfigPanel({
                     fieldType={fieldType}
                     settings={commonSettings}
                     onChange={onCommonSettingsChange}
+                />
+            </SettingsPanel>
+
+            <SettingsPanel
+                title="Conditions"
+                description="Hide, lock, or require this field based on other values."
+            >
+                <FieldConditionsSettings
+                    settings={field?.settings}
+                    siblingFieldNames={siblingFieldNames}
+                    value={fieldConditions}
+                    onChange={onFieldConditionsChange}
                 />
             </SettingsPanel>
 
@@ -726,6 +745,7 @@ export type CollectionFieldFormDrawerProps = {
     field?: CollectionFieldRow;
     fieldType: string;
     relatedCollections: RelatedCollectionOption[];
+    siblingFieldNames?: string[];
     onSuccess: () => void;
 };
 
@@ -740,6 +760,7 @@ export function CollectionFieldFormDrawer({
     field,
     fieldType,
     relatedCollections,
+    siblingFieldNames = [],
     onSuccess,
 }: CollectionFieldFormDrawerProps) {
     const [options, setOptions] = useState<FieldOptionRow[]>(() =>
@@ -774,6 +795,9 @@ export function CollectionFieldFormDrawer({
     );
     const [sliderShowValue, setSliderShowValue] = useState(
         () => parseSliderFieldSettings(field?.settings).showValue,
+    );
+    const [fieldConditions, setFieldConditions] = useState<FieldConditions | null>(
+        () => parseFieldConditions(field?.settings),
     );
 
     const settingsPayload = useMemo(() => {
@@ -810,20 +834,26 @@ export function CollectionFieldFormDrawer({
             });
         }
 
-        return buildFieldSettingsPayload(
+        const payload = buildFieldSettingsPayload(
             fieldType,
             commonSettings,
             typeSettings,
             options,
             treeOptions,
         );
+
+        if (fieldConditions) {
+            payload.conditions = fieldConditions;
+        }
+
+        return payload;
     }, [
         allowMultipleImages,
         allowedCollectionIds,
         booleanLabels,
         commonSettings,
         displayField,
-        field?.settings,
+        fieldConditions,
         fieldType,
         options,
         relatedCollectionId,
@@ -902,6 +932,11 @@ export function CollectionFieldFormDrawer({
                                 onSliderSettingsChange={setSliderSettings}
                                 sliderShowValue={sliderShowValue}
                                 onSliderShowValueChange={setSliderShowValue}
+                                siblingFieldNames={siblingFieldNames.filter(
+                                    (name) => name !== field?.name,
+                                )}
+                                fieldConditions={fieldConditions}
+                                onFieldConditionsChange={setFieldConditions}
                             />
                         </DrawerBody>
 

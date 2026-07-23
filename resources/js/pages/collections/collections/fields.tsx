@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
@@ -12,13 +12,14 @@ import {
     CollectionFieldTypeDrawer,
 } from '@/components/collections/collection-field-form';
 import { CollectionFieldsList } from '@/components/collections/collection-fields-list';
+import { CollectionFormLayoutEditor } from '@/components/collections/collection-form-layout-editor';
+import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Drawer, DrawerContent, DrawerNested } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import {
     fieldTypeLabel
-    
 } from '@/lib/collection-field-types';
 import type {RelatedCollectionOption} from '@/lib/collection-field-types';
 import collections from '@/routes/collections';
@@ -97,101 +98,85 @@ export default function CollectionsFields({
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout
+            breadcrumbs={breadcrumbs}
+            headerActions={
+                <>
+                    <CollectionEditButton
+                        collectionForm={collectionForm}
+                        collection={collectionToFormRow(collection)}
+                    />
+                    <Button type="button" onClick={openAdd}>
+                        <Plus className="size-4" />
+                        Create field
+                    </Button>
+                </>
+            }
+        >
             <Head title={`Fields — ${collection.name}`} />
 
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div className="shrink-0 space-y-6 p-4 pb-4">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                            <h1 className="text-xl font-semibold tracking-tight">
-                                {collection.name}
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                {collection.slug} · Field schema
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            <CollectionEditButton
-                                collectionForm={collectionForm}
-                                collection={collectionToFormRow(collection)}
-                            />
-                            <Button variant="outline" size="sm" asChild>
-                                <Link
-                                    href={
-                                        collection.is_singleton
-                                            ? collections.show.url(
-                                                  collection.id,
-                                              )
-                                            : collections.items.index.url(
-                                                  collection.id,
-                                              )
-                                    }
-                                >
-                                    Back
-                                </Link>
-                            </Button>
-                            <Button type="button" size="sm" onClick={openAdd}>
-                                <Plus className="mr-1 size-4" />
-                                Create field
-                            </Button>
-                        </div>
-                    </div>
-
-                    <div className="max-w-md space-y-1.5">
-                        <div className="relative">
-                            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                value={searchQuery}
-                                onChange={(event) =>
-                                    setSearchQuery(event.target.value)
-                                }
-                                placeholder="Search fields…"
-                                className="pl-9"
-                            />
-                        </div>
-                        {searchQueryActive && (
-                            <p className="text-xs text-muted-foreground">
-                                Clear search to reorder fields by drag and
-                                drop.
-                            </p>
-                        )}
-                    </div>
-                </div>
-
-                <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-                    {fields.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-sidebar-border/70 p-10 text-center dark:border-sidebar-border">
-                            <p className="text-sm text-muted-foreground">
-                                No fields yet. Create a field to define what
-                                content this collection stores.
-                            </p>
-                            <Button
-                                type="button"
-                                className="mt-4"
-                                size="sm"
-                                onClick={openAdd}
-                            >
-                                <Plus className="mr-1 size-4" />
-                                Create field
-                            </Button>
-                        </div>
-                    ) : searchQueryActive && filteredFields.length === 0 ? (
-                        <p className="py-8 text-center text-sm text-muted-foreground">
-                            No fields match your search.
-                        </p>
-                    ) : (
-                        <CollectionFieldsList
-                            collectionId={collection.id}
-                            fields={
-                                searchQueryActive ? filteredFields : fields
+            <PageLayout
+                description={`${collection.slug} · Field schema`}
+                filters={
+                    <div className="relative max-w-md flex-1">
+                        <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            value={searchQuery}
+                            onChange={(event) =>
+                                setSearchQuery(event.target.value)
                             }
-                            reorderEnabled={!searchQueryActive}
-                            onEdit={openEdit}
+                            placeholder="Search fields…"
+                            className="pl-9"
                         />
-                    )}
+                    </div>
+                }
+                scrollContent
+            >
+                {searchQueryActive && (
+                    <p className="mb-3 text-xs text-muted-foreground">
+                        Clear search to reorder fields by drag and drop.
+                    </p>
+                )}
+
+                <div className="mb-6">
+                    <CollectionFormLayoutEditor
+                        collectionId={collection.id}
+                        fields={fields}
+                        formLayout={collection.form_layout}
+                        locales={['en', 'it']}
+                    />
                 </div>
-            </div>
+
+                {fields.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-sidebar-border/70 p-10 text-center dark:border-sidebar-border">
+                        <p className="text-sm text-muted-foreground">
+                            No fields yet. Create a field to define what
+                            content this collection stores.
+                        </p>
+                        <Button
+                            type="button"
+                            className="mt-4"
+                            onClick={openAdd}
+                        >
+                            <Plus className="size-4" />
+                            Create field
+                        </Button>
+                    </div>
+                ) : searchQueryActive && filteredFields.length === 0 ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                        No fields match your search.
+                    </p>
+                ) : (
+                    <CollectionFieldsList
+                        collectionId={collection.id}
+                        fields={
+                            searchQueryActive ? filteredFields : fields
+                        }
+                        reorderEnabled={!searchQueryActive}
+                        onEdit={openEdit}
+                    />
+                )}
+            </PageLayout>
 
             <Drawer
                 direction="right"
@@ -226,6 +211,7 @@ export default function CollectionsFields({
                                 collectionId={collection.id}
                                 fieldType={addFieldType}
                                 relatedCollections={relatedCollections}
+                                siblingFieldNames={fields.map((field) => field.name)}
                                 onSuccess={closeAddFlow}
                             />
                         </DrawerContent>
@@ -250,6 +236,7 @@ export default function CollectionsFields({
                             field={editField}
                             fieldType={editField.type}
                             relatedCollections={relatedCollections}
+                            siblingFieldNames={fields.map((field) => field.name)}
                             onSuccess={() => setEditField(null)}
                         />
                     )}

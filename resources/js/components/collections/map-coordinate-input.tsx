@@ -32,6 +32,7 @@ type MapCoordinateInputProps = {
     idPrefix: string;
     nameBase: string;
     defaultValue?: unknown;
+    readonly?: boolean;
 };
 
 /**
@@ -43,6 +44,7 @@ export function MapCoordinateInput({
     idPrefix,
     nameBase,
     defaultValue,
+    readonly = false,
 }: MapCoordinateInputProps) {
     const initial = useMemo(
         () => parseMapCoordinateValue(defaultValue),
@@ -83,6 +85,7 @@ export function MapCoordinateInput({
                         max={90}
                         name={`${nameBase}[lat]`}
                         value={latitude}
+                        readOnly={readonly}
                         onChange={(event) => setLatitude(event.target.value)}
                         placeholder="45.4642"
                     />
@@ -97,6 +100,7 @@ export function MapCoordinateInput({
                         max={180}
                         name={`${nameBase}[lng]`}
                         value={longitude}
+                        readOnly={readonly}
                         onChange={(event) => setLongitude(event.target.value)}
                         placeholder="9.1900"
                     />

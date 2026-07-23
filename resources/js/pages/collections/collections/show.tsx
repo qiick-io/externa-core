@@ -1,4 +1,5 @@
 import { Form, Head, Link } from '@inertiajs/react';
+import { Rows3, Save, Trash2 } from 'lucide-react';
 import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import {
@@ -7,6 +8,7 @@ import {
     useCollectionEditDrawer,
 } from '@/components/collections/collection-edit-drawer';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
+import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { useCollection } from '@/hooks/use-collection';
 import AppLayout from '@/layouts/app-layout';
@@ -38,134 +40,118 @@ export default function CollectionsShow({
     const collectionForm = useCollectionEditDrawer();
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={collection.name} />
-
-            <div className="flex w-full flex-col gap-8 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <h1 className="text-xl font-semibold tracking-tight">
-                            {collection.name}
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {collection.slug}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                            Singleton collection
-                        </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                            <Link
-                                href={FieldController.index.url(collection.id)}
-                            >
-                                Edit fields
-                            </Link>
-                        </Button>
-                        <CollectionEditButton
-                            collectionForm={collectionForm}
-                            collection={collectionToFormRow(collection)}
-                        />
-                        <Form
-                            {...ContentCollectionController.destroy.form({
-                                collection: collection.id,
-                            })}
-                        >
-                            {({ processing }) => (
-                                <Button
-                                    type="submit"
-                                    variant="destructive"
-                                    disabled={processing}
-                                >
-                                    Delete collection
-                                </Button>
-                            )}
-                        </Form>
-                    </div>
-                </div>
-
-                <section className="space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div>
-                            <h2 className="text-lg font-medium">Content</h2>
-                            <p className="text-sm text-muted-foreground">
-                                Values for this entry. Define field types and
-                                order under{' '}
-                                <Link
-                                    className="text-primary underline-offset-4 hover:underline"
-                                    href={FieldController.index.url(collection.id)}
-                                >
-                                    Edit fields
-                                </Link>
-                                .
-                            </p>
-                        </div>
-                        {hasFields && (
+        <AppLayout
+            breadcrumbs={breadcrumbs}
+            headerActions={
+                <>
+                    <Button variant="outline" asChild>
+                        <Link href={FieldController.index.url(collection.id)}>
+                            <Rows3 className="size-4" />
+                            Edit fields
+                        </Link>
+                    </Button>
+                    <CollectionEditButton
+                        collectionForm={collectionForm}
+                        collection={collectionToFormRow(collection)}
+                    />
+                    <Form
+                        {...ContentCollectionController.destroy.form({
+                            collection: collection.id,
+                        })}
+                    >
+                        {({ processing }) => (
                             <Button
                                 type="submit"
-                                form={COLLECTION_CONTENT_FORM_ID}
-                                size="sm"
+                                variant="destructive"
+                                disabled={processing}
                             >
-                                Save
+                                <Trash2 className="size-4" />
+                                Delete collection
                             </Button>
                         )}
-                    </div>
-
-                    {!hasFields && (
-                        <p className="rounded-xl border border-dashed border-sidebar-border/70 p-6 text-sm text-muted-foreground dark:border-sidebar-border">
-                            No fields yet.{' '}
-                            <Link
-                                className="text-primary underline-offset-4 hover:underline"
-                                href={FieldController.index.url(collection.id)}
-                            >
-                                Add fields
-                            </Link>{' '}
-                            before entering content.
-                        </p>
-                    )}
-
+                    </Form>
                     {hasFields && (
-                        <Form
-                            {...ContentCollectionController.upsertSingletonContent.form(
-                                {
-                                    collection: collection.id,
-                                },
-                            )}
-                            id={COLLECTION_CONTENT_FORM_ID}
-                            className="space-y-6"
-                            options={{ preserveScroll: true }}
-                        >
-                            {({ errors }) => {
-                                const dataErrors = collectCollectionDataErrorMessages(
-                                    errors as Record<string, unknown>,
-                                );
-
-                                return (
-                                    <>
-                                        {dataErrors.length > 0 && (
-                                            <ul className="list-inside list-disc space-y-1 text-sm text-destructive">
-                                                {dataErrors.map((msg, idx) => (
-                                                    <li key={idx}>{msg}</li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                        <DynamicItemFields
-                                            variant="cards"
-                                            collectionId={collection.id}
-                                            fields={collection.fields}
-                                            locales={locales}
-                                            defaults={contentDefaults}
-                                            relatedCollections={relatedCollections}
-                                        />
-                                    </>
-                                );
-                            }}
-                        </Form>
+                        <Button type="submit" form={COLLECTION_CONTENT_FORM_ID}>
+                            <Save className="size-4" />
+                            Save
+                        </Button>
                     )}
-                </section>
+                </>
+            }
+        >
+            <Head title={collection.name} />
+
+            <PageLayout
+                description={
+                    <>
+                        {collection.slug} · Singleton collection. Values for
+                        this entry. Define field types and order under{' '}
+                        <Link
+                            className="text-primary underline-offset-4 hover:underline"
+                            href={FieldController.index.url(collection.id)}
+                        >
+                            Edit fields
+                        </Link>
+                        .
+                    </>
+                }
+                scrollContent
+            >
+                {!hasFields && (
+                    <p className="rounded-xl border border-dashed border-sidebar-border/70 p-6 text-sm text-muted-foreground dark:border-sidebar-border">
+                        No fields yet.{' '}
+                        <Link
+                            className="text-primary underline-offset-4 hover:underline"
+                            href={FieldController.index.url(collection.id)}
+                        >
+                            Add fields
+                        </Link>{' '}
+                        before entering content.
+                    </p>
+                )}
+
+                {hasFields && (
+                    <Form
+                        {...ContentCollectionController.upsertSingletonContent.form(
+                            {
+                                collection: collection.id,
+                            },
+                        )}
+                        id={COLLECTION_CONTENT_FORM_ID}
+                        className="space-y-6"
+                        options={{ preserveScroll: true }}
+                    >
+                        {({ errors }) => {
+                            const dataErrors = collectCollectionDataErrorMessages(
+                                errors as Record<string, unknown>,
+                            );
+
+                            return (
+                                <>
+                                    {dataErrors.length > 0 && (
+                                        <ul className="list-inside list-disc space-y-1 text-sm text-destructive">
+                                            {dataErrors.map((msg, idx) => (
+                                                <li key={idx}>{msg}</li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                    <DynamicItemFields
+                                        variant="cards"
+                                        collectionId={collection.id}
+                                        fields={collection.fields}
+                                        locales={locales}
+                                        defaults={contentDefaults}
+                                        relatedCollections={relatedCollections}
+                                        formLayout={collection.form_layout}
+                                    />
+                                </>
+                            );
+                        }}
+                    </Form>
+                )}
 
                 <CollectionEditDrawer collectionForm={collectionForm} />
-            </div>
+            </PageLayout>
         </AppLayout>
     );
 }

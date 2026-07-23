@@ -93,4 +93,25 @@ enum FieldTypeEnum: string
             default => false,
         };
     }
+
+    /**
+     * Whether editors may mark this field as per-locale (translatable).
+     *
+     * Hash fingerprints and relation IDs are shared across locales; enabling
+     * the flag is useless / misleading for those types.
+     */
+    public function supportsTranslatable(): bool
+    {
+        return match ($this) {
+            self::Hash,
+            self::Relation,
+            self::ManyToOne,
+            self::OneToMany,
+            self::ManyToMany,
+            self::M2a,
+            self::RelationTree,
+            self::RelationMany => false,
+            default => true,
+        };
+    }
 }

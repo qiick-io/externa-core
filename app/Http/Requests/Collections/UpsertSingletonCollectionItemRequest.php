@@ -14,8 +14,6 @@ class UpsertSingletonCollectionItemRequest extends FormRequest
 {
     /**
      * Authorization is enforced by collection route middleware.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -34,21 +32,17 @@ class UpsertSingletonCollectionItemRequest extends FormRequest
 
         $creating = $collection->items()->doesntExist();
 
-        return app(CollectionItemDataRuleBuilder::class)->rules($collection, $creating);
+        return app(CollectionItemDataRuleBuilder::class)->rules(
+            $collection,
+            $creating,
+            null,
+            is_array($this->input('data')) ? $this->input('data') : [],
+        );
     }
 
     /**
-
      * Attach after-validation hooks for singleton item data constraints.
-
-     *
-
-     * @param  \Illuminate\Validation\Validator  $validator
-
-     * @return void
-
      */
-
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {

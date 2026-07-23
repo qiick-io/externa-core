@@ -35,6 +35,7 @@ class UpdateAppearanceSettingsRequest extends FormRequest
     {
         return [
             'project_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'project_color_dark' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'project_logo_id' => ['nullable', 'integer', 'exists:files,id'],
             'project_logo_dark_id' => ['nullable', 'integer', 'exists:files,id'],
             'public_favicon_id' => ['nullable', 'integer', 'exists:files,id'],
@@ -71,6 +72,7 @@ class UpdateAppearanceSettingsRequest extends FormRequest
     /**
      * @return array{
      *     project_color: string|null,
+     *     project_color_dark: string|null,
      *     project_logo: int|null,
      *     project_logo_dark: int|null,
      *     public_favicon: int|null,
@@ -83,6 +85,7 @@ class UpdateAppearanceSettingsRequest extends FormRequest
 
         return [
             'project_color' => $validated['project_color'] ?? null,
+            'project_color_dark' => $validated['project_color_dark'] ?? null,
             'project_logo' => isset($validated['project_logo_id']) ? (int) $validated['project_logo_id'] : null,
             'project_logo_dark' => isset($validated['project_logo_dark_id']) ? (int) $validated['project_logo_dark_id'] : null,
             'public_favicon' => isset($validated['public_favicon_id']) ? (int) $validated['public_favicon_id'] : null,
@@ -94,6 +97,7 @@ class UpdateAppearanceSettingsRequest extends FormRequest
     {
         $nullable = [
             'project_color',
+            'project_color_dark',
             'project_logo_id',
             'project_logo_dark_id',
             'public_favicon_id',

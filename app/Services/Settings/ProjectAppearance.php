@@ -35,7 +35,9 @@ class ProjectAppearance
      *
      * @return array{
      *     projectColor: string|null,
+     *     projectColorDark: string|null,
      *     primaryForeground: string|null,
+     *     primaryForegroundDark: string|null,
      *     logoUrl: string|null,
      *     logoDarkUrl: string|null,
      *     faviconUrl: string|null,
@@ -57,10 +59,16 @@ class ProjectAppearance
         }
 
         $projectColor = is_string($raw['project_color'] ?? null) ? $raw['project_color'] : null;
+        // Unset dark brand falls back to light (Directus-style dual color).
+        $projectColorDark = is_string($raw['project_color_dark'] ?? null)
+            ? $raw['project_color_dark']
+            : $projectColor;
 
         return [
             'projectColor' => $projectColor,
+            'projectColorDark' => $projectColorDark,
             'primaryForeground' => ContrastingForeground::forHex($projectColor),
+            'primaryForegroundDark' => ContrastingForeground::forHex($projectColorDark),
             'logoUrl' => $urls['logo'],
             'logoDarkUrl' => $urls['logoDark'],
             'faviconUrl' => $urls['favicon'],
@@ -73,6 +81,7 @@ class ProjectAppearance
      *
      * @return array{
      *     project_color: string|null,
+     *     project_color_dark: string|null,
      *     default_appearance: string,
      *     project_logo: array{id: int, name: string, url: string|null}|null,
      *     project_logo_dark: array{id: int, name: string, url: string|null}|null,
@@ -95,6 +104,7 @@ class ProjectAppearance
 
         return [
             'project_color' => is_string($raw['project_color'] ?? null) ? $raw['project_color'] : null,
+            'project_color_dark' => is_string($raw['project_color_dark'] ?? null) ? $raw['project_color_dark'] : null,
             'default_appearance' => $default,
             'project_logo' => $this->fileMeta($files->get($this->intOrNull($raw['project_logo'] ?? null))),
             'project_logo_dark' => $this->fileMeta($files->get($this->intOrNull($raw['project_logo_dark'] ?? null))),

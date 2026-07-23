@@ -25,6 +25,7 @@ export type CollectionView = {
     slug: string;
     is_singleton: boolean;
     sort_order: number;
+    form_layout?: Record<string, unknown> | null;
     fields: CollectionFieldRow[];
 };
 

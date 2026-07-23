@@ -250,6 +250,7 @@
             "brandingTitle": "Branding",
             "brandingDescription": "Projektfarbe, Logo und Favicon für App-Oberfläche und Login",
             "projectColor": "Projektfarbe",
+            "projectColorDark": "Projektfarbe (dunkel)",
             "projectLogo": "Projektlogo",
             "projectLogoDark": "Projektlogo (dunkel)",
             "publicFavicon": "Favicon",

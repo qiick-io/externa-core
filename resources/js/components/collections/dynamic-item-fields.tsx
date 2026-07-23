@@ -3,9 +3,9 @@ import {
     useCallback,
     useEffect,
     useId,
+    useMemo,
     useRef,
-    useState
-    
+    useState,
 } from 'react';
 import type {ReactNode} from 'react';
 
@@ -25,6 +25,11 @@ import { MapCoordinateInput } from '@/components/collections/map-coordinate-inpu
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -32,7 +37,7 @@ import {
     getFieldDisplayName,
     getFieldNote,
     getFieldPlaceholder,
-    isFieldReadonly,
+    groupFieldsIntoLayoutRows,
     isImageFieldMultiple,
     parseApiAutocompleteFieldSettings,
     parseBooleanFieldSettings,
@@ -43,17 +48,23 @@ import {
     parseM2aFieldSettings,
     parseNumberFieldSettings,
     parseRelationFieldSettings,
+    parseSelectFieldSettings,
     parseSliderFieldSettings,
     parseStringFieldSettings,
     parseTextareaFieldSettings,
-    resolveTranslatedText
-    
-    
+    resolveTranslatedText,
 } from '@/lib/collection-field-types';
 import type {FieldTreeOptionRow, RelatedCollectionOption} from '@/lib/collection-field-types';
+import {
+    parseCollectionFormLayout,
+    resolveFormLayoutGroups,
+    resolveFormLayoutLabel,
+} from '@/lib/collection-form-layout';
+import { evaluateFieldFlags } from '@/lib/field-conditions';
 import { filePublicUrl } from '@/lib/files-api';
 import { cn } from '@/lib/utils';
 import type { AdminFileRow } from '@/types/files';
+import { ChevronDown } from 'lucide-react';
 
 const inputLike =
     'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
@@ -190,6 +201,48 @@ function toDatetimeLocalValue(
     return includeSeconds
         ? `${formatted}:${pad(parsedDate.getSeconds())}`
         : formatted;
+}
+
+function toDateInputValue(value: DefaultValue): string {
+    if (value === null || value === undefined || value === '') {
+        return '';
+    }
+
+    const stringValue = String(value);
+
+    if (/^\d{4}-\d{2}-\d{2}/.test(stringValue)) {
+        return stringValue.slice(0, 10);
+    }
+
+    const parsedDate = new Date(stringValue);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        return stringValue;
+    }
+
+    const pad = (part: number) => String(part).padStart(2, '0');
+
+    return `${parsedDate.getFullYear()}-${pad(parsedDate.getMonth() + 1)}-${pad(parsedDate.getDate())}`;
+}
+
+function toTimeInputValue(value: DefaultValue, includeSeconds: boolean): string {
+    if (value === null || value === undefined || value === '') {
+        return '';
+    }
+
+    const stringValue = String(value);
+
+    if (/^\d{2}:\d{2}/.test(stringValue)) {
+        return includeSeconds ? stringValue.slice(0, 8) : stringValue.slice(0, 5);
+    }
+
+    if (/T\d{2}:\d{2}/.test(stringValue)) {
+        const timePart = stringValue.split('T')[1] ?? '';
+
+        return includeSeconds ? timePart.slice(0, 8) : timePart.slice(0, 5);
+    }
+
+    return stringValue;
 }
 
 function getPathValue(source: unknown, path: string): unknown {
@@ -544,17 +597,20 @@ function HashFieldInput({
             : defaultValue;
 
     return (
-        <>
+        <div className="space-y-1">
             <Input
                 id={id}
                 type="text"
-                value={displayValue}
+                value={displayValue || 'Generated on save'}
                 readOnly
                 disabled={readonly}
                 className="font-mono"
             />
             <input type="hidden" name={name} value={defaultValue} />
-        </>
+            <p className="text-muted-foreground text-xs">
+                Fingerprint ID (auto). Not a password hash.
+            </p>
+        </div>
     );
 }
 
@@ -598,13 +654,23 @@ function CheckboxGroupInput({
     options,
     defaultValues,
     readonly,
+    allowOther = false,
 }: {
     name: string;
     options: { value: string; label: string }[];
     defaultValues: string[];
     readonly: boolean;
+    allowOther?: boolean;
 }) {
-    const [selectedValues, setSelectedValues] = useState<string[]>(defaultValues);
+    const optionValues = options.map((option) => option.value);
+    const initialOther = defaultValues.find(
+        (value) => !optionValues.includes(value),
+    );
+    const [selectedValues, setSelectedValues] = useState<string[]>(
+        defaultValues.filter((value) => optionValues.includes(value)),
+    );
+    const [otherEnabled, setOtherEnabled] = useState(Boolean(initialOther));
+    const [otherValue, setOtherValue] = useState(initialOther ?? '');
 
     const toggleValue = (optionValue: string, checked: boolean) => {
         setSelectedValues((current) => {
@@ -617,6 +683,13 @@ function CheckboxGroupInput({
             return current.filter((value) => value !== optionValue);
         });
     };
+
+    const storedValues = [
+        ...selectedValues,
+        ...(allowOther && otherEnabled && otherValue.trim() !== ''
+            ? [otherValue.trim()]
+            : []),
+    ];
 
     return (
         <div className="flex flex-col gap-2">
@@ -639,7 +712,240 @@ function CheckboxGroupInput({
                     </label>
                 );
             })}
-            {selectedValues.map((value) => (
+            {allowOther ? (
+                <div className="flex flex-col gap-2">
+                    <label className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                            checked={otherEnabled}
+                            disabled={readonly}
+                            onCheckedChange={(next) =>
+                                setOtherEnabled(next === true)
+                            }
+                        />
+                        Other
+                    </label>
+                    {otherEnabled ? (
+                        <Input
+                            value={otherValue}
+                            readOnly={readonly}
+                            placeholder="Custom value"
+                            onChange={(event) => setOtherValue(event.target.value)}
+                        />
+                    ) : null}
+                </div>
+            ) : null}
+            {storedValues.map((value) => (
+                <input key={value} type="hidden" name={`${name}[]`} value={value} />
+            ))}
+        </div>
+    );
+}
+
+function SelectWithOtherInput({
+    id,
+    name,
+    options,
+    defaultValue,
+    readonly,
+    allowNone,
+    allowOther,
+}: {
+    id: string;
+    name: string;
+    options: { value: string; label: string }[];
+    defaultValue: string;
+    readonly: boolean;
+    allowNone: boolean;
+    allowOther: boolean;
+}) {
+    const optionValues = options.map((option) => option.value);
+    const initialIsOther =
+        allowOther &&
+        defaultValue !== '' &&
+        !optionValues.includes(defaultValue);
+    const [mode, setMode] = useState<'option' | 'other'>(
+        initialIsOther ? 'other' : 'option',
+    );
+    const [optionValue, setOptionValue] = useState(
+        initialIsOther ? '' : defaultValue,
+    );
+    const [otherValue, setOtherValue] = useState(
+        initialIsOther ? defaultValue : '',
+    );
+
+    const submitted =
+        mode === 'other' ? otherValue : optionValue;
+
+    return (
+        <div className="space-y-2">
+            <select
+                id={id}
+                className={inputLike}
+                value={mode === 'other' ? '__other__' : optionValue}
+                disabled={readonly}
+                onChange={(event) => {
+                    if (event.target.value === '__other__') {
+                        setMode('other');
+
+                        return;
+                    }
+
+                    setMode('option');
+                    setOptionValue(event.target.value);
+                }}
+            >
+                {allowNone ? <option value="">—</option> : null}
+                {options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                        {option.label || option.value}
+                    </option>
+                ))}
+                {allowOther ? <option value="__other__">Other…</option> : null}
+            </select>
+            {mode === 'other' ? (
+                <Input
+                    value={otherValue}
+                    readOnly={readonly}
+                    placeholder="Custom value"
+                    onChange={(event) => setOtherValue(event.target.value)}
+                />
+            ) : null}
+            <input type="hidden" name={name} value={submitted} />
+        </div>
+    );
+}
+
+function RadioWithOtherInput({
+    name,
+    options,
+    defaultValue,
+    readonly,
+    allowOther,
+}: {
+    name: string;
+    options: { value: string; label: string }[];
+    defaultValue: string;
+    readonly: boolean;
+    allowOther: boolean;
+}) {
+    const optionValues = options.map((option) => option.value);
+    const initialIsOther =
+        allowOther &&
+        defaultValue !== '' &&
+        !optionValues.includes(defaultValue);
+    const [selected, setSelected] = useState(
+        initialIsOther ? '__other__' : defaultValue,
+    );
+    const [otherValue, setOtherValue] = useState(
+        initialIsOther ? defaultValue : '',
+    );
+
+    const submitted =
+        selected === '__other__' ? otherValue : selected;
+
+    return (
+        <div className="flex flex-col gap-2">
+            {options.map((option) => (
+                <label
+                    key={option.value}
+                    className="flex items-center gap-2 text-sm"
+                >
+                    <input
+                        type="radio"
+                        name={`${name}__ui`}
+                        value={option.value}
+                        checked={selected === option.value}
+                        disabled={readonly}
+                        onChange={() => setSelected(option.value)}
+                    />
+                    {option.label || option.value}
+                </label>
+            ))}
+            {allowOther ? (
+                <label className="flex flex-col gap-2 text-sm">
+                    <span className="flex items-center gap-2">
+                        <input
+                            type="radio"
+                            name={`${name}__ui`}
+                            value="__other__"
+                            checked={selected === '__other__'}
+                            disabled={readonly}
+                            onChange={() => setSelected('__other__')}
+                        />
+                        Other
+                    </span>
+                    {selected === '__other__' ? (
+                        <Input
+                            value={otherValue}
+                            readOnly={readonly}
+                            placeholder="Custom value"
+                            onChange={(event) => setOtherValue(event.target.value)}
+                        />
+                    ) : null}
+                </label>
+            ) : null}
+            <input type="hidden" name={name} value={submitted} />
+        </div>
+    );
+}
+
+function MultiselectWithOtherInput({
+    name,
+    options,
+    defaultValues,
+    readonly,
+    allowOther,
+}: {
+    name: string;
+    options: { value: string; label: string }[];
+    defaultValues: string[];
+    readonly: boolean;
+    allowOther: boolean;
+}) {
+    const optionValues = options.map((option) => option.value);
+    const initialOther = defaultValues.find(
+        (value) => !optionValues.includes(value),
+    );
+    const [selected, setSelected] = useState(
+        defaultValues.filter((value) => optionValues.includes(value)),
+    );
+    const [otherValue, setOtherValue] = useState(initialOther ?? '');
+
+    const stored = [
+        ...selected,
+        ...(allowOther && otherValue.trim() !== '' ? [otherValue.trim()] : []),
+    ];
+
+    return (
+        <div className="space-y-2">
+            <select
+                className={inputLike}
+                multiple
+                value={selected}
+                disabled={readonly}
+                onChange={(event) => {
+                    setSelected(
+                        Array.from(event.target.selectedOptions).map(
+                            (option) => option.value,
+                        ),
+                    );
+                }}
+            >
+                {options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                        {option.label || option.value}
+                    </option>
+                ))}
+            </select>
+            {allowOther ? (
+                <Input
+                    value={otherValue}
+                    readOnly={readonly}
+                    placeholder="Additional custom value"
+                    onChange={(event) => setOtherValue(event.target.value)}
+                />
+            ) : null}
+            {stored.map((value) => (
                 <input key={value} type="hidden" name={`${name}[]`} value={value} />
             ))}
         </div>
@@ -1350,49 +1656,47 @@ function renderFieldControl(context: FieldRenderContext) {
                     readonly={readonly}
                 />
             );
-        case 'select':
+        case 'select': {
+            const selectSettings = parseSelectFieldSettings(field.settings);
+
             return (
-                <select
+                <SelectWithOtherInput
                     id={id}
                     name={name}
-                    className={inputLike}
+                    options={options}
                     defaultValue={String(defaultValue ?? '')}
-                    disabled={readonly}
-                >
-                    <option value="">—</option>
-                    {options.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {option.label || option.value}
-                        </option>
-                    ))}
-                </select>
+                    readonly={readonly}
+                    allowNone={selectSettings.allowNone}
+                    allowOther={selectSettings.allowOther}
+                />
             );
-        case 'multiselect':
+        }
+        case 'multiselect': {
+            const selectSettings = parseSelectFieldSettings(field.settings);
+
             return (
-                <select
-                    id={id}
-                    name={`${name}[]`}
-                    className={inputLike}
-                    multiple
-                    defaultValue={toStringArray(defaultValue)}
-                    disabled={readonly}
-                >
-                    {options.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {option.label || option.value}
-                        </option>
-                    ))}
-                </select>
+                <MultiselectWithOtherInput
+                    name={name}
+                    options={options}
+                    defaultValues={toStringArray(defaultValue)}
+                    readonly={readonly}
+                    allowOther={selectSettings.allowOther}
+                />
             );
-        case 'checkbox_group':
+        }
+        case 'checkbox_group': {
+            const selectSettings = parseSelectFieldSettings(field.settings);
+
             return (
                 <CheckboxGroupInput
                     name={name}
                     options={options}
                     defaultValues={toStringArray(defaultValue)}
                     readonly={readonly}
+                    allowOther={selectSettings.allowOther}
                 />
             );
+        }
         case 'checkbox_group_tree':
             return (
                 <CheckboxGroupTreeInput
@@ -1402,41 +1706,53 @@ function renderFieldControl(context: FieldRenderContext) {
                     readonly={readonly}
                 />
             );
-        case 'radio_group':
+        case 'radio_group': {
+            const selectSettings = parseSelectFieldSettings(field.settings);
+
             return (
-                <div className="flex flex-col gap-2">
-                    {options.map((option) => (
-                        <label
-                            key={option.value}
-                            className="flex items-center gap-2 text-sm"
-                        >
-                            <input
-                                type="radio"
-                                name={name}
-                                value={option.value}
-                                defaultChecked={
-                                    String(defaultValue) === option.value
-                                }
-                                disabled={readonly}
-                            />
-                            {option.label || option.value}
-                        </label>
-                    ))}
-                </div>
+                <RadioWithOtherInput
+                    name={name}
+                    options={options}
+                    defaultValue={String(defaultValue ?? '')}
+                    readonly={readonly}
+                    allowOther={selectSettings.allowOther}
+                />
             );
+        }
         case 'date': {
             const dateSettings = parseDateFieldSettings(field.settings);
+            const inputType =
+                dateSettings.mode === 'date'
+                    ? 'date'
+                    : dateSettings.mode === 'time'
+                      ? 'time'
+                      : 'datetime-local';
+            const value =
+                dateSettings.mode === 'date'
+                    ? toDateInputValue(defaultValue)
+                    : dateSettings.mode === 'time'
+                      ? toTimeInputValue(
+                            defaultValue,
+                            dateSettings.includeSeconds,
+                        )
+                      : toDatetimeLocalValue(
+                            defaultValue,
+                            dateSettings.includeSeconds,
+                        );
 
             return (
                 <Input
                     id={id}
-                    type="datetime-local"
+                    type={inputType}
                     name={name}
-                    step={dateSettings.includeSeconds ? 1 : 60}
-                    defaultValue={toDatetimeLocalValue(
-                        defaultValue,
-                        dateSettings.includeSeconds,
-                    )}
+                    step={
+                        dateSettings.mode === 'date'
+                            ? undefined
+                            : dateSettings.includeSeconds
+                              ? 1
+                              : 60
+                    }
+                    defaultValue={value}
                     readOnly={readonly}
                 />
             );
@@ -1447,6 +1763,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     idPrefix={id}
                     nameBase={name}
                     defaultValue={defaultValue}
+                    readonly={readonly}
                 />
             );
         case 'color':
@@ -1688,6 +2005,7 @@ export function DynamicItemFields({
     relatedCollections = [],
     variant = 'plain',
     fieldActions,
+    formLayout,
 }: {
     fields: FieldDef[];
     locales: string[];
@@ -1696,92 +2014,250 @@ export function DynamicItemFields({
     relatedCollections?: RelatedCollectionOption[];
     variant?: 'plain' | 'cards';
     fieldActions?: (field: FieldDef) => ReactNode;
+    formLayout?: Record<string, unknown> | null;
 }) {
     const showFieldNameHeading = variant === 'plain';
     const gapClass = variant === 'cards' ? 'space-y-4' : 'space-y-6';
+    const [formValues, setFormValues] = useState<Record<string, unknown>>(
+        () => ({ ...(defaults ?? {}) }),
+    );
+
+    const layout = useMemo(
+        () => parseCollectionFormLayout(formLayout ?? null),
+        [formLayout],
+    );
+
+    const visibleFields = useMemo(
+        () =>
+            fields.filter((field) => {
+                const schemaHidden =
+                    field.settings?.hidden_in_form === true ||
+                    field.settings?.hidden_in_form === 1 ||
+                    field.settings?.hidden_in_form === '1';
+
+                return !schemaHidden;
+            }),
+        [fields],
+    );
+
+    const groups = useMemo(
+        () => resolveFormLayoutGroups(layout, visibleFields),
+        [layout, visibleFields],
+    );
+
+    const tabs = layout?.tabs ?? [];
+    const [activeTabId, setActiveTabId] = useState<string | null>(
+        () => tabs[0]?.id ?? null,
+    );
+
+    const updateFormValue = (fieldName: string, value: unknown): void => {
+        setFormValues((current) => ({ ...current, [fieldName]: value }));
+    };
+
+    const renderOneField = (field: FieldDef): ReactNode => {
+        const flags = evaluateFieldFlags(field.settings, formValues);
+        if (flags.hidden) {
+            return null;
+        }
+
+        const displayName = getFieldDisplayName(
+            field.settings,
+            field.name,
+            locales,
+        );
+        const readonly = flags.readonly;
+
+        const inner = field.translatable ? (
+            <TranslatableItemField
+                field={field}
+                locales={locales}
+                displayName={displayName}
+                showFieldNameHeading={showFieldNameHeading}
+                readonly={readonly}
+                collectionId={collectionId}
+                relatedCollections={relatedCollections}
+                defaults={defaults}
+            />
+        ) : (
+            <div
+                className="grid gap-2"
+                onChange={(event) => {
+                    const target = event.target as
+                        | HTMLInputElement
+                        | HTMLSelectElement
+                        | HTMLTextAreaElement;
+                    if (!target.name) {
+                        return;
+                    }
+
+                    // ponytail: listen at wrapper for condition re-eval (ceiling: no deep controlled tree)
+                    if (target.type === 'checkbox') {
+                        return;
+                    }
+
+                    updateFormValue(field.name, target.value);
+                }}
+            >
+                {showFieldNameHeading && (
+                    <Label htmlFor={`data_${field.name}`}>
+                        {displayName}
+                        {flags.required ? ' *' : ''}
+                    </Label>
+                )}
+                <FieldNote settings={field.settings} locales={locales} />
+                {renderFieldControl({
+                    field,
+                    name: `data[${field.name}]`,
+                    id: `data_${field.name}`,
+                    collectionId,
+                    locales,
+                    readonly,
+                    relatedCollections,
+                    defaultValue: getDefaultScalar(defaults, field.name),
+                })}
+            </div>
+        );
+
+        if (variant === 'cards') {
+            return (
+                <div
+                    key={field.id}
+                    className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border"
+                >
+                    <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-sidebar-border/70 pb-3 dark:border-sidebar-border">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono text-sm font-medium">
+                                {displayName}
+                            </span>
+                            <Badge variant="outline">{field.type}</Badge>
+                            {field.translatable && (
+                                <Badge variant="secondary">Translatable</Badge>
+                            )}
+                            {readonly && (
+                                <Badge variant="secondary">Readonly</Badge>
+                            )}
+                            {flags.required && (
+                                <Badge variant="secondary">Required</Badge>
+                            )}
+                        </div>
+                        {fieldActions?.(field)}
+                    </div>
+                    {inner}
+                </div>
+            );
+        }
+
+        return <Fragment key={field.id}>{inner}</Fragment>;
+    };
+
+    const renderFieldGrid = (sectionFields: FieldDef[]): ReactNode => {
+        const rows = groupFieldsIntoLayoutRows(sectionFields);
+
+        return (
+            <div className={gapClass}>
+                {rows.map((row) => (
+                    <div
+                        key={row.map((item) => item.field.id).join('-')}
+                        className="grid grid-cols-1 gap-4 md:grid-cols-2"
+                    >
+                        {row.map(({ field, colSpan }) => (
+                            <div
+                                key={field.id}
+                                className={colSpan === 2 ? 'md:col-span-2' : ''}
+                            >
+                                {renderOneField(field)}
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
+    const visibleGroups =
+        tabs.length === 0
+            ? groups
+            : groups.filter((group) => {
+                  const tabId = group.section?.tab_id ?? null;
+                  if (activeTabId === null) {
+                      return true;
+                  }
+
+                  return tabId === activeTabId || tabId === null;
+              });
 
     return (
         <ContentLocaleProvider locales={locales}>
-            <div className={gapClass}>
-                {fields.map((field) => {
-                    const displayName = getFieldDisplayName(
-                        field.settings,
-                        field.name,
-                        locales,
-                    );
-                    const readonly = isFieldReadonly(field.settings);
-
-                    const inner = field.translatable ? (
-                        <TranslatableItemField
-                            field={field}
-                            locales={locales}
-                            displayName={displayName}
-                            showFieldNameHeading={showFieldNameHeading}
-                            readonly={readonly}
-                            collectionId={collectionId}
-                            relatedCollections={relatedCollections}
-                            defaults={defaults}
-                        />
-                    ) : (
-                        <div className="grid gap-2">
-                            {showFieldNameHeading && (
-                                <Label htmlFor={`data_${field.name}`}>
-                                    {displayName}
-                                </Label>
-                            )}
-                            <FieldNote
-                                settings={field.settings}
-                                locales={locales}
-                            />
-                            {renderFieldControl({
-                                field,
-                                name: `data[${field.name}]`,
-                                id: `data_${field.name}`,
-                                collectionId,
+            <div className="space-y-6">
+                {tabs.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 border-b pb-2">
+                        {tabs.map((tab) => {
+                            const label = resolveFormLayoutLabel(
+                                tab.label,
                                 locales,
-                                readonly,
-                                relatedCollections,
-                                defaultValue: getDefaultScalar(
-                                    defaults,
-                                    field.name,
-                                ),
-                            })}
-                        </div>
-                    );
+                                tab.id,
+                            );
+                            const isActive = activeTabId === tab.id;
 
-                    if (variant === 'cards') {
+                            return (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    className={cn(
+                                        'rounded-md px-3 py-1.5 text-sm',
+                                        isActive
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-muted text-muted-foreground',
+                                    )}
+                                    onClick={() => setActiveTabId(tab.id)}
+                                >
+                                    {label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                ) : null}
+
+                {visibleGroups.map((group, index) => {
+                    const section = group.section;
+                    if (!section || section.id === 'unsectioned' && !layout) {
                         return (
-                            <div
-                                key={field.id}
-                                className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border"
-                            >
-                                <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-sidebar-border/70 pb-3 dark:border-sidebar-border">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <span className="font-mono text-sm font-medium">
-                                            {displayName}
-                                        </span>
-                                        <Badge variant="outline">
-                                            {field.type}
-                                        </Badge>
-                                        {field.translatable && (
-                                            <Badge variant="secondary">
-                                                Translatable
-                                            </Badge>
-                                        )}
-                                        {readonly && (
-                                            <Badge variant="secondary">
-                                                Readonly
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    {fieldActions?.(field)}
-                                </div>
-                                {inner}
-                            </div>
+                            <Fragment key={`flat-${index}`}>
+                                {renderFieldGrid(group.fields)}
+                            </Fragment>
                         );
                     }
 
-                    return <Fragment key={field.id}>{inner}</Fragment>;
+                    const title = resolveFormLayoutLabel(
+                        section.label,
+                        locales,
+                        'Section',
+                    );
+
+                    if (!section.collapsible) {
+                        return (
+                            <section key={section.id} className="space-y-3">
+                                <h3 className="text-sm font-medium">{title}</h3>
+                                {renderFieldGrid(group.fields)}
+                            </section>
+                        );
+                    }
+
+                    return (
+                        <Collapsible
+                            key={section.id}
+                            defaultOpen={!section.collapsed}
+                            className="space-y-3 rounded-xl border border-sidebar-border/70 p-4"
+                        >
+                            <CollapsibleTrigger className="flex w-full items-center justify-between text-left text-sm font-medium">
+                                {title}
+                                <ChevronDown className="size-4" />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                {renderFieldGrid(group.fields)}
+                            </CollapsibleContent>
+                        </Collapsible>
+                    );
                 })}
             </div>
         </ContentLocaleProvider>

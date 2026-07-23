@@ -1,3 +1,4 @@
+import { Pencil } from 'lucide-react';
 import { CollectionFormDrawer } from '@/components/collections/collection-form-drawer';
 import { Button } from '@/components/ui/button';
 import { Drawer } from '@/components/ui/drawer';
@@ -54,23 +55,21 @@ export function CollectionEditButton({
     collectionForm,
     collection,
     variant = 'outline',
-    size = 'sm',
 }: {
     collectionForm: ReturnType<typeof useCollections>;
     collection: CollectionEditSource;
     variant?: 'outline' | 'default' | 'secondary' | 'ghost' | 'link' | 'destructive';
-    size?: 'default' | 'sm' | 'lg' | 'icon';
 }) {
     return (
         <Button
             type="button"
             variant={variant}
-            size={size}
             onClick={() => {
                 collectionForm.setEditing(collection);
                 collectionForm.setOpen(true);
             }}
         >
+            <Pencil className="size-4" />
             Edit collection
         </Button>
     );

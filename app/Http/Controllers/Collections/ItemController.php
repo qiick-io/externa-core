@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Collections;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Collections\StoreCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionItemRequest;
+use App\Http\Requests\Collections\UpdateCollectionListColumnsRequest;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\Collection;
 use App\Models\CollectionField;
@@ -14,6 +15,9 @@ use App\Services\Collections\CollectionItemOptionsService;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Collections\CollectionListColumnsNormalizer;
+use App\Services\Collections\CollectionListDisplayEnricher;
+use App\Services\Settings\SettingsRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,6 +35,9 @@ class ItemController extends Controller
         private CollectionItemValuesWriter $collectionItemValuesWriter,
         private CollectionItemValuesAssembler $collectionItemValuesAssembler,
         private CollectionItemOptionsService $collectionItemOptionsService,
+        private CollectionListColumnsNormalizer $listColumnsNormalizer,
+        private CollectionListDisplayEnricher $listDisplayEnricher,
+        private SettingsRepository $settingsRepository,
     ) {}
 
     /**
@@ -71,19 +78,67 @@ class ItemController extends Controller
             ->with(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
         $this->itemQueryService->applyFilters($query, $collection, $stringFilters);
 
-        $paginator = $query->latest('id')->paginate(15)->withQueryString();
-        $paginator->setCollection(
-            $paginator->getCollection()->map(fn (CollectionItem $item): array => (new CollectionItemResource($item))->toArray($request))
+        $sortParam = $request->query('sort');
+        $directionParam = $request->query('direction');
+        $sortState = $this->itemQueryService->applySort(
+            $query,
+            $collection,
+            is_string($sortParam) ? $sortParam : null,
+            is_string($directionParam) ? $directionParam : null,
         );
+
+        $listColumns = $this->resolveListColumns($request, $collection);
+        $columnAligns = $this->resolveColumnAligns($request, $collection, $listColumns);
+
+        $paginator = $query->paginate(15)->withQueryString();
+        $rows = $paginator->getCollection()
+            ->map(fn (CollectionItem $item): array => (new CollectionItemResource($item))->toArray($request))
+            ->all();
+        $rows = $this->listDisplayEnricher->enrich($collection, $rows, $listColumns);
+        $paginator->setCollection(collect($rows));
 
         return Inertia::render('collections/items/index', [
             'collection' => $collection,
             'items' => $paginator,
+            'list_columns' => $listColumns,
+            'column_aligns' => $columnAligns,
+            'related_fields_catalog' => $this->listColumnsNormalizer->relatedFieldsCatalog($collection),
             'filters' => [
                 ...$stringFilters,
                 'trashed' => $trashed,
+                'sort' => $sortState['sort'],
+                'direction' => $sortState['direction'],
             ],
         ]);
+    }
+
+    /**
+     * Persist the current user's list column preferences for a collection.
+     */
+    public function updateListColumns(
+        UpdateCollectionListColumnsRequest $request,
+        Collection $collection,
+    ): RedirectResponse {
+        $user = $request->user();
+        abort_if($user === null, 403);
+
+        $this->settingsRepository->set(
+            SettingsRepository::SCOPE_USER,
+            'collection_list',
+            'collection_'.$collection->id,
+            $request->input('columns'),
+            $user->id,
+        );
+
+        $this->settingsRepository->set(
+            SettingsRepository::SCOPE_USER,
+            'collection_list',
+            'collection_'.$collection->id.'_aligns',
+            $request->input('aligns', []),
+            $user->id,
+        );
+
+        return redirect()->back();
     }
 
     /**
@@ -286,5 +341,63 @@ class ItemController extends Controller
     private function relatedCollectionsForSelect(): array
     {
         return $this->collectionItemOptionsService->collectionsForSelect();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function resolveListColumns(Request $request, Collection $collection): array
+    {
+        $user = $request->user();
+        $stored = $user !== null
+            ? $this->settingsRepository->get(
+                SettingsRepository::SCOPE_USER,
+                'collection_list',
+                'collection_'.$collection->id,
+                $user->id,
+            )
+            : null;
+
+        return $this->listColumnsNormalizer->normalize($stored, $collection);
+    }
+
+    /**
+     * @param  list<string>  $listColumns
+     * @return array<string, 'left'|'center'|'right'>
+     */
+    private function resolveColumnAligns(Request $request, Collection $collection, array $listColumns): array
+    {
+        $user = $request->user();
+        if ($user === null) {
+            return [];
+        }
+
+        $stored = $this->settingsRepository->get(
+            SettingsRepository::SCOPE_USER,
+            'collection_list',
+            'collection_'.$collection->id.'_aligns',
+            $user->id,
+        );
+
+        if (! is_array($stored)) {
+            return [];
+        }
+
+        $allowed = array_flip($listColumns);
+        $out = [];
+
+        foreach ($stored as $path => $align) {
+            if (! is_string($path) || ! isset($allowed[$path])) {
+                continue;
+            }
+
+            if (! in_array($align, ['left', 'center', 'right'], true)) {
+                continue;
+            }
+
+            $out[$path] = $align;
+        }
+
+        return $out;
     }
 }

@@ -19,16 +19,19 @@ class CollectionItemDataRuleBuilder
     public function __construct(
         private FieldValidationRuleEvaluator $validationRuleEvaluator,
         private CollectionLocaleResolver $localeResolver,
+        private FieldConditionEvaluator $conditionEvaluator,
     ) {}
 
     /**
      * Validation rules for the full data payload on create or update.
      *
+     * @param  array<string, mixed>|null  $data  Current request data for conditional required
      * @return array<string, mixed>
      */
-    public function rules(Collection $collection, bool $creating, ?int $excludeItemId = null): array
+    public function rules(Collection $collection, bool $creating, ?int $excludeItemId = null, ?array $data = null): array
     {
         $collection->loadMissing('fields');
+        $data ??= [];
 
         $rules = [
             'data' => $creating ? ['present', 'array'] : ['sometimes', 'array'],
@@ -39,19 +42,20 @@ class CollectionItemDataRuleBuilder
                 continue;
             }
 
-            $rules = array_merge($rules, $this->rulesForField($field, $creating, $excludeItemId));
+            $rules = array_merge($rules, $this->rulesForField($field, $creating, $excludeItemId, $data));
         }
 
         return $rules;
     }
 
     /**
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    private function rulesForField(CollectionField $field, bool $creating, ?int $excludeItemId): array
+    private function rulesForField(CollectionField $field, bool $creating, ?int $excludeItemId, array $data): array
     {
         $prefix = 'data.'.$field->name;
-        $presence = $this->presenceRule($field, $creating);
+        $presence = $this->presenceRule($field, $creating, $data);
 
         if ($field->translatable) {
             $allowedLocales = $this->allowedLocales();
@@ -78,7 +82,7 @@ class CollectionItemDataRuleBuilder
                     $this->rulesForTranslatableLocale(
                         $field,
                         $prefix.'.'.$locale,
-                        $this->fieldIsRequired($field),
+                        $this->fieldIsEffectivelyRequired($field, $data),
                         $excludeItemId,
                     )
                 );
@@ -90,7 +94,7 @@ class CollectionItemDataRuleBuilder
         $rules = [
             $prefix => array_merge(
                 [$presence],
-                $this->nonTranslatableRules($field, $this->fieldIsRequired($field), $excludeItemId),
+                $this->nonTranslatableRules($field, $this->fieldIsEffectivelyRequired($field, $data), $excludeItemId),
             ),
         ];
 
@@ -100,7 +104,9 @@ class CollectionItemDataRuleBuilder
             FieldTypeEnum::CheckboxGroup,
             FieldTypeEnum::CheckboxGroupTree,
         ], true)) {
-            $rules[$prefix.'.*'] = ['string', 'max:1024'];
+            $itemRules = ['string', 'max:1024'];
+            $itemRules = array_merge($itemRules, $this->optionInRules($field));
+            $rules[$prefix.'.*'] = $itemRules;
         }
 
         if ($field->type->isMultipleRelationType()) {
@@ -337,6 +343,8 @@ class CollectionItemDataRuleBuilder
             FieldTypeEnum::Select,
             FieldTypeEnum::RadioGroup,
             FieldTypeEnum::Autocomplete,
+            FieldTypeEnum::Multiselect,
+            FieldTypeEnum::CheckboxGroup,
         ], true)) {
             return [];
         }
@@ -364,7 +372,24 @@ class CollectionItemDataRuleBuilder
         return [Rule::in($values)];
     }
 
-    private function fieldIsRequired(CollectionField $field): bool
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function fieldIsEffectivelyRequired(CollectionField $field, array $data): bool
+    {
+        $flags = $this->conditionEvaluator->effectiveFlags($field, $data);
+
+        if ($flags['hidden']) {
+            return false;
+        }
+
+        return $flags['required'];
+    }
+
+    /**
+     * Static required from settings / validation_rules only (ignores conditions).
+     */
+    private function fieldIsStaticallyRequired(CollectionField $field): bool
     {
         if ($field->isRequired()) {
             return true;
@@ -384,10 +409,32 @@ class CollectionItemDataRuleBuilder
         return false;
     }
 
-    private function presenceRule(CollectionField $field, bool $creating): string
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function presenceRule(CollectionField $field, bool $creating, array $data): mixed
     {
-        if ($this->fieldIsRequired($field)) {
+        if ($this->fieldIsStaticallyRequired($field)) {
+            $flags = $this->conditionEvaluator->effectiveFlags($field, $data);
+            if ($flags['hidden']) {
+                return $creating ? 'nullable' : 'sometimes';
+            }
+
             return 'required';
+        }
+
+        $conditions = data_get($field->settings, 'conditions');
+        if (is_array($conditions) && array_key_exists('required', $conditions)) {
+            return Rule::requiredIf(function () use ($field): bool {
+                $payload = request()->input('data', []);
+                if (! is_array($payload)) {
+                    $payload = [];
+                }
+
+                $flags = $this->conditionEvaluator->effectiveFlags($field, $payload);
+
+                return $flags['required'] && ! $flags['hidden'];
+            });
         }
 
         return $creating ? 'nullable' : 'sometimes';

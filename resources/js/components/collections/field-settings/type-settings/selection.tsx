@@ -55,27 +55,35 @@ export function SelectionSettings({
     }
 
     if (fieldType === 'date') {
+        const dateMode = String(settings?.date_mode ?? 'datetime');
+
         return (
             <div className="space-y-5">
+                <div className="grid gap-2">
+                    <Label htmlFor="date_mode">Mode</Label>
+                    <select
+                        id="date_mode"
+                        name="settings[date_mode]"
+                        defaultValue={
+                            dateMode === 'date' || dateMode === 'time'
+                                ? dateMode
+                                : 'datetime'
+                        }
+                        className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm shadow-xs"
+                    >
+                        <option value="date">Date only</option>
+                        <option value="time">Time only</option>
+                        <option value="datetime">Date and time</option>
+                    </select>
+                </div>
                 <SettingCheckbox
                     id="date_include_seconds"
                     name="settings[include_seconds]"
                     label="Include seconds"
-                    description="Allow time values with seconds precision."
+                    description="Allow time values with seconds precision (time / datetime modes)."
                     defaultChecked={
                         settings?.include_seconds === true ||
                         settings?.include_seconds === '1'
-                    }
-                />
-                <SettingCheckbox
-                    id="date_use_24h"
-                    name="settings[use_24h]"
-                    label="Use 24h format"
-                    description="Display and edit times in 24-hour format instead of AM/PM."
-                    defaultChecked={
-                        settings?.use_24h === true ||
-                        settings?.use_24h === '1' ||
-                        settings?.use_24h === undefined
                     }
                 />
             </div>

@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Collections\Concerns;
 
 use App\Enums\FieldTypeEnum;
+use App\Models\CollectionField;
+use App\Services\Collections\FieldConditionEvaluator;
 use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Validation\Rule;
 
@@ -92,7 +94,7 @@ trait ValidatesCollectionFieldSettings
             'settings.label_on' => ['sometimes', 'array'],
             'settings.label_off' => ['sometimes', 'array'],
             'settings.include_seconds' => ['sometimes'],
-            'settings.use_24h' => ['sometimes'],
+            'settings.date_mode' => ['sometimes', Rule::in(['date', 'time', 'datetime'])],
             'settings.default_lat' => ['sometimes', 'nullable', 'numeric'],
             'settings.default_lng' => ['sometimes', 'nullable', 'numeric'],
             'settings.default_zoom' => ['sometimes', 'nullable', 'integer'],
@@ -104,6 +106,18 @@ trait ValidatesCollectionFieldSettings
             'settings.value_combining' => ['sometimes', Rule::in(['all', 'leaf'])],
             'settings.show_value' => ['sometimes'],
             'settings.items_shown' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'settings.conditions' => ['sometimes', 'nullable', 'array'],
+            'settings.conditions.logic' => ['sometimes', Rule::in(['and'])],
+            'settings.conditions.rules' => ['sometimes', 'array'],
+            'settings.conditions.rules.*.field' => ['required_with:settings.conditions.rules', 'string', 'max:64'],
+            'settings.conditions.rules.*.operator' => [
+                'required_with:settings.conditions.rules',
+                Rule::in(['equals', 'not_equals', 'empty', 'not_empty']),
+            ],
+            'settings.conditions.rules.*.value' => ['nullable'],
+            'settings.conditions.hidden' => ['sometimes'],
+            'settings.conditions.readonly' => ['sometimes'],
+            'settings.conditions.required' => ['sometimes'],
         ];
 
         foreach ($localeList as $locale) {
@@ -143,6 +157,53 @@ trait ValidatesCollectionFieldSettings
             }
         }
 
+        if (array_key_exists('conditions', $settings)) {
+            $normalizedConditions = app(FieldConditionEvaluator::class)
+                ->normalizeSettings(is_array($settings['conditions']) ? $settings['conditions'] : null);
+
+            if ($normalizedConditions === null) {
+                unset($settings['conditions']);
+            } else {
+                $settings['conditions'] = $normalizedConditions;
+            }
+        }
+
+        // Drop dead use_24h — native date inputs don't honor AM/PM; use date_mode instead.
+        unset($settings['use_24h']);
+
         return $settings;
+    }
+
+    /**
+     * Force translatable=false for hash / relation types (UI hides the toggle).
+     */
+    protected function coerceDisallowedTranslatable(): void
+    {
+        $type = $this->resolveFieldTypeForTranslatable();
+
+        if ($type !== null && ! $type->supportsTranslatable()) {
+            $this->merge(['translatable' => false]);
+        }
+    }
+
+    protected function resolveFieldTypeForTranslatable(): ?FieldTypeEnum
+    {
+        $raw = $this->input('type');
+
+        if (is_string($raw) && $raw !== '') {
+            return FieldTypeEnum::tryFrom($raw);
+        }
+
+        if ($raw instanceof FieldTypeEnum) {
+            return $raw;
+        }
+
+        $field = $this->route('field');
+
+        if ($field instanceof CollectionField) {
+            return $field->type instanceof FieldTypeEnum ? $field->type : null;
+        }
+
+        return null;
     }
 }

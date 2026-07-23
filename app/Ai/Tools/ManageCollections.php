@@ -382,10 +382,12 @@ class ManageCollections implements Tool
             return $settings;
         }
 
+        $translatable = $type->supportsTranslatable() && $request->boolean('translatable');
+
         $field = $collection->fields()->create([
             'name' => $name,
             'type' => $type,
-            'translatable' => (bool) $request->boolean('translatable'),
+            'translatable' => $translatable,
             'settings' => $settings,
         ]);
 
@@ -464,6 +466,11 @@ class ManageCollections implements Tool
 
         if ($attributes === []) {
             return 'Error: Provide name, type, translatable, and/or settings_json to update.';
+        }
+
+        $resultingType = $attributes['type'] ?? $field->type;
+        if ($resultingType instanceof FieldTypeEnum && ! $resultingType->supportsTranslatable()) {
+            $attributes['translatable'] = false;
         }
 
         $field->update($attributes);

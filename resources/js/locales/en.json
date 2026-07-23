@@ -250,6 +250,7 @@
             "brandingTitle": "Branding",
             "brandingDescription": "Project color, logo, and favicon used in the app chrome and on login",
             "projectColor": "Project color",
+            "projectColorDark": "Project color (dark)",
             "projectLogo": "Project logo",
             "projectLogoDark": "Project logo (dark)",
             "publicFavicon": "Favicon",

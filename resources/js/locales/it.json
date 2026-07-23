@@ -250,6 +250,7 @@
             "brandingTitle": "Branding",
             "brandingDescription": "Colore, logo e favicon usati nell'interfaccia e al login",
             "projectColor": "Colore progetto",
+            "projectColorDark": "Colore progetto (scuro)",
             "projectLogo": "Logo progetto",
             "projectLogoDark": "Logo progetto (scuro)",
             "publicFavicon": "Favicon",

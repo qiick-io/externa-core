@@ -1,7 +1,9 @@
 import { Form, Head, Link } from '@inertiajs/react';
+import { Rows3, Save, Trash2 } from 'lucide-react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
+import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { useCollection } from '@/hooks/use-collection';
 import AppLayout from '@/layouts/app-layout';
@@ -77,133 +79,113 @@ export default function ItemsForm({
           });
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={pageTitle} />
-
-            <div className="flex w-full flex-col gap-8 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <h1 className="text-xl font-semibold tracking-tight">
-                            {heading}
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {collection.slug}
-                        </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                            <Link
-                                href={FieldController.index.url(collection.id)}
-                            >
-                                Edit fields
-                            </Link>
-                        </Button>
-                        <Button variant="outline" size="sm" asChild>
-                            <Link
-                                href={collections.items.index.url(collection.id)}
-                            >
-                                All items
-                            </Link>
-                        </Button>
-                        {!isNew && item !== null && (
-                            <Form
-                                {...ItemController.destroy.form({
-                                    collection: collection.id,
-                                    item: item.id,
-                                })}
-                            >
-                                {({ processing }) => (
-                                    <Button
-                                        type="submit"
-                                        variant="destructive"
-                                        size="sm"
-                                        disabled={processing}
-                                    >
-                                        Delete
-                                    </Button>
-                                )}
-                            </Form>
-                        )}
-                    </div>
-                </div>
-
-                <section className="space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div>
-                            <h2 className="text-lg font-medium">Content</h2>
-                            <p className="text-sm text-muted-foreground">
-                                {isNew
-                                    ? 'Fill in values for this new item. Define fields under '
-                                    : 'Values for this item only. Change field definitions under '}
-                                <Link
-                                    className="text-primary underline-offset-4 hover:underline"
-                                    href={FieldController.index.url(collection.id)}
-                                >
-                                    Edit fields
-                                </Link>
-                                .
-                            </p>
-                        </div>
-                        {hasFields && (
-                            <Button
-                                type="submit"
-                                form={COLLECTION_ITEM_FORM_ID}
-                                size="sm"
-                            >
-                                {isNew ? 'Create' : 'Save'}
-                            </Button>
-                        )}
-                    </div>
-
-                    {!hasFields && (
-                        <p className="rounded-xl border border-dashed border-sidebar-border/70 p-6 text-sm text-muted-foreground dark:border-sidebar-border">
-                            No fields yet.{' '}
-                            <Link
-                                className="text-primary underline-offset-4 hover:underline"
-                                href={FieldController.index.url(collection.id)}
-                            >
-                                Add fields
-                            </Link>{' '}
-                            before entering content.
-                        </p>
-                    )}
-
-                    {hasFields && (
+        <AppLayout
+            breadcrumbs={breadcrumbs}
+            headerActions={
+                <>
+                    <Button variant="outline" asChild>
+                        <Link href={FieldController.index.url(collection.id)}>
+                            <Rows3 className="size-4" />
+                            Edit fields
+                        </Link>
+                    </Button>
+                    {!isNew && item !== null && (
                         <Form
-                            {...formProps}
-                            id={COLLECTION_ITEM_FORM_ID}
-                            className="space-y-6"
-                            options={{ preserveScroll: true }}
+                            {...ItemController.destroy.form({
+                                collection: collection.id,
+                                item: item.id,
+                            })}
                         >
-                            {({ errors }) => {
-                                const dataErrors = collectCollectionDataErrorMessages(
-                                    errors as Record<string, unknown>,
-                                );
-
-                                return (
-                                    <>
-                                        {dataErrors.length > 0 && (
-                                            <ul className="list-inside list-disc space-y-1 text-sm text-destructive">
-                                                {dataErrors.map((msg, idx) => (
-                                                    <li key={idx}>{msg}</li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                        <DynamicItemFields
-                                            variant="cards"
-                                            collectionId={collection.id}
-                                            fields={collection.fields}
-                                            locales={locales}
-                                            defaults={contentDefaults}
-                                            relatedCollections={relatedCollections}
-                                        />
-                                    </>
-                                );
-                            }}
+                            {({ processing }) => (
+                                <Button
+                                    type="submit"
+                                    variant="destructive"
+                                    disabled={processing}
+                                >
+                                    <Trash2 className="size-4" />
+                                    Delete
+                                </Button>
+                            )}
                         </Form>
                     )}
-                </section>
-            </div>
+                    {hasFields && (
+                        <Button type="submit" form={COLLECTION_ITEM_FORM_ID}>
+                            <Save className="size-4" />
+                            {isNew ? 'Create' : 'Save'}
+                        </Button>
+                    )}
+                </>
+            }
+        >
+            <Head title={pageTitle} />
+
+            <PageLayout
+                description={
+                    <>
+                        {heading} · {collection.slug}.{' '}
+                        {isNew
+                            ? 'Fill in values for this new item. Define fields under '
+                            : 'Values for this item only. Change field definitions under '}
+                        <Link
+                            className="text-primary underline-offset-4 hover:underline"
+                            href={FieldController.index.url(collection.id)}
+                        >
+                            Edit fields
+                        </Link>
+                        .
+                    </>
+                }
+                scrollContent
+            >
+                {!hasFields && (
+                    <p className="rounded-xl border border-dashed border-sidebar-border/70 p-6 text-sm text-muted-foreground dark:border-sidebar-border">
+                        No fields yet.{' '}
+                        <Link
+                            className="text-primary underline-offset-4 hover:underline"
+                            href={FieldController.index.url(collection.id)}
+                        >
+                            Add fields
+                        </Link>{' '}
+                        before entering content.
+                    </p>
+                )}
+
+                {hasFields && (
+                    <Form
+                        {...formProps}
+                        id={COLLECTION_ITEM_FORM_ID}
+                        className="space-y-6"
+                        options={{ preserveScroll: true }}
+                    >
+                        {({ errors }) => {
+                            const dataErrors = collectCollectionDataErrorMessages(
+                                errors as Record<string, unknown>,
+                            );
+
+                            return (
+                                <>
+                                    {dataErrors.length > 0 && (
+                                        <ul className="list-inside list-disc space-y-1 text-sm text-destructive">
+                                            {dataErrors.map((msg, idx) => (
+                                                <li key={idx}>{msg}</li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                    <DynamicItemFields
+                                        variant="cards"
+                                        collectionId={collection.id}
+                                        fields={collection.fields}
+                                        locales={locales}
+                                        defaults={contentDefaults}
+                                        relatedCollections={relatedCollections}
+                                        formLayout={collection.form_layout}
+                                    />
+                                </>
+                            );
+                        }}
+                    </Form>
+                )}
+            </PageLayout>
         </AppLayout>
     );
 }

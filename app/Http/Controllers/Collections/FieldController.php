@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Collections;
 
+use App\Enums\FieldTypeEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Collections\ReorderFieldsRequest;
 use App\Http\Requests\Collections\StoreFieldRequest;
+use App\Http\Requests\Collections\UpdateCollectionFormLayoutRequest;
 use App\Http\Requests\Collections\UpdateFieldLayoutWidthRequest;
 use App\Http\Requests\Collections\UpdateFieldRequest;
 use App\Models\Collection;
@@ -41,9 +43,14 @@ class FieldController extends Controller
      */
     public function store(StoreFieldRequest $request, Collection $collection): RedirectResponse
     {
+        $validated = $request->validated();
+        $type = $validated['type'] instanceof FieldTypeEnum
+            ? $validated['type']
+            : FieldTypeEnum::from((string) $validated['type']);
+
         $collection->fields()->create([
-            ...$request->validated(),
-            'translatable' => $request->boolean('translatable'),
+            ...$validated,
+            'translatable' => $type->supportsTranslatable() && $request->boolean('translatable'),
         ]);
 
         return redirect()->route('collections.fields.index', $collection)
@@ -57,9 +64,25 @@ class FieldController extends Controller
     {
         $this->assertFieldBelongsToCollection($collection, $field);
 
+        $validated = $request->validated();
+        $type = isset($validated['type'])
+            ? ($validated['type'] instanceof FieldTypeEnum
+                ? $validated['type']
+                : FieldTypeEnum::from((string) $validated['type']))
+            : $field->type;
+
+        $translatable = $request->has('translatable')
+            ? $request->boolean('translatable')
+            : $field->translatable;
+
+        // Coerce legacy true flags when type cannot be per-locale.
+        if (! $type->supportsTranslatable()) {
+            $translatable = false;
+        }
+
         $field->update([
-            ...$request->validated(),
-            'translatable' => $request->has('translatable') ? $request->boolean('translatable') : $field->translatable,
+            ...$validated,
+            'translatable' => $translatable,
         ]);
 
         return redirect()->route('collections.fields.index', $collection)
@@ -160,6 +183,22 @@ class FieldController extends Controller
 
         return redirect()->route('collections.fields.index', $collection)
             ->with('success', __('Field layout width updated.'));
+    }
+
+    /**
+     * Persist collection-level form layout (tabs + sections). Presentation only.
+     */
+    public function updateFormLayout(
+        UpdateCollectionFormLayoutRequest $request,
+        Collection $collection,
+    ): RedirectResponse {
+        $collection->update([
+            // passedValidation already normalized + merged form_layout onto the request.
+            'form_layout' => $request->input('form_layout'),
+        ]);
+
+        return redirect()->route('collections.fields.index', $collection)
+            ->with('success', __('Form layout updated.'));
     }
 
     /**

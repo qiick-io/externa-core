@@ -11,6 +11,7 @@ return [
     'appearance' => [
         'keys' => [
             'project_color',
+            'project_color_dark',
             'project_logo',
             'project_logo_dark',
             'public_favicon',
@@ -18,6 +19,7 @@ return [
         ],
         'defaults' => [
             'project_color' => null,
+            'project_color_dark' => null,
             'project_logo' => null,
             'project_logo_dark' => null,
             'public_favicon' => null,

@@ -19,6 +19,7 @@ use Spatie\EloquentSortable\SortableTrait;
  * @property string $name
  * @property string $slug
  * @property bool $is_singleton
+ * @property array<string, mixed>|null $form_layout
  * @property int $sort_order
  * @property Carbon|null $deleted_at
  */
@@ -43,6 +44,7 @@ class Collection extends Model implements Sortable
         'name',
         'slug',
         'is_singleton',
+        'form_layout',
         'sort_order',
     ];
 
@@ -102,6 +104,7 @@ class Collection extends Model implements Sortable
     {
         return [
             'is_singleton' => 'boolean',
+            'form_layout' => 'array',
         ];
     }
 }

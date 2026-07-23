@@ -29,6 +29,94 @@ import type { AdminFileRow } from '@/types/files';
 
 type FileFieldKey = 'project_logo' | 'project_logo_dark' | 'public_favicon';
 
+const DEFAULT_PROJECT_COLOR = '#0f172a';
+
+/**
+ * Apply draft brand colors to CSS vars for live preview.
+ */
+function applyBrandPreview(light: string, dark: string): void {
+    document.documentElement.style.setProperty('--brand-primary', light);
+    document.documentElement.style.setProperty('--brand-primary-dark', dark);
+    document.documentElement.style.removeProperty('--primary');
+    document.documentElement.style.removeProperty('--primary-foreground');
+
+    const lightFg = contrastingForeground(light);
+    if (lightFg) {
+        document.documentElement.style.setProperty(
+            '--brand-primary-foreground',
+            lightFg,
+        );
+    }
+
+    const darkFg = contrastingForeground(dark);
+    if (darkFg) {
+        document.documentElement.style.setProperty(
+            '--brand-primary-dark-foreground',
+            darkFg,
+        );
+    }
+}
+
+/**
+ * Restore saved branding CSS vars (or clear if unset).
+ */
+function restoreBrandFromAppearance(
+    appearance:
+        | {
+              projectColor: string | null;
+              projectColorDark: string | null;
+              primaryForeground: string | null;
+              primaryForegroundDark: string | null;
+          }
+        | undefined,
+): void {
+    if (appearance?.projectColor) {
+        document.documentElement.style.setProperty(
+            '--brand-primary',
+            appearance.projectColor,
+        );
+    } else {
+        document.documentElement.style.removeProperty('--brand-primary');
+    }
+
+    if (appearance?.primaryForeground) {
+        document.documentElement.style.setProperty(
+            '--brand-primary-foreground',
+            appearance.primaryForeground,
+        );
+    } else {
+        document.documentElement.style.removeProperty(
+            '--brand-primary-foreground',
+        );
+    }
+
+    const darkColor = appearance?.projectColorDark ?? appearance?.projectColor;
+    if (darkColor) {
+        document.documentElement.style.setProperty(
+            '--brand-primary-dark',
+            darkColor,
+        );
+    } else {
+        document.documentElement.style.removeProperty('--brand-primary-dark');
+    }
+
+    const darkFg =
+        appearance?.primaryForegroundDark ?? appearance?.primaryForeground;
+    if (darkFg) {
+        document.documentElement.style.setProperty(
+            '--brand-primary-dark-foreground',
+            darkFg,
+        );
+    } else {
+        document.documentElement.style.removeProperty(
+            '--brand-primary-dark-foreground',
+        );
+    }
+
+    document.documentElement.style.removeProperty('--primary');
+    document.documentElement.style.removeProperty('--primary-foreground');
+}
+
 /**
  * Project branding and default theme settings.
  */
@@ -41,7 +129,12 @@ export default function Appearance({
     const { projectAppearance } = usePage().props;
 
     const [projectColor, setProjectColor] = useState(
-        appearance.project_color ?? '#0f172a',
+        appearance.project_color ?? DEFAULT_PROJECT_COLOR,
+    );
+    const [projectColorDark, setProjectColorDark] = useState(
+        appearance.project_color_dark ??
+            appearance.project_color ??
+            DEFAULT_PROJECT_COLOR,
     );
     const [defaultAppearance, setDefaultAppearance] = useState(
         appearance.default_appearance,
@@ -53,40 +146,14 @@ export default function Appearance({
     });
     const [pickerField, setPickerField] = useState<FileFieldKey | null>(null);
 
-    // Live preview: Save button and other primary chrome reflect the draft color.
+    // Live preview: CSS picks light vs dark brand from .dark class.
     useEffect(() => {
-        document.documentElement.style.setProperty('--primary', projectColor);
-        const foreground = contrastingForeground(projectColor);
-        if (foreground) {
-            document.documentElement.style.setProperty(
-                '--primary-foreground',
-                foreground,
-            );
-        }
-    }, [projectColor]);
+        applyBrandPreview(projectColor, projectColorDark);
+    }, [projectColor, projectColorDark]);
 
     useEffect(() => {
         return () => {
-            // Restore saved branding if the draft was never persisted.
-            if (projectAppearance?.projectColor) {
-                document.documentElement.style.setProperty(
-                    '--primary',
-                    projectAppearance.projectColor,
-                );
-            } else {
-                document.documentElement.style.removeProperty('--primary');
-            }
-
-            if (projectAppearance?.primaryForeground) {
-                document.documentElement.style.setProperty(
-                    '--primary-foreground',
-                    projectAppearance.primaryForeground,
-                );
-            } else {
-                document.documentElement.style.removeProperty(
-                    '--primary-foreground',
-                );
-            }
+            restoreBrandFromAppearance(projectAppearance);
         };
     }, [projectAppearance]);
 
@@ -186,6 +253,41 @@ export default function Appearance({
                                         />
                                     </div>
                                     <InputError message={errors.project_color} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="project_color_dark">
+                                        {t(
+                                            'settings.appearance.projectColorDark',
+                                        )}
+                                    </Label>
+                                    <div className="flex items-center gap-3">
+                                        <Input
+                                            id="project_color_dark"
+                                            type="color"
+                                            className="h-10 w-14 p-1"
+                                            value={projectColorDark}
+                                            onChange={(event) =>
+                                                setProjectColorDark(
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                        <Input
+                                            name="project_color_dark"
+                                            value={projectColorDark}
+                                            onChange={(event) =>
+                                                setProjectColorDark(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="font-mono"
+                                            placeholder="#0f172a"
+                                        />
+                                    </div>
+                                    <InputError
+                                        message={errors.project_color_dark}
+                                    />
                                 </div>
 
                                 {fileFields.map((field) => {
