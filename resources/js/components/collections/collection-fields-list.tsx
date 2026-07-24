@@ -61,6 +61,7 @@ import {
     
 } from '@/lib/collection-field-types';
 import type {FieldLayoutWidth} from '@/lib/collection-field-types';
+import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { CollectionFieldRow } from '@/types';
 
@@ -300,7 +301,10 @@ function CollectionFieldRowActions({
                 collection: collectionId,
                 field: field.id,
             }),
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                onError: () => toast.error('Could not delete field.'),
+            },
         );
     };
 

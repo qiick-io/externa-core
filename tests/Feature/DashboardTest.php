@@ -3,6 +3,8 @@
 use App\Enums\FileTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
+use App\Models\Collection;
+use App\Models\CollectionItem;
 use App\Models\File;
 use App\Models\FileUpload;
 use App\Models\User;
@@ -128,7 +130,36 @@ test('authorized users can visit the dashboard', function () {
                 ->each(fn (AssertableInertia $item) => $item
                     ->has('date')
                     ->has('bytes_added')
-                    ->etc())));
+                    ->etc()))
+            ->has('collectionCounts')
+            ->has('activityOverTime', fn (AssertableInertia $items) => $items
+                ->each(fn (AssertableInertia $item) => $item
+                    ->has('date')
+                    ->has('count')
+                    ->etc()))
+            ->has('contentEventBreakdown', fn (AssertableInertia $props) => $props
+                ->has('created')
+                ->has('updated')
+                ->has('deleted')));
+});
+
+test('dashboard insights include collection item counts', function () {
+    $user = grantDashboardPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowDashboard->value,
+    ]);
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['name' => 'Places', 'slug' => 'places']);
+    CollectionItem::factory()->count(2)->create(['collection_id' => $collection->id]);
+
+    $this->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('dashboard')
+            ->has('collectionCounts', fn (AssertableInertia $items) => $items
+                ->where('0.name', 'Places')
+                ->where('0.items_count', 2)
+                ->etc()));
 });
 
 test('super-admin can visit the dashboard', function () {

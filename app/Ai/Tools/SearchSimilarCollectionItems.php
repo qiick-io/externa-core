@@ -3,6 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Ai\Concerns\ChecksAiPermissions;
+use App\Ai\Concerns\EnforcesAiCollectionPermissions;
 use App\Ai\Concerns\LogsAiToolUse;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
@@ -19,6 +20,7 @@ use Stringable;
 class SearchSimilarCollectionItems implements Tool
 {
     use ChecksAiPermissions;
+    use EnforcesAiCollectionPermissions;
     use LogsAiToolUse;
 
     /**
@@ -50,14 +52,15 @@ class SearchSimilarCollectionItems implements Tool
             $limit = min(max($request->integer('limit', 10), 1), 50);
 
             // ponytail: scan at most 500 recent items; replace with embeddings when a provider is configured.
-            $matches = $collection->items()
-                ->latest('id')
-                ->limit(500)
+            $queryBuilder = $collection->items()->getQuery()->latest('id')->limit(500);
+            $this->applyAiItemFilter($collection, $queryBuilder);
+
+            $matches = $queryBuilder
                 ->get()
                 ->map(fn (CollectionItem $item): array => [
                     'id' => $item->id,
                     'collection_id' => $item->collection_id,
-                    'data' => $assembler->assemble($item),
+                    'data' => $this->stripAiItemData($collection, $assembler->assemble($item)),
                 ])
                 ->filter(fn (array $item): bool => str_contains(
                     mb_strtolower(json_encode($item['data'], JSON_UNESCAPED_UNICODE) ?: ''),

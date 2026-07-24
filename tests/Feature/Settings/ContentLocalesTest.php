@@ -118,7 +118,7 @@ test('project settings persist content locales and resolver reads them', functio
 });
 
 test('item validation rejects unknown translation locale keys', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     app(SettingsRepository::class)->setMany(

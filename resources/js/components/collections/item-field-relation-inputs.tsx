@@ -67,6 +67,28 @@ function parseM2mLinks(value: DefaultValue): M2mLink[] {
 /**
  * M2M picker that stores `{ related_item_id, meta }` and keeps junction meta on save.
  */
+function relationOptionsQuery(field: FieldDef): string {
+    const params = new URLSearchParams({
+        field_id: String(field.id),
+    });
+    // Nested relation fields reuse the parent blocks field id; pass related_collection_id so options resolve.
+    const relatedId = Number(
+        (field.settings as { related_collection_id?: unknown } | null | undefined)
+            ?.related_collection_id,
+    );
+    if (Number.isFinite(relatedId) && relatedId > 0) {
+        params.set('related_collection_id', String(relatedId));
+    }
+    const displayField = String(
+        (field.settings as { display_field?: unknown } | null | undefined)?.display_field ?? '',
+    ).trim();
+    if (displayField !== '') {
+        params.set('display_field', displayField);
+    }
+
+    return params.toString();
+}
+
 export function ManyToManyFieldInput({
     collectionId,
     field,
@@ -82,7 +104,8 @@ export function ManyToManyFieldInput({
 }) {
     const relationSettings = parseRelationFieldSettings(field.settings);
     const junctionFields = relationSettings.junctionFields;
-    const fetchUrl = `/collections/${collectionId}/items/options?field_id=${field.id}`;
+    const optionsQuery = relationOptionsQuery(field);
+    const fetchUrl = `/collections/${collectionId}/items/options?${optionsQuery}`;
     const [links, setLinks] = useState<M2mLink[]>(() =>
         parseM2mLinks(defaultValue),
     );
@@ -96,10 +119,8 @@ export function ManyToManyFieldInput({
             return;
         }
 
-        const params = new URLSearchParams({
-            field_id: String(field.id),
-            per_page: '100',
-        });
+        const params = new URLSearchParams(optionsQuery);
+        params.set('per_page', '100');
 
         void fetch(`/collections/${collectionId}/items/options?${params}`, {
             headers: {
@@ -128,7 +149,7 @@ export function ManyToManyFieldInput({
             .catch(() => undefined);
         // ponytail: only refetch labels when ids change, not on meta edits
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [collectionId, field.id, selectedIds.join(',')]);
+    }, [collectionId, optionsQuery, selectedIds.join(',')]);
 
     const onChangeIds = (nextIds: number[]): void => {
         setLinks((current) => {
@@ -268,7 +289,8 @@ export function RelationFieldInput({
     readonly?: boolean;
 }) {
     const relationSettings = parseRelationFieldSettings(field.settings);
-    const fetchUrl = `/collections/${collectionId}/items/options?field_id=${field.id}`;
+    const optionsQuery = relationOptionsQuery(field);
+    const fetchUrl = `/collections/${collectionId}/items/options?${optionsQuery}`;
     const initialIds = multiple
         ? Array.isArray(defaultValue)
             ? defaultValue
@@ -287,10 +309,8 @@ export function RelationFieldInput({
             return;
         }
 
-        const params = new URLSearchParams({
-            field_id: String(field.id),
-            per_page: '100',
-        });
+        const params = new URLSearchParams(optionsQuery);
+        params.set('per_page', '100');
 
         void fetch(`/collections/${collectionId}/items/options?${params}`, {
             headers: {
@@ -315,7 +335,7 @@ export function RelationFieldInput({
                 setInitialOptions(options);
             })
             .catch(() => undefined);
-    }, [collectionId, field.id, initialIds]);
+    }, [collectionId, optionsQuery, initialIds]);
 
     return (
         <div className="space-y-2">

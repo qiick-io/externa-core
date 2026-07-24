@@ -45,6 +45,10 @@ export function M2aFieldInput({
     const allowedCollections = relatedCollections.filter((collection) =>
         m2aSettings.allowedCollectionIds.includes(collection.id),
     );
+    const displayField = String(
+        (field.settings as { display_field?: unknown } | null | undefined)?.display_field ??
+            'title',
+    ).trim() || 'title';
 
     const [blocks, setBlocks] = useState<M2aBlock[]>(() => {
         if (!Array.isArray(defaultValue)) {
@@ -112,7 +116,7 @@ export function M2aFieldInput({
     return (
         <div className="space-y-3">
             {blocks.map((block, blockIndex) => {
-                const fetchUrl = `/collections/${collectionId}/items/options?field_id=${field.id}&related_collection_id=${block.related_collection_id}`;
+                const fetchUrl = `/collections/${collectionId}/items/options?field_id=${field.id}&related_collection_id=${block.related_collection_id}&display_field=${encodeURIComponent(displayField)}`;
                 const selectedIds =
                     block.related_item_id > 0 ? [block.related_item_id] : [];
 

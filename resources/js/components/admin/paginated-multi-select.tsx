@@ -245,23 +245,36 @@ export function PaginatedMultiSelect({
                         const checked = value.includes(option.id);
 
                         return (
-                            <button
+                            <div
                                 key={option.id}
-                                type="button"
+                                role="option"
+                                aria-selected={checked}
+                                tabIndex={0}
                                 className={cn(
-                                    'hover:bg-accent flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm',
+                                    'hover:bg-accent flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm',
                                     checked && 'bg-accent/50',
                                 )}
                                 onClick={() => toggle(option.id)}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter' || event.key === ' ') {
+                                        event.preventDefault();
+                                        toggle(option.id);
+                                    }
+                                }}
                             >
-                                <Checkbox checked={checked} />
+                                <Checkbox
+                                    checked={checked}
+                                    tabIndex={-1}
+                                    onCheckedChange={() => toggle(option.id)}
+                                    onClick={(event) => event.stopPropagation()}
+                                />
                                 <span className="flex-1 truncate text-left">
                                     {option.label}
                                 </span>
                                 {checked && (
                                     <Check className="text-primary size-4 shrink-0" />
                                 )}
-                            </button>
+                            </div>
                         );
                     })}
                     {loading && (

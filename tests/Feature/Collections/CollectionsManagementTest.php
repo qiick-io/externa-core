@@ -607,6 +607,43 @@ test('select field stores options from structured settings payload', function ()
     expect($field->settings['options'][0]['value'])->toBe('draft');
 });
 
+test('wysiwyg field create accepts empty placeholder locales', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+
+    // Mimics the browser form: empty locale inputs become null via ConvertEmptyStringsToNull.
+    $this->post(route('collections.fields.store', $collection), [
+        'name' => 'body_html',
+        'type' => FieldTypeEnum::Wysiwyg->value,
+        'translatable' => '0',
+        'settings' => [
+            'required' => '0',
+            'readonly' => '0',
+            'hidden_in_form' => '0',
+            'rows' => '6',
+            'placeholder' => [
+                'en' => null,
+                'it' => null,
+                'de-DE' => null,
+            ],
+            'max_length' => null,
+        ],
+    ])
+        ->assertSessionDoesntHaveErrors()
+        ->assertRedirect(route('collections.fields.index', $collection));
+
+    $field = CollectionField::query()
+        ->where('collection_id', $collection->id)
+        ->where('name', 'body_html')
+        ->first();
+
+    expect($field)->not->toBeNull();
+    expect($field->type)->toBe(FieldTypeEnum::Wysiwyg);
+    expect($field->settings['placeholder'] ?? null)->toBeNull();
+});
+
 test('autocomplete and wysiwyg field types can be created', function () {
     $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
@@ -1455,6 +1492,635 @@ test('blocks field rejects unknown block type and invalid nested data', function
             ],
         ],
     ])->assertSessionHasErrors();
+});
+
+test('nested blocks inside block types are saved and assembled', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['slug' => 'articles-nested']);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'body',
+        'type' => FieldTypeEnum::Blocks,
+        'settings' => [
+            'block_types' => [
+                [
+                    'key' => 'rich_text',
+                    'label' => 'Rich text',
+                    'fields' => [
+                        ['name' => 'title', 'type' => 'string', 'settings' => []],
+                    ],
+                ],
+                [
+                    'key' => 'section',
+                    'label' => 'Section',
+                    'fields' => [
+                        ['name' => 'heading', 'type' => 'string', 'settings' => []],
+                        [
+                            'name' => 'blocks',
+                            'type' => 'blocks',
+                            'settings' => [
+                                'block_types' => [
+                                    [
+                                        'key' => 'rich_text',
+                                        'label' => 'Rich text',
+                                        'fields' => [
+                                            ['name' => 'body', 'type' => 'wysiwyg', 'settings' => []],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    $payload = [
+        'body' => [
+            [
+                'id' => '11111111-1111-1111-1111-111111111111',
+                'type' => 'rich_text',
+                'data' => ['title' => 'Intro'],
+            ],
+            [
+                'id' => '22222222-2222-2222-2222-222222222222',
+                'type' => 'section',
+                'data' => [
+                    'heading' => 'Chapter',
+                    'blocks' => [
+                        [
+                            'id' => '33333333-3333-3333-3333-333333333333',
+                            'type' => 'rich_text',
+                            'data' => ['body' => '<p>Nested</p>'],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ];
+
+    $this->post(route('collections.items.store', $collection), ['data' => $payload])->assertRedirect();
+
+    $item = CollectionItem::query()->where('collection_id', $collection->id)->firstOrFail();
+    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+
+    expect($assembled['body'])->toHaveCount(2)
+        ->and($assembled['body'][0]['data']['title'])->toBe('Intro')
+        ->and($assembled['body'][1]['type'])->toBe('section')
+        ->and($assembled['body'][1]['data']['blocks'])->toHaveCount(1)
+        ->and($assembled['body'][1]['data']['blocks'][0]['data']['body'])->toBe('<p>Nested</p>');
+});
+
+test('blocks field settings accept depth three nesting by default', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+
+    $this->post(route('collections.fields.store', $collection), [
+        'name' => 'body',
+        'type' => FieldTypeEnum::Blocks->value,
+        'settings' => [
+            'block_types' => [
+                [
+                    'key' => 'section',
+                    'label' => 'Section',
+                    'fields' => [
+                        [
+                            'name' => 'blocks',
+                            'type' => 'blocks',
+                            'translatable' => '0',
+                            'settings' => [
+                                'block_types' => [
+                                    [
+                                        'key' => 'column',
+                                        'label' => 'Column',
+                                        'fields' => [
+                                            [
+                                                'name' => 'blocks',
+                                                'type' => 'blocks',
+                                                'translatable' => '0',
+                                                'settings' => [
+                                                    'block_types' => [
+                                                        [
+                                                            'key' => 'rich_text',
+                                                            'label' => 'Rich text',
+                                                            'fields' => [
+                                                                ['name' => 'title', 'type' => 'string', 'settings' => []],
+                                                            ],
+                                                        ],
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ])->assertRedirect(route('collections.fields.index', $collection));
+
+    $field = CollectionField::query()
+        ->where('collection_id', $collection->id)
+        ->where('name', 'body')
+        ->firstOrFail();
+
+    expect($field->settings['max_blocks_depth'])->toBe(3);
+
+    $depth3Fields = $field->settings['block_types'][0]['fields'][0]['settings']['block_types'][0]['fields'][0]['settings']['block_types'][0]['fields'];
+    expect(array_column($depth3Fields, 'type'))->toContain('string');
+});
+
+test('blocks field settings strip blocks nesting beyond max depth', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+
+    $this->post(route('collections.fields.store', $collection), [
+        'name' => 'body',
+        'type' => FieldTypeEnum::Blocks->value,
+        'settings' => [
+            'max_blocks_depth' => 3,
+            'block_types' => [
+                [
+                    'key' => 'section',
+                    'label' => 'Section',
+                    'fields' => [
+                        [
+                            'name' => 'blocks',
+                            'type' => 'blocks',
+                            'translatable' => '0',
+                            'settings' => [
+                                'block_types' => [
+                                    [
+                                        'key' => 'column',
+                                        'label' => 'Column',
+                                        'fields' => [
+                                            [
+                                                'name' => 'blocks',
+                                                'type' => 'blocks',
+                                                'translatable' => '0',
+                                                'settings' => [
+                                                    'block_types' => [
+                                                        [
+                                                            'key' => 'inner',
+                                                            'label' => 'Inner',
+                                                            'fields' => [
+                                                                [
+                                                                    'name' => 'deeper',
+                                                                    'type' => 'blocks',
+                                                                    'translatable' => '0',
+                                                                    'settings' => [
+                                                                        'block_types' => [
+                                                                            [
+                                                                                'key' => 'too_deep',
+                                                                                'label' => 'Too deep',
+                                                                                'fields' => [
+                                                                                    ['name' => 'title', 'type' => 'string', 'settings' => []],
+                                                                                ],
+                                                                            ],
+                                                                        ],
+                                                                    ],
+                                                                ],
+                                                                ['name' => 'title', 'type' => 'string', 'settings' => []],
+                                                            ],
+                                                        ],
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ])->assertRedirect(route('collections.fields.index', $collection));
+
+    $field = CollectionField::query()
+        ->where('collection_id', $collection->id)
+        ->where('name', 'body')
+        ->firstOrFail();
+
+    expect($field->settings['max_blocks_depth'])->toBe(3);
+
+    // depth 3 leaf: inner fields — blocks stripped, string kept
+    $innerFields = $field->settings['block_types'][0]['fields'][0]['settings']['block_types'][0]['fields'][0]['settings']['block_types'][0]['fields'];
+    $types = array_column($innerFields, 'type');
+
+    expect($types)->toContain('string')
+        ->and($types)->not->toContain('blocks');
+});
+
+test('blocks field settings clamp max_blocks_depth to ceiling five', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+
+    $this->post(route('collections.fields.store', $collection), [
+        'name' => 'body',
+        'type' => FieldTypeEnum::Blocks->value,
+        'settings' => [
+            'max_blocks_depth' => 99,
+            'block_types' => [
+                [
+                    'key' => 'rich_text',
+                    'label' => 'Rich text',
+                    'fields' => [
+                        ['name' => 'title', 'type' => 'string', 'settings' => []],
+                    ],
+                ],
+            ],
+        ],
+    ])->assertRedirect(route('collections.fields.index', $collection));
+
+    $field = CollectionField::query()
+        ->where('collection_id', $collection->id)
+        ->where('name', 'body')
+        ->firstOrFail();
+
+    expect($field->settings['max_blocks_depth'])->toBe(5);
+});
+
+test('nested m2a inside blocks is saved and assembled', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $modules = Collection::factory()->create(['slug' => 'modules']);
+    $moduleItem = CollectionItem::factory()->create(['collection_id' => $modules->id]);
+
+    $articles = Collection::factory()->create(['slug' => 'articles-nested-m2a']);
+    CollectionField::factory()->create([
+        'collection_id' => $articles->id,
+        'name' => 'body',
+        'type' => FieldTypeEnum::Blocks,
+        'settings' => [
+            'max_blocks_depth' => 3,
+            'block_types' => [
+                [
+                    'key' => 'related_modules',
+                    'label' => 'Related modules',
+                    'fields' => [
+                        ['name' => 'heading', 'type' => 'string', 'settings' => []],
+                        [
+                            'name' => 'modules',
+                            'type' => 'm2a',
+                            'settings' => [
+                                'allowed_collection_ids' => [$modules->id],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    $payload = [
+        'body' => [
+            [
+                'id' => 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                'type' => 'related_modules',
+                'data' => [
+                    'heading' => 'Reuse',
+                    'modules' => [
+                        [
+                            'related_collection_id' => $modules->id,
+                            'related_item_id' => $moduleItem->id,
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ];
+
+    $this->post(route('collections.items.store', $articles), ['data' => $payload])->assertRedirect();
+
+    $item = CollectionItem::query()->where('collection_id', $articles->id)->firstOrFail();
+    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+
+    expect($assembled['body'])->toHaveCount(1)
+        ->and($assembled['body'][0]['data']['heading'])->toBe('Reuse')
+        ->and($assembled['body'][0]['data']['modules'])->toBe([
+            [
+                'related_collection_id' => $modules->id,
+                'related_item_id' => $moduleItem->id,
+            ],
+        ]);
+});
+
+test('blocks field settings accept nested m2a type', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $modules = Collection::factory()->create(['slug' => 'reusable-modules']);
+    $collection = Collection::factory()->create();
+
+    $this->post(route('collections.fields.store', $collection), [
+        'name' => 'body',
+        'type' => FieldTypeEnum::Blocks->value,
+        'settings' => [
+            'block_types' => [
+                [
+                    'key' => 'related_modules',
+                    'label' => 'Related modules',
+                    'fields' => [
+                        [
+                            'name' => 'modules',
+                            'type' => 'm2a',
+                            'translatable' => '0',
+                            'settings' => [
+                                'allowed_collection_ids' => [$modules->id],
+                                'allow_duplicates' => '1',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ])->assertRedirect(route('collections.fields.index', $collection));
+
+    $field = CollectionField::query()
+        ->where('collection_id', $collection->id)
+        ->where('name', 'body')
+        ->firstOrFail();
+
+    $nested = $field->settings['block_types'][0]['fields'][0];
+    expect($nested['type'])->toBe('m2a')
+        ->and($nested['settings']['allowed_collection_ids'])->toBe([$modules->id]);
+});
+
+test('nested m2m inside blocks is saved as json links not junction rows', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $related = Collection::factory()->create(['slug' => 'related-articles']);
+    $relatedItem = CollectionItem::factory()->create(['collection_id' => $related->id]);
+
+    $articles = Collection::factory()->create(['slug' => 'articles-nested-m2m']);
+    CollectionField::factory()->create([
+        'collection_id' => $articles->id,
+        'name' => 'body',
+        'type' => FieldTypeEnum::Blocks,
+        'settings' => [
+            'block_types' => [
+                [
+                    'key' => 'related_articles',
+                    'label' => 'Related articles',
+                    'fields' => [
+                        [
+                            'name' => 'articles',
+                            'type' => 'many_to_many',
+                            'settings' => [
+                                'related_collection_id' => $related->id,
+                                'display_field' => 'title',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    $payload = [
+        'body' => [
+            [
+                'id' => 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+                'type' => 'related_articles',
+                'data' => [
+                    'articles' => [
+                        [
+                            'related_item_id' => $relatedItem->id,
+                            'meta' => ['note' => 'featured'],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ];
+
+    $this->post(route('collections.items.store', $articles), ['data' => $payload])->assertRedirect();
+
+    $item = CollectionItem::query()->where('collection_id', $articles->id)->firstOrFail();
+    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+
+    expect($assembled['body'][0]['data']['articles'])->toBe([
+        [
+            'related_item_id' => $relatedItem->id,
+            'meta' => ['note' => 'featured'],
+        ],
+    ]);
+});
+
+test('blocks field settings accept nested many_to_many and one_to_many', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $related = Collection::factory()->create();
+    $collection = Collection::factory()->create();
+
+    $this->post(route('collections.fields.store', $collection), [
+        'name' => 'body',
+        'type' => FieldTypeEnum::Blocks->value,
+        'settings' => [
+            'block_types' => [
+                [
+                    'key' => 'gallery_refs',
+                    'label' => 'Gallery refs',
+                    'fields' => [
+                        [
+                            'name' => 'articles',
+                            'type' => 'many_to_many',
+                            'translatable' => '0',
+                            'settings' => [
+                                'related_collection_id' => $related->id,
+                            ],
+                        ],
+                        [
+                            'name' => 'children',
+                            'type' => 'one_to_many',
+                            'translatable' => '0',
+                            'settings' => [
+                                'related_collection_id' => $related->id,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ])->assertRedirect(route('collections.fields.index', $collection));
+
+    $field = CollectionField::query()
+        ->where('collection_id', $collection->id)
+        ->where('name', 'body')
+        ->firstOrFail();
+
+    $types = array_column($field->settings['block_types'][0]['fields'], 'type');
+    expect($types)->toContain('many_to_many')
+        ->and($types)->toContain('one_to_many');
+});
+
+test('nested block field conditions hide and require against block siblings', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $articles = Collection::factory()->create(['slug' => 'articles-nested-conditions']);
+    CollectionField::factory()->create([
+        'collection_id' => $articles->id,
+        'name' => 'body',
+        'type' => FieldTypeEnum::Blocks,
+        'settings' => [
+            'block_types' => [
+                [
+                    'key' => 'media',
+                    'label' => 'Media',
+                    'fields' => [
+                        [
+                            'name' => 'media_kind',
+                            'type' => 'select',
+                            'settings' => [
+                                'options' => [
+                                    ['value' => 'image', 'label' => 'Image'],
+                                    ['value' => 'video', 'label' => 'Video'],
+                                ],
+                            ],
+                        ],
+                        [
+                            'name' => 'video_url',
+                            'type' => 'string',
+                            'settings' => [
+                                'conditions' => [
+                                    'logic' => 'and',
+                                    'rules' => [
+                                        [
+                                            'field' => 'media_kind',
+                                            'operator' => 'equals',
+                                            'value' => 'video',
+                                        ],
+                                    ],
+                                    'required' => true,
+                                    'hidden' => false,
+                                ],
+                            ],
+                        ],
+                        [
+                            'name' => 'caption',
+                            'type' => 'string',
+                            'settings' => [
+                                'conditions' => [
+                                    'logic' => 'and',
+                                    'rules' => [
+                                        [
+                                            'field' => 'media_kind',
+                                            'operator' => 'equals',
+                                            'value' => 'image',
+                                        ],
+                                    ],
+                                    'hidden' => true,
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    // video_url required when media_kind=video — missing should fail
+    $this->post(route('collections.items.store', $articles), [
+        'data' => [
+            'body' => [
+                [
+                    'id' => 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+                    'type' => 'media',
+                    'data' => [
+                        'media_kind' => 'video',
+                    ],
+                ],
+            ],
+        ],
+    ])->assertSessionHasErrors();
+
+    // video present — ok; caption hidden when kind=video so not required
+    $this->post(route('collections.items.store', $articles), [
+        'data' => [
+            'body' => [
+                [
+                    'id' => 'dddddddd-dddd-dddd-dddd-dddddddddddd',
+                    'type' => 'media',
+                    'data' => [
+                        'media_kind' => 'video',
+                        'video_url' => 'https://example.com/v.mp4',
+                    ],
+                ],
+            ],
+        ],
+    ])->assertRedirect();
+
+    $item = CollectionItem::query()->where('collection_id', $articles->id)->firstOrFail();
+    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    expect($assembled['body'][0]['data']['video_url'])->toBe('https://example.com/v.mp4');
+});
+
+test('blocks field settings persist nested field conditions', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+
+    $this->post(route('collections.fields.store', $collection), [
+        'name' => 'body',
+        'type' => FieldTypeEnum::Blocks->value,
+        'settings' => [
+            'block_types' => [
+                [
+                    'key' => 'media',
+                    'label' => 'Media',
+                    'fields' => [
+                        ['name' => 'media_kind', 'type' => 'string', 'settings' => []],
+                        [
+                            'name' => 'video_url',
+                            'type' => 'string',
+                            'translatable' => '0',
+                            'settings' => [
+                                'conditions' => [
+                                    'logic' => 'and',
+                                    'rules' => [
+                                        [
+                                            'field' => 'media_kind',
+                                            'operator' => 'equals',
+                                            'value' => 'video',
+                                        ],
+                                    ],
+                                    'required' => true,
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ])->assertRedirect(route('collections.fields.index', $collection));
+
+    $field = CollectionField::query()
+        ->where('collection_id', $collection->id)
+        ->where('name', 'body')
+        ->firstOrFail();
+
+    $videoSettings = collect($field->settings['block_types'][0]['fields'])
+        ->firstWhere('name', 'video_url')['settings'];
+
+    expect($videoSettings['conditions']['rules'][0]['field'])->toBe('media_kind')
+        ->and($videoSettings['conditions']['required'])->toBeTrue();
 });
 
 test('files field stores multiple file ids', function () {

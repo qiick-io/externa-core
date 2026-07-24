@@ -4,11 +4,24 @@ namespace App\Support\Collections;
 
 use App\Enums\FieldTypeEnum;
 use App\Models\CollectionField;
+use App\Services\Collections\FieldConditionEvaluator;
 use Illuminate\Support\Str;
 
 class BlocksFieldSchema
 {
     /**
+     * Absolute ceiling for blocks nesting (depth 1 = collection field).
+     */
+    public const MAX_BLOCKS_DEPTH = 5;
+
+    /**
+     * Default max nesting when settings.max_blocks_depth is omitted.
+     */
+    public const DEFAULT_BLOCKS_DEPTH = 3;
+
+    /**
+     * Nested field types allowed inside a block type (leaf + optionally blocks).
+     *
      * @var list<string>
      */
     public const ALLOWED_NESTED_TYPES = [
@@ -37,22 +50,72 @@ class BlocksFieldSchema
         'code',
         'checkbox_group',
         'checkbox_group_tree',
+        'm2a',
+        'many_to_many',
+        'one_to_many',
+        'relation_many',
+        'blocks',
     ];
+
+    /**
+     * Resolve effective max nesting from field settings (clamp 1–5, default 3).
+     *
+     * @param  array<string, mixed>|null  $settings
+     */
+    public static function effectiveMaxDepth(?array $settings): int
+    {
+        $raw = $settings['max_blocks_depth'] ?? self::DEFAULT_BLOCKS_DEPTH;
+
+        if (! is_numeric($raw)) {
+            return self::DEFAULT_BLOCKS_DEPTH;
+        }
+
+        return max(1, min(self::MAX_BLOCKS_DEPTH, (int) $raw));
+    }
+
+    /**
+     * Types allowed as nested fields at a given blocks depth.
+     * Strips `blocks` when depth >= maxDepth (cannot nest further).
+     *
+     * @return list<string>
+     */
+    public static function allowedNestedTypesForDepth(int $depth, ?int $maxDepth = null): array
+    {
+        $max = $maxDepth ?? self::DEFAULT_BLOCKS_DEPTH;
+
+        if ($depth >= $max) {
+            return array_values(array_filter(
+                self::ALLOWED_NESTED_TYPES,
+                static fn (string $type): bool => $type !== 'blocks',
+            ));
+        }
+
+        return self::ALLOWED_NESTED_TYPES;
+    }
 
     /**
      * @param  array<string, mixed>|null  $settings
      * @return array<string, mixed>
      */
-    public function normalizeSettings(?array $settings): array
+    public function normalizeSettings(?array $settings, int $depth = 1, ?int $maxDepth = null): array
     {
         if (! is_array($settings)) {
             return [];
         }
 
-        $settings['block_types'] = $this->normalizeBlockTypes($settings['block_types'] ?? null);
+        $incomingHadBlockTypes = array_key_exists('block_types', $settings);
+        $maxDepth ??= self::effectiveMaxDepth($settings);
+
+        $settings['block_types'] = $this->normalizeBlockTypes($settings['block_types'] ?? null, $depth, $maxDepth);
 
         if ($settings['block_types'] === []) {
             unset($settings['block_types']);
+        }
+
+        if ($depth === 1 && ($incomingHadBlockTypes || isset($settings['block_types']))) {
+            $settings['max_blocks_depth'] = $maxDepth;
+        } else {
+            unset($settings['max_blocks_depth']);
         }
 
         return $settings;
@@ -61,12 +124,14 @@ class BlocksFieldSchema
     /**
      * @return list<array{key: string, label: string, fields: list<array{name: string, type: string, translatable?: bool, settings: array<string, mixed>}>}>
      */
-    public function normalizeBlockTypes(mixed $raw): array
+    public function normalizeBlockTypes(mixed $raw, int $depth = 1, ?int $maxDepth = null): array
     {
         if (! is_array($raw)) {
             return [];
         }
 
+        $maxDepth ??= self::DEFAULT_BLOCKS_DEPTH;
+        $allowed = self::allowedNestedTypesForDepth($depth, $maxDepth);
         $out = [];
 
         foreach ($raw as $blockType) {
@@ -86,7 +151,7 @@ class BlocksFieldSchema
                 $name = Str::of((string) ($field['name'] ?? ''))->trim()->snake()->value();
                 $type = (string) ($field['type'] ?? '');
 
-                if ($name === '' || $type === '' || ! in_array($type, self::ALLOWED_NESTED_TYPES, true)) {
+                if ($name === '' || $type === '' || ! in_array($type, $allowed, true)) {
                     continue;
                 }
 
@@ -101,11 +166,20 @@ class BlocksFieldSchema
                     $translatable = false;
                 }
 
+                $nestedSettings = is_array($field['settings'] ?? null) ? $field['settings'] : [];
+                if ($type === 'blocks') {
+                    // Nested blocks cannot themselves be translatable; recurse with depth+1.
+                    $translatable = false;
+                    $nestedSettings = $this->normalizeSettings($nestedSettings, $depth + 1, $maxDepth);
+                } else {
+                    $nestedSettings = $this->normalizeNestedFieldSettings($nestedSettings);
+                }
+
                 $fields[] = [
                     'name' => $name,
                     'type' => $type,
                     'translatable' => $translatable,
-                    'settings' => is_array($field['settings'] ?? null) ? $field['settings'] : [],
+                    'settings' => $nestedSettings,
                 ];
             }
 
@@ -121,6 +195,29 @@ class BlocksFieldSchema
         }
 
         return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     * @return array<string, mixed>
+     */
+    private function normalizeNestedFieldSettings(array $settings): array
+    {
+        if (! array_key_exists('conditions', $settings)) {
+            return $settings;
+        }
+
+        $normalized = app(FieldConditionEvaluator::class)->normalizeSettings(
+            is_array($settings['conditions']) ? $settings['conditions'] : null,
+        );
+
+        if ($normalized === null) {
+            unset($settings['conditions']);
+        } else {
+            $settings['conditions'] = $normalized;
+        }
+
+        return $settings;
     }
 
     /**

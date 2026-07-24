@@ -3,6 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Ai\Concerns\ChecksAiPermissions;
+use App\Ai\Concerns\EnforcesAiCollectionPermissions;
 use App\Ai\Concerns\LogsAiToolUse;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
@@ -20,6 +21,7 @@ use Stringable;
 class QueryCollectionItems implements Tool
 {
     use ChecksAiPermissions;
+    use EnforcesAiCollectionPermissions;
     use LogsAiToolUse;
 
     /**
@@ -54,10 +56,15 @@ class QueryCollectionItems implements Tool
 
             $query = $collection->items()->getQuery();
             app(CollectionItemQueryService::class)->applyFilters($query, $collection, $filters);
+            $this->applyAiItemFilter($collection, $query);
             $assembler = app(CollectionItemValuesAssembler::class);
             $limit = min(max($request->integer('limit', 25), 1), 100);
             $rows = $query->latest('id')->limit($limit)->get()->map(
-                fn (CollectionItem $item): array => ['id' => $item->id, ...$assembler->assemble($item)],
+                function (CollectionItem $item) use ($assembler, $collection): array {
+                    $data = $this->stripAiItemData($collection, $assembler->assemble($item));
+
+                    return ['id' => $item->id, ...$data];
+                },
             );
 
             return json_encode([

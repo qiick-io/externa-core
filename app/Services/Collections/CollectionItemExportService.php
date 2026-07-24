@@ -52,10 +52,17 @@ class CollectionItemExportService
         $items = $query->limit($maxRows)->get();
 
         $rows = $items
-            ->map(fn (CollectionItem $item): array => [
-                'id' => $item->id,
-                ...$this->assembler->assemble($item),
-            ])
+            ->map(function (CollectionItem $item) use ($collection, $request): array {
+                $data = $this->assembler->assemble($item);
+                if ($request !== null) {
+                    $data = $this->permissionEnforcer->stripData($request, $collection, $data);
+                }
+
+                return [
+                    'id' => $item->id,
+                    ...$data,
+                ];
+            })
             ->values()
             ->all();
 

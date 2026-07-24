@@ -173,6 +173,32 @@ class FileFieldExpander
                 }
 
                 $nestedValue = $data[$name];
+
+                if ($nestedType === FieldTypeEnum::Blocks) {
+                    $nestedField = $this->blocksFieldSchema->toFieldDefinition($definition);
+                    $data[$name] = $this->expandBlocks($nestedValue, $nestedField, $filesById, $roleId);
+
+                    continue;
+                }
+
+                if ($nestedType === FieldTypeEnum::M2a) {
+                    // Nested m2a stays JSON-embedded links (no junction); normalize shape on read.
+                    $data[$name] = $this->expandNestedM2aValue($nestedValue);
+
+                    continue;
+                }
+
+                if (in_array($nestedType, [
+                    FieldTypeEnum::ManyToMany,
+                    FieldTypeEnum::OneToMany,
+                    FieldTypeEnum::RelationMany,
+                ], true)) {
+                    // Nested m2m/o2m are JSON-embedded link lists — not SQL junctions.
+                    $data[$name] = $this->expandNestedM2mValue($nestedValue);
+
+                    continue;
+                }
+
                 if (($definition['translatable'] ?? false) === true && is_array($nestedValue)) {
                     foreach ($nestedValue as $locale => $localeValue) {
                         $data[$name][$locale] = $this->expandNestedFileValue($nestedType, $localeValue, $filesById, $roleId);
@@ -188,6 +214,77 @@ class FileFieldExpander
 
             return $block;
         }, $rawBlocks);
+    }
+
+    /**
+     * @return list<array{related_collection_id: int, related_item_id: int}>
+     */
+    private function expandNestedM2aValue(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($value as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $collectionId = $entry['related_collection_id'] ?? null;
+            $itemId = $entry['related_item_id'] ?? null;
+            if (! is_numeric($collectionId) || ! is_numeric($itemId)) {
+                continue;
+            }
+
+            $out[] = [
+                'related_collection_id' => (int) $collectionId,
+                'related_item_id' => (int) $itemId,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Nested m2m/o2m: JSON link list `{ related_item_id, meta }` (ints accepted).
+     *
+     * @return list<array{related_item_id: int, meta: array<string, mixed>}>
+     */
+    private function expandNestedM2mValue(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($value as $entry) {
+            if (is_numeric($entry)) {
+                $out[] = [
+                    'related_item_id' => (int) $entry,
+                    'meta' => [],
+                ];
+
+                continue;
+            }
+
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $id = $entry['related_item_id'] ?? $entry['id'] ?? null;
+            if (! is_numeric($id)) {
+                continue;
+            }
+
+            $meta = $entry['meta'] ?? [];
+            $out[] = [
+                'related_item_id' => (int) $id,
+                'meta' => is_array($meta) ? $meta : [],
+            ];
+        }
+
+        return $out;
     }
 
     /**
@@ -252,6 +349,16 @@ class FileFieldExpander
                 }
 
                 $nestedValue = $data[$name];
+
+                if ($nestedType === FieldTypeEnum::Blocks) {
+                    $nestedField = $this->blocksFieldSchema->toFieldDefinition($definition);
+                    foreach ($this->collectBlockFileIds($nestedValue, $nestedField) as $id) {
+                        $ids[] = $id;
+                    }
+
+                    continue;
+                }
+
                 $values = ($definition['translatable'] ?? false) === true && is_array($nestedValue)
                     ? array_values($nestedValue)
                     : [$nestedValue];

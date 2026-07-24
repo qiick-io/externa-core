@@ -3,6 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Ai\Concerns\ChecksAiPermissions;
+use App\Ai\Concerns\EnforcesAiCollectionPermissions;
 use App\Ai\Concerns\LogsAiToolUse;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
@@ -25,6 +26,7 @@ use Stringable;
 class ManageCollectionItems implements Tool
 {
     use ChecksAiPermissions;
+    use EnforcesAiCollectionPermissions;
     use LogsAiToolUse;
 
     /**
@@ -94,8 +96,12 @@ class ManageCollectionItems implements Tool
         $limit = min(max($request->integer('limit', 25), 1), 100);
         $assembler = app(CollectionItemValuesAssembler::class);
 
-        $items = $collection->items()
+        $query = $collection->items()
             ->when($request->boolean('trashed'), fn ($query) => $query->onlyTrashed())
+            ->getQuery();
+        $this->applyAiItemFilter($collection, $query);
+
+        $items = $query
             ->latest('id')
             ->limit($limit)
             ->get()
@@ -103,7 +109,7 @@ class ManageCollectionItems implements Tool
                 'id' => $item->id,
                 'collection_id' => $item->collection_id,
                 'deleted_at' => $item->deleted_at,
-                'data' => $assembler->assemble($item),
+                'data' => $this->stripAiItemData($collection, $assembler->assemble($item)),
             ]);
 
         return json_encode(['items' => $items], JSON_PRETTY_PRINT) ?: '[]';
@@ -121,10 +127,19 @@ class ManageCollectionItems implements Tool
             return 'Error: Item not found.';
         }
 
+        $collection = $item->collection;
+        if ($collection === null) {
+            return 'Error: Item not found.';
+        }
+
+        if ($error = $this->guardAiItemReadable($collection, $item)) {
+            return $error;
+        }
+
         return json_encode([
             'id' => $item->id,
             'collection_id' => $item->collection_id,
-            'data' => app(CollectionItemValuesAssembler::class)->assemble($item),
+            'data' => $this->stripAiItemData($collection, app(CollectionItemValuesAssembler::class)->assemble($item)),
         ], JSON_PRETTY_PRINT) ?: '{}';
     }
 
@@ -150,6 +165,10 @@ class ManageCollectionItems implements Tool
             return $data;
         }
 
+        if ($error = $this->guardAiWritableFields($collection, $data, 'create')) {
+            return $error;
+        }
+
         $normalized = app(CollectionItemDataNormalizer::class)->normalize($collection, $data, true);
         $item = $collection->items()->create([]);
         app(CollectionItemValuesWriter::class)->sync($item, $collection, $normalized);
@@ -160,7 +179,10 @@ class ManageCollectionItems implements Tool
             'item' => [
                 'id' => $item->id,
                 'collection_id' => $item->collection_id,
-                'data' => app(CollectionItemValuesAssembler::class)->assemble($item->fresh()),
+                'data' => $this->stripAiItemData(
+                    $collection,
+                    app(CollectionItemValuesAssembler::class)->assemble($item->fresh()),
+                ),
             ],
         ], JSON_PRETTY_PRINT) ?: '{}';
     }
@@ -177,10 +199,23 @@ class ManageCollectionItems implements Tool
             return 'Error: Item not found.';
         }
 
+        $collection = $item->collection;
+        if ($collection === null) {
+            return 'Error: Item not found.';
+        }
+
+        if ($error = $this->guardAiItemWritable($collection, $item)) {
+            return $error;
+        }
+
         $incoming = $this->decodeData($request);
 
         if (is_string($incoming)) {
             return $incoming;
+        }
+
+        if ($error = $this->guardAiWritableFields($collection, $incoming, 'update')) {
+            return $error;
         }
 
         $data = $this->patchItem($item, $incoming);
@@ -191,7 +226,7 @@ class ManageCollectionItems implements Tool
             'item' => [
                 'id' => $item->id,
                 'collection_id' => $item->collection_id,
-                'data' => $data,
+                'data' => $this->stripAiItemData($collection, $data),
             ],
         ], JSON_PRETTY_PRINT) ?: '{}';
     }
@@ -213,18 +248,27 @@ class ManageCollectionItems implements Tool
             return $incoming;
         }
 
+        if ($error = $this->guardAiWritableFields($collection, $incoming, 'update')) {
+            return $error;
+        }
+
         $items = $this->filteredItems($request, $collection);
 
         if (is_string($items)) {
             return $items;
         }
 
+        $updated = 0;
         foreach ($items as $item) {
+            if ($this->guardAiItemWritable($collection, $item) !== null) {
+                continue;
+            }
             $this->patchItem($item->load('collection.fields'), $incoming);
             $this->logAiMutation($item, 'bulk_update_item');
+            $updated++;
         }
 
-        return json_encode(['ok' => true, 'updated' => $items->count()], JSON_PRETTY_PRINT) ?: '{}';
+        return json_encode(['ok' => true, 'updated' => $updated], JSON_PRETTY_PRINT) ?: '{}';
     }
 
     private function bulkDelete(Request $request): string
@@ -245,12 +289,17 @@ class ManageCollectionItems implements Tool
             return $items;
         }
 
+        $deleted = 0;
         foreach ($items as $item) {
+            if ($this->guardAiItemWritable($collection, $item) !== null) {
+                continue;
+            }
             $this->logAiMutation($item, 'bulk_delete_item');
             $item->delete();
+            $deleted++;
         }
 
-        return json_encode(['ok' => true, 'deleted' => $items->count()], JSON_PRETTY_PRINT) ?: '{}';
+        return json_encode(['ok' => true, 'deleted' => $deleted], JSON_PRETTY_PRINT) ?: '{}';
     }
 
     private function listRelationOptions(Request $request): string
@@ -285,10 +334,19 @@ class ManageCollectionItems implements Tool
             return $error;
         }
 
-        $item = CollectionItem::query()->find($itemId);
+        $item = CollectionItem::query()->with('collection')->find($itemId);
 
         if ($item === null) {
             return 'Error: Item not found.';
+        }
+
+        $collection = $item->collection;
+        if ($collection === null) {
+            return 'Error: Item not found.';
+        }
+
+        if ($error = $this->guardAiItemWritable($collection, $item)) {
+            return $error;
         }
 
         $summary = ['id' => $item->id, 'collection_id' => $item->collection_id];
@@ -325,10 +383,17 @@ class ManageCollectionItems implements Tool
             return $error;
         }
 
-        $item = CollectionItem::query()->withTrashed()->find($itemId);
+        $item = CollectionItem::query()->withTrashed()->with('collection')->find($itemId);
 
         if ($item === null) {
             return 'Error: Item not found.';
+        }
+
+        $collection = $item->collection;
+        if ($collection !== null) {
+            if ($error = $this->guardAiItemWritable($collection, $item)) {
+                return $error;
+            }
         }
 
         $summary = $item->only(['id', 'collection_id']);
@@ -360,6 +425,7 @@ class ManageCollectionItems implements Tool
             $collection,
             [$filterField => $filterValue],
         );
+        $this->applyAiItemFilter($collection, $query);
 
         return $query->oldest('id')->limit(min(max($request->integer('limit', 100), 1), 100))->get();
     }

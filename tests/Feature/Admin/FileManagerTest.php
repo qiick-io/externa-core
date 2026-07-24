@@ -360,7 +360,7 @@ test('authorized users can restore and force delete trashed files', function () 
 });
 
 test('collection items options endpoint returns related items', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $authors = Collection::factory()->create(['name' => 'Authors']);
@@ -480,7 +480,7 @@ test('stale file uploads cleanup command removes expired uploads and chunks', fu
 });
 
 test('collection item can store image file id field', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();

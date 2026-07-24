@@ -94,32 +94,46 @@ export function SelectionSettings({
         const mapSettings = parseMapFieldSettings(settings);
 
         return (
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-4">
                 <div className="grid gap-2">
-                    <Label>Default latitude</Label>
-                    <Input
-                        type="number"
-                        step="any"
-                        name="settings[default_lat]"
-                        defaultValue={mapSettings.defaultLat ?? ''}
-                    />
+                    <Label htmlFor="geometry_mode">Geometry mode</Label>
+                    <select
+                        id="geometry_mode"
+                        name="settings[geometry_mode]"
+                        defaultValue={mapSettings.geometryMode}
+                        className="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                    >
+                        <option value="point">Point</option>
+                        <option value="multipoint">MultiPoint</option>
+                    </select>
                 </div>
-                <div className="grid gap-2">
-                    <Label>Default longitude</Label>
-                    <Input
-                        type="number"
-                        step="any"
-                        name="settings[default_lng]"
-                        defaultValue={mapSettings.defaultLng ?? ''}
-                    />
-                </div>
-                <div className="grid gap-2">
-                    <Label>Default zoom</Label>
-                    <Input
-                        type="number"
-                        name="settings[default_zoom]"
-                        defaultValue={mapSettings.defaultZoom}
-                    />
+                <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="grid gap-2">
+                        <Label>Default latitude</Label>
+                        <Input
+                            type="number"
+                            step="any"
+                            name="settings[default_lat]"
+                            defaultValue={mapSettings.defaultLat ?? ''}
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>Default longitude</Label>
+                        <Input
+                            type="number"
+                            step="any"
+                            name="settings[default_lng]"
+                            defaultValue={mapSettings.defaultLng ?? ''}
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>Default zoom</Label>
+                        <Input
+                            type="number"
+                            name="settings[default_zoom]"
+                            defaultValue={mapSettings.defaultZoom}
+                        />
+                    </div>
                 </div>
             </div>
         );

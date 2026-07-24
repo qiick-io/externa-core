@@ -170,20 +170,31 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
             );
         }
         case 'map': {
-            if (
-                typeof value === 'object' &&
-                value !== null &&
-                'lat' in value &&
-                'lng' in value
-            ) {
-                const lat = (value as { lat: unknown }).lat;
-                const lng = (value as { lng: unknown }).lng;
+            if (typeof value === 'object' && value !== null) {
+                const record = value as {
+                    type?: unknown;
+                    coordinates?: unknown;
+                    lat?: unknown;
+                    lng?: unknown;
+                };
 
-                return (
-                    <span className="font-mono text-xs">
-                        {String(lat)},{String(lng)}
-                    </span>
-                );
+                if (record.type === 'MultiPoint' && Array.isArray(record.coordinates)) {
+                    const count = record.coordinates.length;
+
+                    return (
+                        <span className="text-sm">
+                            {count === 1 ? '1 point' : `${count} points`}
+                        </span>
+                    );
+                }
+
+                if (record.type === 'Point') {
+                    return <span className="text-sm">Point</span>;
+                }
+
+                if ('lat' in record && 'lng' in record) {
+                    return <span className="text-sm">Point</span>;
+                }
             }
 
             return (

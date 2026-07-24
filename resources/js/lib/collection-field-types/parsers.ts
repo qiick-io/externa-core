@@ -1,6 +1,9 @@
 import {
-    BLOCKS_ALLOWED_FIELD_TYPES,
+    DEFAULT_BLOCKS_DEPTH,
+    MAX_BLOCKS_DEPTH,
     STRING_INPUT_TYPES,
+    blocksAllowedFieldTypesForDepth,
+    effectiveMaxBlocksDepth,
     type BlocksTypeDefinition,
     type FieldOptionRow,
     type FieldTreeOptionRow,
@@ -457,26 +460,30 @@ export function parseCodeFieldSettings(
     };
 }
 
-/** Map field default viewport center and zoom. */
+/** Map field default viewport center, zoom, and geometry mode. */
 export type MapFieldSettings = {
     defaultLat: number | null;
     defaultLng: number | null;
     defaultZoom: number;
+    geometryMode: 'point' | 'multipoint';
 };
 
 /**
  * @param settings - Raw field settings
- * @returns Default map coordinates and zoom
+ * @returns Default map coordinates, zoom, and geometry mode
  */
 export function parseMapFieldSettings(
     settings?: Record<string, unknown> | null,
 ): MapFieldSettings {
     const zoom = Number(settings?.default_zoom ?? 12);
+    const mode =
+        settings?.geometry_mode === 'multipoint' ? 'multipoint' : 'point';
 
     return {
         defaultLat: parseOptionalNumber(settings?.default_lat),
         defaultLng: parseOptionalNumber(settings?.default_lng),
         defaultZoom: Number.isFinite(zoom) ? zoom : 12,
+        geometryMode: mode,
     };
 }
 
@@ -644,13 +651,16 @@ export function parseM2aFieldSettings(
 
 export function parseBlocksFieldSettings(
     settings?: Record<string, unknown> | null,
-): { blockTypes: BlocksTypeDefinition[] } {
+): { blockTypes: BlocksTypeDefinition[]; maxBlocksDepth: number } {
     const raw = settings?.block_types;
+    const maxBlocksDepth = effectiveMaxBlocksDepth(settings);
+
     if (!Array.isArray(raw)) {
-        return { blockTypes: [] };
+        return { blockTypes: [], maxBlocksDepth };
     }
 
     return {
+        maxBlocksDepth,
         blockTypes: raw
             .filter((entry) => entry && typeof entry === 'object')
             .map((entry) => {
@@ -700,9 +710,12 @@ const BLOCK_KEY_RE = /^[a-z][a-z0-9_]*$/;
 /**
  * Drop incomplete block types / nested fields before the form posts.
  * Incomplete draft rows stay in the editor UI but must not fail validation.
+ * Recurses into nested `blocks` field settings up to maxDepth (default 3, ceiling 5).
  */
 export function serializeBlocksFieldSettings(
     blockTypes: BlocksTypeDefinition[],
+    depth = 1,
+    maxDepth: number = DEFAULT_BLOCKS_DEPTH,
 ): Array<{
     key: string;
     label: string;
@@ -713,7 +726,8 @@ export function serializeBlocksFieldSettings(
         settings: Record<string, unknown>;
     }>;
 }> {
-    const allowed = new Set<string>(BLOCKS_ALLOWED_FIELD_TYPES);
+    const cappedMax = Math.max(1, Math.min(MAX_BLOCKS_DEPTH, Math.trunc(maxDepth)));
+    const allowed = new Set<string>(blocksAllowedFieldTypesForDepth(depth, cappedMax));
 
     return blockTypes
         .map((blockType) => {
@@ -727,12 +741,27 @@ export function serializeBlocksFieldSettings(
                     .map((field) => {
                         const name = field.name.trim();
                         const type = field.type.trim();
+                        let settings = field.settings ?? {};
+
+                        if (type === 'blocks' && depth < cappedMax) {
+                            const nested = parseBlocksFieldSettings(settings).blockTypes;
+                            settings = {
+                                block_types: serializeBlocksFieldSettings(
+                                    nested,
+                                    depth + 1,
+                                    cappedMax,
+                                ),
+                            };
+                        }
 
                         return {
                             name,
                             type,
-                            translatable: (field.translatable ? '1' : '0') as '1' | '0',
-                            settings: field.settings ?? {},
+                            // Nested blocks fields are never themselves translatable.
+                            translatable: (type === 'blocks' ? '0' : field.translatable ? '1' : '0') as
+                                | '1'
+                                | '0',
+                            settings,
                         };
                     })
                     .filter(

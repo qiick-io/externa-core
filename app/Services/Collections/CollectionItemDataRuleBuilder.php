@@ -7,6 +7,7 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Support\Collections\BlocksFieldSchema;
 use App\Support\Collections\CollectionLocaleResolver;
+use App\Support\Collections\MapGeometry;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -141,11 +142,6 @@ class CollectionItemDataRuleBuilder
             };
         }
 
-        if ($field->type === FieldTypeEnum::Map) {
-            $rules[$prefix.'.lat'] = ['nullable', 'numeric', 'between:-90,90'];
-            $rules[$prefix.'.lng'] = ['nullable', 'numeric', 'between:-180,180'];
-        }
-
         return $rules;
     }
 
@@ -170,9 +166,7 @@ class CollectionItemDataRuleBuilder
                 $prefix.'.*' => ['string', 'max:1024'],
             ],
             FieldTypeEnum::Map => [
-                $prefix => [$presence, 'array'],
-                $prefix.'.lat' => ['nullable', 'numeric', 'between:-90,90'],
-                $prefix.'.lng' => ['nullable', 'numeric', 'between:-180,180'],
+                $prefix => [$presence, 'array', $this->mapGeometryRule()],
             ],
             FieldTypeEnum::Number => [
                 $prefix => array_merge([$presence, 'numeric'], $extraRules, $this->numericBoundsRules($field)),
@@ -282,7 +276,7 @@ class CollectionItemDataRuleBuilder
             FieldTypeEnum::CheckboxGroup,
             FieldTypeEnum::CheckboxGroupTree,
             FieldTypeEnum::Tag => array_merge([$presence, 'array'], $extraRules),
-            FieldTypeEnum::Map => [$presence, 'array'],
+            FieldTypeEnum::Map => [$presence, 'array', $this->mapGeometryRule()],
             FieldTypeEnum::Image => $field->usesArrayStorage()
                 ? [$presence, 'array']
                 : [$presence, 'integer', Rule::exists('files', 'id')],
@@ -302,6 +296,39 @@ class CollectionItemDataRuleBuilder
             FieldTypeEnum::RelationMany,
             FieldTypeEnum::OneToMany => [$presence, 'array'],
             FieldTypeEnum::ManyToMany => [$presence, 'array', $this->manyToManyArrayRule($field)],
+        };
+    }
+
+    /**
+     * Accept legacy `{ lat, lng }` or GeoJSON Point / MultiPoint.
+     */
+    private function mapGeometryRule(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail): void {
+            if ($value === null || $value === '') {
+                return;
+            }
+
+            if (! is_array($value)) {
+                $fail('The '.$attribute.' must be a map geometry object.');
+
+                return;
+            }
+
+            // Empty form submission (all blanks) — treat as null via normalizer.
+            $isLegacyEmpty = (array_key_exists('lat', $value) || array_key_exists('lng', $value))
+                && ($value['lat'] ?? '') === ''
+                && ($value['lng'] ?? '') === '';
+            $isGeoEmpty = isset($value['type'])
+                && (! isset($value['coordinates']) || $value['coordinates'] === [] || $value['coordinates'] === null);
+
+            if ($isLegacyEmpty || $isGeoEmpty) {
+                return;
+            }
+
+            if (MapGeometry::normalize($value) === null) {
+                $fail('The '.$attribute.' must be GeoJSON Point/MultiPoint or {lat,lng}.');
+            }
         };
     }
 
@@ -575,7 +602,15 @@ class CollectionItemDataRuleBuilder
 
             foreach ($schema['fields'] as $definition) {
                 $nestedField = $this->blocksFieldSchema->toFieldDefinition($definition);
+                $flags = $this->conditionEvaluator->effectiveFlags($nestedField, $blockData);
+
+                // Hidden-by-condition nested fields are not required (aligned with top-level).
+                if ($flags['hidden']) {
+                    continue;
+                }
+
                 $nestedPrefix = 'data.'.$nestedField->name;
+                $required = $flags['required'];
 
                 if ($nestedField->translatable) {
                     $nestedRules = array_merge(
@@ -586,10 +621,7 @@ class CollectionItemDataRuleBuilder
                     continue;
                 }
 
-                $nestedRules[$nestedPrefix] = array_merge(
-                    ['nullable'],
-                    $this->nonTranslatableRules($nestedField, false, null)
-                );
+                $nestedRules[$nestedPrefix] = $this->nonTranslatableRules($nestedField, $required, null);
             }
 
             $validator = Validator::make(['data' => $blockData], $nestedRules);

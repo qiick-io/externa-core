@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Enums\FileTypeEnum;
+use App\Models\Collection;
+use App\Models\CollectionItem;
 use App\Models\File;
 use App\Models\FileUpload;
 use App\Models\User;
@@ -249,6 +251,72 @@ class DashboardController
                     }
 
                     return $trend;
+                },
+            ),
+            'collectionCounts' => Cache::remember(
+                'dashboard:collection-counts',
+                $now->copy()->addSeconds(60),
+                fn (): array => Collection::query()
+                    ->withCount('items')
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'slug'])
+                    ->map(fn (Collection $collection): array => [
+                        'id' => $collection->id,
+                        'name' => $collection->name,
+                        'slug' => $collection->slug,
+                        'items_count' => (int) $collection->items_count,
+                    ])
+                    ->all(),
+            ),
+            'activityOverTime' => Cache::remember(
+                'dashboard:activity-over-time:30d',
+                $now->copy()->addSeconds(60),
+                function () use ($now): array {
+                    $days = 30;
+                    $startDate = $now->copy()->startOfDay()->subDays($days - 1);
+
+                    $countsByDate = Activity::query()
+                        ->where('created_at', '>=', $startDate)
+                        ->selectRaw('DATE(created_at) as date, COUNT(*) as activity_count')
+                        ->groupBy('date')
+                        ->orderBy('date')
+                        ->get()
+                        ->mapWithKeys(fn ($row): array => [(string) $row->date => (int) $row->activity_count])
+                        ->all();
+
+                    $series = [];
+                    for ($dayOffset = 0; $dayOffset < $days; $dayOffset++) {
+                        $date = $startDate->copy()->addDays($dayOffset)->toDateString();
+                        $series[] = [
+                            'date' => $date,
+                            'count' => (int) ($countsByDate[$date] ?? 0),
+                        ];
+                    }
+
+                    return $series;
+                },
+            ),
+            'contentEventBreakdown' => Cache::remember(
+                'dashboard:content-event-breakdown:30d',
+                $now->copy()->addSeconds(60),
+                function () use ($now): array {
+                    $startDate = $now->copy()->startOfDay()->subDays(29);
+
+                    $rows = Activity::query()
+                        ->where('created_at', '>=', $startDate)
+                        ->where('subject_type', CollectionItem::class)
+                        ->whereIn('event', ['created', 'updated', 'deleted'])
+                        ->selectRaw('event, COUNT(*) as event_count')
+                        ->groupBy('event')
+                        ->get()
+                        ->mapWithKeys(fn ($row): array => [(string) $row->event => (int) $row->event_count])
+                        ->all();
+
+                    return [
+                        'created' => (int) ($rows['created'] ?? 0),
+                        'updated' => (int) ($rows['updated'] ?? 0),
+                        'deleted' => (int) ($rows['deleted'] ?? 0),
+                    ];
                 },
             ),
         ]);

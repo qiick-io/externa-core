@@ -2,9 +2,11 @@
 
 namespace App\Services\Collections;
 
+use App\Enums\FieldTypeEnum;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
+use App\Support\Collections\MapGeometry;
 use Illuminate\Support\Collection;
 
 /**
@@ -64,7 +66,7 @@ class CollectionItemValuesAssembler
         foreach ($rows->groupBy('locale') as $locale => $localeRows) {
             /** @var string $locale */
             $row = $localeRows->firstWhere('position', 0);
-            $out[$locale] = $row?->value;
+            $out[$locale] = $this->maybeMapValue($field, $row?->value);
         }
 
         return $out;
@@ -81,6 +83,15 @@ class CollectionItemValuesAssembler
 
         $row = $rows->whereNull('locale')->firstWhere('position', 0);
 
-        return $row?->value;
+        return $this->maybeMapValue($field, $row?->value);
+    }
+
+    private function maybeMapValue(CollectionField $field, mixed $value): mixed
+    {
+        if ($field->type !== FieldTypeEnum::Map) {
+            return $value;
+        }
+
+        return MapGeometry::toGeoJson($value);
     }
 }

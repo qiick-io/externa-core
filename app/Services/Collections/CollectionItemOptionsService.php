@@ -28,6 +28,7 @@ class CollectionItemOptionsService
         ?string $search = null,
         int $perPage = 20,
         ?int $relatedCollectionIdOverride = null,
+        ?string $displayFieldOverride = null,
     ): LengthAwarePaginator {
         $relatedCollectionId = $relatedCollectionIdOverride
             ?? (int) data_get($field->settings, 'related_collection_id');
@@ -37,7 +38,11 @@ class CollectionItemOptionsService
             return $this->emptyPaginator($perPage);
         }
 
-        $displayField = (string) (data_get($field->settings, 'display_field') ?: 'id');
+        $displayField = $displayFieldOverride
+            ?? (string) (data_get($field->settings, 'display_field') ?: 'id');
+        if ($displayField === '') {
+            $displayField = 'id';
+        }
         $displayTemplate = data_get($field->settings, 'display_template');
         $filter = $this->normalizeRelationFilter(data_get($field->settings, 'filter'));
 

@@ -371,6 +371,7 @@ class ItemController extends Controller
         $validated = $request->validate([
             'field_id' => ['required', 'integer'],
             'related_collection_id' => ['nullable', 'integer', 'exists:collections,id'],
+            'display_field' => ['nullable', 'string', 'max:64'],
             'search' => ['nullable', 'string', 'max:255'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
@@ -390,6 +391,7 @@ class ItemController extends Controller
             $validated['search'] ?? null,
             $validated['per_page'] ?? 20,
             $relatedCollectionOverride,
+            isset($validated['display_field']) ? (string) $validated['display_field'] : null,
         );
 
         return response()->json($paginator);

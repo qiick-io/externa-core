@@ -54,7 +54,11 @@ class ExportCollection implements Tool
             }
 
             $exporter = app(CollectionItemExportService::class);
-            $payload = $exporter->collectRows($collection, maxRows: CollectionItemExportService::MAX_ROWS);
+            $payload = $exporter->collectRows(
+                $collection,
+                request: request(),
+                maxRows: CollectionItemExportService::MAX_ROWS,
+            );
 
             $content = $format === 'csv'
                 ? $exporter->toCsv($collection, $payload['rows'])

@@ -359,6 +359,12 @@ export type BlocksTypeDefinition = {
     fields: BlocksFieldDefinition[];
 };
 
+/** Matches BlocksFieldSchema::MAX_BLOCKS_DEPTH — absolute ceiling. Depth 1 = collection field. */
+export const MAX_BLOCKS_DEPTH = 5;
+
+/** Matches BlocksFieldSchema::DEFAULT_BLOCKS_DEPTH when settings omit max_blocks_depth. */
+export const DEFAULT_BLOCKS_DEPTH = 3;
+
 export const BLOCKS_ALLOWED_FIELD_TYPES = [
     'string',
     'textarea',
@@ -385,7 +391,43 @@ export const BLOCKS_ALLOWED_FIELD_TYPES = [
     'code',
     'checkbox_group',
     'checkbox_group_tree',
+    'm2a',
+    'many_to_many',
+    'one_to_many',
+    'relation_many',
+    'blocks',
 ] as const;
+
+/** Resolve effective max nesting from field settings (clamp 1–5, default 3). */
+export function effectiveMaxBlocksDepth(
+    settings?: Record<string, unknown> | null,
+): number {
+    const raw = settings?.max_blocks_depth;
+    const n =
+        typeof raw === 'number'
+            ? raw
+            : typeof raw === 'string' && raw.trim() !== ''
+              ? Number(raw)
+              : DEFAULT_BLOCKS_DEPTH;
+
+    if (!Number.isFinite(n)) {
+        return DEFAULT_BLOCKS_DEPTH;
+    }
+
+    return Math.max(1, Math.min(MAX_BLOCKS_DEPTH, Math.trunc(n)));
+}
+
+/** Nested field types allowed at a given blocks depth (blocks only when depth < maxDepth). */
+export function blocksAllowedFieldTypesForDepth(
+    depth: number,
+    maxDepth: number = DEFAULT_BLOCKS_DEPTH,
+): readonly string[] {
+    if (depth >= maxDepth) {
+        return BLOCKS_ALLOWED_FIELD_TYPES.filter((type) => type !== 'blocks');
+    }
+
+    return BLOCKS_ALLOWED_FIELD_TYPES;
+}
 
 /**
  * Field Type Group For Type.

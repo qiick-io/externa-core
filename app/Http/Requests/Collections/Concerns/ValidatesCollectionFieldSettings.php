@@ -65,6 +65,12 @@ trait ValidatesCollectionFieldSettings
             'settings.junction_fields.*.type' => ['required_with:settings.junction_fields', Rule::in(['string', 'number', 'boolean'])],
             'settings.allowed_collection_ids' => ['sometimes', 'array'],
             'settings.allowed_collection_ids.*' => ['integer', 'exists:collections,id'],
+            'settings.max_blocks_depth' => [
+                'sometimes',
+                'integer',
+                'min:1',
+                'max:'.BlocksFieldSchema::MAX_BLOCKS_DEPTH,
+            ],
             'settings.block_types' => ['sometimes', 'array'],
             'settings.block_types.*.key' => ['required_with:settings.block_types', 'string', 'max:64', 'regex:/^[a-z][a-z0-9_]*$/'],
             'settings.block_types.*.label' => ['required_with:settings.block_types', 'string', 'max:255'],
@@ -110,6 +116,7 @@ trait ValidatesCollectionFieldSettings
             'settings.default_lat' => ['sometimes', 'nullable', 'numeric'],
             'settings.default_lng' => ['sometimes', 'nullable', 'numeric'],
             'settings.default_zoom' => ['sometimes', 'nullable', 'integer'],
+            'settings.geometry_mode' => ['sometimes', 'nullable', Rule::in(['point', 'multipoint'])],
             'settings.opacity' => ['sometimes'],
             'settings.preset_colors' => ['sometimes'],
             'settings.allowed_mime_types' => ['sometimes'],
@@ -137,12 +144,13 @@ trait ValidatesCollectionFieldSettings
                 continue;
             }
 
-            $rules['settings.display_name.'.$locale] = ['sometimes', 'string', 'max:255'];
-            $rules['settings.note.'.$locale] = ['sometimes', 'string', 'max:1024'];
-            $rules['settings.validation_message.'.$locale] = ['sometimes', 'string', 'max:1024'];
-            $rules['settings.placeholder.'.$locale] = ['sometimes', 'string', 'max:255'];
-            $rules['settings.label_on.'.$locale] = ['sometimes', 'string', 'max:255'];
-            $rules['settings.label_off.'.$locale] = ['sometimes', 'string', 'max:255'];
+            // nullable: ConvertEmptyStringsToNull turns blank locale inputs into null
+            $rules['settings.display_name.'.$locale] = ['sometimes', 'nullable', 'string', 'max:255'];
+            $rules['settings.note.'.$locale] = ['sometimes', 'nullable', 'string', 'max:1024'];
+            $rules['settings.validation_message.'.$locale] = ['sometimes', 'nullable', 'string', 'max:1024'];
+            $rules['settings.placeholder.'.$locale] = ['sometimes', 'nullable', 'string', 'max:255'];
+            $rules['settings.label_on.'.$locale] = ['sometimes', 'nullable', 'string', 'max:255'];
+            $rules['settings.label_off.'.$locale] = ['sometimes', 'nullable', 'string', 'max:255'];
         }
 
         return $rules;
@@ -157,6 +165,7 @@ trait ValidatesCollectionFieldSettings
     protected function normalizeSettingsArray(array $settings): array
     {
         $settings = app(BlocksFieldSchema::class)->normalizeSettings($settings);
+        $settings = $this->pruneEmptyTranslatedSettings($settings);
 
         if (isset($settings['filter']) && is_string($settings['filter'])) {
             $trimmed = trim($settings['filter']);
@@ -269,6 +278,36 @@ trait ValidatesCollectionFieldSettings
             }
 
             $settings['block_types'] = $normalizedBlockTypes;
+        }
+
+        return $settings;
+    }
+
+    /**
+     * Drop blank/null translated locale values (empty inputs become null via ConvertEmptyStringsToNull).
+     *
+     * @param  array<string, mixed>  $settings
+     * @return array<string, mixed>
+     */
+    protected function pruneEmptyTranslatedSettings(array $settings): array
+    {
+        foreach (['display_name', 'note', 'validation_message', 'placeholder', 'label_on', 'label_off'] as $key) {
+            if (! isset($settings[$key]) || ! is_array($settings[$key])) {
+                continue;
+            }
+
+            $cleaned = [];
+            foreach ($settings[$key] as $locale => $value) {
+                if (is_string($value) && trim($value) !== '') {
+                    $cleaned[$locale] = $value;
+                }
+            }
+
+            if ($cleaned === []) {
+                unset($settings[$key]);
+            } else {
+                $settings[$key] = $cleaned;
+            }
         }
 
         return $settings;

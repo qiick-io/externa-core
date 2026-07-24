@@ -7,6 +7,7 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Support\Collections\BlocksFieldSchema;
 use App\Support\Collections\CollectionLocaleResolver;
+use App\Support\Collections\MapGeometry;
 use Illuminate\Support\Str;
 
 /**
@@ -124,7 +125,7 @@ class CollectionItemDataNormalizer
             FieldTypeEnum::CheckboxGroup,
             FieldTypeEnum::CheckboxGroupTree,
             FieldTypeEnum::Tag => $this->normalizeSelectionArray($field, $value),
-            FieldTypeEnum::Map => $this->normalizeMapCoordinates($value),
+            FieldTypeEnum::Map => $this->normalizeMapCoordinates($field, $value),
             FieldTypeEnum::Image => $field->usesArrayStorage()
                 ? $this->normalizeIntegerArray($value)
                 : $this->normalizeFileId($value),
@@ -175,29 +176,13 @@ class CollectionItemDataNormalizer
     }
 
     /**
-     * @return array{lat: float|null, lng: float|null}|null
+     * @return array{type: string, coordinates: mixed}|null
      */
-    private function normalizeMapCoordinates(mixed $value): ?array
+    private function normalizeMapCoordinates(CollectionField $field, mixed $value): ?array
     {
-        if (! is_array($value)) {
-            return null;
-        }
+        $mode = MapGeometry::normalizeMode(data_get($field->settings, 'geometry_mode'));
 
-        $lat = $value['lat'] ?? null;
-        $lng = $value['lng'] ?? null;
-
-        if ($lat === null || $lat === '' || $lng === null || $lng === '') {
-            return null;
-        }
-
-        if (! is_numeric($lat) || ! is_numeric($lng)) {
-            return null;
-        }
-
-        return [
-            'lat' => (float) $lat,
-            'lng' => (float) $lng,
-        ];
+        return MapGeometry::normalize($value, $mode);
     }
 
     private function normalizeStringValue(CollectionField $field, ?string $value): ?string
