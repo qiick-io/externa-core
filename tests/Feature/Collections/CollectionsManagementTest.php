@@ -12,8 +12,14 @@ use App\Models\User;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\Request;
 use Inertia\Testing\AssertableInertia;
+
+beforeEach(function () {
+    $this->seed(PermissionSeeder::class);
+    $this->withoutVite();
+});
 
 test('guests cannot access collection routes', function () {
     $response = $this->get(route('collections.index'));
@@ -21,7 +27,7 @@ test('guests cannot access collection routes', function () {
 });
 
 test('collection create and edit pages are not registered', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -31,7 +37,7 @@ test('collection create and edit pages are not registered', function () {
 });
 
 test('authenticated verified users can create collections fields and items', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $response = $this->post(route('collections.store'), [
@@ -69,7 +75,7 @@ test('authenticated verified users can create collections fields and items', fun
 });
 
 test('items can be filtered by translatable field', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -101,7 +107,7 @@ test('items can be filtered by translatable field', function () {
 });
 
 test('item resource flattens translations for current locale', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -135,7 +141,7 @@ test('item resource flattens translations for current locale', function () {
 });
 
 test('collection slug is generated from name when slug is omitted', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $response = $this->post(route('collections.store'), [
@@ -149,7 +155,7 @@ test('collection slug is generated from name when slug is omitted', function () 
 });
 
 test('singleton collection rejects a second item', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create(['is_singleton' => true]);
@@ -169,7 +175,7 @@ test('singleton collection rejects a second item', function () {
 });
 
 test('item store redirects to item edit', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create(['is_singleton' => false]);
@@ -190,7 +196,7 @@ test('item store redirects to item edit', function () {
 });
 
 test('item update redirects to item edit', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create(['is_singleton' => false]);
@@ -213,7 +219,7 @@ test('item update redirects to item edit', function () {
 });
 
 test('singleton content can be upserted from the singleton route', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create(['is_singleton' => true]);
@@ -240,7 +246,7 @@ test('singleton content can be upserted from the singleton route', function () {
 });
 
 test('item field value rows are synced when item content is saved', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -264,7 +270,7 @@ test('item field value rows are synced when item content is saved', function () 
 });
 
 test('collection item new page renders the same form component as show', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -277,7 +283,7 @@ test('collection item new page renders the same form component as show', functio
 });
 
 test('creating singleton collection seeds an empty item row', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $this->post(route('collections.store'), [
@@ -292,7 +298,7 @@ test('creating singleton collection seeds an empty item row', function () {
 });
 
 test('collection singleton flag cannot be changed on update', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create(['is_singleton' => false]);
@@ -310,7 +316,7 @@ test('collection singleton flag cannot be changed on update', function () {
 });
 
 test('collection update ignores unchanged singleton flag in payload', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create(['is_singleton' => true]);
@@ -328,7 +334,7 @@ test('collection update ignores unchanged singleton flag in payload', function (
 });
 
 test('non-singleton collection show redirects to items index', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create(['is_singleton' => false]);
@@ -338,7 +344,7 @@ test('non-singleton collection show redirects to items index', function () {
 });
 
 test('collection fields page renders field setup', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -351,7 +357,7 @@ test('collection fields page renders field setup', function () {
 });
 
 test('collection fields can be reordered', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -375,7 +381,7 @@ test('collection fields can be reordered', function () {
 });
 
 test('collection field reorder can persist layout row breaks', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -402,7 +408,7 @@ test('collection field reorder can persist layout row breaks', function () {
 });
 
 test('collection field can be duplicated', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -427,7 +433,7 @@ test('collection field can be duplicated', function () {
 });
 
 test('collection field form visibility can be toggled', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -449,7 +455,7 @@ test('collection field form visibility can be toggled', function () {
 });
 
 test('hidden collection fields are not validated on item create', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -471,7 +477,7 @@ test('hidden collection fields are not validated on item create', function () {
 });
 
 test('collection field layout width can be updated', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -489,7 +495,7 @@ test('collection field layout width can be updated', function () {
 });
 
 test('duplicated field keeps layout width setting', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -512,7 +518,7 @@ test('duplicated field keeps layout width setting', function () {
 });
 
 test('collection field can be updated from edit form payload', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -536,7 +542,7 @@ test('collection field can be updated from edit form payload', function () {
 });
 
 test('string field stores input settings payload', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -559,7 +565,7 @@ test('string field stores input settings payload', function () {
 });
 
 test('required string field is enforced when saving item content', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -580,7 +586,7 @@ test('required string field is enforced when saving item content', function () {
 });
 
 test('select field stores options from structured settings payload', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -602,7 +608,7 @@ test('select field stores options from structured settings payload', function ()
 });
 
 test('autocomplete and wysiwyg field types can be created', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -645,7 +651,7 @@ test('autocomplete and wysiwyg field types can be created', function () {
 });
 
 test('api autocomplete field type can be created with remote settings', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -683,7 +689,7 @@ test('api autocomplete field type can be created with remote settings', function
 });
 
 test('selection field types can be created', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -731,7 +737,7 @@ test('selection field types can be created', function () {
 });
 
 test('relational field types can be created', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -777,7 +783,7 @@ test('relational field types can be created', function () {
 });
 
 test('other field types can be created', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -810,7 +816,7 @@ test('other field types can be created', function () {
 });
 
 test('cannot set translatable true on many_to_one or hash fields', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -854,7 +860,7 @@ test('cannot set translatable true on many_to_one or hash fields', function () {
 });
 
 test('hash field value is auto generated on item create', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -883,7 +889,7 @@ test('hash field value is auto generated on item create', function () {
 });
 
 test('field stores common directus-like settings payload', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -917,7 +923,7 @@ test('field stores common directus-like settings payload', function () {
 });
 
 test('string field trim and slugify are applied when saving item content', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -938,7 +944,7 @@ test('string field trim and slugify are applied when saving item content', funct
 });
 
 test('string field max length validation rule is enforced', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -959,7 +965,7 @@ test('string field max length validation rule is enforced', function () {
 });
 
 test('string field unique validation rule is enforced', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -984,7 +990,7 @@ test('string field unique validation rule is enforced', function () {
 });
 
 test('readonly field value cannot be overwritten on item update', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -1010,7 +1016,7 @@ test('readonly field value cannot be overwritten on item update', function () {
 });
 
 test('select field rejects values outside options when allow_other is false', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -1037,7 +1043,7 @@ test('select field rejects values outside options when allow_other is false', fu
 });
 
 test('default value is applied on item create when field is omitted', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -1061,7 +1067,7 @@ test('default value is applied on item create when field is omitted', function (
 });
 
 test('many to one relation value is saved and assembled', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $authors = Collection::factory()->create(['slug' => 'authors']);
@@ -1101,7 +1107,7 @@ test('many to one relation value is saved and assembled', function () {
 });
 
 test('many to many relation values are saved as array storage rows', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $tags = Collection::factory()->create(['slug' => 'tags']);
@@ -1130,14 +1136,55 @@ test('many to many relation values are saved as array storage rows', function ()
         ->get();
 
     expect($rows)->toHaveCount(2);
-    expect($rows->pluck('value')->all())->toBe([$firstTag->id, $secondTag->id]);
+    expect($rows->pluck('value')->all())->toBe([
+        ['related_item_id' => $firstTag->id, 'meta' => []],
+        ['related_item_id' => $secondTag->id, 'meta' => []],
+    ]);
 
     $assembled = app(CollectionItemValuesAssembler::class)->assemble($article);
-    expect($assembled['related_tags'])->toBe([$firstTag->id, $secondTag->id]);
+    expect($assembled['related_tags'])->toBe([
+        ['related_item_id' => $firstTag->id, 'meta' => []],
+        ['related_item_id' => $secondTag->id, 'meta' => []],
+    ]);
+});
+
+test('many to many accepts junction metadata objects', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $tags = Collection::factory()->create(['slug' => 'tags-meta']);
+    $tag = CollectionItem::factory()->create(['collection_id' => $tags->id]);
+
+    $articles = Collection::factory()->create(['slug' => 'articles-meta']);
+    CollectionField::factory()->create([
+        'collection_id' => $articles->id,
+        'name' => 'related_tags',
+        'type' => FieldTypeEnum::ManyToMany,
+        'settings' => [
+            'related_collection_id' => $tags->id,
+            'junction_fields' => [
+                ['name' => 'sort', 'type' => 'number'],
+            ],
+        ],
+    ]);
+
+    $this->post(route('collections.items.store', $articles), [
+        'data' => [
+            'related_tags' => [
+                ['related_item_id' => $tag->id, 'meta' => ['sort' => 1]],
+            ],
+        ],
+    ])->assertRedirect();
+
+    $article = CollectionItem::query()->where('collection_id', $articles->id)->firstOrFail();
+    $assembled = app(CollectionItemValuesAssembler::class)->assemble($article);
+    expect($assembled['related_tags'])->toBe([
+        ['related_item_id' => $tag->id, 'meta' => ['sort' => 1]],
+    ]);
 });
 
 test('m2a blocks are saved and assembled in order', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $blocks = Collection::factory()->create(['slug' => 'blocks']);
@@ -1194,8 +1241,224 @@ test('m2a blocks are saved and assembled in order', function () {
     )->toBe(2);
 });
 
+test('blocks field type settings are normalized and saved', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+
+    $this->post(route('collections.fields.store', $collection), [
+        'name' => 'content',
+        'type' => FieldTypeEnum::Blocks->value,
+        'translatable' => '1',
+        'settings' => [
+            'block_types' => [
+                [
+                    'key' => 'Rich Text',
+                    'label' => 'Rich text',
+                    'fields' => [
+                        ['name' => 'Title', 'type' => 'string', 'translatable' => '1', 'settings' => []],
+                        ['name' => 'secret', 'type' => 'hash', 'translatable' => '1', 'settings' => []],
+                    ],
+                ],
+            ],
+        ],
+    ])->assertRedirect(route('collections.fields.index', $collection));
+
+    $field = CollectionField::query()
+        ->where('collection_id', $collection->id)
+        ->where('name', 'content')
+        ->firstOrFail();
+
+    expect($field->translatable)->toBeFalse()
+        ->and($field->settings['block_types'][0]['key'])->toBe('rich_text')
+        ->and($field->settings['block_types'][0]['fields'][0]['name'])->toBe('title')
+        ->and($field->settings['block_types'][0]['fields'][1]['translatable'])->toBeFalse();
+});
+
+test('blocks field values are saved and assembled in order', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['slug' => 'articles']);
+    $field = CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'content',
+        'type' => FieldTypeEnum::Blocks,
+        'settings' => [
+            'block_types' => [
+                [
+                    'key' => 'rich_text',
+                    'label' => 'Rich text',
+                    'fields' => [
+                        ['name' => 'title', 'type' => 'string', 'translatable' => true, 'settings' => []],
+                        ['name' => 'body', 'type' => 'wysiwyg', 'translatable' => true, 'settings' => []],
+                    ],
+                ],
+                [
+                    'key' => 'media',
+                    'label' => 'Media',
+                    'fields' => [
+                        ['name' => 'image', 'type' => 'image', 'settings' => []],
+                        ['name' => 'caption', 'type' => 'string', 'translatable' => true, 'settings' => []],
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    $image = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'hero.jpg',
+        'path' => '/hero.jpg',
+        'disk' => 'assets',
+        'storage_path' => '2026/hero.jpg',
+    ]);
+
+    $payload = [
+        'content' => [
+            [
+                'id' => '11111111-1111-1111-1111-111111111111',
+                'type' => 'rich_text',
+                'data' => [
+                    'title' => ['en' => 'Hello', 'it' => 'Ciao'],
+                    'body' => ['en' => '<p>Body</p>'],
+                ],
+            ],
+            [
+                'id' => '22222222-2222-2222-2222-222222222222',
+                'type' => 'media',
+                'data' => [
+                    'image' => $image->id,
+                    'caption' => ['en' => 'Hero image'],
+                ],
+            ],
+        ],
+    ];
+
+    $this->post(route('collections.items.store', $collection), ['data' => $payload])->assertRedirect();
+
+    $item = CollectionItem::query()->where('collection_id', $collection->id)->firstOrFail();
+    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+
+    expect($assembled['content'])->toBe($payload['content']);
+    expect(
+        CollectionItemValue::query()
+            ->where('item_id', $item->id)
+            ->where('field_id', $field->id)
+            ->count()
+    )->toBe(2);
+});
+
+test('blocks field update replaces blocks instead of appending', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['slug' => 'articles-update']);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'content',
+        'type' => FieldTypeEnum::Blocks,
+        'settings' => [
+            'block_types' => [
+                [
+                    'key' => 'rich_text',
+                    'label' => 'Rich text',
+                    'fields' => [
+                        ['name' => 'title', 'type' => 'string', 'settings' => []],
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    $this->post(route('collections.items.store', $collection), [
+        'data' => [
+            'content' => [
+                [
+                    'id' => '11111111-1111-1111-1111-111111111111',
+                    'type' => 'rich_text',
+                    'data' => ['title' => 'One'],
+                ],
+                [
+                    'id' => '22222222-2222-2222-2222-222222222222',
+                    'type' => 'rich_text',
+                    'data' => ['title' => 'Two'],
+                ],
+            ],
+        ],
+    ])->assertRedirect();
+
+    $item = CollectionItem::query()->where('collection_id', $collection->id)->firstOrFail();
+
+    $this->put(route('collections.items.update', [$collection, $item]), [
+        'data' => [
+            'content' => [
+                [
+                    'id' => '33333333-3333-3333-3333-333333333333',
+                    'type' => 'rich_text',
+                    'data' => ['title' => 'Only'],
+                ],
+            ],
+        ],
+    ])->assertRedirect();
+
+    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+
+    expect($assembled['content'])->toHaveCount(1)
+        ->and($assembled['content'][0]['id'])->toBe('33333333-3333-3333-3333-333333333333')
+        ->and($assembled['content'][0]['data']['title'])->toBe('Only');
+});
+
+test('blocks field rejects unknown block type and invalid nested data', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'content',
+        'type' => FieldTypeEnum::Blocks,
+        'settings' => [
+            'block_types' => [
+                [
+                    'key' => 'media',
+                    'label' => 'Media',
+                    'fields' => [
+                        ['name' => 'image', 'type' => 'image', 'settings' => []],
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    $this->post(route('collections.items.store', $collection), [
+        'data' => [
+            'content' => [
+                [
+                    'id' => '11111111-1111-1111-1111-111111111111',
+                    'type' => 'missing',
+                    'data' => [],
+                ],
+            ],
+        ],
+    ])->assertSessionHasErrors('data.content');
+
+    $this->post(route('collections.items.store', $collection), [
+        'data' => [
+            'content' => [
+                [
+                    'id' => '11111111-1111-1111-1111-111111111111',
+                    'type' => 'media',
+                    'data' => ['image' => 'oops'],
+                ],
+            ],
+        ],
+    ])->assertSessionHasErrors();
+});
+
 test('files field stores multiple file ids', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $firstFile = File::query()->create([
@@ -1230,7 +1493,7 @@ test('files field stores multiple file ids', function () {
 });
 
 test('relation options endpoint supports display template and filter', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $related = Collection::factory()->create(['slug' => 'related-items']);
@@ -1295,7 +1558,7 @@ test('relation options endpoint supports display template and filter', function 
 });
 
 test('checkbox group tree leaf combining keeps only leaf values on save', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -1327,7 +1590,7 @@ test('checkbox group tree leaf combining keeps only leaf values on save', functi
 });
 
 test('tag field lowercase and alphabetize settings are applied on save', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -1351,7 +1614,7 @@ test('tag field lowercase and alphabetize settings are applied on save', functio
 });
 
 test('deleting a collection soft deletes it and its items from the active index', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -1372,7 +1635,7 @@ test('deleting a collection soft deletes it and its items from the active index'
 });
 
 test('trashed collections filter only shows soft deleted collections', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     Collection::factory()->create();
@@ -1389,7 +1652,7 @@ test('trashed collections filter only shows soft deleted collections', function 
 });
 
 test('collections index can be searched by name or slug', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $match = Collection::factory()->create([
@@ -1418,7 +1681,7 @@ test('collections index can be searched by name or slug', function () {
 });
 
 test('collections index can be sorted by name slug and updated_at', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $zebra = Collection::factory()->create([
@@ -1469,7 +1732,7 @@ test('collections index can be sorted by name slug and updated_at', function () 
 });
 
 test('restoring a collection restores its soft deleted items', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -1484,7 +1747,7 @@ test('restoring a collection restores its soft deleted items', function () {
 });
 
 test('force deleting a collection permanently removes it and its items', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -1499,7 +1762,7 @@ test('force deleting a collection permanently removes it and its items', functio
 });
 
 test('collection items can be restored and force deleted', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();

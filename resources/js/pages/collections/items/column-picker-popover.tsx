@@ -28,6 +28,8 @@ const SYSTEM_FIELDS: RelatedFieldEntry[] = [
     { name: 'id', display_name: 'ID', type: 'system' },
     { name: 'created_at', display_name: 'Created at', type: 'system' },
     { name: 'updated_at', display_name: 'Updated at', type: 'system' },
+    { name: 'user_created', display_name: 'Created by', type: 'system' },
+    { name: 'user_updated', display_name: 'Updated by', type: 'system' },
 ];
 
 function isDrillable(type: string): boolean {

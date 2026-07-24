@@ -13,7 +13,7 @@ use App\Models\CollectionField;
  */
 class CollectionListColumnsNormalizer
 {
-    public const SYSTEM_COLUMNS = ['id', 'created_at', 'updated_at'];
+    public const SYSTEM_COLUMNS = ['id', 'created_at', 'updated_at', 'user_created', 'user_updated'];
 
     /** @var list<string> */
     public const FILE_META_KEYS = ['id', 'filename_download', 'type', 'filesize'];

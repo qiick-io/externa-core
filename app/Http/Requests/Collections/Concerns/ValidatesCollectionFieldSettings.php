@@ -5,6 +5,7 @@ namespace App\Http\Requests\Collections\Concerns;
 use App\Enums\FieldTypeEnum;
 use App\Models\CollectionField;
 use App\Services\Collections\FieldConditionEvaluator;
+use App\Support\Collections\BlocksFieldSchema;
 use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Validation\Rule;
 
@@ -59,8 +60,19 @@ trait ValidatesCollectionFieldSettings
             'settings.display_field' => ['sometimes', 'string', 'max:64'],
             'settings.display_template' => ['sometimes', 'nullable', 'string', 'max:255'],
             'settings.filter' => ['sometimes', 'nullable'],
+            'settings.junction_fields' => ['sometimes', 'nullable', 'array'],
+            'settings.junction_fields.*.name' => ['required_with:settings.junction_fields', 'string', 'max:64', 'regex:/^[a-z][a-z0-9_]*$/'],
+            'settings.junction_fields.*.type' => ['required_with:settings.junction_fields', Rule::in(['string', 'number', 'boolean'])],
             'settings.allowed_collection_ids' => ['sometimes', 'array'],
             'settings.allowed_collection_ids.*' => ['integer', 'exists:collections,id'],
+            'settings.block_types' => ['sometimes', 'array'],
+            'settings.block_types.*.key' => ['required_with:settings.block_types', 'string', 'max:64', 'regex:/^[a-z][a-z0-9_]*$/'],
+            'settings.block_types.*.label' => ['required_with:settings.block_types', 'string', 'max:255'],
+            'settings.block_types.*.fields' => ['sometimes', 'array'],
+            'settings.block_types.*.fields.*.name' => ['required_with:settings.block_types.*.fields', 'string', 'max:64', 'regex:/^[a-z][a-z0-9_]*$/'],
+            'settings.block_types.*.fields.*.type' => ['required_with:settings.block_types.*.fields', Rule::in(BlocksFieldSchema::ALLOWED_NESTED_TYPES)],
+            'settings.block_types.*.fields.*.translatable' => ['sometimes', 'boolean'],
+            'settings.block_types.*.fields.*.settings' => ['sometimes', 'array'],
             'settings.allow_multiple' => ['sometimes'],
             'settings.allow_none' => ['sometimes'],
             'settings.allow_other' => ['sometimes'],
@@ -144,6 +156,8 @@ trait ValidatesCollectionFieldSettings
      */
     protected function normalizeSettingsArray(array $settings): array
     {
+        $settings = app(BlocksFieldSchema::class)->normalizeSettings($settings);
+
         if (isset($settings['filter']) && is_string($settings['filter'])) {
             $trimmed = trim($settings['filter']);
             if ($trimmed === '') {
@@ -154,6 +168,53 @@ trait ValidatesCollectionFieldSettings
                 if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                     $settings['filter'] = $decoded;
                 }
+            }
+        }
+
+        if (array_key_exists('junction_fields', $settings)) {
+            $rawJunction = $settings['junction_fields'];
+            if (is_string($rawJunction)) {
+                $trimmed = trim($rawJunction);
+                if ($trimmed === '') {
+                    unset($settings['junction_fields']);
+                    $rawJunction = null;
+                } else {
+                    $decoded = json_decode($trimmed, true);
+                    $rawJunction = json_last_error() === JSON_ERROR_NONE ? $decoded : null;
+                }
+            }
+
+            if ($rawJunction === null) {
+                unset($settings['junction_fields']);
+            } elseif (is_array($rawJunction)) {
+                $normalizedJunction = [];
+                $seenNames = [];
+                foreach ($rawJunction as $entry) {
+                    if (! is_array($entry)) {
+                        continue;
+                    }
+                    $name = (string) ($entry['name'] ?? '');
+                    if ($name === '' || isset($seenNames[$name])) {
+                        continue;
+                    }
+                    $seenNames[$name] = true;
+                    $type = (string) ($entry['type'] ?? 'string');
+                    if (! in_array($type, ['string', 'number', 'boolean'], true)) {
+                        $type = 'string';
+                    }
+                    $normalizedJunction[] = [
+                        'name' => $name,
+                        'type' => $type,
+                    ];
+                }
+
+                if ($normalizedJunction === []) {
+                    unset($settings['junction_fields']);
+                } else {
+                    $settings['junction_fields'] = $normalizedJunction;
+                }
+            } else {
+                unset($settings['junction_fields']);
             }
         }
 
@@ -170,6 +231,45 @@ trait ValidatesCollectionFieldSettings
 
         // Drop dead use_24h — native date inputs don't honor AM/PM; use date_mode instead.
         unset($settings['use_24h']);
+
+        if (isset($settings['block_types']) && is_array($settings['block_types'])) {
+            $seenBlockKeys = [];
+            $normalizedBlockTypes = [];
+
+            foreach ($settings['block_types'] as $blockType) {
+                if (! is_array($blockType)) {
+                    continue;
+                }
+
+                $key = (string) ($blockType['key'] ?? '');
+                if ($key === '' || isset($seenBlockKeys[$key])) {
+                    continue;
+                }
+
+                $seenBlockKeys[$key] = true;
+
+                $seenFieldNames = [];
+                $normalizedFields = [];
+                foreach (is_array($blockType['fields'] ?? null) ? $blockType['fields'] : [] as $field) {
+                    if (! is_array($field)) {
+                        continue;
+                    }
+
+                    $name = (string) ($field['name'] ?? '');
+                    if ($name === '' || isset($seenFieldNames[$name])) {
+                        continue;
+                    }
+
+                    $seenFieldNames[$name] = true;
+                    $normalizedFields[] = $field;
+                }
+
+                $blockType['fields'] = $normalizedFields;
+                $normalizedBlockTypes[] = $blockType;
+            }
+
+            $settings['block_types'] = $normalizedBlockTypes;
+        }
 
         return $settings;
     }

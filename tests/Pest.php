@@ -1,8 +1,9 @@
 <?php
 
+use App\Enums\PermissionEnum;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Models\Role;
 use Tests\TestCase;
 
 /*
@@ -70,4 +71,104 @@ function grantAiPermissions(User $user, array $permissions): User
     $user->syncRoles([$role]);
 
     return $user;
+}
+
+/**
+ * Spatie collection permission names used by admin collection routes.
+ *
+ * @return list<string>
+ */
+function allCollectionPermissions(): array
+{
+    return [
+        PermissionEnum::CanShowCollections->value,
+        PermissionEnum::CanCreateCollections->value,
+        PermissionEnum::CanEditCollections->value,
+        PermissionEnum::CanDeleteCollections->value,
+        PermissionEnum::CanRestoreCollections->value,
+        PermissionEnum::CanForceDeleteCollections->value,
+    ];
+}
+
+/**
+ * Assign collection permissions to a user via a disposable test role.
+ *
+ * @param  list<string>|null  $permissions  Defaults to full collection CRUD set.
+ */
+function grantCollectionPermissions(User $user, ?array $permissions = null): User
+{
+    $role = Role::query()->firstOrCreate([
+        'name' => 'test-collections-'.uniqid(),
+        'guard_name' => config('auth.defaults.guard', 'web'),
+    ]);
+    $role->syncPermissions($permissions ?? allCollectionPermissions());
+    $user->syncRoles([$role]);
+
+    return $user;
+}
+
+/**
+ * Assign project-settings permissions via a disposable test role.
+ *
+ * @param  list<string>  $permissions
+ */
+function grantProjectSettingsPermissions(User $user, array $permissions): User
+{
+    $role = Role::query()->firstOrCreate([
+        'name' => 'test-project-settings-'.uniqid(),
+        'guard_name' => config('auth.defaults.guard', 'web'),
+    ]);
+    $role->syncPermissions($permissions);
+    $user->syncRoles([$role]);
+
+    return $user;
+}
+
+/**
+ * @return list<array<string, mixed>>
+ */
+function sampleTransformPresets(): array
+{
+    return [
+        [
+            'key' => 'thumbnail',
+            'fit' => 'contain',
+            'width' => 128,
+            'height' => 128,
+            'quality' => 82,
+            'without_enlargement' => true,
+            'format' => 'auto',
+        ],
+        [
+            'key' => 'hero',
+            'fit' => 'cover',
+            'width' => 800,
+            'height' => 450,
+            'quality' => 90,
+            'without_enlargement' => false,
+            'format' => 'webp',
+        ],
+    ];
+}
+
+/**
+ * Minimal valid payload for PUT project settings.
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function baseProjectPayload(array $overrides = []): array
+{
+    return array_merge([
+        'default_language' => 'en',
+        'content_locales' => ['en', 'it'],
+        'default_content_locale' => 'en',
+        'fallback_content_locales' => ['en', 'it'],
+        'password_policy' => 'weak',
+        'login_max_attempts' => 5,
+        'registration_enabled' => true,
+        'email_verification_required' => false,
+        'sidebar_modules' => config('settings.project.defaults.sidebar_modules'),
+        'preset_transformations' => sampleTransformPresets(),
+    ], $overrides);
 }

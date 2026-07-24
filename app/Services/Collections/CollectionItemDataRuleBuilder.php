@@ -5,8 +5,10 @@ namespace App\Services\Collections;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
+use App\Support\Collections\BlocksFieldSchema;
 use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
 use Illuminate\Validation\Rules\In;
@@ -20,6 +22,7 @@ class CollectionItemDataRuleBuilder
         private FieldValidationRuleEvaluator $validationRuleEvaluator,
         private CollectionLocaleResolver $localeResolver,
         private FieldConditionEvaluator $conditionEvaluator,
+        private BlocksFieldSchema $blocksFieldSchema,
     ) {}
 
     /**
@@ -109,8 +112,12 @@ class CollectionItemDataRuleBuilder
             $rules[$prefix.'.*'] = $itemRules;
         }
 
-        if ($field->type->isMultipleRelationType()) {
+        if ($field->type->isMultipleRelationType() && $field->type !== FieldTypeEnum::ManyToMany) {
             $rules[$prefix.'.*'] = ['integer', $this->relatedItemExistsRule($field)];
+        }
+
+        if ($field->type === FieldTypeEnum::ManyToMany) {
+            $rules[$prefix][] = $this->manyToManyArrayRule($field);
         }
 
         if ($field->type === FieldTypeEnum::Files
@@ -122,6 +129,16 @@ class CollectionItemDataRuleBuilder
             $rules[$prefix.'.*'] = ['array'];
             $rules[$prefix.'.*.related_collection_id'] = ['required', 'integer', Rule::exists('collections', 'id')];
             $rules[$prefix.'.*.related_item_id'] = ['required', 'integer', Rule::exists('collections_items', 'id')];
+        }
+
+        if ($field->type === FieldTypeEnum::Blocks) {
+            $rules[$prefix.'.*'] = ['array'];
+            $rules[$prefix.'.*.id'] = ['required', 'uuid'];
+            $rules[$prefix.'.*.type'] = ['required', 'string'];
+            $rules[$prefix.'.*.data'] = ['required', 'array'];
+            $rules[$prefix][] = function (string $attribute, mixed $value, \Closure $fail) use ($field): void {
+                $this->validateBlocksPayload($field, $attribute, $value, $fail);
+            };
         }
 
         if ($field->type === FieldTypeEnum::Map) {
@@ -203,6 +220,19 @@ class CollectionItemDataRuleBuilder
                 $prefix.'.*.related_collection_id' => ['required', 'integer', Rule::exists('collections', 'id')],
                 $prefix.'.*.related_item_id' => ['required', 'integer', Rule::exists('collections_items', 'id')],
             ],
+            FieldTypeEnum::Blocks => [
+                $prefix => [
+                    $presence,
+                    'array',
+                    function (string $attribute, mixed $value, \Closure $fail) use ($field): void {
+                        $this->validateBlocksPayload($field, $attribute, $value, $fail);
+                    },
+                ],
+                $prefix.'.*' => ['array'],
+                $prefix.'.*.id' => ['required', 'uuid'],
+                $prefix.'.*.type' => ['required', 'string'],
+                $prefix.'.*.data' => ['required', 'array'],
+            ],
             FieldTypeEnum::Relation,
             FieldTypeEnum::ManyToOne,
             FieldTypeEnum::RelationTree => [
@@ -211,8 +241,7 @@ class CollectionItemDataRuleBuilder
             FieldTypeEnum::RelationMany,
             FieldTypeEnum::OneToMany,
             FieldTypeEnum::ManyToMany => [
-                $prefix => [$presence, 'array'],
-                $prefix.'.*' => ['integer', $this->relatedItemExistsRule($field)],
+                $prefix => [$presence, 'array', $this->manyToManyArrayRule($field)],
             ],
         };
     }
@@ -260,12 +289,60 @@ class CollectionItemDataRuleBuilder
             FieldTypeEnum::File => [$presence, 'integer', Rule::exists('files', 'id')],
             FieldTypeEnum::Files => [$presence, 'array'],
             FieldTypeEnum::M2a => [$presence, 'array'],
+            FieldTypeEnum::Blocks => [
+                $presence,
+                'array',
+                function (string $attribute, mixed $value, \Closure $fail) use ($field): void {
+                    $this->validateBlocksPayload($field, $attribute, $value, $fail);
+                },
+            ],
             FieldTypeEnum::Relation,
             FieldTypeEnum::ManyToOne,
             FieldTypeEnum::RelationTree => [$presence, 'integer', $this->relatedItemExistsRule($field)],
             FieldTypeEnum::RelationMany,
-            FieldTypeEnum::OneToMany,
-            FieldTypeEnum::ManyToMany => [$presence, 'array'],
+            FieldTypeEnum::OneToMany => [$presence, 'array'],
+            FieldTypeEnum::ManyToMany => [$presence, 'array', $this->manyToManyArrayRule($field)],
+        };
+    }
+
+    /**
+     * Accept bare ints or `{ related_item_id, meta }` objects for M2M links.
+     */
+    private function manyToManyArrayRule(CollectionField $field): \Closure
+    {
+        $exists = $this->relatedItemExistsRule($field);
+
+        return function (string $attribute, mixed $value, \Closure $fail) use ($exists): void {
+            if (! is_array($value)) {
+                $fail('The '.$attribute.' must be an array.');
+
+                return;
+            }
+
+            foreach ($value as $index => $entry) {
+                if (is_numeric($entry)) {
+                    $validator = validator(['id' => (int) $entry], ['id' => ['integer', $exists]]);
+                    if ($validator->fails()) {
+                        $fail('The '.$attribute.'.'.$index.' is invalid.');
+                    }
+
+                    continue;
+                }
+
+                if (! is_array($entry) || ! isset($entry['related_item_id'])) {
+                    $fail('The '.$attribute.'.'.$index.' must be an integer or {related_item_id, meta}.');
+
+                    continue;
+                }
+
+                $validator = validator(
+                    ['id' => $entry['related_item_id'], 'meta' => $entry['meta'] ?? []],
+                    ['id' => ['integer', $exists], 'meta' => ['sometimes', 'array']],
+                );
+                if ($validator->fails()) {
+                    $fail('The '.$attribute.'.'.$index.' is invalid.');
+                }
+            }
         };
     }
 
@@ -470,5 +547,91 @@ class CollectionItemDataRuleBuilder
                 abort(422, __('Unknown field :key.', ['key' => $key]));
             }
         }
+    }
+
+    private function validateBlocksPayload(CollectionField $field, string $attribute, mixed $value, \Closure $fail): void
+    {
+        if (! is_array($value)) {
+            return;
+        }
+
+        $types = $this->blocksFieldSchema->blockTypeMap($field);
+
+        foreach ($value as $index => $block) {
+            if (! is_array($block)) {
+                continue;
+            }
+
+            $type = (string) ($block['type'] ?? '');
+            $schema = $types[$type] ?? null;
+            if (! is_array($schema)) {
+                $fail(__(':attribute block type is invalid.', ['attribute' => $attribute.'.'.$index]));
+
+                continue;
+            }
+
+            $blockData = is_array($block['data'] ?? null) ? $block['data'] : [];
+            $nestedRules = [];
+
+            foreach ($schema['fields'] as $definition) {
+                $nestedField = $this->blocksFieldSchema->toFieldDefinition($definition);
+                $nestedPrefix = 'data.'.$nestedField->name;
+
+                if ($nestedField->translatable) {
+                    $nestedRules = array_merge(
+                        $nestedRules,
+                        $this->rulesForTranslatableLocaleMap($nestedField, $nestedPrefix)
+                    );
+
+                    continue;
+                }
+
+                $nestedRules[$nestedPrefix] = array_merge(
+                    ['nullable'],
+                    $this->nonTranslatableRules($nestedField, false, null)
+                );
+            }
+
+            $validator = Validator::make(['data' => $blockData], $nestedRules);
+            if ($validator->fails()) {
+                foreach ($validator->errors()->all() as $message) {
+                    $fail($message);
+                }
+            }
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function rulesForTranslatableLocaleMap(CollectionField $field, string $prefix): array
+    {
+        $allowedLocales = $this->allowedLocales();
+        $rules = [
+            $prefix => [
+                'nullable',
+                'array',
+                function (string $attribute, mixed $value, \Closure $fail) use ($allowedLocales): void {
+                    if (! is_array($value)) {
+                        return;
+                    }
+
+                    foreach (array_keys($value) as $locale) {
+                        if (! is_string($locale) || ! in_array($locale, $allowedLocales, true)) {
+                            $fail(__('Locale :locale is not enabled.', ['locale' => (string) $locale]));
+                        }
+                    }
+                },
+            ],
+        ];
+
+        foreach ($allowedLocales as $locale) {
+            $rules = array_merge(
+                $rules,
+                $this->rulesForTranslatableLocale($field, $prefix.'.'.$locale, false, null)
+            );
+        }
+
+        return $rules;
     }
 }

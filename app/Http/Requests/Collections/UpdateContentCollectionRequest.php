@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Collections;
 
+use App\Enums\PermissionEnum;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Models\Collection;
 use App\Support\Collections\UniqueCollectionSlugGenerator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -13,11 +15,15 @@ use Illuminate\Validation\ValidationException;
  */
 class UpdateContentCollectionRequest extends FormRequest
 {
+    use AuthorizesWithPermission;
+
     /**
      * Authorization is enforced by collection route middleware.
      */
     public function authorize(): bool
     {
+        $this->authorizePermission(PermissionEnum::CanEditCollections->value);
+
         return true;
     }
 

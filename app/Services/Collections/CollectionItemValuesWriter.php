@@ -6,19 +6,30 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
+use App\Services\Webhooks\OutboundWebhookDispatcher;
 
 /**
  * Persists collection item field values, including translatable and relational data.
  */
 class CollectionItemValuesWriter
 {
+    public function __construct(
+        private CollectionItemRevisionRecorder $revisionRecorder,
+        private OutboundWebhookDispatcher $webhooks,
+    ) {}
+
     /**
      * Persist normalized field data as rows in `collections_items_values`.
      *
      * @param  array<string, mixed>  $normalizedData
+     * @param  bool|null  $created  Explicit create vs update; defaults to wasRecentlyCreated
      */
-    public function sync(CollectionItem $item, Collection $collection, array $normalizedData): void
-    {
+    public function sync(
+        CollectionItem $item,
+        Collection $collection,
+        array $normalizedData,
+        ?bool $created = null,
+    ): void {
         $collection->loadMissing('fields');
 
         CollectionItemValue::query()->where('item_id', $item->id)->delete();
@@ -38,6 +49,23 @@ class CollectionItemValuesWriter
 
             $this->syncNonTranslatable($item, $field, $value);
         }
+
+        $this->revisionRecorder->record($item, ['source' => 'sync']);
+
+        // Values live on related rows — bump parent audit + updated_at.
+        // Set user_updated_id first so save is dirty even when touch lands in the same second.
+        $userId = auth()->id();
+        if (is_int($userId) || (is_string($userId) && ctype_digit($userId))) {
+            $item->user_updated_id = (int) $userId;
+        }
+        $item->touch();
+
+        $isCreated = $created ?? $item->wasRecentlyCreated;
+        $this->webhooks->dispatchItem(
+            $isCreated ? 'item.created' : 'item.updated',
+            $item,
+            $collection,
+        );
     }
 
     /**

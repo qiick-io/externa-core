@@ -239,6 +239,25 @@ export function RelationalSettings({
                     description="Allow linking the same related item more than once."
                     defaultChecked={relationSettings.allowDuplicates}
                 />
+                {fieldType === 'many_to_many' ? (
+                    <div className="grid gap-2">
+                        <Label htmlFor="junction_fields">
+                            Junction fields (JSON)
+                        </Label>
+                        <textarea
+                            id="junction_fields"
+                            name="settings[junction_fields]"
+                            className="border-input bg-background min-h-[88px] w-full rounded-md border px-3 py-2 font-mono text-sm shadow-xs"
+                            defaultValue={relationSettings.junctionFieldsJson}
+                            placeholder='[{"name":"sort","type":"number"}]'
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Optional mini-schema for per-link metadata. Item
+                            forms show these fields next to each related item.
+                            Types: string, number, boolean.
+                        </p>
+                    </div>
+                ) : null}
             </div>
         );
     }

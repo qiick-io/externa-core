@@ -66,6 +66,11 @@ class HandleInertiaRequests extends Middleware
             ],
             'projectAppearance' => $projectAppearance,
             'projectSettings' => $projectSettings->shared(),
+            'flash' => [
+                'success' => fn (): mixed => $request->session()->get('success'),
+                'error' => fn (): mixed => $request->session()->get('error'),
+                'plain_text_api_key' => fn (): mixed => $request->session()->get('plain_text_api_key'),
+            ],
         ];
     }
 }

@@ -11,6 +11,8 @@ type ItemTableCellProps = {
         data: Record<string, unknown>;
         created_at?: string | null;
         updated_at?: string | null;
+        user_created?: { id: number; name: string; email?: string | null } | null;
+        user_updated?: { id: number; name: string; email?: string | null } | null;
         displays?: Record<string, string | null>;
         thumbs?: Record<string, string | null>;
     };
@@ -58,6 +60,22 @@ export function ItemTableCell({
         return (
             <span className="text-muted-foreground text-sm">
                 {formatDate(row.updated_at) ?? empty()}
+            </span>
+        );
+    }
+
+    if (path === 'user_created') {
+        return (
+            <span className="text-muted-foreground text-sm">
+                {row.user_created?.name ?? empty()}
+            </span>
+        );
+    }
+
+    if (path === 'user_updated') {
+        return (
+            <span className="text-muted-foreground text-sm">
+                {row.user_updated?.name ?? empty()}
             </span>
         );
     }
@@ -193,6 +211,22 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
                     {String(value)}
                 </span>
             );
+        case 'blocks': {
+            const blocks = Array.isArray(value) ? value : [];
+            const labels = blocks
+                .map((entry) =>
+                    entry && typeof entry === 'object' && 'type' in entry
+                        ? String((entry as { type?: unknown }).type ?? '')
+                        : '',
+                )
+                .filter(Boolean);
+            const text =
+                labels.length === 0
+                    ? empty()
+                    : `${labels.length} blocks${labels.length > 0 ? ` (${labels.slice(0, 3).join(', ')}${labels.length > 3 ? ', …' : ''})` : ''}`;
+
+            return <span className="max-w-[16rem] truncate text-sm">{text}</span>;
+        }
         default:
             return (
                 <span className="max-w-[16rem] truncate text-sm">
@@ -223,6 +257,12 @@ export function columnHeaderLabel(
     }
     if (path === 'updated_at') {
         return 'Updated at';
+    }
+    if (path === 'user_created') {
+        return 'Created by';
+    }
+    if (path === 'user_updated') {
+        return 'Updated by';
     }
 
     if (!path.includes('.')) {

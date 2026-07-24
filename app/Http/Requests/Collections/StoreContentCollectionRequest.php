@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Collections;
 
+use App\Enums\PermissionEnum;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Support\Collections\UniqueCollectionSlugGenerator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
@@ -11,11 +13,15 @@ use Illuminate\Support\Str;
  */
 class StoreContentCollectionRequest extends FormRequest
 {
+    use AuthorizesWithPermission;
+
     /**
      * Authorization is enforced by collection route middleware.
      */
     public function authorize(): bool
     {
+        $this->authorizePermission(PermissionEnum::CanCreateCollections->value);
+
         return true;
     }
 

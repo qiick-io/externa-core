@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\LogsApplicationActivity;
+use App\Services\Webhooks\OutboundWebhookDispatcher;
 use Database\Factories\CollectionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -53,6 +54,22 @@ class Collection extends Model implements Sortable
      */
     protected static function booted(): void
     {
+        static::created(function (Collection $collection): void {
+            app(OutboundWebhookDispatcher::class)->dispatchCollection('collection.created', $collection);
+        });
+
+        static::updated(function (Collection $collection): void {
+            app(OutboundWebhookDispatcher::class)->dispatchCollection('collection.updated', $collection);
+        });
+
+        static::deleted(function (Collection $collection): void {
+            app(OutboundWebhookDispatcher::class)->dispatchCollection('collection.deleted', $collection);
+        });
+
+        static::forceDeleted(function (Collection $collection): void {
+            app(OutboundWebhookDispatcher::class)->dispatchCollection('collection.deleted', $collection);
+        });
+
         static::deleting(function (Collection $collection): void {
             if ($collection->isForceDeleting()) {
                 $collection->items()->withTrashed()->forceDelete();

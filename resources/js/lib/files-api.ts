@@ -317,6 +317,7 @@ export async function updateFileMetadata(
         translate_x: number | null;
         translate_y: number | null;
         scale: number | null;
+        access: 'public' | 'private' | null;
     }>,
 ): Promise<AdminFileRow> {
     const response = await fetch(adminRoutes.files.update(fileId), {
@@ -616,6 +617,41 @@ export async function listFilesPage(options: {
         per_page: number;
         total: number;
     };
+}
+
+/**
+ * Resolve file manager rows by id (for field input previews).
+ *
+ * @param ids - File ids to load
+ * @returns Matching rows in the same order as `ids` (missing ids omitted)
+ */
+export async function fetchFilesByIds(
+    ids: number[],
+): Promise<AdminFileRow[]> {
+    const uniqueIds = [...new Set(ids.filter((id) => id > 0))];
+
+    if (uniqueIds.length === 0) {
+        return [];
+    }
+
+    const response = await fetch(
+        adminRoutes.files.list({
+            query: { ids: uniqueIds },
+        }),
+        {
+            headers: jsonRequestHeaders(),
+            credentials: 'same-origin',
+        },
+    );
+
+    await assertOkResponse(response, 'Failed to load files');
+
+    const payload = (await response.json()) as { data: AdminFileRow[] };
+    const byId = new Map(payload.data.map((file) => [file.id, file]));
+
+    return uniqueIds
+        .map((id) => byId.get(id))
+        .filter((file): file is AdminFileRow => file !== undefined);
 }
 
 async function uploadChunkWithRetry(

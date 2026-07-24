@@ -3,6 +3,8 @@
 namespace App\Services\Settings;
 
 use App\Support\Collections\ContentLocaleCatalog;
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\Rules\Password;
 
 /**
@@ -30,13 +32,17 @@ class ProjectSettings
     }
 
     /**
-     * Edit-form payload.
+     * Edit-form payload (never includes webhook secret plaintext).
      *
      * @return array<string, mixed>
      */
     public function forEdit(): array
     {
-        return $this->raw();
+        $raw = $this->raw();
+        unset($raw['webhook_secret']);
+        $raw['webhook_secret_configured'] = $this->webhookSecret() !== null;
+
+        return $raw;
     }
 
     /**
@@ -241,6 +247,44 @@ class ProjectSettings
         return $edges === [] ? 256 : max($edges);
     }
 
+    public function webhookUrl(): ?string
+    {
+        return $this->raw()['webhook_url'];
+    }
+
+    /**
+     * Decrypted webhook signing secret, or null when unset/unreadable.
+     */
+    public function webhookSecret(): ?string
+    {
+        $stored = $this->settings->get(
+            SettingsRepository::SCOPE_PROJECT,
+            'project',
+            'webhook_secret',
+        );
+
+        if (! is_string($stored) || $stored === '') {
+            return null;
+        }
+
+        try {
+            $plain = Crypt::decryptString($stored);
+
+            return $plain !== '' ? $plain : null;
+        } catch (DecryptException) {
+            // ponytail: reject legacy plaintext; re-save via settings UI
+            return null;
+        }
+    }
+
+    /**
+     * Encrypt a plaintext webhook secret for storage.
+     */
+    public static function encryptWebhookSecret(string $plain): string
+    {
+        return Crypt::encryptString($plain);
+    }
+
     /**
      * @param  array<string, mixed>  $raw
      * @return array<string, mixed>
@@ -290,6 +334,11 @@ class ProjectSettings
             'report_issue_url' => $this->nullableUrl($raw['report_issue_url'] ?? null),
             'report_bug_url' => $this->nullableUrl($raw['report_bug_url'] ?? null),
             'report_error_url' => $this->nullableUrl($raw['report_error_url'] ?? null),
+            'webhook_url' => $this->nullableUrl($raw['webhook_url'] ?? null),
+            // Encrypted ciphertext (or null) — decrypt only via webhookSecret()
+            'webhook_secret' => is_string($raw['webhook_secret'] ?? null) && $raw['webhook_secret'] !== ''
+                ? $raw['webhook_secret']
+                : null,
         ];
     }
 

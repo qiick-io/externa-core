@@ -12,7 +12,13 @@ use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\Collections\CollectionListColumnsNormalizer;
 use App\Services\Settings\SettingsRepository;
+use Database\Seeders\PermissionSeeder;
 use Inertia\Testing\AssertableInertia;
+
+beforeEach(function () {
+    $this->seed(PermissionSeeder::class);
+    $this->withoutVite();
+});
 
 test('list columns normalizer drops invalid paths and keeps nested relation and file meta', function () {
     $related = Collection::factory()->create(['slug' => 'authors']);
@@ -94,7 +100,7 @@ test('list columns normalizer drops invalid paths and keeps nested relation and 
 });
 
 test('put list-columns persists user-scoped preferences', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -141,7 +147,7 @@ test('put list-columns persists user-scoped preferences', function () {
         'slug' => 'right',
     ]);
 
-    $other = User::factory()->create();
+    $other = grantCollectionPermissions(User::factory()->create());
     $otherStored = app(SettingsRepository::class)->get(
         SettingsRepository::SCOPE_USER,
         'collection_list',
@@ -161,7 +167,7 @@ test('put list-columns persists user-scoped preferences', function () {
 });
 
 test('items index sorts by system and scalar fields', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create(['is_singleton' => false]);
@@ -211,7 +217,7 @@ test('items index sorts by system and scalar fields', function () {
 });
 
 test('items index includes list_columns and resolved relation displays', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $authors = Collection::factory()->create(['slug' => 'authors-list']);

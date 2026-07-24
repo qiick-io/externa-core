@@ -17,6 +17,8 @@ import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Drawer, DrawerContent, DrawerNested } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
+import { PermissionEnum } from '@/enums/permission-enum';
+import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import {
     fieldTypeLabel
@@ -38,6 +40,8 @@ export default function CollectionsFields({
     collection: CollectionView;
     relatedCollections?: RelatedCollectionOption[];
 }) {
+    const { can } = useCan();
+    const canEditSchema = can(PermissionEnum.CanEditCollections);
     const [addOpen, setAddOpen] = useState(false);
     const [addFormOpen, setAddFormOpen] = useState(false);
     const [addFieldType, setAddFieldType] = useState('string');
@@ -106,10 +110,12 @@ export default function CollectionsFields({
                         collectionForm={collectionForm}
                         collection={collectionToFormRow(collection)}
                     />
-                    <Button type="button" onClick={openAdd}>
-                        <Plus className="size-4" />
-                        Create field
-                    </Button>
+                    {canEditSchema ? (
+                        <Button type="button" onClick={openAdd}>
+                            <Plus className="size-4" />
+                            Create field
+                        </Button>
+                    ) : null}
                 </>
             }
         >
@@ -157,6 +163,7 @@ export default function CollectionsFields({
                             type="button"
                             className="mt-4"
                             onClick={openAdd}
+                            disabled={!canEditSchema}
                         >
                             <Plus className="size-4" />
                             Create field

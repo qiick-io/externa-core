@@ -265,6 +265,15 @@ export function FileCard({
                         <Star className="absolute top-2 right-2 z-20 size-3.5 fill-amber-400 text-amber-400 drop-shadow-sm" />
                     )}
 
+                    {file.effective_access === 'private' && (
+                        <span
+                            className="bg-background/90 text-muted-foreground absolute bottom-2 left-2 z-20 rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase shadow-sm"
+                            title="Private — requires Read private on API roles"
+                        >
+                            Private
+                        </span>
+                    )}
+
                     {useCoverLayout ? (
                         <div className="absolute inset-x-0 bottom-0 z-10 min-w-0 bg-background/65 px-2.5 py-2 backdrop-blur-md">
                             <div className="flex min-w-0 flex-col items-center gap-1 text-center">

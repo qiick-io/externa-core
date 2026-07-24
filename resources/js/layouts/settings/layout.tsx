@@ -88,6 +88,13 @@ export default function SettingsLayout({
                   icon: null,
               }
             : null,
+        can(PermissionEnum.CanShowJobs)
+            ? {
+                  title: 'Jobs',
+                  href: '/settings/jobs',
+                  icon: null,
+              }
+            : null,
     ].filter((item): item is NavItem => item !== null);
 
     const reportBugUrl =

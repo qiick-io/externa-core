@@ -1,6 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Check, X } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { Fragment, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -20,20 +20,59 @@ type RoleFormRole = AdminRoleRow & {
     is_assignable?: boolean;
 };
 
-type CollectionRow = { id: number; name: string; slug: string };
+type CollectionFieldOption = { name: string; type: string };
+
+type CollectionRow = {
+    id: number;
+    name: string;
+    slug: string;
+    fields?: CollectionFieldOption[];
+};
+
+type FieldFlags = { read: boolean; create: boolean; update: boolean };
+
+type ItemFilterRule = {
+    field: string;
+    operator: 'equals' | 'not_equals' | 'empty' | 'not_empty';
+    value?: string;
+};
+
+type PermissionRules = {
+    fields: Record<string, FieldFlags>;
+    item_filter: { logic: 'and'; rules: ItemFilterRule[] } | null;
+};
 
 type CollectionActions = {
     create: boolean;
     read: boolean;
     update: boolean;
     delete: boolean;
+    rules?: PermissionRules;
 };
 
-type FileActions = CollectionActions;
+type FileActions = {
+    create: boolean;
+    read: boolean;
+    read_private: boolean;
+    update: boolean;
+    delete: boolean;
+};
+
+const emptyRules = (): PermissionRules => ({
+    fields: {},
+    item_filter: null,
+});
+
+const defaultFieldFlags = (): FieldFlags => ({
+    read: true,
+    create: true,
+    update: true,
+});
 
 const ACTIONS = [
     { key: 'create' as const, label: 'Create' },
     { key: 'read' as const, label: 'Read' },
+    { key: 'read_private' as const, label: 'Read private' },
     { key: 'update' as const, label: 'Update' },
     { key: 'delete' as const, label: 'Delete' },
 ];
@@ -49,6 +88,7 @@ export default function AdminRoleForm({
     filePermissions = {
         create: false,
         read: false,
+        read_private: false,
         update: false,
         delete: false,
     },
@@ -79,6 +119,7 @@ export default function AdminRoleForm({
                 read: existing?.read ?? false,
                 update: existing?.update ?? false,
                 delete: existing?.delete ?? false,
+                rules: existing?.rules ?? emptyRules(),
             };
         }
         return matrix;
@@ -91,6 +132,7 @@ export default function AdminRoleForm({
         file_permissions: {
             create: filePermissions.create ?? false,
             read: filePermissions.read ?? false,
+            read_private: filePermissions.read_private ?? false,
             update: filePermissions.update ?? false,
             delete: filePermissions.delete ?? false,
         } as FileActions,
@@ -107,6 +149,7 @@ export default function AdminRoleForm({
         form.setData('file_permissions', {
             create: filePermissions.create ?? false,
             read: filePermissions.read ?? false,
+            read_private: filePermissions.read_private ?? false,
             update: filePermissions.update ?? false,
             delete: filePermissions.delete ?? false,
         });
@@ -167,7 +210,7 @@ export default function AdminRoleForm({
 
     const toggleCollectionAction = (
         collectionId: number,
-        action: keyof CollectionActions,
+        action: 'create' | 'read' | 'update' | 'delete',
         checked: boolean,
     ): void => {
         const key = String(collectionId);
@@ -176,6 +219,48 @@ export default function AdminRoleForm({
             [key]: {
                 ...form.data.collection_permissions[key],
                 [action]: checked,
+            },
+        });
+    };
+
+    const setFieldFlag = (
+        collectionId: number,
+        fieldName: string,
+        flag: keyof FieldFlags,
+        checked: boolean,
+    ): void => {
+        const key = String(collectionId);
+        const current = form.data.collection_permissions[key];
+        const rules = current?.rules ?? emptyRules();
+        const fields = { ...rules.fields };
+        fields[fieldName] = {
+            ...(fields[fieldName] ?? defaultFieldFlags()),
+            [flag]: checked,
+        };
+        form.setData('collection_permissions', {
+            ...form.data.collection_permissions,
+            [key]: { ...current, rules: { ...rules, fields } },
+        });
+    };
+
+    const setItemFilterRules = (
+        collectionId: number,
+        filterRules: ItemFilterRule[],
+    ): void => {
+        const key = String(collectionId);
+        const current = form.data.collection_permissions[key];
+        const rules = current?.rules ?? emptyRules();
+        form.setData('collection_permissions', {
+            ...form.data.collection_permissions,
+            [key]: {
+                ...current,
+                rules: {
+                    ...rules,
+                    item_filter:
+                        filterRules.length === 0
+                            ? null
+                            : { logic: 'and', rules: filterRules },
+                },
             },
         });
     };
@@ -351,9 +436,10 @@ export default function AdminRoleForm({
                                 Files access
                             </h2>
                             <p className="text-muted-foreground text-sm">
-                                Public CMS API file permissions (create / read /
-                                update / delete). Global for all files — missing
-                                grant = deny.
+                                Public CMS API file permissions. <strong>Read</strong>{' '}
+                                covers public files; <strong>Read private</strong> is
+                                required for files/folders marked private (and their
+                                inherited children). Missing grant = deny.
                             </p>
                         </div>
 
@@ -485,11 +571,23 @@ export default function AdminRoleForm({
                                                     read: false,
                                                     update: false,
                                                     delete: false,
+                                                    rules: emptyRules(),
                                                 };
+                                            const anyGrant =
+                                                row.create ||
+                                                row.read ||
+                                                row.update ||
+                                                row.delete;
+                                            const rules =
+                                                row.rules ?? emptyRules();
+                                            const filterRules =
+                                                rules.item_filter?.rules ?? [];
+                                            const fieldOptions =
+                                                collection.fields ?? [];
 
                                             return (
+                                                <Fragment key={collection.id}>
                                                 <tr
-                                                    key={collection.id}
                                                     className="border-b last:border-0"
                                                 >
                                                     <td className="px-3 py-2">
@@ -547,6 +645,165 @@ export default function AdminRoleForm({
                                                         );
                                                     })}
                                                 </tr>
+                                                {anyGrant && fieldOptions.length > 0 ? (
+                                                    <tr key={`${collection.id}-rules`} className="border-b bg-muted/20 last:border-0">
+                                                        <td colSpan={5} className="space-y-3 px-3 py-3">
+                                                            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                                                Fields & item filter
+                                                            </div>
+                                                            <div className="grid gap-2 sm:grid-cols-2">
+                                                                {fieldOptions.map((field) => {
+                                                                    const flags =
+                                                                        rules.fields[field.name] ??
+                                                                        defaultFieldFlags();
+                                                                    return (
+                                                                        <div
+                                                                            key={field.name}
+                                                                            className="flex flex-wrap items-center gap-3 rounded-md border border-sidebar-border/60 px-2 py-1.5 text-xs"
+                                                                        >
+                                                                            <span className="min-w-20 font-medium">
+                                                                                {field.name}
+                                                                            </span>
+                                                                            {(['read', 'create', 'update'] as const).map(
+                                                                                (flag) => (
+                                                                                    <label
+                                                                                        key={flag}
+                                                                                        className="flex items-center gap-1"
+                                                                                    >
+                                                                                        <Checkbox
+                                                                                            checked={flags[flag]}
+                                                                                            onCheckedChange={(c) =>
+                                                                                                setFieldFlag(
+                                                                                                    collection.id,
+                                                                                                    field.name,
+                                                                                                    flag,
+                                                                                                    c === true,
+                                                                                                )
+                                                                                            }
+                                                                                        />
+                                                                                        {flag}
+                                                                                    </label>
+                                                                                ),
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <div className="text-xs font-medium text-muted-foreground">
+                                                                    Item filter (AND)
+                                                                </div>
+                                                                {filterRules.map((rule, index) => (
+                                                                    <div
+                                                                        key={index}
+                                                                        className="flex flex-wrap items-center gap-2"
+                                                                    >
+                                                                        <select
+                                                                            className="h-8 rounded-md border bg-background px-2 text-xs"
+                                                                            value={rule.field}
+                                                                            onChange={(e) => {
+                                                                                const next = [...filterRules];
+                                                                                next[index] = {
+                                                                                    ...rule,
+                                                                                    field: e.target.value,
+                                                                                };
+                                                                                setItemFilterRules(
+                                                                                    collection.id,
+                                                                                    next,
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            {fieldOptions.map((f) => (
+                                                                                <option key={f.name} value={f.name}>
+                                                                                    {f.name}
+                                                                                </option>
+                                                                            ))}
+                                                                        </select>
+                                                                        <select
+                                                                            className="h-8 rounded-md border bg-background px-2 text-xs"
+                                                                            value={rule.operator}
+                                                                            onChange={(e) => {
+                                                                                const next = [...filterRules];
+                                                                                next[index] = {
+                                                                                    ...rule,
+                                                                                    operator: e.target
+                                                                                        .value as ItemFilterRule['operator'],
+                                                                                };
+                                                                                setItemFilterRules(
+                                                                                    collection.id,
+                                                                                    next,
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            <option value="equals">equals</option>
+                                                                            <option value="not_equals">not_equals</option>
+                                                                            <option value="empty">empty</option>
+                                                                            <option value="not_empty">not_empty</option>
+                                                                        </select>
+                                                                        {rule.operator !== 'empty' &&
+                                                                        rule.operator !== 'not_empty' ? (
+                                                                            <Input
+                                                                                className="h-8 max-w-40 text-xs"
+                                                                                value={rule.value ?? ''}
+                                                                                onChange={(e) => {
+                                                                                    const next = [...filterRules];
+                                                                                    next[index] = {
+                                                                                        ...rule,
+                                                                                        value: e.target.value,
+                                                                                    };
+                                                                                    setItemFilterRules(
+                                                                                        collection.id,
+                                                                                        next,
+                                                                                    );
+                                                                                }}
+                                                                            />
+                                                                        ) : null}
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            className="h-8 px-2 text-xs"
+                                                                            onClick={() =>
+                                                                                setItemFilterRules(
+                                                                                    collection.id,
+                                                                                    filterRules.filter(
+                                                                                        (_, i) => i !== index,
+                                                                                    ),
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            Remove
+                                                                        </Button>
+                                                                    </div>
+                                                                ))}
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="h-8 text-xs"
+                                                                    onClick={() =>
+                                                                        setItemFilterRules(
+                                                                            collection.id,
+                                                                            [
+                                                                                ...filterRules,
+                                                                                {
+                                                                                    field:
+                                                                                        fieldOptions[0]
+                                                                                            ?.name ?? '',
+                                                                                    operator: 'equals',
+                                                                                    value: '',
+                                                                                },
+                                                                            ],
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Add filter rule
+                                                                </Button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ) : null}
+                                                </Fragment>
                                             );
                                         })}
                                     </tbody>

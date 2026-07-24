@@ -40,6 +40,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:'.PermissionEnum::CanManageProjectSettings->value)
         ->name('project.update');
 
+    Route::post('settings/project/webhook-test', [ProjectSettingsController::class, 'sendTestWebhook'])
+        ->middleware('permission:'.PermissionEnum::CanManageProjectSettings->value)
+        ->name('project.webhook-test');
+
     Route::get('settings/appearance', [AppearanceSettingsController::class, 'edit'])
         ->middleware('permission:'.PermissionEnum::CanManageProjectSettings->value)
         ->name('appearance.edit');

@@ -5,6 +5,7 @@ namespace App\Services\Collections;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
+use App\Support\Collections\BlocksFieldSchema;
 use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Support\Str;
 
@@ -15,7 +16,10 @@ class CollectionItemDataNormalizer
 {
     public function __construct(
         private CollectionLocaleResolver $localeResolver,
+        private BlocksFieldSchema $blocksFieldSchema,
+        private WysiwygHtmlSanitizer $wysiwygHtmlSanitizer,
     ) {}
+
     /**
      * Normalize raw item data against the collection field definitions.
      *
@@ -105,13 +109,13 @@ class CollectionItemDataNormalizer
             FieldTypeEnum::Autocomplete,
             FieldTypeEnum::ApiAutocomplete,
             FieldTypeEnum::Textarea,
-            FieldTypeEnum::Wysiwyg,
             FieldTypeEnum::Markdown,
             FieldTypeEnum::Code,
             FieldTypeEnum::Select,
             FieldTypeEnum::RadioGroup,
             FieldTypeEnum::Date,
             FieldTypeEnum::Color => $this->normalizeStringValue($field, is_string($value) ? $value : null),
+            FieldTypeEnum::Wysiwyg => $this->normalizeWysiwygValue(is_string($value) ? $value : null),
             FieldTypeEnum::Hash => $this->normalizeHash($value),
             FieldTypeEnum::Number => is_numeric($value) ? 0 + $value : null,
             FieldTypeEnum::Slider => is_numeric($value) ? 0 + $value : null,
@@ -127,12 +131,13 @@ class CollectionItemDataNormalizer
             FieldTypeEnum::File => $this->normalizeFileId($value),
             FieldTypeEnum::Files => $this->normalizeIntegerArray($value),
             FieldTypeEnum::M2a => $this->normalizeM2aBlocks($value),
+            FieldTypeEnum::Blocks => $this->normalizeBlocksValue($field, $value),
             FieldTypeEnum::Relation,
             FieldTypeEnum::ManyToOne,
             FieldTypeEnum::RelationTree => $this->normalizeRelationId($value),
             FieldTypeEnum::RelationMany,
             FieldTypeEnum::OneToMany,
-            FieldTypeEnum::ManyToMany => $this->normalizeIntegerArray($value),
+            FieldTypeEnum::ManyToMany => $this->normalizeM2mLinks($value),
         };
     }
 
@@ -210,6 +215,11 @@ class CollectionItemDataNormalizer
         }
 
         return $value === '' ? null : $value;
+    }
+
+    private function normalizeWysiwygValue(?string $value): ?string
+    {
+        return $this->wysiwygHtmlSanitizer->sanitize($value);
     }
 
     /**
@@ -352,6 +362,69 @@ class CollectionItemDataNormalizer
         return $out;
     }
 
+    /**
+     * @return list<array{id: string, type: string, data: array<string, mixed>}>
+     */
+    private function normalizeBlocksValue(CollectionField $field, mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $types = $this->blocksFieldSchema->blockTypeMap($field);
+        $out = [];
+
+        foreach ($value as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $type = (string) ($entry['type'] ?? '');
+            $schema = $types[$type] ?? null;
+
+            if (! is_array($schema)) {
+                continue;
+            }
+
+            $id = $entry['id'] ?? null;
+            $id = is_string($id) && Str::isUuid($id) ? $id : (string) Str::uuid();
+            $rawData = is_array($entry['data'] ?? null) ? $entry['data'] : [];
+
+            $out[] = [
+                'id' => $id,
+                'type' => $type,
+                'data' => $this->normalizeBlocksData($schema['fields'], $rawData),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<array{name: string, type: string, translatable?: bool, settings: array<string, mixed>}>  $fields
+     * @param  array<string, mixed>  $value
+     * @return array<string, mixed>
+     */
+    private function normalizeBlocksData(array $fields, array $value): array
+    {
+        $out = [];
+
+        foreach ($fields as $definition) {
+            $nestedField = $this->blocksFieldSchema->toFieldDefinition($definition);
+
+            if (! array_key_exists($nestedField->name, $value)) {
+                continue;
+            }
+
+            $raw = $value[$nestedField->name];
+            $out[$nestedField->name] = $nestedField->translatable
+                ? $this->normalizeTranslatable($nestedField, $raw)
+                : $this->normalizeScalar($nestedField, $raw);
+        }
+
+        return $out;
+    }
+
     private function normalizeFileId(mixed $value): ?int
     {
         if ($value === null || $value === '') {
@@ -379,6 +452,52 @@ class CollectionItemDataNormalizer
     /**
      * @return list<int>
      */
+
+    /**
+     * M2M values are objects `{ related_item_id, meta }` (ints still accepted and migrated).
+     *
+     * @return list<array{related_item_id: int, meta: array<string, mixed>}>
+     */
+    private function normalizeM2mLinks(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($value as $entry) {
+            if (is_numeric($entry)) {
+                $out[] = [
+                    'related_item_id' => (int) $entry,
+                    'meta' => [],
+                ];
+
+                continue;
+            }
+
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $id = $entry['related_item_id'] ?? $entry['id'] ?? null;
+            if (! is_numeric($id)) {
+                continue;
+            }
+
+            $meta = $entry['meta'] ?? [];
+            if (! is_array($meta)) {
+                $meta = [];
+            }
+
+            $out[] = [
+                'related_item_id' => (int) $id,
+                'meta' => $meta,
+            ];
+        }
+
+        return $out;
+    }
+
     private function normalizeIntegerArray(mixed $value): array
     {
         if (! is_array($value)) {

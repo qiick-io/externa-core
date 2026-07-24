@@ -1,5 +1,5 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { Rows3, Save, Trash2 } from 'lucide-react';
+import { History, Rows3, Save, Trash2 } from 'lucide-react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
@@ -17,6 +17,10 @@ const COLLECTION_ITEM_FORM_ID = 'collection-item-form';
 type ItemPayload = {
     id: number;
     data: Record<string, unknown>;
+    created_at?: string | null;
+    updated_at?: string | null;
+    user_created?: { id: number; name: string; email?: string | null } | null;
+    user_updated?: { id: number; name: string; email?: string | null } | null;
 };
 
 /**
@@ -83,6 +87,16 @@ export default function ItemsForm({
             breadcrumbs={breadcrumbs}
             headerActions={
                 <>
+                    {!isNew && item !== null && (
+                        <Button variant="outline" asChild>
+                            <Link
+                                href={`/collections/${collection.id}/items/${item.id}/revisions`}
+                            >
+                                <History className="size-4" />
+                                History
+                            </Link>
+                        </Button>
+                    )}
                     <Button variant="outline" asChild>
                         <Link href={FieldController.index.url(collection.id)}>
                             <Rows3 className="size-4" />
@@ -180,6 +194,52 @@ export default function ItemsForm({
                                         relatedCollections={relatedCollections}
                                         formLayout={collection.form_layout}
                                     />
+                                    {!isNew && item !== null && (
+                                        <dl className="text-muted-foreground grid gap-3 border-t pt-6 text-sm sm:grid-cols-2">
+                                            <div>
+                                                <dt className="font-medium text-foreground">
+                                                    Created by
+                                                </dt>
+                                                <dd>
+                                                    {item.user_created?.name ??
+                                                        '—'}
+                                                </dd>
+                                            </div>
+                                            <div>
+                                                <dt className="font-medium text-foreground">
+                                                    Updated by
+                                                </dt>
+                                                <dd>
+                                                    {item.user_updated?.name ??
+                                                        '—'}
+                                                </dd>
+                                            </div>
+                                            <div>
+                                                <dt className="font-medium text-foreground">
+                                                    Created at
+                                                </dt>
+                                                <dd>
+                                                    {item.created_at
+                                                        ? new Date(
+                                                              item.created_at,
+                                                          ).toLocaleString()
+                                                        : '—'}
+                                                </dd>
+                                            </div>
+                                            <div>
+                                                <dt className="font-medium text-foreground">
+                                                    Updated at
+                                                </dt>
+                                                <dd>
+                                                    {item.updated_at
+                                                        ? new Date(
+                                                              item.updated_at,
+                                                          ).toLocaleString()
+                                                        : '—'}
+                                                </dd>
+                                            </div>
+                                        </dl>
+                                    )}
                                 </>
                             );
                         }}

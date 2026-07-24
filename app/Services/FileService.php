@@ -8,6 +8,7 @@ use App\Models\File;
 use App\Models\FileUpload;
 use App\Models\FileVersion;
 use App\Models\User;
+use App\Services\Webhooks\OutboundWebhookDispatcher;
 use App\Traits\HasFiles;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\UploadedFile;
@@ -28,7 +29,7 @@ class FileService
      */
     public function createFolder(string $name, ?int $parentId = null, string $disk = 'assets'): File
     {
-        return DB::transaction(function () use ($name, $parentId, $disk) {
+        $file = DB::transaction(function () use ($name, $parentId, $disk) {
             $file = File::query()->create([
                 'parent_id' => $parentId,
                 'type' => FileTypeEnum::Folder,
@@ -43,6 +44,10 @@ class FileService
 
             return $file;
         });
+
+        app(OutboundWebhookDispatcher::class)->dispatchFile('file.created', $file);
+
+        return $file;
     }
 
     /**
@@ -68,7 +73,7 @@ class FileService
             [$width, $height, $meta] = $this->extractImageMeta($disk, $storedPath, $mimeType, $bytes);
             $fileHash = hash('sha256', $bytes);
 
-            return DB::transaction(function () use ($parentId, $disk, $fileName, $mimeType, $size, $width, $height, $meta, $storedPath, $fileHash) {
+            $file = DB::transaction(function () use ($parentId, $disk, $fileName, $mimeType, $size, $width, $height, $meta, $storedPath, $fileHash) {
                 $version = $this->resolveOrCreateVersion($disk, $storedPath, $fileHash, $mimeType, $size, $width, $height, $meta);
 
                 $file = File::query()->create([
@@ -98,6 +103,10 @@ class FileService
 
                 return $file;
             });
+
+            app(OutboundWebhookDispatcher::class)->dispatchFile('file.created', $file);
+
+            return $file;
         } catch (\Throwable $e) {
             if ($storedPath !== null) {
                 Storage::disk($disk)->delete($storedPath);
@@ -131,7 +140,7 @@ class FileService
                 $fileMoved = true;
             }
 
-            return DB::transaction(function () use ($file, $targetParentId, $newDisk, $newStoragePath, $fileMoved, $version) {
+            $moved = DB::transaction(function () use ($file, $targetParentId, $newDisk, $newStoragePath, $fileMoved, $version) {
                 if ($version !== null) {
                     $updated = File::query()
                         ->where('id', $file->id)
@@ -168,6 +177,10 @@ class FileService
 
                 return $file->fresh();
             });
+
+            app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $moved);
+
+            return $moved;
         } catch (\Throwable $e) {
             if ($fileMoved && $oldStoragePath && $newStoragePath) {
                 $oldStorage = Storage::disk($oldDisk);
@@ -191,7 +204,7 @@ class FileService
      */
     public function rename(File $file, string $newName): File
     {
-        return DB::transaction(function () use ($file, $newName) {
+        $renamed = DB::transaction(function () use ($file, $newName) {
             $file->name = $newName;
             $file->path = $this->calculatePath($file);
             $file->save();
@@ -202,6 +215,10 @@ class FileService
 
             return $file->fresh();
         });
+
+        app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $renamed);
+
+        return $renamed;
     }
 
     /**
@@ -209,7 +226,7 @@ class FileService
      */
     public function updateMetadata(File $file, array $attributes): File
     {
-        return DB::transaction(function () use ($file, $attributes) {
+        $updated = DB::transaction(function () use ($file, $attributes) {
             $allowed = [
                 'title',
                 'description',
@@ -220,6 +237,7 @@ class FileService
                 'translate_x',
                 'translate_y',
                 'scale',
+                'access',
             ];
 
             $focalChanged = false;
@@ -241,6 +259,10 @@ class FileService
 
             return $file->fresh(['tags']);
         });
+
+        app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $updated);
+
+        return $updated;
     }
 
     /**
@@ -283,7 +305,7 @@ class FileService
             [$width, $height, $meta] = $this->extractImageMeta($file->disk, $storedPath, $mimeType, $bytes);
             $fileHash = hash('sha256', $bytes);
 
-            return DB::transaction(function () use ($file, $storedPath, $fileHash, $mimeType, $size, $width, $height, $meta) {
+            $replaced = DB::transaction(function () use ($file, $storedPath, $fileHash, $mimeType, $size, $width, $height, $meta) {
                 $version = $this->resolveOrCreateVersion(
                     $file->disk,
                     $storedPath,
@@ -314,6 +336,10 @@ class FileService
 
                 return $file->fresh(['tags']);
             });
+
+            app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $replaced);
+
+            return $replaced;
         } catch (\Throwable $exception) {
             if ($storedPath !== null) {
                 Storage::disk($file->disk)->delete($storedPath);
@@ -694,6 +720,8 @@ class FileService
 
             $file->delete();
         });
+
+        app(OutboundWebhookDispatcher::class)->dispatchFile('file.deleted', $file);
     }
 
     /**
@@ -729,6 +757,8 @@ class FileService
 
             $file->forceDelete();
         });
+
+        app(OutboundWebhookDispatcher::class)->dispatchFile('file.deleted', $file);
     }
 
     /**

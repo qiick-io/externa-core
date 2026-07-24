@@ -2,12 +2,12 @@ import {
     FileText,
     HardDrive,
     ImageIcon,
+    Lock,
     MapPin,
     MoveHorizontal,
     MoveVertical,
     Scaling,
     X
-    
 } from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -17,6 +17,13 @@ import { TagPicker } from '@/components/admin/files/tag-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -30,6 +37,24 @@ import {
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { AdminFileRow, FileTag } from '@/types/files';
+
+type AccessChoice = 'inherit' | 'public' | 'private';
+
+function accessChoiceFromFile(file: AdminFileRow): AccessChoice {
+    if (file.access === null || file.access === undefined) {
+        return 'inherit';
+    }
+
+    return file.access;
+}
+
+function accessPayload(choice: AccessChoice): 'public' | 'private' | null {
+    if (choice === 'inherit') {
+        return null;
+    }
+
+    return choice;
+}
 
 type FileDetailPanelProps = {
     file: AdminFileRow;
@@ -141,6 +166,7 @@ export function FileDetailPanel({
         optionalNumberString(file.translate_y),
     );
     const [scale, setScale] = useState(optionalNumberString(file.scale));
+    const [access, setAccess] = useState<AccessChoice>(accessChoiceFromFile(file));
     const [tags, setTags] = useState(file.tags.map((tag) => tag.name));
     const [saving, setSaving] = useState(false);
     const [replacing, setReplacing] = useState(false);
@@ -155,6 +181,7 @@ export function FileDetailPanel({
         setTranslateX(optionalNumberString(file.translate_x));
         setTranslateY(optionalNumberString(file.translate_y));
         setScale(optionalNumberString(file.scale));
+        setAccess(accessChoiceFromFile(file));
         setTags(file.tags.map((tag) => tag.name));
     }, [file]);
 
@@ -207,6 +234,7 @@ export function FileDetailPanel({
                     description: description.trim() || null,
                     location: location.trim() || null,
                     download_name: downloadName.trim() || null,
+                    access: accessPayload(access),
                     ...numericFields,
                 });
             }
@@ -299,6 +327,35 @@ export function FileDetailPanel({
                 </div>
 
                 <div className="space-y-3">
+                    <div className="space-y-1.5">
+                        <Label htmlFor="file-access" className="flex items-center gap-1.5">
+                            <Lock className="size-3.5" />
+                            Visibility
+                        </Label>
+                        <Select
+                            value={access}
+                            disabled={!canUpdateMetadata}
+                            onValueChange={(value) =>
+                                setAccess(value as AccessChoice)
+                            }
+                        >
+                            <SelectTrigger id="file-access" className="w-full">
+                                <SelectValue placeholder="Visibility" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="inherit">
+                                    Inherit from folder
+                                </SelectItem>
+                                <SelectItem value="public">Public</SelectItem>
+                                <SelectItem value="private">Private</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <p className="text-muted-foreground text-xs">
+                            {file.type === 'folder'
+                                ? 'Private folders make children inherit private access unless overridden.'
+                                : `Effective: ${file.effective_access}. Public CMS API hides private files without Read private.`}
+                        </p>
+                    </div>
                     <div className="space-y-1.5">
                         <Label htmlFor="file-title">Title</Label>
                         <Input

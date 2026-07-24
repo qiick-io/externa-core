@@ -3,6 +3,8 @@
 namespace App\Http\Resources;
 
 use App\Models\CollectionItem;
+use App\Models\User;
+use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Api\FileFieldExpander;
 use App\Support\Api\ApiAccess;
 use App\Support\Collections\CollectionItemDataAccessor;
@@ -51,12 +53,39 @@ class CollectionItemResource extends JsonResource
             $data = app(FileFieldExpander::class)->expand($data, $item->collection, $access);
         }
 
+        if ($item->collection !== null) {
+            $data = app(CollectionPermissionEnforcer::class)
+                ->stripData($request, $item->collection, $data);
+        }
+
+        $item->loadMissing(['userCreated:id,first_name,last_name,email', 'userUpdated:id,first_name,last_name,email']);
+
         return [
             'id' => $item->id,
             'collection_id' => $item->collection_id,
             'data' => $data,
             'created_at' => $item->created_at?->toIso8601String(),
             'updated_at' => $item->updated_at?->toIso8601String(),
+            'user_created_id' => $item->user_created_id,
+            'user_updated_id' => $item->user_updated_id,
+            'user_created' => $this->miniUser($item->userCreated),
+            'user_updated' => $this->miniUser($item->userUpdated),
+        ];
+    }
+
+    /**
+     * @return array{id: int, name: string, email: string|null}|null
+     */
+    private function miniUser(?User $user): ?array
+    {
+        if ($user === null) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $user->id,
+            'name' => $user->name !== '' ? $user->name : ($user->email ?? ('#'.$user->id)),
+            'email' => $user->email,
         ];
     }
 }

@@ -12,6 +12,10 @@ export type AdminFileRow = {
     uuid: string;
     parent_id: number | null;
     type: 'file' | 'folder';
+    /** Stored override: null = inherit from folder. */
+    access: 'public' | 'private' | null;
+    /** Resolved visibility after walking ancestors. */
+    effective_access: 'public' | 'private';
     name: string;
     title: string | null;
     description: string | null;

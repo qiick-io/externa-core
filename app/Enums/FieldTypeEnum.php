@@ -33,6 +33,7 @@ enum FieldTypeEnum: string
     case OneToMany = 'one_to_many';
     case ManyToMany = 'many_to_many';
     case M2a = 'm2a';
+    case Blocks = 'blocks';
     case RelationTree = 'relation_tree';
     case RelationMany = 'relation_many';
     case Hash = 'hash';
@@ -60,6 +61,7 @@ enum FieldTypeEnum: string
             self::OneToMany,
             self::ManyToMany,
             self::M2a,
+            self::Blocks,
             self::RelationMany => true,
             default => false,
         };
@@ -109,6 +111,7 @@ enum FieldTypeEnum: string
             self::OneToMany,
             self::ManyToMany,
             self::M2a,
+            self::Blocks,
             self::RelationTree,
             self::RelationMany => false,
             default => true,

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\LogsApplicationActivity;
+use App\Enums\FileAccess;
 use App\Enums\FileTypeEnum;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +22,7 @@ use Spatie\Tags\HasTags;
  * @property string $uuid
  * @property int|null $parent_id
  * @property FileTypeEnum $type
+ * @property FileAccess|null $access null = inherit from nearest ancestor
  * @property string $name
  * @property string|null $title
  * @property string|null $description
@@ -70,6 +72,7 @@ class File extends Model
         'uuid',
         'parent_id',
         'type',
+        'access',
         'name',
         'title',
         'description',
@@ -113,6 +116,7 @@ class File extends Model
         return [
             'meta' => 'array',
             'type' => FileTypeEnum::class,
+            'access' => FileAccess::class,
             'size' => 'integer',
             'width' => 'integer',
             'height' => 'integer',
@@ -178,6 +182,39 @@ class File extends Model
     public function isFile(): bool
     {
         return $this->type === FileTypeEnum::File;
+    }
+
+    /**
+     * Resolved visibility walking parent_id until a non-null access override is found.
+     * Root with null access defaults to public.
+     */
+    public function effectiveAccess(): FileAccess
+    {
+        $node = $this;
+        $guard = 0;
+
+        while ($node !== null && $guard < 64) {
+            if ($node->access instanceof FileAccess) {
+                return $node->access;
+            }
+
+            if ($node->parent_id === null) {
+                break;
+            }
+
+            // Prefer already-loaded parent to avoid N+1 when ancestors are eager-loaded.
+            $node = $node->relationLoaded('parent')
+                ? $node->parent
+                : $node->parent()->first();
+            $guard++;
+        }
+
+        return FileAccess::Public;
+    }
+
+    public function isEffectivelyPrivate(): bool
+    {
+        return $this->effectiveAccess() === FileAccess::Private;
     }
 
     /**

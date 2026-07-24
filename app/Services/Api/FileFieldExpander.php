@@ -3,19 +3,24 @@
 namespace App\Services\Api;
 
 use App\Enums\FieldTypeEnum;
-use App\Enums\FilePermissionAction;
 use App\Models\Collection;
+use App\Models\CollectionField;
 use App\Models\File;
 use App\Services\Settings\ProjectSettings;
 use App\Support\Api\ApiAccess;
+use App\Support\Collections\BlocksFieldSchema;
 
 /**
  * Expand image/file/files field values to public file payloads on API responses.
+ *
+ * Private files without read_private are redacted (null / omitted) — no id leak.
+ * Public files without read still return { id } only (legacy behavior).
  */
 class FileFieldExpander
 {
     public function __construct(
         private FilePermissionGuard $filePermissionGuard,
+        private BlocksFieldSchema $blocksFieldSchema,
     ) {}
 
     /**
@@ -26,8 +31,7 @@ class FileFieldExpander
     {
         $collection->loadMissing('fields');
 
-        $canReadFiles = $access !== null
-            && $this->filePermissionGuard->allows($access->roleId(), FilePermissionAction::Read);
+        $roleId = $access?->roleId();
 
         $fileFieldKeys = [];
         foreach ($collection->fields as $field) {
@@ -35,8 +39,8 @@ class FileFieldExpander
                 ? $field->type
                 : FieldTypeEnum::tryFrom((string) $field->type);
 
-            if (in_array($type, [FieldTypeEnum::Image, FieldTypeEnum::File, FieldTypeEnum::Files], true)) {
-                $fileFieldKeys[$field->name] = $type;
+            if (in_array($type, [FieldTypeEnum::Image, FieldTypeEnum::File, FieldTypeEnum::Files, FieldTypeEnum::Blocks], true)) {
+                $fileFieldKeys[$field->name] = $field;
             }
         }
 
@@ -49,8 +53,15 @@ class FileFieldExpander
             ? collect()
             : File::query()->whereIn('id', $ids)->get()->keyBy('id');
 
-        foreach ($fileFieldKeys as $key => $type) {
+        foreach ($fileFieldKeys as $key => $field) {
+            $type = $field->type;
             if (! array_key_exists($key, $data)) {
+                continue;
+            }
+
+            if ($type === FieldTypeEnum::Blocks) {
+                $data[$key] = $this->expandBlocks($data[$key], $field, $filesById, $roleId);
+
                 continue;
             }
 
@@ -68,7 +79,7 @@ class FileFieldExpander
                     if ($id === null) {
                         continue;
                     }
-                    $payload = $this->expandOne($id, $filesById->get($id), $canReadFiles);
+                    $payload = $this->expandOne($id, $filesById->get($id), $roleId);
                     if ($payload !== null) {
                         $expanded[] = $payload;
                     }
@@ -85,22 +96,30 @@ class FileFieldExpander
                 continue;
             }
 
-            $data[$key] = $this->expandOne($id, $filesById->get($id), $canReadFiles);
+            $data[$key] = $this->expandOne($id, $filesById->get($id), $roleId);
         }
 
         return $data;
     }
 
     /**
-     * @param  array<string, FieldTypeEnum>  $fileFieldKeys
+     * @param  array<string, CollectionField>  $fileFieldKeys
      * @param  array<string, mixed>  $data
      * @return list<int>
      */
     private function collectFileIds(array $data, array $fileFieldKeys): array
     {
         $ids = [];
-        foreach ($fileFieldKeys as $key => $type) {
+        foreach ($fileFieldKeys as $key => $field) {
+            $type = $field->type;
             if (! array_key_exists($key, $data)) {
+                continue;
+            }
+            if ($type === FieldTypeEnum::Blocks) {
+                foreach ($this->collectBlockFileIds($data[$key], $field) as $id) {
+                    $ids[] = $id;
+                }
+
                 continue;
             }
             if ($type === FieldTypeEnum::Files && is_array($data[$key])) {
@@ -114,6 +133,149 @@ class FileFieldExpander
                 $id = $this->normalizeId($data[$key]);
                 if ($id !== null) {
                     $ids[] = $id;
+                }
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, File>  $filesById
+     */
+    private function expandBlocks(mixed $rawBlocks, CollectionField $blocksField, $filesById, ?int $roleId): mixed
+    {
+        if (! is_array($rawBlocks)) {
+            return [];
+        }
+
+        $types = $this->blocksFieldSchema->blockTypeMap($blocksField);
+
+        return array_map(function ($block) use ($types, $filesById, $roleId) {
+            if (! is_array($block)) {
+                return $block;
+            }
+
+            $type = (string) ($block['type'] ?? '');
+            $schema = $types[$type] ?? null;
+            $data = is_array($block['data'] ?? null) ? $block['data'] : [];
+            if (! is_array($schema)) {
+                $block['data'] = $data;
+
+                return $block;
+            }
+
+            foreach ($schema['fields'] as $definition) {
+                $nestedType = FieldTypeEnum::tryFrom((string) ($definition['type'] ?? ''));
+                $name = (string) ($definition['name'] ?? '');
+                if ($nestedType === null || $name === '' || ! array_key_exists($name, $data)) {
+                    continue;
+                }
+
+                $nestedValue = $data[$name];
+                if (($definition['translatable'] ?? false) === true && is_array($nestedValue)) {
+                    foreach ($nestedValue as $locale => $localeValue) {
+                        $data[$name][$locale] = $this->expandNestedFileValue($nestedType, $localeValue, $filesById, $roleId);
+                    }
+
+                    continue;
+                }
+
+                $data[$name] = $this->expandNestedFileValue($nestedType, $nestedValue, $filesById, $roleId);
+            }
+
+            $block['data'] = $data;
+
+            return $block;
+        }, $rawBlocks);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, File>  $filesById
+     */
+    private function expandNestedFileValue(FieldTypeEnum $type, mixed $value, $filesById, ?int $roleId): mixed
+    {
+        if ($type === FieldTypeEnum::Files && is_array($value)) {
+            $expanded = [];
+            foreach ($value as $entry) {
+                $id = $this->normalizeId($entry);
+                if ($id === null) {
+                    continue;
+                }
+                $payload = $this->expandOne($id, $filesById->get($id), $roleId);
+                if ($payload !== null) {
+                    $expanded[] = $payload;
+                }
+            }
+
+            return $expanded;
+        }
+
+        if (! in_array($type, [FieldTypeEnum::Image, FieldTypeEnum::File], true)) {
+            return $value;
+        }
+
+        $id = $this->normalizeId($value);
+
+        return $id === null ? null : $this->expandOne($id, $filesById->get($id), $roleId);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function collectBlockFileIds(mixed $rawBlocks, CollectionField $blocksField): array
+    {
+        if (! is_array($rawBlocks)) {
+            return [];
+        }
+
+        $types = $this->blocksFieldSchema->blockTypeMap($blocksField);
+        $ids = [];
+
+        foreach ($rawBlocks as $block) {
+            if (! is_array($block)) {
+                continue;
+            }
+
+            $type = (string) ($block['type'] ?? '');
+            $schema = $types[$type] ?? null;
+            $data = is_array($block['data'] ?? null) ? $block['data'] : [];
+            if (! is_array($schema)) {
+                continue;
+            }
+
+            foreach ($schema['fields'] as $definition) {
+                $nestedType = FieldTypeEnum::tryFrom((string) ($definition['type'] ?? ''));
+                $name = (string) ($definition['name'] ?? '');
+                if ($nestedType === null || $name === '' || ! array_key_exists($name, $data)) {
+                    continue;
+                }
+
+                $nestedValue = $data[$name];
+                $values = ($definition['translatable'] ?? false) === true && is_array($nestedValue)
+                    ? array_values($nestedValue)
+                    : [$nestedValue];
+
+                foreach ($values as $value) {
+                    if ($nestedType === FieldTypeEnum::Files && is_array($value)) {
+                        foreach ($value as $entry) {
+                            $id = $this->normalizeId($entry);
+                            if ($id !== null) {
+                                $ids[] = $id;
+                            }
+                        }
+
+                        continue;
+                    }
+
+                    if (! in_array($nestedType, [FieldTypeEnum::Image, FieldTypeEnum::File], true)) {
+                        continue;
+                    }
+
+                    $id = $this->normalizeId($value);
+                    if ($id !== null) {
+                        $ids[] = $id;
+                    }
                 }
             }
         }
@@ -143,13 +305,21 @@ class FileFieldExpander
     /**
      * @return array<string, mixed>|null
      */
-    private function expandOne(int $id, mixed $file, bool $canReadFiles): ?array
+    private function expandOne(int $id, mixed $file, ?int $roleId): ?array
     {
         if (! $file instanceof File || $file->trashed() || ! $file->isFile()) {
             return null;
         }
 
-        if (! $canReadFiles) {
+        $isPrivate = $file->isEffectivelyPrivate();
+
+        // Private without grant: omit entirely (no id leak), even if collection is readable.
+        if ($isPrivate) {
+            if ($roleId === null || ! $this->filePermissionGuard->canReadFile($roleId, $file)) {
+                return null;
+            }
+        } elseif ($roleId === null || ! $this->filePermissionGuard->canReadFile($roleId, $file)) {
+            // Public file, no read grant: id only (legacy).
             return ['id' => $id];
         }
 

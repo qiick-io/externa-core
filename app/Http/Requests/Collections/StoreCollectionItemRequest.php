@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Collections;
 
+use App\Enums\PermissionEnum;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Models\Collection;
 use App\Services\Collections\CollectionItemDataRuleBuilder;
 use Illuminate\Foundation\Http\FormRequest;
@@ -12,11 +14,15 @@ use Illuminate\Validation\Validator;
  */
 class StoreCollectionItemRequest extends FormRequest
 {
+    use AuthorizesWithPermission;
+
     /**
      * Authorization is enforced by collection route middleware.
      */
     public function authorize(): bool
     {
+        $this->authorizePermission(PermissionEnum::CanCreateCollections->value);
+
         return true;
     }
 

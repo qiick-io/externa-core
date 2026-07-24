@@ -14,7 +14,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Head, Link, router } from '@inertiajs/react';
-import { GripVertical, Pencil, Plus, Rows3, Trash2 } from 'lucide-react';
+import { Download, GripVertical, Pencil, Plus, Rows3, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
@@ -31,6 +31,12 @@ import {
 } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
     Dialog,
     DialogClose,
     DialogContent,
@@ -46,7 +52,15 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { PermissionEnum } from '@/enums/permission-enum';
+import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
+import {
+    FILTER_META_KEYS,
+    parseFiltersFromProps,
+    serializeFilterRules,
+    type FilterRule,
+} from '@/lib/item-list-filters';
 import { cn } from '@/lib/utils';
 import collections from '@/routes/collections';
 import type { BreadcrumbItem, CollectionFieldRow, CollectionView } from '@/types';
@@ -59,6 +73,7 @@ import {
     ColumnPickerPopover,
     type RelatedFieldEntry,
 } from './column-picker-popover';
+import { ItemFiltersBuilder } from './item-filters-builder';
 import { columnHeaderLabel, ItemTableCell } from './item-table-cell';
 
 type ItemRow = {
@@ -67,6 +82,8 @@ type ItemRow = {
     data: Record<string, unknown>;
     created_at?: string | null;
     updated_at?: string | null;
+    user_created?: { id: number; name: string; email?: string | null } | null;
+    user_updated?: { id: number; name: string; email?: string | null } | null;
     displays?: Record<string, string | null>;
     thumbs?: Record<string, string | null>;
 };
@@ -80,11 +97,62 @@ type Paginator<T> = {
     links: { url: string | null; label: string; active: boolean }[];
 };
 
-type ItemsFilters = Record<string, string> & {
-    title?: string;
+type ItemsFilters = Record<string, unknown> & {
     sort?: string;
     direction?: string;
+    trashed?: boolean;
 };
+
+function titleContainsFromFilters(filters: ItemsFilters): string {
+    const title = filters.title;
+    if (typeof title === 'string') {
+        return title;
+    }
+    if (title && typeof title === 'object' && !Array.isArray(title)) {
+        const ops = title as Record<string, unknown>;
+        if (typeof ops._contains === 'string') {
+            return ops._contains;
+        }
+        if (typeof ops._eq === 'string') {
+            return ops._eq;
+        }
+    }
+
+    return '';
+}
+
+/** Field filters excluding the quick title-contains search (handled separately). */
+function advancedRulesFromFilters(filters: ItemsFilters): FilterRule[] {
+    const withoutTitleQuick: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(filters)) {
+        if (FILTER_META_KEYS.has(key)) {
+            continue;
+        }
+        if (key === 'title' && typeof value === 'string') {
+            continue;
+        }
+        if (
+            key === 'title' &&
+            value &&
+            typeof value === 'object' &&
+            !Array.isArray(value)
+        ) {
+            const ops = { ...(value as Record<string, unknown>) };
+            if ('_contains' in ops && Object.keys(ops).length === 1) {
+                continue;
+            }
+            delete ops._contains;
+            if (Object.keys(ops).length === 0) {
+                continue;
+            }
+            withoutTitleQuick[key] = ops;
+            continue;
+        }
+        withoutTitleQuick[key] = value;
+    }
+
+    return parseFiltersFromProps(withoutTitleQuick);
+}
 
 type SortableHeaderProps = {
     id: string;
@@ -165,7 +233,13 @@ export default function ItemsIndex({
     related_fields_catalog?: Record<string, RelatedFieldEntry[]>;
     filters: ItemsFilters;
 }) {
-    const [filterTitle, setFilterTitle] = useState(filters.title ?? '');
+    const { can } = useCan();
+    const [filterTitle, setFilterTitle] = useState(() =>
+        titleContainsFromFilters(filters),
+    );
+    const [filterRules, setFilterRules] = useState<FilterRule[]>(() =>
+        advancedRulesFromFilters(filters),
+    );
     const [listColumns, setListColumns] = useState(listColumnsProp);
     const [columnAligns, setColumnAligns] = useState(columnAlignsProp);
     const [deleteItemId, setDeleteItemId] = useState<number | null>(null);
@@ -177,6 +251,11 @@ export default function ItemsIndex({
     useEffect(() => {
         setColumnAligns(columnAlignsProp);
     }, [columnAlignsProp]);
+
+    useEffect(() => {
+        setFilterTitle(titleContainsFromFilters(filters));
+        setFilterRules(advancedRulesFromFilters(filters));
+    }, [filters]);
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [
@@ -227,44 +306,71 @@ export default function ItemsIndex({
     const visit = useCallback(
         (overrides: {
             title?: string;
+            rules?: FilterRule[];
             sort?: string;
             direction?: 'asc' | 'desc';
         } = {}) => {
             const nextTitle =
                 overrides.title !== undefined
                     ? overrides.title
-                    : (filterTitle || undefined);
+                    : filterTitle;
+            const nextRules = overrides.rules ?? filterRules;
             const nextSort = overrides.sort ?? filters.sort ?? 'id';
             const nextDirection =
                 overrides.direction ??
                 (filters.direction === 'asc' ? 'asc' : 'desc');
 
+            const filterPayload = serializeFilterRules(nextRules);
+            const trimmedTitle = nextTitle.trim();
+            if (trimmedTitle !== '') {
+                const titleBag = filterPayload.title ?? {};
+                if (!('_eq' in titleBag) && !('_neq' in titleBag) && !('_in' in titleBag)) {
+                    filterPayload.title = {
+                        ...titleBag,
+                        _contains: trimmedTitle,
+                    };
+                }
+            }
+
             router.get(
                 collections.items.index.url(collection.id),
                 {
-                    filter: {
-                        title: nextTitle || undefined,
-                    },
+                    filter:
+                        Object.keys(filterPayload).length > 0
+                            ? filterPayload
+                            : undefined,
                     sort: nextSort,
                     direction: nextDirection,
                 },
                 { preserveState: true, preserveScroll: true },
             );
         },
-        [collection.id, filterTitle, filters.direction, filters.sort],
+        [
+            collection.id,
+            filterRules,
+            filterTitle,
+            filters.direction,
+            filters.sort,
+        ],
     );
 
     useEffect(() => {
-        if (filterTitle === (filters.title ?? '')) {
+        if (filterTitle === titleContainsFromFilters(filters)) {
             return;
         }
 
         const timer = setTimeout(() => {
-            visit({ title: filterTitle || undefined });
+            visit({ title: filterTitle });
         }, 350);
 
         return () => clearTimeout(timer);
-    }, [filterTitle, filters.title]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [filterTitle]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const clearFilters = useCallback(() => {
+        setFilterTitle('');
+        setFilterRules([]);
+        visit({ title: '', rules: [] });
+    }, [visit]);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -315,6 +421,48 @@ export default function ItemsIndex({
             item: itemId,
         });
 
+    const exportUrl = (format: 'csv' | 'json'): string => {
+        const filterPayload = serializeFilterRules(filterRules);
+        const trimmedTitle = filterTitle.trim();
+        if (trimmedTitle !== '') {
+            const titleBag = filterPayload.title ?? {};
+            if (
+                !('_eq' in titleBag) &&
+                !('_neq' in titleBag) &&
+                !('_in' in titleBag)
+            ) {
+                filterPayload.title = {
+                    ...titleBag,
+                    _contains: trimmedTitle,
+                };
+            }
+        }
+
+        const params = new URLSearchParams();
+        params.set('format', format);
+        params.set('sort', filters.sort ?? 'id');
+        params.set(
+            'direction',
+            filters.direction === 'asc' ? 'asc' : 'desc',
+        );
+
+        for (const [field, ops] of Object.entries(filterPayload)) {
+            if (ops && typeof ops === 'object') {
+                for (const [op, value] of Object.entries(ops)) {
+                    if (value === undefined || value === null) {
+                        continue;
+                    }
+                    params.set(
+                        `filter[${field}][${op}]`,
+                        Array.isArray(value) ? value.join(',') : String(value),
+                    );
+                }
+            }
+        }
+
+        return `${ItemController.exportMethod.url(collection.id)}?${params.toString()}`;
+    };
+
     return (
         <AppLayout
             breadcrumbs={breadcrumbs}
@@ -324,18 +472,44 @@ export default function ItemsIndex({
                         collectionForm={collectionForm}
                         collection={collection}
                     />
-                    <Button variant="outline" asChild>
-                        <Link href={FieldController.index.url(collection.id)}>
-                            <Rows3 className="size-4" />
-                            Edit fields
-                        </Link>
-                    </Button>
-                    <Button asChild>
-                        <Link href={collections.items.new.url(collection.id)}>
-                            <Plus className="size-4" />
-                            New item
-                        </Link>
-                    </Button>
+                    {can(PermissionEnum.CanShowCollections) ? (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline">
+                                    <Download className="size-4" />
+                                    Export
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem asChild>
+                                    <a href={exportUrl('csv')}>Export CSV</a>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <a href={exportUrl('json')}>Export JSON</a>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    ) : null}
+                    {can(PermissionEnum.CanEditCollections) ? (
+                        <Button variant="outline" asChild>
+                            <Link
+                                href={FieldController.index.url(collection.id)}
+                            >
+                                <Rows3 className="size-4" />
+                                Edit fields
+                            </Link>
+                        </Button>
+                    ) : null}
+                    {can(PermissionEnum.CanCreateCollections) ? (
+                        <Button asChild>
+                            <Link
+                                href={collections.items.new.url(collection.id)}
+                            >
+                                <Plus className="size-4" />
+                                New item
+                            </Link>
+                        </Button>
+                    ) : null}
                 </>
             }
         >
@@ -346,7 +520,16 @@ export default function ItemsIndex({
                     <DataTableToolbar
                         search={filterTitle}
                         onSearchChange={setFilterTitle}
-                        searchPlaceholder="Filter by title…"
+                        searchPlaceholder="Search title…"
+                        trailing={
+                            <ItemFiltersBuilder
+                                fields={collection.fields ?? []}
+                                rules={filterRules}
+                                onChange={setFilterRules}
+                                onApply={() => visit()}
+                                onClear={clearFilters}
+                            />
+                        }
                     />
                 }
                 footer={

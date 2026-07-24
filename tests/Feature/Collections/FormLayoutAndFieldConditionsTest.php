@@ -8,9 +8,15 @@ use App\Models\User;
 use App\Services\Collections\CollectionFormLayoutNormalizer;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\FieldConditionEvaluator;
+use Database\Seeders\PermissionSeeder;
+
+beforeEach(function () {
+    $this->seed(PermissionSeeder::class);
+    $this->withoutVite();
+});
 
 test('form layout persists on collection and normalizes field ids', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -74,7 +80,7 @@ test('form layout persists on collection and normalizes field ids', function () 
 });
 
 test('conditional required is enforced when rules match', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -162,7 +168,7 @@ test('field condition evaluator matches equals empty and not_empty', function ()
 });
 
 test('select allow_other accepts values outside options', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -188,7 +194,7 @@ test('select allow_other accepts values outside options', function () {
 });
 
 test('multiselect rejects unknown values when allow_other is false', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();
@@ -215,7 +221,7 @@ test('multiselect rejects unknown values when allow_other is false', function ()
 });
 
 test('date field settings accept date_mode values', function () {
-    $user = User::factory()->create();
+    $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $collection = Collection::factory()->create();

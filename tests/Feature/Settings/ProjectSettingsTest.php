@@ -9,45 +9,6 @@ use Inertia\Testing\AssertableInertia;
 use Laravel\Fortify\Features;
 use Spatie\Permission\Models\Role;
 
-function grantProjectSettingsPermissions(User $user, array $permissions): User
-{
-    $role = Role::query()->firstOrCreate([
-        'name' => 'test-project-settings-'.uniqid(),
-        'guard_name' => config('auth.defaults.guard', 'web'),
-    ]);
-    $role->syncPermissions($permissions);
-    $user->syncRoles([$role]);
-
-    return $user;
-}
-
-/**
- * @return list<array<string, mixed>>
- */
-function sampleTransformPresets(): array
-{
-    return [
-        [
-            'key' => 'thumbnail',
-            'fit' => 'contain',
-            'width' => 128,
-            'height' => 128,
-            'quality' => 82,
-            'without_enlargement' => true,
-            'format' => 'auto',
-        ],
-        [
-            'key' => 'hero',
-            'fit' => 'cover',
-            'width' => 800,
-            'height' => 450,
-            'quality' => 90,
-            'without_enlargement' => false,
-            'format' => 'webp',
-        ],
-    ];
-}
-
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->withoutVite();
@@ -56,26 +17,6 @@ beforeEach(function () {
 test('guests are redirected from project settings', function () {
     $this->get(route('project.edit'))->assertRedirect(route('login'));
 });
-
-/**
- * @param  array<string, mixed>  $overrides
- * @return array<string, mixed>
- */
-function baseProjectPayload(array $overrides = []): array
-{
-    return array_merge([
-        'default_language' => 'en',
-        'content_locales' => ['en', 'it'],
-        'default_content_locale' => 'en',
-        'fallback_content_locales' => ['en', 'it'],
-        'password_policy' => 'weak',
-        'login_max_attempts' => 5,
-        'registration_enabled' => true,
-        'email_verification_required' => false,
-        'sidebar_modules' => config('settings.project.defaults.sidebar_modules'),
-        'preset_transformations' => sampleTransformPresets(),
-    ], $overrides);
-}
 
 test('users without permission receive 403 on project get and put', function () {
     $user = User::factory()->create();

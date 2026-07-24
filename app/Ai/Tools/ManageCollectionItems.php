@@ -381,7 +381,8 @@ class ManageCollectionItems implements Tool
         }
 
         foreach ($incoming as $key => $value) {
-            $data[$key] = is_array($value) && isset($data[$key]) && is_array($data[$key])
+            // ponytail: array_merge appends list fields (blocks/m2a/files); only merge associative maps (locales).
+            $data[$key] = is_array($value) && isset($data[$key]) && is_array($data[$key]) && ! array_is_list($value)
                 ? array_merge($data[$key], $value)
                 : $value;
         }

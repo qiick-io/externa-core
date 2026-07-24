@@ -140,7 +140,41 @@ class FileController extends Controller
             'tag_ids.*' => ['integer', 'min:1'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string', 'max:100'],
+            // ponytail: field inputs resolve selected file previews by id (no parent scope).
+            'ids' => ['nullable', 'array', 'max:100'],
+            'ids.*' => ['integer', 'min:1'],
         ]);
+
+        $ids = collect($validated['ids'] ?? [])
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->filter(static fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($ids !== []) {
+            $userId = $request->user()?->id;
+            $files = File::query()
+                ->with(['tags', 'currentVersion'])
+                ->whereIn('id', $ids)
+                ->when(
+                    $userId !== null,
+                    fn (Builder $builder) => $builder->withExists([
+                        'favoritedBy as is_favorited' => fn (Builder $favorite) => $favorite->where('user_id', $userId),
+                    ]),
+                )
+                ->get()
+                ->sortBy(static fn (File $file): int|false => array_search($file->id, $ids, true))
+                ->values();
+
+            return response()->json([
+                'data' => FileResource::collection($files)->resolve(),
+                'current_page' => 1,
+                'last_page' => 1,
+                'per_page' => $files->count(),
+                'total' => $files->count(),
+            ]);
+        }
 
         [$tagIds, $tagNames] = $this->resolveTagFilters($request);
 

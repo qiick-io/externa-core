@@ -2,6 +2,8 @@ import { Pencil } from 'lucide-react';
 import { CollectionFormDrawer } from '@/components/collections/collection-form-drawer';
 import { Button } from '@/components/ui/button';
 import { Drawer } from '@/components/ui/drawer';
+import { PermissionEnum } from '@/enums/permission-enum';
+import { useCan } from '@/hooks/use-can';
 import { useCollections } from '@/hooks/use-collections';
 import type { CollectionRow } from '@/types/collections';
 
@@ -49,7 +51,7 @@ export function CollectionEditDrawer({
 
 /**
  * Button that opens the collection edit drawer.
- * @returns {JSX.Element}
+ * @returns {JSX.Element | null}
  */
 export function CollectionEditButton({
     collectionForm,
@@ -60,6 +62,12 @@ export function CollectionEditButton({
     collection: CollectionEditSource;
     variant?: 'outline' | 'default' | 'secondary' | 'ghost' | 'link' | 'destructive';
 }) {
+    const { can } = useCan();
+
+    if (!can(PermissionEnum.CanEditCollections)) {
+        return null;
+    }
+
     return (
         <Button
             type="button"

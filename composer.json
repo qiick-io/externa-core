@@ -16,6 +16,7 @@
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
+        "nuwave/lighthouse": "^6.69",
         "phpoffice/phpspreadsheet": "^5.9",
         "smalot/pdfparser": "^2.12",
         "spatie/eloquent-sortable": "^5.0",

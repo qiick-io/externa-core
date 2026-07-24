@@ -10,7 +10,9 @@ use App\Http\Resources\CollectionItemResource;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
+use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Collections\CollectionItemDataNormalizer;
+use App\Services\Collections\CollectionItemExportService;
 use App\Services\Collections\CollectionItemOptionsService;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Services\Collections\CollectionItemValuesAssembler;
@@ -23,6 +25,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * CRUD and relational field option endpoints for non-singleton collection items.
@@ -38,6 +41,8 @@ class ItemController extends Controller
         private CollectionListColumnsNormalizer $listColumnsNormalizer,
         private CollectionListDisplayEnricher $listDisplayEnricher,
         private SettingsRepository $settingsRepository,
+        private CollectionPermissionEnforcer $permissionEnforcer,
+        private CollectionItemExportService $itemExportService,
     ) {}
 
     /**
@@ -63,11 +68,14 @@ class ItemController extends Controller
             $filters = [];
         }
 
-        /** @var array<string, string> $stringFilters */
+        /** @var array<string, mixed> $stringFilters */
         $stringFilters = [];
         foreach ($filters as $key => $value) {
-            if (is_string($key) && (is_string($value) || is_numeric($value))) {
-                $stringFilters[$key] = (string) $value;
+            if (! is_string($key) || $key === '') {
+                continue;
+            }
+            if (is_string($value) || is_numeric($value) || is_bool($value) || is_array($value) || $value === null) {
+                $stringFilters[$key] = $value;
             }
         }
 
@@ -90,6 +98,8 @@ class ItemController extends Controller
         $listColumns = $this->resolveListColumns($request, $collection);
         $columnAligns = $this->resolveColumnAligns($request, $collection, $listColumns);
 
+        $this->permissionEnforcer->applyItemFilterToQuery($request, $collection, $query);
+
         $paginator = $query->paginate(15)->withQueryString();
         $rows = $paginator->getCollection()
             ->map(fn (CollectionItem $item): array => (new CollectionItemResource($item))->toArray($request))
@@ -110,6 +120,49 @@ class ItemController extends Controller
                 'direction' => $sortState['direction'],
             ],
         ]);
+    }
+
+    /**
+     * Download filtered collection items as CSV or JSON (capped).
+     */
+    public function export(Request $request, Collection $collection): StreamedResponse|RedirectResponse
+    {
+        if ($collection->is_singleton) {
+            return redirect()->route('collections.show', $collection);
+        }
+
+        $format = strtolower((string) $request->query('format', 'csv'));
+        if (! in_array($format, ['csv', 'json'], true)) {
+            abort(422, 'format must be csv or json.');
+        }
+
+        $filters = $request->query('filter', []);
+        if (! is_array($filters)) {
+            $filters = [];
+        }
+
+        /** @var array<string, mixed> $stringFilters */
+        $stringFilters = [];
+        foreach ($filters as $key => $value) {
+            if (! is_string($key) || $key === '') {
+                continue;
+            }
+            if (is_string($value) || is_numeric($value) || is_bool($value) || is_array($value) || $value === null) {
+                $stringFilters[$key] = $value;
+            }
+        }
+
+        $sortParam = $request->query('sort');
+        $directionParam = $request->query('direction');
+
+        return $this->itemExportService->download(
+            $collection,
+            $format,
+            $stringFilters,
+            is_string($sortParam) ? $sortParam : null,
+            is_string($directionParam) ? $directionParam : null,
+            $request,
+        );
     }
 
     /**
@@ -174,9 +227,15 @@ class ItemController extends Controller
             abort(422, __('A singleton collection already has its content item.'));
         }
 
+        $data = $request->validated('data') ?? [];
+        if (! is_array($data)) {
+            $data = [];
+        }
+        $this->permissionEnforcer->assertWritableFields($request, $collection, $data, 'create');
+
         $normalized = $this->itemDataNormalizer->normalize(
             $collection,
-            $request->validated('data') ?? [],
+            $data,
             true,
         );
 
@@ -194,6 +253,7 @@ class ItemController extends Controller
     public function show(Request $request, Collection $collection, CollectionItem $item): Response|RedirectResponse
     {
         $this->assertItemBelongsToCollection($collection, $item);
+        $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
 
         if ($collection->is_singleton) {
             return redirect()->route('collections.show', $collection);
@@ -219,11 +279,13 @@ class ItemController extends Controller
     public function update(UpdateCollectionItemRequest $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
         $this->assertItemBelongsToCollection($collection, $item);
+        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
 
         $data = $this->collectionItemValuesAssembler->assemble($item);
 
         $incoming = $request->validated('data') ?? [];
         if (is_array($incoming)) {
+            $this->permissionEnforcer->assertWritableFields($request, $collection, $incoming, 'update');
             $collection->loadMissing('fields');
             foreach ($collection->fields as $field) {
                 if ($field->isReadonly()) {
@@ -232,7 +294,13 @@ class ItemController extends Controller
             }
 
             foreach ($incoming as $key => $value) {
-                if (is_array($value) && isset($data[$key]) && is_array($data[$key])) {
+                // ponytail: array_merge appends list fields (blocks/m2a/files); only merge associative maps (locales).
+                if (
+                    is_array($value)
+                    && isset($data[$key])
+                    && is_array($data[$key])
+                    && ! array_is_list($value)
+                ) {
                     $data[$key] = array_merge($data[$key], $value);
                 } else {
                     $data[$key] = $value;
@@ -251,9 +319,10 @@ class ItemController extends Controller
     /**
      * Soft-delete a collection item.
      */
-    public function destroy(Collection $collection, CollectionItem $item): RedirectResponse
+    public function destroy(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
         $this->assertItemBelongsToCollection($collection, $item);
+        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
 
         $item->delete();
 
@@ -279,9 +348,10 @@ class ItemController extends Controller
     /**
      * Permanently delete a collection item.
      */
-    public function forceDelete(Collection $collection, CollectionItem $item): RedirectResponse
+    public function forceDelete(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
         $this->assertItemBelongsToCollection($collection, $item);
+        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
 
         $item->forceDelete();
 

@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Collections;
 
+use App\Enums\PermissionEnum;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Models\Collection;
 use App\Services\Collections\CollectionListColumnsNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
@@ -11,8 +13,12 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class UpdateCollectionListColumnsRequest extends FormRequest
 {
+    use AuthorizesWithPermission;
+
     public function authorize(): bool
     {
+        $this->authorizePermission(PermissionEnum::CanEditCollections->value);
+
         return true;
     }
 

@@ -8,6 +8,7 @@ use App\Models\CollectionField;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Webhooks\OutboundWebhookDispatcher;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -157,96 +158,109 @@ trait ImportsCollectionRecords
         $assembler = app(CollectionItemValuesAssembler::class);
         $writer = app(CollectionItemValuesWriter::class);
 
-        $created = 0;
-        $updated = 0;
-        $skipped = 0;
-        /** @var list<string> $errors */
-        $errors = [];
-        $rowNumber = 0;
-        $upsertFieldName = $upsertKey === '' ? null : ($labelToField[$upsertKey] ?? $upsertKey);
-        $existingByUpsertValue = [];
+        // ponytail: suppress per-row webhooks on bulk import (ceiling: no summary event; upgrade: batched webhook)
+        return OutboundWebhookDispatcher::withoutWebhooks(function () use (
+            $collection,
+            $rows,
+            $maxRows,
+            $upsertKey,
+            $labelToField,
+            $fieldsCreated,
+            $normalizer,
+            $assembler,
+            $writer,
+        ): array {
+            $created = 0;
+            $updated = 0;
+            $skipped = 0;
+            /** @var list<string> $errors */
+            $errors = [];
+            $rowNumber = 0;
+            $upsertFieldName = $upsertKey === '' ? null : ($labelToField[$upsertKey] ?? $upsertKey);
+            $existingByUpsertValue = [];
 
-        if ($upsertFieldName !== null && ! $collection->fields->contains('name', $upsertFieldName)) {
-            throw new \RuntimeException("Campo upsert_key non trovato: {$upsertKey}");
-        }
-
-        if ($upsertFieldName !== null) {
-            foreach ($collection->items()->get() as $existingItem) {
-                $existingValue = $assembler->assemble($existingItem)[$upsertFieldName] ?? null;
-
-                if (is_scalar($existingValue) && (string) $existingValue !== '') {
-                    $existingByUpsertValue[(string) $existingValue] = $existingItem;
-                }
-            }
-        }
-
-        foreach ($rows as $row) {
-            $rowNumber++;
-
-            if ($created + $updated + $skipped >= $maxRows) {
-                $errors[] = 'Interrotto dopo '.$maxRows.' righe (limite massimo).';
-                break;
+            if ($upsertFieldName !== null && ! $collection->fields->contains('name', $upsertFieldName)) {
+                throw new \RuntimeException("Campo upsert_key non trovato: {$upsertKey}");
             }
 
-            if ($this->associativeRowIsEmpty($row)) {
-                $skipped++;
+            if ($upsertFieldName !== null) {
+                foreach ($collection->items()->get() as $existingItem) {
+                    $existingValue = $assembler->assemble($existingItem)[$upsertFieldName] ?? null;
 
-                continue;
-            }
-
-            if ($collection->is_singleton && $collection->items()->exists()) {
-                $skipped++;
-                $errors[] = "Riga {$rowNumber}: collezione singleton già popolata.";
-
-                continue;
-            }
-
-            $data = [];
-
-            foreach ($labelToField as $label => $fieldName) {
-                $data[$fieldName] = isset($row[$label]) ? trim((string) $row[$label]) : '';
-            }
-
-            try {
-                $upsertValue = $upsertFieldName === null ? null : ($data[$upsertFieldName] ?? null);
-                $item = is_scalar($upsertValue) && (string) $upsertValue !== ''
-                    ? ($existingByUpsertValue[(string) $upsertValue] ?? null)
-                    : null;
-                $isUpdate = $item !== null;
-
-                if ($isUpdate) {
-                    $data = array_replace($assembler->assemble($item), $data);
-                } else {
-                    $item = $collection->items()->create([]);
-                }
-
-                $normalized = $normalizer->normalize($collection, $data, ! $isUpdate);
-                $writer->sync($item, $collection, $normalized);
-
-                if ($isUpdate) {
-                    $updated++;
-                } else {
-                    $created++;
-                    $this->logAiMutation($item, 'import_create_item');
-
-                    if (is_scalar($upsertValue) && (string) $upsertValue !== '') {
-                        $existingByUpsertValue[(string) $upsertValue] = $item;
+                    if (is_scalar($existingValue) && (string) $existingValue !== '') {
+                        $existingByUpsertValue[(string) $existingValue] = $existingItem;
                     }
                 }
-            } catch (Throwable $exception) {
-                $skipped++;
-                $errors[] = "Riga {$rowNumber}: ".$exception->getMessage();
             }
-        }
 
-        return [
-            'mapped_headers' => array_values(array_unique(array_values($labelToField))),
-            'fields_created' => $fieldsCreated,
-            'created' => $created,
-            'updated' => $updated,
-            'skipped' => $skipped,
-            'errors' => array_slice($errors, 0, 25),
-        ];
+            foreach ($rows as $row) {
+                $rowNumber++;
+
+                if ($created + $updated + $skipped >= $maxRows) {
+                    $errors[] = 'Interrotto dopo '.$maxRows.' righe (limite massimo).';
+                    break;
+                }
+
+                if ($this->associativeRowIsEmpty($row)) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                if ($collection->is_singleton && $collection->items()->exists()) {
+                    $skipped++;
+                    $errors[] = "Riga {$rowNumber}: collezione singleton già popolata.";
+
+                    continue;
+                }
+
+                $data = [];
+
+                foreach ($labelToField as $label => $fieldName) {
+                    $data[$fieldName] = isset($row[$label]) ? trim((string) $row[$label]) : '';
+                }
+
+                try {
+                    $upsertValue = $upsertFieldName === null ? null : ($data[$upsertFieldName] ?? null);
+                    $item = is_scalar($upsertValue) && (string) $upsertValue !== ''
+                        ? ($existingByUpsertValue[(string) $upsertValue] ?? null)
+                        : null;
+                    $isUpdate = $item !== null;
+
+                    if ($isUpdate) {
+                        $data = array_replace($assembler->assemble($item), $data);
+                    } else {
+                        $item = $collection->items()->create([]);
+                    }
+
+                    $normalized = $normalizer->normalize($collection, $data, ! $isUpdate);
+                    $writer->sync($item, $collection, $normalized);
+
+                    if ($isUpdate) {
+                        $updated++;
+                    } else {
+                        $created++;
+                        $this->logAiMutation($item, 'import_create_item');
+
+                        if (is_scalar($upsertValue) && (string) $upsertValue !== '') {
+                            $existingByUpsertValue[(string) $upsertValue] = $item;
+                        }
+                    }
+                } catch (Throwable $exception) {
+                    $skipped++;
+                    $errors[] = "Riga {$rowNumber}: ".$exception->getMessage();
+                }
+            }
+
+            return [
+                'mapped_headers' => array_values(array_unique(array_values($labelToField))),
+                'fields_created' => $fieldsCreated,
+                'created' => $created,
+                'updated' => $updated,
+                'skipped' => $skipped,
+                'errors' => array_slice($errors, 0, 25),
+            ];
+        });
     }
 
     /**

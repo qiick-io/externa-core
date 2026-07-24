@@ -9,10 +9,18 @@ import {
 } from 'react';
 import type {ReactNode} from 'react';
 
-import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
-import { PaginatedMultiSelect } from '@/components/admin/paginated-multi-select';
 import { ContentLocaleProvider } from '@/components/collections/content-locale-provider';
 import { LucideIconByName } from '@/components/collections/field-settings/lucide-icon-picker';
+import { BlocksFieldInput } from '@/components/collections/item-field-blocks-input';
+import {
+    FileFieldInput,
+    MultipleFilesFieldInput,
+} from '@/components/collections/item-field-files-input';
+import { M2aFieldInput } from '@/components/collections/item-field-m2a-input';
+import {
+    ManyToManyFieldInput,
+    RelationFieldInput,
+} from '@/components/collections/item-field-relation-inputs';
 import { LocalizedField } from '@/components/collections/localized-field';
 import {
     CodeFieldInput,
@@ -45,9 +53,7 @@ import {
     parseFieldOptions,
     parseFieldTreeOptions,
     parseHashFieldSettings,
-    parseM2aFieldSettings,
     parseNumberFieldSettings,
-    parseRelationFieldSettings,
     parseSelectFieldSettings,
     parseSliderFieldSettings,
     parseStringFieldSettings,
@@ -61,9 +67,7 @@ import {
     resolveFormLayoutLabel,
 } from '@/lib/collection-form-layout';
 import { evaluateFieldFlags } from '@/lib/field-conditions';
-import { filePublicUrl } from '@/lib/files-api';
 import { cn } from '@/lib/utils';
-import type { AdminFileRow } from '@/types/files';
 import { ChevronDown } from 'lucide-react';
 
 const inputLike =
@@ -83,6 +87,7 @@ type DefaultValue =
     | boolean
     | string[]
     | number[]
+    | Array<Record<string, unknown>>
     | Record<string, unknown>
     | null;
 
@@ -1073,452 +1078,6 @@ function CheckboxGroupTreeInput({
     );
 }
 
-function FileFieldInput({
-    name,
-    defaultFileId,
-    acceptImagesOnly = false,
-    readonly = false,
-}: {
-    name: string;
-    defaultFileId: number | null;
-    acceptImagesOnly?: boolean;
-    readonly?: boolean;
-}) {
-    const [fileId, setFileId] = useState<number | null>(defaultFileId);
-    const [preview, setPreview] = useState<AdminFileRow | null>(null);
-    const [pickerOpen, setPickerOpen] = useState(false);
-
-    return (
-        <div className="space-y-2">
-            <input type="hidden" name={name} value={fileId ?? ''} />
-            {preview && (
-                <div className="flex items-center gap-3 rounded-lg border p-3">
-                    {filePublicUrl(preview) ? (
-                        <img
-                            src={filePublicUrl(preview)!}
-                            alt={preview.name}
-                            className="size-12 rounded object-cover"
-                        />
-                    ) : null}
-                    <span className="text-sm font-medium">{preview.name}</span>
-                </div>
-            )}
-            {!preview && fileId && (
-                <p className="text-muted-foreground text-sm">File #{fileId}</p>
-            )}
-            {!readonly ? (
-                <div className="flex gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPickerOpen(true)}
-                    >
-                        {fileId ? 'Change file' : 'Choose file'}
-                    </Button>
-                    {fileId !== null && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                                setFileId(null);
-                                setPreview(null);
-                            }}
-                        >
-                            Clear
-                        </Button>
-                    )}
-                </div>
-            ) : null}
-            <FilePickerDrawer
-                open={pickerOpen}
-                onOpenChange={setPickerOpen}
-                acceptImagesOnly={acceptImagesOnly}
-                title={acceptImagesOnly ? 'Choose image' : 'Choose file'}
-                onSelect={(file) => {
-                    setFileId(file.id);
-                    setPreview(file);
-                }}
-            />
-        </div>
-    );
-}
-
-function MultipleFilesFieldInput({
-    name,
-    defaultFileIds,
-    acceptImagesOnly = false,
-    readonly = false,
-}: {
-    name: string;
-    defaultFileIds: number[];
-    acceptImagesOnly?: boolean;
-    readonly?: boolean;
-}) {
-    const [fileIds, setFileIds] = useState<number[]>(defaultFileIds);
-    const [pickerOpen, setPickerOpen] = useState(false);
-
-    return (
-        <div className="space-y-2">
-            {fileIds.map((fileId) => (
-                <input key={fileId} type="hidden" name={`${name}[]`} value={fileId} />
-            ))}
-            {fileIds.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                    {fileIds.map((fileId) => (
-                        <Badge key={fileId} variant="secondary">
-                            File #{fileId}
-                            {!readonly ? (
-                                <button
-                                    type="button"
-                                    className="ml-2 text-xs underline"
-                                    onClick={() =>
-                                        setFileIds((current) =>
-                                            current.filter(
-                                                (currentId) =>
-                                                    currentId !== fileId,
-                                            ),
-                                        )
-                                    }
-                                >
-                                    Remove
-                                </button>
-                            ) : null}
-                        </Badge>
-                    ))}
-                </div>
-            ) : (
-                <p className="text-muted-foreground text-sm">No files selected</p>
-            )}
-            {!readonly ? (
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPickerOpen(true)}
-                >
-                    Add {acceptImagesOnly ? 'image' : 'file'}
-                </Button>
-            ) : null}
-            <FilePickerDrawer
-                open={pickerOpen}
-                onOpenChange={setPickerOpen}
-                acceptImagesOnly={acceptImagesOnly}
-                title={acceptImagesOnly ? 'Choose image' : 'Choose file'}
-                onSelect={(file) => {
-                    setFileIds((current) =>
-                        current.includes(file.id)
-                            ? current
-                            : [...current, file.id],
-                    );
-                }}
-            />
-        </div>
-    );
-}
-
-function RelationFieldInput({
-    collectionId,
-    field,
-    name,
-    defaultValue,
-    multiple = false,
-    readonly = false,
-}: {
-    collectionId: number;
-    field: FieldDef;
-    name: string;
-    defaultValue: number | number[] | null;
-    multiple?: boolean;
-    readonly?: boolean;
-}) {
-    const relationSettings = parseRelationFieldSettings(field.settings);
-    const fetchUrl = `/collections/${collectionId}/items/options?field_id=${field.id}`;
-    const initialIds = multiple
-        ? Array.isArray(defaultValue)
-            ? defaultValue
-            : []
-        : typeof defaultValue === 'number'
-          ? [defaultValue]
-          : [];
-
-    const [selectedIds, setSelectedIds] = useState<number[]>(initialIds);
-    const [initialOptions, setInitialOptions] = useState<
-        { id: number; label: string }[]
-    >([]);
-
-    useEffect(() => {
-        if (initialIds.length === 0) {
-            return;
-        }
-
-        const params = new URLSearchParams({
-            field_id: String(field.id),
-            per_page: '100',
-        });
-
-        void fetch(`/collections/${collectionId}/items/options?${params}`, {
-            headers: {
-                Accept: 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            credentials: 'same-origin',
-        })
-            .then((response) => (response.ok ? response.json() : null))
-            .then((payload) => {
-                if (!payload || !Array.isArray(payload.data)) {
-                    return;
-                }
-
-                const options = payload.data
-                    .filter((row: { id: number }) => initialIds.includes(row.id))
-                    .map((row: { id: number; label?: string }) => ({
-                        id: row.id,
-                        label: row.label ?? `#${row.id}`,
-                    }));
-
-                setInitialOptions(options);
-            })
-            .catch(() => undefined);
-    }, [collectionId, field.id, initialIds]);
-
-    return (
-        <div className="space-y-2">
-            {multiple ? (
-                selectedIds.map((selectedId) => (
-                    <input
-                        key={selectedId}
-                        type="hidden"
-                        name={`${name}[]`}
-                        value={selectedId}
-                    />
-                ))
-            ) : (
-                <input
-                    type="hidden"
-                    name={name}
-                    value={selectedIds[0] ?? ''}
-                />
-            )}
-            <PaginatedMultiSelect
-                fetchUrl={fetchUrl}
-                value={selectedIds}
-                disabled={readonly}
-                multiple={multiple}
-                initialOptions={initialOptions}
-                onChange={(next) => setSelectedIds(next)}
-                placeholder={
-                    relationSettings.displayField
-                        ? `Select by ${relationSettings.displayField}…`
-                        : 'Select related item…'
-                }
-            />
-        </div>
-    );
-}
-
-type M2aBlock = {
-    related_collection_id: number;
-    related_item_id: number;
-};
-
-function M2aFieldInput({
-    collectionId,
-    field,
-    name,
-    defaultValue,
-    readonly,
-    relatedCollections,
-}: {
-    collectionId: number;
-    field: FieldDef;
-    name: string;
-    defaultValue: unknown;
-    readonly: boolean;
-    relatedCollections: RelatedCollectionOption[];
-}) {
-    const m2aSettings = parseM2aFieldSettings(field.settings);
-    const allowedCollections = relatedCollections.filter((collection) =>
-        m2aSettings.allowedCollectionIds.includes(collection.id),
-    );
-
-    const [blocks, setBlocks] = useState<M2aBlock[]>(() => {
-        if (!Array.isArray(defaultValue)) {
-            return [];
-        }
-
-        return defaultValue.filter(
-            (entry): entry is M2aBlock =>
-                Boolean(entry) &&
-                typeof entry === 'object' &&
-                isFiniteNumber(
-                    (entry as { related_collection_id?: unknown })
-                        .related_collection_id,
-                ) &&
-                isFiniteNumber(
-                    (entry as { related_item_id?: unknown }).related_item_id,
-                ),
-        );
-    });
-
-    const addBlock = () => {
-        const firstCollection = allowedCollections[0];
-
-        if (!firstCollection) {
-            return;
-        }
-
-        setBlocks((current) => [
-            ...current,
-            {
-                related_collection_id: firstCollection.id,
-                related_item_id: 0,
-            },
-        ]);
-    };
-
-    const updateBlock = (index: number, patch: Partial<M2aBlock>) => {
-        setBlocks((current) =>
-            current.map((block, blockIndex) =>
-                blockIndex === index ? { ...block, ...patch } : block,
-            ),
-        );
-    };
-
-    const removeBlock = (index: number) => {
-        setBlocks((current) => current.filter((_, blockIndex) => blockIndex !== index));
-    };
-
-    const moveBlock = (index: number, direction: -1 | 1) => {
-        setBlocks((current) => {
-            const targetIndex = index + direction;
-
-            if (targetIndex < 0 || targetIndex >= current.length) {
-                return current;
-            }
-
-            const next = [...current];
-            const [moved] = next.splice(index, 1);
-            next.splice(targetIndex, 0, moved);
-
-            return next;
-        });
-    };
-
-    return (
-        <div className="space-y-3">
-            {blocks.map((block, blockIndex) => {
-                const fetchUrl = `/collections/${collectionId}/items/options?field_id=${field.id}&related_collection_id=${block.related_collection_id}`;
-                const selectedIds =
-                    block.related_item_id > 0 ? [block.related_item_id] : [];
-
-                return (
-                    <div
-                        key={`${blockIndex}-${block.related_collection_id}`}
-                        className="space-y-2 rounded-lg border p-3"
-                    >
-                        <div className="flex flex-wrap items-center gap-2">
-                            <select
-                                className={cn(inputLike, 'max-w-xs')}
-                                value={block.related_collection_id}
-                                disabled={readonly}
-                                onChange={(event) =>
-                                    updateBlock(blockIndex, {
-                                        related_collection_id: Number(
-                                            event.target.value,
-                                        ),
-                                        related_item_id: 0,
-                                    })
-                                }
-                            >
-                                {allowedCollections.map((collection) => (
-                                    <option key={collection.id} value={collection.id}>
-                                        {collection.name}
-                                    </option>
-                                ))}
-                            </select>
-                            {!readonly ? (
-                                <div className="flex gap-1">
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => moveBlock(blockIndex, -1)}
-                                    >
-                                        Up
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => moveBlock(blockIndex, 1)}
-                                    >
-                                        Down
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => removeBlock(blockIndex)}
-                                    >
-                                        Remove
-                                    </Button>
-                                </div>
-                            ) : null}
-                        </div>
-                        <PaginatedMultiSelect
-                            fetchUrl={fetchUrl}
-                            value={selectedIds}
-                            disabled={readonly}
-                            multiple={false}
-                            onChange={(next) =>
-                                updateBlock(blockIndex, {
-                                    related_item_id: next[0] ?? 0,
-                                })
-                            }
-                            placeholder="Select block item…"
-                        />
-                    </div>
-                );
-            })}
-            {blocks
-                .filter((block) => block.related_item_id > 0)
-                .map((block, index) => (
-                    <Fragment key={`submit-${index}-${block.related_item_id}`}>
-                        <input
-                            type="hidden"
-                            name={`${name}[${index}][related_collection_id]`}
-                            value={block.related_collection_id}
-                        />
-                        <input
-                            type="hidden"
-                            name={`${name}[${index}][related_item_id]`}
-                            value={block.related_item_id}
-                        />
-                    </Fragment>
-                ))}
-            {!readonly ? (
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={allowedCollections.length === 0}
-                    onClick={addBlock}
-                >
-                    Add block
-                </Button>
-            ) : null}
-            {blocks.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No blocks yet.</p>
-            ) : null}
-        </div>
-    );
-}
-
-function isFiniteNumber(value: unknown): value is number {
-    return typeof value === 'number' && Number.isFinite(value);
-}
 
 function toNumberOrNull(value: DefaultValue): number | null {
     if (typeof value === 'number' && Number.isFinite(value)) {
@@ -1540,7 +1099,21 @@ function toNumberArray(value: DefaultValue): number[] {
     }
 
     return value
-        .map((entry) => Number(entry))
+        .map((entry) => {
+            if (typeof entry === 'number' || typeof entry === 'string') {
+                return Number(entry);
+            }
+            // M2M / relation payloads may arrive as junction objects
+            if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+                return Number(
+                    (entry as { related_item_id?: unknown; id?: unknown })
+                        .related_item_id ??
+                        (entry as { id?: unknown }).id,
+                );
+            }
+
+            return Number.NaN;
+        })
         .filter((entry) => Number.isFinite(entry));
 }
 
@@ -1890,9 +1463,18 @@ function renderFieldControl(context: FieldRenderContext) {
                     readonly={readonly}
                 />
             );
+        case 'many_to_many':
+            return (
+                <ManyToManyFieldInput
+                    collectionId={collectionId}
+                    field={field}
+                    name={name}
+                    defaultValue={defaultValue}
+                    readonly={readonly}
+                />
+            );
         case 'relation_many':
         case 'one_to_many':
-        case 'many_to_many':
             return (
                 <RelationFieldInput
                     collectionId={collectionId}
@@ -1912,6 +1494,19 @@ function renderFieldControl(context: FieldRenderContext) {
                     defaultValue={defaultValue}
                     readonly={readonly}
                     relatedCollections={relatedCollections}
+                />
+            );
+        case 'blocks':
+            return (
+                <BlocksFieldInput
+                    collectionId={collectionId}
+                    field={field}
+                    name={name}
+                    defaultValue={defaultValue}
+                    readonly={readonly}
+                    relatedCollections={relatedCollections}
+                    locales={locales}
+                    renderNestedField={renderFieldControl}
                 />
             );
         default:

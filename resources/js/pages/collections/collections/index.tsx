@@ -140,7 +140,7 @@ export default function CollectionsIndex({
         <AppLayout
             breadcrumbs={breadcrumbs}
             headerActions={
-                !isTrashed ? (
+                !isTrashed && can(PermissionEnum.CanCreateCollections) ? (
                     <Button
                         type="button"
                         onClick={() => {

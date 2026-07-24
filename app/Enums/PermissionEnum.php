@@ -55,6 +55,9 @@ enum PermissionEnum: string
 
     case CanShowActivityLogs = 'can-show-activity-logs';
 
+    case CanShowJobs = 'can-show-jobs';
+    case CanManageJobs = 'can-manage-jobs';
+
     case CanUseAi = 'can-use-ai';
 
     case CanManageProjectSettings = 'can-manage-project-settings';

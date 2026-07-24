@@ -15,7 +15,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, router } from '@inertiajs/react';
 import { GripVertical, Lock } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +25,7 @@ import InputError from '@/components/input-error';
 import { ContentLocalesField } from '@/components/settings/content-locales-field';
 import { TransformPresetsField } from '@/components/settings/transform-presets-field';
 import { SettingsFormActions } from '@/components/settings-form-actions';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -218,6 +219,8 @@ export default function ProjectSettingsPage({
         report_issue_url: project.report_issue_url ?? '',
         report_bug_url: project.report_bug_url ?? '',
         report_error_url: project.report_error_url ?? '',
+        webhook_url: project.webhook_url ?? '',
+        webhook_secret: '',
         sidebar_modules: pinSidebarModules(project.sidebar_modules),
         allowed_transformations: project.allowed_transformations ?? [],
         content_locales: project.content_locales ?? ['en', 'it'],
@@ -230,6 +233,7 @@ export default function ProjectSettingsPage({
             project.content_locales ??
             ['en', 'it'],
     });
+    const [sendingTestWebhook, setSendingTestWebhook] = useState(false);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -304,6 +308,27 @@ export default function ProjectSettingsPage({
                 entry.id === moduleId ? { ...entry, enabled } : entry,
             ),
         }));
+    };
+
+    const generateWebhookSecret = (): void => {
+        const bytes = new Uint8Array(32);
+        crypto.getRandomValues(bytes);
+        const secret = Array.from(bytes, (byte) =>
+            byte.toString(16).padStart(2, '0'),
+        ).join('');
+        setForm((current) => ({ ...current, webhook_secret: secret }));
+    };
+
+    const sendTestWebhook = (): void => {
+        setSendingTestWebhook(true);
+        router.post(
+            ProjectSettingsController.sendTestWebhook.url(),
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setSendingTestWebhook(false),
+            },
+        );
     };
 
     return (
@@ -944,6 +969,115 @@ export default function ProjectSettingsPage({
                                         <InputError message={errors[field]} />
                                     </div>
                                 ))}
+                            </div>
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t('settings.project.webhooksTitle')}
+                                    description={t(
+                                        'settings.project.webhooksDescription',
+                                    )}
+                                />
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="webhook_url">
+                                        {t('settings.project.webhookUrl')}
+                                    </Label>
+                                    <Input
+                                        id="webhook_url"
+                                        name="webhook_url"
+                                        type="url"
+                                        autoComplete="off"
+                                        data-1p-ignore
+                                        data-lpignore="true"
+                                        value={form.webhook_url}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                webhook_url:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder="https://example.com/webhooks/externa"
+                                    />
+                                    <p className="text-muted-foreground text-sm">
+                                        {t('settings.project.webhookUrlHint')}
+                                    </p>
+                                    <InputError message={errors.webhook_url} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="webhook_secret">
+                                        {t('settings.project.webhookSecret')}
+                                    </Label>
+                                    <div className="flex flex-col gap-2 sm:flex-row">
+                                        <Input
+                                            id="webhook_secret"
+                                            name="webhook_secret"
+                                            type="password"
+                                            autoComplete="new-password"
+                                            value={form.webhook_secret}
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    webhook_secret:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                            placeholder={
+                                                project.webhook_secret_configured
+                                                    ? '••••••••'
+                                                    : undefined
+                                            }
+                                            className="sm:flex-1"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={generateWebhookSecret}
+                                        >
+                                            {t(
+                                                'settings.project.webhookSecretGenerate',
+                                            )}
+                                        </Button>
+                                    </div>
+                                    <p className="text-muted-foreground text-sm">
+                                        {project.webhook_secret_configured
+                                            ? t(
+                                                  'settings.project.webhookSecretConfigured',
+                                              )
+                                            : null}{' '}
+                                        {t(
+                                            'settings.project.webhookSecretHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={errors.webhook_secret}
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        disabled={
+                                            sendingTestWebhook ||
+                                            !project.webhook_url
+                                        }
+                                        onClick={sendTestWebhook}
+                                        data-test="project-webhook-test"
+                                    >
+                                        {t(
+                                            'settings.project.webhookSendTest',
+                                        )}
+                                    </Button>
+                                    <p className="text-muted-foreground text-sm">
+                                        {t(
+                                            'settings.project.webhookSendTestHint',
+                                        )}
+                                    </p>
+                                </div>
                             </div>
 
                             <SettingsFormActions

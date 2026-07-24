@@ -11,6 +11,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ApiKeyController;
 use App\Http\Controllers\Admin\FileController;
+use App\Http\Controllers\Admin\JobMonitorController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
@@ -139,6 +140,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('activity-logs', [ActivityLogController::class, 'index'])
         ->middleware('permission:'.PermissionEnum::CanShowActivityLogs->value)
         ->name('activity-logs.index');
+
+    Route::prefix('settings')->group(function () {
+        Route::get('jobs', [JobMonitorController::class, 'index'])
+            ->middleware('permission:'.PermissionEnum::CanShowJobs->value)
+            ->name('jobs.index');
+        Route::post('jobs/{uuid}/retry', [JobMonitorController::class, 'retry'])
+            ->middleware('permission:'.PermissionEnum::CanManageJobs->value)
+            ->name('jobs.retry');
+        Route::delete('jobs/{uuid}', [JobMonitorController::class, 'destroy'])
+            ->middleware('permission:'.PermissionEnum::CanManageJobs->value)
+            ->name('jobs.destroy');
+    });
 
     /*
      * File manager API and UI. `can.manage.files` resolves effective file permissions

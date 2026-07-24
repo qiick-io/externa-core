@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
+use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemDataRuleBuilder;
 use App\Services\Collections\CollectionItemQueryService;
@@ -27,6 +28,7 @@ class CollectionItemController extends Controller
         private CollectionItemQueryService $itemQueryService,
         private CollectionItemDataNormalizer $itemDataNormalizer,
         private CollectionItemValuesWriter $collectionItemValuesWriter,
+        private CollectionPermissionEnforcer $permissionEnforcer,
     ) {}
 
     public function index(Request $request, string $slug): JsonResponse
@@ -41,11 +43,14 @@ class CollectionItemController extends Controller
             $filters = [];
         }
 
-        /** @var array<string, string> $stringFilters */
+        /** @var array<string, mixed> $stringFilters */
         $stringFilters = [];
         foreach ($filters as $key => $value) {
-            if (is_string($key) && (is_string($value) || is_numeric($value))) {
-                $stringFilters[$key] = (string) $value;
+            if (! is_string($key) || $key === '') {
+                continue;
+            }
+            if (is_string($value) || is_numeric($value) || is_bool($value) || is_array($value) || $value === null) {
+                $stringFilters[$key] = $value;
             }
         }
 
@@ -55,6 +60,8 @@ class CollectionItemController extends Controller
         $this->itemQueryService->applyFilters($query, $collection, $stringFilters);
 
         $perPage = min(max($request->integer('per_page', 15), 1), 100);
+        $this->permissionEnforcer->applyItemFilterToQuery($request, $collection, $query);
+
         $paginator = $query->latest('id')->paginate($perPage);
 
         return response()->json([
@@ -86,6 +93,8 @@ class CollectionItemController extends Controller
             abort(404);
         }
 
+        $this->permissionEnforcer->assertItemReadable($request, $collection, $model);
+
         return response()->json([
             'data' => (new CollectionItemResource($model))->toArray($request),
         ]);
@@ -102,9 +111,15 @@ class CollectionItemController extends Controller
             ]);
         }
 
+        $data = $request->input('data', []);
+        if (! is_array($data)) {
+            $data = [];
+        }
+        $this->permissionEnforcer->assertWritableFields($request, $collection, $data, 'create');
+
         $this->validateItemPayload($request, $collection, true);
 
-        $normalized = $this->itemDataNormalizer->normalize($collection, $request->input('data', []), true);
+        $normalized = $this->itemDataNormalizer->normalize($collection, $data, true);
         $item = $collection->items()->create([]);
         $this->collectionItemValuesWriter->sync($item, $collection, $normalized);
         $item->load(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
@@ -128,9 +143,17 @@ class CollectionItemController extends Controller
             abort(404);
         }
 
+        $this->permissionEnforcer->assertItemWritable($request, $collection, $model);
+
+        $data = $request->input('data', []);
+        if (! is_array($data)) {
+            $data = [];
+        }
+        $this->permissionEnforcer->assertWritableFields($request, $collection, $data, 'update');
+
         $this->validateItemPayload($request, $collection, false);
 
-        $normalized = $this->itemDataNormalizer->normalize($collection, $request->input('data', []), false);
+        $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
         $this->collectionItemValuesWriter->sync($model, $collection, $normalized);
         $model->load(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
 
@@ -152,6 +175,8 @@ class CollectionItemController extends Controller
         if ($model === null) {
             abort(404);
         }
+
+        $this->permissionEnforcer->assertItemWritable($request, $collection, $model);
 
         $model->delete();
 

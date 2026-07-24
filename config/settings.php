@@ -54,6 +54,8 @@ return [
             'report_issue_url',
             'report_bug_url',
             'report_error_url',
+            'webhook_url',
+            'webhook_secret',
         ],
         'defaults' => [
             'name' => null,
@@ -117,6 +119,9 @@ return [
             // Fallback for settings nav + Project settings form; empty/null overrides stay empty
             'report_bug_url' => 'https://github.com/qiick-io/externa-core/issues/new?template=bug_report.yml',
             'report_error_url' => null,
+            'webhook_url' => null,
+            // Stored encrypted via Crypt; never share plaintext on Inertia shared()
+            'webhook_secret' => null,
         ],
         'sidebar_module_ids' => [
             'ai',

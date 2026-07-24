@@ -34,6 +34,8 @@ class FileResource extends JsonResource
             'uuid' => $this->uuid,
             'parent_id' => $this->parent_id,
             'type' => $this->type->value,
+            'access' => $this->access?->value,
+            'effective_access' => $this->resource->effectiveAccess()->value,
             'name' => $this->name,
             'title' => $this->title,
             'description' => $this->description,

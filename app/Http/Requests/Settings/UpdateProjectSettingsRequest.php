@@ -4,6 +4,7 @@ namespace App\Http\Requests\Settings;
 
 use App\Enums\PermissionEnum;
 use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Settings\ProjectSettings;
 use App\Support\Collections\ContentLocaleCatalog;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -78,6 +79,9 @@ class UpdateProjectSettingsRequest extends FormRequest
             'report_issue_url' => ['nullable', 'url', 'max:2048'],
             'report_bug_url' => ['nullable', 'url', 'max:2048'],
             'report_error_url' => ['nullable', 'url', 'max:2048'],
+            'webhook_url' => ['nullable', 'url', 'max:2048'],
+            // Empty = keep existing secret; never required on every save
+            'webhook_secret' => ['nullable', 'string', 'max:512'],
         ];
     }
 
@@ -191,6 +195,24 @@ class UpdateProjectSettingsRequest extends FormRequest
             'report_issue_url' => $validated['report_issue_url'] ?? null,
             'report_bug_url' => $validated['report_bug_url'] ?? null,
             'report_error_url' => $validated['report_error_url'] ?? null,
+            'webhook_url' => $validated['webhook_url'] ?? null,
+            ...$this->webhookSecretValue($validated),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array{webhook_secret?: string}
+     */
+    private function webhookSecretValue(array $validated): array
+    {
+        $secret = $validated['webhook_secret'] ?? null;
+        if (! is_string($secret) || trim($secret) === '') {
+            return [];
+        }
+
+        return [
+            'webhook_secret' => ProjectSettings::encryptWebhookSecret(trim($secret)),
         ];
     }
 
@@ -206,6 +228,8 @@ class UpdateProjectSettingsRequest extends FormRequest
             'report_issue_url',
             'report_bug_url',
             'report_error_url',
+            'webhook_url',
+            'webhook_secret',
         ] as $field) {
             if ($this->has($field) && $this->input($field) === '') {
                 $merge[$field] = null;

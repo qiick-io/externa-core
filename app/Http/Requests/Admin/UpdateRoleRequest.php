@@ -59,9 +59,22 @@ class UpdateRoleRequest extends FormRequest
             'collection_permissions.*.read' => ['sometimes', 'boolean'],
             'collection_permissions.*.update' => ['sometimes', 'boolean'],
             'collection_permissions.*.delete' => ['sometimes', 'boolean'],
+            'collection_permissions.*.rules' => ['sometimes', 'nullable', 'array'],
+            'collection_permissions.*.rules.fields' => ['sometimes', 'array'],
+            'collection_permissions.*.rules.fields.*' => ['array'],
+            'collection_permissions.*.rules.fields.*.read' => ['sometimes', 'boolean'],
+            'collection_permissions.*.rules.fields.*.create' => ['sometimes', 'boolean'],
+            'collection_permissions.*.rules.fields.*.update' => ['sometimes', 'boolean'],
+            'collection_permissions.*.rules.item_filter' => ['sometimes', 'nullable', 'array'],
+            'collection_permissions.*.rules.item_filter.logic' => ['sometimes', 'string', 'in:and'],
+            'collection_permissions.*.rules.item_filter.rules' => ['sometimes', 'array'],
+            'collection_permissions.*.rules.item_filter.rules.*.field' => ['required_with:collection_permissions.*.rules.item_filter.rules', 'string'],
+            'collection_permissions.*.rules.item_filter.rules.*.operator' => ['required_with:collection_permissions.*.rules.item_filter.rules', 'string', 'in:equals,not_equals,empty,not_empty'],
+            'collection_permissions.*.rules.item_filter.rules.*.value' => ['sometimes', 'nullable'],
             'file_permissions' => ['sometimes', 'array'],
             'file_permissions.create' => ['sometimes', 'boolean'],
             'file_permissions.read' => ['sometimes', 'boolean'],
+            'file_permissions.read_private' => ['sometimes', 'boolean'],
             'file_permissions.update' => ['sometimes', 'boolean'],
             'file_permissions.delete' => ['sometimes', 'boolean'],
         ];
@@ -87,6 +100,9 @@ class UpdateRoleRequest extends FormRequest
                 $row = [];
                 foreach (CollectionPermissionAction::values() as $action) {
                     $row[$action] = (bool) ($actions[$action] ?? false);
+                }
+                if (isset($actions['rules']) && is_array($actions['rules'])) {
+                    $row['rules'] = $actions['rules'];
                 }
                 $normalized[(string) $collectionId] = $row;
             }

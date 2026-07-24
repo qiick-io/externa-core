@@ -34,6 +34,8 @@ export type ProjectSettingsForm = {
     report_issue_url: string | null;
     report_bug_url: string | null;
     report_error_url: string | null;
+    webhook_url: string | null;
+    webhook_secret_configured: boolean;
 };
 
 export type SharedProjectSettings = {

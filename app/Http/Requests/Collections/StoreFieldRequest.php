@@ -3,7 +3,9 @@
 namespace App\Http\Requests\Collections;
 
 use App\Enums\FieldTypeEnum;
+use App\Enums\PermissionEnum;
 use App\Http\Requests\Collections\Concerns\ValidatesCollectionFieldSettings;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Models\Collection;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -14,6 +16,7 @@ use Illuminate\Validation\ValidationException;
  */
 class StoreFieldRequest extends FormRequest
 {
+    use AuthorizesWithPermission;
     use ValidatesCollectionFieldSettings;
 
     /**
@@ -21,6 +24,8 @@ class StoreFieldRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        $this->authorizePermission(PermissionEnum::CanEditCollections->value);
+
         return true;
     }
 
@@ -59,7 +64,9 @@ class StoreFieldRequest extends FormRequest
             ]);
         }
 
-        $this->merge(['settings' => is_array($decoded) ? $decoded : null]);
+        $this->merge([
+            'settings' => is_array($decoded) ? $this->normalizeSettingsArray($decoded) : null,
+        ]);
     }
 
     /**

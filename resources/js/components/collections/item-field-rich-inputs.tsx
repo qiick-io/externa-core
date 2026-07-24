@@ -1,4 +1,21 @@
-import { useMemo, useRef, useState } from 'react';
+import { EditorContent, useEditor, type Editor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import {
+    Bold,
+    Heading2,
+    Heading3,
+    Italic,
+    Link2,
+    List,
+    ListOrdered,
+    Quote,
+    Redo2,
+    Strikethrough,
+    Undo2,
+} from 'lucide-react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,26 +61,144 @@ function renderMarkdownPreview(source: string): string {
     return html;
 }
 
-function wrapSelection(textarea: HTMLTextAreaElement, prefix: string, suffix = prefix) {
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selected = textarea.value.slice(start, end);
-    const next =
-        textarea.value.slice(0, start) +
-        prefix +
-        selected +
-        suffix +
-        textarea.value.slice(end);
+function ToolbarButton({
+    label,
+    active,
+    disabled,
+    onClick,
+    children,
+}: {
+    label: string;
+    active?: boolean;
+    disabled?: boolean;
+    onClick: () => void;
+    children: ReactNode;
+}) {
+    return (
+        <Button
+            type="button"
+            size="sm"
+            variant={active ? 'default' : 'outline'}
+            className="h-7 px-2"
+            aria-label={label}
+            title={label}
+            disabled={disabled}
+            onClick={onClick}
+        >
+            {children}
+        </Button>
+    );
+}
 
-    textarea.value = next;
-    textarea.focus();
-    textarea.setSelectionRange(start + prefix.length, end + prefix.length);
-    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+function WysiwygToolbar({ editor }: { editor: Editor }) {
+    const setLink = (): void => {
+        const previous = editor.getAttributes('link').href as string | undefined;
+        const url = window.prompt('Link URL', previous ?? 'https://');
+        if (url === null) {
+            return;
+        }
+        const trimmed = url.trim();
+        if (trimmed === '') {
+            editor.chain().focus().extendMarkRange('link').unsetLink().run();
+            return;
+        }
+        editor
+            .chain()
+            .focus()
+            .extendMarkRange('link')
+            .setLink({ href: trimmed })
+            .run();
+    };
+
+    return (
+        <div className="flex flex-wrap gap-1 border-b p-1.5">
+            <ToolbarButton
+                label="Bold"
+                active={editor.isActive('bold')}
+                onClick={() => editor.chain().focus().toggleBold().run()}
+            >
+                <Bold className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Italic"
+                active={editor.isActive('italic')}
+                onClick={() => editor.chain().focus().toggleItalic().run()}
+            >
+                <Italic className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Strikethrough"
+                active={editor.isActive('strike')}
+                onClick={() => editor.chain().focus().toggleStrike().run()}
+            >
+                <Strikethrough className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Heading 2"
+                active={editor.isActive('heading', { level: 2 })}
+                onClick={() =>
+                    editor.chain().focus().toggleHeading({ level: 2 }).run()
+                }
+            >
+                <Heading2 className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Heading 3"
+                active={editor.isActive('heading', { level: 3 })}
+                onClick={() =>
+                    editor.chain().focus().toggleHeading({ level: 3 }).run()
+                }
+            >
+                <Heading3 className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Bullet list"
+                active={editor.isActive('bulletList')}
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+            >
+                <List className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Ordered list"
+                active={editor.isActive('orderedList')}
+                onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            >
+                <ListOrdered className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Blockquote"
+                active={editor.isActive('blockquote')}
+                onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            >
+                <Quote className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Link"
+                active={editor.isActive('link')}
+                onClick={setLink}
+            >
+                <Link2 className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Undo"
+                disabled={!editor.can().undo()}
+                onClick={() => editor.chain().focus().undo().run()}
+            >
+                <Undo2 className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Redo"
+                disabled={!editor.can().redo()}
+                onClick={() => editor.chain().focus().redo().run()}
+            >
+                <Redo2 className="size-3.5" />
+            </ToolbarButton>
+        </div>
+    );
 }
 
 /**
- * WYSIWYG editor input for collection item fields.
- * @returns {JSX.Element}
+ * TipTap WYSIWYG editor for collection item fields (stores HTML).
  */
 export function WysiwygFieldInput({
     id,
@@ -82,67 +217,77 @@ export function WysiwygFieldInput({
     readonly: boolean;
     placeholder: string;
 }) {
-    const textareaSettings = parseTextareaFieldSettings(settings);
     const [value, setValue] = useState(defaultValue);
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const resolvedPlaceholder = resolveTranslatedText(
+        parseTextareaFieldSettings(settings).placeholder,
+        locales,
+        placeholder,
+    );
+
+    const editor = useEditor({
+        immediatelyRender: false,
+        editable: !readonly,
+        extensions: [
+            StarterKit.configure({
+                heading: { levels: [2, 3] },
+            }),
+            Link.configure({
+                openOnClick: false,
+                HTMLAttributes: {
+                    rel: 'noopener noreferrer',
+                    target: '_blank',
+                },
+            }),
+            Placeholder.configure({
+                placeholder: resolvedPlaceholder,
+            }),
+        ],
+        content: defaultValue || '',
+        editorProps: {
+            attributes: {
+                id,
+                class: 'externa-tiptap-editor prose prose-sm dark:prose-invert max-w-none min-h-[160px] px-3 py-2 focus:outline-none',
+            },
+        },
+        onUpdate: ({ editor: current }) => {
+            const html = current.isEmpty ? '' : current.getHTML();
+            setValue(html);
+        },
+    });
+
+    useEffect(() => {
+        if (!editor) {
+            return;
+        }
+        editor.setEditable(!readonly);
+    }, [editor, readonly]);
+
+    if (readonly) {
+        return (
+            <div className="space-y-2">
+                <input type="hidden" name={name} value={value} />
+                <div
+                    className="prose prose-sm dark:prose-invert min-h-[120px] rounded-md border p-3"
+                    dangerouslySetInnerHTML={{
+                        __html:
+                            value ||
+                            '<p class="text-muted-foreground">—</p>',
+                    }}
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-2">
-            {!readonly ? (
-                <div className="flex flex-wrap gap-1">
-                    {(
-                        [
-                            ['B', '**'],
-                            ['I', '*'],
-                            ['Link', '[text](url)'],
-                        ] as const
-                    ).map(([label, snippet]) => (
-                        <Button
-                            key={label}
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-7 px-2 text-xs"
-                            onClick={() => {
-                                const textarea = textareaRef.current;
-
-                                if (!textarea) {
-                                    return;
-                                }
-
-                                if (snippet === '[text](url)') {
-                                    wrapSelection(textarea, '[', '](url)');
-                                } else {
-                                    wrapSelection(textarea, snippet);
-                                }
-
-                                setValue(textarea.value);
-                            }}
-                        >
-                            {label}
-                        </Button>
-                    ))}
-                </div>
-            ) : null}
-            <textarea
-                ref={textareaRef}
-                id={id}
-                name={name}
-                className={cn(inputLike, 'min-h-[160px] py-2 font-mono text-sm')}
-                rows={textareaSettings.rows}
-                value={value}
-                readOnly={readonly}
-                maxLength={textareaSettings.maxLength ?? undefined}
-                placeholder={resolveTranslatedText(
-                    textareaSettings.placeholder,
-                    locales,
-                    placeholder,
-                )}
-                onChange={(event) => setValue(event.target.value)}
-            />
+            <input type="hidden" name={name} value={value} />
+            <div className="border-input bg-background overflow-hidden rounded-md border shadow-xs">
+                {editor ? <WysiwygToolbar editor={editor} /> : null}
+                <EditorContent editor={editor} />
+            </div>
             <p className="text-muted-foreground text-xs">
-                HTML is stored as-is. Toolbar inserts lightweight markers; use raw
-                HTML tags when needed.
+                TipTap editor — paste from Word/HTML is sanitized on save
+                (scripts and unsafe tags stripped).
             </p>
         </div>
     );

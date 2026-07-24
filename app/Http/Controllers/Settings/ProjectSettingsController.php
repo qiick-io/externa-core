@@ -7,13 +7,14 @@ use App\Http\Requests\Settings\UpdateProjectSettingsRequest;
 use App\Models\Role;
 use App\Services\Settings\ProjectSettings;
 use App\Services\Settings\SettingsRepository;
+use App\Services\Webhooks\OutboundWebhookDispatcher;
 use App\Support\Collections\ContentLocaleCatalog;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Project-level configuration (general, security, registration, files, reporting).
+ * Project-level configuration (general, security, registration, files, reporting, webhooks).
  */
 class ProjectSettingsController extends Controller
 {
@@ -63,5 +64,21 @@ class ProjectSettingsController extends Controller
         );
 
         return to_route('project.edit');
+    }
+
+    /**
+     * Queue a signed `ping` webhook event to the configured URL.
+     */
+    public function sendTestWebhook(OutboundWebhookDispatcher $dispatcher): RedirectResponse
+    {
+        if ($this->projectSettings->webhookUrl() === null) {
+            return to_route('project.edit')
+                ->with('error', __('Configure a webhook URL before sending a test event.'));
+        }
+
+        $dispatcher->dispatchPing();
+
+        return to_route('project.edit')
+            ->with('success', __('Test webhook event queued.'));
     }
 }

@@ -1117,6 +1117,49 @@ test('authorized users can list the shared file tags catalog', function () {
         ->assertJsonFragment(['name' => 'beta']);
 });
 
+test('file listing can resolve rows by ids without parent scope', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $folder = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'nested',
+        'path' => '/nested',
+        'disk' => 'assets',
+    ]);
+    $nested = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'parent_id' => $folder->id,
+        'name' => 'nested-photo.jpg',
+        'path' => '/nested/nested-photo.jpg',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/nested-photo.jpg',
+        'mime_type' => 'image/jpeg',
+        'extension' => 'jpg',
+    ]);
+    $root = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'root-doc.pdf',
+        'path' => '/root-doc.pdf',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/root-doc.pdf',
+        'mime_type' => 'application/pdf',
+        'extension' => 'pdf',
+    ]);
+
+    $response = $this->getJson(route('files.list', [
+        'ids' => [$nested->id, $root->id],
+    ]))->assertOk();
+
+    expect($response->json('data'))->toHaveCount(2)
+        ->and(collect($response->json('data'))->pluck('id')->all())
+        ->toBe([$nested->id, $root->id])
+        ->and($response->json('data.0.thumbnail_url'))->not->toBeNull()
+        ->and($response->json('data.1.thumbnail_url'))->toBeNull();
+});
+
 test('file listing can filter by tag ids with any-of semantics', function () {
     $user = grantFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,

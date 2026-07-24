@@ -13,18 +13,40 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Applies field-based filters and sort to collection item listing queries.
+ *
+ * Filter dialect (query string or GraphQL JSON):
+ * - `filter[title]=foo` → contains (LIKE) — backward compatible
+ * - `filter[title][_eq]=foo`, `_neq`, `_contains`, `_null=1`, `_nnull=1`
+ * - `filter[count][_gte]=1`, `_lte`, `_gt`, `_lt`
+ * - `filter[status][_in]=a,b,c` or array
+ *
+ * Permission item_filter operators (equals|not_equals|empty|not_empty) map onto this dialect.
  */
 class CollectionItemQueryService
 {
     /** @var list<string> */
     public const SYSTEM_SORT_COLUMNS = ['id', 'created_at', 'updated_at'];
 
+    /** @var list<string> */
+    public const OPERATORS = [
+        '_eq', '_neq', '_contains', '_in', '_null', '_nnull',
+        '_gt', '_gte', '_lt', '_lte',
+    ];
+
+    /** @var array<string, string> */
+    public const PERMISSION_OPERATOR_MAP = [
+        'equals' => '_eq',
+        'not_equals' => '_neq',
+        'empty' => '_null',
+        'not_empty' => '_nnull',
+    ];
+
     public function __construct(
         private CollectionLocaleResolver $localeResolver,
     ) {}
 
     /**
-     * @param  array<string, string>  $filters
+     * @param  array<string, mixed>  $filters
      * @param  Builder<CollectionItem>  $query
      */
     public function applyFilters(Builder $query, Collection $collection, array $filters, ?string $locale = null): Builder
@@ -34,7 +56,7 @@ class CollectionItemQueryService
         $locale ??= $this->localeResolver->resolve();
 
         foreach ($filters as $fieldName => $value) {
-            if ($value === null || $value === '') {
+            if (! is_string($fieldName) || $fieldName === '') {
                 continue;
             }
 
@@ -43,36 +65,233 @@ class CollectionItemQueryService
                 continue;
             }
 
-            $pattern = '%'.mb_strtolower((string) $value).'%';
+            $ops = $this->normalizeFieldFilter($value);
+            if ($ops === []) {
+                continue;
+            }
 
-            if ($field->translatable) {
-                $query->where(function (Builder $q) use ($field, $pattern, $locale): void {
-                    $first = true;
-                    foreach ($this->localeResolver->fallbackChain($locale) as $tryLocale) {
-                        $callback = function (Builder $sub) use ($field, $pattern, $tryLocale): void {
-                            $sub->where('field_id', $field->id)
-                                ->where('locale', $tryLocale)
-                                ->whereRaw($this->valueLikeSql().' LIKE ?', [$pattern]);
-                        };
-                        if ($first) {
-                            $q->whereHas('fieldValues', $callback);
-                            $first = false;
-                        } else {
-                            $q->orWhereHas('fieldValues', $callback);
-                        }
-                    }
-                });
-            } else {
-                $query->whereHas('fieldValues', function (Builder $sub) use ($field, $pattern): void {
-                    $sub->where('field_id', $field->id)
-                        ->whereNull('locale')
-                        ->where('position', 0)
-                        ->whereRaw($this->valueLikeSql().' LIKE ?', [$pattern]);
-                });
+            foreach ($ops as $operator => $operand) {
+                $this->applyOperator($query, $field, $operator, $operand, $locale);
             }
         }
 
         return $query;
+    }
+
+    /**
+     * Push role/admin item_filter into SQL before paginate/count.
+     *
+     * Accepts normalized shapes:
+     * - `{ logic: "and", rules: [...] }`
+     * - `{ _or: [ { logic, rules }, ... ] }` for multi-role OR merges
+     *
+     * @param  Builder<CollectionItem>  $query
+     * @param  array<string, mixed>|null  $itemFilter
+     */
+    public function applyPermissionItemFilter(
+        Builder $query,
+        Collection $collection,
+        ?array $itemFilter,
+        ?string $locale = null,
+    ): Builder {
+        if ($itemFilter === null) {
+            return $query;
+        }
+
+        $locale ??= $this->localeResolver->resolve();
+
+        if (isset($itemFilter['_or']) && is_array($itemFilter['_or'])) {
+            $orGroups = [];
+            foreach ($itemFilter['_or'] as $candidate) {
+                if (! is_array($candidate)) {
+                    continue;
+                }
+                $dialect = $this->permissionRulesToDialect($candidate['rules'] ?? []);
+                if ($dialect === []) {
+                    // Empty rules = match-all for that role → unrestricted OR wins
+                    return $query;
+                }
+                $orGroups[] = $dialect;
+            }
+
+            if ($orGroups === []) {
+                return $query;
+            }
+
+            if (count($orGroups) === 1) {
+                return $this->applyFilters($query, $collection, $orGroups[0], $locale);
+            }
+
+            $query->where(function (Builder $outer) use ($orGroups, $collection, $locale): void {
+                foreach ($orGroups as $index => $dialect) {
+                    $method = $index === 0 ? 'where' : 'orWhere';
+                    $outer->{$method}(function (Builder $inner) use ($dialect, $collection, $locale): void {
+                        $this->applyFilters($inner, $collection, $dialect, $locale);
+                    });
+                }
+            });
+
+            return $query;
+        }
+
+        $dialect = $this->permissionRulesToDialect($itemFilter['rules'] ?? []);
+        if ($dialect === []) {
+            return $query;
+        }
+
+        return $this->applyFilters($query, $collection, $dialect, $locale);
+    }
+
+    /**
+     * Map permission condition rules to the listing filter dialect.
+     *
+     * @param  list<mixed>  $rules
+     * @return array<string, mixed>
+     */
+    public function permissionRulesToDialect(array $rules): array
+    {
+        $filters = [];
+
+        foreach ($rules as $rule) {
+            if (! is_array($rule)) {
+                continue;
+            }
+
+            $field = $rule['field'] ?? null;
+            if (! is_string($field) || $field === '') {
+                continue;
+            }
+
+            $operator = (string) ($rule['operator'] ?? 'equals');
+            $dialectOp = self::PERMISSION_OPERATOR_MAP[$operator] ?? null;
+            if ($dialectOp === null) {
+                continue;
+            }
+
+            if ($dialectOp === '_null' || $dialectOp === '_nnull') {
+                $filters[$field] = [$dialectOp => true];
+            } else {
+                $filters[$field] = [$dialectOp => $rule['value'] ?? null];
+            }
+        }
+
+        return $filters;
+    }
+
+    /**
+     * Normalize a single field filter value into operator => operand map.
+     *
+     * @return array<string, mixed>
+     */
+    public function normalizeFieldFilter(mixed $value): array
+    {
+        if ($value === null || $value === '') {
+            return [];
+        }
+
+        if (! is_array($value)) {
+            return ['_contains' => (string) $value];
+        }
+
+        $ops = [];
+        $hasOperator = false;
+        foreach ($value as $key => $operand) {
+            if (is_string($key) && in_array($key, self::OPERATORS, true)) {
+                $ops[$key] = $operand;
+                $hasOperator = true;
+            }
+        }
+
+        if ($hasOperator) {
+            return $ops;
+        }
+
+        // Treat bare arrays as _in
+        return ['_in' => array_values($value)];
+    }
+
+    /**
+     * @param  Builder<CollectionItem>  $query
+     */
+    private function applyOperator(
+        Builder $query,
+        CollectionField $field,
+        string $operator,
+        mixed $operand,
+        string $locale,
+    ): void {
+        if ($operator === '_null') {
+            if (filter_var($operand, FILTER_VALIDATE_BOOLEAN) || $operand === '1' || $operand === 1) {
+                $query->whereDoesntHave('fieldValues', function (Builder $sub) use ($field): void {
+                    $sub->where('field_id', $field->id);
+                });
+            }
+
+            return;
+        }
+
+        if ($operator === '_nnull') {
+            if (filter_var($operand, FILTER_VALIDATE_BOOLEAN) || $operand === '1' || $operand === 1) {
+                $query->whereHas('fieldValues', function (Builder $sub) use ($field): void {
+                    $sub->where('field_id', $field->id);
+                });
+            }
+
+            return;
+        }
+
+        $callback = function (Builder $sub) use ($field, $operator, $operand, $locale): void {
+            $sub->where('field_id', $field->id)->where('position', 0);
+
+            if ($field->translatable) {
+                $sub->where('locale', $locale);
+            } else {
+                $sub->whereNull('locale');
+            }
+
+            match ($operator) {
+                '_eq' => $sub->whereRaw($this->valueTextSql().' = ?', [(string) $operand]),
+                '_neq' => $sub->whereRaw($this->valueTextSql().' <> ?', [(string) $operand]),
+                '_contains' => $sub->whereRaw($this->valueLikeSql().' LIKE ?', ['%'.mb_strtolower((string) $operand).'%']),
+                '_in' => $this->applyIn($sub, $operand),
+                '_gt' => $sub->whereRaw($this->valueNumericSql().' > ?', [(float) $operand]),
+                '_gte' => $sub->whereRaw($this->valueNumericSql().' >= ?', [(float) $operand]),
+                '_lt' => $sub->whereRaw($this->valueNumericSql().' < ?', [(float) $operand]),
+                '_lte' => $sub->whereRaw($this->valueNumericSql().' <= ?', [(float) $operand]),
+                default => $sub->whereRaw($this->valueLikeSql().' LIKE ?', ['%'.mb_strtolower((string) $operand).'%']),
+            };
+        };
+
+        if ($operator === '_neq') {
+            $query->where(function (Builder $q) use ($callback, $field): void {
+                $q->whereDoesntHave('fieldValues', function (Builder $sub) use ($field): void {
+                    $sub->where('field_id', $field->id);
+                })->orWhereHas('fieldValues', $callback);
+            });
+
+            return;
+        }
+
+        $query->whereHas('fieldValues', $callback);
+    }
+
+    /**
+     * @param  Builder<CollectionItemValue>  $sub
+     */
+    private function applyIn(Builder $sub, mixed $operand): void
+    {
+        $values = is_array($operand)
+            ? array_map('strval', $operand)
+            : array_values(array_filter(array_map('trim', explode(',', (string) $operand)), fn ($v) => $v !== ''));
+
+        if ($values === []) {
+            $sub->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($values), '?'));
+        $sub->whereRaw($this->valueTextSql().' IN ('.$placeholders.')', $values);
     }
 
     /**
@@ -156,17 +375,30 @@ class CollectionItemQueryService
 
     private function valueLikeSql(): string
     {
+        return 'LOWER('.$this->valueTextSql().')';
+    }
+
+    private function valueTextSql(): string
+    {
+        // jsonb/json scalars cast to text with surrounding quotes — unwrap for comparisons
         return match (DB::getDriverName()) {
-            'pgsql' => 'LOWER(value::text)',
-            default => 'LOWER(CAST(value AS TEXT))',
+            'pgsql' => "(value #>> '{}')",
+            'sqlite' => "json_extract(value, '$')",
+            'mysql', 'mariadb' => 'JSON_UNQUOTE(value)',
+            default => 'CAST(value AS TEXT)',
+        };
+    }
+
+    private function valueNumericSql(): string
+    {
+        return match (DB::getDriverName()) {
+            'pgsql' => "(NULLIF({$this->valueTextSql()}, ''))::numeric",
+            default => 'CAST('.$this->valueTextSql().' AS REAL)',
         };
     }
 
     private function valueOrderSql(): string
     {
-        return match (DB::getDriverName()) {
-            'pgsql' => 'value::text',
-            default => 'CAST(value AS TEXT)',
-        };
+        return $this->valueTextSql();
     }
 }

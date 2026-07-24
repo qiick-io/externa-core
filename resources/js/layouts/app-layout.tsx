@@ -1,3 +1,4 @@
+import { FlashToasts } from '@/components/flash-toasts';
 import { useProjectBranding } from '@/hooks/use-project-branding';
 import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout';
 import type { AppLayoutProps } from '@/types';
@@ -21,6 +22,7 @@ export default function AppLayout({
             headerActions={headerActions}
             {...props}
         >
+            <FlashToasts />
             {children}
         </AppLayoutTemplate>
     );

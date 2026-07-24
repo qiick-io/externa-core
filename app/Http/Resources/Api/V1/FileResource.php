@@ -43,6 +43,7 @@ class FileResource extends JsonResource
             'id' => $file->id,
             'parent_id' => $file->parent_id,
             'type' => $file->type->value,
+            'access' => $file->effectiveAccess()->value,
             'filename' => $file->name,
             'title' => $file->title,
             'description' => $file->description,

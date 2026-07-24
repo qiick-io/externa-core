@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Concerns\AuthorizesFileAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\FileResource;
 use App\Models\File;
+use App\Services\Api\FilePermissionGuard;
 use App\Services\FileService;
 use App\Services\FileTransformService;
 use Illuminate\Database\Eloquent\Builder;
@@ -46,7 +47,13 @@ class FileController extends Controller
         $parentId = isset($validated['parent_id']) ? (int) $validated['parent_id'] : null;
         $search = $validated['search'] ?? null;
 
-        $paginator = $this->listQuery($parentId, $search)->paginate($perPage);
+        $query = $this->listQuery($parentId, $search);
+        $query = app(FilePermissionGuard::class)->constrainReadable(
+            $query,
+            $this->apiAccess($request)->roleId(),
+        );
+
+        $paginator = $query->paginate($perPage);
 
         return response()->json([
             'data' => FileResource::collection($paginator->items())->resolve(),
@@ -61,12 +68,12 @@ class FileController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionAction::Read);
-
         $file = File::query()->find($id);
         if ($file === null) {
             abort(404);
         }
+
+        $this->authorizeFileRead($request, $file);
 
         return response()->json([
             'data' => (new FileResource($file))->toArray($request),
@@ -75,12 +82,12 @@ class FileController extends Controller
 
     public function content(Request $request, int $id): StreamedResponse|Response
     {
-        $this->authorizeFile($request, FilePermissionAction::Read);
-
         $file = File::query()->find($id);
         if ($file === null || ! $file->isFile() || ! $file->storage_path) {
             abort(404);
         }
+
+        $this->authorizeFileRead($request, $file);
 
         if (! Storage::disk($file->disk)->exists($file->storage_path)) {
             abort(404);
@@ -98,12 +105,12 @@ class FileController extends Controller
 
     public function transform(Request $request, int $id, string $key): StreamedResponse|Response
     {
-        $this->authorizeFile($request, FilePermissionAction::Read);
-
         $file = File::query()->find($id);
         if ($file === null || ! $this->fileTransformService->isImage($file)) {
             abort(404);
         }
+
+        $this->authorizeFileRead($request, $file);
 
         try {
             if (preg_match('/^size-(\d+)$/', $key, $matches) === 1) {

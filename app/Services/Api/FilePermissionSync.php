@@ -58,7 +58,7 @@ class FilePermissionSync
     }
 
     /**
-     * @return array{create: bool, read: bool, update: bool, delete: bool}
+     * @return array{create: bool, read: bool, read_private: bool, update: bool, delete: bool}
      */
     public function grantsForRole(Role $role): array
     {
@@ -78,6 +78,7 @@ class FilePermissionSync
         return [
             'create' => (bool) ($map['create'] ?? false),
             'read' => (bool) ($map['read'] ?? false),
+            'read_private' => (bool) ($map['read_private'] ?? false),
             'update' => (bool) ($map['update'] ?? false),
             'delete' => (bool) ($map['delete'] ?? false),
         ];

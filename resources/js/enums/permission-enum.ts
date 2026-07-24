@@ -42,6 +42,8 @@ export enum PermissionEnum {
     CanRestoreCollections = 'can-restore-collections',
     CanForceDeleteCollections = 'can-force-delete-collections',
     CanShowActivityLogs = 'can-show-activity-logs',
+    CanShowJobs = 'can-show-jobs',
+    CanManageJobs = 'can-manage-jobs',
     CanUseAi = 'can-use-ai',
     CanManageProjectSettings = 'can-manage-project-settings',
     CanShowApiKeys = 'can-show-api-keys',

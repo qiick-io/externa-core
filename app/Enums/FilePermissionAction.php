@@ -9,6 +9,7 @@ enum FilePermissionAction: string
 {
     case Create = 'create';
     case Read = 'read';
+    case ReadPrivate = 'read_private';
     case Update = 'update';
     case Delete = 'delete';
 

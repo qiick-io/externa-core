@@ -16,15 +16,18 @@ use App\Models\FilePermission;
 use App\Models\Role;
 use App\Services\Api\CollectionPermissionGuard;
 use App\Services\Api\FilePermissionGuard;
+use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\FileService;
 use App\Services\FileTransformService;
+use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
-    $this->seed(\Database\Seeders\PermissionSeeder::class);
-    $this->seed(\Database\Seeders\RoleSeeder::class);
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
     Storage::fake('assets');
 });
 
@@ -193,7 +196,7 @@ it('expands image fields on item api when file read is granted', function (): vo
     $file = makeStoredFile('cover.jpg');
     $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
 
-    app(\App\Services\Collections\CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriter::class)->sync(
         $item,
         $collection->fresh(['fields']),
         ['cover' => $file->id],
@@ -222,6 +225,73 @@ it('expands image fields on item api when file read is granted', function (): vo
         ->assertJsonPath('data.data.cover.id', $file->id)
         ->assertJsonPath('data.data.cover.filename', 'cover.jpg')
         ->assertJsonPath('data.data.cover.url', url("/api/v1/files/{$file->id}/content"));
+});
+
+it('expands nested files inside blocks fields on item api when file read is granted', function (): void {
+    $collection = Collection::query()->create([
+        'name' => 'Articles',
+        'slug' => 'articles',
+        'is_singleton' => false,
+        'sort_order' => 1,
+    ]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'content',
+        'type' => FieldTypeEnum::Blocks,
+        'settings' => [
+            'block_types' => [
+                [
+                    'key' => 'media',
+                    'label' => 'Media',
+                    'fields' => [
+                        ['name' => 'image', 'type' => 'image', 'settings' => []],
+                        ['name' => 'gallery', 'type' => 'files', 'settings' => []],
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    $cover = makeStoredFile('nested-cover.jpg');
+    $gallery = makeStoredFile('nested-gallery.jpg');
+    $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
+
+    app(CollectionItemValuesWriter::class)->sync(
+        $item,
+        $collection->fresh(['fields']),
+        ['content' => [[
+            'id' => '11111111-1111-1111-1111-111111111111',
+            'type' => 'media',
+            'data' => [
+                'image' => $cover->id,
+                'gallery' => [$gallery->id],
+            ],
+        ]]],
+    );
+
+    CollectionPermission::query()->updateOrCreate(
+        [
+            'role_id' => filesPublicRole()->id,
+            'collection_id' => $collection->id,
+            'action' => CollectionPermissionAction::Read->value,
+        ],
+        ['allowed' => true],
+    );
+    app(CollectionPermissionGuard::class)->forget(filesPublicRole()->id);
+
+    $this->getJson("/api/v1/collections/articles/items/{$item->id}")
+        ->assertOk()
+        ->assertJsonPath('data.data.content.0.data.image.id', $cover->id)
+        ->assertJsonPath('data.data.content.0.data.gallery.0.id', $gallery->id)
+        ->assertJsonMissingPath('data.data.content.0.data.image.url');
+
+    grantPublicFileActions([FilePermissionAction::Read]);
+
+    $this->getJson("/api/v1/collections/articles/items/{$item->id}")
+        ->assertOk()
+        ->assertJsonPath('data.data.content.0.data.image.filename', 'nested-cover.jpg')
+        ->assertJsonPath('data.data.content.0.data.gallery.0.filename', 'nested-gallery.jpg')
+        ->assertJsonPath('data.data.content.0.data.image.url', url("/api/v1/files/{$cover->id}/content"));
 });
 
 it('dispatches warm thumbnail job on upload', function (): void {
@@ -299,4 +369,178 @@ it('clears transforms when focal point changes', function (): void {
     ]);
 
     expect(Storage::disk('assets')->exists($path))->toBeFalse();
+});
+
+it('hides private files from list show content without read_private', function (): void {
+    grantPublicFileActions([FilePermissionAction::Read]);
+    $public = makeStoredFile('public.jpg');
+    $private = makeStoredFile('secret.jpg');
+    $private->update(['access' => 'private']);
+
+    $this->getJson('/api/v1/files')
+        ->assertOk()
+        ->assertJsonFragment(['filename' => 'public.jpg'])
+        ->assertJsonMissing(['filename' => 'secret.jpg']);
+
+    $this->getJson("/api/v1/files/{$private->id}")->assertForbidden();
+    $this->get("/api/v1/files/{$private->id}/content")->assertForbidden();
+
+    $this->getJson("/api/v1/files/{$public->id}")->assertOk();
+});
+
+it('allows private file access when role has read_private', function (): void {
+    grantPublicFileActions([FilePermissionAction::Read, FilePermissionAction::ReadPrivate]);
+    $private = makeStoredFile('secret.jpg');
+    $private->update(['access' => 'private']);
+
+    $this->getJson('/api/v1/files')
+        ->assertOk()
+        ->assertJsonFragment(['filename' => 'secret.jpg']);
+
+    $this->getJson("/api/v1/files/{$private->id}")
+        ->assertOk()
+        ->assertJsonPath('data.access', 'private');
+
+    $this->get("/api/v1/files/{$private->id}/content")->assertOk();
+});
+
+it('inherits private access from folder and allows public override on child', function (): void {
+    grantPublicFileActions([FilePermissionAction::Read]);
+
+    $folder = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'vault',
+        'path' => '/vault',
+        'disk' => 'assets',
+        'access' => 'private',
+    ]);
+
+    $inherited = makeStoredFile('inside.jpg');
+    $inherited->update(['parent_id' => $folder->id, 'access' => null, 'path' => '/vault/inside.jpg']);
+
+    $overridden = makeStoredFile('public-in-vault.jpg');
+    $overridden->update([
+        'parent_id' => $folder->id,
+        'access' => 'public',
+        'path' => '/vault/public-in-vault.jpg',
+    ]);
+
+    expect($inherited->fresh()->effectiveAccess()->value)->toBe('private')
+        ->and($overridden->fresh()->effectiveAccess()->value)->toBe('public');
+
+    $this->getJson('/api/v1/files?parent_id='.$folder->id)
+        ->assertOk()
+        ->assertJsonFragment(['filename' => 'public-in-vault.jpg'])
+        ->assertJsonMissing(['filename' => 'inside.jpg']);
+
+    $this->getJson("/api/v1/files/{$inherited->id}")->assertForbidden();
+    $this->getJson("/api/v1/files/{$overridden->id}")->assertOk();
+});
+
+it('nulls private image fields on items without read_private even when collection is readable', function (): void {
+    $collection = Collection::query()->create([
+        'name' => 'Articles',
+        'slug' => 'articles',
+        'is_singleton' => false,
+        'sort_order' => 1,
+    ]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'cover',
+        'type' => FieldTypeEnum::Image,
+    ]);
+
+    $file = makeStoredFile('private-cover.jpg');
+    $file->update(['access' => 'private']);
+    $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
+
+    app(CollectionItemValuesWriter::class)->sync(
+        $item,
+        $collection->fresh(['fields']),
+        ['cover' => $file->id],
+    );
+
+    CollectionPermission::query()->updateOrCreate(
+        [
+            'role_id' => filesPublicRole()->id,
+            'collection_id' => $collection->id,
+            'action' => CollectionPermissionAction::Read->value,
+        ],
+        ['allowed' => true],
+    );
+    app(CollectionPermissionGuard::class)->forget(filesPublicRole()->id);
+    grantPublicFileActions([FilePermissionAction::Read]);
+
+    $this->getJson("/api/v1/collections/articles/items/{$item->id}")
+        ->assertOk()
+        ->assertJsonPath('data.data.cover', null);
+
+    grantPublicFileActions([FilePermissionAction::Read, FilePermissionAction::ReadPrivate]);
+
+    $this->getJson("/api/v1/collections/articles/items/{$item->id}")
+        ->assertOk()
+        ->assertJsonPath('data.data.cover.id', $file->id)
+        ->assertJsonPath('data.data.cover.url', url("/api/v1/files/{$file->id}/content"));
+});
+
+it('omits private nested block images without read_private', function (): void {
+    $collection = Collection::query()->create([
+        'name' => 'Articles',
+        'slug' => 'articles',
+        'is_singleton' => false,
+        'sort_order' => 1,
+    ]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'content',
+        'type' => FieldTypeEnum::Blocks,
+        'settings' => [
+            'block_types' => [
+                [
+                    'key' => 'media',
+                    'label' => 'Media',
+                    'fields' => [
+                        ['name' => 'image', 'type' => 'image', 'settings' => []],
+                        ['name' => 'gallery', 'type' => 'files', 'settings' => []],
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    $privateImage = makeStoredFile('block-private.jpg');
+    $privateImage->update(['access' => 'private']);
+    $publicGallery = makeStoredFile('block-public.jpg');
+    $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
+
+    app(CollectionItemValuesWriter::class)->sync(
+        $item,
+        $collection->fresh(['fields']),
+        ['content' => [[
+            'id' => '22222222-2222-2222-2222-222222222222',
+            'type' => 'media',
+            'data' => [
+                'image' => $privateImage->id,
+                'gallery' => [$publicGallery->id, $privateImage->id],
+            ],
+        ]]],
+    );
+
+    CollectionPermission::query()->updateOrCreate(
+        [
+            'role_id' => filesPublicRole()->id,
+            'collection_id' => $collection->id,
+            'action' => CollectionPermissionAction::Read->value,
+        ],
+        ['allowed' => true],
+    );
+    app(CollectionPermissionGuard::class)->forget(filesPublicRole()->id);
+    grantPublicFileActions([FilePermissionAction::Read]);
+
+    $this->getJson("/api/v1/collections/articles/items/{$item->id}")
+        ->assertOk()
+        ->assertJsonPath('data.data.content.0.data.image', null)
+        ->assertJsonCount(1, 'data.data.content.0.data.gallery')
+        ->assertJsonPath('data.data.content.0.data.gallery.0.id', $publicGallery->id)
+        ->assertJsonMissingPath('data.data.content.0.data.gallery.1');
 });
