@@ -85,7 +85,7 @@ return [
             'email_verification_required' => false,
             'allowed_domains' => [],
             'allowed_transformations' => ['thumbnail'],
-            // Structured Directus-style presets (GD-backed; see FileTransformService)
+            // Structured image presets (GD-backed; see FileTransformService)
             'preset_transformations' => [
                 [
                     'key' => 'thumbnail',

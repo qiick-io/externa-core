@@ -2,11 +2,11 @@ import { PermissionEnum } from '@/enums/permission-enum';
 
 /** UI category bucket for grouping AI action presets in the drawer. */
 export type AiActionPresetCategory =
-    | 'comuni'
-    | 'dati'
-    | 'file'
+    | 'common'
+    | 'data'
+    | 'files'
     | 'admin'
-    | 'avanzate';
+    | 'advanced';
 
 /** Pre-built AI prompt template shown in the action presets drawer. */
 export type AiActionPreset = {
@@ -20,27 +20,97 @@ export type AiActionPreset = {
     destructive?: boolean;
 };
 
-/** Localized labels for {@link AiActionPresetCategory} values. */
+/**
+ * English fallback labels for {@link AiActionPresetCategory}.
+ * UI uses `ai.categories.*` via react-i18next; keep these for non-React callers.
+ */
 export const AI_ACTION_PRESET_CATEGORY_LABELS: Record<
     AiActionPresetCategory,
     string
 > = {
-    comuni: 'Comuni',
-    dati: 'Dati & import',
-    file: 'File',
-    admin: 'Amministrazione',
-    avanzate: 'Avanzate',
+    common: 'Common',
+    data: 'Data & import',
+    files: 'Files',
+    admin: 'Admin',
+    advanced: 'Advanced',
 };
 
-/** Built-in AI action presets shipped with the assistant UI. */
+/**
+ * Built-in AI action presets shipped with the assistant UI.
+ * Titles/descriptions are English source strings; the drawer localizes via `ai.presets.<id>.*`.
+ * Prompt bodies stay English-neutral so the agent matches reply language to the user.
+ */
 export const AI_ACTION_PRESETS: AiActionPreset[] = [
     {
-        id: 'new-typed-collection',
-        category: 'comuni',
-        title: 'Nuova collection tipizzata',
-        description: 'Crea schema con campi tipizzati da descrizione',
+        id: 'apply-seo-collection-pack',
+        category: 'common',
+        title: 'Apply SEO collection',
+        description: 'Create the standalone SEO entity collection',
         prompt:
-            'Crea una nuova collection chiamata «NOME_COLLECTION» con questi campi tipizzati (usa create_field con il type corretto, non string generico):\n- …\nPoi riepiloga id, slug e campi creati.',
+            'Apply the SEO collection pack.\n\nUse ManageCollections action apply_collection_pack with pack=seo.\n\nThis creates the `seo` collection with short field names (title, description, keywords, alternate, canonical, robots, noindex, og_image, facebook_image, twitter_image) — not seo_* prefixes. Summarize created vs reused.',
+        anyOf: [PermissionEnum.CanCreateCollections],
+    },
+    {
+        id: 'scaffold-articles',
+        category: 'common',
+        title: 'Scaffold Articles',
+        description: 'Articles + Categories + SEO (deps auto-created)',
+        prompt:
+            'Scaffold Articles with dependencies.\n\nUse ManageCollections action apply_collection_pack with pack=articles.\n\nThis auto-creates `seo` and `categories` if missing, then `articles` with M2O relations to both. Do NOT invent the schema with N× create_field. Summarize collections and fields created vs skipped.',
+        anyOf: [PermissionEnum.CanCreateCollections],
+    },
+    {
+        id: 'scaffold-products',
+        category: 'common',
+        title: 'Scaffold Products',
+        description: 'Products + Categories + SEO (deps auto-created)',
+        prompt:
+            'Scaffold Products with dependencies.\n\nUse ManageCollections action apply_collection_pack with pack=products.\n\nThis auto-creates `seo` and `categories` if missing, then `products` with M2O relations. Summarize created vs skipped.',
+        anyOf: [PermissionEnum.CanCreateCollections],
+    },
+    {
+        id: 'apply-publishing-field-pack',
+        category: 'common',
+        title: 'Apply publishing field pack',
+        description: 'status, published_at, featured on an existing collection',
+        prompt:
+            'On collection «COLLECTION_ID_OR_NAME», apply the publishing field pack.\n\nUse ManageCollections action apply_field_pack with pack=publishing (resolve collection_id via list/get if I gave a name).\n\nAdds: status (select draft/published/archived), published_at (date), featured (boolean). Skip existing names. Summarize created vs skipped.',
+        anyOf: [PermissionEnum.CanEditCollections],
+    },
+    {
+        id: 'apply-contact-field-pack',
+        category: 'common',
+        title: 'Apply contact field pack',
+        description: 'email, phone, address fields',
+        prompt:
+            'On collection «COLLECTION_ID_OR_NAME», apply the contact field pack.\n\nUse ManageCollections action apply_field_pack with pack=contact. Summarize created vs skipped.',
+        anyOf: [PermissionEnum.CanEditCollections],
+    },
+    {
+        id: 'apply-social-field-pack',
+        category: 'common',
+        title: 'Apply social field pack',
+        description: 'Social profile URL fields',
+        prompt:
+            'On collection «COLLECTION_ID_OR_NAME», apply the social field pack.\n\nUse ManageCollections action apply_field_pack with pack=social. Summarize created vs skipped.',
+        anyOf: [PermissionEnum.CanEditCollections],
+    },
+    {
+        id: 'apply-seo-inline-field-pack',
+        category: 'common',
+        title: 'Apply SEO inline field pack',
+        description: 'Denormalized seo_* fields (edge case)',
+        prompt:
+            'On collection «COLLECTION_ID_OR_NAME», apply the SEO inline field pack (denormalized seo_* fields).\n\nUse ManageCollections action apply_field_pack with pack=seo_inline (resolve collection_id via list/get if I gave a name).\n\nPrefer apply_collection_pack pack=seo + M2O relation for Articles/Pages/Products. Use seo_inline only when I explicitly want inline fields.\n\nDo NOT create them with N× create_field. Summarize created vs skipped.',
+        anyOf: [PermissionEnum.CanEditCollections],
+    },
+    {
+        id: 'new-typed-collection',
+        category: 'common',
+        title: 'New typed collection',
+        description: 'Create a schema with typed fields from a description',
+        prompt:
+            'Create a new collection named «COLLECTION_NAME» with these typed fields (use create_field with the correct type, not generic string):\n- …\nThen summarize id, slug, and created fields.',
         anyOf: [
             PermissionEnum.CanCreateCollections,
             PermissionEnum.CanEditCollections,
@@ -48,130 +118,130 @@ export const AI_ACTION_PRESETS: AiActionPreset[] = [
     },
     {
         id: 'list-collections',
-        category: 'comuni',
-        title: 'Elenca le collection',
-        description: 'Mostra collection esistenti con id e campi',
+        category: 'common',
+        title: 'List collections',
+        description: 'Show existing collections with ids and fields',
         prompt:
-            'Elenca le mie collection (id, nome, slug, numero item). Se ne indico una, mostra anche i campi.',
+            'List my collections (id, name, slug, item count). If I name one, also show its fields.',
         anyOf: [PermissionEnum.CanShowCollections],
     },
     {
         id: 'import-csv',
-        category: 'dati',
-        title: 'Importa CSV allegato',
-        description: 'Crea/aggiorna collection da file CSV in chat',
+        category: 'data',
+        title: 'Import attached CSV',
+        description: 'Create/update a collection from a CSV in chat',
         prompt:
-            'Ho allegato un CSV. Importalo in una collection chiamata «NOME_COLLECTION» (creala se non esiste). Inferisci i tipi dei campi dal contenuto. Alla fine dimmi quanti item creati/aggiornati.',
+            'I attached a CSV. Import it into a collection named «COLLECTION_NAME» (create it if missing). Infer field types from the content. At the end tell me how many items were created/updated.',
         anyOf: [PermissionEnum.CanCreateCollections],
     },
     {
         id: 'import-excel',
-        category: 'dati',
-        title: 'Importa Excel allegato',
-        description: 'Import da file .xlsx',
+        category: 'data',
+        title: 'Import attached Excel',
+        description: 'Import from a .xlsx file',
         prompt:
-            'Ho allegato un file Excel (.xlsx). Importalo nella collection «NOME_COLLECTION» (creala se serve), con inferenza tipi. Riepiloga il risultato.',
+            'I attached an Excel (.xlsx) file. Import it into collection «COLLECTION_NAME» (create if needed), with type inference. Summarize the result.',
         anyOf: [PermissionEnum.CanCreateCollections],
     },
     {
         id: 'import-url-json',
-        category: 'dati',
-        title: 'Importa JSON da URL',
-        description: 'Fetch remoto (es. Directus) → collection',
+        category: 'data',
+        title: 'Import JSON from URL',
+        description: 'Remote JSON fetch → collection',
         prompt:
-            'Importa i dati JSON da questo URL nella collection «NOME_COLLECTION»:\nURL: https://…\nSe serve autenticazione Bearer dimmelo prima. Inferisci i tipi e riepiloga quanti record hai importato.',
+            'Import JSON data from this URL into collection «COLLECTION_NAME»:\nURL: https://…\nIf Bearer auth is required, ask me first. Infer types and summarize how many records you imported.',
         anyOf: [PermissionEnum.CanCreateCollections],
     },
     {
         id: 'import-dry-run',
-        category: 'dati',
-        title: 'Anteprima import (dry-run)',
-        description: 'Simula senza scrivere dati',
+        category: 'data',
+        title: 'Import preview (dry-run)',
+        description: 'Simulate without writing data',
         prompt:
-            'Esegui un dry_run=true (nessuna scrittura) sull’import da allegato o URL che ti indico. Mostra schema proposto, tipi inferiti e anteprima delle prime righe.',
+            'Run dry_run=true (no writes) on the attachment or URL import I specify. Show proposed schema, inferred types, and a preview of the first rows.',
         anyOf: [PermissionEnum.CanCreateCollections],
     },
     {
         id: 'import-upsert',
-        category: 'dati',
+        category: 'data',
         title: 'Sync / upsert',
-        description: 'Ri-import senza duplicare (chiave univoca)',
+        description: 'Re-import without duplicates (unique key)',
         prompt:
-            'Sincronizza i dati (upsert) nella collection «NOME_COLLECTION» usando come chiave il campo «CAMPO_CHIAVE» (es. sku o id esterno). Aggiorna gli item esistenti e crea solo quelli nuovi. Fonte: allegato o URL che ti indico.',
+            'Upsert sync into collection «COLLECTION_NAME» using field «KEY_FIELD» as the key (e.g. sku or external id). Update existing items and create only new ones. Source: attachment or URL I provide.',
         anyOf: [PermissionEnum.CanCreateCollections, PermissionEnum.CanEditCollections],
     },
     {
         id: 'export-collection',
-        category: 'dati',
-        title: 'Esporta collection',
-        description: 'Export CSV o JSON',
+        category: 'data',
+        title: 'Export collection',
+        description: 'Export CSV or JSON',
         prompt:
-            'Esporta la collection «NOME_COLLECTION» in formato CSV (oppure JSON se chiedo altrimenti). Dammi un riepilogo e il contenuto o il percorso generato.',
+            'Export collection «COLLECTION_NAME» as CSV (or JSON if I ask otherwise). Give a summary and the content or generated path.',
         anyOf: [PermissionEnum.CanShowCollections],
     },
     {
         id: 'bulk-edit',
-        category: 'dati',
-        title: 'Modifica massiva item',
-        description: 'Aggiorna molti item con un filtro',
+        category: 'data',
+        title: 'Bulk edit items',
+        description: 'Update many items with a filter',
         prompt:
-            'Nella collection «NOME_COLLECTION», aggiorna in blocco gli item dove «CAMPO» = «VALORE» impostando: …\nConferma prima quanti record matched, poi esegui.',
+            'In collection «COLLECTION_NAME», bulk-update items where «FIELD» = «VALUE» setting: …\nConfirm how many records match first, then run.',
         anyOf: [PermissionEnum.CanEditCollections],
         destructive: true,
     },
     {
         id: 'bulk-delete',
-        category: 'dati',
-        title: 'Elimina massiva item',
-        description: 'Soft-delete di item filtrati',
+        category: 'data',
+        title: 'Bulk delete items',
+        description: 'Soft-delete filtered items',
         prompt:
-            'Nella collection «NOME_COLLECTION», elimina (soft-delete) gli item dove «CAMPO» = «VALORE». Prima dimmi quanti ne troveresti, poi procedi solo dopo conferma.',
+            'In collection «COLLECTION_NAME», soft-delete items where «FIELD» = «VALUE». Tell me how many would match first, then proceed only after confirmation.',
         anyOf: [PermissionEnum.CanDeleteCollections],
         destructive: true,
     },
     {
         id: 'nl-query',
-        category: 'dati',
-        title: 'Query in linguaggio naturale',
-        description: 'Filtra e conta item',
+        category: 'data',
+        title: 'Natural-language query',
+        description: 'Filter and count items',
         prompt:
-            'Sulla collection «NOME_COLLECTION», rispondi a questa domanda con dati reali (usa i tool di query/list):\n«…»\nMostra i risultati in tabella sintetica.',
+            'On collection «COLLECTION_NAME», answer this question with real data (use query/list tools):\n«…»\nShow results in a short table.',
         anyOf: [PermissionEnum.CanShowCollections],
     },
     {
         id: 'pdf-to-schema',
-        category: 'dati',
-        title: 'PDF → schema / dati',
-        description: 'Estrai testo da PDF e proponi collection',
+        category: 'data',
+        title: 'PDF → schema / data',
+        description: 'Extract PDF text and propose a collection',
         prompt:
-            'Ho allegato un PDF. Estraine il testo, proponimi uno schema di collection con campi tipizzati e, se ha senso, importa i record strutturabili. Chiedimi conferma prima di scrivere.',
+            'I attached a PDF. Extract the text, propose a typed collection schema, and if it makes sense, import structurizable records. Ask for confirmation before writing.',
         anyOf: [PermissionEnum.CanCreateCollections],
     },
     {
         id: 'duplicate-collection',
-        category: 'dati',
-        title: 'Duplica collection',
-        description: 'Copia schema (e opzionalmente sample)',
+        category: 'data',
+        title: 'Duplicate collection',
+        description: 'Copy schema (and optionally samples)',
         prompt:
-            'Duplica la collection con id «ID» (solo schema). Se chiedo anche i dati sample, copia i primi item.',
+            'Duplicate the collection with id «ID» (schema only). If I also ask for sample data, copy the first items.',
         anyOf: [PermissionEnum.CanCreateCollections],
     },
     {
         id: 'restore-collection',
-        category: 'dati',
-        title: 'Ripristina collection dal cestino',
+        category: 'data',
+        title: 'Restore collection from trash',
         description: 'Restore soft-delete',
         prompt:
-            'Elenca le collection nel cestino e ripristina quella chiamata «NOME» (o id …).',
+            'List trashed collections and restore the one named «NAME» (or id …).',
         anyOf: [PermissionEnum.CanRestoreCollections],
     },
     {
         id: 'manage-files',
-        category: 'file',
-        title: 'Organizza file',
-        description: 'Cartelle, sposta, rinomina',
+        category: 'files',
+        title: 'Organize files',
+        description: 'Folders, move, rename',
         prompt:
-            'Nel file manager: elenca la cartella corrente, poi crea/organizzi come ti chiedo (cartelle, rename, move). Usa ManageFiles action "move" con file_id e target_parent_id. Non eliminare definitivamente senza conferma.',
+            'In the file manager: list the current folder, then create/organize as I ask (folders, rename, move). Use ManageFiles action "move" with file_id and target_parent_id. Do not permanently delete without confirmation.',
         anyOf: [
             PermissionEnum.CanShowFiles,
             PermissionEnum.CanCreateFiles,
@@ -180,20 +250,20 @@ export const AI_ACTION_PRESETS: AiActionPreset[] = [
     },
     {
         id: 'move-files',
-        category: 'file',
-        title: 'Sposta file',
-        description: 'Sposta file/cartelle in un’altra cartella',
+        category: 'files',
+        title: 'Move files',
+        description: 'Move files/folders into another folder',
         prompt:
-            'Sposta i file/cartelle «NOME_O_ID» nella cartella «DESTINAZIONE» (o root). Per più elementi usa ManageFiles action "move_many" (source_parent_id o file_ids_json + target_parent_id). Per uno solo usa "move". Poi elenca la destinazione per conferma.',
+            'Move files/folders «NAME_OR_ID» into folder «DESTINATION» (or root). For multiple items use ManageFiles action "move_many" (source_parent_id or file_ids_json + target_parent_id). For one item use "move". Then list the destination to confirm.',
         anyOf: [PermissionEnum.CanEditFiles],
     },
     {
         id: 'attach-file-to-item',
-        category: 'file',
-        title: 'Collega file a un item',
-        description: 'Imposta campo file/image su un item',
+        category: 'files',
+        title: 'Link file to an item',
+        description: 'Set a file/image field on an item',
         prompt:
-            'Trova il file «NOME_FILE» e l’item nella collection «NOME_COLLECTION», poi collega il file al campo «nome_campo» (file/image/files).',
+            'Find file «FILE_NAME» and the item in collection «COLLECTION_NAME», then link the file to field «field_name» (file/image/files).',
         anyOf: [
             PermissionEnum.CanShowFiles,
             PermissionEnum.CanEditCollections,
@@ -201,91 +271,91 @@ export const AI_ACTION_PRESETS: AiActionPreset[] = [
     },
     {
         id: 'save-attachment-to-files',
-        category: 'file',
-        title: 'Salva allegato chat nei File',
-        description: 'Copia attachment nel file manager',
+        category: 'files',
+        title: 'Save chat attachment to Files',
+        description: 'Copy attachment into the file manager',
         prompt:
-            'Salva l’allegato di questa chat nel File manager (cartella root o «percorso»). Poi dimmi id e percorso del file creato.',
+            'Save this chat attachment into the File manager (root or «path»). Then tell me the created file id and path.',
         anyOf: [PermissionEnum.CanCreateFiles],
     },
     {
         id: 'create-role',
         category: 'admin',
-        title: 'Crea ruolo con permessi',
-        description: 'Nuovo ruolo Spatie + sync permission names',
+        title: 'Create role with permissions',
+        description: 'New Spatie role + sync permission names',
         prompt:
-            'Crea un ruolo chiamato «NOME_RUOLO» (es. gestore-prodotti). Prima elenca i permessi disponibili (list_permissions), poi assegna un set sensato via permission_names_json (usa i nomi esatti, es. can-show-collections, can-create-collections). Riepiloga id, nome e permessi finali. Non toccare super-admin.',
+            'Create a role named «ROLE_NAME» (e.g. product-manager). First list available permissions (list_permissions), then assign a sensible set via permission_names_json (use exact names, e.g. can-show-collections, can-create-collections). Summarize id, name, and final permissions. Do not touch super-admin.',
         anyOf: [PermissionEnum.CanCreateRoles],
     },
     {
         id: 'list-roles',
         category: 'admin',
-        title: 'Elenca ruoli',
-        description: 'Mostra ruoli e conteggio permessi',
+        title: 'List roles',
+        description: 'Show roles and permission counts',
         prompt:
-            'Elenca i ruoli esistenti (id, nome, numero permessi). Se ne indico uno, mostra anche i permission names assegnati.',
+            'List existing roles (id, name, permission count). If I name one, also show assigned permission names.',
         anyOf: [PermissionEnum.CanShowRoles],
     },
     {
         id: 'create-group',
         category: 'admin',
-        title: 'Crea gruppo utenti',
-        description: 'Gruppo con membri e ruoli collegati',
+        title: 'Create user group',
+        description: 'Group with members and linked roles',
         prompt:
-            'Crea un gruppo utenti «NOME_GRUPPO» con descrizione «…». Collega i ruoli «…» (role_names_json) e, se ti passo gli id, i membri. Riepiloga il risultato.',
+            'Create user group «GROUP_NAME» with description «…». Link roles «…» (role_names_json) and, if I pass ids, the members. Summarize the result.',
         anyOf: [PermissionEnum.CanCreateGroups],
     },
     {
         id: 'create-user',
         category: 'admin',
-        title: 'Crea utente',
-        description: 'Nuovo utente con ruolo se possibile',
+        title: 'Create user',
+        description: 'New user with a role when possible',
         prompt:
-            'Crea un utente con email «…», nome e cognome «…». Assegna il ruolo se ho i permessi, altrimenti indica cosa manca.',
+            'Create a user with email «…», first and last name «…». Assign the role if I have permission; otherwise say what is missing.',
         anyOf: [PermissionEnum.CanCreateUsers],
     },
     {
         id: 'list-users',
         category: 'admin',
-        title: 'Elenca utenti',
-        description: 'Lista utenti attivi',
-        prompt: 'Elenca gli utenti (id, nome, email). Filtra se ti indico un criterio.',
+        title: 'List users',
+        description: 'Active users list',
+        prompt: 'List users (id, name, email). Filter if I give a criterion.',
         anyOf: [PermissionEnum.CanShowUsers],
     },
     {
         id: 'audit-activity',
         category: 'admin',
-        title: 'Audit attività',
-        description: 'Cosa è successo di recente',
+        title: 'Activity audit',
+        description: 'What happened recently',
         prompt:
-            'Usa QueryActivityLogs per recuperare le attività recenti rilevanti (collection, file, AI, auth). Filtra se serve per event/log_name/date e riassumile in italiano.',
+            'Use QueryActivityLogs to fetch recent relevant activity (collection, file, AI, auth). Filter by event/log_name/date if needed and summarize.',
         anyOf: [PermissionEnum.CanShowActivityLogs],
     },
     {
         id: 'async-large-import',
-        category: 'avanzate',
-        title: 'Import grande in background',
-        description: 'Job asincrono con progress',
+        category: 'advanced',
+        title: 'Large background import',
+        description: 'Async job with progress',
         prompt:
-            'Importa questa fonte (allegato o URL) nella collection «NOME_COLLECTION» in modalità asincrona (async/job). Dammi il job_id e aggiornami sullo stato.',
+            'Import this source (attachment or URL) into collection «COLLECTION_NAME» asynchronously (async/job). Give me the job_id and update me on status.',
         anyOf: [PermissionEnum.CanCreateCollections],
     },
     {
         id: 'scheduled-sync',
-        category: 'avanzate',
-        title: 'Sync schedulato da URL',
-        description: 'Import periodico remoto',
+        category: 'advanced',
+        title: 'Scheduled URL sync',
+        description: 'Periodic remote import',
         prompt:
-            'Configura un sync periodico dalla URL https://… verso la collection «NOME_COLLECTION» con upsert sulla chiave «CAMPO». Intervallo: ogni N minuti. Conferma cosa hai creato.',
+            'Configure a periodic sync from URL https://… into collection «COLLECTION_NAME» with upsert on key «FIELD». Interval: every N minutes. Confirm what you created.',
         anyOf: [PermissionEnum.CanCreateCollections, PermissionEnum.CanEditCollections],
     },
     {
         id: 'rollback-last-turn',
-        category: 'avanzate',
-        title: 'Annulla ultima operazione AI',
-        description: 'Rollback soft delle mutazioni recenti',
+        category: 'advanced',
+        title: 'Undo last AI operation',
+        description: 'Soft rollback of recent mutations',
         prompt:
-            'Annulla (rollback) le mutazioni dell’ultimo turn AI in questa conversazione, se possibile con soft-delete. Dimmi cosa hai ripristinato e cosa non è annullabile.',
+            'Roll back mutations from the latest AI turn in this conversation if possible with soft-delete. Tell me what you restored and what cannot be undone.',
         anyOf: [PermissionEnum.CanDeleteCollections],
         destructive: true,
     },

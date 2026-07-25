@@ -253,7 +253,7 @@ test('pdf extraction returns text and enforces create permission', function () {
     $this->actingAs($denied);
 
     expect((string) (new ExtractPdfText)->handle(new Request(['attachment_id' => $deniedAttachment->id])))
-        ->toContain('Permesso mancante');
+        ->toContain('Missing permission');
 });
 
 test('collection export query bulk actions and duplicate work', function () {
@@ -361,11 +361,11 @@ test('relation options are listed and collection reads enforce permission', func
 
     expect((string) (new QueryCollectionItems)->handle(new Request([
         'collection_id' => $related->id,
-    ])))->toContain('Permesso mancante')
+    ])))->toContain('Missing permission')
         ->and((string) (new ExportCollection)->handle(new Request([
             'collection_id' => $related->id,
             'format' => 'json',
-        ])))->toContain('Permesso mancante');
+        ])))->toContain('Missing permission');
 });
 
 test('user restore and force delete enforce permissions', function () {
@@ -397,7 +397,7 @@ test('user restore and force delete enforce permissions', function () {
     expect((string) (new ManageUsers)->handle(new Request([
         'action' => 'restore',
         'user_id' => $deniedTarget->id,
-    ])))->toContain('Permesso mancante');
+    ])))->toContain('Missing permission');
 });
 
 test('chat attachment can be saved to file manager', function () {

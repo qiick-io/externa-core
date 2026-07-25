@@ -31,7 +31,7 @@ type ColumnHeaderMenuProps = {
 };
 
 /**
- * Directus-style column header actions: sort, align, hide.
+ * Column header actions: sort, align, hide.
  */
 export function ColumnHeaderMenu({
     label,

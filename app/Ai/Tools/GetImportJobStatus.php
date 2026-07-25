@@ -40,7 +40,7 @@ class GetImportJobStatus implements Tool
             $status = ImportCollectionJob::status(trim((string) $request->string('job_id')));
 
             if ($status === null || $status['user_id'] !== $this->authenticatedUser()?->id) {
-                return 'Error: Import job non trovato.';
+                return 'Error: Import job not found.';
             }
 
             unset($status['user_id']);

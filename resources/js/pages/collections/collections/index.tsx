@@ -3,6 +3,7 @@ import {
     ArrowDownAZ,
     ArrowUpAZ,
     FolderOpen,
+    PackagePlus,
     Pencil,
     Plus,
     RotateCcw,
@@ -10,8 +11,13 @@ import {
     Trash2,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
+import {
+    ApplyCollectionPackDialog,
+    type CollectionPackSummary,
+} from '@/components/collections/apply-collection-pack-dialog';
 import { CollectionFormDrawer } from '@/components/collections/collection-form-drawer';
 import { PageLayout, TablePanel } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
@@ -57,10 +63,13 @@ const COLLECTION_SORT_FIELDS: {
 export default function CollectionsIndex({
     collections,
     filters = {},
+    collectionPacks = [],
 }: {
     collections: CollectionRow[];
     filters?: CollectionFilters;
+    collectionPacks?: CollectionPackSummary[];
 }) {
+    const { t } = useTranslation();
     const { can } = useCan();
     const isTrashed = filters.trashed === true;
     const [search, setSearch] = useState(filters.search ?? '');
@@ -70,6 +79,7 @@ export default function CollectionsIndex({
     const [direction, setDirection] = useState<CollectionSortDirection>(
         filters.direction ?? 'asc',
     );
+    const [packDialogOpen, setPackDialogOpen] = useState(false);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Collections', href: collectionRoutes.index.url() },
@@ -141,21 +151,36 @@ export default function CollectionsIndex({
             breadcrumbs={breadcrumbs}
             headerActions={
                 !isTrashed && can(PermissionEnum.CanCreateCollections) ? (
-                    <Button
-                        type="button"
-                        onClick={() => {
-                            setEditing(null);
-                            setOpen(true);
-                        }}
-                    >
-                        <Plus className="mr-1 size-4" />
-                        New collection
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setPackDialogOpen(true)}
+                        >
+                            <PackagePlus className="mr-1 size-4" />
+                            {t('collections.packs.createFromPackEllipsis')}
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                setEditing(null);
+                                setOpen(true);
+                            }}
+                        >
+                            <Plus className="mr-1 size-4" />
+                            {t('collections.newCollection')}
+                        </Button>
+                    </div>
                 ) : undefined
             }
         >
             <Head title="Collections" />
 
+            <ApplyCollectionPackDialog
+                collectionPacks={collectionPacks}
+                open={packDialogOpen}
+                onOpenChange={setPackDialogOpen}
+            />
             <Drawer
                 direction="right"
                 open={open}

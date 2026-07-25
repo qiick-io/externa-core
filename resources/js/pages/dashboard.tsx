@@ -27,14 +27,8 @@ import {
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
 import { dashboard } from '@/routes';
+import { useTranslation } from 'react-i18next';
 import type { BreadcrumbItem } from '@/types';
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-    },
-];
 
 type LatestActivityItem = {
     id: number;
@@ -159,20 +153,27 @@ export default function Dashboard({
     activityOverTime = [],
     contentEventBreakdown = { created: 0, updated: 0, deleted: 0 },
 }: DashboardProps) {
+    const { t } = useTranslation();
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: t('dashboard.title'),
+            href: dashboard(),
+        },
+    ];
     const storageTrendRows = (storageTrend ?? []).slice(-14);
     const fileStatsByDiskRows = (fileStatsByDisk ?? []).slice(0, 8);
     const activityLast7 = activityOverTime.slice(-7);
     const eventBreakdownChart = [
-        { event: 'Created', count: contentEventBreakdown.created },
-        { event: 'Updated', count: contentEventBreakdown.updated },
-        { event: 'Deleted', count: contentEventBreakdown.deleted },
+        { event: t('dashboard.created'), count: contentEventBreakdown.created },
+        { event: t('dashboard.updated'), count: contentEventBreakdown.updated },
+        { event: t('dashboard.deleted'), count: contentEventBreakdown.deleted },
     ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Dashboard" />
+            <Head title={t('dashboard.title')} />
             <PageLayout
-                description="Overview of content insights, recent activity, storage usage, and upload health."
+                description={t('dashboard.description')}
                 scrollContent
             >
                 {/* ponytail: natural-height cards; PageLayout scrollContent scrolls the page */}
@@ -180,9 +181,9 @@ export default function Dashboard({
                     <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
                         <Card className="lg:col-span-4">
                             <CardHeader className="pb-3">
-                                <CardTitle>Insights — collections</CardTitle>
+                                <CardTitle>{t('dashboard.insightsCollections')}</CardTitle>
                                 <CardDescription>
-                                    Item counts per collection.
+                                    {t('dashboard.insightsCollectionsDesc')}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -190,9 +191,9 @@ export default function Dashboard({
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
-                                                <TableHead>Collection</TableHead>
+                                                <TableHead>{t('dashboard.collection')}</TableHead>
                                                 <TableHead className="w-[6rem] text-right">
-                                                    Items
+                                                    {t('dashboard.items')}
                                                 </TableHead>
                                             </TableRow>
                                         </TableHeader>
@@ -218,7 +219,7 @@ export default function Dashboard({
                                                         className="text-muted-foreground py-6 text-center"
                                                         colSpan={2}
                                                     >
-                                                        No collections yet.
+                                                        {t('dashboard.noCollections')}
                                                     </TableCell>
                                                 </TableRow>
                                             ) : null}
@@ -230,16 +231,16 @@ export default function Dashboard({
 
                         <Card className="lg:col-span-5">
                             <CardHeader className="pb-3">
-                                <CardTitle>Insights — activity</CardTitle>
+                                <CardTitle>{t('dashboard.insightsActivity')}</CardTitle>
                                 <CardDescription>
-                                    Events per day (last 30 days; chart shows last 7).
+                                    {t('dashboard.insightsActivityDesc')}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="h-56 w-full">
                                     {activityLast7.every((row) => row.count === 0) ? (
                                         <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-                                            No activity in the last 7 days.
+                                            {t('dashboard.noActivity7d')}
                                         </div>
                                     ) : (
                                         <ResponsiveContainer width="100%" height="100%">
@@ -272,16 +273,16 @@ export default function Dashboard({
 
                         <Card className="lg:col-span-3">
                             <CardHeader className="pb-3">
-                                <CardTitle>Content events</CardTitle>
+                                <CardTitle>{t('dashboard.contentEvents')}</CardTitle>
                                 <CardDescription>
-                                    Collection item create / update / delete (30d).
+                                    {t('dashboard.contentEventsDesc')}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="h-56 w-full">
                                     {eventBreakdownChart.every((row) => row.count === 0) ? (
                                         <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-                                            No content events.
+                                            {t('dashboard.noContentEvents')}
                                         </div>
                                     ) : (
                                         <ResponsiveContainer width="100%" height="100%">
@@ -311,9 +312,9 @@ export default function Dashboard({
                     <div className="grid grid-cols-1 gap-4 lg:col-span-5">
                         <Card>
                             <CardHeader className="pb-3">
-                                <CardTitle>Latest activity</CardTitle>
+                                <CardTitle>{t('dashboard.latestActivity')}</CardTitle>
                                 <CardDescription>
-                                    Last 10 events across the app.
+                                    {t('dashboard.latestActivityDesc')}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="flex flex-col gap-3">
@@ -322,11 +323,11 @@ export default function Dashboard({
                                             <TableHeader>
                                                 <TableRow>
                                                     <TableHead className="w-[7rem]">
-                                                        Event
+                                                        {t('dashboard.event')}
                                                     </TableHead>
-                                                    <TableHead>Description</TableHead>
+                                                    <TableHead>{t('dashboard.descriptionCol')}</TableHead>
                                                     <TableHead className="w-[10rem] text-right">
-                                                        When
+                                                        {t('dashboard.when')}
                                                     </TableHead>
                                                 </TableRow>
                                             </TableHeader>
@@ -342,7 +343,7 @@ export default function Dashboard({
                                                             </div>
                                                             <div className="text-muted-foreground truncate text-xs">
                                                                 {activity.causer?.label
-                                                                    ? `by ${activity.causer.label}`
+                                                                    ? t('dashboard.byUser', { name: activity.causer.label })
                                                                     : '—'}
                                                             </div>
                                                         </TableCell>
@@ -361,7 +362,7 @@ export default function Dashboard({
                                                             className="text-muted-foreground py-6 text-center"
                                                             colSpan={3}
                                                         >
-                                                            No activity yet.
+                                                            {t('dashboard.noActivity')}
                                                         </TableCell>
                                                     </TableRow>
                                                 ) : null}
@@ -373,7 +374,7 @@ export default function Dashboard({
                                         href={adminRoutes.activityLogs.index()}
                                         className="text-sm underline underline-offset-4"
                                     >
-                                        View all
+                                        {t('dashboard.viewAll')}
                                     </Link>
                                 </div>
                             </CardContent>
@@ -381,9 +382,9 @@ export default function Dashboard({
 
                         <Card>
                             <CardHeader className="pb-3">
-                                <CardTitle>Suspicious events</CardTitle>
+                                <CardTitle>{t('dashboard.suspicious')}</CardTitle>
                                 <CardDescription>
-                                    Failed events from the last hour.
+                                    {t('dashboard.suspiciousDesc')}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -391,9 +392,9 @@ export default function Dashboard({
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
-                                                    <TableHead>Description</TableHead>
+                                                    <TableHead>{t('dashboard.descriptionCol')}</TableHead>
                                                     <TableHead className="w-[10rem] text-right">
-                                                        When
+                                                        {t('dashboard.when')}
                                                     </TableHead>
                                                 </TableRow>
                                             </TableHeader>
@@ -406,7 +407,7 @@ export default function Dashboard({
                                                             </div>
                                                             <div className="text-muted-foreground truncate text-xs">
                                                                 {event.causer?.label
-                                                                    ? `by ${event.causer.label}`
+                                                                    ? t('dashboard.byUser', { name: event.causer.label })
                                                                     : '—'}
                                                             </div>
                                                         </TableCell>
@@ -425,7 +426,7 @@ export default function Dashboard({
                                                             className="text-muted-foreground py-6 text-center"
                                                             colSpan={2}
                                                         >
-                                                            No suspicious events.
+                                                            {t('dashboard.noSuspicious')}
                                                         </TableCell>
                                                     </TableRow>
                                                 ) : null}
@@ -438,9 +439,9 @@ export default function Dashboard({
                         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
                             <Card>
                                 <CardHeader className="pb-3">
-                                    <CardTitle>Most active users</CardTitle>
+                                    <CardTitle>{t('dashboard.mostActive')}</CardTitle>
                                     <CardDescription>
-                                        Top 5 in the last 24 hours.
+                                        {t('dashboard.mostActiveDesc')}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -448,9 +449,9 @@ export default function Dashboard({
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow>
-                                                        <TableHead>User</TableHead>
+                                                        <TableHead>{t('dashboard.user')}</TableHead>
                                                         <TableHead className="w-[6rem] text-right">
-                                                            Events
+                                                            {t('dashboard.events')}
                                                         </TableHead>
                                                     </TableRow>
                                                 </TableHeader>
@@ -471,7 +472,7 @@ export default function Dashboard({
                                                                 className="text-muted-foreground py-6 text-center"
                                                                 colSpan={2}
                                                             >
-                                                                No activity yet.
+                                                                {t('dashboard.noActivity')}
                                                             </TableCell>
                                                         </TableRow>
                                                     ) : null}
@@ -483,9 +484,9 @@ export default function Dashboard({
 
                             <Card>
                                 <CardHeader className="pb-3">
-                                    <CardTitle>Stuck/orphan uploads</CardTitle>
+                                    <CardTitle>{t('dashboard.stuckUploads')}</CardTitle>
                                     <CardDescription>
-                                        Incomplete, expired, or missing parent.
+                                        {t('dashboard.stuckUploadsDesc')}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -493,9 +494,9 @@ export default function Dashboard({
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow>
-                                                        <TableHead>Upload</TableHead>
+                                                        <TableHead>{t('dashboard.upload')}</TableHead>
                                                         <TableHead className="w-[6rem] text-right">
-                                                            Chunks
+                                                            {t('dashboard.chunks')}
                                                         </TableHead>
                                                     </TableRow>
                                                 </TableHeader>
@@ -513,8 +514,8 @@ export default function Dashboard({
                                                                         {upload.disk}{' '}
                                                                         ·{' '}
                                                                         {upload.parent_id
-                                                                            ? `parent #${upload.parent_id}`
-                                                                            : 'no parent'}
+                                                                            ? t('dashboard.parentId', { id: upload.parent_id })
+                                                                            : t('dashboard.noParent')}
                                                                     </div>
                                                                 </TableCell>
                                                                 <TableCell className="text-right text-xs text-muted-foreground">
@@ -532,7 +533,7 @@ export default function Dashboard({
                                                                 className="text-muted-foreground py-6 text-center"
                                                                 colSpan={2}
                                                             >
-                                                                No stuck uploads.
+                                                                {t('dashboard.noStuckUploads')}
                                                             </TableCell>
                                                         </TableRow>
                                                     ) : null}
@@ -548,15 +549,15 @@ export default function Dashboard({
                         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
                             <Card>
                                 <CardHeader className="pb-3">
-                                    <CardTitle>Storage overview</CardTitle>
+                                    <CardTitle>{t('dashboard.storageOverview')}</CardTitle>
                                     <CardDescription>
-                                        Files, folders, and total size.
+                                        {t('dashboard.storageOverviewDesc')}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="grid grid-cols-3 gap-3">
                                     <div>
                                         <div className="text-muted-foreground text-xs">
-                                            Files
+                                            {t('dashboard.files')}
                                         </div>
                                         <div className="text-2xl font-semibold">
                                             {fileStats.files_count.toLocaleString()}
@@ -564,7 +565,7 @@ export default function Dashboard({
                                     </div>
                                     <div>
                                         <div className="text-muted-foreground text-xs">
-                                            Folders
+                                            {t('dashboard.folders')}
                                         </div>
                                         <div className="text-2xl font-semibold">
                                             {fileStats.folders_count.toLocaleString()}
@@ -572,7 +573,7 @@ export default function Dashboard({
                                     </div>
                                     <div>
                                         <div className="text-muted-foreground text-xs">
-                                            Total size
+                                            {t('dashboard.totalSize')}
                                         </div>
                                         <div className="text-2xl font-semibold">
                                             {formatBytes(
@@ -585,15 +586,15 @@ export default function Dashboard({
 
                             <Card>
                                 <CardHeader className="pb-3">
-                                    <CardTitle>Upload health</CardTitle>
+                                    <CardTitle>{t('dashboard.uploadHealth')}</CardTitle>
                                     <CardDescription>
-                                        In-progress and stale uploads.
+                                        {t('dashboard.uploadHealthDesc')}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="grid grid-cols-2 gap-3">
                                     <div>
                                         <div className="text-muted-foreground text-xs">
-                                            In progress
+                                            {t('dashboard.inProgress')}
                                         </div>
                                         <div className="text-2xl font-semibold">
                                             {uploadHealth.in_progress_count.toLocaleString()}
@@ -601,7 +602,7 @@ export default function Dashboard({
                                     </div>
                                     <div>
                                         <div className="text-muted-foreground text-xs">
-                                            Stale
+                                            {t('dashboard.stale')}
                                         </div>
                                         <div
                                             className={
@@ -620,10 +621,9 @@ export default function Dashboard({
                         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
                             <Card>
                                 <CardHeader className="pb-3">
-                                    <CardTitle>Largest files</CardTitle>
+                                    <CardTitle>{t('dashboard.largestFiles')}</CardTitle>
                                     <CardDescription>
-                                        Top 10 by size (loaded after initial
-                                        render).
+                                        {t('dashboard.largestFilesDesc')}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -631,7 +631,7 @@ export default function Dashboard({
                                         data="largestFiles"
                                         fallback={
                                             <div className="text-muted-foreground text-sm">
-                                                Loading…
+                                                {t('dashboard.loading')}
                                             </div>
                                         }
                                     >
@@ -640,10 +640,10 @@ export default function Dashboard({
                                                     <TableHeader>
                                                         <TableRow>
                                                             <TableHead>
-                                                                File
+                                                                {t('dashboard.file')}
                                                             </TableHead>
                                                             <TableHead className="w-[7rem] text-right">
-                                                                Size
+                                                                {t('dashboard.size')}
                                                             </TableHead>
                                                         </TableRow>
                                                     </TableHeader>
@@ -686,7 +686,7 @@ export default function Dashboard({
                                                                     className="text-muted-foreground py-6 text-center"
                                                                     colSpan={2}
                                                                 >
-                                                                    No files yet.
+                                                                    {t('dashboard.noFiles')}
                                                                 </TableCell>
                                                             </TableRow>
                                                         ) : null}
@@ -699,10 +699,9 @@ export default function Dashboard({
 
                             <Card>
                                 <CardHeader className="pb-3">
-                                    <CardTitle>Storage trend</CardTitle>
+                                    <CardTitle>{t('dashboard.storageTrend')}</CardTitle>
                                     <CardDescription>
-                                        Daily bytes added (last 14 days, loaded
-                                        after initial render).
+                                        {t('dashboard.storageTrendDesc')}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -710,7 +709,7 @@ export default function Dashboard({
                                         data="storageTrend"
                                         fallback={
                                             <div className="text-muted-foreground text-sm">
-                                                Loading…
+                                                {t('dashboard.loading')}
                                             </div>
                                         }
                                     >
@@ -719,10 +718,10 @@ export default function Dashboard({
                                                     <TableHeader>
                                                         <TableRow>
                                                             <TableHead>
-                                                                Date
+                                                                {t('dashboard.date')}
                                                             </TableHead>
                                                             <TableHead className="w-[8rem] text-right">
-                                                                Added
+                                                                {t('dashboard.added')}
                                                             </TableHead>
                                                         </TableRow>
                                                     </TableHeader>
@@ -754,7 +753,7 @@ export default function Dashboard({
                                                                     className="text-muted-foreground py-6 text-center"
                                                                     colSpan={2}
                                                                 >
-                                                                    No data.
+                                                                    {t('dashboard.noData')}
                                                                 </TableCell>
                                                             </TableRow>
                                                         ) : null}
@@ -768,9 +767,9 @@ export default function Dashboard({
 
                         <Card>
                             <CardHeader className="pb-3">
-                                <CardTitle>Storage by disk</CardTitle>
+                                <CardTitle>{t('dashboard.storageByDisk')}</CardTitle>
                                 <CardDescription>
-                                    Optional breakdown (top 8, loaded after initial render).
+                                    {t('dashboard.storageByDiskDesc')}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -778,7 +777,7 @@ export default function Dashboard({
                                     data="fileStatsByDisk"
                                     fallback={
                                         <div className="text-muted-foreground text-sm">
-                                            Loading…
+                                            {t('dashboard.loading')}
                                         </div>
                                     }
                                 >
@@ -786,12 +785,12 @@ export default function Dashboard({
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow>
-                                                        <TableHead>Disk</TableHead>
+                                                        <TableHead>{t('dashboard.disk')}</TableHead>
                                                         <TableHead className="text-right">
-                                                            Files
+                                                            {t('dashboard.files')}
                                                         </TableHead>
                                                         <TableHead className="text-right">
-                                                            Size
+                                                            {t('dashboard.size')}
                                                         </TableHead>
                                                     </TableRow>
                                                 </TableHeader>
@@ -822,7 +821,7 @@ export default function Dashboard({
                                                                 className="text-muted-foreground py-6 text-center"
                                                                 colSpan={3}
                                                             >
-                                                                No data.
+                                                                {t('dashboard.noData')}
                                                             </TableCell>
                                                         </TableRow>
                                                     ) : null}

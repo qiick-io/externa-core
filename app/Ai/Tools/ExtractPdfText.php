@@ -47,13 +47,13 @@ class ExtractPdfText implements Tool
                 ->first();
 
             if ($attachment === null || strtolower(pathinfo($attachment->original_name, PATHINFO_EXTENSION)) !== 'pdf') {
-                return 'Error: Allegato PDF non trovato o non di tua proprietà.';
+                return 'Error: PDF attachment not found or not owned by you.';
             }
 
             if ($attachment->isExpired()) {
                 $attachment->delete();
 
-                return 'Error: Allegato scaduto. Caricalo di nuovo.';
+                return 'Error: Attachment expired. Upload it again.';
             }
 
             $text = trim((new Parser)->parseFile($attachment->absolutePath())->getText());

@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { FIELD_TYPE_ICONS } from '@/components/collections/collection-field-form';
 import { Button } from '@/components/ui/button';
@@ -418,6 +419,7 @@ function CollectionFieldRow({
     isGhost = false,
     isDragging = false,
 }: FieldRowProps) {
+    const { t } = useTranslation();
     const Icon = FIELD_TYPE_ICONS[field.type] ?? Type;
     const hiddenInForm = isFieldHiddenInForm(field.settings);
     const layoutWidth = getFieldLayoutWidth(field.settings);
@@ -480,9 +482,15 @@ function CollectionFieldRow({
                     </p>
                     <p className="truncate text-sm text-muted-foreground">
                         {fieldTypeLabel(field.type)}
-                        {field.translatable ? ' · Translatable' : ''}
-                        {isFieldRequired(field.settings) ? ' · Required' : ''}
-                        {hiddenInForm ? ' · Hidden in form' : ''}
+                        {field.translatable
+                            ? t('collections.translatableSuffix')
+                            : ''}
+                        {isFieldRequired(field.settings)
+                            ? t('collections.requiredSuffix')
+                            : ''}
+                        {hiddenInForm
+                            ? t('collections.hiddenInFormSuffix')
+                            : ''}
                         {layoutWidth !== 'full'
                             ? ` · ${fieldLayoutWidthLabel(layoutWidth)}`
                             : ''}

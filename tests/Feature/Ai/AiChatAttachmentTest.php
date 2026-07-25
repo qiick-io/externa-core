@@ -142,7 +142,7 @@ test('import collection csv tool denies without create permission', function () 
         'collection_id' => $collection->id,
     ]));
 
-    expect($result)->toContain('Permesso mancante')
+    expect($result)->toContain('Missing permission')
         ->and(CollectionItem::query()->where('collection_id', $collection->id)->count())->toBe(0)
         ->and(AiChatAttachment::query()->find($attachment->id))->not->toBeNull();
 });

@@ -60,7 +60,7 @@ class ImportRemoteJson implements Tool
             }
 
             if ($this->authenticatedUser() === null) {
-                return 'Error: Non autenticato.';
+                return 'Error: Unauthenticated.';
             }
 
             $url = trim((string) $request->string('url'));
@@ -100,7 +100,7 @@ class ImportRemoteJson implements Tool
             try {
                 $payload = $this->fetchJson($url, $authBearer, $authHeader);
             } catch (Throwable $exception) {
-                return 'Error: Impossibile scaricare il JSON ('.$exception->getMessage().').';
+                return 'Error: Unable to download JSON ('.$exception->getMessage().').';
             }
 
             $records = $this->extractRecords($payload);
@@ -145,7 +145,7 @@ class ImportRemoteJson implements Tool
             }
 
             if ($flattened === []) {
-                return 'Error: Nessun record oggetto trovato nel JSON.';
+                return 'Error: No object records found in JSON.';
             }
 
             if ($dryRun) {
@@ -154,7 +154,7 @@ class ImportRemoteJson implements Tool
                     : Collection::query()->with('fields')->where('name', $collectionName)->first();
 
                 if ($collectionId > 0 && $collection === null) {
-                    return 'Error: Collezione non trovata.';
+                    return 'Error: Collection not found.';
                 }
 
                 return json_encode([
@@ -175,7 +175,7 @@ class ImportRemoteJson implements Tool
             try {
                 $summary = $this->importAssociativeRows($collection, $flattened, $limit, $upsertKey);
             } catch (Throwable $exception) {
-                return 'Error: Impossibile importare il JSON ('.$exception->getMessage().').';
+                return 'Error: Unable to import JSON ('.$exception->getMessage().').';
             }
 
             $this->logAiMutation($collection, 'import_remote_json');
@@ -283,9 +283,9 @@ class ImportRemoteJson implements Tool
                 ->withHeaders($headers)
                 ->get($url);
         } catch (ConnectionException $exception) {
-            throw new \RuntimeException('timeout o connessione fallita: '.$exception->getMessage(), 0, $exception);
+            throw new \RuntimeException('timeout or connection failed: '.$exception->getMessage(), 0, $exception);
         } catch (RequestException $exception) {
-            throw new \RuntimeException('richiesta fallita: '.$exception->getMessage(), 0, $exception);
+            throw new \RuntimeException('request failed: '.$exception->getMessage(), 0, $exception);
         }
 
         if ($response->status() >= 400) {
@@ -307,7 +307,7 @@ class ImportRemoteJson implements Tool
         $decoded = json_decode($body, true);
 
         if (! is_array($decoded)) {
-            throw new \RuntimeException('corpo non è JSON valido (oggetto o array)');
+            throw new \RuntimeException('body is not valid JSON (object or array)');
         }
 
         return $decoded;
@@ -320,7 +320,7 @@ class ImportRemoteJson implements Tool
     private function extractRecords(array $payload): array|string
     {
         if ($payload === []) {
-            return 'Error: JSON vuoto.';
+            return 'Error: Empty JSON.';
         }
 
         if (array_is_list($payload)) {
@@ -339,7 +339,7 @@ class ImportRemoteJson implements Tool
             }
 
             if ($candidate === []) {
-                return 'Error: Lista "'.$key.'" vuota.';
+                return 'Error: List "'.$key.'" is empty.';
             }
 
             if (array_is_list($candidate)) {

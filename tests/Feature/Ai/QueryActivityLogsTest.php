@@ -56,7 +56,7 @@ test('query activity logs returns activities with permission', function () {
         'limit' => 10,
     ]));
 
-    expect($result)->not->toContain('Permesso mancante')
+    expect($result)->not->toContain('Missing permission')
         ->and($result)->toContain('Actor created something')
         ->and($result)->toContain('"event": "created"')
         ->and($result)->toContain('"log_name": "default"')
@@ -71,7 +71,7 @@ test('query activity logs denies without permission', function () {
 
     $result = (string) (new QueryActivityLogs)->handle(new Request([]));
 
-    expect($result)->toContain('Permesso mancante')
+    expect($result)->toContain('Missing permission')
         ->and($result)->toContain(PermissionEnum::CanShowActivityLogs->value);
 });
 

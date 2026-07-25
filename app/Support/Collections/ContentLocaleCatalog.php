@@ -3,7 +3,7 @@
 namespace App\Support\Collections;
 
 /**
- * Static Directus-style content locale catalog (code → name → flag region).
+ * Static content locale catalog (code → name → flag region).
  */
 class ContentLocaleCatalog
 {

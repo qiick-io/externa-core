@@ -31,25 +31,25 @@ export function UserMessageActions({
         const copied = await copyTextToClipboard(content);
 
         if (copied) {
-            toast.success('Copiato negli appunti');
+            toast.success('Copied to clipboard');
 
             return;
         }
 
-        toast.error('Copia non riuscita');
+        toast.error('Copy failed');
     };
 
     return (
         <div className="flex flex-wrap items-center gap-0.5">
             <ActionButton
-                label="Modifica"
+                label="Edit"
                 disabled={disabled}
                 onClick={onEdit}
             >
                 <Pencil className="size-3.5" />
             </ActionButton>
             <ActionButton
-                label="Copia"
+                label="Copy"
                 disabled={disabled || !hasContent}
                 onClick={() => void handleCopy()}
             >

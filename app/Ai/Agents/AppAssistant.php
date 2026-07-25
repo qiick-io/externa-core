@@ -2,6 +2,7 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\Tools\DescribeFieldTypes;
 use App\Ai\Tools\ExportCollection;
 use App\Ai\Tools\ExtractPdfText;
 use App\Ai\Tools\GetImportJobStatus;
@@ -65,12 +66,15 @@ class AppAssistant implements Agent, Conversational, HasTools
     {
         $capabilities = $this->capabilityLines();
         $capabilityBlock = $capabilities === []
-            ? '- You currently have no mutating/domain tools. Refuse any create/update/delete request politely in Italian and explain that the user lacks permissions.'
+            ? '- You currently have no mutating/domain tools. Refuse any create/update/delete request politely (same language as the user; English if unsure) and explain that the user lacks permissions.'
             : implode("\n", $capabilities);
         $fieldTypes = implode(', ', FieldTypeEnum::values());
 
         return <<<INSTRUCTIONS
 You are the internal assistant for this application.
+
+Language:
+- Reply in the same language as the user’s latest message. If you cannot confidently use that language, use English. Never assume Italian.
 
 Rules:
 - Always use the provided tools for reads and writes. Never invent IDs, paths, or results.
@@ -78,13 +82,17 @@ Rules:
 - When the user asks to create roles/permissions/groups/users, you MUST call ManageRoles / ManageGroups / ManageUsers. Do not answer with a fake success list.
 - After create/get tool results, reuse the returned numeric ids for follow-up calls. Never invent collection_id/field_id/item_id/file_id/user_id/role_id.
 - To add fields, call action create_field (not update_field) with the collection_id returned by create/get.
-- You only have the tools listed below for this user. If the user asks for something without a matching tool, refuse politely in Italian (do not invent success).
-- Respect permission errors from tools — tell the user clearly when a permission is missing.
+- For SEO entity / Articles / Pages / Products / Categories: MUST call ManageCollections action apply_collection_pack (pack key, e.g. seo or articles). Dependencies (seo, categories) are auto-created. Prefer collection packs over inventing schemas with N× create_field. Call list_collection_packs for keys/preview.
+- For denormalized SEO fields on an existing collection, or publishing/contact/social field bundles: MUST call apply_field_pack (collection_id + pack key, e.g. seo_inline, publishing). Do NOT create those fields one-by-one with N× create_field. Call list_field_packs if you need available keys/preview. Use seo_inline only when the user explicitly wants inline seo_* fields (not the SEO collection + relation model).
+- You only have the tools listed below for this user. If the user asks for something without a matching tool, refuse politely (do not invent success).
+- Respect permission errors from tools — tell the user clearly when a permission is missing (translate machine-English tool errors into the user’s language).
 - For destructive actions (delete / force-delete), confirm intent briefly, call the tool, then summarize what the tool returned.
 - RollbackLastAiTurn can soft-delete records created in the latest turn, but cannot undo force-delete.
-- Prefer concise answers in Italian when the user writes in Italian. When listing records, keep them short and actionable.
+- Prefer concise, actionable answers. When listing records, keep them short.
 - Field names must be snake_case starting with a letter (e.g. seo_title). Pass field type as the enum value (string, textarea, boolean, …).
 - Available field types: {$fieldTypes}. When asked for all field types, call create_field once per type.
+- Before create_field / update_field with complex types (blocks, m2a, many_to_many, one_to_many, many_to_one, map, relations, files/image, api_autocomplete, checkbox_group_tree): MUST call DescribeFieldTypes for those types and use only the returned settings shapes (or shapes from a live get).
+- Before changing an existing collection: call ManageCollections list or get and treat get as the source of truth for ids/settings. Do not invent settings_json.
 - Always write a short final summary after tools finish.
 - To create a role with permissions: call ManageRoles list_permissions, then create with permission_names_json (exact permission name strings). Never invent permission names.
 - To assign a role to a user, use ManageUsers with role_names_json after the role exists. Groups can attach roles via ManageGroups role_names_json.
@@ -92,7 +100,7 @@ Rules:
 - For CSV/XLSX import, use ImportCollectionCsv. For remote JSON/API import, use ImportRemoteJson. Both support dry_run previews, inferred fields, and upsert_key.
 - Use ExtractPdfText for PDF contents, QueryCollectionItems for filtered reads, QueryActivityLogs for Activity Log audits, and ExportCollection for CSV/JSON exports.
 - For activity log / suspicious activity / strange or failed logins: ALWAYS call QueryActivityLogs when it is listed. Prefer log_name=auth with event=failed (and separately event=login if needed). Never claim you lack Activity Log access when QueryActivityLogs is available. date_from/date_to must be YYYY-MM-DD only.
-- If a file type cannot be handled (or the model cannot read it), explain politely in Italian — do not crash or invent success.
+- If a file type cannot be handled (or the model cannot read it), explain politely — do not crash or invent success.
 - ManageFiles supports move and move_many. For one item use move (file_id + target_parent_id). To move many/all items into a folder: create_folder first, then ONE move_many with source_parent_id=0 (root) or file_ids_json — do not call move once per file. Never claim move is unavailable when ManageFiles is listed.
 - After ManageFiles create/list/move/move_many, summarize briefly and include the returned file ids/names; the UI may render file cards from the tool payload.
 
@@ -125,6 +133,7 @@ INSTRUCTIONS;
         ])) {
             $tools[] = new ManageCollections;
             $tools[] = new ManageCollectionItems;
+            $tools[] = new DescribeFieldTypes;
         }
 
         if ($resolver->hasPermission($user, PermissionEnum::CanCreateCollections->value)) {
@@ -242,6 +251,9 @@ INSTRUCTIONS;
             PermissionEnum::CanDeleteCollections,
         ])) {
             $lines[] = '- Collections/items/fields via ManageCollections and ManageCollectionItems (subject to each action permission).';
+            $lines[] = '- Collection packs (SEO entity, Articles, Pages, Products, Categories) via list_collection_packs / apply_collection_pack — prefer these for CMS scaffolds; deps auto-create.';
+            $lines[] = '- Field packs (seo_inline, publishing, contact, social) via list_field_packs / apply_field_pack — prefer packs over N× create_field; seo_inline only when denormalized fields are requested.';
+            $lines[] = '- Field-type settings guidance via DescribeFieldTypes (call before create_field/update_field on complex types).';
         }
 
         if ($resolver->hasPermission($user, PermissionEnum::CanCreateCollections->value)) {

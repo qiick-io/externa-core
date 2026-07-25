@@ -1,7 +1,12 @@
 import { Head } from '@inertiajs/react';
-import { Plus, Search } from 'lucide-react';
+import { PackagePlus, Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import {
+    ApplyFieldPackDialog,
+    type FieldPackSummary,
+} from '@/components/collections/apply-field-pack-dialog';
 import {
     CollectionEditButton,
     CollectionEditDrawer,
@@ -36,10 +41,13 @@ import type { CollectionView } from '@/types/collections';
 export default function CollectionsFields({
     collection,
     relatedCollections = [],
+    fieldPacks = [],
 }: {
     collection: CollectionView;
     relatedCollections?: RelatedCollectionOption[];
+    fieldPacks?: FieldPackSummary[];
 }) {
+    const { t } = useTranslation();
     const { can } = useCan();
     const canEditSchema = can(PermissionEnum.CanEditCollections);
     const [addOpen, setAddOpen] = useState(false);
@@ -47,6 +55,7 @@ export default function CollectionsFields({
     const [addFieldType, setAddFieldType] = useState('string');
     const [editField, setEditField] = useState<CollectionFieldRow | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [packDialogOpen, setPackDialogOpen] = useState(false);
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [
@@ -111,18 +120,29 @@ export default function CollectionsFields({
                         collection={collectionToFormRow(collection)}
                     />
                     {canEditSchema ? (
-                        <Button type="button" onClick={openAdd}>
-                            <Plus className="size-4" />
-                            Create field
-                        </Button>
+                        <>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setPackDialogOpen(true)}
+                                disabled={fieldPacks.length === 0}
+                            >
+                                <PackagePlus className="size-4" />
+                                {t('collections.packs.addFieldPackEllipsis')}
+                            </Button>
+                            <Button type="button" onClick={openAdd}>
+                                <Plus className="size-4" />
+                                {t('collections.createField')}
+                            </Button>
+                        </>
                     ) : null}
                 </>
             }
         >
-            <Head title={`Fields — ${collection.name}`} />
+            <Head title={t('collections.fieldsTitle', { name: collection.name })} />
 
             <PageLayout
-                description={`${collection.slug} · Field schema`}
+                description={`${collection.slug} · ${t('collections.fieldSchema')}`}
                 filters={
                     <div className="relative max-w-md flex-1">
                         <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -131,7 +151,7 @@ export default function CollectionsFields({
                             onChange={(event) =>
                                 setSearchQuery(event.target.value)
                             }
-                            placeholder="Search fields…"
+                            placeholder={t('collections.searchFields')}
                             className="pl-9"
                         />
                     </div>
@@ -140,7 +160,7 @@ export default function CollectionsFields({
             >
                 {searchQueryActive && (
                     <p className="mb-3 text-xs text-muted-foreground">
-                        Clear search to reorder fields by drag and drop.
+                        {t('collections.clearSearchToReorder')}
                     </p>
                 )}
 
@@ -156,18 +176,28 @@ export default function CollectionsFields({
                 {fields.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-sidebar-border/70 p-10 text-center dark:border-sidebar-border">
                         <p className="text-sm text-muted-foreground">
-                            No fields yet. Create a field to define what
-                            content this collection stores.
+                            {t('collections.noFieldsYet')}
                         </p>
-                        <Button
-                            type="button"
-                            className="mt-4"
-                            onClick={openAdd}
-                            disabled={!canEditSchema}
-                        >
-                            <Plus className="size-4" />
-                            Create field
-                        </Button>
+                        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                            {canEditSchema && fieldPacks.length > 0 ? (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setPackDialogOpen(true)}
+                                >
+                                    <PackagePlus className="size-4" />
+                                    {t('collections.packs.addFieldPackEllipsis')}
+                                </Button>
+                            ) : null}
+                            <Button
+                                type="button"
+                                onClick={openAdd}
+                                disabled={!canEditSchema}
+                            >
+                                <Plus className="size-4" />
+                                {t('collections.createField')}
+                            </Button>
+                        </div>
                     </div>
                 ) : searchQueryActive && filteredFields.length === 0 ? (
                     <p className="py-8 text-center text-sm text-muted-foreground">
@@ -184,6 +214,13 @@ export default function CollectionsFields({
                     />
                 )}
             </PageLayout>
+
+            <ApplyFieldPackDialog
+                collectionId={collection.id}
+                fieldPacks={fieldPacks}
+                open={packDialogOpen}
+                onOpenChange={setPackDialogOpen}
+            />
 
             <Drawer
                 direction="right"

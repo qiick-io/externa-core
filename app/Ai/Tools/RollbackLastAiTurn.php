@@ -44,7 +44,7 @@ class RollbackLastAiTurn implements Tool
             $conversationId = trim((string) $request->string('conversation_id'));
 
             if ($user === null || $conversationId === '') {
-                return 'Error: conversation_id richiesto.';
+                return 'Error: conversation_id is required.';
             }
 
             $ownsConversation = Conversation::query()
@@ -53,7 +53,7 @@ class RollbackLastAiTurn implements Tool
                 ->exists();
 
             if (! $ownsConversation) {
-                return 'Error: Conversazione non trovata.';
+                return 'Error: Conversation not found.';
             }
 
             $lastPrompt = Activity::query()
@@ -66,7 +66,7 @@ class RollbackLastAiTurn implements Tool
                 ->first();
 
             if ($lastPrompt === null) {
-                return 'Error: Nessun turno AI da annullare.';
+                return 'Error: No AI turn to roll back.';
             }
 
             $mutations = Activity::query()
@@ -101,7 +101,7 @@ class RollbackLastAiTurn implements Tool
                 'conversation_id' => $conversationId,
                 'items_soft_deleted' => $deletedItems,
                 'collections_soft_deleted' => $deletedCollections,
-                'note' => 'Le eliminazioni forzate non possono essere annullate.',
+                'note' => 'Force-deletes cannot be undone.',
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '{}';
         });
     }

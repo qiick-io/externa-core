@@ -7,10 +7,7 @@ use App\Models\User;
 use App\Services\Authorization\EffectivePermissionResolver;
 
 /**
- * Concern that enforces permission checks inside AI tool handlers.
- */
-/**
- * Permission gate helpers for AI tools returning Italian error strings.
+ * Permission gate helpers for AI tools returning English machine-error strings.
  */
 trait ChecksAiPermissions
 {
@@ -22,11 +19,11 @@ trait ChecksAiPermissions
         $user = auth()->user();
 
         if (! $user instanceof User) {
-            return 'Error: Non autenticato.';
+            return 'Error: Unauthenticated.';
         }
 
         if (! app(EffectivePermissionResolver::class)->hasPermission($user, $permission->value)) {
-            return 'Error: Permesso mancante ('.$permission->value.'). Non puoi eseguire questa operazione.';
+            return 'Error: Missing permission ('.$permission->value.'). You cannot perform this operation.';
         }
 
         return null;

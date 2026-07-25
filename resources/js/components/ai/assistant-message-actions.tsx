@@ -32,12 +32,12 @@ export function AssistantMessageActions({
         const copied = await copyTextToClipboard(content);
 
         if (copied) {
-            toast.success('Copiato negli appunti');
+            toast.success('Copied to clipboard');
 
             return;
         }
 
-        toast.error('Copia non riuscita');
+        toast.error('Copy failed');
     };
 
     const handleSpeak = () => {
@@ -47,19 +47,19 @@ export function AssistantMessageActions({
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : 'Sintesi vocale non disponibile',
+                    : 'Speech synthesis unavailable',
             );
         }
     };
 
     const handleExportPdf = () => {
         try {
-            exportTextAsPdf('Messaggio assistente', content);
+            exportTextAsPdf('Assistant message', content);
         } catch (error) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : 'Esportazione PDF non riuscita',
+                    : 'PDF export failed',
             );
         }
     };
@@ -67,28 +67,28 @@ export function AssistantMessageActions({
     return (
         <div className="flex flex-wrap items-center gap-0.5">
             <ActionButton
-                label="Copia"
+                label="Copy"
                 disabled={disabled || !hasContent}
                 onClick={() => void handleCopy()}
             >
                 <Copy className="size-3.5" />
             </ActionButton>
             <ActionButton
-                label="Rigenera"
+                label="Regenerate"
                 disabled={disabled || !onRegenerate}
                 onClick={() => onRegenerate?.()}
             >
                 <RefreshCw className="size-3.5" />
             </ActionButton>
             <ActionButton
-                label="Esporta PDF"
+                label="Export PDF"
                 disabled={disabled || !hasContent}
                 onClick={handleExportPdf}
             >
                 <FileDown className="size-3.5" />
             </ActionButton>
             <ActionButton
-                label="Leggi ad alta voce"
+                label="Read aloud"
                 disabled={disabled || !hasContent}
                 onClick={handleSpeak}
             >

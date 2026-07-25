@@ -44,13 +44,13 @@ class AiChatAttachmentController extends Controller
 
         if (! $extensionAllowed || ! $mimeAllowed) {
             throw ValidationException::withMessages([
-                'file' => 'Tipo di file non supportato. Carica CSV, TXT, XLSX o PDF.',
+                'file' => 'Unsupported file type. Upload CSV, TXT, XLSX, or PDF.',
             ]);
         }
 
         if ($uploaded->getSize() > AiChatAttachment::MAX_BYTES) {
             throw ValidationException::withMessages([
-                'file' => 'Il file supera il limite di 5 MB.',
+                'file' => 'The file exceeds the 5 MB limit.',
             ]);
         }
 

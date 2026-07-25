@@ -23,6 +23,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
         ->name('collections.store');
 
+    Route::post('collections/packs/{pack}', [ContentCollectionController::class, 'applyPack'])
+        ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
+        ->name('collections.packs.apply');
+
     Route::get('collections/{collection}', [ContentCollectionController::class, 'show'])
         ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
         ->name('collections.show');
@@ -102,6 +106,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('collections/{collection}/items/{item}/force', [ItemController::class, 'forceDelete'])
         ->middleware('permission:'.PermissionEnum::CanForceDeleteCollections->value)
         ->name('collections.items.force-delete');
+
+    Route::post('collections/{collection}/field-packs/{pack}', [FieldController::class, 'applyPack'])
+        ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
+        ->name('collections.field-packs.apply');
 
     Route::post('collections/{collection}/fields', [FieldController::class, 'store'])
         ->middleware('permission:'.PermissionEnum::CanEditCollections->value)

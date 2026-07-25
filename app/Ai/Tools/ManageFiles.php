@@ -416,13 +416,13 @@ class ManageFiles implements Tool
             ->first();
 
         if ($attachment === null) {
-            return 'Error: Allegato non trovato o non di tua proprietà.';
+            return 'Error: Attachment not found or not owned by you.';
         }
 
         if ($attachment->isExpired()) {
             $attachment->delete();
 
-            return 'Error: Allegato scaduto. Caricalo di nuovo.';
+            return 'Error: Attachment expired. Upload it again.';
         }
 
         $parentId = $request->filled('parent_id') ? $request->integer('parent_id') : null;

@@ -232,7 +232,7 @@ export async function uploadAiAttachment(
     });
 
     if (!response.ok) {
-        let detail = 'Caricamento allegato non riuscito';
+        let detail = 'Attachment upload failed';
 
         try {
             const payload = (await response.json()) as {
@@ -242,7 +242,7 @@ export async function uploadAiAttachment(
 
             detail = payload.errors?.file?.[0] ?? payload.message ?? detail;
         } catch {
-            /* Use default Italian error message when response body is not JSON */
+            /* Use default English error message when response body is not JSON */
         }
 
         throw new Error(detail);
@@ -296,10 +296,10 @@ export async function streamAiChat(
 
         const networkError = new Error(
             error instanceof TypeError
-                ? 'Connessione interrotta con il server AI (timeout, proxy o modello locale crashato). Controlla LM Studio e riprova con un prompt più piccolo.'
+                ? 'Connection to the AI server was interrupted (timeout, proxy, or local model crash). Check LM Studio and retry with a smaller prompt.'
                 : error instanceof Error
                   ? error.message
-                  : 'Errore di rete',
+                  : 'Network error',
         );
         handlers.onError?.(networkError);
 
@@ -307,7 +307,7 @@ export async function streamAiChat(
     }
 
     if (!response.ok) {
-        let detail = `Invio chat non riuscito (${response.status})`;
+        let detail = `Chat send failed (${response.status})`;
 
         try {
             const payload = (await response.json()) as { message?: string };
@@ -326,7 +326,7 @@ export async function streamAiChat(
     }
 
     if (!response.body) {
-        const error = new Error('Nessuno stream di risposta');
+        const error = new Error('No response stream');
         handlers.onError?.(error);
 
         throw error;
@@ -447,7 +447,7 @@ export async function streamAiChat(
                             typeof parsed.message === 'string' &&
                             parsed.message !== ''
                                 ? parsed.message
-                                : 'Errore durante lo stream AI',
+                                : 'Error during AI stream',
                         );
                         handlers.onError?.(streamError);
                     }
@@ -479,10 +479,10 @@ export async function streamAiChat(
         // fastcgi_read_timeout 60s when the local model thinks without emitting events).
         const streamError = new Error(
             error instanceof TypeError
-                ? 'Connessione interrotta durante lo stream AI (timeout proxy/nginx o modello locale lento). Controlla LM Studio e che fastcgi_read_timeout sia ≥ 600s, poi riprova.'
+                ? 'AI stream connection interrupted (proxy/nginx timeout or slow local model). Check LM Studio and that fastcgi_read_timeout is ≥ 600s, then retry.'
                 : error instanceof Error
                   ? error.message
-                  : 'Errore durante lo stream',
+                  : 'Error during stream',
         );
         handlers.onError?.(streamError);
 
@@ -520,7 +520,7 @@ export async function fetchAiImportJobStatus(
     });
 
     if (!response.ok) {
-        throw new Error('Impossibile leggere lo stato dell’importazione');
+        throw new Error('Unable to read import status');
     }
 
     return (await response.json()) as AiImportJobStatus;
@@ -562,7 +562,7 @@ export async function fetchAiConversationsPage(
     });
 
     if (!response.ok) {
-        throw new Error('Impossibile caricare le conversazioni');
+        throw new Error('Unable to load conversations');
     }
 
     const payload = (await response.json()) as
@@ -593,7 +593,7 @@ export async function createAiConversation(
     });
 
     if (!response.ok) {
-        throw new Error('Impossibile creare la conversazione');
+        throw new Error('Unable to create conversation');
     }
 
     const payload = (await response.json()) as {
@@ -619,7 +619,7 @@ export async function deleteAiConversation(
     });
 
     if (!response.ok) {
-        throw new Error('Impossibile eliminare la chat');
+        throw new Error('Unable to delete chat');
     }
 }
 
@@ -640,7 +640,7 @@ export async function bulkDeleteAiConversations(
     });
 
     if (!response.ok) {
-        throw new Error('Impossibile eliminare le chat selezionate');
+        throw new Error('Unable to delete selected chats');
     }
 
     return (await response.json()) as { deleted: number };
@@ -664,7 +664,7 @@ export async function toggleAiConversationPin(conversationId: string): Promise<{
     });
 
     if (!response.ok) {
-        throw new Error('Impossibile aggiornare il pin');
+        throw new Error('Unable to update pin');
     }
 
     const payload = (await response.json()) as {
@@ -837,12 +837,12 @@ export function exportTextAsPdf(title: string, content: string): void {
  * Speaks plain text using the Web Speech API.
  *
  * @param text - Text to synthesize
- * @param locale - BCP 47 language tag (default `it-IT`)
+ * @param locale - BCP 47 language tag (default `en-US`)
  * @returns {void}
  */
-export function speakText(text: string, locale = 'it-IT'): void {
+export function speakText(text: string, locale = 'en-US'): void {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-        throw new Error('Sintesi vocale non supportata in questo browser');
+        throw new Error('Speech synthesis is not supported in this browser');
     }
 
     window.speechSynthesis.cancel();

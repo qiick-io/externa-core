@@ -3,50 +3,47 @@
 namespace App\Ai\Support;
 
 /**
- * Validates remote URLs before the AI tools fetch external content.
- */
-/**
  * SSRF-safe validation for remote import URLs.
  */
 final class SafeRemoteUrlValidator
 {
     /**
      * Validate that a URL is safe to fetch server-side (SSRF protection).
-     * Returns null when safe, or an Italian error message when blocked.
+     * Returns null when safe, or an English error message when blocked.
      */
     public static function validate(string $url): ?string
     {
         $trimmed = trim($url);
 
         if ($trimmed === '') {
-            return 'Error: Serve url.';
+            return 'Error: url is required.';
         }
 
         if (strlen($trimmed) > 2048) {
-            return 'Error: URL troppo lunga.';
+            return 'Error: URL is too long.';
         }
 
         $parts = parse_url($trimmed);
 
         if ($parts === false || ! isset($parts['scheme'], $parts['host'])) {
-            return 'Error: URL non valida.';
+            return 'Error: Invalid URL.';
         }
 
         $scheme = strtolower($parts['scheme']);
 
         if (! in_array($scheme, ['http', 'https'], true)) {
-            return 'Error: Solo URL http/https sono consentite.';
+            return 'Error: Only http/https URLs are allowed.';
         }
 
         if (isset($parts['user']) || isset($parts['pass'])) {
-            return 'Error: Credenziali nell\'URL non consentite.';
+            return 'Error: Credentials in the URL are not allowed.';
         }
 
         $host = strtolower($parts['host']);
         $host = trim($host, '[]');
 
         if ($host === '' || self::isBlockedHostname($host)) {
-            return 'Error: Host non consentito (SSRF).';
+            return 'Error: Host not allowed (SSRF).';
         }
 
         $allowedHosts = array_values(array_filter(array_map(
@@ -55,12 +52,12 @@ final class SafeRemoteUrlValidator
         )));
 
         if ($allowedHosts !== [] && ! in_array($host, $allowedHosts, true)) {
-            return 'Error: Host non presente nella allowlist degli import remoti.';
+            return 'Error: Host is not on the remote import allowlist.';
         }
 
         if (filter_var($host, FILTER_VALIDATE_IP)) {
             if (self::isBlockedIp($host)) {
-                return 'Error: Indirizzo IP non consentito (SSRF).';
+                return 'Error: IP address not allowed (SSRF).';
             }
 
             return null;
@@ -69,12 +66,12 @@ final class SafeRemoteUrlValidator
         $resolvedIps = self::resolveHostIps($host);
 
         if ($resolvedIps === []) {
-            return 'Error: Impossibile risolvere l\'host.';
+            return 'Error: Unable to resolve host.';
         }
 
         foreach ($resolvedIps as $ip) {
             if (self::isBlockedIp($ip)) {
-                return 'Error: L\'host risolve a un indirizzo non consentito (SSRF).';
+                return 'Error: Host resolves to a disallowed address (SSRF).';
             }
         }
 

@@ -47,7 +47,7 @@ function isDrillable(type: string): boolean {
 }
 
 /**
- * Directus-style column picker: search, toggle, drill-down one level on relation/file.
+ * Column picker: search, toggle, drill-down one level on relation/file.
  */
 export function ColumnPickerPopover({
     fields,

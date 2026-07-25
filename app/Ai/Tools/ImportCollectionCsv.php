@@ -52,7 +52,7 @@ class ImportCollectionCsv implements Tool
             $user = $this->authenticatedUser();
 
             if ($user === null) {
-                return 'Error: Non autenticato.';
+                return 'Error: Unauthenticated.';
             }
 
             $attachmentId = trim((string) $request->string('attachment_id'));
@@ -62,11 +62,11 @@ class ImportCollectionCsv implements Tool
             $dryRun = $request->boolean('dry_run');
 
             if ($attachmentId === '') {
-                return 'Error: Serve attachment_id.';
+                return 'Error: attachment_id is required.';
             }
 
             if ($collectionId <= 0 && $collectionName === '') {
-                return 'Error: Serve collection_id oppure collection_name.';
+                return 'Error: collection_id or collection_name is required.';
             }
 
             $attachment = AiChatAttachment::query()
@@ -75,25 +75,25 @@ class ImportCollectionCsv implements Tool
                 ->first();
 
             if ($attachment === null) {
-                return 'Error: Allegato non trovato o non di tua proprietà.';
+                return 'Error: Attachment not found or not owned by you.';
             }
 
             if ($attachment->isExpired()) {
                 $attachment->delete();
 
-                return 'Error: Allegato scaduto. Caricalo di nuovo.';
+                return 'Error: Attachment expired. Upload it again.';
             }
 
             $absolutePath = $attachment->absolutePath();
 
             if (! is_readable($absolutePath)) {
-                return 'Error: Impossibile leggere il file allegato.';
+                return 'Error: Unable to read the attachment.';
             }
 
             try {
                 $rows = $this->readRows($absolutePath, $attachment->original_name);
             } catch (Throwable $exception) {
-                return 'Error: Impossibile leggere il file ('.$exception->getMessage().').';
+                return 'Error: Unable to read the file ('.$exception->getMessage().').';
             }
 
             if (
@@ -130,7 +130,7 @@ class ImportCollectionCsv implements Tool
                     : Collection::query()->with('fields')->where('name', $collectionName)->first();
 
                 if ($collectionId > 0 && $collection === null) {
-                    return 'Error: Collezione non trovata.';
+                    return 'Error: Collection not found.';
                 }
 
                 return json_encode(
@@ -150,7 +150,7 @@ class ImportCollectionCsv implements Tool
             try {
                 $summary = $this->importAssociativeRows($collection, $rows, self::MAX_ROWS, $upsertKey);
             } catch (Throwable $exception) {
-                return 'Error: Impossibile importare il file ('.$exception->getMessage().').';
+                return 'Error: Unable to import the file ('.$exception->getMessage().').';
             }
 
             $this->logAiMutation($collection, 'import_spreadsheet');
@@ -205,14 +205,14 @@ class ImportCollectionCsv implements Tool
         $handle = fopen($absolutePath, 'rb');
 
         if ($handle === false) {
-            throw new \RuntimeException('apertura file fallita');
+            throw new \RuntimeException('failed to open file');
         }
 
         try {
             $headerRow = fgetcsv($handle, null, ',', '"', '\\');
 
             if ($headerRow === false || $headerRow === [null] || $headerRow === []) {
-                throw new \RuntimeException('CSV vuoto o senza intestazioni');
+                throw new \RuntimeException('CSV is empty or has no headers');
             }
 
             $matrix = [$headerRow];
@@ -240,7 +240,7 @@ class ImportCollectionCsv implements Tool
         $headers = array_map(fn (mixed $header): string => trim((string) $header), array_shift($matrix) ?? []);
 
         if ($headers === [] || array_filter($headers) === []) {
-            throw new \RuntimeException('File vuoto o senza intestazioni');
+            throw new \RuntimeException('File is empty or has no headers');
         }
 
         $rows = [];

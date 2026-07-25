@@ -1,13 +1,13 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Paperclip, RefreshCw, Sparkles } from 'lucide-react';
-import { useEffect, useRef, useState  } from 'react';
-import type {ChangeEvent} from 'react';
+import { Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import type { ChangeEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer';
 import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
+import { AiChatMessages } from '@/components/ai/ai-chat-messages';
+import type { AiChatMessageView } from '@/components/ai/ai-chat-messages';
 import { AiComposer } from '@/components/ai/ai-composer';
-import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
-import { ThinkingDots } from '@/components/ai/thinking-dots';
-import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
 import {
     Drawer,
@@ -18,7 +18,6 @@ import {
     DrawerHeader,
     DrawerTitle,
 } from '@/components/ui/drawer';
-import { Message, MessageContent } from '@/components/ui/message';
 import {
     Tooltip,
     TooltipContent,
@@ -36,21 +35,15 @@ import {
     stopSpeaking,
     streamAiChat,
     truncateLastUserMessageIfMatches,
-    uploadAiAttachment
-    
-    
+    uploadAiAttachment,
 } from '@/lib/ai-chat';
-import type {AiChatAttachment, AiStatus} from '@/lib/ai-chat';
+import type { AiChatAttachment, AiStatus } from '@/lib/ai-chat';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { index as aiIndex } from '@/routes/ai';
 
-type ChatLine = {
-    id: string;
+type ChatLine = AiChatMessageView & {
     role: 'user' | 'assistant';
-    content: string;
-    isError?: boolean;
-    attachments?: AiChatAttachment[];
 };
 
 type InFlightTurn = {
@@ -66,6 +59,7 @@ type InFlightTurn = {
  * @returns {JSX.Element}
  */
 export function AiFab() {
+    const { t } = useTranslation();
     const { can } = useCan();
     const page = usePage();
     const canUseAi = can(PermissionEnum.CanUseAi);
@@ -88,6 +82,10 @@ export function AiFab() {
     const [speechSupported] = useState(
         () => getSpeechRecognitionConstructor() !== null,
     );
+    const [editingMessageId, setEditingMessageId] = useState<string | null>(
+        null,
+    );
+    const [editingDraft, setEditingDraft] = useState('');
     const abortControllerRef = useRef<AbortController | null>(null);
     const conversationIdRef = useRef<string | null>(null);
     const inFlightTurnRef = useRef<InFlightTurn | null>(null);
@@ -318,7 +316,7 @@ export function AiFab() {
             const messageText =
                 error instanceof Error
                     ? error.message
-                    : 'Errore durante la risposta';
+                    : 'Error during response';
 
             setMessages((current) =>
                 current.map((entry) =>
@@ -358,7 +356,7 @@ export function AiFab() {
             toast.error(
                 uploadError instanceof Error
                     ? uploadError.message
-                    : 'Caricamento allegato non riuscito',
+                    : 'Attachment upload failed',
             );
         } finally {
             setIsUploadingAttachment(false);
@@ -402,7 +400,10 @@ export function AiFab() {
         await runStream(message, messages, attachmentsToSend);
     };
 
-    const handleRetry = async (assistantMessageId: string) => {
+    const handleRegenerate = async (
+        assistantMessageId: string,
+        options: { asRetry?: boolean } = {},
+    ): Promise<void> => {
         if (isStreaming || offline) {
             return;
         }
@@ -410,7 +411,7 @@ export function AiFab() {
         const userMessage = findPrecedingUserMessage(assistantMessageId);
 
         if (!userMessage) {
-            toast.error('Nessun messaggio utente da riprovare');
+            toast.error('No user message to regenerate');
 
             return;
         }
@@ -421,8 +422,10 @@ export function AiFab() {
             return;
         }
 
-        // Keep the failed prompt in the composer for optional edit/resend.
-        setComposer(prompt);
+        if (options.asRetry) {
+            // Keep the failed prompt in the composer for optional edit/resend.
+            setComposer(prompt);
+        }
 
         const baseMessages = messages.slice(
             0,
@@ -435,17 +438,61 @@ export function AiFab() {
             userMessage.attachments ?? [],
         );
 
-        if (succeeded) {
+        if (succeeded && options.asRetry) {
             setComposer('');
-            toast.success('Messaggio reinviato');
+            toast.success('Message resent');
         }
+    };
+
+    const startEditing = (message: AiChatMessageView) => {
+        if (isStreaming) {
+            handleStop();
+        }
+
+        setEditingMessageId(message.id);
+        setEditingDraft(message.content);
+    };
+
+    const cancelEditing = () => {
+        setEditingMessageId(null);
+        setEditingDraft('');
+    };
+
+    const handleResendEdited = async (messageId: string) => {
+        const draft = editingDraft.trim();
+
+        if (!draft) {
+            toast.error('Message cannot be empty');
+
+            return;
+        }
+
+        if (isStreaming || offline) {
+            return;
+        }
+
+        const messageIndex = messages.findIndex(
+            (entry) => entry.id === messageId,
+        );
+
+        if (messageIndex < 0) {
+            return;
+        }
+
+        const prior = messages[messageIndex];
+        const baseMessages = messages.slice(0, messageIndex);
+
+        setEditingMessageId(null);
+        setEditingDraft('');
+
+        await runStream(draft, baseMessages, prior?.attachments ?? []);
     };
 
     const toggleVoiceInput = () => {
         const Recognition = getSpeechRecognitionConstructor();
 
         if (!Recognition) {
-            toast.error('Dettatura non supportata in questo browser');
+            toast.error('Dictation is not supported in this browser');
 
             return;
         }
@@ -486,7 +533,7 @@ export function AiFab() {
         recognition.addEventListener('error', () => {
             setIsListening(false);
             recognitionRef.current = null;
-            toast.error('Errore durante la dettatura');
+            toast.error('Dictation error');
         });
 
         recognition.addEventListener('end', () => {
@@ -499,7 +546,7 @@ export function AiFab() {
             setIsListening(true);
         } catch {
             setIsListening(false);
-            toast.error('Impossibile avviare la dettatura');
+            toast.error('Unable to start dictation');
         }
     };
 
@@ -513,8 +560,8 @@ export function AiFab() {
                         onClick={() => setOpen(true)}
                         aria-label={
                             offline
-                                ? 'Assistant offline'
-                                : 'Open AI assistant'
+                                ? t('ai.assistantOffline')
+                                : t('ai.openAssistant')
                         }
                         className={cn(
                             'fixed right-5 bottom-5 z-50 flex size-14 items-center justify-center rounded-full text-white shadow-lg outline-none transition',
@@ -529,10 +576,10 @@ export function AiFab() {
                 </TooltipTrigger>
                 <TooltipContent side="left">
                     {offline
-                        ? 'AI offline — start LM Studio to enable'
+                        ? t('ai.aiOfflineHint')
                         : status.model
-                          ? `Assistant online (${status.model})`
-                          : 'Assistant online'}
+                          ? `${t('ai.assistantOnline')} (${status.model})`
+                          : t('ai.assistantOnline')}
                 </TooltipContent>
             </Tooltip>
 
@@ -554,116 +601,28 @@ export function AiFab() {
                         }
                     >
                         <DrawerBody className="gap-3">
-                            {messages.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    Ask about collections, items, or files.
-                                </p>
-                            ) : (
-                                messages.map((message) => (
-                                    <Message
-                                        key={message.id}
-                                        align={
-                                            message.role === 'user'
-                                                ? 'end'
-                                                : 'start'
-                                        }
-                                    >
-                                        <MessageContent>
-                                            <Bubble
-                                                variant={
-                                                    message.isError
-                                                        ? 'destructive'
-                                                        : message.role === 'user'
-                                                          ? 'muted'
-                                                          : 'ghost'
-                                                }
-                                                align={
-                                                    message.role === 'user'
-                                                        ? 'end'
-                                                        : 'start'
-                                                }
-                                            >
-                                                <BubbleContent
-                                                    className={
-                                                        message.role === 'user'
-                                                            ? 'whitespace-pre-wrap text-foreground'
-                                                            : 'w-full max-w-full whitespace-pre-wrap'
-                                                    }
-                                                >
-                                                    {message.role ===
-                                                    'assistant' ? (
-                                                        message.isError ? (
-                                                            <div className="flex flex-col gap-2">
-                                                                <div>
-                                                                    {
-                                                                        message.content
-                                                                    }
-                                                                </div>
-                                                                <Button
-                                                                    type="button"
-                                                                    size="sm"
-                                                                    variant="secondary"
-                                                                    className="w-fit"
-                                                                    disabled={
-                                                                        isStreaming ||
-                                                                        offline
-                                                                    }
-                                                                    onClick={() =>
-                                                                        void handleRetry(
-                                                                            message.id,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <RefreshCw className="size-3.5" />
-                                                                    Riprova
-                                                                </Button>
-                                                            </div>
-                                                        ) : message.content ? (
-                                                            <AssistantMarkdown
-                                                                content={
-                                                                    message.content
-                                                                }
-                                                            />
-                                                        ) : isStreaming ? (
-                                                            <ThinkingDots />
-                                                        ) : null
-                                                    ) : (
-                                                        <div className="flex flex-col gap-2">
-                                                            {(message.attachments
-                                                                ?.length ?? 0) >
-                                                            0 ? (
-                                                                <div className="flex flex-wrap gap-1.5">
-                                                                    {message.attachments?.map(
-                                                                        (
-                                                                            attachment,
-                                                                        ) => (
-                                                                            <span
-                                                                                key={
-                                                                                    attachment.id ??
-                                                                                    attachment.name
-                                                                                }
-                                                                                className="inline-flex items-center gap-1 rounded-md bg-foreground/15 px-2 py-0.5 text-xs"
-                                                                            >
-                                                                                <Paperclip className="size-3" />
-                                                                                {
-                                                                                    attachment.name
-                                                                                }
-                                                                            </span>
-                                                                        ),
-                                                                    )}
-                                                                </div>
-                                                            ) : null}
-                                                            <div>
-                                                                {message.content}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </BubbleContent>
-                                            </Bubble>
-                                        </MessageContent>
-                                    </Message>
-                                ))
-                            )}
+                            <AiChatMessages
+                                messages={messages}
+                                isStreaming={isStreaming}
+                                actionsDisabled={offline}
+                                editingMessageId={editingMessageId}
+                                editingDraft={editingDraft}
+                                onEditingDraftChange={setEditingDraft}
+                                onCancelEdit={cancelEditing}
+                                onStartEdit={startEditing}
+                                onResendEdited={(messageId) =>
+                                    void handleResendEdited(messageId)
+                                }
+                                onRegenerate={(messageId, options) =>
+                                    void handleRegenerate(messageId, options)
+                                }
+                                onSuggestedAction={setComposer}
+                                emptyState={
+                                    <p className="text-sm text-muted-foreground">
+                                        Ask about collections, items, or files.
+                                    </p>
+                                }
+                            />
                             {toolHint ? (
                                 <p className="text-xs text-muted-foreground">
                                     {toolHint}
@@ -691,8 +650,8 @@ export function AiFab() {
                                 disabled={offline}
                                 placeholder={
                                     offline
-                                        ? 'AI is offline…'
-                                        : 'Ask something…'
+                                        ? t('ai.offlinePlaceholder')
+                                        : t('ai.askSomething')
                                 }
                                 attachments={pendingAttachments}
                                 onRemoveAttachment={removePendingAttachment}
@@ -706,7 +665,7 @@ export function AiFab() {
                                 isListening={isListening}
                                 onToggleVoice={toggleVoiceInput}
                                 onOpenPresets={() => setPresetsOpen(true)}
-                                attachTooltip="Allega CSV, TXT, Excel o PDF (max 5 MB)"
+                                attachTooltip={t('ai.attachTooltip')}
                             />
                             <Button
                                 variant="ghost"

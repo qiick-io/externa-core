@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Map as LeafletMap, Marker as LeafletMarker } from 'leaflet';
+import { useTranslation } from 'react-i18next';
 // Tailwind v4 @import of leaflet.css in app.css is dropped from the Vite CSS
 // pipeline — load styles with the map component so tiles/panes position correctly.
 import 'leaflet/dist/leaflet.css';
@@ -92,6 +93,7 @@ export function MapCoordinateInput({
     readonly = false,
     settings,
 }: MapCoordinateInputProps) {
+    const { t } = useTranslation();
     const mapSettings: MapFieldSettings = useMemo(
         () => parseMapFieldSettings(settings),
         [settings],
@@ -262,8 +264,8 @@ export function MapCoordinateInput({
             {!readonly && (
                 <p className="text-xs text-muted-foreground">
                     {isMulti
-                        ? 'Click the map to add markers. Drag to move; remove from the list.'
-                        : 'Click the map to set the point, or drag the marker.'}
+                        ? t('collections.map.hintMulti')
+                        : t('collections.map.hintPoint')}
                 </p>
             )}
 
@@ -276,7 +278,9 @@ export function MapCoordinateInput({
                         >
                             <div className="grid gap-2">
                                 <Label htmlFor={`${idPrefix}_lat_${index}`}>
-                                    Latitude {index + 1}
+                                    {t('collections.map.latitudeN', {
+                                        n: index + 1,
+                                    })}
                                 </Label>
                                 <Input
                                     id={`${idPrefix}_lat_${index}`}
@@ -293,7 +297,9 @@ export function MapCoordinateInput({
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor={`${idPrefix}_lng_${index}`}>
-                                    Longitude {index + 1}
+                                    {t('collections.map.longitudeN', {
+                                        n: index + 1,
+                                    })}
                                 </Label>
                                 <Input
                                     id={`${idPrefix}_lng_${index}`}
@@ -315,7 +321,7 @@ export function MapCoordinateInput({
                                         variant="outline"
                                         onClick={() => removePosition(index)}
                                     >
-                                        Remove
+                                        {t('collections.map.remove')}
                                     </Button>
                                 </div>
                             )}
@@ -324,11 +330,11 @@ export function MapCoordinateInput({
                     {!readonly && (
                         <div className="flex gap-2">
                             <Button type="button" variant="outline" onClick={addPosition}>
-                                Add point
+                                {t('collections.map.addPoint')}
                             </Button>
                             {positions.length > 0 && (
                                 <Button type="button" variant="ghost" onClick={clearAll}>
-                                    Clear
+                                    {t('collections.map.clear')}
                                 </Button>
                             )}
                         </div>
@@ -337,7 +343,9 @@ export function MapCoordinateInput({
             ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div className="grid gap-2">
-                        <Label htmlFor={`${idPrefix}_lat`}>Latitude</Label>
+                        <Label htmlFor={`${idPrefix}_lat`}>
+                            {t('collections.map.latitude')}
+                        </Label>
                         <Input
                             id={`${idPrefix}_lat`}
                             type="number"
@@ -369,7 +377,9 @@ export function MapCoordinateInput({
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor={`${idPrefix}_lng`}>Longitude</Label>
+                        <Label htmlFor={`${idPrefix}_lng`}>
+                            {t('collections.map.longitude')}
+                        </Label>
                         <Input
                             id={`${idPrefix}_lng`}
                             type="number"

@@ -7,43 +7,43 @@ export type AiSuggestedAction = {
 const suggestionsByTool: Record<string, AiSuggestedAction[]> = {
     ImportCollectionCsv: [
         {
-            label: 'Verifica import',
-            prompt: 'Verifica gli ultimi elementi importati.',
+            label: 'Verify import',
+            prompt: 'Verify the latest imported items.',
         },
-        { label: 'Esporta CSV', prompt: 'Esporta questa collezione in CSV.' },
+        { label: 'Export CSV', prompt: 'Export this collection as CSV.' },
     ],
     ImportRemoteJson: [
         {
-            label: 'Programma sync',
-            prompt: 'Programma la sincronizzazione periodica di questa sorgente.',
+            label: 'Schedule sync',
+            prompt: 'Schedule periodic sync for this source.',
         },
         {
-            label: 'Verifica import',
-            prompt: 'Verifica gli ultimi elementi importati.',
+            label: 'Verify import',
+            prompt: 'Verify the latest imported items.',
         },
     ],
     ManageCollections: [
         {
-            label: 'Aggiungi campi',
-            prompt: 'Suggerisci e aggiungi i campi mancanti alla collezione.',
+            label: 'Add fields',
+            prompt: 'Suggest and add missing fields to the collection.',
         },
         {
-            label: 'Mostra elementi',
-            prompt: 'Mostra gli elementi di questa collezione.',
+            label: 'Show items',
+            prompt: 'Show items in this collection.',
         },
     ],
     ManageCollectionItems: [
-        { label: 'Mostra elementi', prompt: 'Mostra gli elementi aggiornati.' },
-        { label: 'Esporta JSON', prompt: 'Esporta questa collezione in JSON.' },
+        { label: 'Show items', prompt: 'Show the updated items.' },
+        { label: 'Export JSON', prompt: 'Export this collection as JSON.' },
     ],
     QueryActivityLogs: [
         {
-            label: 'Attività recenti',
-            prompt: 'Mostra le attività recenti con QueryActivityLogs.',
+            label: 'Recent activity',
+            prompt: 'Show recent activity with QueryActivityLogs.',
         },
         {
-            label: 'Solo AI',
-            prompt: 'Usa QueryActivityLogs con log_name=ai e riassumimi gli eventi AI recenti.',
+            label: 'AI only',
+            prompt: 'Use QueryActivityLogs with log_name=ai and summarize recent AI events.',
         },
     ],
 };

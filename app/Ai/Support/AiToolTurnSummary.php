@@ -6,15 +6,12 @@ use Illuminate\Support\Collection;
 use Laravel\Ai\Responses\StreamedAgentResponse;
 
 /**
- * Summarizes tool calls and outcomes for an AI conversation turn.
- */
-/**
- * Builds fallback Italian summaries when the model finishes tools without final text.
+ * Builds fallback English summaries when the model finishes tools without final text.
  */
 final class AiToolTurnSummary
 {
     /**
-     * Build a short Italian summary when the model finished tools with no final text.
+     * Build a short English summary when the model finished tools with no final text.
      *
      * @param  Collection<int, mixed>|array<int, mixed>  $toolCalls
      * @param  Collection<int, mixed>|array<int, mixed>  $toolResults
@@ -40,10 +37,10 @@ final class AiToolTurnSummary
         $toolLabel = $names->isEmpty() ? 'tool' : $names->implode(', ');
 
         if ($totalResults > 0) {
-            return "Operazione completata tramite {$toolLabel} ({$successCount}/{$totalResults} esiti ok).";
+            return "Completed via {$toolLabel} ({$successCount}/{$totalResults} ok).";
         }
 
-        return "Operazione eseguita tramite {$toolLabel}. Se serve, chiedimi di verificare il risultato.";
+        return "Ran {$toolLabel}. Ask me to verify the result if needed.";
     }
 
     public static function fromResponse(StreamedAgentResponse $response): string

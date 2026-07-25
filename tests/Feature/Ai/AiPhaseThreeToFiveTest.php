@@ -221,5 +221,5 @@ test('daily prompt quota rejects the next prompt', function () {
     $this->actingAs($user)
         ->postJson(route('ai.chat'), ['message' => 'Second prompt'])
         ->assertTooManyRequests()
-        ->assertJsonPath('message', 'Limite giornaliero di prompt AI raggiunto.');
+        ->assertJsonPath('message', 'Daily AI prompt limit reached.');
 });

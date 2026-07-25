@@ -3,15 +3,18 @@
 namespace App\Http\Controllers\Collections;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Collections\ApplyCollectionPackRequest;
 use App\Http\Requests\Collections\StoreContentCollectionRequest;
 use App\Http\Requests\Collections\UpdateContentCollectionRequest;
 use App\Http\Requests\Collections\UpsertSingletonCollectionItemRequest;
 use App\Models\Collection;
 use App\Models\CollectionItem;
+use App\Services\Collections\ApplyCollectionPackService;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemOptionsService;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
+use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -78,6 +81,7 @@ class ContentCollectionController extends Controller
                 'sort' => $sort,
                 'direction' => $direction,
             ],
+            'collectionPacks' => CollectionPackRegistry::summaries(),
         ]);
     }
 
@@ -94,6 +98,41 @@ class ContentCollectionController extends Controller
 
         return redirect()->route('collections.show', $collection)
             ->with('success', __('Collection created.'));
+    }
+
+    /**
+     * Apply a registered collection pack (auto-create dependencies, skip existing fields).
+     */
+    public function applyPack(
+        ApplyCollectionPackRequest $request,
+        string $pack,
+        ApplyCollectionPackService $applyCollectionPack,
+    ): RedirectResponse {
+        $validated = $request->validated();
+
+        $result = $applyCollectionPack->apply($pack, [
+            'name' => $validated['name'] ?? null,
+            'slug' => $validated['slug'] ?? null,
+        ]);
+
+        $collection = Collection::query()->findOrFail($result['collection']['id']);
+        $createdFields = count($result['created_fields']) + count($result['created_relations']);
+        $skippedFields = count($result['skipped_fields']) + count($result['skipped_relations']);
+
+        $message = $result['collection']['created']
+            ? __('Collection pack applied: :name created with :created field(s) (:skipped skipped).', [
+                'name' => $collection->name,
+                'created' => $createdFields,
+                'skipped' => $skippedFields,
+            ])
+            : __('Collection pack applied on existing :name: :created field(s) created, :skipped skipped.', [
+                'name' => $collection->name,
+                'created' => $createdFields,
+                'skipped' => $skippedFields,
+            ]);
+
+        return redirect()->route('collections.fields.index', $collection)
+            ->with('success', $message);
     }
 
     /**

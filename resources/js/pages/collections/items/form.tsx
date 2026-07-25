@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useCollection } from '@/hooks/use-collection';
 import AppLayout from '@/layouts/app-layout';
 import { collectCollectionDataErrorMessages } from '@/lib/collection-data-errors';
+import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import collections from '@/routes/collections';
 import type { BreadcrumbItem } from '@/types';
 import type { CollectionView } from '@/types/collections';
@@ -76,11 +77,19 @@ export default function ItemsForm({
     const heading = isNew ? 'New item' : `Item #${item!.id}`;
 
     const formProps = isNew
-        ? ItemController.store.form({ collection: collection.id })
-        : ItemController.update.form({
-              collection: collection.id,
-              item: item!.id,
-          });
+        ? wayfinderInertiaFormProps(
+              ItemController.store,
+              { collection: collection.id },
+              'post',
+          )
+        : wayfinderInertiaFormProps(
+              ItemController.update,
+              {
+                  collection: collection.id,
+                  item: item!.id,
+              },
+              'put',
+          );
 
     return (
         <AppLayout
@@ -105,10 +114,14 @@ export default function ItemsForm({
                     </Button>
                     {!isNew && item !== null && (
                         <Form
-                            {...ItemController.destroy.form({
-                                collection: collection.id,
-                                item: item.id,
-                            })}
+                            {...wayfinderInertiaFormProps(
+                                ItemController.destroy,
+                                {
+                                    collection: collection.id,
+                                    item: item.id,
+                                },
+                                'delete',
+                            )}
                         >
                             {({ processing }) => (
                                 <Button

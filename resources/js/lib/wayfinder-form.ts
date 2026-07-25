@@ -10,6 +10,8 @@ type WayfinderRouteWithForm<TArgs> = {
     url: (args: TArgs) => string;
     patch?: (args: TArgs) => { url: string; method: 'patch' };
     post?: (args: TArgs) => { url: string; method: 'post' };
+    put?: (args: TArgs) => { url: string; method: 'put' };
+    delete?: (args: TArgs) => { url: string; method: 'delete' };
 };
 
 /**
@@ -23,7 +25,7 @@ type WayfinderRouteWithForm<TArgs> = {
 export function wayfinderInertiaFormProps<TArgs>(
     route: WayfinderRouteWithForm<TArgs>,
     args: TArgs,
-    fallbackMethod: 'post' | 'patch',
+    fallbackMethod: 'post' | 'patch' | 'put' | 'delete',
 ): WayfinderFormProps {
     if (typeof route.form === 'function') {
         const formProps = route.form(args);
@@ -49,6 +51,24 @@ export function wayfinderInertiaFormProps<TArgs>(
         return {
             action: postRoute.url,
             method: postRoute.method,
+        };
+    }
+
+    if (fallbackMethod === 'put' && typeof route.put === 'function') {
+        const putRoute = route.put(args);
+
+        return {
+            action: putRoute.url,
+            method: putRoute.method,
+        };
+    }
+
+    if (fallbackMethod === 'delete' && typeof route.delete === 'function') {
+        const deleteRoute = route.delete(args);
+
+        return {
+            action: deleteRoute.url,
+            method: deleteRoute.method,
         };
     }
 

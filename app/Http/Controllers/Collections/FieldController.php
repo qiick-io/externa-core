@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Collections;
 
 use App\Enums\FieldTypeEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Collections\ApplyFieldPackRequest;
 use App\Http\Requests\Collections\ReorderFieldsRequest;
 use App\Http\Requests\Collections\StoreFieldRequest;
 use App\Http\Requests\Collections\UpdateCollectionFormLayoutRequest;
@@ -11,6 +12,8 @@ use App\Http\Requests\Collections\UpdateFieldLayoutWidthRequest;
 use App\Http\Requests\Collections\UpdateFieldRequest;
 use App\Models\Collection;
 use App\Models\CollectionField;
+use App\Services\Collections\ApplyFieldPackService;
+use App\Support\Collections\FieldPacks\FieldPackRegistry;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -35,7 +38,33 @@ class FieldController extends Controller
         return Inertia::render('collections/collections/fields', [
             'collection' => $collection,
             'relatedCollections' => $relatedCollections,
+            'fieldPacks' => FieldPackRegistry::summaries(),
         ]);
+    }
+
+    /**
+     * Apply a registered field pack (create missing fields, skip existing names).
+     */
+    public function applyPack(
+        ApplyFieldPackRequest $request,
+        Collection $collection,
+        string $pack,
+        ApplyFieldPackService $applyFieldPack,
+    ): RedirectResponse {
+        $result = $applyFieldPack->apply($collection, $pack);
+
+        $createdCount = count($result['created']);
+        $skippedCount = count($result['skipped']);
+
+        $message = $createdCount === 0 && $skippedCount > 0
+            ? __(':skipped field(s) already existed — nothing created.', ['skipped' => $skippedCount])
+            : __(':created field(s) created, :skipped skipped.', [
+                'created' => $createdCount,
+                'skipped' => $skippedCount,
+            ]);
+
+        return redirect()->route('collections.fields.index', $collection)
+            ->with('success', $message);
     }
 
     /**

@@ -8,7 +8,7 @@ use App\Models\CollectionField;
  * Evaluate simple per-field form conditions (equals / not_equals / empty / not_empty + AND).
  *
  * ponytail: AND-only, no nested groups / OR / comparisons beyond equality — upgrade path is a
- * small expression AST if product needs Directus-style rule trees.
+ * small expression AST if product needs nested rule trees.
  */
 class FieldConditionEvaluator
 {

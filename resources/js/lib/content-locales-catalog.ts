@@ -6,7 +6,7 @@ export type ContentLocaleCatalogEntry = {
     flag: string;
 };
 
-/** Directus-style content locale catalog (static, in-repo). */
+/** Content locale catalog (static, in-repo). */
 export const CONTENT_LOCALES_CATALOG: ContentLocaleCatalogEntry[] =
     catalogJson as ContentLocaleCatalogEntry[];
 

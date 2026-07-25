@@ -56,7 +56,7 @@ test('can-use-ai alone can open assistant but gets no domain tools', function ()
         'name' => 'Blocked',
     ]));
 
-    expect($create)->toContain('Permesso mancante');
+    expect($create)->toContain('Missing permission');
 });
 
 test('ai page is forbidden without can-use-ai', function () {
@@ -311,9 +311,9 @@ test('collection tool actions respect each permission', function (string $permis
     $result = $invoke();
 
     if ($shouldAllow) {
-        expect($result)->not->toContain('Permesso mancante');
+        expect($result)->not->toContain('Missing permission');
     } else {
-        expect($result)->toContain('Permesso mancante');
+        expect($result)->toContain('Missing permission');
     }
 })->with('collection permission matrix');
 
@@ -464,9 +464,9 @@ test('file tool actions respect each permission', function (string $permission, 
     $result = $invoke();
 
     if ($shouldAllow) {
-        expect($result)->not->toContain('Permesso mancante');
+        expect($result)->not->toContain('Missing permission');
     } else {
-        expect($result)->toContain('Permesso mancante');
+        expect($result)->toContain('Missing permission');
     }
 })->with('file permission matrix');
 
@@ -616,9 +616,9 @@ test('user tool actions respect each permission', function (string $permission, 
     $result = $invoke();
 
     if ($shouldAllow) {
-        expect($result)->not->toContain('Permesso mancante');
+        expect($result)->not->toContain('Missing permission');
     } else {
-        expect($result)->toContain('Permesso mancante');
+        expect($result)->toContain('Missing permission');
     }
 })->with('user permission matrix');
 
@@ -697,7 +697,7 @@ test('reader role with can-use-ai can view ai page but cannot mutate collections
         'file_id' => 1,
     ]));
 
-    expect($create)->toContain('Permesso mancante')
-        ->and($import)->toContain('Permesso mancante')
-        ->and($deleteFile)->toContain('Permesso mancante');
+    expect($create)->toContain('Missing permission')
+        ->and($import)->toContain('Missing permission')
+        ->and($deleteFile)->toContain('Missing permission');
 });

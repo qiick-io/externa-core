@@ -16,7 +16,7 @@ beforeEach(function () {
     $this->withoutVite();
 });
 
-test('import remote json tool creates collection fields and items from directus-like payload', function () {
+test('import remote json tool creates collection fields and items from remote JSON payload', function () {
     $user = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
         PermissionEnum::CanCreateCollections->value,
@@ -119,7 +119,7 @@ test('import remote json tool denies without create permission', function () {
         'collection_name' => 'denied-remote',
     ]));
 
-    expect($result)->toContain('Permesso mancante')
+    expect($result)->toContain('Missing permission')
         ->and(Collection::query()->where('name', 'denied-remote')->exists())->toBeFalse();
 
     Http::assertNothingSent();

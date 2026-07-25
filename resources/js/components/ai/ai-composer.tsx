@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import type { FormEvent, KeyboardEvent, MouseEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
     Tooltip,
@@ -57,7 +58,7 @@ export function AiComposer({
     onStop,
     isStreaming = false,
     disabled = false,
-    placeholder = "Chiedi all'assistente…",
+    placeholder,
     attachments = [],
     onRemoveAttachment,
     onAttach,
@@ -70,8 +71,12 @@ export function AiComposer({
     onDryRunModeChange,
     onOpenPresets,
     className,
-    attachTooltip = 'Allega CSV o TXT (max 5 MB)',
+    attachTooltip,
 }: AiComposerProps) {
+    const { t } = useTranslation();
+    const resolvedPlaceholder = placeholder ?? t('ai.askPlaceholder');
+    const resolvedAttachTooltip =
+        attachTooltip ?? t('ai.attachShortTooltip');
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
     useEffect(() => {
@@ -158,7 +163,9 @@ export function AiComposer({
                                         onClick={() =>
                                             onRemoveAttachment(attachment.id)
                                         }
-                                        aria-label={`Rimuovi ${attachment.name}`}
+                                        aria-label={t('ai.removeAttachment', {
+                                            name: attachment.name,
+                                        })}
                                         disabled={isStreaming || disabled}
                                     >
                                         <X className="size-3" />
@@ -174,7 +181,7 @@ export function AiComposer({
                     value={value}
                     onChange={(event) => onChange(event.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={placeholder}
+                    placeholder={resolvedPlaceholder}
                     disabled={disabled || isStreaming}
                     rows={1}
                     className={cn(
@@ -186,7 +193,7 @@ export function AiComposer({
                         minHeight: MIN_TEXTAREA_HEIGHT_PX,
                         maxHeight: MAX_TEXTAREA_HEIGHT_PX,
                     }}
-                    aria-label="Messaggio"
+                    aria-label={t('ai.messageAria')}
                 />
 
                 <div className="flex items-center justify-between gap-2 px-2 pb-2">
@@ -201,12 +208,14 @@ export function AiComposer({
                                         className="size-8 text-muted-foreground"
                                         disabled={disabled || isStreaming}
                                         onClick={onOpenPresets}
-                                        aria-label="Azioni utili"
+                                        aria-label={t('ai.usefulActionsAria')}
                                     >
                                         <LayoutList className="size-4" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Azioni utili</TooltipContent>
+                                <TooltipContent>
+                                    {t('ai.usefulActionsAria')}
+                                </TooltipContent>
                             </Tooltip>
                         ) : null}
                         {onAttach ? (
@@ -224,12 +233,14 @@ export function AiComposer({
                                             attachDisabled
                                         }
                                         onClick={onAttach}
-                                        aria-label="Allega"
+                                        aria-label={t('ai.attachAria')}
                                     >
                                         <Paperclip className="size-4" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>{attachTooltip}</TooltipContent>
+                                <TooltipContent>
+                                    {resolvedAttachTooltip}
+                                </TooltipContent>
                             </Tooltip>
                         ) : null}
                         {onDryRunModeChange ? (
@@ -249,10 +260,12 @@ export function AiComposer({
                                         aria-pressed={dryRunMode}
                                     >
                                         <FlaskConical className="size-3.5" />
-                                        Simulazione
+                                        {t('ai.simulation')}
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Non scrive dati</TooltipContent>
+                                <TooltipContent>
+                                    {t('ai.simulationHint')}
+                                </TooltipContent>
                             </Tooltip>
                         ) : null}
                     </div>
@@ -273,7 +286,7 @@ export function AiComposer({
                                             )}
                                             disabled={disabled || isStreaming}
                                             onClick={onToggleVoice}
-                                            aria-label="Dettatura"
+                                            aria-label={t('ai.dictationAria')}
                                         >
                                             {isListening ? (
                                                 <MicOff className="size-4" />
@@ -284,8 +297,8 @@ export function AiComposer({
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         {isListening
-                                            ? 'Interrompi dettatura'
-                                            : 'Dettatura vocale'}
+                                            ? t('ai.stopDictation')
+                                            : t('ai.voiceDictation')}
                                     </TooltipContent>
                                 </Tooltip>
                             ) : (
@@ -298,15 +311,14 @@ export function AiComposer({
                                                 variant="ghost"
                                                 className="size-8 text-muted-foreground"
                                                 disabled
-                                                aria-label="Dettatura"
+                                                aria-label={t('ai.dictationAria')}
                                             >
                                                 <Mic className="size-4" />
                                             </Button>
                                         </span>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        Dettatura non supportata in questo
-                                        browser
+                                        {t('ai.dictationUnsupported')}
                                     </TooltipContent>
                                 </Tooltip>
                             )
@@ -320,7 +332,7 @@ export function AiComposer({
                                 className="relative z-10 size-8 rounded-full"
                                 disabled={false}
                                 onClick={handleStopClick}
-                                aria-label="Stop"
+                                aria-label={t('ai.stopAria')}
                             >
                                 <Square className="size-3.5 fill-current" />
                             </Button>
@@ -330,7 +342,7 @@ export function AiComposer({
                                 size="icon"
                                 className="size-8 rounded-full"
                                 disabled={!canSubmit || isStreaming}
-                                aria-label="Invia"
+                                aria-label={t('ai.sendAria')}
                             >
                                 <ArrowUp className="size-4" />
                             </Button>

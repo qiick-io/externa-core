@@ -9,11 +9,17 @@ use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
+use App\Services\Collections\ApplyCollectionPackService;
+use App\Services\Collections\ApplyFieldPackService;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
+use App\Support\Collections\CollectionFieldSettingsPipeline;
+use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
+use App\Support\Collections\FieldPacks\FieldPackRegistry;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -31,7 +37,7 @@ class ManageCollections implements Tool
      */
     public function description(): Stringable|string
     {
-        return 'List, get, create, update, soft-delete, restore, or force-delete content collections; and create, update, or delete fields on a collection.';
+        return 'List, get, create, update, soft-delete, restore, or force-delete content collections; create/update/delete fields; list or apply field packs and collection packs (e.g. SEO entity, Articles).';
     }
 
     /**
@@ -53,8 +59,12 @@ class ManageCollections implements Tool
                 'create_field' => $this->createField($request),
                 'update_field' => $this->updateField($request),
                 'delete_field' => $this->deleteField($request),
+                'list_field_packs' => $this->listFieldPacks(),
+                'apply_field_pack' => $this->applyFieldPack($request),
+                'list_collection_packs' => $this->listCollectionPacks(),
+                'apply_collection_pack' => $this->applyCollectionPack($request),
                 'duplicate' => $this->duplicateCollection($request),
-                default => 'Error: Unknown action. Use list, get, create, update, delete, restore, force_delete, create_field, update_field, delete_field, or duplicate.',
+                default => 'Error: Unknown action. Use list, get, create, update, delete, restore, force_delete, create_field, update_field, delete_field, list_field_packs, apply_field_pack, list_collection_packs, apply_collection_pack, or duplicate.',
             };
         });
     }
@@ -66,17 +76,18 @@ class ManageCollections implements Tool
     {
         return [
             'action' => $schema->string()->required()->description(
-                'list|get|create|update|delete|restore|force_delete|create_field|update_field|delete_field|duplicate'
+                'list|get|create|update|delete|restore|force_delete|create_field|update_field|delete_field|list_field_packs|apply_field_pack|list_collection_packs|apply_collection_pack|duplicate'
             ),
             'collection_id' => $schema->integer(),
             'trashed' => $schema->boolean()->description('For list, return only soft-deleted collections'),
             'field_id' => $schema->integer(),
-            'name' => $schema->string()->description('Collection name, or field name for *_field actions'),
-            'slug' => $schema->string(),
+            'name' => $schema->string()->description('Collection name, or field name for *_field actions; optional override for apply_collection_pack'),
+            'slug' => $schema->string()->description('Collection slug; optional override for apply_collection_pack'),
             'is_singleton' => $schema->boolean(),
             'type' => $schema->string()->description('Field type enum value, e.g. string, textarea, boolean'),
             'translatable' => $schema->boolean(),
             'settings_json' => $schema->string()->description('Optional JSON object for field settings'),
+            'pack' => $schema->string()->description('Pack key for apply_field_pack (e.g. seo_inline, publishing) or apply_collection_pack (e.g. seo, articles). Call list_*_packs first if unsure.'),
             'with_sample' => $schema->boolean()->description('For duplicate, copy up to five sample items'),
         ];
     }
@@ -89,11 +100,26 @@ class ManageCollections implements Tool
 
         $collections = Collection::query()
             ->when($request->boolean('trashed'), fn ($query) => $query->onlyTrashed())
+            ->with(['fields' => fn ($query) => $query->ordered()->select(['id', 'collection_id', 'name', 'type'])])
             ->ordered()
             ->limit(100)
             ->get(['id', 'name', 'slug', 'is_singleton', 'sort_order', 'deleted_at']);
 
-        return json_encode(['collections' => $collections], JSON_PRETTY_PRINT) ?: '[]';
+        return json_encode([
+            'collections' => $collections->map(fn (Collection $collection): array => [
+                'id' => $collection->id,
+                'name' => $collection->name,
+                'slug' => $collection->slug,
+                'is_singleton' => $collection->is_singleton,
+                'sort_order' => $collection->sort_order,
+                'deleted_at' => $collection->deleted_at,
+                'fields' => $collection->fields->map(fn (CollectionField $field): array => [
+                    'id' => $field->id,
+                    'name' => $field->name,
+                    'type' => $field->type instanceof FieldTypeEnum ? $field->type->value : (string) $field->type,
+                ])->values()->all(),
+            ])->values()->all(),
+        ], JSON_PRETTY_PRINT) ?: '[]';
     }
 
     private function getCollection(int $collectionId): string
@@ -343,6 +369,99 @@ class ManageCollections implements Tool
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '{}';
     }
 
+    private function listFieldPacks(): string
+    {
+        if ($error = $this->requirePermission(PermissionEnum::CanShowCollections)) {
+            return $error;
+        }
+
+        return json_encode([
+            'packs' => FieldPackRegistry::summaries(),
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '{}';
+    }
+
+    private function applyFieldPack(Request $request): string
+    {
+        if ($error = $this->requirePermission(PermissionEnum::CanEditCollections)) {
+            return $error;
+        }
+
+        $collection = Collection::query()->find($request->integer('collection_id'));
+
+        if ($collection === null) {
+            return 'Error: Collection not found.';
+        }
+
+        $packKey = trim((string) $request->string('pack'));
+
+        if ($packKey === '') {
+            return 'Error: pack is required (e.g. seo_inline). Call list_field_packs to see available keys.';
+        }
+
+        try {
+            $result = app(ApplyFieldPackService::class)->apply($collection, $packKey);
+        } catch (InvalidArgumentException $exception) {
+            return 'Error: '.$exception->getMessage();
+        }
+
+        $this->logAiMutation($collection, 'apply_field_pack');
+
+        return json_encode([
+            'ok' => true,
+            ...$result,
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '{}';
+    }
+
+    private function listCollectionPacks(): string
+    {
+        if ($error = $this->requirePermission(PermissionEnum::CanShowCollections)) {
+            return $error;
+        }
+
+        return json_encode([
+            'packs' => CollectionPackRegistry::summaries(),
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '{}';
+    }
+
+    private function applyCollectionPack(Request $request): string
+    {
+        if ($error = $this->requirePermission(PermissionEnum::CanCreateCollections)) {
+            return $error;
+        }
+
+        $packKey = trim((string) $request->string('pack'));
+
+        if ($packKey === '') {
+            return 'Error: pack is required (e.g. seo, articles). Call list_collection_packs to see available keys.';
+        }
+
+        $overrides = [];
+        $name = trim((string) $request->string('name'));
+        $slug = trim((string) $request->string('slug'));
+        if ($name !== '') {
+            $overrides['name'] = $name;
+        }
+        if ($slug !== '') {
+            $overrides['slug'] = $slug;
+        }
+
+        try {
+            $result = app(ApplyCollectionPackService::class)->apply($packKey, $overrides);
+        } catch (InvalidArgumentException $exception) {
+            return 'Error: '.$exception->getMessage();
+        }
+
+        $collection = Collection::query()->find($result['collection']['id']);
+        if ($collection instanceof Collection) {
+            $this->logAiMutation($collection, 'apply_collection_pack');
+        }
+
+        return json_encode([
+            'ok' => true,
+            ...$result,
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '{}';
+    }
+
     private function createField(Request $request): string
     {
         if ($error = $this->requirePermission(PermissionEnum::CanEditCollections)) {
@@ -382,13 +501,20 @@ class ManageCollections implements Tool
             return $settings;
         }
 
+        $settings = app(CollectionFieldSettingsPipeline::class)
+            ->normalizeAndValidate($settings, $type);
+
+        if (is_string($settings)) {
+            return $settings;
+        }
+
         $translatable = $type->supportsTranslatable() && $request->boolean('translatable');
 
         $field = $collection->fields()->create([
             'name' => $name,
             'type' => $type,
             'translatable' => $translatable,
-            'settings' => $settings,
+            'settings' => $settings === [] ? null : $settings,
         ]);
 
         $this->logAiMutation($field, 'create_field');
@@ -461,7 +587,19 @@ class ManageCollections implements Tool
                 return $settings;
             }
 
-            $attributes['settings'] = $settings;
+            $typeForSettings = ($attributes['type'] ?? $field->type);
+            $typeForSettings = $typeForSettings instanceof FieldTypeEnum
+                ? $typeForSettings
+                : FieldTypeEnum::tryFrom((string) $typeForSettings);
+
+            $settings = app(CollectionFieldSettingsPipeline::class)
+                ->normalizeAndValidate($settings, $typeForSettings);
+
+            if (is_string($settings)) {
+                return $settings;
+            }
+
+            $attributes['settings'] = $settings === [] ? null : $settings;
         }
 
         if ($attributes === []) {

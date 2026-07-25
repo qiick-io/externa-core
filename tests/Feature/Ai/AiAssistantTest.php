@@ -123,7 +123,7 @@ test('manage files tool denies create without permission', function () {
         'name' => 'Blocked',
     ]));
 
-    expect($result)->toContain('Permesso mancante')
+    expect($result)->toContain('Missing permission')
         ->and(File::query()->where('name', 'Blocked')->exists())->toBeFalse();
 
     expect(Activity::query()->where('event', 'ai_tool')->where('log_name', 'ai')->exists())->toBeTrue();
@@ -309,7 +309,7 @@ test('collection ai tools deny restore and force delete without permission', fun
         ])),
     ];
 
-    expect($results)->each->toContain('Permesso mancante');
+    expect($results)->each->toContain('Missing permission');
     expect(Collection::query()->onlyTrashed()->find($collection->id))->not->toBeNull()
         ->and(CollectionItem::query()->onlyTrashed()->find($item->id))->not->toBeNull();
 });
@@ -1064,7 +1064,7 @@ test('manage users tool denies create without CanCreateUsers', function () {
         'password' => 'password',
     ]));
 
-    expect($result)->toContain('Permesso mancante')
+    expect($result)->toContain('Missing permission')
         ->and($result)->toContain(PermissionEnum::CanCreateUsers->value)
         ->and(User::query()->where('email', 'blocked.ai@example.com')->exists())->toBeFalse();
 });
@@ -1179,7 +1179,7 @@ test('empty assistant message with tool results gets a settled summary on the ai
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('ai/index')
-            ->where('messages.0.content', fn (string $content): bool => str_contains($content, 'Operazione completata')
+            ->where('messages.0.content', fn (string $content): bool => str_contains($content, 'Completed via')
                 && str_contains($content, 'ManageCollections')));
 
     $json = $this->actingAs($user)
@@ -1187,7 +1187,7 @@ test('empty assistant message with tool results gets a settled summary on the ai
         ->assertOk()
         ->json('messages.0.content');
 
-    expect($json)->toBeString()->toContain('Operazione completata');
+    expect($json)->toBeString()->toContain('Completed via');
 });
 
 test('ai tool turn summary marks successful tool results', function () {
@@ -1196,7 +1196,7 @@ test('ai tool turn summary marks successful tool results', function () {
         [['name' => 'ManageCollections', 'result' => '{"ok": true}']],
     );
 
-    expect($summary)->toContain('Operazione completata')
+    expect($summary)->toContain('Completed via')
         ->and($summary)->toContain('ManageCollections')
         ->and($summary)->toContain('1/1');
 });

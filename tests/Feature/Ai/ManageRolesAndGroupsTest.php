@@ -44,7 +44,7 @@ test('manage roles creates role with synced permissions', function () {
     ]));
 
     expect($list)->toContain('can-show-collections')
-        ->and($list)->not->toContain('Permesso mancante');
+        ->and($list)->not->toContain('Missing permission');
 
     $result = (string) (new ManageRoles)->handle(new Request([
         'action' => 'create',
@@ -78,7 +78,7 @@ test('manage roles denies create without permission', function () {
         'name' => 'blocked-role',
     ]));
 
-    expect($result)->toContain('Permesso mancante')
+    expect($result)->toContain('Missing permission')
         ->and(Role::query()->where('name', 'blocked-role')->exists())->toBeFalse();
 });
 
@@ -184,7 +184,7 @@ test('manage groups denies create without permission and supports soft delete re
         'name' => 'Nope',
     ]));
 
-    expect($blocked)->toContain('Permesso mancante');
+    expect($blocked)->toContain('Missing permission');
 
     $actor = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,

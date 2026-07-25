@@ -110,7 +110,7 @@ test('ai tool actions mutate and read expected database state', function () {
     $invoke = function (object $tool, array $payload): array {
         $result = (string) $tool->handle(new Request($payload));
 
-        expect($result)->not->toContain('Permesso mancante')
+        expect($result)->not->toContain('Missing permission')
             ->and(str_starts_with($result, 'Error:'))->toBeFalse();
 
         $decoded = json_decode($result, true);

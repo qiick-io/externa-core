@@ -307,6 +307,339 @@
         "localized": {
             "applyAll": "Auf alle Locales anwenden",
             "applyEmpty": "Auf leere Locales anwenden"
-        }
+        },
+        "packs": {
+            "createFromPack": "Aus Pack erstellen",
+            "createFromPackEllipsis": "Aus Pack erstellen…",
+            "createFromPackDescription": "Collection (und Abhängigkeiten) in einem Schritt anlegen. Vorhandene Slugs werden wiederverwendet; fehlende Felder hinzugefügt.",
+            "noCollectionPacks": "Keine Collection-Packs registriert.",
+            "creating": "Wird erstellt…",
+            "addFieldPack": "Feldpack hinzufügen",
+            "addFieldPackEllipsis": "Feldpack hinzufügen…",
+            "addFieldPackDescription": "Kuratiertes Felder-Set in einem Schritt anwenden. Vorhandene Namen werden übersprungen.",
+            "noFieldPacks": "Keine Feldpacks registriert.",
+            "applying": "Wird angewendet…",
+            "applyPack": "Pack anwenden",
+            "previewFields": "Vorschau — {{count}} Felder",
+            "fieldsCount": "Felder — {{count}}",
+            "relationsSuffix": " + {{count}} Relation(en)",
+            "collection": "Collection",
+            "requires": "Benötigt",
+            "translatable": "Übersetzbar",
+            "translatableSuffix": " · Übersetzbar",
+            "fieldPacks": {
+                "publishing": {
+                    "label": "Publishing",
+                    "description": "Status (Entwurf/veröffentlicht/archiviert), published_at-Datum und Featured-Flag."
+                },
+                "contact": {
+                    "label": "Kontakt",
+                    "description": "E-Mail-, Telefon- und Adressfelder."
+                },
+                "social": {
+                    "label": "Social",
+                    "description": "URL-Felder für Facebook, Instagram, LinkedIn, Twitter/X und YouTube."
+                },
+                "seo_inline": {
+                    "label": "SEO (inline)",
+                    "description": "Denormalisierte SEO-Metadatenfelder (seo_*) auf der aktuellen Collection. Bevorzuge SEO-Collection-Pack + Relation für Articles/Pages/Products."
+                }
+            },
+            "collectionPacks": {
+                "seo": {
+                    "label": "SEO",
+                    "description": "Dedizierte SEO-Collection (Titel, Beschreibung, Robots, Social-Bilder). Verknüpfe von Articles/Pages/Products via M2O."
+                },
+                "categories": {
+                    "label": "Kategorien",
+                    "description": "Kategorie-Taxonomie: Name, Slug, Beschreibung."
+                },
+                "pages": {
+                    "label": "Seiten",
+                    "description": "Seiten mit Titel, Slug, Status, Body-Blöcken und SEO-Relation. Erstellt SEO-Pack automatisch falls fehlend."
+                },
+                "articles": {
+                    "label": "Artikel",
+                    "description": "Blog/Artikel mit Body-Blöcken, Cover, Kategorie- und SEO-Relation. Erstellt Categories + SEO automatisch falls fehlend."
+                },
+                "products": {
+                    "label": "Produkte",
+                    "description": "Produkte mit Preis, Bildern, Kategorie- und SEO-Relation. Erstellt Categories + SEO automatisch falls fehlend."
+                }
+            }
+        },
+        "translatable": "Übersetzbar",
+        "translatableSuffix": " · Übersetzbar",
+        "newCollection": "Neue Collection",
+        "createField": "Feld erstellen",
+        "searchFields": "Felder suchen…",
+        "fieldSchema": "Feldschema",
+        "fieldsTitle": "Felder — {{name}}",
+        "noFieldsYet": "Noch keine Felder. Erstelle ein Feld oder wende ein Feldpack an, um den Inhalt dieser Collection zu definieren.",
+        "clearSearchToReorder": "Suche leeren, um Felder per Drag-and-Drop neu zu ordnen.",
+        "map": {
+            "hintPoint": "Klicke auf die Karte, um den Punkt zu setzen, oder ziehe den Marker.",
+            "hintMulti": "Klicke auf die Karte, um Marker hinzuzufügen. Ziehen zum Verschieben; aus der Liste entfernen.",
+            "latitude": "Breitengrad",
+            "longitude": "Längengrad",
+            "latitudeN": "Breitengrad {{n}}",
+            "longitudeN": "Längengrad {{n}}",
+            "remove": "Entfernen",
+            "addPoint": "Punkt hinzufügen",
+            "clear": "Leeren"
+        },
+        "requiredSuffix": " · Pflichtfeld",
+        "hiddenInFormSuffix": " · Im Formular ausgeblendet"
+    },
+    "ai": {
+        "drawer": {
+            "title": "Nützliche Aktionen",
+            "description": "Wähle eine Vorlage: Der Text wird in den Chat eingefügt, ohne zu senden.",
+            "searchPlaceholder": "Aktionen suchen…",
+            "searchAria": "Aktionen suchen",
+            "empty": "Keine Aktionen mit deinen Berechtigungen verfügbar.",
+            "destructive": "Destruktiv",
+            "confirmTitle": "Destruktive Aktion einfügen?",
+            "confirmDescription": "«{{title}}» kann viele Daten löschen oder ändern. Der Text wird nur in den Composer eingefügt — du kannst ihn vor dem Senden prüfen.",
+            "confirmCancel": "Abbrechen",
+            "confirmInsert": "In Composer einfügen"
+        },
+        "categories": {
+            "common": "Allgemein",
+            "data": "Daten & Import",
+            "files": "Dateien",
+            "admin": "Admin",
+            "advanced": "Erweitert"
+        },
+        "presets": {
+            "apply-seo-collection-pack": {
+                "title": "SEO-Collection anwenden",
+                "description": "Eigenständige SEO-Entity-Collection erstellen"
+            },
+            "scaffold-articles": {
+                "title": "Articles scaffolden",
+                "description": "Articles + Categories + SEO (Abhängigkeiten automatisch)"
+            },
+            "scaffold-products": {
+                "title": "Products scaffolden",
+                "description": "Products + Categories + SEO (Abhängigkeiten automatisch)"
+            },
+            "apply-publishing-field-pack": {
+                "title": "Publishing-Feldpack anwenden",
+                "description": "status, published_at, featured auf bestehender Collection"
+            },
+            "apply-contact-field-pack": {
+                "title": "Kontakt-Feldpack anwenden",
+                "description": "E-Mail-, Telefon- und Adressfelder"
+            },
+            "apply-social-field-pack": {
+                "title": "Social-Feldpack anwenden",
+                "description": "Social-Profil-URL-Felder"
+            },
+            "apply-seo-inline-field-pack": {
+                "title": "SEO-Inline-Feldpack anwenden",
+                "description": "Denormalisierte seo_*-Felder (Sonderfall)"
+            },
+            "new-typed-collection": {
+                "title": "Neue typisierte Collection",
+                "description": "Schema mit typisierten Feldern aus einer Beschreibung"
+            },
+            "list-collections": {
+                "title": "Collections auflisten",
+                "description": "Vorhandene Collections mit IDs und Feldern zeigen"
+            },
+            "import-csv": {
+                "title": "Angehängte CSV importieren",
+                "description": "Collection aus CSV im Chat erstellen/aktualisieren"
+            },
+            "import-excel": {
+                "title": "Angehängtes Excel importieren",
+                "description": "Import aus .xlsx-Datei"
+            },
+            "import-url-json": {
+                "title": "JSON von URL importieren",
+                "description": "Remote-JSON → Collection"
+            },
+            "import-dry-run": {
+                "title": "Import-Vorschau (Dry-Run)",
+                "description": "Simulieren ohne Daten zu schreiben"
+            },
+            "import-upsert": {
+                "title": "Sync / Upsert",
+                "description": "Re-Import ohne Duplikate (eindeutiger Schlüssel)"
+            },
+            "export-collection": {
+                "title": "Collection exportieren",
+                "description": "CSV oder JSON exportieren"
+            },
+            "bulk-edit": {
+                "title": "Elemente massenhaft bearbeiten",
+                "description": "Viele Elemente mit Filter aktualisieren"
+            },
+            "bulk-delete": {
+                "title": "Elemente massenhaft löschen",
+                "description": "Gefilterte Elemente soft-löschen"
+            },
+            "nl-query": {
+                "title": "Natürlichsprachliche Abfrage",
+                "description": "Elemente filtern und zählen"
+            },
+            "pdf-to-schema": {
+                "title": "PDF → Schema / Daten",
+                "description": "PDF-Text extrahieren und Collection vorschlagen"
+            },
+            "duplicate-collection": {
+                "title": "Collection duplizieren",
+                "description": "Schema kopieren (optional mit Beispielen)"
+            },
+            "restore-collection": {
+                "title": "Collection aus Papierkorb wiederherstellen",
+                "description": "Soft-Delete rückgängig"
+            },
+            "manage-files": {
+                "title": "Dateien organisieren",
+                "description": "Ordner, verschieben, umbenennen"
+            },
+            "move-files": {
+                "title": "Dateien verschieben",
+                "description": "Dateien/Ordner in anderen Ordner verschieben"
+            },
+            "attach-file-to-item": {
+                "title": "Datei mit Element verknüpfen",
+                "description": "Datei-/Bildfeld an einem Element setzen"
+            },
+            "save-attachment-to-files": {
+                "title": "Chat-Anhang in Dateien speichern",
+                "description": "Anhang in den Dateimanager kopieren"
+            },
+            "create-role": {
+                "title": "Rolle mit Berechtigungen erstellen",
+                "description": "Neue Spatie-Rolle + Berechtigungen synchronisieren"
+            },
+            "list-roles": {
+                "title": "Rollen auflisten",
+                "description": "Rollen und Berechtigungsanzahl zeigen"
+            },
+            "create-group": {
+                "title": "Benutzergruppe erstellen",
+                "description": "Gruppe mit Mitgliedern und verknüpften Rollen"
+            },
+            "create-user": {
+                "title": "Benutzer erstellen",
+                "description": "Neuer Benutzer mit Rolle wenn möglich"
+            },
+            "list-users": {
+                "title": "Benutzer auflisten",
+                "description": "Aktive Benutzerliste"
+            },
+            "audit-activity": {
+                "title": "Aktivitätsaudit",
+                "description": "Was kürzlich passiert ist"
+            },
+            "async-large-import": {
+                "title": "Großer Hintergrundimport",
+                "description": "Asynchroner Job mit Fortschritt"
+            },
+            "scheduled-sync": {
+                "title": "Geplante URL-Synchronisation",
+                "description": "Periodischer Remote-Import"
+            },
+            "rollback-last-turn": {
+                "title": "Letzte KI-Operation rückgängig",
+                "description": "Soft-Rollback kürzlicher Mutationen"
+            }
+        },
+        "usefulActionsAria": "Nützliche Aktionen",
+        "askPlaceholder": "Assistenten fragen…",
+        "askSomething": "Etwas fragen…",
+        "offlinePlaceholder": "KI offline…",
+        "attachTooltip": "CSV, TXT, Excel oder PDF anhängen (max. 5 MB)",
+        "attachShortTooltip": "CSV oder TXT anhängen (max. 5 MB)",
+        "attachAria": "Anhängen",
+        "messageAria": "Nachricht",
+        "dictationAria": "Diktat",
+        "stopDictation": "Diktat stoppen",
+        "voiceDictation": "Sprachdiktat",
+        "stopAria": "Stopp",
+        "sendAria": "Senden",
+        "openAssistant": "KI-Assistent öffnen",
+        "assistantOffline": "Assistent offline",
+        "assistantOnline": "Assistent online",
+        "aiOfflineHint": "KI offline — LM Studio starten zum Aktivieren",
+        "thinking": "Denke nach",
+        "copied": "In die Zwischenablage kopiert",
+        "copyFailed": "Kopieren fehlgeschlagen",
+        "speechUnavailable": "Sprachausgabe nicht verfügbar",
+        "exportPdf": "PDF exportieren",
+        "pdfFailed": "PDF-Export fehlgeschlagen",
+        "regenerate": "Neu generieren",
+        "readAloud": "Vorlesen",
+        "removeAttachment": "{{name}} entfernen",
+        "simulation": "Simulation",
+        "simulationHint": "Schreibt keine Daten",
+        "dictationUnsupported": "Diktat wird in diesem Browser nicht unterstützt"
+    },
+    "dashboard": {
+        "title": "Dashboard",
+        "description": "Überblick über Inhalts-Insights, letzte Aktivität, Speicher und Upload-Gesundheit.",
+        "insightsCollections": "Insights — Collections",
+        "insightsCollectionsDesc": "Elementanzahl pro Collection.",
+        "collection": "Collection",
+        "items": "Elemente",
+        "noCollections": "Noch keine Collections.",
+        "insightsActivity": "Insights — Aktivität",
+        "insightsActivityDesc": "Ereignisse pro Tag (letzte 30 Tage; Diagramm zeigt letzte 7).",
+        "noActivity7d": "Keine Aktivität in den letzten 7 Tagen.",
+        "contentEvents": "Inhaltsereignisse",
+        "contentEventsDesc": "Collection-Elemente erstellen / aktualisieren / löschen (30T).",
+        "noContentEvents": "Keine Inhaltsereignisse.",
+        "created": "Erstellt",
+        "updated": "Aktualisiert",
+        "deleted": "Gelöscht",
+        "latestActivity": "Letzte Aktivität",
+        "latestActivityDesc": "Letzte 10 Ereignisse in der App.",
+        "event": "Ereignis",
+        "descriptionCol": "Beschreibung",
+        "when": "Wann",
+        "byUser": "von {{name}}",
+        "noActivity": "Noch keine Aktivität.",
+        "viewAll": "Alle anzeigen",
+        "suspicious": "Verdächtige Ereignisse",
+        "suspiciousDesc": "Fehlgeschlagene Ereignisse der letzten Stunde.",
+        "noSuspicious": "Keine verdächtigen Ereignisse.",
+        "mostActive": "Aktivste Benutzer",
+        "mostActiveDesc": "Top 5 der letzten 24 Stunden.",
+        "user": "Benutzer",
+        "events": "Ereignisse",
+        "stuckUploads": "Hängende/verwaiste Uploads",
+        "stuckUploadsDesc": "Unvollständig, abgelaufen oder ohne Parent.",
+        "upload": "Upload",
+        "chunks": "Chunks",
+        "noParent": "kein Parent",
+        "parentId": "Parent #{{id}}",
+        "noStuckUploads": "Keine hängenden Uploads.",
+        "storageOverview": "Speicherübersicht",
+        "storageOverviewDesc": "Dateien, Ordner und Gesamtgröße.",
+        "files": "Dateien",
+        "folders": "Ordner",
+        "totalSize": "Gesamtgröße",
+        "uploadHealth": "Upload-Gesundheit",
+        "uploadHealthDesc": "Laufende und veraltete Uploads.",
+        "inProgress": "In Bearbeitung",
+        "stale": "Veraltet",
+        "largestFiles": "Größte Dateien",
+        "largestFilesDesc": "Top 10 nach Größe (nach dem ersten Render geladen).",
+        "loading": "Wird geladen…",
+        "file": "Datei",
+        "size": "Größe",
+        "noFiles": "Noch keine Dateien.",
+        "storageTrend": "Speichertrend",
+        "storageTrendDesc": "Täglich hinzugefügte Bytes (letzte 14 Tage, nach dem ersten Render geladen).",
+        "date": "Datum",
+        "added": "Hinzugefügt",
+        "noData": "Keine Daten.",
+        "storageByDisk": "Speicher nach Disk",
+        "storageByDiskDesc": "Optionale Aufschlüsselung (Top 8, nach dem ersten Render geladen).",
+        "disk": "Disk"
     }
 }

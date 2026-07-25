@@ -94,7 +94,7 @@ class ManageAiSyncSources implements Tool
         $collection = Collection::query()->find($request->integer('collection_id'));
 
         if ($collection === null) {
-            return 'Error: Collezione non trovata.';
+            return 'Error: Collection not found.';
         }
 
         $source = AiSyncSource::query()->create([
@@ -143,7 +143,7 @@ class ManageAiSyncSources implements Tool
         }
 
         if ($attributes === []) {
-            return 'Error: Nessun campo da aggiornare.';
+            return 'Error: No fields to update.';
         }
 
         $source->update($attributes);
@@ -183,7 +183,7 @@ class ManageAiSyncSources implements Tool
             ->where('user_id', $this->authenticatedUser()?->id)
             ->find($request->integer('source_id'));
 
-        return $source ?? 'Error: Sorgente sync non trovata.';
+        return $source ?? 'Error: Sync source not found.';
     }
 
     private function sourceJson(AiSyncSource $source): string

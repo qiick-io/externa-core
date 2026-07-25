@@ -23,17 +23,11 @@ class SearchSimilarCollectionItems implements Tool
     use EnforcesAiCollectionPermissions;
     use LogsAiToolUse;
 
-    /**
-     * @return Stringable|string
-     */
     public function description(): Stringable|string
     {
         return 'Semantic-lite search across collection item values using case-insensitive text matching; true embeddings are not configured.';
     }
 
-    /**
-     * @return Stringable|string
-     */
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
@@ -45,7 +39,7 @@ class SearchSimilarCollectionItems implements Tool
             $query = trim((string) $request->string('query'));
 
             if ($collection === null || $query === '') {
-                return 'Error: collection_id e query sono richiesti.';
+                return 'Error: collection_id and query are required.';
             }
 
             $assembler = app(CollectionItemValuesAssembler::class);

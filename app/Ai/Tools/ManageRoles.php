@@ -244,7 +244,7 @@ class ManageRoles implements Tool
         $user = $this->authenticatedUser();
 
         if ($user === null) {
-            return 'Error: Non autenticato.';
+            return 'Error: Unauthenticated.';
         }
 
         $resolver = app(EffectivePermissionResolver::class);
@@ -253,7 +253,7 @@ class ManageRoles implements Tool
             || $resolver->hasPermission($user, PermissionEnum::CanEditRoles->value);
 
         if (! $canList) {
-            return 'Error: Permesso mancante (can-show-permissions|can-create-roles|can-edit-roles). Non puoi eseguire questa operazione.';
+            return 'Error: Missing permission (can-show-permissions|can-create-roles|can-edit-roles). You cannot perform this operation.';
         }
 
         $limit = min(max($request->integer('limit', 200), 1), 500);

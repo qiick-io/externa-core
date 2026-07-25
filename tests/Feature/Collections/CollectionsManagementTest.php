@@ -925,7 +925,7 @@ test('hash field value is auto generated on item create', function () {
         ->toHaveLength(64);
 });
 
-test('field stores common directus-like settings payload', function () {
+test('field stores common settings payload', function () {
     $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 

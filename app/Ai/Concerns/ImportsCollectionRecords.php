@@ -27,14 +27,14 @@ trait ImportsCollectionRecords
             $collection = Collection::query()->with('fields')->find($collectionId);
 
             if ($collection === null) {
-                return 'Error: Collezione non trovata.';
+                return 'Error: Collection not found.';
             }
 
             return [$collection, false];
         }
 
         if ($collectionName === '') {
-            return 'Error: Serve collection_id oppure collection_name.';
+            return 'Error: collection_id or collection_name is required.';
         }
 
         $slug = Str::slug($collectionName);
@@ -148,7 +148,7 @@ trait ImportsCollectionRecords
 
         if ($labelToField === []) {
             throw new \RuntimeException(
-                'Nessuna colonna corrisponde ai campi della collezione ('.
+                'No columns match the collection fields ('.
                 $collection->fields->pluck('name')->implode(', ').
                 ')'
             );
@@ -180,7 +180,7 @@ trait ImportsCollectionRecords
             $existingByUpsertValue = [];
 
             if ($upsertFieldName !== null && ! $collection->fields->contains('name', $upsertFieldName)) {
-                throw new \RuntimeException("Campo upsert_key non trovato: {$upsertKey}");
+                throw new \RuntimeException("upsert_key field not found: {$upsertKey}");
             }
 
             if ($upsertFieldName !== null) {
@@ -209,7 +209,7 @@ trait ImportsCollectionRecords
 
                 if ($collection->is_singleton && $collection->items()->exists()) {
                     $skipped++;
-                    $errors[] = "Riga {$rowNumber}: collezione singleton già popolata.";
+                    $errors[] = "Row {$rowNumber}: singleton collection already has an item.";
 
                     continue;
                 }
@@ -248,7 +248,7 @@ trait ImportsCollectionRecords
                     }
                 } catch (Throwable $exception) {
                     $skipped++;
-                    $errors[] = "Riga {$rowNumber}: ".$exception->getMessage();
+                    $errors[] = "Row {$rowNumber}: ".$exception->getMessage();
                 }
             }
 

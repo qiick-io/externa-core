@@ -59,7 +59,7 @@ class ProjectAppearance
         }
 
         $projectColor = is_string($raw['project_color'] ?? null) ? $raw['project_color'] : null;
-        // Unset dark brand falls back to light (Directus-style dual color).
+        // Unset dark brand falls back to light (dual light/dark brand color).
         $projectColorDark = is_string($raw['project_color_dark'] ?? null)
             ? $raw['project_color_dark']
             : $projectColor;

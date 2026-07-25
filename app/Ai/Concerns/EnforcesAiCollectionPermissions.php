@@ -12,7 +12,7 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
  * Apply CollectionPermissionEnforcer (field ACL / item_filter) inside AI tools.
- * Returns Italian/English Error strings instead of HTTP aborts.
+ * Returns English Error strings instead of HTTP aborts.
  */
 trait EnforcesAiCollectionPermissions
 {

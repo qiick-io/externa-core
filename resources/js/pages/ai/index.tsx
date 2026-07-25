@@ -1,9 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
-    Paperclip,
     Pin,
     Plus,
-    RefreshCw,
     Sparkles,
     Trash2,
 } from 'lucide-react';
@@ -11,19 +9,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer';
 import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
+import { AiChatMessages } from '@/components/ai/ai-chat-messages';
 import { AiComposer } from '@/components/ai/ai-composer';
 import {
-    AiFileCards,
     fileCardsFromToolResult,
-    fileCardsFromToolResults
-    
+    fileCardsFromToolResults,
 } from '@/components/ai/ai-file-cards';
-import type {AiFileCardItem} from '@/components/ai/ai-file-cards';
-import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
-import { AssistantMessageActions } from '@/components/ai/assistant-message-actions';
-import { ThinkingDots } from '@/components/ai/thinking-dots';
-import { UserMessageActions } from '@/components/ai/user-message-actions';
-import { Bubble, BubbleContent } from '@/components/ui/bubble';
+import type { AiFileCardItem } from '@/components/ai/ai-file-cards';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -34,11 +26,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import {
-    Message,
-    MessageContent,
-    MessageFooter,
-} from '@/components/ui/message';
 import AppLayout from '@/layouts/app-layout';
 import {
     AI_CHAT_ATTACHMENT_ACCEPT,
@@ -63,7 +50,6 @@ import type {
     AiConversationSummary,
     AiImportJobStatus,
 } from '@/lib/ai-chat';
-import { suggestedActionsForTools } from '@/lib/ai-suggested-actions';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { toast } from '@/lib/toast';
@@ -112,7 +98,7 @@ function toolFallbackContent(
     const uniqueTools = [...new Set([...toolsUsed, ...namesFromCalls])];
     const toolLabel = uniqueTools.length > 0 ? uniqueTools.join(', ') : 'tool';
 
-    return `Operazione completata tramite ${toolLabel}. Se serve, chiedimi di verificare il risultato.`;
+    return `Completed via ${toolLabel}. Ask me to verify the result if needed.`;
 }
 
 type Props = {
@@ -131,7 +117,7 @@ type ConversationSection = {
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Assistente',
+        title: 'Assistant',
         href: aiIndex.url(),
     },
 ];
@@ -187,30 +173,30 @@ function conversationDateGroup(updatedAt: string | null | undefined): {
     const dayDelta = daysBetween(updated, now);
 
     if (dayDelta <= 0) {
-        return { key: 'oggi', label: 'Oggi', order: 0 };
+        return { key: 'today', label: 'Today', order: 0 };
     }
 
     if (dayDelta === 1) {
-        return { key: 'ieri', label: 'Ieri', order: 1 };
+        return { key: 'yesterday', label: 'Yesterday', order: 1 };
     }
 
     if (dayDelta === 2) {
-        return { key: '2-giorni', label: '2 giorni fa', order: 2 };
+        return { key: '2-days', label: '2 days ago', order: 2 };
     }
 
     if (dayDelta < 7) {
-        return { key: 'settimana', label: 'Questa settimana', order: 3 };
+        return { key: 'week', label: 'This week', order: 3 };
     }
 
     if (dayDelta < 14) {
-        return { key: 'una-settimana', label: 'Una settimana fa', order: 4 };
+        return { key: 'last-week', label: 'A week ago', order: 4 };
     }
 
     if (dayDelta < 30) {
-        return { key: 'mese', label: 'Questo mese', order: 5 };
+        return { key: 'month', label: 'This month', order: 5 };
     }
 
-    return { key: 'older', label: 'Più vecchie', order: 6 };
+    return { key: 'older', label: 'Older', order: 6 };
 }
 
 function groupConversations(
@@ -228,7 +214,7 @@ function groupConversations(
     if (pinned.length > 0) {
         sections.push({
             key: 'pinned',
-            label: 'Fissate',
+            label: 'Pinned',
             conversations: pinned,
         });
     }
@@ -444,7 +430,7 @@ export default function AiIndexPage({
                 (conversation) => conversation.id === conversationId,
             )?.title ??
             selectedConversation?.title ??
-            'Nuova chat'
+            'New chat'
         );
     }, [conversationItems, conversationId, selectedConversation?.title]);
 
@@ -472,7 +458,7 @@ export default function AiIndexPage({
                 { preserveState: false },
             );
         } catch {
-            toast.error('Impossibile avviare una nuova chat');
+            toast.error('Unable to start a new chat');
         }
     };
 
@@ -521,7 +507,7 @@ export default function AiIndexPage({
             removeConversationsFromSidebar([id]);
             refreshConversationsAfterDelete(conversationId === id);
         } catch {
-            toast.error('Impossibile eliminare la chat');
+            toast.error('Unable to delete the chat');
         }
     };
 
@@ -532,7 +518,7 @@ export default function AiIndexPage({
                 only: ['conversations', 'selectedConversation'],
             });
         } catch {
-            toast.error('Impossibile aggiornare il pin');
+            toast.error('Unable to update pin');
         }
     };
 
@@ -605,7 +591,7 @@ export default function AiIndexPage({
             setListPage(nextPage.current_page);
             setListLastPage(nextPage.last_page);
         } catch {
-            toast.error('Impossibile caricare altre chat');
+            toast.error('Unable to load more chats');
         } finally {
             setIsLoadingMore(false);
         }
@@ -636,7 +622,7 @@ export default function AiIndexPage({
 
             refreshConversationsAfterDelete(selectedWasDeleted);
         } catch {
-            toast.error('Impossibile eliminare le chat selezionate');
+            toast.error('Unable to delete selected chats');
         } finally {
             setIsBulkDeleting(false);
         }
@@ -895,9 +881,9 @@ export default function AiIndexPage({
 
                             markAssistantError(
                                 assistantMessageId,
-                                "Nessuna risposta dall'assistente. Riprova.",
+                                "No response from the assistant. Try again.",
                             );
-                            toast.error("Nessuna risposta dall'assistente");
+                            toast.error("No response from the assistant");
 
                             return;
                         }
@@ -929,7 +915,7 @@ export default function AiIndexPage({
                         setToolHint(null);
                         markAssistantError(
                             assistantMessageId,
-                            error.message || 'Errore durante la risposta',
+                            error.message || 'Error during response',
                         );
                     },
                 },
@@ -972,7 +958,7 @@ export default function AiIndexPage({
                                 ? {
                                       ...entry,
                                       content:
-                                          "Nessuna risposta dall'assistente. Riprova.",
+                                          "No response from the assistant. Try again.",
                                       isError: true,
                                   }
                                 : entry,
@@ -1007,7 +993,7 @@ export default function AiIndexPage({
             const messageText =
                 error instanceof Error
                     ? error.message
-                    : 'Errore durante la risposta';
+                    : 'Error during response';
 
             markAssistantError(assistantMessageId, messageText);
             toast.error(messageText);
@@ -1045,7 +1031,7 @@ export default function AiIndexPage({
             toast.error(
                 uploadError instanceof Error
                     ? uploadError.message
-                    : 'Caricamento allegato non riuscito',
+                    : 'Attachment upload failed',
             );
         } finally {
             setIsUploadingAttachment(false);
@@ -1083,14 +1069,14 @@ export default function AiIndexPage({
         }
 
         if (!message) {
-            toast.error('Scrivi un messaggio oltre agli allegati');
+            toast.error('Write a message in addition to attachments');
 
             return;
         }
 
         const attachmentsToSend = pendingAttachments;
         const prompt = dryRunMode
-            ? `[MODALITÀ SIMULAZIONE] Esegui solo dry_run=true, non scrivere dati.\n\n${message}`
+            ? `[SIMULATION MODE] Run dry_run=true only; do not write data.\n\n${message}`
             : message;
         setComposer('');
         setPendingAttachments([]);
@@ -1105,7 +1091,7 @@ export default function AiIndexPage({
             const messageText =
                 error instanceof Error
                     ? error.message
-                    : "Errore durante l'invio";
+                    : 'Error while sending';
             toast.error(messageText);
         }
     };
@@ -1141,7 +1127,7 @@ export default function AiIndexPage({
         const userMessage = findPrecedingUserMessage(assistantMessageId);
 
         if (!userMessage) {
-            toast.error('Nessun messaggio utente da rigenerare');
+            toast.error('No user message to regenerate');
 
             return;
         }
@@ -1164,7 +1150,7 @@ export default function AiIndexPage({
                     userMessage.id,
                 );
             } catch {
-                toast.error('Impossibile preparare la rigenerazione');
+                toast.error('Unable to prepare regeneration');
 
                 return;
             }
@@ -1181,7 +1167,7 @@ export default function AiIndexPage({
         });
 
         if (succeeded && options.asRetry) {
-            toast.success('Messaggio reinviato');
+            toast.success('Message resent');
         }
     };
 
@@ -1203,7 +1189,7 @@ export default function AiIndexPage({
         const draft = editingDraft.trim();
 
         if (!draft) {
-            toast.error('Il messaggio non può essere vuoto');
+            toast.error('Message cannot be empty');
 
             return;
         }
@@ -1226,7 +1212,7 @@ export default function AiIndexPage({
             try {
                 await truncateAiConversationFrom(conversationId, messageId);
             } catch {
-                toast.error('Impossibile modificare il messaggio');
+                toast.error('Unable to edit the message');
 
                 return;
             }
@@ -1245,7 +1231,7 @@ export default function AiIndexPage({
         const Recognition = getSpeechRecognitionConstructor();
 
         if (!Recognition) {
-            toast.error('Dettatura non supportata in questo browser');
+            toast.error('Dictation is not supported in this browser');
 
             return;
         }
@@ -1291,7 +1277,7 @@ export default function AiIndexPage({
         recognition.addEventListener('error', () => {
             setIsListening(false);
             recognitionRef.current = null;
-            toast.error('Errore durante la dettatura');
+            toast.error('Dictation error');
         });
 
         recognition.addEventListener('end', () => {
@@ -1304,13 +1290,13 @@ export default function AiIndexPage({
             setIsListening(true);
         } catch {
             setIsListening(false);
-            toast.error('Impossibile avviare la dettatura');
+            toast.error('Unable to start dictation');
         }
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Assistente" />
+            <Head title="Assistant" />
 
             <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border bg-card">
                 <aside className="flex w-72 shrink-0 flex-col border-r">
@@ -1328,7 +1314,7 @@ export default function AiIndexPage({
                                     selectedIds.size === 0 || isBulkDeleting
                                 }
                                 onClick={() => setConfirmBulkDeleteOpen(true)}
-                                aria-label="Elimina chat selezionate"
+                                aria-label="Delete selected chats"
                             >
                                 <Trash2 className="size-3.5" />
                             </Button>
@@ -1345,7 +1331,7 @@ export default function AiIndexPage({
                     <div className="min-h-0 flex-1 overflow-y-auto p-2">
                         {conversationItems.length === 0 ? (
                             <p className="px-2 py-4 text-sm text-muted-foreground">
-                                Nessuna conversazione.
+                                No conversations.
                             </p>
                         ) : (
                             <>
@@ -1398,7 +1384,7 @@ export default function AiIndexPage({
                                                                     index,
                                                                 )
                                                             }
-                                                            aria-label={`Seleziona ${conversation.title}`}
+                                                            aria-label={`Select ${conversation.title}`}
                                                         />
                                                         <button
                                                             type="button"
@@ -1427,8 +1413,8 @@ export default function AiIndexPage({
                                                             }
                                                             aria-label={
                                                                 conversation.pinned_at
-                                                                    ? 'Rimuovi pin'
-                                                                    : 'Fissa chat'
+                                                                    ? 'Unpin'
+                                                                    : 'Pin chat'
                                                             }
                                                         >
                                                             <Pin
@@ -1448,7 +1434,7 @@ export default function AiIndexPage({
                                                                     conversation.id,
                                                                 )
                                                             }
-                                                            aria-label="Elimina chat"
+                                                            aria-label="Delete chat"
                                                         >
                                                             <Trash2 className="size-3.5" />
                                                         </Button>
@@ -1470,8 +1456,8 @@ export default function AiIndexPage({
                                         }
                                     >
                                         {isLoadingMore
-                                            ? 'Caricamento…'
-                                            : 'Carica altre'}
+                                            ? 'Loading…'
+                                            : 'Load more'}
                                     </Button>
                                 ) : null}
                             </>
@@ -1486,11 +1472,11 @@ export default function AiIndexPage({
                                 {selectedTitle}
                             </h1>
                             <p className="text-xs text-muted-foreground">
-                                Assistente con permessi per collezioni e file
+                                Assistant with permissions for collections and files
                             </p>
                         </div>
                         <Button variant="ghost" size="sm" asChild>
-                            <Link href={aiIndex.url()}>Nuova chat</Link>
+                            <Link href={aiIndex.url()}>New chat</Link>
                         </Button>
                     </div>
 
@@ -1501,283 +1487,29 @@ export default function AiIndexPage({
                         }
                     >
                         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
-                            {messages.length === 0 ? (
-                                <div className="m-auto max-w-md text-center text-sm text-muted-foreground">
-                                    Chiedi all&apos;assistente di elencare
-                                    collezioni, creare elementi o gestire file.
-                                    Le azioni distruttive passano dai tool.
-                                </div>
-                            ) : (
-                                messages.map((message) => {
-                                    const isUser = message.role === 'user';
-                                    const isEditing =
-                                        editingMessageId === message.id;
-                                    const isEmptyAssistant =
-                                        !isUser &&
-                                        message.content.trim() === '';
-                                    const isLastMessage =
-                                        message.id ===
-                                        messages[messages.length - 1]?.id;
-                                    const showThinking =
-                                        isEmptyAssistant &&
-                                        isStreaming &&
-                                        isLastMessage &&
-                                        !message.isError;
-
-                                    return (
-                                        <Message
-                                            key={message.id}
-                                            align={isUser ? 'end' : 'start'}
-                                        >
-                                            <MessageContent>
-                                                <Bubble
-                                                    variant={
-                                                        message.isError
-                                                            ? 'destructive'
-                                                            : isUser
-                                                              ? 'muted'
-                                                              : 'ghost'
-                                                    }
-                                                    align={
-                                                        isUser ? 'end' : 'start'
-                                                    }
-                                                >
-                                                    <BubbleContent
-                                                        className={cn(
-                                                            isUser
-                                                                ? 'text-foreground'
-                                                                : 'w-full max-w-full',
-                                                        )}
-                                                    >
-                                                        {isEditing ? (
-                                                            <div className="flex min-w-[16rem] flex-col gap-2">
-                                                                <textarea
-                                                                    value={
-                                                                        editingDraft
-                                                                    }
-                                                                    onChange={(
-                                                                        event,
-                                                                    ) =>
-                                                                        setEditingDraft(
-                                                                            event
-                                                                                .target
-                                                                                .value,
-                                                                        )
-                                                                    }
-                                                                    rows={3}
-                                                                    className="w-full resize-y rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                                                />
-                                                                <div className="flex justify-end gap-2">
-                                                                    <Button
-                                                                        type="button"
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        onClick={
-                                                                            cancelEditing
-                                                                        }
-                                                                    >
-                                                                        Annulla
-                                                                    </Button>
-                                                                    <Button
-                                                                        type="button"
-                                                                        size="sm"
-                                                                        onClick={() =>
-                                                                            void handleResendEdited(
-                                                                                message.id,
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        Invia di
-                                                                        nuovo
-                                                                    </Button>
-                                                                </div>
-                                                            </div>
-                                                        ) : showThinking ? (
-                                                            <ThinkingDots />
-                                                        ) : isUser ? (
-                                                            <div className="flex flex-col gap-2">
-                                                                {(message
-                                                                    .attachments
-                                                                    ?.length ??
-                                                                    0) > 0 ? (
-                                                                    <div className="flex flex-wrap gap-1.5">
-                                                                        {message.attachments?.map(
-                                                                            (
-                                                                                attachment,
-                                                                            ) => (
-                                                                                <span
-                                                                                    key={
-                                                                                        attachment.id ??
-                                                                                        attachment.name
-                                                                                    }
-                                                                                    className="inline-flex items-center gap-1 rounded-md bg-foreground/15 px-2 py-0.5 text-xs"
-                                                                                >
-                                                                                    <Paperclip className="size-3" />
-                                                                                    {
-                                                                                        attachment.name
-                                                                                    }
-                                                                                </span>
-                                                                            ),
-                                                                        )}
-                                                                    </div>
-                                                                ) : null}
-                                                                <div className="whitespace-pre-wrap">
-                                                                    {
-                                                                        message.content
-                                                                    }
-                                                                </div>
-                                                            </div>
-                                                        ) : message.isError ? (
-                                                            <div className="flex flex-col gap-2">
-                                                                <div className="text-sm whitespace-pre-wrap">
-                                                                    {
-                                                                        message.content
-                                                                    }
-                                                                </div>
-                                                                <Button
-                                                                    type="button"
-                                                                    size="sm"
-                                                                    variant="secondary"
-                                                                    className="w-fit"
-                                                                    disabled={
-                                                                        isStreaming
-                                                                    }
-                                                                    onClick={() =>
-                                                                        void handleRegenerate(
-                                                                            message.id,
-                                                                            {
-                                                                                asRetry: true,
-                                                                            },
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <RefreshCw className="size-3.5" />
-                                                                    Riprova
-                                                                </Button>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex flex-col gap-3">
-                                                                <AssistantMarkdown
-                                                                    content={
-                                                                        message.content
-                                                                    }
-                                                                />
-                                                                {message.fileCards &&
-                                                                message.fileCards
-                                                                    .length >
-                                                                    0 ? (
-                                                                    <AiFileCards
-                                                                        files={
-                                                                            message.fileCards
-                                                                        }
-                                                                    />
-                                                                ) : null}
-                                                                {isLastMessage
-                                                                    ? (() => {
-                                                                          const toolNames =
-                                                                              message.toolNames ??
-                                                                              message.tool_calls
-                                                                                  ?.map(
-                                                                                      (
-                                                                                          toolCall,
-                                                                                      ) =>
-                                                                                          toolCall.name ??
-                                                                                          toolCall
-                                                                                              .function
-                                                                                              ?.name,
-                                                                                  )
-                                                                                  .filter(
-                                                                                      (
-                                                                                          name,
-                                                                                      ): name is string =>
-                                                                                          Boolean(
-                                                                                              name,
-                                                                                          ),
-                                                                                  ) ??
-                                                                              [];
-                                                                          const actions =
-                                                                              suggestedActionsForTools(
-                                                                                  toolNames,
-                                                                              );
-
-                                                                          return actions.length >
-                                                                              0 ? (
-                                                                              <div className="flex flex-wrap gap-2">
-                                                                                  {actions.map(
-                                                                                      (
-                                                                                          action,
-                                                                                      ) => (
-                                                                                          <Button
-                                                                                              key={
-                                                                                                  action.label
-                                                                                              }
-                                                                                              type="button"
-                                                                                              size="sm"
-                                                                                              variant="outline"
-                                                                                              className="h-7 rounded-full text-xs"
-                                                                                              onClick={() =>
-                                                                                                  setComposer(
-                                                                                                      action.prompt,
-                                                                                                  )
-                                                                                              }
-                                                                                          >
-                                                                                              {
-                                                                                                  action.label
-                                                                                              }
-                                                                                          </Button>
-                                                                                      ),
-                                                                                  )}
-                                                                              </div>
-                                                                          ) : null;
-                                                                      })()
-                                                                    : null}
-                                                            </div>
-                                                        )}
-                                                    </BubbleContent>
-                                                </Bubble>
-
-                                                {isUser && !isEditing ? (
-                                                    <MessageFooter className="opacity-60 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100">
-                                                        <UserMessageActions
-                                                            content={
-                                                                message.content
-                                                            }
-                                                            disabled={
-                                                                isStreaming
-                                                            }
-                                                            onEdit={() =>
-                                                                startEditing(
-                                                                    message,
-                                                                )
-                                                            }
-                                                        />
-                                                    </MessageFooter>
-                                                ) : null}
-
-                                                {!isUser &&
-                                                !isEmptyAssistant &&
-                                                !message.isError ? (
-                                                    <MessageFooter className="opacity-60 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100">
-                                                        <AssistantMessageActions
-                                                            content={
-                                                                message.content
-                                                            }
-                                                            disabled={
-                                                                isStreaming
-                                                            }
-                                                            onRegenerate={() =>
-                                                                void handleRegenerate(
-                                                                    message.id,
-                                                                )
-                                                            }
-                                                        />
-                                                    </MessageFooter>
-                                                ) : null}
-                                            </MessageContent>
-                                        </Message>
-                                    );
-                                })
-                            )}
+                            <AiChatMessages
+                                messages={messages}
+                                isStreaming={isStreaming}
+                                editingMessageId={editingMessageId}
+                                editingDraft={editingDraft}
+                                onEditingDraftChange={setEditingDraft}
+                                onCancelEdit={cancelEditing}
+                                onStartEdit={startEditing}
+                                onResendEdited={(messageId) =>
+                                    void handleResendEdited(messageId)
+                                }
+                                onRegenerate={(messageId, options) =>
+                                    void handleRegenerate(messageId, options)
+                                }
+                                onSuggestedAction={setComposer}
+                                emptyState={
+                                    <div className="m-auto max-w-md text-center text-sm text-muted-foreground">
+                                        Ask the assistant to list collections,
+                                        create items, or manage files.
+                                        Destructive actions go through tools.
+                                    </div>
+                                }
+                            />
 
                             {toolHint ? (
                                 <p className="text-xs text-muted-foreground">
@@ -1848,11 +1580,11 @@ export default function AiIndexPage({
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            Eliminare le chat selezionate?
+                            Delete selected chats?
                         </DialogTitle>
                         <DialogDescription>
-                            Stai per eliminare {selectedIds.size} chat.
-                            L&apos;azione non può essere annullata.
+                            You are about to delete {selectedIds.size} chats.
+                            This action cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -1861,14 +1593,14 @@ export default function AiIndexPage({
                             onClick={() => setConfirmBulkDeleteOpen(false)}
                             disabled={isBulkDeleting}
                         >
-                            Annulla
+                            Cancel
                         </Button>
                         <Button
                             variant="destructive"
                             onClick={() => void handleBulkDelete()}
                             disabled={isBulkDeleting}
                         >
-                            Elimina
+                            Delete
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -1,5 +1,6 @@
 import { Search, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -21,21 +22,18 @@ import {
 import { Input } from '@/components/ui/input';
 import { useCan } from '@/hooks/use-can';
 import {
-    AI_ACTION_PRESET_CATEGORY_LABELS,
     AI_ACTION_PRESETS,
-    filterAiActionPresets
-    
-    
+    filterAiActionPresets,
 } from '@/lib/ai-action-presets';
-import type {AiActionPreset, AiActionPresetCategory} from '@/lib/ai-action-presets';
+import type { AiActionPreset, AiActionPresetCategory } from '@/lib/ai-action-presets';
 import { cn } from '@/lib/utils';
 
 const CATEGORY_ORDER: AiActionPresetCategory[] = [
-    'comuni',
-    'dati',
-    'file',
+    'common',
+    'data',
+    'files',
     'admin',
-    'avanzate',
+    'advanced',
 ];
 
 type AiActionPresetsDrawerProps = {
@@ -57,6 +55,7 @@ export function AiActionPresetsDrawer({
     onSelect,
     nested = false,
 }: AiActionPresetsDrawerProps) {
+    const { t } = useTranslation();
     const DrawerRoot = nested ? DrawerNested : Drawer;
     const { can } = useCan();
     const [search, setSearch] = useState('');
@@ -68,9 +67,23 @@ export function AiActionPresetsDrawer({
         [can],
     );
 
+    const localizedPresets = useMemo(
+        () =>
+            visiblePresets.map((preset) => ({
+                ...preset,
+                title: t(`ai.presets.${preset.id}.title`, {
+                    defaultValue: preset.title,
+                }),
+                description: t(`ai.presets.${preset.id}.description`, {
+                    defaultValue: preset.description,
+                }),
+            })),
+        [t, visiblePresets],
+    );
+
     const grouped = useMemo(() => {
         const query = search.trim().toLowerCase();
-        const filtered = visiblePresets.filter((preset) => {
+        const filtered = localizedPresets.filter((preset) => {
             if (query === '') {
                 return true;
             }
@@ -84,10 +97,10 @@ export function AiActionPresetsDrawer({
 
         return CATEGORY_ORDER.map((category) => ({
             category,
-            label: AI_ACTION_PRESET_CATEGORY_LABELS[category],
+            label: t(`ai.categories.${category}`),
             presets: filtered.filter((preset) => preset.category === category),
         })).filter((group) => group.presets.length > 0);
-    }, [search, visiblePresets]);
+    }, [search, localizedPresets, t]);
 
     const applyPreset = (preset: AiActionPreset): void => {
         onSelect(preset.prompt);
@@ -105,6 +118,12 @@ export function AiActionPresetsDrawer({
 
         applyPreset(preset);
     };
+
+    const pendingTitle = pendingDestructive
+        ? t(`ai.presets.${pendingDestructive.id}.title`, {
+              defaultValue: pendingDestructive.title,
+          })
+        : '';
 
     return (
         <>
@@ -124,11 +143,10 @@ export function AiActionPresetsDrawer({
                     <DrawerHeader>
                         <DrawerTitle className="flex items-center gap-2">
                             <Sparkles className="size-4" />
-                            Azioni utili
+                            {t('ai.drawer.title')}
                         </DrawerTitle>
                         <DrawerDescription>
-                            Scegli un preset: il testo viene inserito in chat,
-                            senza inviare.
+                            {t('ai.drawer.description')}
                         </DrawerDescription>
                     </DrawerHeader>
                     <DrawerBody className="gap-4">
@@ -139,15 +157,15 @@ export function AiActionPresetsDrawer({
                                 onChange={(event) =>
                                     setSearch(event.target.value)
                                 }
-                                placeholder="Cerca azioni…"
+                                placeholder={t('ai.drawer.searchPlaceholder')}
                                 className="pl-8"
-                                aria-label="Cerca azioni"
+                                aria-label={t('ai.drawer.searchAria')}
                             />
                         </div>
 
                         {grouped.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
-                                Nessuna azione disponibile con i tuoi permessi.
+                                {t('ai.drawer.empty')}
                             </p>
                         ) : (
                             grouped.map((group) => (
@@ -174,7 +192,9 @@ export function AiActionPresetsDrawer({
                                                         </span>
                                                         {preset.destructive ? (
                                                             <span className="shrink-0 rounded-md bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium text-destructive">
-                                                                Distruttivo
+                                                                {t(
+                                                                    'ai.drawer.destructive',
+                                                                )}
                                                             </span>
                                                         ) : null}
                                                     </div>
@@ -202,11 +222,13 @@ export function AiActionPresetsDrawer({
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Inserire azione distruttiva?</DialogTitle>
+                        <DialogTitle>
+                            {t('ai.drawer.confirmTitle')}
+                        </DialogTitle>
                         <DialogDescription>
-                            «{pendingDestructive?.title}» può eliminare o
-                            modificare molti dati. Il testo verrà solo inserito
-                            nel composer: potrai rivederlo prima di inviare.
+                            {t('ai.drawer.confirmDescription', {
+                                title: pendingTitle,
+                            })}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -215,7 +237,7 @@ export function AiActionPresetsDrawer({
                             variant="outline"
                             onClick={() => setPendingDestructive(null)}
                         >
-                            Annulla
+                            {t('ai.drawer.confirmCancel')}
                         </Button>
                         <Button
                             type="button"
@@ -226,7 +248,7 @@ export function AiActionPresetsDrawer({
                                 }
                             }}
                         >
-                            Inserisci nel composer
+                            {t('ai.drawer.confirmInsert')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -48,7 +48,7 @@ class AiChatController extends Controller
                 ->count() >= $dailyPromptLimit
         ) {
             return response()->json([
-                'message' => 'Limite giornaliero di prompt AI raggiunto.',
+                'message' => 'Daily AI prompt limit reached.',
             ], Response::HTTP_TOO_MANY_REQUESTS);
         }
 
@@ -182,8 +182,8 @@ class AiChatController extends Controller
 
                 $emit([
                     'type' => 'error',
-                    'message' => 'Lo stream AI si è interrotto: '.$exception->getMessage()
-                        .' (spesso timeout/crash del modello locale durante loop con molti tool).',
+                    'message' => 'AI stream interrupted: '.$exception->getMessage()
+                        .' (often a local model timeout/crash during a multi-tool loop).',
                 ]);
                 $emit('[DONE]');
             }
@@ -214,10 +214,10 @@ class AiChatController extends Controller
             ->whereIn('id', $uniqueIds)
             ->get();
 
-        abort_if($attachments->count() !== count($uniqueIds), Response::HTTP_UNPROCESSABLE_ENTITY, 'Uno o più allegati non sono validi.');
+        abort_if($attachments->count() !== count($uniqueIds), Response::HTTP_UNPROCESSABLE_ENTITY, 'One or more attachments are invalid.');
 
         foreach ($attachments as $attachment) {
-            abort_if($attachment->isExpired(), Response::HTTP_UNPROCESSABLE_ENTITY, 'Uno o più allegati sono scaduti. Caricali di nuovo.');
+            abort_if($attachment->isExpired(), Response::HTTP_UNPROCESSABLE_ENTITY, 'One or more attachments have expired. Upload them again.');
         }
 
         return $attachments->values();
@@ -245,7 +245,7 @@ class AiChatController extends Controller
             ->implode("\n");
 
         return $message."\n\n[AI_ATTACHMENTS]\n{$lines}\n[/AI_ATTACHMENTS]\n"
-            .'Per importare un CSV in una collezione usa il tool ImportCollectionCsv con attachment_id e collection_id.';
+            .'To import a CSV into a collection, use ImportCollectionCsv with attachment_id and collection_id.';
     }
 
     /**
