@@ -2,7 +2,9 @@
  * Picks black or white text for a solid background hex (WCAG relative luminance).
  * Mirrors App\Support\Css\ContrastingForeground for live color-picker previews.
  */
-export function contrastingForeground(hex: string | null | undefined): string | null {
+export function contrastingForeground(
+    hex: string | null | undefined,
+): string | null {
     const rgb = parseHex(hex);
 
     if (!rgb) {
@@ -16,7 +18,9 @@ export function contrastingForeground(hex: string | null | undefined): string | 
     return contrastWhite >= contrastBlack ? '#ffffff' : '#000000';
 }
 
-function parseHex(hex: string | null | undefined): [number, number, number] | null {
+function parseHex(
+    hex: string | null | undefined,
+): [number, number, number] | null {
     if (!hex) {
         return null;
     }

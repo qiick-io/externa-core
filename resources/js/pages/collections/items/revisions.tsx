@@ -53,14 +53,18 @@ export default function ItemRevisions({
         if (selected.length < 2) {
             return null;
         }
+
         const a = revisions.find((r) => r.id === selected[0]);
         const b = revisions.find((r) => r.id === selected[1]);
+
         if (!a || !b) {
             return null;
         }
+
         const keys = Array.from(
             new Set([...Object.keys(a.data), ...Object.keys(b.data)]),
         ).sort();
+
         return keys.map((key) => ({
             key,
             left: JSON.stringify(a.data[key] ?? null),
@@ -76,9 +80,11 @@ export default function ItemRevisions({
             if (prev.includes(id)) {
                 return prev.filter((x) => x !== id);
             }
+
             if (prev.length >= 2) {
                 return [prev[1], id];
             }
+
             return [...prev, id];
         });
     };
@@ -91,6 +97,7 @@ export default function ItemRevisions({
         ) {
             return;
         }
+
         router.post(
             `/collections/${collection.id}/items/${item.id}/revisions/${revisionId}/restore`,
         );
@@ -125,6 +132,7 @@ export default function ItemRevisions({
                                     const active = selected.includes(
                                         revision.id,
                                     );
+
                                     return (
                                         <li
                                             key={revision.id}
@@ -144,8 +152,7 @@ export default function ItemRevisions({
                                                         : ''}
                                                 </span>
                                                 <span className="text-xs text-muted-foreground">
-                                                    {revision.created_at ??
-                                                        '—'}{' '}
+                                                    {revision.created_at ?? '—'}{' '}
                                                     ·{' '}
                                                     {revision.user?.name ??
                                                         'System'}
@@ -196,10 +203,10 @@ export default function ItemRevisions({
                                                 <td className="p-2 font-medium">
                                                     {row.key}
                                                 </td>
-                                                <td className="break-all p-2 font-mono">
+                                                <td className="p-2 font-mono break-all">
                                                     {row.left}
                                                 </td>
-                                                <td className="break-all p-2 font-mono">
+                                                <td className="p-2 font-mono break-all">
                                                     {row.right}
                                                 </td>
                                             </tr>

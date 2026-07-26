@@ -26,11 +26,7 @@ export type FilterRule = {
 };
 
 /** Keys mixed into Inertia `filters` that are not field filters. */
-export const FILTER_META_KEYS = new Set([
-    'trashed',
-    'sort',
-    'direction',
-]);
+export const FILTER_META_KEYS = new Set(['trashed', 'sort', 'direction']);
 
 const NON_FILTERABLE_TYPES = new Set([
     'image',
@@ -125,12 +121,15 @@ export function parseFiltersFromProps(
 
         const ops = raw as Record<string, unknown>;
         let matched = false;
+
         for (const op of FILTER_OPERATORS) {
             if (!(op in ops)) {
                 continue;
             }
+
             matched = true;
             const operand = ops[op];
+
             if (op === '_null' || op === '_nnull') {
                 rules.push({
                     id: newFilterRuleId(),
@@ -140,6 +139,7 @@ export function parseFiltersFromProps(
                 });
                 continue;
             }
+
             if (Array.isArray(operand)) {
                 rules.push({
                     id: newFilterRuleId(),
@@ -188,6 +188,7 @@ export function serializeFilterRules(
         }
 
         const value = rule.value.trim();
+
         if (value === '') {
             continue;
         }
@@ -206,6 +207,7 @@ export function countActiveFilterRules(rules: FilterRule[]): number {
         if (!rule.field) {
             return false;
         }
+
         if (!operatorNeedsValue(rule.operator)) {
             return true;
         }

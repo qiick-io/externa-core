@@ -1,10 +1,7 @@
 import adminRoutes from '@/lib/admin-routes';
 import type { AdminSelectOption } from '@/types/admin';
-import {
-    PaginatedMultiSelect
-    
-} from './paginated-multi-select';
-import type {PaginatedMultiSelectProps} from './paginated-multi-select';
+import { PaginatedMultiSelect } from './paginated-multi-select';
+import type { PaginatedMultiSelectProps } from './paginated-multi-select';
 
 export type RoleMultiSelectProps = Omit<
     PaginatedMultiSelectProps,
@@ -27,7 +24,8 @@ export function RoleMultiSelect({
 }: RoleMultiSelectProps) {
     const resolvedInitial: AdminSelectOption[] =
         initialOptions ??
-        (initialRoles?.map((r) => ({ id: r.id, label: r.name })) ?? []);
+        initialRoles?.map((r) => ({ id: r.id, label: r.name })) ??
+        [];
 
     return (
         <PaginatedMultiSelect

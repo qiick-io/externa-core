@@ -219,7 +219,7 @@ export function FolderPickerDialog({
                     />
 
                     <nav
-                        className="text-muted-foreground flex flex-wrap items-center gap-1 text-sm"
+                        className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground"
                         aria-label="Folder breadcrumbs"
                     >
                         <button
@@ -248,24 +248,24 @@ export function FolderPickerDialog({
                         ))}
                     </nav>
 
-                    <div className="border-sidebar-border/70 max-h-72 min-h-40 overflow-y-auto rounded-lg border">
+                    <div className="max-h-72 min-h-40 overflow-y-auto rounded-lg border border-sidebar-border/70">
                         {loading && folders.length === 0 ? (
-                            <p className="text-muted-foreground p-3 text-sm">
+                            <p className="p-3 text-sm text-muted-foreground">
                                 Loading…
                             </p>
                         ) : null}
                         {!loading && folders.length === 0 ? (
-                            <p className="text-muted-foreground p-3 text-sm">
+                            <p className="p-3 text-sm text-muted-foreground">
                                 No folders here
                             </p>
                         ) : null}
-                        <ul className="divide-sidebar-border/70 divide-y">
+                        <ul className="divide-y divide-sidebar-border/70">
                             {folders.map((folder) => (
                                 <li key={folder.id}>
                                     <button
                                         type="button"
                                         className={cn(
-                                            'hover:bg-muted/60 flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors',
+                                            'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/60',
                                         )}
                                         disabled={submitting}
                                         onClick={() => openFolder(folder)}
@@ -275,13 +275,13 @@ export function FolderPickerDialog({
                                         <span className="truncate font-medium">
                                             {folder.name}
                                         </span>
-                                        <ChevronRight className="text-muted-foreground ml-auto size-4 shrink-0" />
+                                        <ChevronRight className="ml-auto size-4 shrink-0 text-muted-foreground" />
                                     </button>
                                 </li>
                             ))}
                         </ul>
                         {page < lastPage ? (
-                            <div className="border-sidebar-border/70 border-t p-2">
+                            <div className="border-t border-sidebar-border/70 p-2">
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -301,15 +301,15 @@ export function FolderPickerDialog({
                         ) : null}
                     </div>
 
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-sm text-muted-foreground">
                         Destination:{' '}
-                        <span className="text-foreground font-medium">
+                        <span className="font-medium text-foreground">
                             {destinationLabel}
                         </span>
                     </p>
 
                     {error ? (
-                        <p className="text-destructive text-sm">{error}</p>
+                        <p className="text-sm text-destructive">{error}</p>
                     ) : null}
                 </div>
 

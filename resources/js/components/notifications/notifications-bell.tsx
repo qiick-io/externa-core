@@ -7,10 +7,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import {
-    ensureEcho,
-    isRealtimeEnabled,
-} from '@/lib/echo';
+import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
 import {
     fetchUnreadNotificationCount,
     NOTIFICATIONS_UPDATED_EVENT,
@@ -43,13 +40,18 @@ export function NotificationsBell() {
 
     useEffect(() => {
         const user = page.props.auth.user;
+
         if (!user) {
             return;
         }
 
-        window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, refreshUnreadCount);
+        window.addEventListener(
+            NOTIFICATIONS_UPDATED_EVENT,
+            refreshUnreadCount,
+        );
 
         let poll: number | undefined;
+
         if (!realtimeOn) {
             // Fallback when BROADCAST_CONNECTION=log/null
             poll = window.setInterval(
@@ -58,24 +60,24 @@ export function NotificationsBell() {
             );
         } else {
             const echo = ensureEcho(true);
-            echo
-                ?.private(`App.Models.User.${user.id}`)
-                .notification(() => {
-                    setUnreadCount((count) => count + 1);
-                    window.dispatchEvent(
-                        new CustomEvent(NOTIFICATIONS_UPDATED_EVENT),
-                    );
-                });
+            echo?.private(`App.Models.User.${user.id}`).notification(() => {
+                setUnreadCount((count) => count + 1);
+                window.dispatchEvent(
+                    new CustomEvent(NOTIFICATIONS_UPDATED_EVENT),
+                );
+            });
         }
 
         return () => {
             if (poll) {
                 window.clearInterval(poll);
             }
+
             window.removeEventListener(
                 NOTIFICATIONS_UPDATED_EVENT,
                 refreshUnreadCount,
             );
+
             if (realtimeOn) {
                 ensureEcho(true)?.leave(`App.Models.User.${user.id}`);
             }
@@ -106,7 +108,7 @@ export function NotificationsBell() {
                         {unreadCount > 0 ? (
                             <span
                                 className={cn(
-                                    'bg-primary text-primary-foreground absolute top-1.5 right-2 flex size-4 items-center justify-center rounded-full text-[10px] font-medium',
+                                    'absolute top-1.5 right-2 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground',
                                     'group-data-[collapsible=icon]:right-1',
                                 )}
                             >

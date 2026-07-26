@@ -47,6 +47,8 @@ function toAdminFileRow(file: AiFileCardItem): AdminFileRow {
         scale: null,
         is_favorited: false,
         tags: [],
+        access: null,
+        effective_access: 'public',
         created_at: '',
         updated_at: '',
     };
@@ -68,9 +70,7 @@ export function AiFileCards({ files }: Props) {
                 const row = toAdminFileRow(file);
                 const isFolder = file.type === 'folder';
                 const publicUrl = filePublicUrl(row);
-                const folderId = isFolder
-                    ? file.id
-                    : (file.parent_id ?? null);
+                const folderId = isFolder ? file.id : (file.parent_id ?? null);
                 const href =
                     folderId != null
                         ? adminRoutes.files.index(folderId)

@@ -36,7 +36,18 @@
         "settings": "Einstellungen",
         "language": "Sprache",
         "appearance": "Darstellung",
+        "accessibility": "Barrierefreiheit",
+        "accessibilityOff": "Aus",
+        "accessibilityOnCount": "{{count}} an",
+        "highContrast": "Hoher Kontrast",
+        "reduceMotion": "Bewegung reduzieren",
         "logOut": "Abmelden"
+    },
+    "a11y": {
+        "skipToContent": "Zum Inhalt springen",
+        "mainNav": "Hauptnavigation",
+        "openMenu": "Menü öffnen",
+        "search": "Suchen"
     },
     "auth": {
         "login": {
@@ -563,6 +574,9 @@
         "stopAria": "Stopp",
         "sendAria": "Senden",
         "openAssistant": "KI-Assistent öffnen",
+        "fabTitle": "Neuer Chat",
+        "fabDescription": "Schnelle Assistenten-Schublade. Öffnen Sie die Vollseite für den Verlauf.",
+        "fabEmpty": "Fragen zu Collections, Items oder Dateien stellen.",
         "askAi": "KI fragen",
         "assistantOffline": "Assistent offline",
         "assistantOnline": "Assistent online",

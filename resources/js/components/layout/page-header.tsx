@@ -30,7 +30,7 @@ export function PageHeader({
     return (
         <div className="flex shrink-0 flex-col gap-3">
             {description ? (
-                <p className="text-muted-foreground max-w-2xl text-sm">
+                <p className="max-w-2xl text-sm text-muted-foreground">
                     {description}
                 </p>
             ) : null}
@@ -80,7 +80,7 @@ export function FilterSearch({
                 className,
             )}
         >
-            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
                 id={id}
                 value={value}

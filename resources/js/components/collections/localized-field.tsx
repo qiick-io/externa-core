@@ -14,10 +14,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-    contentLocaleMeta,
-    type ContentLocaleCatalogEntry,
-} from '@/lib/content-locales-catalog';
+import { contentLocaleMeta } from '@/lib/content-locales-catalog';
+import type { ContentLocaleCatalogEntry } from '@/lib/content-locales-catalog';
 import { cn } from '@/lib/utils';
 
 export type LocalizedFieldProps = {
@@ -25,8 +23,8 @@ export type LocalizedFieldProps = {
     /** Controlled locale; omit to use ContentLocaleProvider / local state. */
     locale?: string;
     onLocaleChange?: (locale: string) => void;
-    value?: Record<string, string>;
-    onChange?: (value: Record<string, string>) => void;
+    value?: Partial<Record<string, string>>;
+    onChange?: (value: Partial<Record<string, string>>) => void;
     label?: string;
     description?: string;
     placeholder?: string;
@@ -85,6 +83,7 @@ export function LocalizedField({
 
     const setLocale = (next: string): void => {
         onLocaleChange?.(next);
+
         if (localeProp === undefined) {
             shared.setLocale(next);
         }
@@ -97,20 +96,24 @@ export function LocalizedField({
     };
 
     const applyToAll = (): void => {
-        const updated: Record<string, string> = { ...value };
+        const updated: Partial<Record<string, string>> = { ...value };
+
         for (const code of localeCodes) {
             updated[code] = currentValue;
         }
+
         onChange?.(updated);
     };
 
     const applyToEmpty = (): void => {
-        const updated: Record<string, string> = { ...value };
+        const updated: Partial<Record<string, string>> = { ...value };
+
         for (const code of localeCodes) {
             if ((updated[code] ?? '').trim() === '') {
                 updated[code] = currentValue;
             }
         }
+
         onChange?.(updated);
     };
 
@@ -123,7 +126,7 @@ export function LocalizedField({
                     <div className="min-w-0">
                         {label ? <Label>{label}</Label> : null}
                         {description ? (
-                            <p className="text-muted-foreground mt-1 text-sm">
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 {description}
                             </p>
                         ) : null}
@@ -136,7 +139,9 @@ export function LocalizedField({
                                     variant="outline"
                                     size="sm"
                                     className="gap-2"
-                                    disabled={disabled || localeCodes.length === 0}
+                                    disabled={
+                                        disabled || localeCodes.length === 0
+                                    }
                                 >
                                     <ContentLocaleFlag
                                         region={activeMeta.flag}
@@ -148,7 +153,10 @@ export function LocalizedField({
                                     <Languages className="size-3.5 opacity-60" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="min-w-48">
+                            <DropdownMenuContent
+                                align="end"
+                                className="min-w-48"
+                            >
                                 {localeEntries.map((entry) => (
                                     <DropdownMenuItem
                                         key={entry.code}
@@ -161,7 +169,7 @@ export function LocalizedField({
                                         <span className="flex-1">
                                             {entry.name}
                                         </span>
-                                        <span className="text-muted-foreground font-mono text-xs">
+                                        <span className="font-mono text-xs text-muted-foreground">
                                             {entry.code}
                                         </span>
                                     </DropdownMenuItem>

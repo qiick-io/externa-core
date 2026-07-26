@@ -12,10 +12,9 @@ import adminRoutes from '@/lib/admin-routes';
 import { downloadPreparedZipUrl } from '@/lib/files-api';
 import {
     fetchNotifications,
-    markNotificationsRead
-    
+    markNotificationsRead,
 } from '@/lib/notifications-api';
-import type {AppNotification} from '@/lib/notifications-api';
+import type { AppNotification } from '@/lib/notifications-api';
 import { cn } from '@/lib/utils';
 
 type NotificationsDrawerProps = {
@@ -138,13 +137,13 @@ export function NotificationsDrawer({
 
                 <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4">
                     {isLoading ? (
-                        <p className="text-muted-foreground text-sm">
+                        <p className="text-sm text-muted-foreground">
                             Loading…
                         </p>
                     ) : null}
 
                     {!isLoading && notifications.length === 0 ? (
-                        <p className="text-muted-foreground text-sm">
+                        <p className="text-sm text-muted-foreground">
                             No notifications yet.
                         </p>
                     ) : null}
@@ -166,11 +165,11 @@ export function NotificationsDrawer({
                                     {notificationTitle(notification)}
                                 </p>
                                 {notificationBody(notification) ? (
-                                    <p className="text-muted-foreground mt-1 text-sm">
+                                    <p className="mt-1 text-sm text-muted-foreground">
                                         {notificationBody(notification)}
                                     </p>
                                 ) : null}
-                                <p className="text-muted-foreground mt-2 text-xs">
+                                <p className="mt-2 text-xs text-muted-foreground">
                                     {new Date(
                                         notification.created_at,
                                     ).toLocaleString()}

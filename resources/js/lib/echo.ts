@@ -46,6 +46,7 @@ export function isRealtimeEnabled(
 export function ensureEcho(realtimeEnabled: boolean): EchoInstance | null {
     if (!realtimeEnabled) {
         setConnectionState('disabled');
+
         return null;
     }
 
@@ -54,8 +55,10 @@ export function ensureEcho(realtimeEnabled: boolean): EchoInstance | null {
     }
 
     const key = import.meta.env.VITE_REVERB_APP_KEY;
+
     if (!key) {
         setConnectionState('unavailable');
+
         return null;
     }
 
@@ -81,9 +84,7 @@ export function ensureEcho(realtimeEnabled: boolean): EchoInstance | null {
                 connection?: {
                     bind: (
                         event: string,
-                        cb: (
-                            state?: string | { current?: string },
-                        ) => void,
+                        cb: (state?: string | { current?: string }) => void,
                     ) => void;
                 };
             };
@@ -95,6 +96,7 @@ export function ensureEcho(realtimeEnabled: boolean): EchoInstance | null {
             typeof states === 'object' && states && 'current' in states
                 ? states.current
                 : 'unavailable';
+
         if (current === 'connected') {
             setConnectionState('connected');
         } else if (current === 'connecting') {

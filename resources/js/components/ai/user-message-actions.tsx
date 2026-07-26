@@ -41,11 +41,7 @@ export function UserMessageActions({
 
     return (
         <div className="flex flex-wrap items-center gap-0.5">
-            <ActionButton
-                label="Edit"
-                disabled={disabled}
-                onClick={onEdit}
-            >
+            <ActionButton label="Edit" disabled={disabled} onClick={onEdit}>
                 <Pencil className="size-3.5" />
             </ActionButton>
             <ActionButton

@@ -124,7 +124,9 @@ export function ApplyCollectionPackDialog({
                                             : 'border-sidebar-border/70 hover:bg-muted/40 dark:border-sidebar-border',
                                     )}
                                 >
-                                    <p className="font-medium">{packLabel(pack)}</p>
+                                    <p className="font-medium">
+                                        {packLabel(pack)}
+                                    </p>
                                     <p className="text-sm text-muted-foreground">
                                         {packDescription(pack)}
                                     </p>

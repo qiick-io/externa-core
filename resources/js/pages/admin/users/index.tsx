@@ -1,11 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    ArrowDownAZ,
-    ArrowUpAZ,
-    Trash2,
-    UserPlus,
-    Users,
-} from 'lucide-react';
+import { ArrowDownAZ, ArrowUpAZ, Trash2, UserPlus, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { UserFormDrawer } from '@/components/admin/user-form-drawer';
@@ -47,11 +41,7 @@ import { cn } from '@/lib/utils';
 import type { AdminUserRow, BreadcrumbItem, Paginated } from '@/types';
 
 type UserSortField =
-    | 'first_name'
-    | 'last_name'
-    | 'email'
-    | 'created_at'
-    | 'updated_at';
+    'first_name' | 'last_name' | 'email' | 'created_at' | 'updated_at';
 type UserSortDirection = 'asc' | 'desc';
 
 type Filters = {
@@ -108,9 +98,7 @@ export default function AdminUsersIndex({
             const nextSort = overrides.sort ?? sort;
             const nextDirection = overrides.direction ?? direction;
             const nextTrashed =
-                overrides.trashed !== undefined
-                    ? overrides.trashed
-                    : isTrashed;
+                overrides.trashed !== undefined ? overrides.trashed : isTrashed;
 
             router.get(
                 adminRoutes.users.index({

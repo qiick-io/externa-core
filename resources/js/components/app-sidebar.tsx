@@ -43,7 +43,7 @@ import type { NavItem, SidebarModuleSetting } from '@/types';
 type ModuleDef = {
     id: string;
     titleKey: string;
-    href: string;
+    href: NavItem['href'];
     icon: LucideIcon;
     permission?: PermissionEnum;
     accent?: boolean;
@@ -191,7 +191,12 @@ export function AppSidebar() {
     );
 
     return (
-        <Sidebar collapsible="icon" variant="inset">
+        <Sidebar
+            collapsible="icon"
+            variant="inset"
+            role="navigation"
+            aria-label={t('a11y.mainNav')}
+        >
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>

@@ -1,10 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import {
-    Pin,
-    Plus,
-    Sparkles,
-    Trash2,
-} from 'lucide-react';
+import { Pin, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer';
@@ -103,8 +98,7 @@ function toolFallbackContent(
 
 type Props = {
     conversations:
-        | LaravelPaginated<ConversationSummary>
-        | Paginated<ConversationSummary>;
+        LaravelPaginated<ConversationSummary> | Paginated<ConversationSummary>;
     selectedConversation: ConversationSummary | null;
     messages: ChatMessage[];
 };
@@ -328,9 +322,7 @@ export default function AiIndexPage({
         const syncedMessages = initialMessages.flatMap((message) => {
             const fileCards = fileCardsFromToolResults(message.tool_results);
             const withCards =
-                fileCards.length > 0
-                    ? { ...message, fileCards }
-                    : message;
+                fileCards.length > 0 ? { ...message, fileCards } : message;
 
             if (
                 withCards.role !== 'assistant' ||
@@ -881,9 +873,9 @@ export default function AiIndexPage({
 
                             markAssistantError(
                                 assistantMessageId,
-                                "No response from the assistant. Try again.",
+                                'No response from the assistant. Try again.',
                             );
-                            toast.error("No response from the assistant");
+                            toast.error('No response from the assistant');
 
                             return;
                         }
@@ -958,7 +950,7 @@ export default function AiIndexPage({
                                 ? {
                                       ...entry,
                                       content:
-                                          "No response from the assistant. Try again.",
+                                          'No response from the assistant. Try again.',
                                       isError: true,
                                   }
                                 : entry,
@@ -1089,9 +1081,7 @@ export default function AiIndexPage({
             });
         } catch (error) {
             const messageText =
-                error instanceof Error
-                    ? error.message
-                    : 'Error while sending';
+                error instanceof Error ? error.message : 'Error while sending';
             toast.error(messageText);
         }
     };
@@ -1472,7 +1462,8 @@ export default function AiIndexPage({
                                 {selectedTitle}
                             </h1>
                             <p className="text-xs text-muted-foreground">
-                                Assistant with permissions for collections and files
+                                Assistant with permissions for collections and
+                                files
                             </p>
                         </div>
                         <Button variant="ghost" size="sm" asChild>
@@ -1579,9 +1570,7 @@ export default function AiIndexPage({
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>
-                            Delete selected chats?
-                        </DialogTitle>
+                        <DialogTitle>Delete selected chats?</DialogTitle>
                         <DialogDescription>
                             You are about to delete {selectedIds.size} chats.
                             This action cannot be undone.

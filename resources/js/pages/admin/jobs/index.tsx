@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { PageLayout, TablePanel } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
@@ -49,7 +49,9 @@ export default function JobsIndex({
             <SettingsLayout wide>
                 <PageLayout description={`Pending in queue: ${pending_count}`}>
                     <div className="mb-8 space-y-3">
-                        <h2 className="text-lg font-medium">Pending (sample)</h2>
+                        <h2 className="text-lg font-medium">
+                            Pending (sample)
+                        </h2>
                         <TablePanel>
                             <table className="w-full text-sm">
                                 <thead>
@@ -76,12 +78,18 @@ export default function JobsIndex({
                                                 key={job.id}
                                                 className="border-b last:border-0"
                                             >
-                                                <td className="p-2">{job.id}</td>
+                                                <td className="p-2">
+                                                    {job.id}
+                                                </td>
                                                 <td className="p-2 font-mono text-xs">
                                                     {job.display_name}
                                                 </td>
-                                                <td className="p-2">{job.queue}</td>
-                                                <td className="p-2">{job.attempts}</td>
+                                                <td className="p-2">
+                                                    {job.queue}
+                                                </td>
+                                                <td className="p-2">
+                                                    {job.attempts}
+                                                </td>
                                             </tr>
                                         ))
                                     )}
@@ -100,7 +108,9 @@ export default function JobsIndex({
                                         <th className="p-2">Queue</th>
                                         <th className="p-2">Failed at</th>
                                         <th className="p-2">Exception</th>
-                                        <th className="p-2 text-right">Actions</th>
+                                        <th className="p-2 text-right">
+                                            Actions
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -117,12 +127,14 @@ export default function JobsIndex({
                                         failed.map((job) => (
                                             <tr
                                                 key={job.uuid}
-                                                className="border-b last:border-0 align-top"
+                                                className="border-b align-top last:border-0"
                                             >
                                                 <td className="p-2 font-mono text-xs">
                                                     {job.display_name}
                                                 </td>
-                                                <td className="p-2">{job.queue}</td>
+                                                <td className="p-2">
+                                                    {job.queue}
+                                                </td>
                                                 <td className="p-2 whitespace-nowrap">
                                                     {job.failed_at}
                                                 </td>

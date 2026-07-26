@@ -18,15 +18,18 @@ export function useOnlineUsers(): Set<number> {
     useEffect(() => {
         if (!enabled || !page.props.auth.user) {
             setOnlineIds(new Set());
+
             return;
         }
 
         const echo = ensureEcho(true);
+
         if (!echo) {
             return;
         }
 
-        const channel = echo.join('online')
+        const channel = echo
+            .join('online')
             .here((users: PresenceUser[]) => {
                 setOnlineIds(new Set(users.map((user) => Number(user.id))));
             })
@@ -34,6 +37,7 @@ export function useOnlineUsers(): Set<number> {
                 setOnlineIds((prev) => {
                     const next = new Set(prev);
                     next.add(Number(user.id));
+
                     return next;
                 });
             })
@@ -41,6 +45,7 @@ export function useOnlineUsers(): Set<number> {
                 setOnlineIds((prev) => {
                     const next = new Set(prev);
                     next.delete(Number(user.id));
+
                     return next;
                 });
             });

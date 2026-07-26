@@ -9,12 +9,12 @@ use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Http\Resources\Admin\UserResource;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Models\Role;
 
 /**
  * Admin CRUD and bulk actions for application users, roles, and groups.

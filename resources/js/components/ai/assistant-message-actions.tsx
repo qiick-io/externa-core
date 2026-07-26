@@ -57,9 +57,7 @@ export function AssistantMessageActions({
             exportTextAsPdf('Assistant message', content);
         } catch (error) {
             toast.error(
-                error instanceof Error
-                    ? error.message
-                    : 'PDF export failed',
+                error instanceof Error ? error.message : 'PDF export failed',
             );
         }
     };

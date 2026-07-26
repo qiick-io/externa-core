@@ -15,10 +15,8 @@ import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
-import {
-    ApplyCollectionPackDialog,
-    type CollectionPackSummary,
-} from '@/components/collections/apply-collection-pack-dialog';
+import { ApplyCollectionPackDialog } from '@/components/collections/apply-collection-pack-dialog';
+import type { CollectionPackSummary } from '@/components/collections/apply-collection-pack-dialog';
 import { CollectionFormDrawer } from '@/components/collections/collection-form-drawer';
 import { PageLayout, TablePanel } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
@@ -36,10 +34,7 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useCollections } from '@/hooks/use-collections';
 import AppLayout from '@/layouts/app-layout';
-import {
-    seedCollectionPrompt,
-    seedCollectionsBulkPrompt,
-} from '@/lib/ai-open';
+import { seedCollectionPrompt, seedCollectionsBulkPrompt } from '@/lib/ai-open';
 import collectionRoutes from '@/routes/collections';
 import type { BreadcrumbItem, CollectionRow } from '@/types';
 
@@ -113,9 +108,7 @@ export default function CollectionsIndex({
             const nextSort = overrides.sort ?? sort;
             const nextDirection = overrides.direction ?? direction;
             const nextTrashed =
-                overrides.trashed !== undefined
-                    ? overrides.trashed
-                    : isTrashed;
+                overrides.trashed !== undefined ? overrides.trashed : isTrashed;
 
             router.get(
                 collectionRoutes.index.url({
@@ -310,16 +303,14 @@ export default function CollectionsIndex({
                                         <SelectValue placeholder="Sort" />
                                     </SelectTrigger>
                                     <SelectContent align="end">
-                                        {COLLECTION_SORT_FIELDS.map(
-                                            (field) => (
-                                                <SelectItem
-                                                    key={field.value}
-                                                    value={field.value}
-                                                >
-                                                    {field.label}
-                                                </SelectItem>
-                                            ),
-                                        )}
+                                        {COLLECTION_SORT_FIELDS.map((field) => (
+                                            <SelectItem
+                                                key={field.value}
+                                                value={field.value}
+                                            >
+                                                {field.label}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                                 <Button
@@ -427,11 +418,9 @@ export default function CollectionsIndex({
                                         return (
                                             <tr
                                                 key={c.id}
-                                                className="border-b border-sidebar-border/40 last:border-0 cursor-pointer"
+                                                className="cursor-pointer border-b border-sidebar-border/40 last:border-0"
                                                 tabIndex={
-                                                    isTrashed
-                                                        ? undefined
-                                                        : 0
+                                                    isTrashed ? undefined : 0
                                                 }
                                                 role={
                                                     isTrashed
@@ -569,7 +558,8 @@ export default function CollectionsIndex({
                                                                         )}
                                                                     >
                                                                         <Rows3 className="size-3.5" />
-                                                                        Edit fields
+                                                                        Edit
+                                                                        fields
                                                                     </Link>
                                                                 </Button>
                                                                 <Button

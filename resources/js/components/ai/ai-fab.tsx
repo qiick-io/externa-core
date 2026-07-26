@@ -38,7 +38,8 @@ import {
     uploadAiAttachment,
 } from '@/lib/ai-chat';
 import type { AiChatAttachment, AiStatus } from '@/lib/ai-chat';
-import { AI_OPEN_EVENT, type AiOpenDetail } from '@/lib/ai-open';
+import { AI_OPEN_EVENT } from '@/lib/ai-open';
+import type { AiOpenDetail } from '@/lib/ai-open';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { index as aiIndex } from '@/routes/ai';
@@ -65,7 +66,9 @@ export function AiFab() {
     const page = usePage();
     const canUseAi = can(PermissionEnum.CanUseAi);
     const isAiRoute =
-        page.url === '/ai' || page.url.startsWith('/ai/') || page.url.startsWith('/ai?');
+        page.url === '/ai' ||
+        page.url.startsWith('/ai/') ||
+        page.url.startsWith('/ai?');
 
     const [open, setOpen] = useState(false);
     const [presetsOpen, setPresetsOpen] = useState(false);
@@ -422,12 +425,7 @@ export function AiFab() {
     const handleSend = async () => {
         const message = composer.trim();
 
-        if (
-            !message ||
-            isStreaming ||
-            offline ||
-            isUploadingAttachment
-        ) {
+        if (!message || isStreaming || offline || isUploadingAttachment) {
             return;
         }
 
@@ -550,7 +548,11 @@ export function AiFab() {
         recognition.addEventListener('result', (event) => {
             let transcript = '';
 
-            for (let index = event.resultIndex; index < event.results.length; index++) {
+            for (
+                let index = event.resultIndex;
+                index < event.results.length;
+                index++
+            ) {
                 const result = event.results[index];
 
                 if (result?.isFinal) {
@@ -560,7 +562,8 @@ export function AiFab() {
 
             if (transcript.trim() !== '') {
                 setComposer((current) => {
-                    const prefix = current.trim() === '' ? '' : `${current.trim()} `;
+                    const prefix =
+                        current.trim() === '' ? '' : `${current.trim()} `;
 
                     return `${prefix}${transcript.trim()}`;
                 });
@@ -601,7 +604,7 @@ export function AiFab() {
                                 : t('ai.openAssistant')
                         }
                         className={cn(
-                            'fixed right-5 bottom-5 z-50 flex size-14 items-center justify-center rounded-full text-white shadow-lg outline-none transition',
+                            'fixed right-5 bottom-5 z-50 flex size-14 items-center justify-center rounded-full text-white shadow-lg transition outline-none',
                             'focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2',
                             offline
                                 ? 'cursor-not-allowed bg-zinc-400 opacity-70'
@@ -623,9 +626,9 @@ export function AiFab() {
             <Drawer open={open} onOpenChange={setOpen} direction="right">
                 <DrawerContent>
                     <DrawerHeader>
-                        <DrawerTitle>New chat</DrawerTitle>
+                        <DrawerTitle>{t('ai.fabTitle')}</DrawerTitle>
                         <DrawerDescription>
-                            Quick assistant drawer. Open the full page for history.
+                            {t('ai.fabDescription')}
                         </DrawerDescription>
                     </DrawerHeader>
 
@@ -656,7 +659,7 @@ export function AiFab() {
                                 onSuggestedAction={setComposer}
                                 emptyState={
                                     <p className="text-sm text-muted-foreground">
-                                        Ask about collections, items, or files.
+                                        {t('ai.fabEmpty')}
                                     </p>
                                 }
                             />

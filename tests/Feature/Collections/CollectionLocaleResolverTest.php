@@ -3,6 +3,7 @@
 use App\Services\Settings\ProjectSettings;
 use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 test('locale resolver uses query parameter when allowed', function () {
     $request = Request::create('/test', 'GET', ['locale' => 'it']);
@@ -27,4 +28,4 @@ test('assertRequestedLocaleAllowed aborts for disabled locale', function () {
     $resolver = new CollectionLocaleResolver($request, app(ProjectSettings::class));
 
     $resolver->assertRequestedLocaleAllowed();
-})->throws(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+})->throws(HttpException::class);

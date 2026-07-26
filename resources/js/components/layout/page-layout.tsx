@@ -39,10 +39,7 @@ export function PageLayout({
 
     return (
         <div
-            className={cn(
-                'flex min-h-0 flex-1 flex-col gap-4 p-4',
-                className,
-            )}
+            className={cn('flex min-h-0 flex-1 flex-col gap-4 p-4', className)}
         >
             {showHeader ? (
                 <PageHeader
@@ -115,17 +112,13 @@ export type TablePaginationLink = {
  * @param {TablePaginationLink[]} props.links - Pagination links from the server.
  * @returns {JSX.Element | null}
  */
-export function TablePagination({
-    links,
-}: {
-    links: TablePaginationLink[];
-}) {
+export function TablePagination({ links }: { links: TablePaginationLink[] }) {
     if (links.length === 0) {
         return null;
     }
 
     return (
-        <div className="text-muted-foreground flex flex-wrap justify-center gap-2 text-sm">
+        <div className="flex flex-wrap justify-center gap-2 text-sm text-muted-foreground">
             {links.map((link, index) => (
                 <button
                     key={index}

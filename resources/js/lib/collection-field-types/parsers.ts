@@ -4,17 +4,19 @@ import {
     STRING_INPUT_TYPES,
     blocksAllowedFieldTypesForDepth,
     effectiveMaxBlocksDepth,
-    type BlocksTypeDefinition,
-    type FieldOptionRow,
-    type FieldTreeOptionRow,
-    type SliderFieldSettings,
+} from './catalog';
+import type {
+    BlocksTypeDefinition,
+    FieldOptionRow,
+    FieldTreeOptionRow,
+    SliderFieldSettings,
 } from './catalog';
 import {
     isFieldRequired,
     parseTranslatedText,
     serializeTranslatedText,
-    type TranslatedText,
 } from './display';
+import type { TranslatedText } from './display';
 
 function settingsFlag(value: unknown): boolean {
     return value === true || value === 1 || value === '1';
@@ -160,7 +162,9 @@ export function flattenFieldTreeOptions(
  * @param settings - Raw string field settings
  * @returns Input subtype, default value, and required flag for forms
  */
-export function parseStringInputSettings(settings?: Record<string, unknown> | null): {
+export function parseStringInputSettings(
+    settings?: Record<string, unknown> | null,
+): {
     inputType: string;
     defaultValue: string;
     required: boolean;
@@ -198,7 +202,9 @@ export function parseStringFieldSettings(
     const maxLengthRaw = settings?.max_length;
 
     return {
-        inputType: STRING_INPUT_TYPES.some((option) => option.value === inputType)
+        inputType: STRING_INPUT_TYPES.some(
+            (option) => option.value === inputType,
+        )
             ? inputType
             : 'string',
         placeholder: parseTranslatedText(settings?.placeholder),
@@ -215,7 +221,8 @@ export function parseStringFieldSettings(
         slugify: settingsFlag(settings?.slugify),
         masked: settingsFlag(settings?.masked),
         defaultValue:
-            settings?.default_value === null || settings?.default_value === undefined
+            settings?.default_value === null ||
+            settings?.default_value === undefined
                 ? ''
                 : String(settings.default_value),
     };
@@ -574,6 +581,7 @@ export function parseJunctionFields(
     settings?: Record<string, unknown> | null,
 ): JunctionFieldDefinition[] {
     const raw = settings?.junction_fields;
+
     if (!Array.isArray(raw)) {
         return [];
     }
@@ -583,8 +591,10 @@ export function parseJunctionFields(
             if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
                 return null;
             }
+
             const row = entry as Record<string, unknown>;
             const name = String(row.name ?? '').trim();
+
             if (name === '') {
                 return null;
             }
@@ -675,7 +685,9 @@ export function parseBlocksFieldSettings(
                     label: String(block.label ?? ''),
                     fields: Array.isArray(block.fields)
                         ? block.fields
-                              .filter((field) => field && typeof field === 'object')
+                              .filter(
+                                  (field) => field && typeof field === 'object',
+                              )
                               .map((field) => {
                                   const nested = field as {
                                       name?: unknown;
@@ -695,7 +707,10 @@ export function parseBlocksFieldSettings(
                                           nested.settings &&
                                           typeof nested.settings === 'object' &&
                                           !Array.isArray(nested.settings)
-                                              ? (nested.settings as Record<string, unknown>)
+                                              ? (nested.settings as Record<
+                                                    string,
+                                                    unknown
+                                                >)
                                               : {},
                                   };
                               })
@@ -726,8 +741,13 @@ export function serializeBlocksFieldSettings(
         settings: Record<string, unknown>;
     }>;
 }> {
-    const cappedMax = Math.max(1, Math.min(MAX_BLOCKS_DEPTH, Math.trunc(maxDepth)));
-    const allowed = new Set<string>(blocksAllowedFieldTypesForDepth(depth, cappedMax));
+    const cappedMax = Math.max(
+        1,
+        Math.min(MAX_BLOCKS_DEPTH, Math.trunc(maxDepth)),
+    );
+    const allowed = new Set<string>(
+        blocksAllowedFieldTypesForDepth(depth, cappedMax),
+    );
 
     return blockTypes
         .map((blockType) => {
@@ -744,7 +764,8 @@ export function serializeBlocksFieldSettings(
                         let settings = field.settings ?? {};
 
                         if (type === 'blocks' && depth < cappedMax) {
-                            const nested = parseBlocksFieldSettings(settings).blockTypes;
+                            const nested =
+                                parseBlocksFieldSettings(settings).blockTypes;
                             settings = {
                                 block_types: serializeBlocksFieldSettings(
                                     nested,
@@ -758,19 +779,25 @@ export function serializeBlocksFieldSettings(
                             name,
                             type,
                             // Nested blocks fields are never themselves translatable.
-                            translatable: (type === 'blocks' ? '0' : field.translatable ? '1' : '0') as
-                                | '1'
-                                | '0',
+                            translatable: (type === 'blocks'
+                                ? '0'
+                                : field.translatable
+                                  ? '1'
+                                  : '0') as '1' | '0',
                             settings,
                         };
                     })
                     .filter(
                         (field) =>
-                            BLOCK_KEY_RE.test(field.name) && allowed.has(field.type),
+                            BLOCK_KEY_RE.test(field.name) &&
+                            allowed.has(field.type),
                     ),
             };
         })
-        .filter((blockType) => BLOCK_KEY_RE.test(blockType.key) && blockType.label !== '');
+        .filter(
+            (blockType) =>
+                BLOCK_KEY_RE.test(blockType.key) && blockType.label !== '',
+        );
 }
 
 /** Hash field display options. */

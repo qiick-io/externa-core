@@ -4,7 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { parseFieldConditions } from '@/lib/field-conditions';
-import type { FieldConditionOperator, FieldConditions } from '@/lib/field-conditions';
+import type {
+    FieldConditionOperator,
+    FieldConditions,
+} from '@/lib/field-conditions';
 
 type FieldConditionsSettingsProps = {
     settings?: Record<string, unknown> | null;
@@ -29,8 +32,7 @@ export function FieldConditionsSettings({
     value,
     onChange,
 }: FieldConditionsSettingsProps) {
-    const conditions =
-        value ??
+    const conditions = value ??
         parseFieldConditions(settings) ?? {
             logic: 'and' as const,
             rules: [],
@@ -41,7 +43,7 @@ export function FieldConditionsSettings({
     if (!enabled && value === null) {
         return (
             <div className="space-y-3">
-                <p className="text-muted-foreground text-sm">
+                <p className="text-sm text-muted-foreground">
                     Optionally show, lock, or require this field based on other
                     field values (AND rules only).
                 </p>
@@ -71,7 +73,7 @@ export function FieldConditionsSettings({
 
     return (
         <div className="space-y-5">
-            <p className="text-muted-foreground text-sm">
+            <p className="text-sm text-muted-foreground">
                 When all rules match, apply the flags below. Simple AND only —
                 no OR groups yet.
             </p>
@@ -85,13 +87,17 @@ export function FieldConditionsSettings({
                         <div className="grid gap-1">
                             <Label>Field</Label>
                             <select
-                                className="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                                 value={rule.field}
                                 onChange={(event) => {
-                                    const rules = conditions.rules.map((entry, entryIndex) =>
-                                        entryIndex === index
-                                            ? { ...entry, field: event.target.value }
-                                            : entry,
+                                    const rules = conditions.rules.map(
+                                        (entry, entryIndex) =>
+                                            entryIndex === index
+                                                ? {
+                                                      ...entry,
+                                                      field: event.target.value,
+                                                  }
+                                                : entry,
                                     );
                                     onChange({ ...conditions, rules });
                                 }}
@@ -107,35 +113,43 @@ export function FieldConditionsSettings({
                         <div className="grid gap-1">
                             <Label>Operator</Label>
                             <select
-                                className="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                                 value={rule.operator}
                                 onChange={(event) => {
                                     const operator = event.target
                                         .value as FieldConditionOperator;
-                                    const rules = conditions.rules.map((entry, entryIndex) =>
-                                        entryIndex === index
-                                            ? {
-                                                  ...entry,
-                                                  operator,
-                                                  value:
-                                                      operator === 'empty' ||
-                                                      operator === 'not_empty'
-                                                          ? undefined
-                                                          : (entry.value ?? ''),
-                                              }
-                                            : entry,
+                                    const rules = conditions.rules.map(
+                                        (entry, entryIndex) =>
+                                            entryIndex === index
+                                                ? {
+                                                      ...entry,
+                                                      operator,
+                                                      value:
+                                                          operator ===
+                                                              'empty' ||
+                                                          operator ===
+                                                              'not_empty'
+                                                              ? undefined
+                                                              : (entry.value ??
+                                                                ''),
+                                                  }
+                                                : entry,
                                     );
                                     onChange({ ...conditions, rules });
                                 }}
                             >
                                 {OPERATORS.map((operator) => (
-                                    <option key={operator.value} value={operator.value}>
+                                    <option
+                                        key={operator.value}
+                                        value={operator.value}
+                                    >
                                         {operator.label}
                                     </option>
                                 ))}
                             </select>
                         </div>
-                        {rule.operator === 'empty' || rule.operator === 'not_empty' ? (
+                        {rule.operator === 'empty' ||
+                        rule.operator === 'not_empty' ? (
                             <div />
                         ) : (
                             <div className="grid gap-1">
@@ -148,7 +162,8 @@ export function FieldConditionsSettings({
                                                 entryIndex === index
                                                     ? {
                                                           ...entry,
-                                                          value: event.target.value,
+                                                          value: event.target
+                                                              .value,
                                                       }
                                                     : entry,
                                         );
@@ -166,7 +181,11 @@ export function FieldConditionsSettings({
                                 const rules = conditions.rules.filter(
                                     (_, entryIndex) => entryIndex !== index,
                                 );
-                                onChange(rules.length === 0 ? null : { ...conditions, rules });
+                                onChange(
+                                    rules.length === 0
+                                        ? null
+                                        : { ...conditions, rules },
+                                );
                             }}
                         >
                             <Trash2 className="size-4" />
@@ -206,8 +225,10 @@ export function FieldConditionsSettings({
                     onCheckedChange={(checked) => {
                         if (checked) {
                             onChange({ ...conditions, hidden: true });
+
                             return;
                         }
+
                         const next = { ...conditions };
                         delete next.hidden;
                         onChange(next);
@@ -221,8 +242,10 @@ export function FieldConditionsSettings({
                     onCheckedChange={(checked) => {
                         if (checked) {
                             onChange({ ...conditions, hidden: false });
+
                             return;
                         }
+
                         const next = { ...conditions };
                         delete next.hidden;
                         onChange(next);
@@ -234,7 +257,10 @@ export function FieldConditionsSettings({
                     description="Lock the field when the rules match."
                     checked={conditions.readonly === true}
                     onCheckedChange={(checked) =>
-                        onChange({ ...conditions, readonly: checked || undefined })
+                        onChange({
+                            ...conditions,
+                            readonly: checked || undefined,
+                        })
                     }
                 />
                 <SettingCheckbox
@@ -243,12 +269,20 @@ export function FieldConditionsSettings({
                     description="Require a value when the rules match (enforced server-side)."
                     checked={conditions.required === true}
                     onCheckedChange={(checked) =>
-                        onChange({ ...conditions, required: checked || undefined })
+                        onChange({
+                            ...conditions,
+                            required: checked || undefined,
+                        })
                     }
                 />
             </div>
 
-            <Button type="button" size="sm" variant="ghost" onClick={() => onChange(null)}>
+            <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => onChange(null)}
+            >
                 Remove conditions
             </Button>
         </div>

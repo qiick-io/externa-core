@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useEchoConnection } from '@/hooks/use-echo-connection';
-import { cn } from '@/lib/utils';
 import type { EchoConnectionState } from '@/lib/echo';
+import { cn } from '@/lib/utils';
 
 function toneFor(state: EchoConnectionState): string {
     switch (state) {

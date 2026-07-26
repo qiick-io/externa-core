@@ -1,5 +1,6 @@
 import { Deferred, Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Bar,
     BarChart,
@@ -29,7 +30,6 @@ import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
-import { useTranslation } from 'react-i18next';
 import type { BreadcrumbItem } from '@/types';
 
 type LatestActivityItem = {
@@ -138,13 +138,21 @@ type HealthMetrics = {
 
 type DashboardProps = {
     latestActivity: LatestActivityItem[];
-    fileStats: { files_count: number; folders_count: number; files_size_sum: number };
+    fileStats: {
+        files_count: number;
+        folders_count: number;
+        files_size_sum: number;
+    };
     uploadHealth: { in_progress_count: number; stale_count: number };
     mostActiveUsers: MostActiveUser[];
     suspiciousEvents: SuspiciousEventItem[];
     stuckOrphanUploads: StuckOrphanUploadItem[];
     largestFiles?: LargestFileItem[];
-    fileStatsByDisk?: { disk: string; files_count: number; files_size_sum: number }[];
+    fileStatsByDisk?: {
+        disk: string;
+        files_count: number;
+        files_size_sum: number;
+    }[];
     storageTrend?: StorageTrendItem[];
     collectionCounts?: CollectionCountItem[];
     activityOverTime?: ActivityOverTimeItem[];
@@ -229,11 +237,13 @@ export default function Dashboard({
                                 className={cn(
                                     'border-b-2 pb-0.5 transition-colors',
                                     tab === value
-                                        ? 'border-foreground text-foreground font-medium'
-                                        : 'text-muted-foreground border-transparent hover:text-foreground',
+                                        ? 'border-foreground font-medium text-foreground'
+                                        : 'border-transparent text-muted-foreground hover:text-foreground',
                                 )}
                                 data-test={`dashboard-tab-${value}`}
-                                aria-current={tab === value ? 'page' : undefined}
+                                aria-current={
+                                    tab === value ? 'page' : undefined
+                                }
                             >
                                 {value === 'overview'
                                     ? t('dashboard.tabOverview')
@@ -246,479 +256,633 @@ export default function Dashboard({
                 {tab === 'health' ? (
                     <DashboardHealthPanel health={health} />
                 ) : (
-                <div className="flex flex-col gap-4">
-                    <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-                        <Card className="lg:col-span-4">
-                            <CardHeader className="pb-3">
-                                <CardTitle>{t('dashboard.insightsCollections')}</CardTitle>
-                                <CardDescription>
-                                    {t('dashboard.insightsCollectionsDesc')}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="max-h-64 overflow-auto rounded-md border">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>{t('dashboard.collection')}</TableHead>
-                                                <TableHead className="w-[6rem] text-right">
-                                                    {t('dashboard.items')}
-                                                </TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {collectionCounts.map((row) => (
-                                                <TableRow key={row.id}>
-                                                    <TableCell className="min-w-0">
-                                                        <div className="truncate font-medium">
-                                                            {row.name}
-                                                        </div>
-                                                        <div className="text-muted-foreground truncate text-xs">
-                                                            {row.slug}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        {row.items_count.toLocaleString()}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                            {collectionCounts.length === 0 ? (
-                                                <TableRow>
-                                                    <TableCell
-                                                        className="text-muted-foreground py-6 text-center"
-                                                        colSpan={2}
-                                                    >
-                                                        {t('dashboard.noCollections')}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ) : null}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="lg:col-span-5">
-                            <CardHeader className="pb-3">
-                                <CardTitle>{t('dashboard.insightsActivity')}</CardTitle>
-                                <CardDescription>
-                                    {t('dashboard.insightsActivityDesc')}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="h-56 w-full">
-                                    {activityLast7.every((row) => row.count === 0) ? (
-                                        <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-                                            {t('dashboard.noActivity7d')}
-                                        </div>
-                                    ) : (
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={activityLast7}>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                                <XAxis
-                                                    dataKey="date"
-                                                    tick={{ fontSize: 11 }}
-                                                    tickFormatter={(value: string) =>
-                                                        value.slice(5)
-                                                    }
-                                                />
-                                                <YAxis
-                                                    allowDecimals={false}
-                                                    tick={{ fontSize: 11 }}
-                                                    width={32}
-                                                />
-                                                <Tooltip />
-                                                <Bar
-                                                    dataKey="count"
-                                                    fill="var(--color-primary)"
-                                                    radius={[4, 4, 0, 0]}
-                                                />
-                                            </BarChart>
-                                        </ResponsiveContainer>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="lg:col-span-3">
-                            <CardHeader className="pb-3">
-                                <CardTitle>{t('dashboard.contentEvents')}</CardTitle>
-                                <CardDescription>
-                                    {t('dashboard.contentEventsDesc')}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="h-56 w-full">
-                                    {eventBreakdownChart.every((row) => row.count === 0) ? (
-                                        <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-                                            {t('dashboard.noContentEvents')}
-                                        </div>
-                                    ) : (
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={eventBreakdownChart}>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                                <XAxis dataKey="event" tick={{ fontSize: 11 }} />
-                                                <YAxis
-                                                    allowDecimals={false}
-                                                    tick={{ fontSize: 11 }}
-                                                    width={32}
-                                                />
-                                                <Tooltip />
-                                                <Bar
-                                                    dataKey="count"
-                                                    fill="var(--color-chart-2, var(--color-primary))"
-                                                    radius={[4, 4, 0, 0]}
-                                                />
-                                            </BarChart>
-                                        </ResponsiveContainer>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </section>
-
-                <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
-                    <div className="grid grid-cols-1 gap-4 lg:col-span-5">
-                        <Card>
-                            <CardHeader className="pb-3">
-                                <CardTitle>{t('dashboard.latestActivity')}</CardTitle>
-                                <CardDescription>
-                                    {t('dashboard.latestActivityDesc')}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex flex-col gap-3">
-                                <div className="overflow-x-auto rounded-md border">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead className="w-[7rem]">
-                                                        {t('dashboard.event')}
-                                                    </TableHead>
-                                                    <TableHead>{t('dashboard.descriptionCol')}</TableHead>
-                                                    <TableHead className="w-[10rem] text-right">
-                                                        {t('dashboard.when')}
-                                                    </TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {latestActivity.map((activity) => (
-                                                    <TableRow key={activity.id}>
-                                                        <TableCell className="text-muted-foreground">
-                                                            {activity.event ?? '—'}
-                                                        </TableCell>
-                                                        <TableCell className="min-w-0">
-                                                            <div className="truncate font-medium">
-                                                                {activity.description}
-                                                            </div>
-                                                            <div className="text-muted-foreground truncate text-xs">
-                                                                {activity.causer?.label
-                                                                    ? t('dashboard.byUser', { name: activity.causer.label })
-                                                                    : '—'}
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell className="text-muted-foreground text-right text-xs">
-                                                            {activity.created_at
-                                                                ? new Date(
-                                                                      activity.created_at,
-                                                                  ).toLocaleString()
-                                                                : '—'}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                                {latestActivity.length === 0 ? (
-                                                    <TableRow>
-                                                        <TableCell
-                                                            className="text-muted-foreground py-6 text-center"
-                                                            colSpan={3}
-                                                        >
-                                                            {t('dashboard.noActivity')}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ) : null}
-                                            </TableBody>
-                                        </Table>
-                                </div>
-                                <div className="flex justify-end">
-                                    <Link
-                                        href={adminRoutes.activityLogs.index()}
-                                        className="text-sm underline underline-offset-4"
-                                    >
-                                        {t('dashboard.viewAll')}
-                                    </Link>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader className="pb-3">
-                                <CardTitle>{t('dashboard.suspicious')}</CardTitle>
-                                <CardDescription>
-                                    {t('dashboard.suspiciousDesc')}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="overflow-x-auto rounded-md border">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>{t('dashboard.descriptionCol')}</TableHead>
-                                                    <TableHead className="w-[10rem] text-right">
-                                                        {t('dashboard.when')}
-                                                    </TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {suspiciousEvents.map((event) => (
-                                                    <TableRow key={event.id}>
-                                                        <TableCell className="min-w-0">
-                                                            <div className="truncate font-medium">
-                                                                {event.description}
-                                                            </div>
-                                                            <div className="text-muted-foreground truncate text-xs">
-                                                                {event.causer?.label
-                                                                    ? t('dashboard.byUser', { name: event.causer.label })
-                                                                    : '—'}
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell className="text-muted-foreground text-right text-xs">
-                                                            {event.created_at
-                                                                ? new Date(
-                                                                      event.created_at,
-                                                                  ).toLocaleString()
-                                                                : '—'}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                                {suspiciousEvents.length === 0 ? (
-                                                    <TableRow>
-                                                        <TableCell
-                                                            className="text-muted-foreground py-6 text-center"
-                                                            colSpan={2}
-                                                        >
-                                                            {t('dashboard.noSuspicious')}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ) : null}
-                                            </TableBody>
-                                        </Table>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-                            <Card>
+                    <div className="flex flex-col gap-4">
+                        <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+                            <Card className="lg:col-span-4">
                                 <CardHeader className="pb-3">
-                                    <CardTitle>{t('dashboard.mostActive')}</CardTitle>
+                                    <CardTitle>
+                                        {t('dashboard.insightsCollections')}
+                                    </CardTitle>
                                     <CardDescription>
-                                        {t('dashboard.mostActiveDesc')}
+                                        {t('dashboard.insightsCollectionsDesc')}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="overflow-x-auto rounded-md border">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>{t('dashboard.user')}</TableHead>
-                                                        <TableHead className="w-[6rem] text-right">
-                                                            {t('dashboard.events')}
-                                                        </TableHead>
+                                    <div className="max-h-64 overflow-auto rounded-md border">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>
+                                                        {t(
+                                                            'dashboard.collection',
+                                                        )}
+                                                    </TableHead>
+                                                    <TableHead className="w-[6rem] text-right">
+                                                        {t('dashboard.items')}
+                                                    </TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {collectionCounts.map((row) => (
+                                                    <TableRow key={row.id}>
+                                                        <TableCell className="min-w-0">
+                                                            <div className="truncate font-medium">
+                                                                {row.name}
+                                                            </div>
+                                                            <div className="truncate text-xs text-muted-foreground">
+                                                                {row.slug}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            {row.items_count.toLocaleString()}
+                                                        </TableCell>
                                                     </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {mostActiveUsers.map((user) => (
-                                                        <TableRow key={user.id}>
-                                                            <TableCell className="font-medium">
-                                                                {user.label}
-                                                            </TableCell>
-                                                            <TableCell className="text-right">
-                                                                {user.activity_count.toLocaleString()}
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                    {mostActiveUsers.length === 0 ? (
-                                                        <TableRow>
-                                                            <TableCell
-                                                                className="text-muted-foreground py-6 text-center"
-                                                                colSpan={2}
-                                                            >
-                                                                {t('dashboard.noActivity')}
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ) : null}
-                                                </TableBody>
-                                            </Table>
+                                                ))}
+                                                {collectionCounts.length ===
+                                                0 ? (
+                                                    <TableRow>
+                                                        <TableCell
+                                                            className="py-6 text-center text-muted-foreground"
+                                                            colSpan={2}
+                                                        >
+                                                            {t(
+                                                                'dashboard.noCollections',
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ) : null}
+                                            </TableBody>
+                                        </Table>
                                     </div>
                                 </CardContent>
                             </Card>
 
-                            <Card>
+                            <Card className="lg:col-span-5">
                                 <CardHeader className="pb-3">
-                                    <CardTitle>{t('dashboard.stuckUploads')}</CardTitle>
+                                    <CardTitle>
+                                        {t('dashboard.insightsActivity')}
+                                    </CardTitle>
                                     <CardDescription>
-                                        {t('dashboard.stuckUploadsDesc')}
+                                        {t('dashboard.insightsActivityDesc')}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="overflow-x-auto rounded-md border">
+                                    <div className="h-56 w-full">
+                                        {activityLast7.every(
+                                            (row) => row.count === 0,
+                                        ) ? (
+                                            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                                                {t('dashboard.noActivity7d')}
+                                            </div>
+                                        ) : (
+                                            <ResponsiveContainer
+                                                width="100%"
+                                                height="100%"
+                                            >
+                                                <BarChart data={activityLast7}>
+                                                    <CartesianGrid
+                                                        strokeDasharray="3 3"
+                                                        vertical={false}
+                                                    />
+                                                    <XAxis
+                                                        dataKey="date"
+                                                        tick={{ fontSize: 11 }}
+                                                        tickFormatter={(
+                                                            value: string,
+                                                        ) => value.slice(5)}
+                                                    />
+                                                    <YAxis
+                                                        allowDecimals={false}
+                                                        tick={{ fontSize: 11 }}
+                                                        width={32}
+                                                    />
+                                                    <Tooltip />
+                                                    <Bar
+                                                        dataKey="count"
+                                                        fill="var(--color-primary)"
+                                                        radius={[4, 4, 0, 0]}
+                                                    />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="lg:col-span-3">
+                                <CardHeader className="pb-3">
+                                    <CardTitle>
+                                        {t('dashboard.contentEvents')}
+                                    </CardTitle>
+                                    <CardDescription>
+                                        {t('dashboard.contentEventsDesc')}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="h-56 w-full">
+                                        {eventBreakdownChart.every(
+                                            (row) => row.count === 0,
+                                        ) ? (
+                                            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                                                {t('dashboard.noContentEvents')}
+                                            </div>
+                                        ) : (
+                                            <ResponsiveContainer
+                                                width="100%"
+                                                height="100%"
+                                            >
+                                                <BarChart
+                                                    data={eventBreakdownChart}
+                                                >
+                                                    <CartesianGrid
+                                                        strokeDasharray="3 3"
+                                                        vertical={false}
+                                                    />
+                                                    <XAxis
+                                                        dataKey="event"
+                                                        tick={{ fontSize: 11 }}
+                                                    />
+                                                    <YAxis
+                                                        allowDecimals={false}
+                                                        tick={{ fontSize: 11 }}
+                                                        width={32}
+                                                    />
+                                                    <Tooltip />
+                                                    <Bar
+                                                        dataKey="count"
+                                                        fill="var(--color-chart-2, var(--color-primary))"
+                                                        radius={[4, 4, 0, 0]}
+                                                    />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </section>
+
+                        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
+                            <div className="grid grid-cols-1 gap-4 lg:col-span-5">
+                                <Card>
+                                    <CardHeader className="pb-3">
+                                        <CardTitle>
+                                            {t('dashboard.latestActivity')}
+                                        </CardTitle>
+                                        <CardDescription>
+                                            {t('dashboard.latestActivityDesc')}
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="flex flex-col gap-3">
+                                        <div className="overflow-x-auto rounded-md border">
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow>
-                                                        <TableHead>{t('dashboard.upload')}</TableHead>
-                                                        <TableHead className="w-[6rem] text-right">
-                                                            {t('dashboard.chunks')}
+                                                        <TableHead className="w-[7rem]">
+                                                            {t(
+                                                                'dashboard.event',
+                                                            )}
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            {t(
+                                                                'dashboard.descriptionCol',
+                                                            )}
+                                                        </TableHead>
+                                                        <TableHead className="w-[10rem] text-right">
+                                                            {t(
+                                                                'dashboard.when',
+                                                            )}
                                                         </TableHead>
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
-                                                    {stuckOrphanUploads.map(
-                                                        (upload) => (
+                                                    {latestActivity.map(
+                                                        (activity) => (
                                                             <TableRow
-                                                                key={upload.id}
+                                                                key={
+                                                                    activity.id
+                                                                }
                                                             >
+                                                                <TableCell className="text-muted-foreground">
+                                                                    {activity.event ??
+                                                                        '—'}
+                                                                </TableCell>
                                                                 <TableCell className="min-w-0">
                                                                     <div className="truncate font-medium">
-                                                                        {upload.file_name}
+                                                                        {
+                                                                            activity.description
+                                                                        }
                                                                     </div>
-                                                                    <div className="text-muted-foreground truncate text-xs">
-                                                                        {upload.disk}{' '}
-                                                                        ·{' '}
-                                                                        {upload.parent_id
-                                                                            ? t('dashboard.parentId', { id: upload.parent_id })
-                                                                            : t('dashboard.noParent')}
+                                                                    <div className="truncate text-xs text-muted-foreground">
+                                                                        {activity
+                                                                            .causer
+                                                                            ?.label
+                                                                            ? t(
+                                                                                  'dashboard.byUser',
+                                                                                  {
+                                                                                      name: activity
+                                                                                          .causer
+                                                                                          .label,
+                                                                                  },
+                                                                              )
+                                                                            : '—'}
                                                                     </div>
                                                                 </TableCell>
                                                                 <TableCell className="text-right text-xs text-muted-foreground">
-                                                                    {upload.uploaded_chunks.toLocaleString()}
-                                                                    /
-                                                                    {upload.total_chunks.toLocaleString()}
+                                                                    {activity.created_at
+                                                                        ? new Date(
+                                                                              activity.created_at,
+                                                                          ).toLocaleString()
+                                                                        : '—'}
                                                                 </TableCell>
                                                             </TableRow>
                                                         ),
                                                     )}
-                                                    {stuckOrphanUploads.length ===
+                                                    {latestActivity.length ===
                                                     0 ? (
                                                         <TableRow>
                                                             <TableCell
-                                                                className="text-muted-foreground py-6 text-center"
-                                                                colSpan={2}
+                                                                className="py-6 text-center text-muted-foreground"
+                                                                colSpan={3}
                                                             >
-                                                                {t('dashboard.noStuckUploads')}
+                                                                {t(
+                                                                    'dashboard.noActivity',
+                                                                )}
                                                             </TableCell>
                                                         </TableRow>
                                                     ) : null}
                                                 </TableBody>
                                             </Table>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
+                                        </div>
+                                        <div className="flex justify-end">
+                                            <Link
+                                                href={adminRoutes.activityLogs.index()}
+                                                className="text-sm underline underline-offset-4"
+                                            >
+                                                {t('dashboard.viewAll')}
+                                            </Link>
+                                        </div>
+                                    </CardContent>
+                                </Card>
 
-                    <div className="flex flex-col gap-4 lg:col-span-7">
-                        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-                            <Card>
-                                <CardHeader className="pb-3">
-                                    <CardTitle>{t('dashboard.storageOverview')}</CardTitle>
-                                    <CardDescription>
-                                        {t('dashboard.storageOverviewDesc')}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="grid grid-cols-3 gap-3">
-                                    <div>
-                                        <div className="text-muted-foreground text-xs">
-                                            {t('dashboard.files')}
-                                        </div>
-                                        <div className="text-2xl font-semibold">
-                                            {fileStats.files_count.toLocaleString()}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="text-muted-foreground text-xs">
-                                            {t('dashboard.folders')}
-                                        </div>
-                                        <div className="text-2xl font-semibold">
-                                            {fileStats.folders_count.toLocaleString()}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="text-muted-foreground text-xs">
-                                            {t('dashboard.totalSize')}
-                                        </div>
-                                        <div className="text-2xl font-semibold">
-                                            {formatBytes(
-                                                fileStats.files_size_sum,
-                                            )}
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader className="pb-3">
-                                    <CardTitle>{t('dashboard.uploadHealth')}</CardTitle>
-                                    <CardDescription>
-                                        {t('dashboard.uploadHealthDesc')}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <div className="text-muted-foreground text-xs">
-                                            {t('dashboard.inProgress')}
-                                        </div>
-                                        <div className="text-2xl font-semibold">
-                                            {uploadHealth.in_progress_count.toLocaleString()}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="text-muted-foreground text-xs">
-                                            {t('dashboard.stale')}
-                                        </div>
-                                        <div
-                                            className={
-                                                uploadHealth.stale_count > 0
-                                                    ? 'text-2xl font-semibold text-destructive'
-                                                    : 'text-2xl font-semibold'
-                                            }
-                                        >
-                                            {uploadHealth.stale_count.toLocaleString()}
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-                            <Card>
-                                <CardHeader className="pb-3">
-                                    <CardTitle>{t('dashboard.largestFiles')}</CardTitle>
-                                    <CardDescription>
-                                        {t('dashboard.largestFilesDesc')}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <Deferred
-                                        data="largestFiles"
-                                        fallback={
-                                            <div className="text-muted-foreground text-sm">
-                                                {t('dashboard.loading')}
-                                            </div>
-                                        }
-                                    >
+                                <Card>
+                                    <CardHeader className="pb-3">
+                                        <CardTitle>
+                                            {t('dashboard.suspicious')}
+                                        </CardTitle>
+                                        <CardDescription>
+                                            {t('dashboard.suspiciousDesc')}
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
                                         <div className="overflow-x-auto rounded-md border">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>
+                                                            {t(
+                                                                'dashboard.descriptionCol',
+                                                            )}
+                                                        </TableHead>
+                                                        <TableHead className="w-[10rem] text-right">
+                                                            {t(
+                                                                'dashboard.when',
+                                                            )}
+                                                        </TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {suspiciousEvents.map(
+                                                        (event) => (
+                                                            <TableRow
+                                                                key={event.id}
+                                                            >
+                                                                <TableCell className="min-w-0">
+                                                                    <div className="truncate font-medium">
+                                                                        {
+                                                                            event.description
+                                                                        }
+                                                                    </div>
+                                                                    <div className="truncate text-xs text-muted-foreground">
+                                                                        {event
+                                                                            .causer
+                                                                            ?.label
+                                                                            ? t(
+                                                                                  'dashboard.byUser',
+                                                                                  {
+                                                                                      name: event
+                                                                                          .causer
+                                                                                          .label,
+                                                                                  },
+                                                                              )
+                                                                            : '—'}
+                                                                    </div>
+                                                                </TableCell>
+                                                                <TableCell className="text-right text-xs text-muted-foreground">
+                                                                    {event.created_at
+                                                                        ? new Date(
+                                                                              event.created_at,
+                                                                          ).toLocaleString()
+                                                                        : '—'}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ),
+                                                    )}
+                                                    {suspiciousEvents.length ===
+                                                    0 ? (
+                                                        <TableRow>
+                                                            <TableCell
+                                                                className="py-6 text-center text-muted-foreground"
+                                                                colSpan={2}
+                                                            >
+                                                                {t(
+                                                                    'dashboard.noSuspicious',
+                                                                )}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ) : null}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+                                    <Card>
+                                        <CardHeader className="pb-3">
+                                            <CardTitle>
+                                                {t('dashboard.mostActive')}
+                                            </CardTitle>
+                                            <CardDescription>
+                                                {t('dashboard.mostActiveDesc')}
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="overflow-x-auto rounded-md border">
                                                 <Table>
                                                     <TableHeader>
                                                         <TableRow>
                                                             <TableHead>
-                                                                {t('dashboard.file')}
+                                                                {t(
+                                                                    'dashboard.user',
+                                                                )}
                                                             </TableHead>
-                                                            <TableHead className="w-[7rem] text-right">
-                                                                {t('dashboard.size')}
+                                                            <TableHead className="w-[6rem] text-right">
+                                                                {t(
+                                                                    'dashboard.events',
+                                                                )}
                                                             </TableHead>
                                                         </TableRow>
                                                     </TableHeader>
                                                     <TableBody>
-                                                        {(largestFiles ?? []).map(
-                                                            (file) => (
+                                                        {mostActiveUsers.map(
+                                                            (user) => (
+                                                                <TableRow
+                                                                    key={
+                                                                        user.id
+                                                                    }
+                                                                >
+                                                                    <TableCell className="font-medium">
+                                                                        {
+                                                                            user.label
+                                                                        }
+                                                                    </TableCell>
+                                                                    <TableCell className="text-right">
+                                                                        {user.activity_count.toLocaleString()}
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ),
+                                                        )}
+                                                        {mostActiveUsers.length ===
+                                                        0 ? (
+                                                            <TableRow>
+                                                                <TableCell
+                                                                    className="py-6 text-center text-muted-foreground"
+                                                                    colSpan={2}
+                                                                >
+                                                                    {t(
+                                                                        'dashboard.noActivity',
+                                                                    )}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ) : null}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    <Card>
+                                        <CardHeader className="pb-3">
+                                            <CardTitle>
+                                                {t('dashboard.stuckUploads')}
+                                            </CardTitle>
+                                            <CardDescription>
+                                                {t(
+                                                    'dashboard.stuckUploadsDesc',
+                                                )}
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="overflow-x-auto rounded-md border">
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow>
+                                                            <TableHead>
+                                                                {t(
+                                                                    'dashboard.upload',
+                                                                )}
+                                                            </TableHead>
+                                                            <TableHead className="w-[6rem] text-right">
+                                                                {t(
+                                                                    'dashboard.chunks',
+                                                                )}
+                                                            </TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {stuckOrphanUploads.map(
+                                                            (upload) => (
+                                                                <TableRow
+                                                                    key={
+                                                                        upload.id
+                                                                    }
+                                                                >
+                                                                    <TableCell className="min-w-0">
+                                                                        <div className="truncate font-medium">
+                                                                            {
+                                                                                upload.file_name
+                                                                            }
+                                                                        </div>
+                                                                        <div className="truncate text-xs text-muted-foreground">
+                                                                            {
+                                                                                upload.disk
+                                                                            }{' '}
+                                                                            ·{' '}
+                                                                            {upload.parent_id
+                                                                                ? t(
+                                                                                      'dashboard.parentId',
+                                                                                      {
+                                                                                          id: upload.parent_id,
+                                                                                      },
+                                                                                  )
+                                                                                : t(
+                                                                                      'dashboard.noParent',
+                                                                                  )}
+                                                                        </div>
+                                                                    </TableCell>
+                                                                    <TableCell className="text-right text-xs text-muted-foreground">
+                                                                        {upload.uploaded_chunks.toLocaleString()}
+                                                                        /
+                                                                        {upload.total_chunks.toLocaleString()}
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ),
+                                                        )}
+                                                        {stuckOrphanUploads.length ===
+                                                        0 ? (
+                                                            <TableRow>
+                                                                <TableCell
+                                                                    className="py-6 text-center text-muted-foreground"
+                                                                    colSpan={2}
+                                                                >
+                                                                    {t(
+                                                                        'dashboard.noStuckUploads',
+                                                                    )}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ) : null}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-4 lg:col-span-7">
+                                <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+                                    <Card>
+                                        <CardHeader className="pb-3">
+                                            <CardTitle>
+                                                {t('dashboard.storageOverview')}
+                                            </CardTitle>
+                                            <CardDescription>
+                                                {t(
+                                                    'dashboard.storageOverviewDesc',
+                                                )}
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="grid grid-cols-3 gap-3">
+                                            <div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {t('dashboard.files')}
+                                                </div>
+                                                <div className="text-2xl font-semibold">
+                                                    {fileStats.files_count.toLocaleString()}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {t('dashboard.folders')}
+                                                </div>
+                                                <div className="text-2xl font-semibold">
+                                                    {fileStats.folders_count.toLocaleString()}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {t('dashboard.totalSize')}
+                                                </div>
+                                                <div className="text-2xl font-semibold">
+                                                    {formatBytes(
+                                                        fileStats.files_size_sum,
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    <Card>
+                                        <CardHeader className="pb-3">
+                                            <CardTitle>
+                                                {t('dashboard.uploadHealth')}
+                                            </CardTitle>
+                                            <CardDescription>
+                                                {t(
+                                                    'dashboard.uploadHealthDesc',
+                                                )}
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {t('dashboard.inProgress')}
+                                                </div>
+                                                <div className="text-2xl font-semibold">
+                                                    {uploadHealth.in_progress_count.toLocaleString()}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {t('dashboard.stale')}
+                                                </div>
+                                                <div
+                                                    className={
+                                                        uploadHealth.stale_count >
+                                                        0
+                                                            ? 'text-2xl font-semibold text-destructive'
+                                                            : 'text-2xl font-semibold'
+                                                    }
+                                                >
+                                                    {uploadHealth.stale_count.toLocaleString()}
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+                                    <Card>
+                                        <CardHeader className="pb-3">
+                                            <CardTitle>
+                                                {t('dashboard.largestFiles')}
+                                            </CardTitle>
+                                            <CardDescription>
+                                                {t(
+                                                    'dashboard.largestFilesDesc',
+                                                )}
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <Deferred
+                                                data="largestFiles"
+                                                fallback={
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {t('dashboard.loading')}
+                                                    </div>
+                                                }
+                                            >
+                                                <div className="overflow-x-auto rounded-md border">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead>
+                                                                    {t(
+                                                                        'dashboard.file',
+                                                                    )}
+                                                                </TableHead>
+                                                                <TableHead className="w-[7rem] text-right">
+                                                                    {t(
+                                                                        'dashboard.size',
+                                                                    )}
+                                                                </TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {(
+                                                                largestFiles ??
+                                                                []
+                                                            ).map((file) => (
                                                                 <TableRow
                                                                     key={
                                                                         file.id
@@ -730,7 +894,7 @@ export default function Dashboard({
                                                                                 file.name
                                                                             }
                                                                         </div>
-                                                                        <div className="text-muted-foreground truncate text-xs">
+                                                                        <div className="truncate text-xs text-muted-foreground">
                                                                             {
                                                                                 file.disk
                                                                             }{' '}
@@ -746,163 +910,196 @@ export default function Dashboard({
                                                                         )}
                                                                     </TableCell>
                                                                 </TableRow>
-                                                            ),
-                                                        )}
-                                                        {(largestFiles ?? [])
-                                                            .length === 0 ? (
-                                                            <TableRow>
-                                                                <TableCell
-                                                                    className="text-muted-foreground py-6 text-center"
-                                                                    colSpan={2}
-                                                                >
-                                                                    {t('dashboard.noFiles')}
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ) : null}
-                                                    </TableBody>
-                                                </Table>
-                                        </div>
-                                    </Deferred>
-                                </CardContent>
-                            </Card>
+                                                            ))}
+                                                            {(
+                                                                largestFiles ??
+                                                                []
+                                                            ).length === 0 ? (
+                                                                <TableRow>
+                                                                    <TableCell
+                                                                        className="py-6 text-center text-muted-foreground"
+                                                                        colSpan={
+                                                                            2
+                                                                        }
+                                                                    >
+                                                                        {t(
+                                                                            'dashboard.noFiles',
+                                                                        )}
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ) : null}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+                                            </Deferred>
+                                        </CardContent>
+                                    </Card>
 
-                            <Card>
-                                <CardHeader className="pb-3">
-                                    <CardTitle>{t('dashboard.storageTrend')}</CardTitle>
-                                    <CardDescription>
-                                        {t('dashboard.storageTrendDesc')}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <Deferred
-                                        data="storageTrend"
-                                        fallback={
-                                            <div className="text-muted-foreground text-sm">
-                                                {t('dashboard.loading')}
-                                            </div>
-                                        }
-                                    >
-                                        <div className="overflow-x-auto rounded-md border">
+                                    <Card>
+                                        <CardHeader className="pb-3">
+                                            <CardTitle>
+                                                {t('dashboard.storageTrend')}
+                                            </CardTitle>
+                                            <CardDescription>
+                                                {t(
+                                                    'dashboard.storageTrendDesc',
+                                                )}
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <Deferred
+                                                data="storageTrend"
+                                                fallback={
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {t('dashboard.loading')}
+                                                    </div>
+                                                }
+                                            >
+                                                <div className="overflow-x-auto rounded-md border">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead>
+                                                                    {t(
+                                                                        'dashboard.date',
+                                                                    )}
+                                                                </TableHead>
+                                                                <TableHead className="w-[8rem] text-right">
+                                                                    {t(
+                                                                        'dashboard.added',
+                                                                    )}
+                                                                </TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {storageTrendRows.map(
+                                                                (row) => (
+                                                                    <TableRow
+                                                                        key={
+                                                                            row.date
+                                                                        }
+                                                                    >
+                                                                        <TableCell className="font-medium">
+                                                                            {
+                                                                                row.date
+                                                                            }
+                                                                        </TableCell>
+                                                                        <TableCell className="text-right">
+                                                                            {formatBytes(
+                                                                                row.bytes_added,
+                                                                            )}
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                ),
+                                                            )}
+                                                            {storageTrendRows.length ===
+                                                            0 ? (
+                                                                <TableRow>
+                                                                    <TableCell
+                                                                        className="py-6 text-center text-muted-foreground"
+                                                                        colSpan={
+                                                                            2
+                                                                        }
+                                                                    >
+                                                                        {t(
+                                                                            'dashboard.noData',
+                                                                        )}
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ) : null}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+                                            </Deferred>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                <Card>
+                                    <CardHeader className="pb-3">
+                                        <CardTitle>
+                                            {t('dashboard.storageByDisk')}
+                                        </CardTitle>
+                                        <CardDescription>
+                                            {t('dashboard.storageByDiskDesc')}
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Deferred
+                                            data="fileStatsByDisk"
+                                            fallback={
+                                                <div className="text-sm text-muted-foreground">
+                                                    {t('dashboard.loading')}
+                                                </div>
+                                            }
+                                        >
+                                            <div className="overflow-x-auto rounded-md border">
                                                 <Table>
                                                     <TableHeader>
                                                         <TableRow>
                                                             <TableHead>
-                                                                {t('dashboard.date')}
+                                                                {t(
+                                                                    'dashboard.disk',
+                                                                )}
                                                             </TableHead>
-                                                            <TableHead className="w-[8rem] text-right">
-                                                                {t('dashboard.added')}
+                                                            <TableHead className="text-right">
+                                                                {t(
+                                                                    'dashboard.files',
+                                                                )}
+                                                            </TableHead>
+                                                            <TableHead className="text-right">
+                                                                {t(
+                                                                    'dashboard.size',
+                                                                )}
                                                             </TableHead>
                                                         </TableRow>
                                                     </TableHeader>
                                                     <TableBody>
-                                                        {storageTrendRows.map(
+                                                        {fileStatsByDiskRows.map(
                                                             (row) => (
                                                                 <TableRow
                                                                     key={
-                                                                        row.date
+                                                                        row.disk
                                                                     }
                                                                 >
                                                                     <TableCell className="font-medium">
                                                                         {
-                                                                            row.date
+                                                                            row.disk
                                                                         }
                                                                     </TableCell>
                                                                     <TableCell className="text-right">
+                                                                        {row.files_count.toLocaleString()}
+                                                                    </TableCell>
+                                                                    <TableCell className="text-right">
                                                                         {formatBytes(
-                                                                            row.bytes_added,
+                                                                            row.files_size_sum,
                                                                         )}
                                                                     </TableCell>
                                                                 </TableRow>
                                                             ),
                                                         )}
-                                                        {storageTrendRows.length ===
+                                                        {fileStatsByDiskRows.length ===
                                                         0 ? (
                                                             <TableRow>
                                                                 <TableCell
-                                                                    className="text-muted-foreground py-6 text-center"
-                                                                    colSpan={2}
+                                                                    className="py-6 text-center text-muted-foreground"
+                                                                    colSpan={3}
                                                                 >
-                                                                    {t('dashboard.noData')}
+                                                                    {t(
+                                                                        'dashboard.noData',
+                                                                    )}
                                                                 </TableCell>
                                                             </TableRow>
                                                         ) : null}
                                                     </TableBody>
                                                 </Table>
-                                        </div>
-                                    </Deferred>
-                                </CardContent>
-                            </Card>
+                                            </div>
+                                        </Deferred>
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </div>
-
-                        <Card>
-                            <CardHeader className="pb-3">
-                                <CardTitle>{t('dashboard.storageByDisk')}</CardTitle>
-                                <CardDescription>
-                                    {t('dashboard.storageByDiskDesc')}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Deferred
-                                    data="fileStatsByDisk"
-                                    fallback={
-                                        <div className="text-muted-foreground text-sm">
-                                            {t('dashboard.loading')}
-                                        </div>
-                                    }
-                                >
-                                    <div className="overflow-x-auto rounded-md border">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>{t('dashboard.disk')}</TableHead>
-                                                        <TableHead className="text-right">
-                                                            {t('dashboard.files')}
-                                                        </TableHead>
-                                                        <TableHead className="text-right">
-                                                            {t('dashboard.size')}
-                                                        </TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {fileStatsByDiskRows.map(
-                                                        (row) => (
-                                                            <TableRow
-                                                                key={row.disk}
-                                                            >
-                                                                <TableCell className="font-medium">
-                                                                    {row.disk}
-                                                                </TableCell>
-                                                                <TableCell className="text-right">
-                                                                    {row.files_count.toLocaleString()}
-                                                                </TableCell>
-                                                                <TableCell className="text-right">
-                                                                    {formatBytes(
-                                                                        row.files_size_sum,
-                                                                    )}
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ),
-                                                    )}
-                                                    {fileStatsByDiskRows.length ===
-                                                    0 ? (
-                                                        <TableRow>
-                                                            <TableCell
-                                                                className="text-muted-foreground py-6 text-center"
-                                                                colSpan={3}
-                                                            >
-                                                                {t('dashboard.noData')}
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ) : null}
-                                                </TableBody>
-                                            </Table>
-                                    </div>
-                                </Deferred>
-                            </CardContent>
-                        </Card>
                     </div>
-                </div>
-                </div>
                 )}
             </PageLayout>
         </AppLayout>
@@ -926,7 +1123,8 @@ function MetricCard({
                     className={cn(
                         'text-xl',
                         tone === 'danger' && 'text-destructive',
-                        tone === 'ok' && 'text-emerald-600 dark:text-emerald-400',
+                        tone === 'ok' &&
+                            'text-emerald-600 dark:text-emerald-400',
                     )}
                 >
                     {value}
@@ -941,7 +1139,10 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
 
     if (!health) {
         return (
-            <div className="text-muted-foreground text-sm" data-test="dashboard-health">
+            <div
+                className="text-sm text-muted-foreground"
+                data-test="dashboard-health"
+            >
                 {t('dashboard.healthUnavailable')}
             </div>
         );
@@ -953,9 +1154,15 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
         health.slow_jobs_24h === 0 &&
         health.slow_queries_24h === 0;
     const pulseChart = [
-        { metric: t('dashboard.healthExceptions'), count: health.exceptions_24h },
+        {
+            metric: t('dashboard.healthExceptions'),
+            count: health.exceptions_24h,
+        },
         { metric: t('dashboard.healthSlowJobs'), count: health.slow_jobs_24h },
-        { metric: t('dashboard.healthSlowQueries'), count: health.slow_queries_24h },
+        {
+            metric: t('dashboard.healthSlowQueries'),
+            count: health.slow_queries_24h,
+        },
     ];
 
     return (
@@ -971,9 +1178,11 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                 />
                 <MetricCard
                     label={t('dashboard.healthRedis')}
-                    value={health.redis_ok
-                        ? t('dashboard.healthOk')
-                        : t('dashboard.healthDown')}
+                    value={
+                        health.redis_ok
+                            ? t('dashboard.healthOk')
+                            : t('dashboard.healthDown')
+                    }
                     tone={health.redis_ok ? 'ok' : 'danger'}
                 />
                 <MetricCard
@@ -996,26 +1205,27 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                     </CardHeader>
                     <CardContent>
                         {!health.pulse_available ? (
-                            <p className="text-muted-foreground text-sm">
+                            <p className="text-sm text-muted-foreground">
                                 {t('dashboard.healthPulseEmpty')}
                             </p>
                         ) : (
                             <div className="grid grid-cols-3 gap-3">
                                 <div>
-                                    <div className="text-muted-foreground text-xs">
+                                    <div className="text-xs text-muted-foreground">
                                         {t('dashboard.healthExceptions')}
                                     </div>
                                     <div
                                         className={cn(
                                             'text-2xl font-semibold',
-                                            health.exceptions_24h > 0 && 'text-destructive',
+                                            health.exceptions_24h > 0 &&
+                                                'text-destructive',
                                         )}
                                     >
                                         {health.exceptions_24h.toLocaleString()}
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-muted-foreground text-xs">
+                                    <div className="text-xs text-muted-foreground">
                                         {t('dashboard.healthSlowJobs')}
                                     </div>
                                     <div className="text-2xl font-semibold">
@@ -1023,7 +1233,7 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-muted-foreground text-xs">
+                                    <div className="text-xs text-muted-foreground">
                                         {t('dashboard.healthSlowQueries')}
                                     </div>
                                     <div className="text-2xl font-semibold">
@@ -1037,7 +1247,9 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
 
                 <Card className="lg:col-span-7">
                     <CardHeader className="pb-3">
-                        <CardTitle>{t('dashboard.healthPulseChartTitle')}</CardTitle>
+                        <CardTitle>
+                            {t('dashboard.healthPulseChartTitle')}
+                        </CardTitle>
                         <CardDescription>
                             {t('dashboard.healthPulseChartDesc')}
                         </CardDescription>
@@ -1045,14 +1257,20 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                     <CardContent>
                         <div className="h-44 w-full">
                             {!health.pulse_available || pulseQuiet ? (
-                                <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
+                                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                                     {t('dashboard.healthPulseQuiet')}
                                 </div>
                             ) : (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={pulseChart}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                        <XAxis dataKey="metric" tick={{ fontSize: 11 }} />
+                                        <CartesianGrid
+                                            strokeDasharray="3 3"
+                                            vertical={false}
+                                        />
+                                        <XAxis
+                                            dataKey="metric"
+                                            tick={{ fontSize: 11 }}
+                                        />
                                         <YAxis
                                             allowDecimals={false}
                                             tick={{ fontSize: 11 }}
@@ -1075,7 +1293,9 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
             <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
                 <Card className="lg:col-span-5">
                     <CardHeader className="pb-3">
-                        <CardTitle>{t('dashboard.healthHorizonTitle')}</CardTitle>
+                        <CardTitle>
+                            {t('dashboard.healthHorizonTitle')}
+                        </CardTitle>
                         <CardDescription>
                             {horizon.available
                                 ? t('dashboard.healthHorizonDesc')
@@ -1084,13 +1304,13 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                     </CardHeader>
                     <CardContent>
                         {!horizon.available ? (
-                            <p className="text-muted-foreground text-sm">
+                            <p className="text-sm text-muted-foreground">
                                 {t('dashboard.healthHorizonEmpty')}
                             </p>
                         ) : (
                             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                                 <div>
-                                    <div className="text-muted-foreground text-xs">
+                                    <div className="text-xs text-muted-foreground">
                                         {t('dashboard.healthHorizonStatus')}
                                     </div>
                                     <div
@@ -1102,12 +1322,16 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                         )}
                                     >
                                         {horizon.status === 'running'
-                                            ? t('dashboard.healthHorizonRunning')
-                                            : t('dashboard.healthHorizonStopped')}
+                                            ? t(
+                                                  'dashboard.healthHorizonRunning',
+                                              )
+                                            : t(
+                                                  'dashboard.healthHorizonStopped',
+                                              )}
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-muted-foreground text-xs">
+                                    <div className="text-xs text-muted-foreground">
                                         {t('dashboard.healthHorizonPending')}
                                     </div>
                                     <div className="text-2xl font-semibold">
@@ -1115,20 +1339,21 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-muted-foreground text-xs">
+                                    <div className="text-xs text-muted-foreground">
                                         {t('dashboard.healthHorizonFailed')}
                                     </div>
                                     <div
                                         className={cn(
                                             'text-2xl font-semibold',
-                                            horizon.failed > 0 && 'text-destructive',
+                                            horizon.failed > 0 &&
+                                                'text-destructive',
                                         )}
                                     >
                                         {horizon.failed.toLocaleString()}
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-muted-foreground text-xs">
+                                    <div className="text-xs text-muted-foreground">
                                         {t('dashboard.healthHorizonProcesses')}
                                     </div>
                                     <div className="text-2xl font-semibold">
@@ -1136,21 +1361,24 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-muted-foreground text-xs">
+                                    <div className="text-xs text-muted-foreground">
                                         {t('dashboard.healthHorizonThroughput')}
                                     </div>
                                     <div className="text-2xl font-semibold">
-                                        {(horizon.jobs_per_minute ?? 0).toLocaleString()}
+                                        {(
+                                            horizon.jobs_per_minute ?? 0
+                                        ).toLocaleString()}
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-muted-foreground text-xs">
+                                    <div className="text-xs text-muted-foreground">
                                         {t('dashboard.healthFailedJobs')}
                                     </div>
                                     <div
                                         className={cn(
                                             'text-2xl font-semibold',
-                                            health.failed_jobs > 0 && 'text-destructive',
+                                            health.failed_jobs > 0 &&
+                                                'text-destructive',
                                         )}
                                     >
                                         {health.failed_jobs.toLocaleString()}
@@ -1163,14 +1391,17 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
 
                 <Card className="lg:col-span-7">
                     <CardHeader className="pb-3">
-                        <CardTitle>{t('dashboard.healthWorkloadsTitle')}</CardTitle>
+                        <CardTitle>
+                            {t('dashboard.healthWorkloadsTitle')}
+                        </CardTitle>
                         <CardDescription>
                             {t('dashboard.healthWorkloadsDesc')}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {!horizon.available || horizon.workloads.length === 0 ? (
-                            <p className="text-muted-foreground text-sm">
+                        {!horizon.available ||
+                        horizon.workloads.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
                                 {t('dashboard.healthWorkloadsEmpty')}
                             </p>
                         ) : (
@@ -1179,16 +1410,24 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>
-                                                {t('dashboard.healthWorkloadQueue')}
+                                                {t(
+                                                    'dashboard.healthWorkloadQueue',
+                                                )}
                                             </TableHead>
                                             <TableHead className="w-[6rem] text-right">
-                                                {t('dashboard.healthWorkloadLength')}
+                                                {t(
+                                                    'dashboard.healthWorkloadLength',
+                                                )}
                                             </TableHead>
                                             <TableHead className="w-[6rem] text-right">
-                                                {t('dashboard.healthWorkloadWait')}
+                                                {t(
+                                                    'dashboard.healthWorkloadWait',
+                                                )}
                                             </TableHead>
                                             <TableHead className="w-[6rem] text-right">
-                                                {t('dashboard.healthWorkloadProcesses')}
+                                                {t(
+                                                    'dashboard.healthWorkloadProcesses',
+                                                )}
                                             </TableHead>
                                         </TableRow>
                                     </TableHeader>

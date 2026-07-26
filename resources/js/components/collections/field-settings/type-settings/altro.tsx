@@ -1,11 +1,8 @@
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    parseHashFieldSettings
-    
-} from '@/lib/collection-field-types';
-import type {SliderFieldSettings} from '@/lib/collection-field-types';
+import { parseHashFieldSettings } from '@/lib/collection-field-types';
+import type { SliderFieldSettings } from '@/lib/collection-field-types';
 
 type AltroSettingsProps = {
     fieldType: string;

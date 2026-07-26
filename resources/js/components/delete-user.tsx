@@ -109,7 +109,9 @@ export default function DeleteUser() {
                                                 type="submit"
                                                 data-test="confirm-delete-user-button"
                                             >
-                                                {t('settings.deleteUser.button')}
+                                                {t(
+                                                    'settings.deleteUser.button',
+                                                )}
                                             </button>
                                         </Button>
                                     </DialogFooter>

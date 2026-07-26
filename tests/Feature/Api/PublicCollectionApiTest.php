@@ -10,10 +10,12 @@ use App\Models\CollectionPermission;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Api\CollectionPermissionGuard;
+use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
 
 beforeEach(function (): void {
-    $this->seed(\Database\Seeders\PermissionSeeder::class);
-    $this->seed(\Database\Seeders\RoleSeeder::class);
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
 });
 
 function publicRole(): Role

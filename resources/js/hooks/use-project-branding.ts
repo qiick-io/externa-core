@@ -23,7 +23,9 @@ export function useProjectBranding(): ProjectAppearance | undefined {
             );
             // Drop legacy inline --primary from older builds / appearance preview.
             document.documentElement.style.removeProperty('--primary');
-            document.documentElement.style.removeProperty('--primary-foreground');
+            document.documentElement.style.removeProperty(
+                '--primary-foreground',
+            );
         }
 
         if (projectAppearance.primaryForeground) {

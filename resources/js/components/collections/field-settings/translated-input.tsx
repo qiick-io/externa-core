@@ -1,10 +1,8 @@
 import { usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { LocalizedField } from '@/components/collections/localized-field';
-import {
-    COLLECTION_FIELD_LOCALES,
-    type TranslatedText,
-} from '@/lib/collection-field-types';
+import { COLLECTION_FIELD_LOCALES } from '@/lib/collection-field-types';
+import type { TranslatedText } from '@/lib/collection-field-types';
 
 type TranslatedInputProps = {
     idPrefix: string;

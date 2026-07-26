@@ -54,7 +54,7 @@ export function DataTableToolbar({
                 </div>
             ) : (
                 <div className="relative min-w-[12rem] flex-1 sm:max-w-xs">
-                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+                    <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                         value={search}
                         onChange={(e) => onSearchChange(e.target.value)}
@@ -64,7 +64,9 @@ export function DataTableToolbar({
                 </div>
             )}
             {!hasSelection && trailing && (
-                <div className="flex flex-wrap items-center gap-2">{trailing}</div>
+                <div className="flex flex-wrap items-center gap-2">
+                    {trailing}
+                </div>
             )}
         </div>
     );

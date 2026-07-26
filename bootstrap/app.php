@@ -25,7 +25,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'can.manage.files' => EnsureCanManageFiles::class,
         ]);
 
-        $middleware->encryptCookies(except: ['appearance', 'sidebar_state', 'locale']);
+        $middleware->encryptCookies(except: [
+            'appearance',
+            'sidebar_state',
+            'locale',
+            'accessibility_high_contrast',
+            'accessibility_reduce_motion',
+        ]);
         $middleware->validateCsrfTokens(except: [
             'ai/webhooks/collection-import',
             'api/graphql',

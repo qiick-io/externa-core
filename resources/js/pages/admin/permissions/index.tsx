@@ -35,8 +35,7 @@ export default function AdminPermissionsIndex({
     permissions: permissionsProp,
 }: {
     permissions:
-        | LaravelPaginated<AdminPermissionRow>
-        | Paginated<AdminPermissionRow>;
+        LaravelPaginated<AdminPermissionRow> | Paginated<AdminPermissionRow>;
 }) {
     const { t } = useTranslation();
     const permissions = normalizePaginated(permissionsProp);
@@ -79,59 +78,60 @@ export default function AdminPermissionsIndex({
             <Head title={t('settings.layout.permissions')} />
 
             <SettingsLayout wide>
-            <PageLayout
-                className="p-0"
-                description={
-                    <>
-                        Permissions are defined in{' '}
-                        <code className="text-xs">PermissionEnum</code> and
-                        synced to the database. Assign them to roles on the role
-                        edit page.
-                    </>
-                }
-            >
-                <TablePanel
-                    footer={
-                        permissions.last_page > 1 ? (
-                            <TablePagination
-                                links={permissions.links ?? []}
-                            />
-                        ) : undefined
+                <PageLayout
+                    className="p-0"
+                    description={
+                        <>
+                            Permissions are defined in{' '}
+                            <code className="text-xs">PermissionEnum</code> and
+                            synced to the database. Assign them to roles on the
+                            role edit page.
+                        </>
                     }
                 >
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Guard</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {(permissions.data ?? []).length === 0 ? (
+                    <TablePanel
+                        footer={
+                            permissions.last_page > 1 ? (
+                                <TablePagination
+                                    links={permissions.links ?? []}
+                                />
+                            ) : undefined
+                        }
+                    >
+                        <Table>
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell
-                                        colSpan={2}
-                                        className="text-muted-foreground"
-                                    >
-                                        No permissions in database. Run sync.
-                                    </TableCell>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Guard</TableHead>
                                 </TableRow>
-                            ) : (
-                                (permissions.data ?? []).map((perm) => (
-                                    <TableRow key={perm.id}>
-                                        <TableCell className="font-mono text-sm">
-                                            {perm.name}
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground">
-                                            {perm.guard_name}
+                            </TableHeader>
+                            <TableBody>
+                                {(permissions.data ?? []).length === 0 ? (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={2}
+                                            className="text-muted-foreground"
+                                        >
+                                            No permissions in database. Run
+                                            sync.
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </TablePanel>
-            </PageLayout>
+                                ) : (
+                                    (permissions.data ?? []).map((perm) => (
+                                        <TableRow key={perm.id}>
+                                            <TableCell className="font-mono text-sm">
+                                                {perm.name}
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground">
+                                                {perm.guard_name}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </TablePanel>
+                </PageLayout>
             </SettingsLayout>
         </AppLayout>
     );

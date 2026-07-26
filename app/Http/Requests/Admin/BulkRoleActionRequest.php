@@ -5,10 +5,10 @@ namespace App\Http\Requests\Admin;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Models\Role;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use App\Models\Role;
 
 /**
  * Validates bulk admin actions against roles.

@@ -17,7 +17,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Form, Head, router } from '@inertiajs/react';
 import { GripVertical, Lock } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import ProjectSettingsController from '@/actions/App/Http/Controllers/Settings/ProjectSettingsController';
 import Heading from '@/components/heading';
@@ -107,7 +108,7 @@ function ModuleRowContent({
         <>
             {dragHandle ?? (
                 <span
-                    className="text-muted-foreground/40 flex size-4 items-center justify-center"
+                    className="flex size-4 items-center justify-center text-muted-foreground/40"
                     aria-hidden
                 >
                     <Lock className="size-3.5" />
@@ -121,7 +122,10 @@ function ModuleRowContent({
             />
             <Label
                 htmlFor={`module-${module.id}`}
-                className={cn('flex-1', module.locked && 'text-muted-foreground')}
+                className={cn(
+                    'flex-1',
+                    module.locked && 'text-muted-foreground',
+                )}
             >
                 {label}
                 {module.locked ? ' *' : ''}
@@ -140,7 +144,7 @@ function PinnedModuleRow({
     onToggle: (enabled: boolean) => void;
 }) {
     return (
-        <div className="bg-muted/30 flex items-center gap-3 rounded-md border px-3 py-2">
+        <div className="flex items-center gap-3 rounded-md border bg-muted/30 px-3 py-2">
             <ModuleRowContent
                 module={module}
                 label={label}
@@ -159,8 +163,14 @@ function SortableModuleRow({
     label: string;
     onToggle: (enabled: boolean) => void;
 }) {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-        useSortable({ id: module.id });
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: module.id });
 
     return (
         <div
@@ -181,7 +191,7 @@ function SortableModuleRow({
                 dragHandle={
                     <button
                         type="button"
-                        className="text-muted-foreground hover:text-foreground cursor-grab touch-none"
+                        className="cursor-grab touch-none text-muted-foreground hover:text-foreground"
                         aria-label="Reorder"
                         {...attributes}
                         {...listeners}
@@ -228,10 +238,8 @@ export default function ProjectSettingsPage({
             project.default_content_locale ??
             project.content_locales?.[0] ??
             'en',
-        fallback_content_locales:
-            project.fallback_content_locales ??
-            project.content_locales ??
-            ['en', 'it'],
+        fallback_content_locales: project.fallback_content_locales ??
+            project.content_locales ?? ['en', 'it'],
     });
     const [sendingTestWebhook, setSendingTestWebhook] = useState(false);
 
@@ -251,6 +259,7 @@ export default function ProjectSettingsPage({
 
     const onDragEnd = (event: DragEndEvent): void => {
         const { active, over } = event;
+
         if (!over || active.id === over.id) {
             return;
         }
@@ -277,11 +286,7 @@ export default function ProjectSettingsPage({
             return {
                 ...current,
                 sidebar_modules: pinSidebarModules(
-                    arrayMove(
-                        current.sidebar_modules,
-                        oldIndex,
-                        newIndex,
-                    ),
+                    arrayMove(current.sidebar_modules, oldIndex, newIndex),
                 ),
             };
         });
@@ -355,12 +360,16 @@ export default function ProjectSettingsPage({
                             <input
                                 type="hidden"
                                 name="allowed_transformations"
-                                value={JSON.stringify(form.allowed_transformations)}
+                                value={JSON.stringify(
+                                    form.allowed_transformations,
+                                )}
                             />
                             <input
                                 type="hidden"
                                 name="preset_transformations"
-                                value={JSON.stringify(form.preset_transformations)}
+                                value={JSON.stringify(
+                                    form.preset_transformations,
+                                )}
                             />
                             <input
                                 type="hidden"
@@ -492,16 +501,16 @@ export default function ProjectSettingsPage({
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {Object.entries(availableLocales).map(
-                                                ([code, label]) => (
-                                                    <SelectItem
-                                                        key={code}
-                                                        value={code}
-                                                    >
-                                                        {label}
-                                                    </SelectItem>
-                                                ),
-                                            )}
+                                            {Object.entries(
+                                                availableLocales,
+                                            ).map(([code, label]) => (
+                                                <SelectItem
+                                                    key={code}
+                                                    value={code}
+                                                >
+                                                    {label}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                     <InputError
@@ -663,7 +672,7 @@ export default function ProjectSettingsPage({
                                                                 `settings.project.passwordPolicies.${policy}.label`,
                                                             )}
                                                         </span>
-                                                        <span className="text-muted-foreground text-xs font-normal whitespace-normal">
+                                                        <span className="text-xs font-normal whitespace-normal text-muted-foreground">
                                                             {t(
                                                                 `settings.project.passwordPolicies.${policy}.description`,
                                                             )}
@@ -673,10 +682,10 @@ export default function ProjectSettingsPage({
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <ul className="text-muted-foreground list-disc space-y-1 pl-5 text-sm">
+                                    <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
                                         {passwordPolicies.map((policy) => (
                                             <li key={`hint-${policy}`}>
-                                                <span className="text-foreground font-medium">
+                                                <span className="font-medium text-foreground">
                                                     {t(
                                                         `settings.project.passwordPolicies.${policy}.label`,
                                                     )}
@@ -757,7 +766,9 @@ export default function ProjectSettingsPage({
                                         {t('settings.project.defaultUserRole')}
                                     </Label>
                                     <Select
-                                        value={form.default_user_role || '__none__'}
+                                        value={
+                                            form.default_user_role || '__none__'
+                                        }
                                         onValueChange={(value) =>
                                             setForm((current) => ({
                                                 ...current,
@@ -814,9 +825,7 @@ export default function ProjectSettingsPage({
                                     </Label>
                                 </div>
                                 <InputError
-                                    message={
-                                        errors.email_verification_required
-                                    }
+                                    message={errors.email_verification_required}
                                 />
 
                                 <div className="grid gap-2">
@@ -836,7 +845,7 @@ export default function ProjectSettingsPage({
                                         }
                                         placeholder="example.com, company.org"
                                     />
-                                    <p className="text-muted-foreground text-sm">
+                                    <p className="text-sm text-muted-foreground">
                                         {t(
                                             'settings.project.allowedDomainsHint',
                                         )}
@@ -907,9 +916,7 @@ export default function ProjectSettingsPage({
                                         </div>
                                     ))}
                                     <InputError
-                                        message={
-                                            errors.allowed_transformations
-                                        }
+                                        message={errors.allowed_transformations}
                                     />
                                 </div>
 
@@ -940,7 +947,9 @@ export default function ProjectSettingsPage({
                                     [
                                         [
                                             'report_issue_url',
-                                            t('settings.project.reportIssueUrl'),
+                                            t(
+                                                'settings.project.reportIssueUrl',
+                                            ),
                                         ],
                                         [
                                             'report_bug_url',
@@ -948,7 +957,9 @@ export default function ProjectSettingsPage({
                                         ],
                                         [
                                             'report_error_url',
-                                            t('settings.project.reportErrorUrl'),
+                                            t(
+                                                'settings.project.reportErrorUrl',
+                                            ),
                                         ],
                                     ] as const
                                 ).map(([field, label]) => (
@@ -995,13 +1006,12 @@ export default function ProjectSettingsPage({
                                         onChange={(event) =>
                                             setForm((current) => ({
                                                 ...current,
-                                                webhook_url:
-                                                    event.target.value,
+                                                webhook_url: event.target.value,
                                             }))
                                         }
                                         placeholder="https://example.com/webhooks/externa"
                                     />
-                                    <p className="text-muted-foreground text-sm">
+                                    <p className="text-sm text-muted-foreground">
                                         {t('settings.project.webhookUrlHint')}
                                     </p>
                                     <InputError message={errors.webhook_url} />
@@ -1042,7 +1052,7 @@ export default function ProjectSettingsPage({
                                             )}
                                         </Button>
                                     </div>
-                                    <p className="text-muted-foreground text-sm">
+                                    <p className="text-sm text-muted-foreground">
                                         {project.webhook_secret_configured
                                             ? t(
                                                   'settings.project.webhookSecretConfigured',
@@ -1068,11 +1078,9 @@ export default function ProjectSettingsPage({
                                         onClick={sendTestWebhook}
                                         data-test="project-webhook-test"
                                     >
-                                        {t(
-                                            'settings.project.webhookSendTest',
-                                        )}
+                                        {t('settings.project.webhookSendTest')}
                                     </Button>
-                                    <p className="text-muted-foreground text-sm">
+                                    <p className="text-sm text-muted-foreground">
                                         {t(
                                             'settings.project.webhookSendTestHint',
                                         )}

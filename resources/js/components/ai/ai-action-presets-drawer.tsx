@@ -25,7 +25,10 @@ import {
     AI_ACTION_PRESETS,
     filterAiActionPresets,
 } from '@/lib/ai-action-presets';
-import type { AiActionPreset, AiActionPresetCategory } from '@/lib/ai-action-presets';
+import type {
+    AiActionPreset,
+    AiActionPresetCategory,
+} from '@/lib/ai-action-presets';
 import { cn } from '@/lib/utils';
 
 const CATEGORY_ORDER: AiActionPresetCategory[] = [
@@ -169,7 +172,10 @@ export function AiActionPresetsDrawer({
                             </p>
                         ) : (
                             grouped.map((group) => (
-                                <section key={group.category} className="space-y-2">
+                                <section
+                                    key={group.category}
+                                    className="space-y-2"
+                                >
                                     <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                         {group.label}
                                     </h3>
@@ -183,7 +189,9 @@ export function AiActionPresetsDrawer({
                                                         'hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                                                     )}
                                                     onClick={() =>
-                                                        handlePresetClick(preset)
+                                                        handlePresetClick(
+                                                            preset,
+                                                        )
                                                     }
                                                 >
                                                     <div className="flex items-start justify-between gap-2">
@@ -222,9 +230,7 @@ export function AiActionPresetsDrawer({
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>
-                            {t('ai.drawer.confirmTitle')}
-                        </DialogTitle>
+                        <DialogTitle>{t('ai.drawer.confirmTitle')}</DialogTitle>
                         <DialogDescription>
                             {t('ai.drawer.confirmDescription', {
                                 title: pendingTitle,

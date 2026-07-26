@@ -75,8 +75,7 @@ export function AiComposer({
 }: AiComposerProps) {
     const { t } = useTranslation();
     const resolvedPlaceholder = placeholder ?? t('ai.askPlaceholder');
-    const resolvedAttachTooltip =
-        attachTooltip ?? t('ai.attachShortTooltip');
+    const resolvedAttachTooltip = attachTooltip ?? t('ai.attachShortTooltip');
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
     useEffect(() => {
@@ -311,7 +310,9 @@ export function AiComposer({
                                                 variant="ghost"
                                                 className="size-8 text-muted-foreground"
                                                 disabled
-                                                aria-label={t('ai.dictationAria')}
+                                                aria-label={t(
+                                                    'ai.dictationAria',
+                                                )}
                                             >
                                                 <Mic className="size-4" />
                                             </Button>

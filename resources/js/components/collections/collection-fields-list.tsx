@@ -7,12 +7,13 @@ import {
     PointerSensor,
     pointerWithin,
     useSensor,
-    useSensors
-    
-    
-    
+    useSensors,
 } from '@dnd-kit/core';
-import type {CollisionDetection, DragOverEvent, DragStartEvent} from '@dnd-kit/core';
+import type {
+    CollisionDetection,
+    DragOverEvent,
+    DragStartEvent,
+} from '@dnd-kit/core';
 import {
     arrayMove,
     SortableContext,
@@ -58,10 +59,9 @@ import {
     getFieldLayoutWidth,
     groupFieldsIntoLayoutRows,
     isFieldHiddenInForm,
-    isFieldRequired
-    
+    isFieldRequired,
 } from '@/lib/collection-field-types';
-import type {FieldLayoutWidth} from '@/lib/collection-field-types';
+import type { FieldLayoutWidth } from '@/lib/collection-field-types';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { CollectionFieldRow } from '@/types';
@@ -173,7 +173,9 @@ function computeFieldDropIntent(
     }
 
     const overFieldId = Number(over.id);
-    const overIndex = orderedFields.findIndex((field) => field.id === overFieldId);
+    const overIndex = orderedFields.findIndex(
+        (field) => field.id === overFieldId,
+    );
 
     if (overIndex === -1) {
         return null;
@@ -204,8 +206,7 @@ function computeFieldDropIntent(
     const relativeX = (pointerX - overRect.left) / overRect.width;
     const pointerIntent: DropIntent = relativeY < 0.5 ? 'before' : 'after';
 
-    const isVerticalDropIntent =
-        relativeX > 0.2 && relativeX < 0.8;
+    const isVerticalDropIntent = relativeX > 0.2 && relativeX < 0.8;
 
     const activeCenterY = translatedRect.top + translatedRect.height / 2;
     const activeCenterX = translatedRect.left + translatedRect.width / 2;
@@ -560,9 +561,7 @@ function SortableCollectionFieldRow({
             className={cn(
                 'relative h-full min-w-0 touch-none',
                 reorderEnabled && 'cursor-grab active:cursor-grabbing',
-                colSpan === 2
-                    ? 'col-span-1 md:col-span-2'
-                    : 'col-span-1',
+                colSpan === 2 ? 'col-span-1 md:col-span-2' : 'col-span-1',
             )}
         >
             {isDropTarget && dropLayoutIntent === 'below-new-row' && (
@@ -583,7 +582,9 @@ function SortableCollectionFieldRow({
                         aria-hidden
                         className={cn(
                             'pointer-events-none absolute inset-x-1 z-10 h-1 rounded-full bg-primary shadow-[0_0_0_2px] shadow-primary/20',
-                            dropIntent === 'before' ? '-top-1.5' : '-bottom-1.5',
+                            dropIntent === 'before'
+                                ? '-top-1.5'
+                                : '-bottom-1.5',
                         )}
                     />
                 )}
@@ -597,7 +598,6 @@ function SortableCollectionFieldRow({
         </div>
     );
 }
-
 
 function StaticFieldsList({
     collectionId,
@@ -711,7 +711,9 @@ function SortableFieldsList({
             setActiveFieldId(Number(event.active.id));
         });
         orderAtDragStartRef.current = orderedFields.map((field) => field.id);
-        rowBreakAtDragStartRef.current = Array.from(rowBreakFieldIdsRef.current);
+        rowBreakAtDragStartRef.current = Array.from(
+            rowBreakFieldIdsRef.current,
+        );
 
         const draggedElement = document.querySelector(
             `[data-sortable-id="${String(event.active.id)}"]`,
@@ -820,9 +822,9 @@ function SortableFieldsList({
 
         setOrderedFields((currentFields) => {
             const currentOrderIds = currentFields.map((field) => field.id);
-            const currentRowBreakIds = Array.from(rowBreakFieldIdsRef.current).sort(
-                (left, right) => left - right,
-            );
+            const currentRowBreakIds = Array.from(
+                rowBreakFieldIdsRef.current,
+            ).sort((left, right) => left - right);
             const orderChanged =
                 currentOrderIds.join(',') !==
                 orderAtDragStartRef.current.join(',');

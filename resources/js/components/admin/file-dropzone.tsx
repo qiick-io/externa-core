@@ -1,13 +1,6 @@
 import { Upload } from 'lucide-react';
-import {
-    
-    
-    useCallback,
-    useEffect,
-    useRef,
-    useState
-} from 'react';
-import type {DragEvent, ReactNode} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { DragEvent, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -178,12 +171,12 @@ export function FileDropzone({
                 {hiddenInput}
                 {children}
                 {pageDragOver && !disabled && (
-                    <div className="border-primary bg-primary/10 pointer-events-none absolute inset-0 z-50 flex items-center justify-center rounded-xl border-2 border-dashed">
-                        <div className="bg-card pointer-events-none rounded-lg border p-8 shadow-lg">
+                    <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-primary/10">
+                        <div className="pointer-events-none rounded-lg border bg-card p-8 shadow-lg">
                             <p className="text-sm font-semibold">
                                 Drop files here to upload
                             </p>
-                            <p className="text-muted-foreground mt-2 text-xs">
+                            <p className="mt-2 text-xs text-muted-foreground">
                                 Large files use chunked upload automatically
                             </p>
                         </div>
@@ -238,12 +231,12 @@ export function FileDropzone({
         >
             {hiddenInput}
             <div className="flex flex-col items-center justify-center gap-3 text-center">
-                <Upload className="text-muted-foreground size-8" />
+                <Upload className="size-8 text-muted-foreground" />
                 <div>
                     <p className="text-sm font-medium">
                         Drop files here or browse
                     </p>
-                    <p className="text-muted-foreground mt-1 text-xs">
+                    <p className="mt-1 text-xs text-muted-foreground">
                         Large files use chunked upload automatically
                     </p>
                 </div>

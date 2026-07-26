@@ -24,8 +24,8 @@ import {
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
 import { seedActivityLogPrompt } from '@/lib/ai-open';
-import { normalizePaginated  } from '@/lib/pagination';
-import type {LaravelPaginated} from '@/lib/pagination';
+import { normalizePaginated } from '@/lib/pagination';
+import type { LaravelPaginated } from '@/lib/pagination';
 import type {
     AdminActivityLogRow,
     AdminUserRow,
@@ -55,9 +55,10 @@ export default function AdminActivityLogsIndex({
     filters = {},
 }: {
     activityLogs:
-        | LaravelPaginated<AdminActivityLogRow>
-        | Paginated<AdminActivityLogRow>;
-    users: Array<Pick<AdminUserRow, 'id' | 'first_name' | 'last_name' | 'email'>>;
+        LaravelPaginated<AdminActivityLogRow> | Paginated<AdminActivityLogRow>;
+    users: Array<
+        Pick<AdminUserRow, 'id' | 'first_name' | 'last_name' | 'email'>
+    >;
     events?: string[];
     filters?: Filters;
 }) {
@@ -239,9 +240,7 @@ export default function AdminActivityLogsIndex({
                 <TablePanel
                     footer={
                         activityLogs.last_page > 1 ? (
-                            <TablePagination
-                                links={activityLogs.links ?? []}
-                            />
+                            <TablePagination links={activityLogs.links ?? []} />
                         ) : undefined
                     }
                 >
@@ -301,7 +300,7 @@ export default function AdminActivityLogsIndex({
                                                         )}
                                                     </button>
                                                 </TableCell>
-                                                <TableCell className="whitespace-nowrap text-sm">
+                                                <TableCell className="text-sm whitespace-nowrap">
                                                     {formatDate(row.created_at)}
                                                 </TableCell>
                                                 <TableCell>
@@ -313,7 +312,7 @@ export default function AdminActivityLogsIndex({
                                                                         .name
                                                                 }
                                                             </div>
-                                                            <div className="text-muted-foreground text-xs">
+                                                            <div className="text-xs text-muted-foreground">
                                                                 {
                                                                     row.causer
                                                                         .email
@@ -321,7 +320,7 @@ export default function AdminActivityLogsIndex({
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <span className="text-muted-foreground text-sm">
+                                                        <span className="text-sm text-muted-foreground">
                                                             System
                                                         </span>
                                                     )}
@@ -358,13 +357,16 @@ export default function AdminActivityLogsIndex({
                                                 </TableCell>
                                             </TableRow>
                                             {isExpanded ? (
-                                                <TableRow key={`${row.id}-details`}>
+                                                <TableRow
+                                                    key={`${row.id}-details`}
+                                                >
                                                     <TableCell colSpan={7}>
                                                         <div className="space-y-3 py-2">
                                                             <div className="grid gap-2 text-sm sm:grid-cols-2">
                                                                 <div>
                                                                     <span className="text-muted-foreground">
-                                                                        Log name:
+                                                                        Log
+                                                                        name:
                                                                     </span>{' '}
                                                                     {row.log_name ??
                                                                         'default'}
@@ -379,7 +381,7 @@ export default function AdminActivityLogsIndex({
                                                                         '—'}
                                                                 </div>
                                                             </div>
-                                                            <pre className="bg-muted overflow-x-auto rounded-md p-3 text-xs">
+                                                            <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
                                                                 {renderChanges(
                                                                     row,
                                                                 )}

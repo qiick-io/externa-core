@@ -1,10 +1,7 @@
 /** Simple field form conditions (mirrors PHP FieldConditionEvaluator). */
 
 export type FieldConditionOperator =
-    | 'equals'
-    | 'not_equals'
-    | 'empty'
-    | 'not_empty';
+    'equals' | 'not_equals' | 'empty' | 'not_empty';
 
 export type FieldConditionRule = {
     field: string;
@@ -27,7 +24,13 @@ export type EffectiveFieldFlags = {
 };
 
 function settingsFlag(value: unknown): boolean {
-    return value === true || value === 1 || value === '1' || value === 'true' || value === 'on';
+    return (
+        value === true ||
+        value === 1 ||
+        value === '1' ||
+        value === 'true' ||
+        value === 'on'
+    );
 }
 
 function isEmpty(value: unknown): boolean {
@@ -87,6 +90,7 @@ export function parseFieldConditions(
     settings?: Record<string, unknown> | null,
 ): FieldConditions | null {
     const raw = settings?.conditions;
+
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
         return null;
     }
@@ -102,6 +106,7 @@ export function parseFieldConditions(
 
         const rule = entry as Record<string, unknown>;
         const field = String(rule.field ?? '').trim();
+
         if (field === '') {
             continue;
         }
@@ -117,6 +122,7 @@ export function parseFieldConditions(
             : 'equals';
 
         const normalized: FieldConditionRule = { field, operator };
+
         if (operator !== 'empty' && operator !== 'not_empty') {
             normalized.value = rule.value;
         }
@@ -171,11 +177,15 @@ export function evaluateFieldFlags(
     };
 
     const conditions = parseFieldConditions(settings);
+
     if (!conditions) {
         return flags;
     }
 
-    const matches = conditions.rules.every((rule) => singleRuleMatches(rule, data));
+    const matches = conditions.rules.every((rule) =>
+        singleRuleMatches(rule, data),
+    );
+
     if (!matches) {
         // Show-when: explicit hidden:false means visible only while rules match.
         if (conditions.hidden === false) {
@@ -188,9 +198,11 @@ export function evaluateFieldFlags(
     if (conditions.hidden !== undefined) {
         flags.hidden = conditions.hidden;
     }
+
     if (conditions.readonly !== undefined) {
         flags.readonly = conditions.readonly;
     }
+
     if (conditions.required !== undefined) {
         flags.required = conditions.required;
     }

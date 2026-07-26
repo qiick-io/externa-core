@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/app-logo';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { Breadcrumbs } from '@/components/breadcrumbs';
@@ -70,6 +71,7 @@ const activeItemStyles =
  * @returns {JSX.Element | null}
  */
 export function AppHeader({ breadcrumbs = [] }: Props) {
+    const { t } = useTranslation();
     const page = usePage();
     const { auth } = page.props;
     const user = auth.user;
@@ -80,10 +82,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
         return null;
     }
 
-    const displayName = formatUserDisplayName(
-        user.first_name,
-        user.last_name,
-    );
+    const displayName = formatUserDisplayName(user.first_name, user.last_name);
 
     return (
         <>
@@ -96,6 +95,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                     variant="ghost"
                                     size="icon"
                                     className="mr-2 h-[34px] w-[34px]"
+                                    aria-label={t('a11y.openMenu')}
                                 >
                                     <Menu className="h-5 w-5" />
                                 </Button>
@@ -195,6 +195,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                 variant="ghost"
                                 size="icon"
                                 className="group h-9 w-9 cursor-pointer"
+                                aria-label={t('a11y.search')}
                             >
                                 <Search className="!size-5 opacity-80 group-hover:opacity-100" />
                             </Button>

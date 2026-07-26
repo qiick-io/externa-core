@@ -32,9 +32,11 @@ async function readDirectoryEntries(
     const entries: FileSystemEntry[] = [];
 
     while (true) {
-        const batch = await new Promise<FileSystemEntry[]>((resolve, reject) => {
-            reader.readEntries(resolve, reject);
-        });
+        const batch = await new Promise<FileSystemEntry[]>(
+            (resolve, reject) => {
+                reader.readEntries(resolve, reject);
+            },
+        );
 
         if (batch.length === 0) {
             break;
@@ -240,7 +242,9 @@ export async function ensureAllFolderPaths(
 ): Promise<Map<string, number>> {
     const folderIdByPath = new Map<string, number>();
     const uniquePaths = [
-        ...new Set(directoryPaths.filter((directoryPath) => directoryPath.length > 0)),
+        ...new Set(
+            directoryPaths.filter((directoryPath) => directoryPath.length > 0),
+        ),
     ];
 
     uniquePaths.sort(

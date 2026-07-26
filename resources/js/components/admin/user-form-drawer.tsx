@@ -108,119 +108,123 @@ export function UserFormDrawer({
                 }}
             >
                 <DrawerBody className="flex flex-col gap-4">
-                <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-2">
+                            <Label htmlFor="user_first_name">First name</Label>
+                            <Input
+                                id="user_first_name"
+                                value={form.data.first_name}
+                                onChange={(e) =>
+                                    form.setData('first_name', e.target.value)
+                                }
+                                required
+                                disabled={readOnly}
+                            />
+                            <InputError message={form.errors.first_name} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="user_last_name">Last name</Label>
+                            <Input
+                                id="user_last_name"
+                                value={form.data.last_name}
+                                onChange={(e) =>
+                                    form.setData('last_name', e.target.value)
+                                }
+                                disabled={readOnly}
+                            />
+                            <InputError message={form.errors.last_name} />
+                        </div>
+                    </div>
+
                     <div className="grid gap-2">
-                        <Label htmlFor="user_first_name">First name</Label>
+                        <Label htmlFor="user_email">Email</Label>
                         <Input
-                            id="user_first_name"
-                            value={form.data.first_name}
+                            id="user_email"
+                            type="email"
+                            value={form.data.email}
                             onChange={(e) =>
-                                form.setData('first_name', e.target.value)
+                                form.setData('email', e.target.value)
                             }
                             required
                             disabled={readOnly}
                         />
-                        <InputError message={form.errors.first_name} />
+                        <InputError message={form.errors.email} />
                     </div>
+
                     <div className="grid gap-2">
-                        <Label htmlFor="user_last_name">Last name</Label>
+                        <Label htmlFor="user_username">Username</Label>
                         <Input
-                            id="user_last_name"
-                            value={form.data.last_name}
+                            id="user_username"
+                            value={form.data.username}
                             onChange={(e) =>
-                                form.setData('last_name', e.target.value)
+                                form.setData('username', e.target.value)
                             }
                             disabled={readOnly}
                         />
-                        <InputError message={form.errors.last_name} />
+                        <InputError message={form.errors.username} />
                     </div>
-                </div>
 
-                <div className="grid gap-2">
-                    <Label htmlFor="user_email">Email</Label>
-                    <Input
-                        id="user_email"
-                        type="email"
-                        value={form.data.email}
-                        onChange={(e) => form.setData('email', e.target.value)}
-                        required
-                        disabled={readOnly}
-                    />
-                    <InputError message={form.errors.email} />
-                </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="user_password">
+                            {editing ? 'New password (optional)' : 'Password'}
+                        </Label>
+                        <Input
+                            id="user_password"
+                            type="password"
+                            value={form.data.password}
+                            onChange={(e) =>
+                                form.setData('password', e.target.value)
+                            }
+                            required={!editing}
+                            disabled={readOnly}
+                            autoComplete="new-password"
+                        />
+                        <InputError message={form.errors.password} />
+                    </div>
 
-                <div className="grid gap-2">
-                    <Label htmlFor="user_username">Username</Label>
-                    <Input
-                        id="user_username"
-                        value={form.data.username}
-                        onChange={(e) =>
-                            form.setData('username', e.target.value)
-                        }
-                        disabled={readOnly}
-                    />
-                    <InputError message={form.errors.username} />
-                </div>
+                    <div className="flex items-center gap-2">
+                        <input
+                            id="user_is_active"
+                            type="checkbox"
+                            className="size-4 rounded border"
+                            checked={form.data.is_active}
+                            onChange={(e) =>
+                                form.setData('is_active', e.target.checked)
+                            }
+                            disabled={readOnly}
+                        />
+                        <Label htmlFor="user_is_active">Active</Label>
+                    </div>
 
-                <div className="grid gap-2">
-                    <Label htmlFor="user_password">
-                        {editing ? 'New password (optional)' : 'Password'}
-                    </Label>
-                    <Input
-                        id="user_password"
-                        type="password"
-                        value={form.data.password}
-                        onChange={(e) =>
-                            form.setData('password', e.target.value)
-                        }
-                        required={!editing}
-                        disabled={readOnly}
-                        autoComplete="new-password"
-                    />
-                    <InputError message={form.errors.password} />
-                </div>
+                    <div className="grid gap-2">
+                        <Label>Roles</Label>
+                        <RoleMultiSelect
+                            value={form.data.role_ids}
+                            onChange={(role_ids) =>
+                                form.setData('role_ids', role_ids)
+                            }
+                            initialRoles={editing?.roles}
+                            disabled={readOnly}
+                        />
+                        <InputError message={form.errors.role_ids} />
+                    </div>
 
-                <div className="flex items-center gap-2">
-                    <input
-                        id="user_is_active"
-                        type="checkbox"
-                        className="size-4 rounded border"
-                        checked={form.data.is_active}
-                        onChange={(e) =>
-                            form.setData('is_active', e.target.checked)
-                        }
-                        disabled={readOnly}
-                    />
-                    <Label htmlFor="user_is_active">Active</Label>
-                </div>
-
-                <div className="grid gap-2">
-                    <Label>Roles</Label>
-                    <RoleMultiSelect
-                        value={form.data.role_ids}
-                        onChange={(role_ids) => form.setData('role_ids', role_ids)}
-                        initialRoles={editing?.roles}
-                        disabled={readOnly}
-                    />
-                    <InputError message={form.errors.role_ids} />
-                </div>
-
-                <div className="grid gap-2">
-                    <Label>Groups</Label>
-                    <UserGroupMultiSelect
-                        value={form.data.group_ids}
-                        onChange={(group_ids) =>
-                            form.setData('group_ids', group_ids)
-                        }
-                        initialGroups={editing?.groups}
-                        disabled={readOnly}
-                    />
-                    <p className="text-muted-foreground text-xs">
-                        Group roles are unioned with direct roles for admin
-                        permissions and collection/file access.
-                    </p>
-                    <InputError message={form.errors.group_ids} />
-                </div>
+                    <div className="grid gap-2">
+                        <Label>Groups</Label>
+                        <UserGroupMultiSelect
+                            value={form.data.group_ids}
+                            onChange={(group_ids) =>
+                                form.setData('group_ids', group_ids)
+                            }
+                            initialGroups={editing?.groups}
+                            disabled={readOnly}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Group roles are unioned with direct roles for admin
+                            permissions and collection/file access.
+                        </p>
+                        <InputError message={form.errors.group_ids} />
+                    </div>
                 </DrawerBody>
 
                 <DrawerFooter className="flex flex-row justify-end gap-2">

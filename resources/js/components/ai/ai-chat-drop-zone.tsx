@@ -1,11 +1,6 @@
 import { Paperclip } from 'lucide-react';
-import {
-    useCallback,
-    useState
-    
-    
-} from 'react';
-import type {DragEvent, ReactNode} from 'react';
+import { useCallback, useState } from 'react';
+import type { DragEvent, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 function isFileDrag(event: DragEvent): boolean {
@@ -91,7 +86,10 @@ export function AiChatDropZone({
 
     return (
         <div
-            className={cn('relative flex min-h-0 min-w-0 flex-1 flex-col', className)}
+            className={cn(
+                'relative flex min-h-0 min-w-0 flex-1 flex-col',
+                className,
+            )}
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}

@@ -6,10 +6,9 @@ import {
     parseBooleanFieldSettings,
     parseColorFieldSettings,
     parseMapFieldSettings,
-    parseSelectFieldSettings
-    
+    parseSelectFieldSettings,
 } from '@/lib/collection-field-types';
-import type {TranslatedText} from '@/lib/collection-field-types';
+import type { TranslatedText } from '@/lib/collection-field-types';
 
 type SelectionSettingsProps = {
     fieldType: string;
@@ -69,7 +68,7 @@ export function SelectionSettings({
                                 ? dateMode
                                 : 'datetime'
                         }
-                        className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm shadow-xs"
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
                     >
                         <option value="date">Date only</option>
                         <option value="time">Time only</option>
@@ -101,7 +100,7 @@ export function SelectionSettings({
                         id="geometry_mode"
                         name="settings[geometry_mode]"
                         defaultValue={mapSettings.geometryMode}
-                        className="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                     >
                         <option value="point">Point</option>
                         <option value="multipoint">MultiPoint</option>
@@ -201,7 +200,7 @@ export function SelectionSettings({
                     id="value_combining"
                     name="settings[value_combining]"
                     defaultValue={String(settings?.value_combining ?? 'all')}
-                    className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm shadow-xs"
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
                 >
                     <option value="all">All selected nodes</option>
                     <option value="leaf">Leaf nodes only</option>

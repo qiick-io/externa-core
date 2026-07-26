@@ -7,9 +7,9 @@ import {
     MoveHorizontal,
     MoveVertical,
     Scaling,
-    X
+    X,
 } from 'lucide-react';
-import type {LucideIcon} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { FilePreview } from '@/components/admin/files/file-preview';
 import { TagPicker } from '@/components/admin/files/tag-picker';
@@ -75,8 +75,8 @@ function SectionHeading({
 }) {
     return (
         <div className="flex items-center gap-2">
-            <Icon className="text-muted-foreground size-3.5 shrink-0" />
-            <h3 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+            <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+            <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 {children}
             </h3>
         </div>
@@ -157,8 +157,12 @@ export function FileDetailPanel({
     const [description, setDescription] = useState(file.description ?? '');
     const [location, setLocation] = useState(file.location ?? '');
     const [downloadName, setDownloadName] = useState(file.download_name ?? '');
-    const [focalX, setFocalX] = useState(optionalNumberString(file.focal_point_x));
-    const [focalY, setFocalY] = useState(optionalNumberString(file.focal_point_y));
+    const [focalX, setFocalX] = useState(
+        optionalNumberString(file.focal_point_x),
+    );
+    const [focalY, setFocalY] = useState(
+        optionalNumberString(file.focal_point_y),
+    );
     const [translateX, setTranslateX] = useState(
         optionalNumberString(file.translate_x),
     );
@@ -166,7 +170,9 @@ export function FileDetailPanel({
         optionalNumberString(file.translate_y),
     );
     const [scale, setScale] = useState(optionalNumberString(file.scale));
-    const [access, setAccess] = useState<AccessChoice>(accessChoiceFromFile(file));
+    const [access, setAccess] = useState<AccessChoice>(
+        accessChoiceFromFile(file),
+    );
     const [tags, setTags] = useState(file.tags.map((tag) => tag.name));
     const [saving, setSaving] = useState(false);
     const [replacing, setReplacing] = useState(false);
@@ -285,7 +291,7 @@ export function FileDetailPanel({
     const numberInputClassName = cn('tabular-nums');
 
     return (
-        <aside className="border-sidebar-border/70 bg-card flex w-[380px] shrink-0 flex-col border-l">
+        <aside className="flex w-[380px] shrink-0 flex-col border-l border-sidebar-border/70 bg-card">
             <div className="flex items-center justify-between border-b px-4 py-3">
                 <h2 className="text-sm font-semibold">Details</h2>
                 <Button
@@ -328,7 +334,10 @@ export function FileDetailPanel({
 
                 <div className="space-y-3">
                     <div className="space-y-1.5">
-                        <Label htmlFor="file-access" className="flex items-center gap-1.5">
+                        <Label
+                            htmlFor="file-access"
+                            className="flex items-center gap-1.5"
+                        >
                             <Lock className="size-3.5" />
                             Visibility
                         </Label>
@@ -350,7 +359,7 @@ export function FileDetailPanel({
                                 <SelectItem value="private">Private</SelectItem>
                             </SelectContent>
                         </Select>
-                        <p className="text-muted-foreground text-xs">
+                        <p className="text-xs text-muted-foreground">
                             {file.type === 'folder'
                                 ? 'Private folders make children inherit private access unless overridden.'
                                 : `Effective: ${file.effective_access}. Public CMS API hides private files without Read private.`}
@@ -379,7 +388,7 @@ export function FileDetailPanel({
                     </div>
                     <div className="space-y-1.5">
                         <Label htmlFor="file-tags">Tags</Label>
-                        <p className="text-muted-foreground text-xs">
+                        <p className="text-xs text-muted-foreground">
                             Shared across all files — pick an existing tag or
                             create a new one.
                         </p>
@@ -430,7 +439,9 @@ export function FileDetailPanel({
                 <Separator />
 
                 <div className="space-y-3">
-                    <SectionHeading icon={ImageIcon}>Focal point</SectionHeading>
+                    <SectionHeading icon={ImageIcon}>
+                        Focal point
+                    </SectionHeading>
                     <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1.5">
                             <Label htmlFor="focal-x">X</Label>

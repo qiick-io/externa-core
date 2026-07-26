@@ -11,9 +11,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
-import {
-    FileDropzone,
-} from '@/components/admin/file-dropzone';
+import { FileDropzone } from '@/components/admin/file-dropzone';
 import { FileNameDialog } from '@/components/admin/file-name-dialog';
 import { FileUploadIndicator } from '@/components/admin/file-upload-indicator';
 import {
@@ -89,12 +87,11 @@ import {
     collectFilesFromFileList,
     ensureAllFolderPaths,
     ensureFolderPath,
-    
     hasDirectoryInDataTransferItems,
     inferFolderUploadLabel,
-    runWithConcurrencyLimit
+    runWithConcurrencyLimit,
 } from '@/lib/folder-upload';
-import type {FileWithDirectoryPath} from '@/lib/folder-upload';
+import type { FileWithDirectoryPath } from '@/lib/folder-upload';
 import {
     fetchNotifications,
     notifyNotificationsUpdated,
@@ -301,6 +298,7 @@ export default function AdminFilesIndex({
 
     useEffect(() => {
         const term = search.trim();
+
         if (term === '') {
             return;
         }
@@ -347,14 +345,7 @@ export default function AdminFilesIndex({
         return () => {
             window.clearTimeout(timer);
         };
-    }, [
-        direction,
-        isTrashed,
-        parentId,
-        search,
-        selectedTagIds,
-        sort,
-    ]);
+    }, [direction, isTrashed, parentId, search, selectedTagIds, sort]);
 
     useEffect(() => {
         setSelectedTagIds(filters.tag_ids ?? []);
@@ -489,8 +480,7 @@ export default function AdminFilesIndex({
                             );
                             refreshPage();
                         } else if (
-                            notification.data.type ===
-                            'file_duplication_failed'
+                            notification.data.type === 'file_duplication_failed'
                         ) {
                             toast.error(
                                 notification.data.title ??
@@ -511,8 +501,7 @@ export default function AdminFilesIndex({
                                     : downloadPreparedZipUrl(jobId);
 
                             toast.success(
-                                notification.data.title ??
-                                    'Your zip is ready',
+                                notification.data.title ?? 'Your zip is ready',
                                 {
                                     action: {
                                         label: 'Download',
@@ -563,26 +552,30 @@ export default function AdminFilesIndex({
     }, [pendingDuplicationJobCount, pendingZipJobCount, refreshPage]);
 
     const buildFilesIndexUrl = useCallback(
-        (options: {
-            folderId?: number | null;
-            nextTrashed?: 'active' | 'trashed';
-            nextTagIds?: number[];
-            nextSort?: FileSortField;
-            nextDirection?: FileSortDirection;
-        } = {}): string => {
+        (
+            options: {
+                folderId?: number | null;
+                nextTrashed?: 'active' | 'trashed';
+                nextTagIds?: number[];
+                nextSort?: FileSortField;
+                nextDirection?: FileSortDirection;
+            } = {},
+        ): string => {
             const folderId =
                 options.folderId !== undefined ? options.folderId : parentId;
             const nextTrashed = options.nextTrashed ?? trashed;
             const nextTagIds = options.nextTagIds ?? selectedTagIds;
             const nextSort = options.nextSort ?? sort;
             const nextDirection = options.nextDirection ?? direction;
-            const query: Record<string, string | number | number[] | undefined> =
-                {
-                    trashed: nextTrashed === 'trashed' ? 'only' : undefined,
-                    tag_ids: nextTagIds.length > 0 ? nextTagIds : undefined,
-                    sort: nextSort,
-                    direction: nextDirection,
-                };
+            const query: Record<
+                string,
+                string | number | number[] | undefined
+            > = {
+                trashed: nextTrashed === 'trashed' ? 'only' : undefined,
+                tag_ids: nextTagIds.length > 0 ? nextTagIds : undefined,
+                sort: nextSort,
+                direction: nextDirection,
+            };
 
             if (nextTrashed === 'trashed' || folderId === null) {
                 return adminRoutes.files.index({ query });
@@ -748,7 +741,8 @@ export default function AdminFilesIndex({
                         file,
                         targetParentId,
                         (uploadedChunks, total, uploadedBytes) => {
-                            const deltaBytes = uploadedBytes - lastReportedBytes;
+                            const deltaBytes =
+                                uploadedBytes - lastReportedBytes;
                             lastReportedBytes = uploadedBytes;
 
                             if (trackIndividually) {
@@ -1030,7 +1024,10 @@ export default function AdminFilesIndex({
     };
 
     const runAction = useCallback(
-        async (action: FileActionKey, targets?: AdminFileRow[]): Promise<void> => {
+        async (
+            action: FileActionKey,
+            targets?: AdminFileRow[],
+        ): Promise<void> => {
             const selected = targets ?? selection.selectedFiles;
 
             if (selected.length === 0) {
@@ -1048,8 +1045,13 @@ export default function AdminFilesIndex({
 
                         break;
                     case 'download':
-                        if (selected.length === 1 && selected[0].type === 'file') {
-                            window.location.href = downloadFileUrl(selected[0].id);
+                        if (
+                            selected.length === 1 &&
+                            selected[0].type === 'file'
+                        ) {
+                            window.location.href = downloadFileUrl(
+                                selected[0].id,
+                            );
                         } else {
                             const result = await queueFilesZipDownload(ids);
                             toast.success(
@@ -1171,9 +1173,7 @@ export default function AdminFilesIndex({
                 }
             } catch (error) {
                 toast.error(
-                    error instanceof Error
-                        ? error.message
-                        : 'Action failed',
+                    error instanceof Error ? error.message : 'Action failed',
                 );
             }
         },
@@ -1338,91 +1338,91 @@ export default function AdminFilesIndex({
                         }
                         filtersRight={
                             selection.selectedIds.length > 0 ? null : (
-                            <div className="flex items-center gap-1.5">
-                                <Select
-                                    value={sort}
-                                    onValueChange={(value) => {
-                                        if (
-                                            value === 'name' ||
-                                            value === 'size' ||
-                                            value === 'created_at' ||
-                                            value === 'updated_at'
-                                        ) {
-                                            visitWithSort(value, direction);
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger
-                                        size="sm"
-                                        aria-label="Sort by"
-                                        className="w-[7.5rem]"
+                                <div className="flex items-center gap-1.5">
+                                    <Select
+                                        value={sort}
+                                        onValueChange={(value) => {
+                                            if (
+                                                value === 'name' ||
+                                                value === 'size' ||
+                                                value === 'created_at' ||
+                                                value === 'updated_at'
+                                            ) {
+                                                visitWithSort(value, direction);
+                                            }
+                                        }}
                                     >
-                                        <SelectValue placeholder="Sort" />
-                                    </SelectTrigger>
-                                    <SelectContent align="end">
-                                        {FILE_SORT_FIELDS.map((field) => (
-                                            <SelectItem
-                                                key={field.value}
-                                                value={field.value}
-                                            >
-                                                {field.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="icon"
-                                    className="size-8"
-                                    aria-label={
-                                        direction === 'asc'
-                                            ? 'Sort ascending'
-                                            : 'Sort descending'
-                                    }
-                                    onClick={() => {
-                                        visitWithSort(
-                                            sort,
+                                        <SelectTrigger
+                                            size="sm"
+                                            aria-label="Sort by"
+                                            className="w-[7.5rem]"
+                                        >
+                                            <SelectValue placeholder="Sort" />
+                                        </SelectTrigger>
+                                        <SelectContent align="end">
+                                            {FILE_SORT_FIELDS.map((field) => (
+                                                <SelectItem
+                                                    key={field.value}
+                                                    value={field.value}
+                                                >
+                                                    {field.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        className="size-8"
+                                        aria-label={
                                             direction === 'asc'
-                                                ? 'desc'
-                                                : 'asc',
-                                        );
-                                    }}
-                                >
-                                    {direction === 'asc' ? (
-                                        <ArrowUpAZ className="size-4" />
-                                    ) : (
-                                        <ArrowDownAZ className="size-4" />
-                                    )}
-                                </Button>
-                                <ToggleGroup
-                                    type="single"
-                                    value={trashed}
-                                    onValueChange={(value) => {
-                                        if (
-                                            value === 'active' ||
-                                            value === 'trashed'
-                                        ) {
-                                            visitWithTrashed(value);
+                                                ? 'Sort ascending'
+                                                : 'Sort descending'
                                         }
-                                    }}
-                                >
-                                    <ToggleGroupItem
-                                        value="active"
-                                        aria-label="Active files"
-                                        className="px-2.5"
+                                        onClick={() => {
+                                            visitWithSort(
+                                                sort,
+                                                direction === 'asc'
+                                                    ? 'desc'
+                                                    : 'asc',
+                                            );
+                                        }}
                                     >
-                                        <Files className="size-4" />
-                                    </ToggleGroupItem>
-                                    <ToggleGroupItem
-                                        value="trashed"
-                                        aria-label="Trash"
-                                        className="px-2.5"
+                                        {direction === 'asc' ? (
+                                            <ArrowUpAZ className="size-4" />
+                                        ) : (
+                                            <ArrowDownAZ className="size-4" />
+                                        )}
+                                    </Button>
+                                    <ToggleGroup
+                                        type="single"
+                                        value={trashed}
+                                        onValueChange={(value) => {
+                                            if (
+                                                value === 'active' ||
+                                                value === 'trashed'
+                                            ) {
+                                                visitWithTrashed(value);
+                                            }
+                                        }}
                                     >
-                                        <Trash2 className="size-4" />
-                                    </ToggleGroupItem>
-                                </ToggleGroup>
-                            </div>
+                                        <ToggleGroupItem
+                                            value="active"
+                                            aria-label="Active files"
+                                            className="px-2.5"
+                                        >
+                                            <Files className="size-4" />
+                                        </ToggleGroupItem>
+                                        <ToggleGroupItem
+                                            value="trashed"
+                                            aria-label="Trash"
+                                            className="px-2.5"
+                                        >
+                                            <Trash2 className="size-4" />
+                                        </ToggleGroupItem>
+                                    </ToggleGroup>
+                                </div>
                             )
                         }
                     >
@@ -1494,9 +1494,7 @@ export default function AdminFilesIndex({
                                 setDropTargetFolderId(null);
                             }}
                             onNewFolder={() => setFolderDialogOpen(true)}
-                            onUploadFile={() =>
-                                fileInputRef.current?.click()
-                            }
+                            onUploadFile={() => fileInputRef.current?.click()}
                             onUploadFolder={() =>
                                 folderInputRef.current?.click()
                             }
@@ -1572,7 +1570,7 @@ export default function AdminFilesIndex({
                         <DialogTitle>Add tags</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-2">
-                        <p className="text-muted-foreground text-sm">
+                        <p className="text-sm text-muted-foreground">
                             Tags are shared across all files. Pick existing ones
                             or create a new name.
                         </p>

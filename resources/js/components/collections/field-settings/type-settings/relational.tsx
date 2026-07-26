@@ -5,10 +5,9 @@ import {
     parseFilesFieldSettings,
     parseImageFieldSettings,
     parseM2aFieldSettings,
-    parseRelationFieldSettings
-    
+    parseRelationFieldSettings,
 } from '@/lib/collection-field-types';
-import type {RelatedCollectionOption} from '@/lib/collection-field-types';
+import type { RelatedCollectionOption } from '@/lib/collection-field-types';
 
 type RelationalSettingsProps = {
     fieldType: string;
@@ -166,7 +165,7 @@ export function RelationalSettings({
                             onChange={(event) =>
                                 onRelatedCollectionIdChange(event.target.value)
                             }
-                            className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm shadow-xs"
+                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
                         >
                             <option value="">Select a collection…</option>
                             {relatedCollections.map((relatedCollection) => (
@@ -200,8 +199,8 @@ export function RelationalSettings({
                         placeholder="{{title}} — #{{id}}"
                     />
                     <p className="text-xs text-muted-foreground">
-                        Optional. Use {'{{field_name}}'} placeholders; falls back
-                        to display field when empty.
+                        Optional. Use {'{{field_name}}'} placeholders; falls
+                        back to display field when empty.
                     </p>
                 </div>
                 <div className="grid gap-2">
@@ -209,7 +208,7 @@ export function RelationalSettings({
                     <textarea
                         id="relation_filter"
                         name="settings[filter]"
-                        className="border-input bg-background min-h-[72px] w-full rounded-md border px-3 py-2 font-mono text-sm shadow-xs"
+                        className="min-h-[72px] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm shadow-xs"
                         defaultValue={relationSettings.filterJson}
                         placeholder='{"status": "published"}'
                     />
@@ -225,7 +224,7 @@ export function RelationalSettings({
                             id="relation_layout"
                             name="settings[layout]"
                             defaultValue={relationSettings.layout}
-                            className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm shadow-xs"
+                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
                         >
                             <option value="list">List</option>
                             <option value="table">Table</option>
@@ -247,7 +246,7 @@ export function RelationalSettings({
                         <textarea
                             id="junction_fields"
                             name="settings[junction_fields]"
-                            className="border-input bg-background min-h-[88px] w-full rounded-md border px-3 py-2 font-mono text-sm shadow-xs"
+                            className="min-h-[88px] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm shadow-xs"
                             defaultValue={relationSettings.junctionFieldsJson}
                             placeholder='[{"name":"sort","type":"number"}]'
                         />

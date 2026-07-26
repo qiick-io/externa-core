@@ -11,7 +11,7 @@ type AssistantMarkdownProps = {
 
 const markdownComponents: Components = {
     p: ({ children }) => (
-        <p className="my-2 leading-relaxed last:mb-0 first:mt-0">{children}</p>
+        <p className="my-2 leading-relaxed first:mt-0 last:mb-0">{children}</p>
     ),
     ul: ({ children }) => (
         <ul className="my-2 list-disc space-y-1.5 pl-5 marker:text-muted-foreground">
@@ -24,7 +24,7 @@ const markdownComponents: Components = {
         </ol>
     ),
     li: ({ children }) => (
-        <li className="leading-relaxed [&>ul]:mt-1.5 [&>ol]:mt-1.5">
+        <li className="leading-relaxed [&>ol]:mt-1.5 [&>ul]:mt-1.5">
             {children}
         </li>
     ),
@@ -98,9 +98,7 @@ const markdownComponents: Components = {
             </table>
         </div>
     ),
-    thead: ({ children }) => (
-        <thead className="bg-muted/60">{children}</thead>
-    ),
+    thead: ({ children }) => <thead className="bg-muted/60">{children}</thead>,
     th: ({ children }) => (
         <th className="border-b border-border px-2.5 py-1.5 text-left font-medium whitespace-nowrap">
             {children}

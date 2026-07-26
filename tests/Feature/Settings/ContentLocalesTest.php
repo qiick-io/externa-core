@@ -1,15 +1,20 @@
 <?php
 
+use App\Enums\CollectionPermissionAction;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
+use App\Enums\RoleEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
+use App\Models\CollectionPermission;
 use App\Models\User;
 use App\Services\Settings\ProjectSettings;
 use App\Services\Settings\SettingsRepository;
+use App\Support\Collections\CollectionItemDataAccessor;
 use App\Support\Collections\CollectionLocaleResolver;
 use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 
@@ -194,17 +199,17 @@ test('api rejects disabled locale query parameter', function () {
 
     // Use admin item resource path via collections show — public API needs grants.
     // Hit CollectionItemResource through public CMS with public read.
-    $this->seed(\Database\Seeders\RoleSeeder::class);
+    $this->seed(RoleSeeder::class);
 
-    $public = \App\Models\Role::query()
-        ->where('name', \App\Enums\RoleEnum::Public->value)
+    $public = App\Models\Role::query()
+        ->where('name', RoleEnum::Public->value)
         ->firstOrFail();
 
-    \App\Models\CollectionPermission::query()->updateOrCreate(
+    CollectionPermission::query()->updateOrCreate(
         [
             'role_id' => $public->id,
             'collection_id' => $collection->id,
-            'action' => \App\Enums\CollectionPermissionAction::Read->value,
+            'action' => CollectionPermissionAction::Read->value,
         ],
         ['allowed' => true],
     );
@@ -253,7 +258,7 @@ test('disabling a locale keeps orphan translations in the database', function ()
 
     expect($item->fieldValues()->where('locale', 'it')->exists())->toBeTrue();
 
-    $accessor = app(\App\Support\Collections\CollectionItemDataAccessor::class);
+    $accessor = app(CollectionItemDataAccessor::class);
     $all = $accessor->flattenForLocale($item->fresh(), 'en', true);
     expect($all['title'] ?? null)->not->toHaveKey('it');
 });

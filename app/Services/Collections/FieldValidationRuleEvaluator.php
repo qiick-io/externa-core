@@ -4,6 +4,7 @@ namespace App\Services\Collections;
 
 use App\Models\CollectionField;
 use App\Models\CollectionItemValue;
+use App\Support\Collections\CollectionLocaleResolver;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Facades\DB;
@@ -91,7 +92,7 @@ class FieldValidationRuleEvaluator
         }
 
         $locale = app()->getLocale();
-        $fallbacks = app(\App\Support\Collections\CollectionLocaleResolver::class)->fallbackChain($locale);
+        $fallbacks = app(CollectionLocaleResolver::class)->fallbackChain($locale);
 
         if (is_string($message[$locale] ?? null) && trim($message[$locale]) !== '') {
             return trim($message[$locale]);

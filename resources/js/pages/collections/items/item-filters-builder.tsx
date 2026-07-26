@@ -13,10 +13,9 @@ import {
     isFilterableFieldType,
     OPERATOR_LABELS,
     operatorNeedsValue,
-    type FilterOperator,
-    type FilterRule,
     FILTER_OPERATORS,
 } from '@/lib/item-list-filters';
+import type { FilterOperator, FilterRule } from '@/lib/item-list-filters';
 import type { CollectionFieldRow } from '@/types';
 
 type ItemFiltersBuilderProps = {
@@ -76,13 +75,16 @@ export function ItemFiltersBuilder({
                     <Filter className="size-4" />
                     Filters
                     {activeCount > 0 ? (
-                        <span className="bg-primary text-primary-foreground inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-medium">
+                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-medium text-primary-foreground">
                             {activeCount}
                         </span>
                     ) : null}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[min(100vw-2rem,28rem)] space-y-3 p-3" align="start">
+            <PopoverContent
+                className="w-[min(100vw-2rem,28rem)] space-y-3 p-3"
+                align="start"
+            >
                 <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-medium">Field filters</p>
                     {activeCount > 0 ? (
@@ -101,14 +103,14 @@ export function ItemFiltersBuilder({
                         </Button>
                     ) : null}
                 </div>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-xs text-muted-foreground">
                     Rules are AND-combined and written to the URL (
                     <code className="text-[10px]">filter[field][_eq]=…</code>
                     ).
                 </p>
 
                 {filterableFields.length === 0 ? (
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-xs text-muted-foreground">
                         No filterable fields on this collection.
                     </p>
                 ) : (

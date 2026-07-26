@@ -41,6 +41,7 @@ function applyBrandPreview(light: string, dark: string): void {
     document.documentElement.style.removeProperty('--primary-foreground');
 
     const lightFg = contrastingForeground(light);
+
     if (lightFg) {
         document.documentElement.style.setProperty(
             '--brand-primary-foreground',
@@ -49,6 +50,7 @@ function applyBrandPreview(light: string, dark: string): void {
     }
 
     const darkFg = contrastingForeground(dark);
+
     if (darkFg) {
         document.documentElement.style.setProperty(
             '--brand-primary-dark-foreground',
@@ -91,6 +93,7 @@ function restoreBrandFromAppearance(
     }
 
     const darkColor = appearance?.projectColorDark ?? appearance?.projectColor;
+
     if (darkColor) {
         document.documentElement.style.setProperty(
             '--brand-primary-dark',
@@ -102,6 +105,7 @@ function restoreBrandFromAppearance(
 
     const darkFg =
         appearance?.primaryForegroundDark ?? appearance?.primaryForeground;
+
     if (darkFg) {
         document.documentElement.style.setProperty(
             '--brand-primary-dark-foreground',
@@ -139,7 +143,9 @@ export default function Appearance({
     const [defaultAppearance, setDefaultAppearance] = useState(
         appearance.default_appearance,
     );
-    const [files, setFiles] = useState<Record<FileFieldKey, AppearanceFileMeta | null>>({
+    const [files, setFiles] = useState<
+        Record<FileFieldKey, AppearanceFileMeta | null>
+    >({
         project_logo: appearance.project_logo,
         project_logo_dark: appearance.project_logo_dark,
         public_favicon: appearance.public_favicon,
@@ -222,7 +228,9 @@ export default function Appearance({
                             <div className="space-y-6">
                                 <Heading
                                     variant="small"
-                                    title={t('settings.appearance.brandingTitle')}
+                                    title={t(
+                                        'settings.appearance.brandingTitle',
+                                    )}
                                     description={t(
                                         'settings.appearance.brandingDescription',
                                     )}
@@ -239,20 +247,26 @@ export default function Appearance({
                                             className="h-10 w-14 p-1"
                                             value={projectColor}
                                             onChange={(event) =>
-                                                setProjectColor(event.target.value)
+                                                setProjectColor(
+                                                    event.target.value,
+                                                )
                                             }
                                         />
                                         <Input
                                             name="project_color"
                                             value={projectColor}
                                             onChange={(event) =>
-                                                setProjectColor(event.target.value)
+                                                setProjectColor(
+                                                    event.target.value,
+                                                )
                                             }
                                             className="font-mono"
                                             placeholder="#0f172a"
                                         />
                                     </div>
-                                    <InputError message={errors.project_color} />
+                                    <InputError
+                                        message={errors.project_color}
+                                    />
                                 </div>
 
                                 <div className="grid gap-2">
@@ -294,7 +308,10 @@ export default function Appearance({
                                     const selected = files[field.key];
 
                                     return (
-                                        <div key={field.key} className="grid gap-2">
+                                        <div
+                                            key={field.key}
+                                            className="grid gap-2"
+                                        >
                                             <Label>{field.label}</Label>
                                             <input
                                                 type="hidden"
@@ -315,8 +332,10 @@ export default function Appearance({
                                                     </span>
                                                 </div>
                                             ) : (
-                                                <p className="text-muted-foreground text-sm">
-                                                    {t('settings.appearance.noFile')}
+                                                <p className="text-sm text-muted-foreground">
+                                                    {t(
+                                                        'settings.appearance.noFile',
+                                                    )}
                                                 </p>
                                             )}
                                             <div className="flex gap-2">
@@ -325,7 +344,9 @@ export default function Appearance({
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() =>
-                                                        setPickerField(field.key)
+                                                        setPickerField(
+                                                            field.key,
+                                                        )
                                                     }
                                                 >
                                                     {selected
@@ -342,10 +363,13 @@ export default function Appearance({
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={() =>
-                                                            setFiles((current) => ({
-                                                                ...current,
-                                                                [field.key]: null,
-                                                            }))
+                                                            setFiles(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    [field.key]:
+                                                                        null,
+                                                                }),
+                                                            )
                                                         }
                                                     >
                                                         {t(
@@ -406,7 +430,9 @@ export default function Appearance({
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="system">
-                                                {t('settings.appearance.system')}
+                                                {t(
+                                                    'settings.appearance.system',
+                                                )}
                                             </SelectItem>
                                             <SelectItem value="light">
                                                 {t('settings.appearance.light')}

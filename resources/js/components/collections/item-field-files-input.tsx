@@ -58,7 +58,7 @@ export function FileFieldInput({
                     </span>
                 </div>
             ) : fileId ? (
-                <p className="text-muted-foreground text-sm">File #{fileId}</p>
+                <p className="text-sm text-muted-foreground">File #{fileId}</p>
             ) : null}
             {!readonly ? (
                 <div className="flex gap-2">
@@ -154,7 +154,12 @@ export function MultipleFilesFieldInput({
     return (
         <div className="space-y-2">
             {fileIds.map((fileId) => (
-                <input key={fileId} type="hidden" name={`${name}[]`} value={fileId} />
+                <input
+                    key={fileId}
+                    type="hidden"
+                    name={`${name}[]`}
+                    value={fileId}
+                />
             ))}
             {fileIds.length > 0 ? (
                 <div className="flex flex-col gap-2">
@@ -169,15 +174,17 @@ export function MultipleFilesFieldInput({
                                 {file ? (
                                     <FilePreview file={file} size="sm" />
                                 ) : (
-                                    <div className="bg-muted size-12 shrink-0 rounded" />
+                                    <div className="size-12 shrink-0 rounded bg-muted" />
                                 )}
                                 <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                                    {file?.title || file?.name || `File #${fileId}`}
+                                    {file?.title ||
+                                        file?.name ||
+                                        `File #${fileId}`}
                                 </span>
                                 {!readonly ? (
                                     <button
                                         type="button"
-                                        className="text-muted-foreground text-xs underline"
+                                        className="text-xs text-muted-foreground underline"
                                         onClick={() =>
                                             setFileIds((current) =>
                                                 current.filter(
@@ -195,7 +202,9 @@ export function MultipleFilesFieldInput({
                     })}
                 </div>
             ) : (
-                <p className="text-muted-foreground text-sm">No files selected</p>
+                <p className="text-sm text-muted-foreground">
+                    No files selected
+                </p>
             )}
             {!readonly ? (
                 <Button

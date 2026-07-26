@@ -80,7 +80,7 @@ export function TagPicker({
                         <button
                             key={tagName}
                             type="button"
-                            className="bg-muted rounded-md px-2 py-0.5 text-xs"
+                            className="rounded-md bg-muted px-2 py-0.5 text-xs"
                             disabled={disabled}
                             onClick={() =>
                                 onChange(
@@ -109,7 +109,7 @@ export function TagPicker({
             />
 
             {exactMatchHint && (
-                <p className="text-muted-foreground text-xs">
+                <p className="text-xs text-muted-foreground">
                     Exact match — will reuse existing tag “{exactMatchHint.name}
                     ”
                 </p>
@@ -117,7 +117,7 @@ export function TagPicker({
 
             {availableCatalogTags.length > 0 && (
                 <div className="space-y-1.5">
-                    <p className="text-muted-foreground text-xs font-medium">
+                    <p className="text-xs font-medium text-muted-foreground">
                         Existing tags
                     </p>
                     <div className="flex max-h-36 flex-wrap gap-1 overflow-y-auto">
@@ -128,7 +128,7 @@ export function TagPicker({
                                 disabled={disabled}
                                 className={cn(
                                     'rounded-md border px-2 py-0.5 text-xs transition-colors',
-                                    'hover:bg-muted border-sidebar-border/70',
+                                    'border-sidebar-border/70 hover:bg-muted',
                                 )}
                                 onClick={() => toggleCatalogTag(tag.name)}
                             >

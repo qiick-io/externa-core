@@ -98,7 +98,7 @@ export function FileNameDialog({
                         }}
                     />
                     {error ? (
-                        <p className="text-destructive text-sm">{error}</p>
+                        <p className="text-sm text-destructive">{error}</p>
                     ) : null}
                 </div>
 

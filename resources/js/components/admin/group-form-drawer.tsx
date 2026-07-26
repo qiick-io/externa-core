@@ -47,7 +47,8 @@ export function GroupFormDrawer({
                 name: editing.name,
                 description: editing.description ?? '',
                 role_ids: editing.role_ids ?? editing.roles.map((r) => r.id),
-                user_ids: editing.user_ids ?? editing.users?.map((u) => u.id) ?? [],
+                user_ids:
+                    editing.user_ids ?? editing.users?.map((u) => u.id) ?? [],
             });
         } else {
             form.reset();
@@ -97,56 +98,62 @@ export function GroupFormDrawer({
                 }}
             >
                 <DrawerBody className="flex flex-col gap-4">
-                <div className="grid gap-2">
-                    <Label htmlFor="group_name">Name</Label>
-                    <Input
-                        id="group_name"
-                        value={form.data.name}
-                        onChange={(e) => form.setData('name', e.target.value)}
-                        required
-                        disabled={readOnly}
-                    />
-                    <InputError message={form.errors.name} />
-                </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="group_name">Name</Label>
+                        <Input
+                            id="group_name"
+                            value={form.data.name}
+                            onChange={(e) =>
+                                form.setData('name', e.target.value)
+                            }
+                            required
+                            disabled={readOnly}
+                        />
+                        <InputError message={form.errors.name} />
+                    </div>
 
-                <div className="grid gap-2">
-                    <Label htmlFor="group_description">Description</Label>
-                    <Input
-                        id="group_description"
-                        value={form.data.description}
-                        onChange={(e) =>
-                            form.setData('description', e.target.value)
-                        }
-                        disabled={readOnly}
-                    />
-                    <InputError message={form.errors.description} />
-                </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="group_description">Description</Label>
+                        <Input
+                            id="group_description"
+                            value={form.data.description}
+                            onChange={(e) =>
+                                form.setData('description', e.target.value)
+                            }
+                            disabled={readOnly}
+                        />
+                        <InputError message={form.errors.description} />
+                    </div>
 
-                <div className="grid gap-2">
-                    <Label>Roles</Label>
-                    <RoleMultiSelect
-                        value={form.data.role_ids}
-                        onChange={(role_ids) => form.setData('role_ids', role_ids)}
-                        initialRoles={editing?.roles}
-                        disabled={readOnly}
-                    />
-                    <p className="text-muted-foreground text-xs">
-                        Members inherit these roles’ Spatie permissions and
-                        collection/file access matrices.
-                    </p>
-                    <InputError message={form.errors.role_ids} />
-                </div>
+                    <div className="grid gap-2">
+                        <Label>Roles</Label>
+                        <RoleMultiSelect
+                            value={form.data.role_ids}
+                            onChange={(role_ids) =>
+                                form.setData('role_ids', role_ids)
+                            }
+                            initialRoles={editing?.roles}
+                            disabled={readOnly}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Members inherit these roles’ Spatie permissions and
+                            collection/file access matrices.
+                        </p>
+                        <InputError message={form.errors.role_ids} />
+                    </div>
 
-                <div className="grid gap-2">
-                    <Label>Users</Label>
-                    <UserMultiSelect
-                        value={form.data.user_ids}
-                        onChange={(user_ids) => form.setData('user_ids', user_ids)}
-                        initialUsers={editing?.users}
-                        disabled={readOnly}
-                    />
-                    <InputError message={form.errors.user_ids} />
-                </div>
+                    <div className="grid gap-2">
+                        <Label>Users</Label>
+                        <UserMultiSelect
+                            value={form.data.user_ids}
+                            onChange={(user_ids) =>
+                                form.setData('user_ids', user_ids)
+                            }
+                            initialUsers={editing?.users}
+                            disabled={readOnly}
+                        />
+                        <InputError message={form.errors.user_ids} />
+                    </div>
                 </DrawerBody>
 
                 <DrawerFooter className="flex flex-row justify-end gap-2">

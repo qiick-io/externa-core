@@ -36,7 +36,18 @@
         "settings": "Impostazioni",
         "language": "Lingua",
         "appearance": "Aspetto",
+        "accessibility": "Accessibilità",
+        "accessibilityOff": "Off",
+        "accessibilityOnCount": "{{count}} attive",
+        "highContrast": "Alto contrasto",
+        "reduceMotion": "Riduci movimento",
         "logOut": "Esci"
+    },
+    "a11y": {
+        "skipToContent": "Vai al contenuto",
+        "mainNav": "Navigazione principale",
+        "openMenu": "Apri menu",
+        "search": "Cerca"
     },
     "auth": {
         "login": {
@@ -563,6 +574,9 @@
         "stopAria": "Ferma",
         "sendAria": "Invia",
         "openAssistant": "Apri assistente AI",
+        "fabTitle": "Nuova chat",
+        "fabDescription": "Drawer rapido dell'assistente. Apri la pagina completa per la cronologia.",
+        "fabEmpty": "Chiedi di collection, item o file.",
         "askAi": "Chiedi all'AI",
         "assistantOffline": "Assistente offline",
         "assistantOnline": "Assistente online",

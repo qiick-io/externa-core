@@ -6,6 +6,7 @@ import { AppErrorBoundary } from '@/components/app-error-boundary';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import '../css/app.css';
+import { initializeAccessibilityPreferences } from '@/hooks/use-accessibility-preferences';
 import type { Appearance } from '@/hooks/use-appearance';
 import { initializeTheme } from '@/hooks/use-appearance';
 import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
@@ -52,6 +53,7 @@ createInertiaApp({
                 props.initialPage.props.projectAppearance,
             ),
         );
+        initializeAccessibilityPreferences();
 
         if (
             props.initialPage.props.auth?.user &&

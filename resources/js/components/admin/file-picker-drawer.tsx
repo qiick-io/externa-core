@@ -189,7 +189,7 @@ export function FilePickerDrawer({
                         onChange={(event) => setSearch(event.target.value)}
                     />
 
-                    <nav className="text-muted-foreground flex flex-wrap items-center gap-1 text-sm">
+                    <nav className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
                         <button
                             type="button"
                             className="hover:text-foreground"
@@ -225,12 +225,12 @@ export function FilePickerDrawer({
 
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {loading && (
-                            <p className="text-muted-foreground col-span-full text-sm">
+                            <p className="col-span-full text-sm text-muted-foreground">
                                 Loading…
                             </p>
                         )}
                         {!loading && visibleFiles.length === 0 && (
-                            <p className="text-muted-foreground col-span-full text-sm">
+                            <p className="col-span-full text-sm text-muted-foreground">
                                 No files in this folder
                             </p>
                         )}
@@ -243,7 +243,7 @@ export function FilePickerDrawer({
                                     key={file.id}
                                     type="button"
                                     className={cn(
-                                        'hover:bg-muted/60 flex flex-col items-center gap-2 rounded-lg border p-3 text-left transition-colors',
+                                        'flex flex-col items-center gap-2 rounded-lg border p-3 text-left transition-colors hover:bg-muted/60',
                                         'border-sidebar-border/70',
                                     )}
                                     onClick={() => {
@@ -266,7 +266,7 @@ export function FilePickerDrawer({
                                             className="size-10 rounded object-cover"
                                         />
                                     ) : (
-                                        <ImageIcon className="text-muted-foreground size-10" />
+                                        <ImageIcon className="size-10 text-muted-foreground" />
                                     )}
                                     <span className="w-full truncate text-center text-xs font-medium">
                                         {file.name}

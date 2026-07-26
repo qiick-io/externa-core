@@ -78,7 +78,8 @@ export function resolveFileActions(
         },
         {
             key: 'download',
-            label: selected.length > 1 || !onlyFiles ? 'Download zip' : 'Download',
+            label:
+                selected.length > 1 || !onlyFiles ? 'Download zip' : 'Download',
             icon: ACTION_ICONS.download,
             available: permissions.canDownload && !isTrashed,
         },
@@ -117,10 +118,7 @@ export function resolveFileActions(
             label: 'Replace',
             icon: ACTION_ICONS.replace,
             available:
-                exactlyOne &&
-                onlyFiles &&
-                permissions.canReplace &&
-                !isTrashed,
+                exactlyOne && onlyFiles && permissions.canReplace && !isTrashed,
         },
         {
             key: 'tag',

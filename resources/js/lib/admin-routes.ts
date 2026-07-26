@@ -1,5 +1,5 @@
-import { queryParams  } from '@/wayfinder';
-import type {RouteQueryOptions} from '@/wayfinder';
+import { queryParams } from '@/wayfinder';
+import type { RouteQueryOptions } from '@/wayfinder';
 
 /**
  * Builds an admin URL with optional Wayfinder query parameters.
@@ -21,34 +21,24 @@ const adminRoutes = {
         index: (options?: RouteQueryOptions) => url('/users', options),
         store: () => url('/users'),
         update: (user: number | { user: number }) =>
-            url(
-                `/users/${typeof user === 'number' ? user : user.user}`,
-            ),
+            url(`/users/${typeof user === 'number' ? user : user.user}`),
         destroy: (user: number | { user: number }) =>
-            url(
-                `/users/${typeof user === 'number' ? user : user.user}`,
-            ),
+            url(`/users/${typeof user === 'number' ? user : user.user}`),
         restore: (user: number | { user: number }) =>
             url(
                 `/users/${typeof user === 'number' ? user : user.user}/restore`,
             ),
         forceDelete: (user: number | { user: number }) =>
-            url(
-                `/users/${typeof user === 'number' ? user : user.user}/force`,
-            ),
+            url(`/users/${typeof user === 'number' ? user : user.user}/force`),
         bulkActions: () => url('/users/bulk-actions'),
     },
     groups: {
         index: (options?: RouteQueryOptions) => url('/groups', options),
         store: () => url('/groups'),
         update: (group: number | { group: number }) =>
-            url(
-                `/groups/${typeof group === 'number' ? group : group.group}`,
-            ),
+            url(`/groups/${typeof group === 'number' ? group : group.group}`),
         destroy: (group: number | { group: number }) =>
-            url(
-                `/groups/${typeof group === 'number' ? group : group.group}`,
-            ),
+            url(`/groups/${typeof group === 'number' ? group : group.group}`),
         restore: (group: number | { group: number }) =>
             url(
                 `/groups/${typeof group === 'number' ? group : group.group}/restore`,
@@ -60,8 +50,7 @@ const adminRoutes = {
         bulkActions: () => url('/groups/bulk-actions'),
     },
     roles: {
-        index: (options?: RouteQueryOptions) =>
-            url('/settings/roles', options),
+        index: (options?: RouteQueryOptions) => url('/settings/roles', options),
         create: () => url('/settings/roles/create'),
         edit: (role: number | { role: number }) =>
             url(
@@ -93,12 +82,12 @@ const adminRoutes = {
         sync: () => url('/settings/permissions/sync'),
     },
     activityLogs: {
-        index: (options?: RouteQueryOptions) =>
-            url('/activity-logs', options),
+        index: (options?: RouteQueryOptions) => url('/activity-logs', options),
     },
     files: {
         index: (
-            folderOrOptions?: number | { folder: number } | RouteQueryOptions | null,
+            folderOrOptions?:
+                number | { folder: number } | RouteQueryOptions | null,
             options?: RouteQueryOptions,
         ) => {
             if (typeof folderOrOptions === 'number') {
@@ -154,25 +143,17 @@ const adminRoutes = {
                 `/files/${typeof file === 'number' ? file : file.file}/download`,
             ),
         move: (file: number | { file: number }) =>
-            url(
-                `/files/${typeof file === 'number' ? file : file.file}/move`,
-            ),
+            url(`/files/${typeof file === 'number' ? file : file.file}/move`),
         rename: (file: number | { file: number }) =>
-            url(
-                `/files/${typeof file === 'number' ? file : file.file}/rename`,
-            ),
+            url(`/files/${typeof file === 'number' ? file : file.file}/rename`),
         destroy: (file: number | { file: number }) =>
-            url(
-                `/files/${typeof file === 'number' ? file : file.file}`,
-            ),
+            url(`/files/${typeof file === 'number' ? file : file.file}`),
         restore: (file: number | { file: number }) =>
             url(
                 `/files/${typeof file === 'number' ? file : file.file}/restore`,
             ),
         forceDelete: (file: number | { file: number }) =>
-            url(
-                `/files/${typeof file === 'number' ? file : file.file}/force`,
-            ),
+            url(`/files/${typeof file === 'number' ? file : file.file}/force`),
         uploadsInit: () => url('/files/uploads/init'),
         uploadsChunk: () => url('/files/uploads/chunk'),
         uploadsComplete: () => url('/files/uploads/complete'),

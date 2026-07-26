@@ -44,6 +44,7 @@ export function parseCollectionFormLayout(
 
         const tab = entry as Record<string, unknown>;
         const id = String(tab.id ?? '').trim();
+
         if (id === '' || tabIds.has(id)) {
             continue;
         }
@@ -64,8 +65,11 @@ export function parseCollectionFormLayout(
         }
 
         const section = entry as Record<string, unknown>;
-        const id = String(section.id ?? '').trim() || `section-${sections.length + 1}`;
-        let tabId = section.tab_id == null ? null : String(section.tab_id).trim();
+        const id =
+            String(section.id ?? '').trim() || `section-${sections.length + 1}`;
+        let tabId =
+            section.tab_id == null ? null : String(section.tab_id).trim();
+
         if (tabId === '' || (tabId !== null && !tabIds.has(tabId))) {
             tabId = null;
         }
@@ -80,7 +84,8 @@ export function parseCollectionFormLayout(
             id,
             tab_id: tabId,
             label: parseLabel(section.label),
-            collapsible: section.collapsible !== false && section.collapsible !== '0',
+            collapsible:
+                section.collapsible !== false && section.collapsible !== '0',
             collapsed:
                 section.collapsed === true ||
                 section.collapsed === 1 ||
@@ -110,7 +115,10 @@ function parseLabel(value: unknown): FormLayoutLabel {
     }
 
     const out: FormLayoutLabel = {};
-    for (const [locale, text] of Object.entries(value as Record<string, unknown>)) {
+
+    for (const [locale, text] of Object.entries(
+        value as Record<string, unknown>,
+    )) {
         if (typeof text === 'string' && text.trim() !== '') {
             out[locale] = text.trim();
         }
@@ -129,6 +137,7 @@ export function resolveFormLayoutLabel(
 ): string {
     for (const locale of locales) {
         const value = label[locale];
+
         if (typeof value === 'string' && value.trim() !== '') {
             return value.trim();
         }
@@ -154,15 +163,19 @@ export function resolveFormLayoutGroups<T extends { id: number }>(
 
     const byId = new Map(fields.map((field) => [field.id, field]));
     const placed = new Set<number>();
-    const groups: Array<{ section: FormLayoutSection | null; fields: T[] }> = [];
+    const groups: Array<{ section: FormLayoutSection | null; fields: T[] }> =
+        [];
 
     for (const section of layout.sections) {
         const sectionFields: T[] = [];
+
         for (const fieldId of section.field_ids) {
             const field = byId.get(fieldId);
+
             if (!field || placed.has(fieldId)) {
                 continue;
             }
+
             placed.add(fieldId);
             sectionFields.push(field);
         }
@@ -171,6 +184,7 @@ export function resolveFormLayoutGroups<T extends { id: number }>(
     }
 
     const leftover = fields.filter((field) => !placed.has(field.id));
+
     if (leftover.length > 0) {
         groups.push({
             section: {

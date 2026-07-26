@@ -84,10 +84,7 @@ export function AiChatMessages({
                 const actionsLocked = actionsDisabled || isStreaming;
 
                 return (
-                    <Message
-                        key={message.id}
-                        align={isUser ? 'end' : 'start'}
-                    >
+                    <Message key={message.id} align={isUser ? 'end' : 'start'}>
                         <MessageContent>
                             <Bubble
                                 variant={
@@ -207,8 +204,7 @@ export function AiChatMessages({
                                                     files={message.fileCards}
                                                 />
                                             ) : null}
-                                            {isLastMessage &&
-                                            onSuggestedAction
+                                            {isLastMessage && onSuggestedAction
                                                 ? (() => {
                                                       const toolNames =
                                                           message.toolNames ??

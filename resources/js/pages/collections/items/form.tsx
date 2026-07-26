@@ -41,12 +41,16 @@ export default function ItemsForm({
     isNew: boolean;
     relatedCollections?: { id: number; name: string; slug: string }[];
 }) {
-    const { locales, breadcrumbs: collectionBreadcrumbs, contentDefaults, hasFields } =
-        useCollection({
-            collection,
-            singletonRawData: null,
-            editableRawData: rawData,
-        });
+    const {
+        locales,
+        breadcrumbs: collectionBreadcrumbs,
+        contentDefaults,
+        hasFields,
+    } = useCollection({
+        collection,
+        singletonRawData: null,
+        editableRawData: rawData,
+    });
 
     const lastCrumb: BreadcrumbItem = isNew
         ? {
@@ -185,9 +189,10 @@ export default function ItemsForm({
                         options={{ preserveScroll: true }}
                     >
                         {({ errors }) => {
-                            const dataErrors = collectCollectionDataErrorMessages(
-                                errors as Record<string, unknown>,
-                            );
+                            const dataErrors =
+                                collectCollectionDataErrorMessages(
+                                    errors as Record<string, unknown>,
+                                );
 
                             return (
                                 <>
@@ -208,7 +213,7 @@ export default function ItemsForm({
                                         formLayout={collection.form_layout}
                                     />
                                     {!isNew && item !== null && (
-                                        <dl className="text-muted-foreground grid gap-3 border-t pt-6 text-sm sm:grid-cols-2">
+                                        <dl className="grid gap-3 border-t pt-6 text-sm text-muted-foreground sm:grid-cols-2">
                                             <div>
                                                 <dt className="font-medium text-foreground">
                                                     Created by

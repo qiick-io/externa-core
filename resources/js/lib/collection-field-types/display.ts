@@ -1,9 +1,5 @@
-import {
-    fieldTypeNeedsOptions,
-    fieldTypeNeedsTreeOptions,
-    type FieldOptionRow,
-    type FieldTreeOptionRow,
-} from './catalog';
+import { fieldTypeNeedsOptions, fieldTypeNeedsTreeOptions } from './catalog';
+import type { FieldOptionRow, FieldTreeOptionRow } from './catalog';
 
 function settingsFlag(value: unknown): boolean {
     return value === true || value === 1 || value === '1';
@@ -15,7 +11,9 @@ function settingsFlag(value: unknown): boolean {
  * @param settings - Raw field settings
  * @returns Whether the field is required in forms
  */
-export function isFieldRequired(settings?: Record<string, unknown> | null): boolean {
+export function isFieldRequired(
+    settings?: Record<string, unknown> | null,
+): boolean {
     const value = settings?.required;
 
     return value === true || value === 1 || value === '1';
@@ -41,9 +39,9 @@ export function isFieldHiddenInForm(
  * @param fields - Field definitions with optional settings
  * @returns Fields that should render on item edit forms
  */
-export function fieldsVisibleInForm<T extends { settings?: Record<string, unknown> | null }>(
-    fields: T[],
-): T[] {
+export function fieldsVisibleInForm<
+    T extends { settings?: Record<string, unknown> | null },
+>(fields: T[]): T[] {
     return fields.filter((field) => !isFieldHiddenInForm(field.settings));
 }
 
@@ -116,9 +114,9 @@ export type FieldLayoutRowItem<T> = {
  * @param fields - Ordered field definitions
  * @returns Column span per field index
  */
-export function getFieldGridColSpans<T extends { settings?: Record<string, unknown> | null }>(
-    fields: T[],
-): (1 | 2)[] {
+export function getFieldGridColSpans<
+    T extends { settings?: Record<string, unknown> | null },
+>(fields: T[]): (1 | 2)[] {
     const colSpans: (1 | 2)[] = [];
     let awaitingHalfPartner = false;
 
@@ -166,9 +164,9 @@ export function getFieldGridColSpans<T extends { settings?: Record<string, unkno
  * @param fields - Ordered field definitions
  * @returns Rows of fields with column spans
  */
-export function groupFieldsIntoLayoutRows<T extends { settings?: Record<string, unknown> | null }>(
-    fields: T[],
-): FieldLayoutRowItem<T>[][] {
+export function groupFieldsIntoLayoutRows<
+    T extends { settings?: Record<string, unknown> | null },
+>(fields: T[]): FieldLayoutRowItem<T>[][] {
     const colSpans = getFieldGridColSpans(fields);
     const rows: FieldLayoutRowItem<T>[][] = [];
     let currentRow: FieldLayoutRowItem<T>[] = [];
@@ -248,9 +246,7 @@ export type CommonFieldSettings = {
  * @param raw - Stored translated text object
  * @returns Normalized locale map with non-empty strings only
  */
-export function parseTranslatedText(
-    raw: unknown,
-): TranslatedText {
+export function parseTranslatedText(raw: unknown): TranslatedText {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
         return {};
     }
@@ -344,7 +340,9 @@ export function parseValidationRules(
         .filter((entry) => entry && typeof entry === 'object')
         .map((entry) => {
             const rule = entry as { operator?: unknown; value?: unknown };
-            const operator = String(rule.operator ?? '') as FieldValidationOperator;
+            const operator = String(
+                rule.operator ?? '',
+            ) as FieldValidationOperator;
 
             if (!allowed.has(operator)) {
                 return null;
@@ -491,7 +489,10 @@ export function getFieldNote(
     settings: Record<string, unknown> | null | undefined,
     locales: readonly string[] = COLLECTION_FIELD_LOCALES,
 ): string {
-    return resolveTranslatedText(parseCommonFieldSettings(settings).note, locales);
+    return resolveTranslatedText(
+        parseCommonFieldSettings(settings).note,
+        locales,
+    );
 }
 
 /**
@@ -556,6 +557,7 @@ export function flattenSettingsForForm(
         // ponytail: PHP (bool)"false" is true — always send 1/0 for booleans
         if (typeof value === 'boolean') {
             entries.push({ name: base, value: value ? '1' : '0' });
+
             return;
         }
 
@@ -605,7 +607,11 @@ export function buildFieldSettingsPayload(
         ...typeSettings,
     };
 
-    if (options && fieldTypeNeedsOptions(fieldType) && !fieldTypeNeedsTreeOptions(fieldType)) {
+    if (
+        options &&
+        fieldTypeNeedsOptions(fieldType) &&
+        !fieldTypeNeedsTreeOptions(fieldType)
+    ) {
         payload.options = options
             .filter(
                 (option) =>

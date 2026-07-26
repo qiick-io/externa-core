@@ -29,10 +29,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    contentLocaleMeta,
-    type ContentLocaleCatalogEntry,
-} from '@/lib/content-locales-catalog';
+import { contentLocaleMeta } from '@/lib/content-locales-catalog';
+import type { ContentLocaleCatalogEntry } from '@/lib/content-locales-catalog';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -52,8 +50,14 @@ function SortableLocaleRow({
     canRemove: boolean;
 }) {
     const meta = contentLocaleMeta(code);
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-        useSortable({ id: code });
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: code });
 
     return (
         <div
@@ -69,7 +73,7 @@ function SortableLocaleRow({
         >
             <button
                 type="button"
-                className="text-muted-foreground hover:text-foreground cursor-grab touch-none"
+                className="cursor-grab touch-none text-muted-foreground hover:text-foreground"
                 aria-label="Reorder"
                 {...attributes}
                 {...listeners}
@@ -79,7 +83,7 @@ function SortableLocaleRow({
             <ContentLocaleFlag region={meta.flag} title={meta.name} />
             <span className="flex-1 text-sm">
                 <span className="font-medium">{meta.name}</span>
-                <span className="text-muted-foreground ml-2 font-mono text-xs">
+                <span className="ml-2 font-mono text-xs text-muted-foreground">
                     {code}
                 </span>
             </span>
@@ -119,6 +123,7 @@ export function ContentLocalesField({
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();
+
         if (q === '') {
             return catalog;
         }
@@ -132,9 +137,11 @@ export function ContentLocalesField({
 
     const setLocales = (next: string[]): void => {
         let nextDefault = defaultLocale;
+
         if (!next.includes(nextDefault)) {
             nextDefault = next[0] ?? '';
         }
+
         onChange(next, nextDefault);
     };
 
@@ -143,6 +150,7 @@ export function ContentLocalesField({
             if (selected.has(code)) {
                 return;
             }
+
             setLocales([...value, code]);
 
             return;
@@ -157,12 +165,14 @@ export function ContentLocalesField({
 
     const onDragEnd = (event: DragEndEvent): void => {
         const { active, over } = event;
+
         if (!over || active.id === over.id) {
             return;
         }
 
         const oldIndex = value.indexOf(String(active.id));
         const newIndex = value.indexOf(String(over.id));
+
         if (oldIndex < 0 || newIndex < 0) {
             return;
         }
@@ -177,14 +187,12 @@ export function ContentLocalesField({
                     {t('settings.project.contentLocalesAdd')}
                 </Label>
                 <div className="relative">
-                    <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
+                    <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
                     <Input
                         id="content_locales_search"
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
-                        placeholder={t(
-                            'settings.project.contentLocalesSearch',
-                        )}
+                        placeholder={t('settings.project.contentLocalesSearch')}
                         className="pl-9"
                     />
                 </div>
@@ -195,7 +203,7 @@ export function ContentLocalesField({
                         return (
                             <label
                                 key={entry.code}
-                                className="hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5"
+                                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50"
                             >
                                 <Checkbox
                                     checked={checked}
@@ -211,14 +219,14 @@ export function ContentLocalesField({
                                 <span className="flex-1 text-sm">
                                     {entry.name}
                                 </span>
-                                <span className="text-muted-foreground font-mono text-xs">
+                                <span className="font-mono text-xs text-muted-foreground">
                                     {entry.code}
                                 </span>
                             </label>
                         );
                     })}
                     {filtered.length === 0 ? (
-                        <p className="text-muted-foreground px-2 py-3 text-sm">
+                        <p className="px-2 py-3 text-sm text-muted-foreground">
                             {t('settings.project.contentLocalesEmpty')}
                         </p>
                     ) : null}
@@ -271,9 +279,7 @@ export function ContentLocalesField({
                             return (
                                 <SelectItem key={code} value={code}>
                                     <span className="inline-flex items-center gap-2">
-                                        <ContentLocaleFlag
-                                            region={meta.flag}
-                                        />
+                                        <ContentLocaleFlag region={meta.flag} />
                                         {meta.name} ({code})
                                     </span>
                                 </SelectItem>

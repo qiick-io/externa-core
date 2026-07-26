@@ -1,10 +1,5 @@
-import {
-    createContext,
-    useContext,
-    useMemo,
-    useState,
-    type ReactNode,
-} from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 
 type ContentLocaleContextValue = {
     locales: string[];
@@ -61,9 +56,7 @@ export function useContentLocale(localesFallback: string[] = ['en']): {
     locales: string[];
 } {
     const ctx = useContext(ContentLocaleContext);
-    const [localLocale, setLocalLocale] = useState(
-        localesFallback[0] ?? 'en',
-    );
+    const [localLocale, setLocalLocale] = useState(localesFallback[0] ?? 'en');
 
     if (ctx) {
         return {
@@ -73,8 +66,7 @@ export function useContentLocale(localesFallback: string[] = ['en']): {
         };
     }
 
-    const locales =
-        localesFallback.length > 0 ? localesFallback : ['en'];
+    const locales = localesFallback.length > 0 ? localesFallback : ['en'];
 
     return {
         locale: locales.includes(localLocale)

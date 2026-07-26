@@ -65,8 +65,7 @@ type SettingCheckboxUncontrolledProps = {
 };
 
 type SettingCheckboxProps =
-    | SettingCheckboxControlledProps
-    | SettingCheckboxUncontrolledProps;
+    SettingCheckboxControlledProps | SettingCheckboxUncontrolledProps;
 
 /**
  * Labeled checkbox row for field settings.

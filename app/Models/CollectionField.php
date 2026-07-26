@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Concerns\LogsApplicationActivity;
 use App\Enums\FieldTypeEnum;
+use App\Support\Collections\CollectionLocaleResolver;
 use Database\Factories\CollectionFieldFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -110,7 +111,7 @@ class CollectionField extends Model implements Sortable
             return trim($displayName[$locale]);
         }
 
-        foreach (app(\App\Support\Collections\CollectionLocaleResolver::class)->fallbackChain($locale) as $fallbackLocale) {
+        foreach (app(CollectionLocaleResolver::class)->fallbackChain($locale) as $fallbackLocale) {
             if (
                 is_array($displayName)
                 && is_string($displayName[$fallbackLocale] ?? null)
@@ -135,7 +136,7 @@ class CollectionField extends Model implements Sortable
             return trim($note[$locale]);
         }
 
-        foreach (app(\App\Support\Collections\CollectionLocaleResolver::class)->fallbackChain($locale) as $fallbackLocale) {
+        foreach (app(CollectionLocaleResolver::class)->fallbackChain($locale) as $fallbackLocale) {
             if (
                 is_array($note)
                 && is_string($note[$fallbackLocale] ?? null)

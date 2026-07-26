@@ -51,7 +51,7 @@ export function ColumnHeaderMenu({
                     variant="ghost"
                     size="icon"
                     className={cn(
-                        'text-muted-foreground hover:text-foreground size-6 shrink-0',
+                        'size-6 shrink-0 text-muted-foreground hover:text-foreground',
                         sortActive && 'text-foreground',
                     )}
                     aria-label={`${label} column options`}

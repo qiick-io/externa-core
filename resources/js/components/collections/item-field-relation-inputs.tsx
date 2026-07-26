@@ -34,30 +34,37 @@ function parseM2mLinks(value: DefaultValue): M2mLink[] {
     }
 
     const links: M2mLink[] = [];
+
     for (const entry of value) {
         if (typeof entry === 'number' && Number.isFinite(entry)) {
             links.push({ related_item_id: entry, meta: {} });
             continue;
         }
+
         if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
             continue;
         }
+
         const row = entry as Record<string, unknown>;
         const id = Number(row.related_item_id ?? row.id);
+
         if (!Number.isFinite(id) || id <= 0) {
             continue;
         }
+
         const rawMeta =
             row.meta && typeof row.meta === 'object' && !Array.isArray(row.meta)
                 ? (row.meta as Record<string, unknown>)
                 : {};
         const meta: Record<string, string> = {};
+
         for (const [key, metaValue] of Object.entries(rawMeta)) {
             meta[key] =
                 metaValue === null || metaValue === undefined
                     ? ''
                     : String(metaValue);
         }
+
         links.push({ related_item_id: id, meta });
     }
 
@@ -73,15 +80,21 @@ function relationOptionsQuery(field: FieldDef): string {
     });
     // Nested relation fields reuse the parent blocks field id; pass related_collection_id so options resolve.
     const relatedId = Number(
-        (field.settings as { related_collection_id?: unknown } | null | undefined)
-            ?.related_collection_id,
+        (
+            field.settings as
+                { related_collection_id?: unknown } | null | undefined
+        )?.related_collection_id,
     );
+
     if (Number.isFinite(relatedId) && relatedId > 0) {
         params.set('related_collection_id', String(relatedId));
     }
+
     const displayField = String(
-        (field.settings as { display_field?: unknown } | null | undefined)?.display_field ?? '',
+        (field.settings as { display_field?: unknown } | null | undefined)
+            ?.display_field ?? '',
     ).trim();
+
     if (displayField !== '') {
         params.set('display_field', displayField);
     }
@@ -159,6 +172,7 @@ export function ManyToManyFieldInput({
 
             return nextIds.map((id) => {
                 const existing = byId.get(id);
+
                 return existing ?? { related_item_id: id, meta: {} };
             });
         });
@@ -326,7 +340,9 @@ export function RelationFieldInput({
                 }
 
                 const options = payload.data
-                    .filter((row: { id: number }) => initialIds.includes(row.id))
+                    .filter((row: { id: number }) =>
+                        initialIds.includes(row.id),
+                    )
                     .map((row: { id: number; label?: string }) => ({
                         id: row.id,
                         label: row.label ?? `#${row.id}`,
@@ -349,11 +365,7 @@ export function RelationFieldInput({
                     />
                 ))
             ) : (
-                <input
-                    type="hidden"
-                    name={name}
-                    value={selectedIds[0] ?? ''}
-                />
+                <input type="hidden" name={name} value={selectedIds[0] ?? ''} />
             )}
             <PaginatedMultiSelect
                 fetchUrl={fetchUrl}

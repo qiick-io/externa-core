@@ -18,14 +18,26 @@ export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
         label: 'Autocomplete (API)',
         description: 'Text input with suggestions fetched from a remote URL',
     },
-    { value: 'code', label: 'Codice', description: 'Code snippet with syntax highlighting' },
-    { value: 'textarea', label: 'TextArea', description: 'Multi-line plain text' },
+    {
+        value: 'code',
+        label: 'Codice',
+        description: 'Code snippet with syntax highlighting',
+    },
+    {
+        value: 'textarea',
+        label: 'TextArea',
+        description: 'Multi-line plain text',
+    },
     {
         value: 'wysiwyg',
         label: 'WYSIWYG',
         description: 'Rich text stored as HTML',
     },
-    { value: 'markdown', label: 'Markdown', description: 'Formatted text with Markdown syntax' },
+    {
+        value: 'markdown',
+        label: 'Markdown',
+        description: 'Formatted text with Markdown syntax',
+    },
     { value: 'tag', label: 'Tag', description: 'Comma-separated tags' },
     { value: 'number', label: 'Number', description: 'Numeric value' },
     { value: 'boolean', label: 'Toggle', description: 'On / off switch' },
@@ -40,7 +52,11 @@ export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
         description: 'Geographic point on OpenStreetMap (latitude / longitude)',
     },
     { value: 'color', label: 'Color Picker', description: 'Color selection' },
-    { value: 'select', label: 'Select', description: 'Pick one option from a list' },
+    {
+        value: 'select',
+        label: 'Select',
+        description: 'Pick one option from a list',
+    },
     {
         value: 'multiselect',
         label: 'Multi Select',
@@ -89,7 +105,8 @@ export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
     {
         value: 'one_to_many',
         label: 'Uno a Molti',
-        description: 'Link this item to many children in another collection (O2M)',
+        description:
+            'Link this item to many children in another collection (O2M)',
     },
     {
         value: 'many_to_one',
@@ -99,7 +116,8 @@ export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
     {
         value: 'hash',
         label: 'Fingerprint ID',
-        description: 'Auto-generated unique identifier (sha256), not a password hash',
+        description:
+            'Auto-generated unique identifier (sha256), not a password hash',
     },
     {
         value: 'slider',
@@ -107,7 +125,11 @@ export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
         description: 'Numeric value selected with a slider control',
     },
     // Legacy aliases kept for existing fields / labels — hidden from picker groups below
-    { value: 'file', label: 'File (legacy)', description: 'Legacy single file; prefer Files' },
+    {
+        value: 'file',
+        label: 'File (legacy)',
+        description: 'Legacy single file; prefer Files',
+    },
     {
         value: 'relation',
         label: 'Relation (legacy)',
@@ -182,7 +204,10 @@ export const COLLECTION_FIELD_TYPE_GROUPS: {
  * @returns Human-readable label, or the raw type when unknown
  */
 export function fieldTypeLabel(type: string): string {
-    return COLLECTION_FIELD_TYPES.find((option) => option.value === type)?.label ?? type;
+    return (
+        COLLECTION_FIELD_TYPES.find((option) => option.value === type)?.label ??
+        type
+    );
 }
 
 /**

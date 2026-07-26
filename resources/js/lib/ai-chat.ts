@@ -445,7 +445,7 @@ export async function streamAiChat(
                     if (!abortSignal?.aborted) {
                         const streamError = new Error(
                             typeof parsed.message === 'string' &&
-                            parsed.message !== ''
+                                parsed.message !== ''
                                 ? parsed.message
                                 : 'Error during AI stream',
                         );

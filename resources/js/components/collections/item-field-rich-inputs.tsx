@@ -1,7 +1,8 @@
-import { EditorContent, useEditor, type Editor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
+import { EditorContent, useEditor } from '@tiptap/react';
+import type { Editor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 import {
     Bold,
     Heading2,
@@ -15,7 +16,8 @@ import {
     Strikethrough,
     Undo2,
 } from 'lucide-react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -92,16 +94,22 @@ function ToolbarButton({
 
 function WysiwygToolbar({ editor }: { editor: Editor }) {
     const setLink = (): void => {
-        const previous = editor.getAttributes('link').href as string | undefined;
+        const previous = editor.getAttributes('link').href as
+            string | undefined;
         const url = window.prompt('Link URL', previous ?? 'https://');
+
         if (url === null) {
             return;
         }
+
         const trimmed = url.trim();
+
         if (trimmed === '') {
             editor.chain().focus().extendMarkRange('link').unsetLink().run();
+
             return;
         }
+
         editor
             .chain()
             .focus()
@@ -259,6 +267,7 @@ export function WysiwygFieldInput({
         if (!editor) {
             return;
         }
+
         editor.setEditable(!readonly);
     }, [editor, readonly]);
 
@@ -270,8 +279,7 @@ export function WysiwygFieldInput({
                     className="prose prose-sm dark:prose-invert min-h-[120px] rounded-md border p-3"
                     dangerouslySetInnerHTML={{
                         __html:
-                            value ||
-                            '<p class="text-muted-foreground">—</p>',
+                            value || '<p class="text-muted-foreground">—</p>',
                     }}
                 />
             </div>
@@ -281,11 +289,11 @@ export function WysiwygFieldInput({
     return (
         <div className="space-y-2">
             <input type="hidden" name={name} value={value} />
-            <div className="border-input bg-background overflow-hidden rounded-md border shadow-xs">
+            <div className="overflow-hidden rounded-md border border-input bg-background shadow-xs">
                 {editor ? <WysiwygToolbar editor={editor} /> : null}
                 <EditorContent editor={editor} />
             </div>
-            <p className="text-muted-foreground text-xs">
+            <p className="text-xs text-muted-foreground">
                 TipTap editor — paste from Word/HTML is sanitized on save
                 (scripts and unsafe tags stripped).
             </p>
@@ -343,7 +351,10 @@ export function MarkdownFieldInput({
                 <textarea
                     id={id}
                     name={name}
-                    className={cn(inputLike, 'min-h-[160px] py-2 font-mono text-sm')}
+                    className={cn(
+                        inputLike,
+                        'min-h-[160px] py-2 font-mono text-sm',
+                    )}
                     rows={textareaSettings.rows}
                     value={value}
                     readOnly={readonly}
@@ -395,13 +406,15 @@ export function CodeFieldInput({
         <div
             className={cn(
                 'grid overflow-hidden rounded-md border',
-                codeSettings.lineNumbers ? 'grid-cols-[auto_1fr]' : 'grid-cols-1',
+                codeSettings.lineNumbers
+                    ? 'grid-cols-[auto_1fr]'
+                    : 'grid-cols-1',
             )}
         >
             {codeSettings.lineNumbers ? (
                 <pre
                     aria-hidden
-                    className="bg-muted/40 text-muted-foreground select-none border-r px-3 py-2 text-right font-mono text-xs leading-6"
+                    className="border-r bg-muted/40 px-3 py-2 text-right font-mono text-xs leading-6 text-muted-foreground select-none"
                 >
                     {lines.map((_, index) => (
                         <div key={index}>{index + 1}</div>
@@ -413,7 +426,9 @@ export function CodeFieldInput({
                 name={name}
                 className={cn(
                     'min-h-[160px] resize-y bg-background px-3 py-2 font-mono text-sm leading-6 focus-visible:outline-none',
-                    codeSettings.lineWrapping ? 'whitespace-pre-wrap' : 'whitespace-pre',
+                    codeSettings.lineWrapping
+                        ? 'whitespace-pre-wrap'
+                        : 'whitespace-pre',
                 )}
                 value={value}
                 readOnly={readonly}
@@ -472,7 +487,9 @@ export function TagChipInput({
                                 className="text-xs"
                                 onClick={() =>
                                     setTags((current) =>
-                                        current.filter((entry) => entry !== tag),
+                                        current.filter(
+                                            (entry) => entry !== tag,
+                                        ),
                                     )
                                 }
                             >
@@ -510,7 +527,12 @@ export function TagChipInput({
                 </datalist>
             ) : null}
             {tags.map((tag) => (
-                <input key={tag} type="hidden" name={`${nameBase}[]`} value={tag} />
+                <input
+                    key={tag}
+                    type="hidden"
+                    name={`${nameBase}[]`}
+                    value={tag}
+                />
             ))}
         </div>
     );
@@ -596,7 +618,7 @@ export function ColorFieldInput({
             </div>
             {colorSettings.opacity ? (
                 <div className="space-y-2">
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-xs text-muted-foreground">
                         Opacity {Math.round(alpha * 100)}%
                     </p>
                     <Slider

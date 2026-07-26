@@ -87,35 +87,36 @@ export function FileCard({
     );
     const displayName = file.title || file.name;
 
-    const titleControl = isFolder && !isTrashed ? (
-        <button
-            type="button"
-            className={cn(
-                'w-full min-w-0 truncate text-center text-xs leading-4 font-medium hover:underline',
-                !useCoverLayout && 'h-4',
-            )}
-            onClick={(event) => {
-                event.stopPropagation();
-                onOpenFolder(file.id);
-            }}
-        >
-            {displayName}
-        </button>
-    ) : (
-        <button
-            type="button"
-            className={cn(
-                'w-full min-w-0 truncate text-center text-xs leading-4 font-medium',
-                !useCoverLayout && 'h-4',
-            )}
-            onClick={(event) => {
-                event.stopPropagation();
-                onSelect(file.id, event);
-            }}
-        >
-            {displayName}
-        </button>
-    );
+    const titleControl =
+        isFolder && !isTrashed ? (
+            <button
+                type="button"
+                className={cn(
+                    'w-full min-w-0 truncate text-center text-xs leading-4 font-medium hover:underline',
+                    !useCoverLayout && 'h-4',
+                )}
+                onClick={(event) => {
+                    event.stopPropagation();
+                    onOpenFolder(file.id);
+                }}
+            >
+                {displayName}
+            </button>
+        ) : (
+            <button
+                type="button"
+                className={cn(
+                    'w-full min-w-0 truncate text-center text-xs leading-4 font-medium',
+                    !useCoverLayout && 'h-4',
+                )}
+                onClick={(event) => {
+                    event.stopPropagation();
+                    onSelect(file.id, event);
+                }}
+            >
+                {displayName}
+            </button>
+        );
 
     const tagsRow =
         file.tags.length > 0 ? (
@@ -174,8 +175,8 @@ export function FileCard({
                             ? 'bg-muted/30'
                             : 'flex flex-col items-center bg-card p-3 hover:bg-muted/40',
                         'border-sidebar-border/70',
-                        selected && 'ring-primary bg-muted/50 ring-2',
-                        isDropTarget && 'ring-primary ring-2',
+                        selected && 'bg-muted/50 ring-2 ring-primary',
+                        isDropTarget && 'ring-2 ring-primary',
                         isTrashed && 'opacity-80',
                     )}
                     onMouseEnter={() => setHovered(true)}
@@ -267,7 +268,7 @@ export function FileCard({
 
                     {file.effective_access === 'private' && (
                         <span
-                            className="bg-background/90 text-muted-foreground absolute bottom-2 left-2 z-20 rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase shadow-sm"
+                            className="absolute bottom-2 left-2 z-20 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase shadow-sm"
                             title="Private — requires Read private on API roles"
                         >
                             Private

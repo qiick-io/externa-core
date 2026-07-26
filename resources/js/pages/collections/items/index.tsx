@@ -42,12 +42,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
     Dialog,
     DialogClose,
     DialogContent,
@@ -55,6 +49,12 @@ import {
     DialogFooter,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
     Table,
     TableBody,
@@ -73,20 +73,20 @@ import {
     FILTER_META_KEYS,
     parseFiltersFromProps,
     serializeFilterRules,
-    type FilterRule,
 } from '@/lib/item-list-filters';
+import type { FilterRule } from '@/lib/item-list-filters';
 import { cn } from '@/lib/utils';
 import collections from '@/routes/collections';
-import type { BreadcrumbItem, CollectionFieldRow, CollectionView } from '@/types';
-import {
-    alignClass,
-    ColumnHeaderMenu,
-    type ColumnAlign,
-} from './column-header-menu';
-import {
-    ColumnPickerPopover,
-    type RelatedFieldEntry,
-} from './column-picker-popover';
+import type {
+    BreadcrumbItem,
+    CollectionFieldRow,
+    CollectionView,
+} from '@/types';
+import type { QueryParams } from '@/wayfinder';
+import { alignClass, ColumnHeaderMenu } from './column-header-menu';
+import type { ColumnAlign } from './column-header-menu';
+import { ColumnPickerPopover } from './column-picker-popover';
+import type { RelatedFieldEntry } from './column-picker-popover';
 import { ItemFiltersBuilder } from './item-filters-builder';
 import { columnHeaderLabel, ItemTableCell } from './item-table-cell';
 
@@ -119,11 +119,14 @@ type ItemsFilters = Record<string, unknown> & {
 
 function titleContainsFromFilters(filters: ItemsFilters): string {
     const title = filters.title;
+
     if (typeof title === 'string') {
         return title;
     }
+
     if (title && typeof title === 'object' && !Array.isArray(title)) {
         const ops = title as Record<string, unknown>;
+
         if (typeof ops._contains === 'string') {
             return ops._contains;
         }
@@ -134,11 +137,13 @@ function titleContainsFromFilters(filters: ItemsFilters): string {
 
 function itemLabel(row: ItemRow): string | null {
     const display = row.displays?.title;
+
     if (typeof display === 'string' && display.trim() !== '') {
         return display;
     }
 
     const title = row.data?.title;
+
     if (typeof title === 'string' && title.trim() !== '') {
         return title;
     }
@@ -147,6 +152,7 @@ function itemLabel(row: ItemRow): string | null {
         const first = Object.values(title as Record<string, unknown>).find(
             (value) => typeof value === 'string' && value.trim() !== '',
         );
+
         if (typeof first === 'string') {
             return first;
         }
@@ -162,10 +168,12 @@ function itemLabel(row: ItemRow): string | null {
  */
 function advancedRulesFromFilters(filters: ItemsFilters): FilterRule[] {
     const fieldFilters: Record<string, unknown> = {};
+
     for (const [key, value] of Object.entries(filters)) {
         if (FILTER_META_KEYS.has(key)) {
             continue;
         }
+
         fieldFilters[key] = value;
     }
 
@@ -181,6 +189,7 @@ function rulesWithTitleSearch(
         (rule) => !(rule.field === 'title' && rule.operator === '_contains'),
     );
     const trimmed = title.trim();
+
     if (trimmed === '') {
         return withoutTitleContains;
     }
@@ -214,8 +223,14 @@ function SortableHeader({
     onAlign,
     onHide,
 }: SortableHeaderProps) {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-        useSortable({ id });
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id });
 
     return (
         <TableHead
@@ -224,12 +239,15 @@ function SortableHeader({
                 transform: CSS.Transform.toString(transform),
                 transition,
             }}
-            className={cn(alignClass(align), isDragging && 'bg-muted opacity-80')}
+            className={cn(
+                alignClass(align),
+                isDragging && 'bg-muted opacity-80',
+            )}
         >
             <div className="flex items-center gap-1">
                 <button
                     type="button"
-                    className="text-muted-foreground hover:text-foreground cursor-grab touch-none"
+                    className="cursor-grab touch-none text-muted-foreground hover:text-foreground"
                     aria-label={`Reorder ${label}`}
                     {...attributes}
                     {...listeners}
@@ -304,13 +322,17 @@ export default function ItemsIndex({
                 title: collection.name,
                 href: collections.items.index.url(collection.id),
             },
-            { title: 'Items', href: collections.items.index.url(collection.id) },
+            {
+                title: 'Items',
+                href: collections.items.index.url(collection.id),
+            },
         ],
         [collection.id, collection.name],
     );
 
     const fieldsByName = useMemo(() => {
         const map: Record<string, CollectionFieldRow> = {};
+
         for (const field of collection.fields ?? []) {
             map[field.name] = field;
         }
@@ -344,13 +366,15 @@ export default function ItemsIndex({
     );
 
     const visit = useCallback(
-        (overrides: {
-            title?: string;
-            rules?: FilterRule[];
-            sort?: string;
-            direction?: 'asc' | 'desc';
-            trashed?: boolean;
-        } = {}) => {
+        (
+            overrides: {
+                title?: string;
+                rules?: FilterRule[];
+                sort?: string;
+                direction?: 'asc' | 'desc';
+                trashed?: boolean;
+            } = {},
+        ) => {
             const nextRules =
                 overrides.rules ??
                 (overrides.title !== undefined
@@ -361,21 +385,21 @@ export default function ItemsIndex({
                 overrides.direction ??
                 (filters.direction === 'asc' ? 'asc' : 'desc');
             const nextTrashed =
-                overrides.trashed !== undefined
-                    ? overrides.trashed
-                    : isTrashed;
+                overrides.trashed !== undefined ? overrides.trashed : isTrashed;
 
             const filterPayload = serializeFilterRules(nextRules);
 
             // ponytail: put query on the Wayfinder URL (not router data) so cleared
             // filters are dropped instead of merged into the current search string.
-            const query: Record<string, unknown> = {
+            const query: QueryParams = {
                 sort: nextSort,
                 direction: nextDirection,
             };
+
             if (Object.keys(filterPayload).length > 0) {
                 query.filter = filterPayload;
             }
+
             if (nextTrashed) {
                 query.trashed = true;
             }
@@ -435,12 +459,14 @@ export default function ItemsIndex({
 
     const onDragEnd = (event: DragEndEvent): void => {
         const { active, over } = event;
+
         if (!over || active.id === over.id) {
             return;
         }
 
         const oldIndex = listColumns.indexOf(String(active.id));
         const newIndex = listColumns.indexOf(String(over.id));
+
         if (oldIndex < 0 || newIndex < 0) {
             return;
         }
@@ -504,8 +530,10 @@ export default function ItemsIndex({
     const exportUrl = (format: 'csv' | 'json'): string => {
         const filterPayload = serializeFilterRules(filterRules);
         const trimmedTitle = filterTitle.trim();
+
         if (trimmedTitle !== '') {
             const titleBag = filterPayload.title ?? {};
+
             if (
                 !('_eq' in titleBag) &&
                 !('_neq' in titleBag) &&
@@ -521,10 +549,7 @@ export default function ItemsIndex({
         const params = new URLSearchParams();
         params.set('format', format);
         params.set('sort', filters.sort ?? 'id');
-        params.set(
-            'direction',
-            filters.direction === 'asc' ? 'asc' : 'desc',
-        );
+        params.set('direction', filters.direction === 'asc' ? 'asc' : 'desc');
 
         for (const [field, ops] of Object.entries(filterPayload)) {
             if (ops && typeof ops === 'object') {
@@ -532,6 +557,7 @@ export default function ItemsIndex({
                     if (value === undefined || value === null) {
                         continue;
                     }
+
                     params.set(
                         `filter[${field}][${op}]`,
                         Array.isArray(value) ? value.join(',') : String(value),
@@ -654,9 +680,7 @@ export default function ItemsIndex({
                                             type="button"
                                             variant="destructive"
                                             size="sm"
-                                            onClick={() =>
-                                                bulk('force_delete')
-                                            }
+                                            onClick={() => bulk('force_delete')}
                                         >
                                             Delete permanently
                                         </Button>
@@ -789,7 +813,7 @@ export default function ItemsIndex({
                                             />
                                         ))}
                                     </SortableContext>
-                                    <TableHead className="w-[1%] whitespace-nowrap text-right">
+                                    <TableHead className="w-[1%] text-right whitespace-nowrap">
                                         <div className="flex items-center justify-end gap-1">
                                             {!hasSelection ? (
                                                 <ColumnPickerPopover
@@ -881,8 +905,9 @@ export default function ItemsIndex({
                                                     <TableCell
                                                         key={path}
                                                         className={alignClass(
-                                                            columnAligns[path] ??
-                                                                'left',
+                                                            columnAligns[
+                                                                path
+                                                            ] ?? 'left',
                                                         )}
                                                     >
                                                         <ItemTableCell
@@ -894,7 +919,7 @@ export default function ItemsIndex({
                                                         />
                                                     </TableCell>
                                                 ))}
-                                                <TableCell className="w-[1%] whitespace-nowrap text-right">
+                                                <TableCell className="w-[1%] text-right whitespace-nowrap">
                                                     <div
                                                         className="flex items-center justify-end gap-1"
                                                         onClick={(event) =>

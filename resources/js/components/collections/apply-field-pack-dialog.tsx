@@ -89,7 +89,9 @@ export function ApplyFieldPackDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>{t('collections.packs.addFieldPack')}</DialogTitle>
+                    <DialogTitle>
+                        {t('collections.packs.addFieldPack')}
+                    </DialogTitle>
                     <DialogDescription>
                         {t('collections.packs.addFieldPackDescription')}
                     </DialogDescription>
@@ -114,7 +116,9 @@ export function ApplyFieldPackDialog({
                                             : 'border-sidebar-border/70 hover:bg-muted/40 dark:border-sidebar-border',
                                     )}
                                 >
-                                    <p className="font-medium">{packLabel(pack)}</p>
+                                    <p className="font-medium">
+                                        {packLabel(pack)}
+                                    </p>
                                     <p className="text-sm text-muted-foreground">
                                         {packDescription(pack)}
                                     </p>

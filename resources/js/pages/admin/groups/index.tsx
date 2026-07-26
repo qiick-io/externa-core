@@ -1,11 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    ArrowDownAZ,
-    ArrowUpAZ,
-    Plus,
-    Trash2,
-    UsersRound,
-} from 'lucide-react';
+import { ArrowDownAZ, ArrowUpAZ, Plus, Trash2, UsersRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { GroupFormDrawer } from '@/components/admin/group-form-drawer';
@@ -94,9 +88,7 @@ export default function AdminGroupsIndex({
             const nextSort = overrides.sort ?? sort;
             const nextDirection = overrides.direction ?? direction;
             const nextTrashed =
-                overrides.trashed !== undefined
-                    ? overrides.trashed
-                    : isTrashed;
+                overrides.trashed !== undefined ? overrides.trashed : isTrashed;
 
             router.get(
                 adminRoutes.groups.index({

@@ -114,6 +114,8 @@ export default [
             'storage',
             'scripts',
             'bootstrap/ssr',
+            '.e2e/**',
+            'tests/Browser/**/*.mjs',
             'tailwind.config.js',
             'vite.config.ts',
             'resources/js/actions/**',

@@ -19,16 +19,21 @@ export function FlashToasts() {
             typeof flash?.success === 'string' ? flash.success : null;
         const error = typeof flash?.error === 'string' ? flash.error : null;
         const key = `${success ?? ''}|${error ?? ''}`;
+
         if (!success && !error) {
             return;
         }
+
         if (key === last.current) {
             return;
         }
+
         last.current = key;
+
         if (success) {
             toast.success(success);
         }
+
         if (error) {
             toast.error(error);
         }

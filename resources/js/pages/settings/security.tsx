@@ -91,7 +91,11 @@ export default function Security({
                         }}
                         className="space-y-6"
                     >
-                        {({ errors: formErrors, processing, recentlySuccessful }) => (
+                        {({
+                            errors: formErrors,
+                            processing,
+                            recentlySuccessful,
+                        }) => (
                             <>
                                 <div className="grid gap-2">
                                     <Label htmlFor="current_password">

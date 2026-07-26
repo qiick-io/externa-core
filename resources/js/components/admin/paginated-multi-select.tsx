@@ -211,7 +211,10 @@ export function PaginatedMultiSelect({
                     <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
+            <PopoverContent
+                className="w-(--radix-popover-trigger-width) p-0"
+                align="start"
+            >
                 <div className="flex items-center gap-2 border-b p-2">
                     <Input
                         value={search}
@@ -237,7 +240,7 @@ export function PaginatedMultiSelect({
                     onScroll={handleScroll}
                 >
                     {options.length === 0 && !loading && (
-                        <p className="text-muted-foreground p-3 text-sm">
+                        <p className="p-3 text-sm text-muted-foreground">
                             No results.
                         </p>
                     )}
@@ -251,12 +254,15 @@ export function PaginatedMultiSelect({
                                 aria-selected={checked}
                                 tabIndex={0}
                                 className={cn(
-                                    'hover:bg-accent flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm',
+                                    'flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent',
                                     checked && 'bg-accent/50',
                                 )}
                                 onClick={() => toggle(option.id)}
                                 onKeyDown={(event) => {
-                                    if (event.key === 'Enter' || event.key === ' ') {
+                                    if (
+                                        event.key === 'Enter' ||
+                                        event.key === ' '
+                                    ) {
                                         event.preventDefault();
                                         toggle(option.id);
                                     }
@@ -272,13 +278,13 @@ export function PaginatedMultiSelect({
                                     {option.label}
                                 </span>
                                 {checked && (
-                                    <Check className="text-primary size-4 shrink-0" />
+                                    <Check className="size-4 shrink-0 text-primary" />
                                 )}
                             </div>
                         );
                     })}
                     {loading && (
-                        <div className="text-muted-foreground flex items-center justify-center gap-2 py-3 text-sm">
+                        <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
                             <Loader2 className="size-4 animate-spin" />
                             Loading…
                         </div>

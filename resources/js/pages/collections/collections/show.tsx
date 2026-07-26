@@ -122,9 +122,10 @@ export default function CollectionsShow({
                         options={{ preserveScroll: true }}
                     >
                         {({ errors }) => {
-                            const dataErrors = collectCollectionDataErrorMessages(
-                                errors as Record<string, unknown>,
-                            );
+                            const dataErrors =
+                                collectCollectionDataErrorMessages(
+                                    errors as Record<string, unknown>,
+                                );
 
                             return (
                                 <>

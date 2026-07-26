@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Map as LeafletMap, Marker as LeafletMarker } from 'leaflet';
+import type * as LeafletNS from 'leaflet';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 // Tailwind v4 @import of leaflet.css in app.css is dropped from the Vite CSS
 // pipeline — load styles with the map component so tiles/panes position correctly.
@@ -7,10 +8,8 @@ import 'leaflet/dist/leaflet.css';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    parseMapFieldSettings,
-    type MapFieldSettings,
-} from '@/lib/collection-field-types/parsers';
+import { parseMapFieldSettings } from '@/lib/collection-field-types/parsers';
+import type { MapFieldSettings } from '@/lib/collection-field-types/parsers';
 
 export type GeoJsonPoint = {
     type: 'Point';
@@ -39,6 +38,7 @@ export function parseMapPositions(value: unknown): LatLng[] {
     if ('lat' in record || 'lng' in record) {
         const lat = Number(record.lat);
         const lng = Number(record.lng);
+
         if (Number.isFinite(lat) && Number.isFinite(lng)) {
             return [{ lat, lng }];
         }
@@ -49,6 +49,7 @@ export function parseMapPositions(value: unknown): LatLng[] {
     if (record.type === 'Point' && Array.isArray(record.coordinates)) {
         const lng = Number(record.coordinates[0]);
         const lat = Number(record.coordinates[1]);
+
         if (Number.isFinite(lat) && Number.isFinite(lng)) {
             return [{ lat, lng }];
         }
@@ -58,12 +59,15 @@ export function parseMapPositions(value: unknown): LatLng[] {
 
     if (record.type === 'MultiPoint' && Array.isArray(record.coordinates)) {
         const out: LatLng[] = [];
+
         for (const pair of record.coordinates) {
             if (!Array.isArray(pair) || pair.length < 2) {
                 continue;
             }
+
             const lng = Number(pair[0]);
             const lat = Number(pair[1]);
+
             if (Number.isFinite(lat) && Number.isFinite(lng)) {
                 out.push({ lat, lng });
             }
@@ -109,22 +113,21 @@ export function MapCoordinateInput({
     const mapContainerRef = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<LeafletMap | null>(null);
     const markersRef = useRef<LeafletMarker[]>([]);
-    const leafletRef = useRef<typeof import('leaflet').default | null>(null);
+    const leafletRef = useRef<typeof LeafletNS | null>(null);
     const [mapReady, setMapReady] = useState(false);
     const isMultiRef = useRef(isMulti);
     isMultiRef.current = isMulti;
 
-    const centerLat =
-        positions[0]?.lat ?? mapSettings.defaultLat ?? 45.4642;
-    const centerLng =
-        positions[0]?.lng ?? mapSettings.defaultLng ?? 9.19;
+    const centerLat = positions[0]?.lat ?? mapSettings.defaultLat ?? 45.4642;
+    const centerLng = positions[0]?.lng ?? mapSettings.defaultLng ?? 9.19;
 
     useEffect(() => {
         let cancelled = false;
 
         (async () => {
             const leafletModule = await import('leaflet');
-            const L = leafletModule.default ?? leafletModule;
+            const L = (leafletModule.default ??
+                leafletModule) as typeof LeafletNS;
 
             if (cancelled || !mapContainerRef.current || mapRef.current) {
                 return;
@@ -155,12 +158,18 @@ export function MapCoordinateInput({
             }).addTo(map);
 
             if (!readonly) {
-                map.on('click', (event: { latlng: { lat: number; lng: number } }) => {
-                    const next = { lat: event.latlng.lat, lng: event.latlng.lng };
-                    setPositions((prev) =>
-                        isMultiRef.current ? [...prev, next] : [next],
-                    );
-                });
+                map.on(
+                    'click',
+                    (event: { latlng: { lat: number; lng: number } }) => {
+                        const next = {
+                            lat: event.latlng.lat,
+                            lng: event.latlng.lng,
+                        };
+                        setPositions((prev) =>
+                            isMultiRef.current ? [...prev, next] : [next],
+                        );
+                    },
+                );
             }
 
             mapRef.current = map;
@@ -185,6 +194,7 @@ export function MapCoordinateInput({
     useEffect(() => {
         const map = mapRef.current;
         const L = leafletRef.current;
+
         if (!mapReady || !map || !L) {
             return;
         }
@@ -244,10 +254,7 @@ export function MapCoordinateInput({
     };
 
     const addPosition = () => {
-        setPositions((prev) => [
-            ...prev,
-            { lat: centerLat, lng: centerLng },
-        ]);
+        setPositions((prev) => [...prev, { lat: centerLat, lng: centerLng }]);
     };
 
     const clearAll = () => setPositions([]);
@@ -258,7 +265,7 @@ export function MapCoordinateInput({
         <div className="space-y-4">
             <div
                 ref={mapContainerRef}
-                className="h-56 w-full overflow-hidden rounded-lg border z-0"
+                className="z-0 h-56 w-full overflow-hidden rounded-lg border"
             />
 
             {!readonly && (
@@ -288,10 +295,18 @@ export function MapCoordinateInput({
                                     step="any"
                                     min={-90}
                                     max={90}
-                                    value={Number.isFinite(position.lat) ? position.lat : ''}
+                                    value={
+                                        Number.isFinite(position.lat)
+                                            ? position.lat
+                                            : ''
+                                    }
                                     readOnly={readonly}
                                     onChange={(event) =>
-                                        updatePosition(index, 'lat', event.target.value)
+                                        updatePosition(
+                                            index,
+                                            'lat',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                             </div>
@@ -307,10 +322,18 @@ export function MapCoordinateInput({
                                     step="any"
                                     min={-180}
                                     max={180}
-                                    value={Number.isFinite(position.lng) ? position.lng : ''}
+                                    value={
+                                        Number.isFinite(position.lng)
+                                            ? position.lng
+                                            : ''
+                                    }
                                     readOnly={readonly}
                                     onChange={(event) =>
-                                        updatePosition(index, 'lng', event.target.value)
+                                        updatePosition(
+                                            index,
+                                            'lng',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                             </div>
@@ -329,11 +352,19 @@ export function MapCoordinateInput({
                     ))}
                     {!readonly && (
                         <div className="flex gap-2">
-                            <Button type="button" variant="outline" onClick={addPosition}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={addPosition}
+                            >
                                 {t('collections.map.addPoint')}
                             </Button>
                             {positions.length > 0 && (
-                                <Button type="button" variant="ghost" onClick={clearAll}>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={clearAll}
+                                >
                                     {t('collections.map.clear')}
                                 </Button>
                             )}
@@ -353,27 +384,34 @@ export function MapCoordinateInput({
                             min={-90}
                             max={90}
                             value={
-                                positions[0] && Number.isFinite(positions[0].lat)
+                                positions[0] &&
+                                Number.isFinite(positions[0].lat)
                                     ? positions[0].lat
                                     : ''
                             }
                             readOnly={readonly}
                             onChange={(event) => {
                                 const raw = event.target.value;
+
                                 if (raw === '') {
                                     setPositions([]);
 
                                     return;
                                 }
+
                                 const lat = Number(raw);
                                 setPositions((prev) => [
                                     {
-                                        lat: Number.isFinite(lat) ? lat : centerLat,
+                                        lat: Number.isFinite(lat)
+                                            ? lat
+                                            : centerLat,
                                         lng: prev[0]?.lng ?? centerLng,
                                     },
                                 ]);
                             }}
-                            placeholder={String(mapSettings.defaultLat ?? 45.4642)}
+                            placeholder={String(
+                                mapSettings.defaultLat ?? 45.4642,
+                            )}
                         />
                     </div>
                     <div className="grid gap-2">
@@ -387,23 +425,28 @@ export function MapCoordinateInput({
                             min={-180}
                             max={180}
                             value={
-                                positions[0] && Number.isFinite(positions[0].lng)
+                                positions[0] &&
+                                Number.isFinite(positions[0].lng)
                                     ? positions[0].lng
                                     : ''
                             }
                             readOnly={readonly}
                             onChange={(event) => {
                                 const raw = event.target.value;
+
                                 if (raw === '') {
                                     setPositions([]);
 
                                     return;
                                 }
+
                                 const lng = Number(raw);
                                 setPositions((prev) => [
                                     {
                                         lat: prev[0]?.lat ?? centerLat,
-                                        lng: Number.isFinite(lng) ? lng : centerLng,
+                                        lng: Number.isFinite(lng)
+                                            ? lng
+                                            : centerLng,
                                     },
                                 ]);
                             }}
@@ -416,32 +459,30 @@ export function MapCoordinateInput({
             {/* Hidden GeoJSON form fields for traditional POST / Inertia forms.
                 Always send type so clears reach the server (empty → null). */}
             <input type="hidden" name={`${nameBase}[type]`} value={geoType} />
-            {isMulti
-                ? positions.map((position, index) => (
-                      <FragmentHiddenCoords
-                          key={`${nameBase}-mp-${index}`}
-                          nameBase={nameBase}
-                          index={index}
-                          lat={position.lat}
-                          lng={position.lng}
-                      />
-                  ))
-                : positions[0]
-                  ? (
-                        <>
-                            <input
-                                type="hidden"
-                                name={`${nameBase}[coordinates][0]`}
-                                value={positions[0].lng}
-                            />
-                            <input
-                                type="hidden"
-                                name={`${nameBase}[coordinates][1]`}
-                                value={positions[0].lat}
-                            />
-                        </>
-                    )
-                  : null}
+            {isMulti ? (
+                positions.map((position, index) => (
+                    <FragmentHiddenCoords
+                        key={`${nameBase}-mp-${index}`}
+                        nameBase={nameBase}
+                        index={index}
+                        lat={position.lat}
+                        lng={position.lng}
+                    />
+                ))
+            ) : positions[0] ? (
+                <>
+                    <input
+                        type="hidden"
+                        name={`${nameBase}[coordinates][0]`}
+                        value={positions[0].lng}
+                    />
+                    <input
+                        type="hidden"
+                        name={`${nameBase}[coordinates][1]`}
+                        value={positions[0].lat}
+                    />
+                </>
+            ) : null}
         </div>
     );
 }

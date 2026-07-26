@@ -24,10 +24,9 @@ import {
     Star,
     Tag,
     Type,
-    User
-    
+    User,
 } from 'lucide-react';
-import type {LucideIcon} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -161,7 +160,8 @@ export function LucideIconPicker({
                                     title={option.name}
                                     className={cn(
                                         'flex size-10 items-center justify-center rounded-md border transition-colors hover:bg-muted',
-                                        selected && 'border-primary bg-primary/10',
+                                        selected &&
+                                            'border-primary bg-primary/10',
                                     )}
                                     onClick={() => {
                                         onChange(option.name);

@@ -70,94 +70,100 @@ export default function AdminRolesIndex({
             <Head title={t('settings.layout.roles')} />
 
             <SettingsLayout wide>
-            <PageLayout className="p-0">
-                <TablePanel
-                    footer={
-                        roles.last_page > 1 ? (
-                            <TablePagination links={roles.links ?? []} />
-                        ) : undefined
-                    }
-                >
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Permissions</TableHead>
-                                <TableHead className="text-right">
-                                    Actions
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {rows.length === 0 ? (
+                <PageLayout className="p-0">
+                    <TablePanel
+                        footer={
+                            roles.last_page > 1 ? (
+                                <TablePagination links={roles.links ?? []} />
+                            ) : undefined
+                        }
+                    >
+                        <Table>
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell
-                                        colSpan={3}
-                                        className="text-muted-foreground"
-                                    >
-                                        No roles yet.
-                                    </TableCell>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Permissions</TableHead>
+                                    <TableHead className="text-right">
+                                        Actions
+                                    </TableHead>
                                 </TableRow>
-                            ) : (
-                                rows.map((role) => (
-                                    <TableRow key={role.id}>
-                                        <TableCell className="font-medium">
-                                            <span className="inline-flex items-center gap-2">
-                                                {role.name}
-                                                {role.is_system && (
-                                                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                                        System
-                                                    </span>
-                                                )}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground">
-                                            {role.permissions_count ?? '—'}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            {can(PermissionEnum.CanEditRoles) && (
-                                                <Button variant="link" asChild>
-                                                    <Link
-                                                        href={adminRoutes.roles.edit(
-                                                            role.id,
-                                                        )}
-                                                    >
-                                                        Edit
-                                                    </Link>
-                                                </Button>
-                                            )}
-                                            {can(
-                                                PermissionEnum.CanDeleteRoles,
-                                            ) &&
-                                                !role.is_system &&
-                                                role.name !== 'super-admin' && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="text-destructive"
-                                                        onClick={() =>
-                                                            router.delete(
-                                                                adminRoutes.roles.destroy(
-                                                                    role.id,
-                                                                ),
-                                                                {
-                                                                    preserveScroll: true,
-                                                                },
-                                                            )
-                                                        }
-                                                    >
-                                                        Delete
-                                                    </Button>
-                                                )}
+                            </TableHeader>
+                            <TableBody>
+                                {rows.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={3}
+                                            className="text-muted-foreground"
+                                        >
+                                            No roles yet.
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </TablePanel>
-            </PageLayout>
+                                ) : (
+                                    rows.map((role) => (
+                                        <TableRow key={role.id}>
+                                            <TableCell className="font-medium">
+                                                <span className="inline-flex items-center gap-2">
+                                                    {role.name}
+                                                    {role.is_system && (
+                                                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                                                            System
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground">
+                                                {role.permissions_count ?? '—'}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {can(
+                                                    PermissionEnum.CanEditRoles,
+                                                ) && (
+                                                    <Button
+                                                        variant="link"
+                                                        asChild
+                                                    >
+                                                        <Link
+                                                            href={adminRoutes.roles.edit(
+                                                                role.id,
+                                                            )}
+                                                        >
+                                                            Edit
+                                                        </Link>
+                                                    </Button>
+                                                )}
+                                                {can(
+                                                    PermissionEnum.CanDeleteRoles,
+                                                ) &&
+                                                    !role.is_system &&
+                                                    role.name !==
+                                                        'super-admin' && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="text-destructive"
+                                                            onClick={() =>
+                                                                router.delete(
+                                                                    adminRoutes.roles.destroy(
+                                                                        role.id,
+                                                                    ),
+                                                                    {
+                                                                        preserveScroll: true,
+                                                                    },
+                                                                )
+                                                            }
+                                                        >
+                                                            Delete
+                                                        </Button>
+                                                    )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </TablePanel>
+                </PageLayout>
             </SettingsLayout>
         </AppLayout>
     );

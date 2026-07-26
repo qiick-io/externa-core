@@ -43,10 +43,9 @@ export function useCollection({
         [collection.id, collection.name, collection.is_singleton],
     );
 
-    const contentDefaults =
-        collection.is_singleton
-            ? (singletonRawData ?? {})
-            : (editableRawData ?? {});
+    const contentDefaults = collection.is_singleton
+        ? (singletonRawData ?? {})
+        : (editableRawData ?? {});
 
     const hasFields = collection.fields.length > 0;
 

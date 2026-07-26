@@ -1,5 +1,12 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { Check, Languages, LogOut, Settings, SunMoon } from 'lucide-react';
+import {
+    Accessibility,
+    Check,
+    Languages,
+    LogOut,
+    Settings,
+    SunMoon,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
     DropdownMenuGroup,
@@ -11,6 +18,7 @@ import {
     DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
+import { useAccessibilityPreferences } from '@/hooks/use-accessibility-preferences';
 import type { Appearance } from '@/hooks/use-appearance';
 import { useAppearance } from '@/hooks/use-appearance';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
@@ -27,13 +35,20 @@ type Props = {
 const appearanceOptions: Appearance[] = ['light', 'dark', 'system'];
 
 /**
- * Dropdown menu body for profile settings, language, appearance, and logout.
+ * Dropdown menu body for profile settings, language, appearance, accessibility, and logout.
  */
 export function UserMenuContent({ user }: Props) {
     const { t } = useTranslation();
     const cleanup = useMobileNavigation();
     const { locale, availableLocales } = usePage().props;
     const { appearance, updateAppearance } = useAppearance();
+    const {
+        highContrastEnabled,
+        reduceMotionEnabled,
+        enabledCount,
+        toggleHighContrast,
+        toggleReduceMotion,
+    } = useAccessibilityPreferences();
 
     /** Clears mobile nav state and Inertia page cache before logout. */
     const handleLogout = () => {
@@ -57,6 +72,11 @@ export function UserMenuContent({ user }: Props) {
             },
         );
     };
+
+    const accessibilitySummary =
+        enabledCount === 0
+            ? t('userMenu.accessibilityOff')
+            : t('userMenu.accessibilityOnCount', { count: enabledCount });
 
     return (
         <>
@@ -120,6 +140,52 @@ export function UserMenuContent({ user }: Props) {
                                 ) : null}
                             </DropdownMenuItem>
                         ))}
+                    </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuSub>
+                    <DropdownMenuSubTrigger
+                        className="cursor-pointer"
+                        data-test="accessibility-menu"
+                    >
+                        <Accessibility className="mr-2 size-4" />
+                        <span className="flex-1">
+                            {t('userMenu.accessibility')}
+                        </span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                            {accessibilitySummary}
+                        </span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                        <DropdownMenuItem
+                            className="cursor-pointer"
+                            data-test="accessibility-high-contrast"
+                            onSelect={(event) => {
+                                event.preventDefault();
+                                toggleHighContrast();
+                            }}
+                        >
+                            <span className="flex-1">
+                                {t('userMenu.highContrast')}
+                            </span>
+                            {highContrastEnabled ? (
+                                <Check className="size-4" />
+                            ) : null}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="cursor-pointer"
+                            data-test="accessibility-reduce-motion"
+                            onSelect={(event) => {
+                                event.preventDefault();
+                                toggleReduceMotion();
+                            }}
+                        >
+                            <span className="flex-1">
+                                {t('userMenu.reduceMotion')}
+                            </span>
+                            {reduceMotionEnabled ? (
+                                <Check className="size-4" />
+                            ) : null}
+                        </DropdownMenuItem>
                     </DropdownMenuSubContent>
                 </DropdownMenuSub>
             </DropdownMenuGroup>

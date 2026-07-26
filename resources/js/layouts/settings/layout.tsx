@@ -67,35 +67,43 @@ export default function SettingsLayout({
         : [];
 
     const accessNavItems: NavItem[] = [
-        can(PermissionEnum.CanShowRoles)
-            ? {
-                  title: t('settings.layout.roles'),
-                  href: adminRoutes.roles.index(),
-                  icon: null,
-              }
-            : null,
-        can(PermissionEnum.CanShowPermissions)
-            ? {
-                  title: t('settings.layout.permissions'),
-                  href: adminRoutes.permissions.index(),
-                  icon: null,
-              }
-            : null,
-        can(PermissionEnum.CanShowApiKeys)
-            ? {
-                  title: t('settings.layout.apiKeys'),
-                  href: adminRoutes.apiKeys.index(),
-                  icon: null,
-              }
-            : null,
-        can(PermissionEnum.CanShowJobs)
-            ? {
-                  title: 'Jobs',
-                  href: '/settings/jobs',
-                  icon: null,
-              }
-            : null,
-    ].filter((item): item is NavItem => item !== null);
+        ...(can(PermissionEnum.CanShowRoles)
+            ? [
+                  {
+                      title: t('settings.layout.roles'),
+                      href: adminRoutes.roles.index(),
+                      icon: null,
+                  },
+              ]
+            : []),
+        ...(can(PermissionEnum.CanShowPermissions)
+            ? [
+                  {
+                      title: t('settings.layout.permissions'),
+                      href: adminRoutes.permissions.index(),
+                      icon: null,
+                  },
+              ]
+            : []),
+        ...(can(PermissionEnum.CanShowApiKeys)
+            ? [
+                  {
+                      title: t('settings.layout.apiKeys'),
+                      href: adminRoutes.apiKeys.index(),
+                      icon: null,
+                  },
+              ]
+            : []),
+        ...(can(PermissionEnum.CanShowJobs)
+            ? [
+                  {
+                      title: 'Jobs',
+                      href: '/settings/jobs',
+                      icon: null,
+                  },
+              ]
+            : []),
+    ];
 
     const reportBugUrl =
         projectSettings?.reportBugUrl?.trim() || DEFAULT_REPORT_BUG_URL;
@@ -135,7 +143,7 @@ export default function SettingsLayout({
                         className="flex flex-col space-y-1 space-x-0"
                         aria-label={t('settings.layout.navAria')}
                     >
-                        <p className="text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wide uppercase">
+                        <p className="px-2 pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
                             {t('settings.layout.sectionAccount')}
                         </p>
                         {accountNavItems.map(renderNavItem)}
@@ -143,7 +151,7 @@ export default function SettingsLayout({
                         {projectNavItems.length > 0 && (
                             <>
                                 <Separator className="my-2" />
-                                <p className="text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wide uppercase">
+                                <p className="px-2 pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                     {t('settings.layout.sectionProject')}
                                 </p>
                                 {projectNavItems.map(renderNavItem)}
@@ -153,7 +161,7 @@ export default function SettingsLayout({
                         {accessNavItems.length > 0 && (
                             <>
                                 <Separator className="my-2" />
-                                <p className="text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wide uppercase">
+                                <p className="px-2 pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                     {t('settings.layout.sectionAccess')}
                                 </p>
                                 {accessNavItems.map(renderNavItem)}

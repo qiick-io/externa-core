@@ -42,16 +42,16 @@ export function FileUploadManager({
                 return (
                     <div
                         key={upload.uploadId}
-                        className="bg-card rounded-lg border p-3 shadow-lg"
+                        className="rounded-lg border bg-card p-3 shadow-lg"
                     >
                         <div className="mb-2 flex items-start justify-between gap-2">
                             <div className="min-w-0">
                                 <p className="truncate text-sm font-medium">
                                     {upload.fileName}
                                 </p>
-                                <p className="text-muted-foreground text-xs">
+                                <p className="text-xs text-muted-foreground">
                                     {upload.status === 'error'
-                                        ? upload.error ?? 'Upload failed'
+                                        ? (upload.error ?? 'Upload failed')
                                         : upload.status === 'complete'
                                           ? 'Complete'
                                           : `${progress}%`}
@@ -70,10 +70,10 @@ export function FileUploadManager({
                                 </Button>
                             )}
                             {upload.status === 'uploading' && (
-                                <Loader2 className="text-muted-foreground size-4 shrink-0 animate-spin" />
+                                <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
                             )}
                         </div>
-                        <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                             <div
                                 className={cn(
                                     'h-full transition-all',

@@ -49,7 +49,7 @@ export function TagFilterPopover({
                     <Tags className="size-4" />
                     Tags
                     {selectedCount > 0 && (
-                        <span className="bg-primary text-primary-foreground inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-medium">
+                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-medium text-primary-foreground">
                             {selectedCount}
                         </span>
                     )}
@@ -71,11 +71,11 @@ export function TagFilterPopover({
                         </Button>
                     )}
                 </div>
-                <p className="text-muted-foreground mb-2 text-xs">
+                <p className="mb-2 text-xs text-muted-foreground">
                     Show files that have any of the selected tags.
                 </p>
                 {catalog.length === 0 ? (
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-xs text-muted-foreground">
                         No tags yet. Tag a file to create one.
                     </p>
                 ) : (
@@ -90,8 +90,8 @@ export function TagFilterPopover({
                                     className={cn(
                                         'rounded-md border px-2 py-0.5 text-xs transition-colors',
                                         selected
-                                            ? 'bg-primary text-primary-foreground border-primary'
-                                            : 'hover:bg-muted border-sidebar-border/70',
+                                            ? 'border-primary bg-primary text-primary-foreground'
+                                            : 'border-sidebar-border/70 hover:bg-muted',
                                     )}
                                     onClick={() => toggleTagId(tag.id)}
                                 >

@@ -17,9 +17,7 @@ const byCode = new Map(
 /**
  * Resolve catalog metadata for a locale code.
  */
-export function contentLocaleMeta(
-    code: string,
-): ContentLocaleCatalogEntry {
+export function contentLocaleMeta(code: string): ContentLocaleCatalogEntry {
     return (
         byCode.get(code) ?? {
             code,

@@ -27,8 +27,8 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
-import { FieldConditionsSettings } from '@/components/collections/field-settings/field-conditions-settings';
 import { CommonAdvancedSettings } from '@/components/collections/field-settings/common-advanced-settings';
+import { FieldConditionsSettings } from '@/components/collections/field-settings/field-conditions-settings';
 import {
     SettingsDivider,
     SettingsPanel,
@@ -82,14 +82,26 @@ import {
     parseSliderSettings,
     parseStringFieldSettings,
 } from '@/lib/collection-field-types';
-import type {BlocksTypeDefinition, CommonFieldSettings, CollectionFieldTypeOption, FieldOptionRow, FieldTreeOptionRow, RelatedCollectionOption, SliderFieldSettings, StringFieldSettings} from '@/lib/collection-field-types';
+import type {
+    BlocksTypeDefinition,
+    CommonFieldSettings,
+    CollectionFieldTypeOption,
+    FieldOptionRow,
+    FieldTreeOptionRow,
+    RelatedCollectionOption,
+    SliderFieldSettings,
+    StringFieldSettings,
+} from '@/lib/collection-field-types';
 import type { FieldConditions } from '@/lib/field-conditions';
 import { parseFieldConditions } from '@/lib/field-conditions';
 import { toast } from '@/lib/toast';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import type { CollectionFieldRow } from '@/types';
 
-const FIELD_TYPE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
+const FIELD_TYPE_ICONS: Record<
+    string,
+    ComponentType<{ className?: string }>
+> = {
     string: Type,
     autocomplete: Search,
     api_autocomplete: Search,
@@ -185,9 +197,7 @@ function FieldTypePicker({ onSelect }: { onSelect: (type: string) => void }) {
 
 function fieldTypeMeta(fieldType: string): CollectionFieldTypeOption {
     return (
-        COLLECTION_FIELD_TYPES.find(
-            (option) => option.value === fieldType,
-        ) ?? {
+        COLLECTION_FIELD_TYPES.find((option) => option.value === fieldType) ?? {
             value: fieldType,
             label: fieldType,
         }
@@ -213,7 +223,9 @@ function FieldTypeHeader({
                 <div className="min-w-0 flex-1">
                     <DrawerTitle>{option.label}</DrawerTitle>
                     <DrawerDescription>
-                        {subtitle ?? option.description ?? 'Configure this field.'}
+                        {subtitle ??
+                            option.description ??
+                            'Configure this field.'}
                     </DrawerDescription>
                 </div>
             </div>
@@ -283,9 +295,7 @@ function OptionsEditor({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                    onChange([...options, { value: '', label: '' }])
-                }
+                onClick={() => onChange([...options, { value: '', label: '' }])}
             >
                 Add choice
             </Button>
@@ -306,7 +316,11 @@ function TreeOptionsEditor({
         index: number,
         updater: (node: FieldTreeOptionRow) => FieldTreeOptionRow,
     ): void => {
-        onChange(options.map((node, nodeIndex) => (nodeIndex === index ? updater(node) : node)));
+        onChange(
+            options.map((node, nodeIndex) =>
+                nodeIndex === index ? updater(node) : node,
+            ),
+        );
     };
 
     return (
@@ -428,10 +442,13 @@ function SettingsHiddenFields({
     );
 }
 
-function nextBlockTypeDefaults(existing: BlocksTypeDefinition[]): BlocksTypeDefinition {
+function nextBlockTypeDefaults(
+    existing: BlocksTypeDefinition[],
+): BlocksTypeDefinition {
     let n = existing.length + 1;
     let key = `block_${n}`;
     const used = new Set(existing.map((entry) => entry.key));
+
     while (used.has(key)) {
         n += 1;
         key = `block_${n}`;
@@ -455,6 +472,7 @@ function nextNestedFieldName(fields: BlocksTypeDefinition['fields']): string {
     let n = fields.length + 1;
     let name = `field_${n}`;
     const used = new Set(fields.map((field) => field.name));
+
     while (used.has(name)) {
         n += 1;
         name = `field_${n}`;
@@ -476,16 +494,15 @@ function NestedRelationSettings({
 }) {
     const relatedCollectionId = String(settings.related_collection_id ?? '');
     const displayField = String(settings.display_field ?? 'title');
-    const junctionJson =
-        Array.isArray(settings.junction_fields)
-            ? JSON.stringify(settings.junction_fields, null, 2)
-            : typeof settings.junction_fields === 'string'
-              ? settings.junction_fields
-              : '';
+    const junctionJson = Array.isArray(settings.junction_fields)
+        ? JSON.stringify(settings.junction_fields, null, 2)
+        : typeof settings.junction_fields === 'string'
+          ? settings.junction_fields
+          : '';
 
     return (
-        <div className="bg-muted/30 space-y-3 rounded-md p-3">
-            <p className="text-muted-foreground text-xs">
+        <div className="space-y-3 rounded-md bg-muted/30 p-3">
+            <p className="text-xs text-muted-foreground">
                 Nested relations are stored as JSON links inside the block (not
                 junction tables).
             </p>
@@ -501,7 +518,7 @@ function NestedRelationSettings({
                                 : null,
                         })
                     }
-                    className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm shadow-xs"
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
                 >
                     <option value="">Select a collection…</option>
                     {relatedCollections.map((relatedCollection) => (
@@ -534,6 +551,7 @@ function NestedRelationSettings({
                         value={junctionJson}
                         onChange={(event) => {
                             const raw = event.target.value;
+
                             try {
                                 const parsed = JSON.parse(raw) as unknown;
                                 onChange({
@@ -550,7 +568,7 @@ function NestedRelationSettings({
                             }
                         }}
                         rows={3}
-                        className="border-input bg-background font-mono flex w-full rounded-md border px-3 py-2 text-xs shadow-xs"
+                        className="flex w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs shadow-xs"
                         placeholder='[{"name":"caption","type":"string"}]'
                     />
                 </div>
@@ -575,12 +593,14 @@ function NestedM2aSettings({
         settings.allow_duplicates === '1';
 
     return (
-        <div className="bg-muted/30 space-y-3 rounded-md p-3">
+        <div className="space-y-3 rounded-md bg-muted/30 p-3">
             <div>
                 <Label>Allowed collections</Label>
                 <div className="mt-2 space-y-2">
                     {relatedCollections.map((relatedCollection) => {
-                        const checked = allowedIds.includes(relatedCollection.id);
+                        const checked = allowedIds.includes(
+                            relatedCollection.id,
+                        );
 
                         return (
                             <label
@@ -592,9 +612,14 @@ function NestedM2aSettings({
                                     checked={checked}
                                     onChange={(event) => {
                                         const nextIds = event.target.checked
-                                            ? [...allowedIds, relatedCollection.id]
+                                            ? [
+                                                  ...allowedIds,
+                                                  relatedCollection.id,
+                                              ]
                                             : allowedIds.filter(
-                                                  (id) => id !== relatedCollection.id,
+                                                  (id) =>
+                                                      id !==
+                                                      relatedCollection.id,
                                               );
                                         onChange({
                                             ...settings,
@@ -642,10 +667,15 @@ function BlocksSettingsEditor({
     onMaxDepthChange?: (next: number) => void;
     relatedCollections?: RelatedCollectionOption[];
 }) {
-    const cappedMax = Math.max(1, Math.min(MAX_BLOCKS_DEPTH, Math.trunc(maxDepth)));
+    const cappedMax = Math.max(
+        1,
+        Math.min(MAX_BLOCKS_DEPTH, Math.trunc(maxDepth)),
+    );
     const allowedTypes = blocksAllowedFieldTypesForDepth(depth, cappedMax);
     const canNestBlocks = depth < cappedMax;
-    const [collapsedBlockIndexes, setCollapsedBlockIndexes] = useState<Set<number>>(
+    const [collapsedBlockIndexes, setCollapsedBlockIndexes] = useState<
+        Set<number>
+    >(
         () =>
             new Set(
                 blockTypes
@@ -658,6 +688,7 @@ function BlocksSettingsEditor({
 
     const move = (index: number, direction: -1 | 1) => {
         const nextIndex = index + direction;
+
         if (nextIndex < 0 || nextIndex >= blockTypes.length) {
             return;
         }
@@ -680,6 +711,7 @@ function BlocksSettingsEditor({
     const toggleBlockCollapsed = (blockIndex: number) => {
         setCollapsedBlockIndexes((current) => {
             const next = new Set(current);
+
             if (next.has(blockIndex)) {
                 next.delete(blockIndex);
             } else {
@@ -693,7 +725,9 @@ function BlocksSettingsEditor({
     return (
         <div className="space-y-4">
             <div>
-                <Label>{depth === 1 ? 'Block types' : 'Inner block types'}</Label>
+                <Label>
+                    {depth === 1 ? 'Block types' : 'Inner block types'}
+                </Label>
                 <p className="mt-1.5 text-sm text-muted-foreground">
                     {depth === 1
                         ? `Define the inline block schema for this field. Keys must be lowercase snake_case (e.g. rich_text). Nesting depth max ${cappedMax} (ceiling ${MAX_BLOCKS_DEPTH}).`
@@ -712,16 +746,25 @@ function BlocksSettingsEditor({
                         value={cappedMax}
                         onChange={(event) => {
                             const next = Number(event.target.value);
+
                             if (!Number.isFinite(next)) {
                                 return;
                             }
+
                             onMaxDepthChange(
-                                Math.max(1, Math.min(MAX_BLOCKS_DEPTH, Math.trunc(next))),
+                                Math.max(
+                                    1,
+                                    Math.min(
+                                        MAX_BLOCKS_DEPTH,
+                                        Math.trunc(next),
+                                    ),
+                                ),
                             );
                         }}
                     />
-                    <p className="text-muted-foreground text-xs">
-                        Default {DEFAULT_BLOCKS_DEPTH}. Absolute ceiling {MAX_BLOCKS_DEPTH}.
+                    <p className="text-xs text-muted-foreground">
+                        Default {DEFAULT_BLOCKS_DEPTH}. Absolute ceiling{' '}
+                        {MAX_BLOCKS_DEPTH}.
                     </p>
                 </div>
             ) : null}
@@ -730,350 +773,414 @@ function BlocksSettingsEditor({
                 const collapsed = collapsedBlockIndexes.has(blockIndex);
 
                 return (
-                // ponytail: index keys — value-based keys remounted on every keystroke
-                <div key={blockIndex} className="space-y-4 rounded-lg border p-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button
-                            type="button"
-                            className="text-muted-foreground"
-                            aria-expanded={!collapsed}
-                            aria-label={collapsed ? 'Expand block type' : 'Collapse block type'}
-                            onClick={() => toggleBlockCollapsed(blockIndex)}
-                        >
-                            {collapsed ? (
-                                <ChevronRight className="size-4" />
-                            ) : (
-                                <ChevronDown className="size-4" />
-                            )}
-                        </button>
-                        <span className="text-sm font-medium">
-                            {blockType.label || blockType.key || `Block ${blockIndex + 1}`}
-                        </span>
-                        <span className="text-muted-foreground text-xs">
-                            {blockType.fields.length} fields
-                        </span>
-                    </div>
-
-                    <div className={collapsed ? 'hidden' : 'space-y-4'}>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="grid gap-2">
-                            <Label>Key</Label>
-                            <Input
-                                value={blockType.key}
-                                placeholder="rich_text"
-                                onChange={(event) =>
-                                    updateBlock(blockIndex, {
-                                        key: event.target.value,
-                                    })
+                    // ponytail: index keys — value-based keys remounted on every keystroke
+                    <div
+                        key={blockIndex}
+                        className="space-y-4 rounded-lg border p-4"
+                    >
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                className="text-muted-foreground"
+                                aria-expanded={!collapsed}
+                                aria-label={
+                                    collapsed
+                                        ? 'Expand block type'
+                                        : 'Collapse block type'
                                 }
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label>Label</Label>
-                            <Input
-                                value={blockType.label}
-                                placeholder="Rich text"
-                                onChange={(event) =>
-                                    updateBlock(blockIndex, {
-                                        label: event.target.value,
-                                    })
-                                }
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-3">
-                        {blockType.fields.map((field, fieldIndex) => (
-                            <div
-                                key={fieldIndex}
-                                className="space-y-3 rounded-md border p-3"
+                                onClick={() => toggleBlockCollapsed(blockIndex)}
                             >
-                                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto_auto]">
+                                {collapsed ? (
+                                    <ChevronRight className="size-4" />
+                                ) : (
+                                    <ChevronDown className="size-4" />
+                                )}
+                            </button>
+                            <span className="text-sm font-medium">
+                                {blockType.label ||
+                                    blockType.key ||
+                                    `Block ${blockIndex + 1}`}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                                {blockType.fields.length} fields
+                            </span>
+                        </div>
+
+                        <div className={collapsed ? 'hidden' : 'space-y-4'}>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="grid gap-2">
+                                    <Label>Key</Label>
                                     <Input
-                                        value={field.name}
-                                        placeholder="title"
+                                        value={blockType.key}
+                                        placeholder="rich_text"
                                         onChange={(event) =>
                                             updateBlock(blockIndex, {
-                                                fields: blockType.fields.map(
-                                                    (entry, index) =>
-                                                        index === fieldIndex
-                                                            ? {
-                                                                  ...entry,
-                                                                  name: event.target
-                                                                      .value,
-                                                              }
-                                                            : entry,
-                                                ),
+                                                key: event.target.value,
                                             })
                                         }
                                     />
-                                    <select
-                                        value={field.type}
-                                        onChange={(event) => {
-                                            const type = event.target.value;
-                                            updateBlock(blockIndex, {
-                                                fields: blockType.fields.map(
-                                                    (entry, index) =>
-                                                        index === fieldIndex
-                                                            ? {
-                                                                  ...entry,
-                                                                  type,
-                                                                  translatable:
-                                                                      fieldTypeSupportsTranslatable(
-                                                                          type,
-                                                                      )
-                                                                          ? entry.translatable
-                                                                          : false,
-                                                                  settings:
-                                                                      type ===
-                                                                      'blocks'
-                                                                          ? {
-                                                                                block_types:
-                                                                                    parseBlocksFieldSettings(
-                                                                                        entry.settings,
-                                                                                    )
-                                                                                        .blockTypes,
-                                                                            }
-                                                                          : {},
-                                                              }
-                                                            : entry,
-                                                ),
-                                            });
-                                        }}
-                                        className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm shadow-xs"
-                                    >
-                                        {allowedTypes.map((type) => (
-                                            <option key={type} value={type}>
-                                                {fieldTypeMeta(type).label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <label className="flex items-center gap-2 text-sm">
-                                        <input
-                                            type="checkbox"
-                                            checked={field.translatable}
-                                            disabled={
-                                                !fieldTypeSupportsTranslatable(
-                                                    field.type,
-                                                )
-                                            }
-                                            onChange={(event) =>
-                                                updateBlock(blockIndex, {
-                                                    fields: blockType.fields.map(
-                                                        (entry, index) =>
-                                                            index === fieldIndex
-                                                                ? {
-                                                                      ...entry,
-                                                                      translatable:
-                                                                          event
-                                                                              .target
-                                                                              .checked,
-                                                                  }
-                                                                : entry,
-                                                    ),
-                                                })
-                                            }
-                                            className="size-4 rounded border"
-                                        />
-                                        I18n
-                                    </label>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() =>
-                                            updateBlock(blockIndex, {
-                                                fields: blockType.fields.filter(
-                                                    (_, index) =>
-                                                        index !== fieldIndex,
-                                                ),
-                                            })
-                                        }
-                                    >
-                                        Remove
-                                    </Button>
                                 </div>
-
-                                {field.type === 'blocks' && canNestBlocks ? (
-                                    <div className="bg-muted/30 rounded-md p-3">
-                                        <BlocksSettingsEditor
-                                            depth={depth + 1}
-                                            maxDepth={cappedMax}
-                                            relatedCollections={relatedCollections}
-                                            blockTypes={
-                                                parseBlocksFieldSettings(
-                                                    field.settings,
-                                                ).blockTypes
-                                            }
-                                            onChange={(nextInner) =>
-                                                updateBlock(blockIndex, {
-                                                    fields: blockType.fields.map(
-                                                        (entry, index) =>
-                                                            index === fieldIndex
-                                                                ? {
-                                                                      ...entry,
-                                                                      settings: {
-                                                                          block_types:
-                                                                              nextInner,
-                                                                      },
-                                                                  }
-                                                                : entry,
-                                                    ),
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                ) : null}
-
-                                {field.type === 'm2a' ? (
-                                    <NestedM2aSettings
-                                        settings={field.settings}
-                                        relatedCollections={relatedCollections}
-                                        onChange={(nextSettings) =>
+                                <div className="grid gap-2">
+                                    <Label>Label</Label>
+                                    <Input
+                                        value={blockType.label}
+                                        placeholder="Rich text"
+                                        onChange={(event) =>
                                             updateBlock(blockIndex, {
-                                                fields: blockType.fields.map(
-                                                    (entry, index) =>
-                                                        index === fieldIndex
-                                                            ? {
-                                                                  ...entry,
-                                                                  settings: nextSettings,
-                                                              }
-                                                            : entry,
-                                                ),
-                                            })
-                                        }
-                                    />
-                                ) : null}
-
-                                {field.type === 'many_to_many' ||
-                                field.type === 'one_to_many' ||
-                                field.type === 'relation_many' ? (
-                                    <NestedRelationSettings
-                                        settings={field.settings}
-                                        relatedCollections={relatedCollections}
-                                        showJunctionFields={
-                                            field.type === 'many_to_many'
-                                        }
-                                        onChange={(nextSettings) =>
-                                            updateBlock(blockIndex, {
-                                                fields: blockType.fields.map(
-                                                    (entry, index) =>
-                                                        index === fieldIndex
-                                                            ? {
-                                                                  ...entry,
-                                                                  settings: nextSettings,
-                                                              }
-                                                            : entry,
-                                                ),
-                                            })
-                                        }
-                                    />
-                                ) : null}
-
-                                <div className="border-t pt-3">
-                                    <Label className="mb-2 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                        Conditions (vs siblings in this block)
-                                    </Label>
-                                    <FieldConditionsSettings
-                                        settings={field.settings}
-                                        siblingFieldNames={blockType.fields
-                                            .map((entry) => entry.name.trim())
-                                            .filter(
-                                                (name) =>
-                                                    name !== '' &&
-                                                    name !== field.name.trim(),
-                                            )}
-                                        value={parseFieldConditions(field.settings)}
-                                        onChange={(nextConditions) =>
-                                            updateBlock(blockIndex, {
-                                                fields: blockType.fields.map(
-                                                    (entry, index) => {
-                                                        if (index !== fieldIndex) {
-                                                            return entry;
-                                                        }
-
-                                                        const nextSettings = {
-                                                            ...entry.settings,
-                                                        };
-                                                        if (nextConditions) {
-                                                            nextSettings.conditions =
-                                                                nextConditions;
-                                                        } else {
-                                                            delete nextSettings.conditions;
-                                                        }
-
-                                                        return {
-                                                            ...entry,
-                                                            settings: nextSettings,
-                                                        };
-                                                    },
-                                                ),
+                                                label: event.target.value,
                                             })
                                         }
                                     />
                                 </div>
                             </div>
-                        ))}
-                    </div>
 
-                    <div className="flex flex-wrap gap-2">
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                                updateBlock(blockIndex, {
-                                    fields: [
-                                        ...blockType.fields,
-                                        {
-                                            name: nextNestedFieldName(
-                                                blockType.fields,
+                            <div className="space-y-3">
+                                {blockType.fields.map((field, fieldIndex) => (
+                                    <div
+                                        key={fieldIndex}
+                                        className="space-y-3 rounded-md border p-3"
+                                    >
+                                        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto_auto]">
+                                            <Input
+                                                value={field.name}
+                                                placeholder="title"
+                                                onChange={(event) =>
+                                                    updateBlock(blockIndex, {
+                                                        fields: blockType.fields.map(
+                                                            (entry, index) =>
+                                                                index ===
+                                                                fieldIndex
+                                                                    ? {
+                                                                          ...entry,
+                                                                          name: event
+                                                                              .target
+                                                                              .value,
+                                                                      }
+                                                                    : entry,
+                                                        ),
+                                                    })
+                                                }
+                                            />
+                                            <select
+                                                value={field.type}
+                                                onChange={(event) => {
+                                                    const type =
+                                                        event.target.value;
+                                                    updateBlock(blockIndex, {
+                                                        fields: blockType.fields.map(
+                                                            (entry, index) =>
+                                                                index ===
+                                                                fieldIndex
+                                                                    ? {
+                                                                          ...entry,
+                                                                          type,
+                                                                          translatable:
+                                                                              fieldTypeSupportsTranslatable(
+                                                                                  type,
+                                                                              )
+                                                                                  ? entry.translatable
+                                                                                  : false,
+                                                                          settings:
+                                                                              type ===
+                                                                              'blocks'
+                                                                                  ? {
+                                                                                        block_types:
+                                                                                            parseBlocksFieldSettings(
+                                                                                                entry.settings,
+                                                                                            )
+                                                                                                .blockTypes,
+                                                                                    }
+                                                                                  : {},
+                                                                      }
+                                                                    : entry,
+                                                        ),
+                                                    });
+                                                }}
+                                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                                            >
+                                                {allowedTypes.map((type) => (
+                                                    <option
+                                                        key={type}
+                                                        value={type}
+                                                    >
+                                                        {
+                                                            fieldTypeMeta(type)
+                                                                .label
+                                                        }
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <label className="flex items-center gap-2 text-sm">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={field.translatable}
+                                                    disabled={
+                                                        !fieldTypeSupportsTranslatable(
+                                                            field.type,
+                                                        )
+                                                    }
+                                                    onChange={(event) =>
+                                                        updateBlock(
+                                                            blockIndex,
+                                                            {
+                                                                fields: blockType.fields.map(
+                                                                    (
+                                                                        entry,
+                                                                        index,
+                                                                    ) =>
+                                                                        index ===
+                                                                        fieldIndex
+                                                                            ? {
+                                                                                  ...entry,
+                                                                                  translatable:
+                                                                                      event
+                                                                                          .target
+                                                                                          .checked,
+                                                                              }
+                                                                            : entry,
+                                                                ),
+                                                            },
+                                                        )
+                                                    }
+                                                    className="size-4 rounded border"
+                                                />
+                                                I18n
+                                            </label>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() =>
+                                                    updateBlock(blockIndex, {
+                                                        fields: blockType.fields.filter(
+                                                            (_, index) =>
+                                                                index !==
+                                                                fieldIndex,
+                                                        ),
+                                                    })
+                                                }
+                                            >
+                                                Remove
+                                            </Button>
+                                        </div>
+
+                                        {field.type === 'blocks' &&
+                                        canNestBlocks ? (
+                                            <div className="rounded-md bg-muted/30 p-3">
+                                                <BlocksSettingsEditor
+                                                    depth={depth + 1}
+                                                    maxDepth={cappedMax}
+                                                    relatedCollections={
+                                                        relatedCollections
+                                                    }
+                                                    blockTypes={
+                                                        parseBlocksFieldSettings(
+                                                            field.settings,
+                                                        ).blockTypes
+                                                    }
+                                                    onChange={(nextInner) =>
+                                                        updateBlock(
+                                                            blockIndex,
+                                                            {
+                                                                fields: blockType.fields.map(
+                                                                    (
+                                                                        entry,
+                                                                        index,
+                                                                    ) =>
+                                                                        index ===
+                                                                        fieldIndex
+                                                                            ? {
+                                                                                  ...entry,
+                                                                                  settings:
+                                                                                      {
+                                                                                          block_types:
+                                                                                              nextInner,
+                                                                                      },
+                                                                              }
+                                                                            : entry,
+                                                                ),
+                                                            },
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                        ) : null}
+
+                                        {field.type === 'm2a' ? (
+                                            <NestedM2aSettings
+                                                settings={field.settings}
+                                                relatedCollections={
+                                                    relatedCollections
+                                                }
+                                                onChange={(nextSettings) =>
+                                                    updateBlock(blockIndex, {
+                                                        fields: blockType.fields.map(
+                                                            (entry, index) =>
+                                                                index ===
+                                                                fieldIndex
+                                                                    ? {
+                                                                          ...entry,
+                                                                          settings:
+                                                                              nextSettings,
+                                                                      }
+                                                                    : entry,
+                                                        ),
+                                                    })
+                                                }
+                                            />
+                                        ) : null}
+
+                                        {field.type === 'many_to_many' ||
+                                        field.type === 'one_to_many' ||
+                                        field.type === 'relation_many' ? (
+                                            <NestedRelationSettings
+                                                settings={field.settings}
+                                                relatedCollections={
+                                                    relatedCollections
+                                                }
+                                                showJunctionFields={
+                                                    field.type ===
+                                                    'many_to_many'
+                                                }
+                                                onChange={(nextSettings) =>
+                                                    updateBlock(blockIndex, {
+                                                        fields: blockType.fields.map(
+                                                            (entry, index) =>
+                                                                index ===
+                                                                fieldIndex
+                                                                    ? {
+                                                                          ...entry,
+                                                                          settings:
+                                                                              nextSettings,
+                                                                      }
+                                                                    : entry,
+                                                        ),
+                                                    })
+                                                }
+                                            />
+                                        ) : null}
+
+                                        <div className="border-t pt-3">
+                                            <Label className="mb-2 block text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                                Conditions (vs siblings in this
+                                                block)
+                                            </Label>
+                                            <FieldConditionsSettings
+                                                settings={field.settings}
+                                                siblingFieldNames={blockType.fields
+                                                    .map((entry) =>
+                                                        entry.name.trim(),
+                                                    )
+                                                    .filter(
+                                                        (name) =>
+                                                            name !== '' &&
+                                                            name !==
+                                                                field.name.trim(),
+                                                    )}
+                                                value={parseFieldConditions(
+                                                    field.settings,
+                                                )}
+                                                onChange={(nextConditions) =>
+                                                    updateBlock(blockIndex, {
+                                                        fields: blockType.fields.map(
+                                                            (entry, index) => {
+                                                                if (
+                                                                    index !==
+                                                                    fieldIndex
+                                                                ) {
+                                                                    return entry;
+                                                                }
+
+                                                                const nextSettings =
+                                                                    {
+                                                                        ...entry.settings,
+                                                                    };
+
+                                                                if (
+                                                                    nextConditions
+                                                                ) {
+                                                                    nextSettings.conditions =
+                                                                        nextConditions;
+                                                                } else {
+                                                                    delete nextSettings.conditions;
+                                                                }
+
+                                                                return {
+                                                                    ...entry,
+                                                                    settings:
+                                                                        nextSettings,
+                                                                };
+                                                            },
+                                                        ),
+                                                    })
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                        updateBlock(blockIndex, {
+                                            fields: [
+                                                ...blockType.fields,
+                                                {
+                                                    name: nextNestedFieldName(
+                                                        blockType.fields,
+                                                    ),
+                                                    type: 'string',
+                                                    translatable: false,
+                                                    settings: {},
+                                                },
+                                            ],
+                                        })
+                                    }
+                                >
+                                    Add nested field
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={blockIndex === 0}
+                                    onClick={() => move(blockIndex, -1)}
+                                >
+                                    Up
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={
+                                        blockIndex === blockTypes.length - 1
+                                    }
+                                    onClick={() => move(blockIndex, 1)}
+                                >
+                                    Down
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() =>
+                                        onChange(
+                                            blockTypes.filter(
+                                                (_, index) =>
+                                                    index !== blockIndex,
                                             ),
-                                            type: 'string',
-                                            translatable: false,
-                                            settings: {},
-                                        },
-                                    ],
-                                })
-                            }
-                        >
-                            Add nested field
-                        </Button>
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            disabled={blockIndex === 0}
-                            onClick={() => move(blockIndex, -1)}
-                        >
-                            Up
-                        </Button>
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            disabled={blockIndex === blockTypes.length - 1}
-                            onClick={() => move(blockIndex, 1)}
-                        >
-                            Down
-                        </Button>
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() =>
-                                onChange(
-                                    blockTypes.filter(
-                                        (_, index) => index !== blockIndex,
-                                    ),
-                                )
-                            }
-                        >
-                            Delete block type
-                        </Button>
+                                        )
+                                    }
+                                >
+                                    Delete block type
+                                </Button>
+                            </div>
+                        </div>
                     </div>
-                    </div>
-                </div>
                 );
             })}
 
@@ -1082,10 +1189,7 @@ function BlocksSettingsEditor({
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                    onChange([
-                        ...blockTypes,
-                        nextBlockTypeDefaults(blockTypes),
-                    ])
+                    onChange([...blockTypes, nextBlockTypeDefaults(blockTypes)])
                 }
             >
                 Add block type
@@ -1178,7 +1282,9 @@ function FieldConfigPanel({
     const typeGroup = fieldTypeGroupForType(fieldType);
     const typeMeta = fieldTypeMeta(fieldType);
     const [fieldKey, setFieldKey] = useState(field?.name ?? '');
-    const [debouncedKeyError, setDebouncedKeyError] = useState<string | undefined>();
+    const [debouncedKeyError, setDebouncedKeyError] = useState<
+        string | undefined
+    >();
 
     useEffect(() => {
         const handle = window.setTimeout(() => {
@@ -1229,7 +1335,10 @@ function FieldConfigPanel({
         <>
             {fieldTypeNeedsOptions(fieldType) &&
                 !fieldTypeNeedsTreeOptions(fieldType) && (
-                    <OptionsEditor options={options} onChange={onOptionsChange} />
+                    <OptionsEditor
+                        options={options}
+                        onChange={onOptionsChange}
+                    />
                 )}
 
             {fieldTypeNeedsTreeOptions(fieldType) && (
@@ -1322,7 +1431,9 @@ function FieldConfigPanel({
                             name="name"
                             required
                             value={fieldKey}
-                            onChange={(event) => setFieldKey(event.target.value)}
+                            onChange={(event) =>
+                                setFieldKey(event.target.value)
+                            }
                             placeholder="A unique column name…"
                             pattern="[a-z][a-z0-9_]*"
                             className="w-full"
@@ -1549,9 +1660,10 @@ export function CollectionFieldFormDrawer({
     const [sliderShowValue, setSliderShowValue] = useState(
         () => parseSliderFieldSettings(field?.settings).showValue,
     );
-    const [fieldConditions, setFieldConditions] = useState<FieldConditions | null>(
-        () => parseFieldConditions(field?.settings),
-    );
+    const [fieldConditions, setFieldConditions] =
+        useState<FieldConditions | null>(() =>
+            parseFieldConditions(field?.settings),
+        );
 
     const settingsPayload = useMemo(() => {
         const typeSettings: Record<string, unknown> = {
@@ -1650,10 +1762,7 @@ export function CollectionFieldFormDrawer({
 
     return (
         <>
-            <FieldTypeHeader
-                fieldType={fieldType}
-                subtitle={headerSubtitle}
-            />
+            <FieldTypeHeader fieldType={fieldType} subtitle={headerSubtitle} />
 
             <Form
                 {...formProps}
@@ -1663,7 +1772,8 @@ export function CollectionFieldFormDrawer({
                 onSuccess={onSuccess}
                 onError={(formErrors) => {
                     const first = Object.values(formErrors).find(
-                        (message) => typeof message === 'string' && message !== '',
+                        (message) =>
+                            typeof message === 'string' && message !== '',
                     );
 
                     toast.error(
@@ -1697,12 +1807,18 @@ export function CollectionFieldFormDrawer({
                                 relatedCollections={relatedCollections}
                                 relatedCollectionId={relatedCollectionId}
                                 displayField={displayField}
-                                onRelatedCollectionIdChange={setRelatedCollectionId}
+                                onRelatedCollectionIdChange={
+                                    setRelatedCollectionId
+                                }
                                 onDisplayFieldChange={setDisplayField}
                                 allowMultipleImages={allowMultipleImages}
-                                onAllowMultipleImagesChange={setAllowMultipleImages}
+                                onAllowMultipleImagesChange={
+                                    setAllowMultipleImages
+                                }
                                 allowedCollectionIds={allowedCollectionIds}
-                                onAllowedCollectionIdsChange={setAllowedCollectionIds}
+                                onAllowedCollectionIdsChange={
+                                    setAllowedCollectionIds
+                                }
                                 blockTypes={blockTypes}
                                 onBlockTypesChange={setBlockTypes}
                                 maxBlocksDepth={maxBlocksDepth}

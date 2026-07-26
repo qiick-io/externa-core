@@ -30,6 +30,7 @@ export function initI18n(locale = 'en'): typeof i18n {
         navigateBound = true;
         router.on('navigate', (event) => {
             const next = event.detail.page.props.locale;
+
             if (typeof next === 'string' && next !== i18n.language) {
                 void i18n.changeLanguage(next);
             }

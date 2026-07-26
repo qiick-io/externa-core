@@ -11,8 +11,16 @@ type ItemTableCellProps = {
         data: Record<string, unknown>;
         created_at?: string | null;
         updated_at?: string | null;
-        user_created?: { id: number; name: string; email?: string | null } | null;
-        user_updated?: { id: number; name: string; email?: string | null } | null;
+        user_created?: {
+            id: number;
+            name: string;
+            email?: string | null;
+        } | null;
+        user_updated?: {
+            id: number;
+            name: string;
+            email?: string | null;
+        } | null;
         displays?: Record<string, string | null>;
         thumbs?: Record<string, string | null>;
     };
@@ -25,6 +33,7 @@ function formatDate(value: unknown): string | null {
     }
 
     const date = new Date(value);
+
     if (Number.isNaN(date.getTime())) {
         return value;
     }
@@ -39,18 +48,14 @@ function empty(): string {
 /**
  * Typed cell renderer for collection item list columns.
  */
-export function ItemTableCell({
-    path,
-    row,
-    fieldsByName,
-}: ItemTableCellProps) {
+export function ItemTableCell({ path, row, fieldsByName }: ItemTableCellProps) {
     if (path === 'id') {
         return <span className="tabular-nums">{row.id}</span>;
     }
 
     if (path === 'created_at') {
         return (
-            <span className="text-muted-foreground text-sm">
+            <span className="text-sm text-muted-foreground">
                 {formatDate(row.created_at) ?? empty()}
             </span>
         );
@@ -58,7 +63,7 @@ export function ItemTableCell({
 
     if (path === 'updated_at') {
         return (
-            <span className="text-muted-foreground text-sm">
+            <span className="text-sm text-muted-foreground">
                 {formatDate(row.updated_at) ?? empty()}
             </span>
         );
@@ -66,7 +71,7 @@ export function ItemTableCell({
 
     if (path === 'user_created') {
         return (
-            <span className="text-muted-foreground text-sm">
+            <span className="text-sm text-muted-foreground">
                 {row.user_created?.name ?? empty()}
             </span>
         );
@@ -74,7 +79,7 @@ export function ItemTableCell({
 
     if (path === 'user_updated') {
         return (
-            <span className="text-muted-foreground text-sm">
+            <span className="text-sm text-muted-foreground">
                 {row.user_updated?.name ?? empty()}
             </span>
         );
@@ -138,17 +143,15 @@ function isRelationOrFile(type: string): boolean {
 
 function renderTypedValue(type: string, value: unknown): ReactNode {
     if (value === null || value === undefined || value === '') {
-        return (
-            <span className="text-muted-foreground">{empty()}</span>
-        );
+        return <span className="text-muted-foreground">{empty()}</span>;
     }
 
     switch (type) {
         case 'boolean':
             return value === true || value === 1 || value === '1' ? (
-                <Check className="text-foreground size-4" aria-label="Yes" />
+                <Check className="size-4 text-foreground" aria-label="Yes" />
             ) : (
-                <X className="text-muted-foreground size-4" aria-label="No" />
+                <X className="size-4 text-muted-foreground" aria-label="No" />
             );
         case 'date':
             return (
@@ -178,7 +181,10 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
                     lng?: unknown;
                 };
 
-                if (record.type === 'MultiPoint' && Array.isArray(record.coordinates)) {
+                if (
+                    record.type === 'MultiPoint' &&
+                    Array.isArray(record.coordinates)
+                ) {
                     const count = record.coordinates.length;
 
                     return (
@@ -197,9 +203,7 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
                 }
             }
 
-            return (
-                <span className="text-muted-foreground">{empty()}</span>
-            );
+            return <span className="text-muted-foreground">{empty()}</span>;
         }
         case 'hash':
             return (
@@ -236,7 +240,9 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
                     ? empty()
                     : `${labels.length} blocks${labels.length > 0 ? ` (${labels.slice(0, 3).join(', ')}${labels.length > 3 ? ', …' : ''})` : ''}`;
 
-            return <span className="max-w-[16rem] truncate text-sm">{text}</span>;
+            return (
+                <span className="max-w-[16rem] truncate text-sm">{text}</span>
+            );
         }
         default:
             return (
@@ -263,15 +269,19 @@ export function columnHeaderLabel(
     if (path === 'id') {
         return 'ID';
     }
+
     if (path === 'created_at') {
         return 'Created at';
     }
+
     if (path === 'updated_at') {
         return 'Updated at';
     }
+
     if (path === 'user_created') {
         return 'Created by';
     }
+
     if (path === 'user_updated') {
         return 'Updated by';
     }
@@ -279,9 +289,7 @@ export function columnHeaderLabel(
     if (!path.includes('.')) {
         const field = fieldsByName[path];
 
-        return field
-            ? getFieldDisplayName(field.settings, field.name)
-            : path;
+        return field ? getFieldDisplayName(field.settings, field.name) : path;
     }
 
     const [parent, child] = path.split('.', 2);

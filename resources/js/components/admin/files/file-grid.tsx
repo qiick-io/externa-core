@@ -1,8 +1,6 @@
 import { FolderOpen, FolderPlus, Upload } from 'lucide-react';
 import type { MouseEvent, ReactNode } from 'react';
-import {
-    isInternalFileDrag,
-} from '@/components/admin/file-dropzone';
+import { isInternalFileDrag } from '@/components/admin/file-dropzone';
 import { FileCard } from '@/components/admin/files/file-card';
 import { Button } from '@/components/ui/button';
 import {
@@ -154,7 +152,7 @@ export function FileGrid({
             >
                 <div
                     data-testid="files-grid-area"
-                    className="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-sidebar-border/70 bg-muted/20 p-8 text-center"
+                    className="flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-sidebar-border/70 bg-muted/20 p-8 text-center text-muted-foreground"
                     onClick={handleBackgroundClick}
                 >
                     <Upload className="size-8 opacity-60" />
@@ -166,7 +164,9 @@ export function FileGrid({
                               : 'This folder is empty'}
                     </p>
                     {uploadsEnabled && !isTrashed && (
-                        <p className="text-xs">Or use the Upload button above</p>
+                        <p className="text-xs">
+                            Or use the Upload button above
+                        </p>
                     )}
                 </div>
             </EmptyAreaContextMenu>

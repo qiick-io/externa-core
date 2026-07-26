@@ -83,6 +83,7 @@ export function ColumnPickerPopover({
 
     const filteredRoot = useMemo(() => {
         const q = search.trim().toLowerCase();
+
         if (!q) {
             return rootEntries;
         }
@@ -126,6 +127,7 @@ export function ColumnPickerPopover({
 
     const closeAndReset = (nextOpen: boolean): void => {
         setOpen(nextOpen);
+
         if (!nextOpen) {
             setSearch('');
             setDrillField(null);
@@ -150,7 +152,7 @@ export function ColumnPickerPopover({
                     {drillField ? (
                         <button
                             type="button"
-                            className="text-muted-foreground hover:text-foreground mb-2 flex items-center gap-1 text-xs"
+                            className="mb-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                             onClick={() => {
                                 setDrillField(null);
                                 setSearch('');
@@ -161,7 +163,7 @@ export function ColumnPickerPopover({
                         </button>
                     ) : null}
                     <div className="relative">
-                        <Search className="text-muted-foreground absolute top-1/2 left-2 size-3.5 -translate-y-1/2" />
+                        <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
@@ -170,7 +172,7 @@ export function ColumnPickerPopover({
                         />
                     </div>
                     {drillField ? (
-                        <p className="text-muted-foreground mt-2 truncate px-1 text-xs font-medium">
+                        <p className="mt-2 truncate px-1 text-xs font-medium text-muted-foreground">
                             {getFieldDisplayName(
                                 drillField.settings,
                                 drillField.name,
@@ -229,9 +231,7 @@ export function ColumnPickerPopover({
                                               'flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 text-left text-sm',
                                               !active && 'hover:bg-muted',
                                           )}
-                                          onClick={() =>
-                                              togglePath(entry.path)
-                                          }
+                                          onClick={() => togglePath(entry.path)}
                                       >
                                           <span className="min-w-0 flex-1 truncate">
                                               {entry.label}
@@ -243,7 +243,7 @@ export function ColumnPickerPopover({
                                       {canDrill && entry.field ? (
                                           <button
                                               type="button"
-                                              className="hover:bg-muted text-muted-foreground hover:text-foreground mr-1 rounded p-1"
+                                              className="mr-1 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                                               aria-label={`Open ${entry.label} fields`}
                                               onClick={() => {
                                                   setDrillField(entry.field);
@@ -257,7 +257,7 @@ export function ColumnPickerPopover({
                               );
                           })}
                     {drillField && drillChildren.length === 0 ? (
-                        <p className="text-muted-foreground px-3 py-2 text-sm">
+                        <p className="px-3 py-2 text-sm text-muted-foreground">
                             No nested fields available.
                         </p>
                     ) : null}

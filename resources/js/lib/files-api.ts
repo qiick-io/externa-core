@@ -364,8 +364,7 @@ export async function replaceFile(
 
 /** Result of a duplicate/copy request — immediate row or queued background job. */
 export type DuplicateFileResult =
-    | { queued: false; file: AdminFileRow }
-    | { queued: true; job_id: string };
+    { queued: false; file: AdminFileRow } | { queued: true; job_id: string };
 
 /**
  * Duplicates a file or folder, optionally under a different parent.
@@ -529,8 +528,7 @@ export async function queueFilesZipDownload(
 
 /** Result of a bulk file action — immediate completion or queued job. */
 export type BulkFileActionResult =
-    | { queued: false }
-    | { queued: true; job_id: string };
+    { queued: false } | { queued: true; job_id: string };
 
 /**
  * Runs a bulk action (move, delete, restore, etc.) on multiple file ids.
@@ -625,9 +623,7 @@ export async function listFilesPage(options: {
  * @param ids - File ids to load
  * @returns Matching rows in the same order as `ids` (missing ids omitted)
  */
-export async function fetchFilesByIds(
-    ids: number[],
-): Promise<AdminFileRow[]> {
+export async function fetchFilesByIds(ids: number[]): Promise<AdminFileRow[]> {
     const uniqueIds = [...new Set(ids.filter((id) => id > 0))];
 
     if (uniqueIds.length === 0) {

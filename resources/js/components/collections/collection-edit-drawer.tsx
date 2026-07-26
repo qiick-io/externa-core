@@ -60,7 +60,8 @@ export function CollectionEditButton({
 }: {
     collectionForm: ReturnType<typeof useCollections>;
     collection: CollectionEditSource;
-    variant?: 'outline' | 'default' | 'secondary' | 'ghost' | 'link' | 'destructive';
+    variant?:
+        'outline' | 'default' | 'secondary' | 'ghost' | 'link' | 'destructive';
 }) {
     const { can } = useCan();
 

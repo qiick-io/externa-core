@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { Button } from '@/components/ui/button';
@@ -45,11 +45,14 @@ export function CollectionFormLayoutEditor({
     );
 
     const [tabs, setTabs] = useState<FormLayoutTab[]>(initial.tabs);
-    const [sections, setSections] = useState<FormLayoutSection[]>(initial.sections);
+    const [sections, setSections] = useState<FormLayoutSection[]>(
+        initial.sections,
+    );
     const [saving, setSaving] = useState(false);
 
     const placedIds = useMemo(() => {
         const ids = new Set<number>();
+
         for (const section of sections) {
             for (const fieldId of section.field_ids) {
                 ids.add(fieldId);
@@ -61,7 +64,10 @@ export function CollectionFormLayoutEditor({
 
     const unplacedFields = fields.filter((field) => !placedIds.has(field.id));
 
-    const persist = (nextTabs: FormLayoutTab[], nextSections: FormLayoutSection[]): void => {
+    const persist = (
+        nextTabs: FormLayoutTab[],
+        nextSections: FormLayoutSection[],
+    ): void => {
         const payload: CollectionFormLayout = {
             version: 1,
             tabs: nextTabs,
@@ -71,7 +77,12 @@ export function CollectionFormLayoutEditor({
         setSaving(true);
         router.put(
             FieldController.updateFormLayout.url(collectionId),
-            { form_layout: nextTabs.length === 0 && nextSections.length === 0 ? null : payload },
+            {
+                form_layout:
+                    nextTabs.length === 0 && nextSections.length === 0
+                        ? null
+                        : payload,
+            },
             {
                 preserveScroll: true,
                 onFinish: () => setSaving(false),
@@ -119,7 +130,9 @@ export function CollectionFormLayoutEditor({
     };
 
     const removeSection = (sectionId: string): void => {
-        const nextSections = sections.filter((section) => section.id !== sectionId);
+        const nextSections = sections.filter(
+            (section) => section.id !== sectionId,
+        );
         setSections(nextSections);
         persist(tabs, nextSections);
     };
@@ -135,16 +148,28 @@ export function CollectionFormLayoutEditor({
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <h3 className="text-sm font-medium">Form layout</h3>
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-sm text-muted-foreground">
                         Optional tabs and collapsible sections. Field order and
                         half/full width still come from the field list below.
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={addTab} disabled={saving}>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={addTab}
+                        disabled={saving}
+                    >
                         Add tab
                     </Button>
-                    <Button type="button" size="sm" variant="outline" onClick={addSection} disabled={saving}>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={addSection}
+                        disabled={saving}
+                    >
                         Add section
                     </Button>
                     {(tabs.length > 0 || sections.length > 0) && (
@@ -166,17 +191,28 @@ export function CollectionFormLayoutEditor({
                     <Label>Tabs</Label>
                     <div className="flex flex-col gap-2">
                         {tabs.map((tab, index) => (
-                            <div key={tab.id} className="flex items-center gap-2">
+                            <div
+                                key={tab.id}
+                                className="flex items-center gap-2"
+                            >
                                 <Input
-                                    value={resolveFormLayoutLabel(tab.label, locales, tab.id)}
+                                    value={resolveFormLayoutLabel(
+                                        tab.label,
+                                        locales,
+                                        tab.id,
+                                    )}
                                     onChange={(event) => {
-                                        const nextTabs = tabs.map((entry, entryIndex) =>
-                                            entryIndex === index
-                                                ? {
-                                                      ...entry,
-                                                      label: { en: event.target.value },
-                                                  }
-                                                : entry,
+                                        const nextTabs = tabs.map(
+                                            (entry, entryIndex) =>
+                                                entryIndex === index
+                                                    ? {
+                                                          ...entry,
+                                                          label: {
+                                                              en: event.target
+                                                                  .value,
+                                                          },
+                                                      }
+                                                    : entry,
                                         );
                                         setTabs(nextTabs);
                                     }}
@@ -187,11 +223,17 @@ export function CollectionFormLayoutEditor({
                                     size="icon"
                                     variant="ghost"
                                     onClick={() => {
-                                        const nextTabs = tabs.filter((entry) => entry.id !== tab.id);
-                                        const nextSections = sections.map((section) =>
-                                            section.tab_id === tab.id
-                                                ? { ...section, tab_id: null }
-                                                : section,
+                                        const nextTabs = tabs.filter(
+                                            (entry) => entry.id !== tab.id,
+                                        );
+                                        const nextSections = sections.map(
+                                            (section) =>
+                                                section.tab_id === tab.id
+                                                    ? {
+                                                          ...section,
+                                                          tab_id: null,
+                                                      }
+                                                    : section,
                                         );
                                         setTabs(nextTabs);
                                         setSections(nextSections);
@@ -207,9 +249,9 @@ export function CollectionFormLayoutEditor({
             )}
 
             {sections.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                    No sections yet — item forms render fields in schema order with
-                    width settings only.
+                <p className="text-sm text-muted-foreground">
+                    No sections yet — item forms render fields in schema order
+                    with width settings only.
                 </p>
             ) : (
                 <div className="space-y-3">
@@ -234,7 +276,9 @@ export function CollectionFormLayoutEditor({
                                                         ? {
                                                               ...entry,
                                                               label: {
-                                                                  en: event.target.value,
+                                                                  en: event
+                                                                      .target
+                                                                      .value,
                                                               },
                                                           }
                                                         : entry,
@@ -248,18 +292,26 @@ export function CollectionFormLayoutEditor({
                                     <div className="grid gap-1">
                                         <Label>Tab</Label>
                                         <select
-                                            className="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                                            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                                             value={section.tab_id ?? ''}
                                             onChange={(event) =>
-                                                updateSection(section.id, (current) => ({
-                                                    ...current,
-                                                    tab_id: event.target.value || null,
-                                                }))
+                                                updateSection(
+                                                    section.id,
+                                                    (current) => ({
+                                                        ...current,
+                                                        tab_id:
+                                                            event.target
+                                                                .value || null,
+                                                    }),
+                                                )
                                             }
                                         >
                                             <option value="">No tab</option>
                                             {tabs.map((tab) => (
-                                                <option key={tab.id} value={tab.id}>
+                                                <option
+                                                    key={tab.id}
+                                                    value={tab.id}
+                                                >
                                                     {resolveFormLayoutLabel(
                                                         tab.label,
                                                         locales,
@@ -284,20 +336,28 @@ export function CollectionFormLayoutEditor({
                                 <Label>Fields in section</Label>
                                 <div className="flex flex-wrap gap-2">
                                     {section.field_ids.map((fieldId) => {
-                                        const field = fields.find((entry) => entry.id === fieldId);
+                                        const field = fields.find(
+                                            (entry) => entry.id === fieldId,
+                                        );
 
                                         return (
                                             <button
                                                 key={fieldId}
                                                 type="button"
-                                                className="bg-muted inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs"
+                                                className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs"
                                                 onClick={() =>
-                                                    updateSection(section.id, (current) => ({
-                                                        ...current,
-                                                        field_ids: current.field_ids.filter(
-                                                            (id) => id !== fieldId,
-                                                        ),
-                                                    }))
+                                                    updateSection(
+                                                        section.id,
+                                                        (current) => ({
+                                                            ...current,
+                                                            field_ids:
+                                                                current.field_ids.filter(
+                                                                    (id) =>
+                                                                        id !==
+                                                                        fieldId,
+                                                                ),
+                                                        }),
+                                                    )
                                                 }
                                             >
                                                 {field?.name ?? fieldId}
@@ -308,26 +368,38 @@ export function CollectionFormLayoutEditor({
                                 </div>
                                 {unplacedFields.length > 0 && (
                                     <select
-                                        className="border-input bg-background h-9 w-full max-w-sm rounded-md border px-3 text-sm"
+                                        className="h-9 w-full max-w-sm rounded-md border border-input bg-background px-3 text-sm"
                                         defaultValue=""
                                         onChange={(event) => {
-                                            const fieldId = Number(event.target.value);
+                                            const fieldId = Number(
+                                                event.target.value,
+                                            );
                                             event.target.value = '';
+
                                             if (!Number.isFinite(fieldId)) {
                                                 return;
                                             }
 
-                                            updateSection(section.id, (current) => ({
-                                                ...current,
-                                                field_ids: [...current.field_ids, fieldId],
-                                            }));
+                                            updateSection(
+                                                section.id,
+                                                (current) => ({
+                                                    ...current,
+                                                    field_ids: [
+                                                        ...current.field_ids,
+                                                        fieldId,
+                                                    ],
+                                                }),
+                                            );
                                         }}
                                     >
                                         <option value="" disabled>
                                             Add field…
                                         </option>
                                         {unplacedFields.map((field) => (
-                                            <option key={field.id} value={field.id}>
+                                            <option
+                                                key={field.id}
+                                                value={field.id}
+                                            >
                                                 {field.name} ({field.type})
                                             </option>
                                         ))}
@@ -340,14 +412,15 @@ export function CollectionFormLayoutEditor({
             )}
 
             {unplacedFields.length > 0 && sections.length > 0 && (
-                <p className="text-muted-foreground text-xs">
-                    Unplaced fields ({unplacedFields.map((field) => field.name).join(', ')})
+                <p className="text-xs text-muted-foreground">
+                    Unplaced fields (
+                    {unplacedFields.map((field) => field.name).join(', ')})
                     render in an “Other” group on the item form.
                 </p>
             )}
 
             {saving ? (
-                <p className="text-muted-foreground text-xs">Saving layout…</p>
+                <p className="text-xs text-muted-foreground">Saving layout…</p>
             ) : null}
         </div>
     );

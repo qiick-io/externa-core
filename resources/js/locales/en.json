@@ -36,7 +36,18 @@
         "settings": "Settings",
         "language": "Language",
         "appearance": "Appearance",
+        "accessibility": "Accessibility",
+        "accessibilityOff": "Off",
+        "accessibilityOnCount": "{{count}} on",
+        "highContrast": "High contrast",
+        "reduceMotion": "Reduce motion",
         "logOut": "Log out"
+    },
+    "a11y": {
+        "skipToContent": "Skip to content",
+        "mainNav": "Main navigation",
+        "openMenu": "Open menu",
+        "search": "Search"
     },
     "auth": {
         "login": {
@@ -563,6 +574,9 @@
         "stopAria": "Stop",
         "sendAria": "Send",
         "openAssistant": "Open AI assistant",
+        "fabTitle": "New chat",
+        "fabDescription": "Quick assistant drawer. Open the full page for history.",
+        "fabEmpty": "Ask about collections, items, or files.",
         "askAi": "Ask AI",
         "assistantOffline": "Assistant offline",
         "assistantOnline": "Assistant online",

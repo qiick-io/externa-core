@@ -5,8 +5,8 @@ import {
     useId,
     useRef,
     useState,
-    type ReactNode,
 } from 'react';
+import type { ReactNode } from 'react';
 
 import { LucideIconByName } from '@/components/collections/field-settings/lucide-icon-picker';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -23,8 +23,8 @@ import {
     parseSliderFieldSettings,
     parseStringFieldSettings,
     resolveTranslatedText,
-    type FieldTreeOptionRow,
 } from '@/lib/collection-field-types';
+import type { FieldTreeOptionRow } from '@/lib/collection-field-types';
 import { cn } from '@/lib/utils';
 
 const inputLike =
@@ -101,7 +101,10 @@ export function toDateInputValue(value: DefaultValue): string {
     return `${parsedDate.getFullYear()}-${pad(parsedDate.getMonth() + 1)}-${pad(parsedDate.getDate())}`;
 }
 
-export function toTimeInputValue(value: DefaultValue, includeSeconds: boolean): string {
+export function toTimeInputValue(
+    value: DefaultValue,
+    includeSeconds: boolean,
+): string {
     if (value === null || value === undefined || value === '') {
         return '';
     }
@@ -109,7 +112,9 @@ export function toTimeInputValue(value: DefaultValue, includeSeconds: boolean): 
     const stringValue = String(value);
 
     if (/^\d{2}:\d{2}/.test(stringValue)) {
-        return includeSeconds ? stringValue.slice(0, 8) : stringValue.slice(0, 5);
+        return includeSeconds
+            ? stringValue.slice(0, 8)
+            : stringValue.slice(0, 5);
     }
 
     if (/T\d{2}:\d{2}/.test(stringValue)) {
@@ -148,7 +153,7 @@ export function FieldNote({
         return null;
     }
 
-    return <p className="text-muted-foreground text-sm">{note}</p>;
+    return <p className="text-sm text-muted-foreground">{note}</p>;
 }
 
 export function InputWithIcons({
@@ -169,7 +174,7 @@ export function InputWithIcons({
             {iconLeft ? (
                 <LucideIconByName
                     name={iconLeft}
-                    className="text-muted-foreground pointer-events-none absolute left-3 size-4"
+                    className="pointer-events-none absolute left-3 size-4 text-muted-foreground"
                 />
             ) : null}
             <div
@@ -184,7 +189,7 @@ export function InputWithIcons({
             {iconRight ? (
                 <LucideIconByName
                     name={iconRight}
-                    className="text-muted-foreground pointer-events-none absolute right-3 size-4"
+                    className="pointer-events-none absolute right-3 size-4 text-muted-foreground"
                 />
             ) : null}
         </div>
@@ -208,7 +213,11 @@ export function BooleanToggleInput({
 }) {
     const booleanSettings = parseBooleanFieldSettings(settings);
     const [checked, setChecked] = useState(defaultChecked);
-    const onLabel = resolveTranslatedText(booleanSettings.labelOn, locales, 'Yes');
+    const onLabel = resolveTranslatedText(
+        booleanSettings.labelOn,
+        locales,
+        'Yes',
+    );
     const offLabel = resolveTranslatedText(
         booleanSettings.labelOff,
         locales,
@@ -375,11 +384,12 @@ export function ApiAutocompleteInput({
                                 return null;
                             }
 
-                            return { text: text || value, value: value || text };
+                            return {
+                                text: text || value,
+                                value: value || text,
+                            };
                         })
-                        .filter(
-                            (row): row is ApiSuggestion => row !== null,
-                        ),
+                        .filter((row): row is ApiSuggestion => row !== null),
                 );
             } catch {
                 if (!abortController.signal.aborted) {
@@ -442,11 +452,12 @@ export function ApiAutocompleteInput({
                 ))}
             </datalist>
             {loading ? (
-                <p className="text-muted-foreground text-xs">Loading…</p>
+                <p className="text-xs text-muted-foreground">Loading…</p>
             ) : null}
             {!apiSettings.url.trim() ? (
-                <p className="text-muted-foreground text-xs">
-                    Configure an API URL in field settings to enable suggestions.
+                <p className="text-xs text-muted-foreground">
+                    Configure an API URL in field settings to enable
+                    suggestions.
                 </p>
             ) : null}
         </div>
@@ -483,7 +494,7 @@ export function HashFieldInput({
                 className="font-mono"
             />
             <input type="hidden" name={name} value={defaultValue} />
-            <p className="text-muted-foreground text-xs">
+            <p className="text-xs text-muted-foreground">
                 Fingerprint ID (auto). Not a password hash.
             </p>
         </div>
@@ -515,10 +526,12 @@ export function SliderFieldInput({
                 step={sliderSettings.step}
                 value={[value]}
                 disabled={readonly}
-                onValueChange={(next) => setValue(next[0] ?? sliderSettings.min)}
+                onValueChange={(next) =>
+                    setValue(next[0] ?? sliderSettings.min)
+                }
             />
             {sliderSettings.showValue ? (
-                <p className="text-muted-foreground text-sm">{value}</p>
+                <p className="text-sm text-muted-foreground">{value}</p>
             ) : null}
             <input type="hidden" name={name} value={String(value)} />
         </div>
@@ -605,13 +618,20 @@ export function CheckboxGroupInput({
                             value={otherValue}
                             readOnly={readonly}
                             placeholder="Custom value"
-                            onChange={(event) => setOtherValue(event.target.value)}
+                            onChange={(event) =>
+                                setOtherValue(event.target.value)
+                            }
                         />
                     ) : null}
                 </div>
             ) : null}
             {storedValues.map((value) => (
-                <input key={value} type="hidden" name={`${name}[]`} value={value} />
+                <input
+                    key={value}
+                    type="hidden"
+                    name={`${name}[]`}
+                    value={value}
+                />
             ))}
         </div>
     );
@@ -649,8 +669,7 @@ export function SelectWithOtherInput({
         initialIsOther ? defaultValue : '',
     );
 
-    const submitted =
-        mode === 'other' ? otherValue : optionValue;
+    const submitted = mode === 'other' ? otherValue : optionValue;
 
     return (
         <div className="space-y-2">
@@ -716,8 +735,7 @@ export function RadioWithOtherInput({
         initialIsOther ? defaultValue : '',
     );
 
-    const submitted =
-        selected === '__other__' ? otherValue : selected;
+    const submitted = selected === '__other__' ? otherValue : selected;
 
     return (
         <div className="flex flex-col gap-2">
@@ -755,7 +773,9 @@ export function RadioWithOtherInput({
                             value={otherValue}
                             readOnly={readonly}
                             placeholder="Custom value"
-                            onChange={(event) => setOtherValue(event.target.value)}
+                            onChange={(event) =>
+                                setOtherValue(event.target.value)
+                            }
                         />
                     ) : null}
                 </label>
@@ -822,7 +842,12 @@ export function MultiselectWithOtherInput({
                 />
             ) : null}
             {stored.map((value) => (
-                <input key={value} type="hidden" name={`${name}[]`} value={value} />
+                <input
+                    key={value}
+                    type="hidden"
+                    name={`${name}[]`}
+                    value={value}
+                />
             ))}
         </div>
     );
@@ -943,7 +968,12 @@ export function CheckboxGroupTreeInput({
                 readonly={readonly}
             />
             {storedValues.map((value) => (
-                <input key={value} type="hidden" name={`${name}[]`} value={value} />
+                <input
+                    key={value}
+                    type="hidden"
+                    name={`${name}[]`}
+                    value={value}
+                />
             ))}
         </div>
     );

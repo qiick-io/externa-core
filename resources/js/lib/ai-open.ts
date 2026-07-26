@@ -23,7 +23,11 @@ export function openAiWithPrompt(prompt: string): void {
     );
 }
 
-function truncateList<T>(items: T[]): { shown: T[]; total: number; capped: boolean } {
+function truncateList<T>(items: T[]): {
+    shown: T[];
+    total: number;
+    capped: boolean;
+} {
     const total = items.length;
     const capped = total > AI_PROMPT_ID_CAP;
 
@@ -147,9 +151,7 @@ export function seedFilesBulkPrompt(
     files: Array<{ id: number; name: string }>,
 ): string {
     const { shown, total, capped } = truncateList(files);
-    const list = JSON.stringify(
-        shown.map((f) => ({ id: f.id, name: f.name })),
-    );
+    const list = JSON.stringify(shown.map((f) => ({ id: f.id, name: f.name })));
 
     return `Working on ${total} files${capNote(total, capped)}: ${list}.\nHelp me with these selected files:`;
 }

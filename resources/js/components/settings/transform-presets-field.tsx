@@ -101,20 +101,23 @@ export function TransformPresetsField({
 
         if (!/^[a-z0-9_-]+$/.test(key)) {
             setLocalError(t('settings.project.presetKeyInvalid'));
+
             return;
         }
 
         if (draft.width === null && draft.height === null) {
             setLocalError(t('settings.project.presetDimensionsRequired'));
+
             return;
         }
 
         const duplicate = presets.some(
-            (preset, index) =>
-                preset.key === key && index !== editIndex,
+            (preset, index) => preset.key === key && index !== editIndex,
         );
+
         if (duplicate) {
             setLocalError(t('settings.project.presetKeyDuplicate'));
+
             return;
         }
 
@@ -142,11 +145,16 @@ export function TransformPresetsField({
             <div className="flex items-center justify-between gap-3">
                 <div>
                     <Label>{t('settings.project.presetTransformations')}</Label>
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-sm text-muted-foreground">
                         {t('settings.project.presetTransformationsHint')}
                     </p>
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={openCreate}>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={openCreate}
+                >
                     <Plus className="size-4" />
                     {t('settings.project.presetAdd')}
                 </Button>
@@ -154,7 +162,7 @@ export function TransformPresetsField({
 
             <div className="space-y-2">
                 {presets.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-sm text-muted-foreground">
                         {t('settings.project.presetEmpty')}
                     </p>
                 ) : (
@@ -164,8 +172,10 @@ export function TransformPresetsField({
                             className="flex items-center gap-3 rounded-md border px-3 py-2"
                         >
                             <div className="min-w-0 flex-1">
-                                <p className="truncate font-medium">{preset.key}</p>
-                                <p className="text-muted-foreground truncate text-xs">
+                                <p className="truncate font-medium">
+                                    {preset.key}
+                                </p>
+                                <p className="truncate text-xs text-muted-foreground">
                                     {summarizePreset(preset)}
                                     {preset.without_enlargement
                                         ? ` · ${t('settings.project.presetNoUpscaleShort')}`
@@ -196,9 +206,7 @@ export function TransformPresetsField({
                 )}
             </div>
 
-            {error ? (
-                <p className="text-destructive text-sm">{error}</p>
-            ) : null}
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="sm:max-w-lg">
@@ -247,7 +255,10 @@ export function TransformPresetsField({
                                     }
                                 }}
                             >
-                                <SelectTrigger id="preset-fit" className="w-full">
+                                <SelectTrigger
+                                    id="preset-fit"
+                                    className="w-full"
+                                >
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -280,7 +291,9 @@ export function TransformPresetsField({
                                             width:
                                                 event.target.value === ''
                                                     ? null
-                                                    : Number(event.target.value),
+                                                    : Number(
+                                                          event.target.value,
+                                                      ),
                                         }))
                                     }
                                 />
@@ -301,7 +314,9 @@ export function TransformPresetsField({
                                             height:
                                                 event.target.value === ''
                                                     ? null
-                                                    : Number(event.target.value),
+                                                    : Number(
+                                                          event.target.value,
+                                                      ),
                                         }))
                                     }
                                 />
@@ -313,7 +328,7 @@ export function TransformPresetsField({
                                 <Label htmlFor="preset-quality">
                                     {t('settings.project.presetQuality')}
                                 </Label>
-                                <span className="text-muted-foreground text-sm tabular-nums">
+                                <span className="text-sm text-muted-foreground tabular-nums">
                                     {draft.quality}
                                 </span>
                             </div>
@@ -383,7 +398,7 @@ export function TransformPresetsField({
                         </div>
 
                         {localError ? (
-                            <p className="text-destructive text-sm">
+                            <p className="text-sm text-destructive">
                                 {localError}
                             </p>
                         ) : null}

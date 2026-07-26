@@ -45,10 +45,11 @@ export function M2aFieldInput({
     const allowedCollections = relatedCollections.filter((collection) =>
         m2aSettings.allowedCollectionIds.includes(collection.id),
     );
-    const displayField = String(
-        (field.settings as { display_field?: unknown } | null | undefined)?.display_field ??
-            'title',
-    ).trim() || 'title';
+    const displayField =
+        String(
+            (field.settings as { display_field?: unknown } | null | undefined)
+                ?.display_field ?? 'title',
+        ).trim() || 'title';
 
     const [blocks, setBlocks] = useState<M2aBlock[]>(() => {
         if (!Array.isArray(defaultValue)) {
@@ -94,7 +95,9 @@ export function M2aFieldInput({
     };
 
     const removeBlock = (index: number) => {
-        setBlocks((current) => current.filter((_, blockIndex) => blockIndex !== index));
+        setBlocks((current) =>
+            current.filter((_, blockIndex) => blockIndex !== index),
+        );
     };
 
     const moveBlock = (index: number, direction: -1 | 1) => {
@@ -140,7 +143,10 @@ export function M2aFieldInput({
                                 }
                             >
                                 {allowedCollections.map((collection) => (
-                                    <option key={collection.id} value={collection.id}>
+                                    <option
+                                        key={collection.id}
+                                        value={collection.id}
+                                    >
                                         {collection.name}
                                     </option>
                                 ))}
@@ -151,7 +157,9 @@ export function M2aFieldInput({
                                         type="button"
                                         size="sm"
                                         variant="outline"
-                                        onClick={() => moveBlock(blockIndex, -1)}
+                                        onClick={() =>
+                                            moveBlock(blockIndex, -1)
+                                        }
                                     >
                                         Up
                                     </Button>
@@ -217,7 +225,7 @@ export function M2aFieldInput({
                 </Button>
             ) : null}
             {blocks.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No blocks yet.</p>
+                <p className="text-sm text-muted-foreground">No blocks yet.</p>
             ) : null}
         </div>
     );

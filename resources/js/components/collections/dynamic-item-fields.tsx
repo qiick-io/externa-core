@@ -1,29 +1,9 @@
-import {
-    Fragment,
-    useMemo,
-    useState,
-} from 'react';
-import type {ReactNode} from 'react';
+import { ChevronDown } from 'lucide-react';
+import { Fragment, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { ContentLocaleProvider } from '@/components/collections/content-locale-provider';
 import { BlocksFieldInput } from '@/components/collections/item-field-blocks-input';
-import {
-    FileFieldInput,
-    MultipleFilesFieldInput,
-} from '@/components/collections/item-field-files-input';
-import { M2aFieldInput } from '@/components/collections/item-field-m2a-input';
-import {
-    ManyToManyFieldInput,
-    RelationFieldInput,
-} from '@/components/collections/item-field-relation-inputs';
-import { LocalizedField } from '@/components/collections/localized-field';
-import {
-    CodeFieldInput,
-    ColorFieldInput,
-    MarkdownFieldInput,
-    TagChipInput,
-    WysiwygFieldInput,
-} from '@/components/collections/item-field-rich-inputs';
 import {
     ApiAutocompleteInput,
     BooleanToggleInput,
@@ -42,9 +22,25 @@ import {
     toDatetimeLocalValue,
     toTimeInputValue,
 } from '@/components/collections/item-field-choice-inputs';
+import {
+    FileFieldInput,
+    MultipleFilesFieldInput,
+} from '@/components/collections/item-field-files-input';
+import { M2aFieldInput } from '@/components/collections/item-field-m2a-input';
+import {
+    ManyToManyFieldInput,
+    RelationFieldInput,
+} from '@/components/collections/item-field-relation-inputs';
+import {
+    CodeFieldInput,
+    ColorFieldInput,
+    MarkdownFieldInput,
+    TagChipInput,
+    WysiwygFieldInput,
+} from '@/components/collections/item-field-rich-inputs';
+import { LocalizedField } from '@/components/collections/localized-field';
 import { MapCoordinateInput } from '@/components/collections/map-coordinate-input';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
     Collapsible,
     CollapsibleContent,
@@ -65,7 +61,7 @@ import {
     parseTextareaFieldSettings,
     resolveTranslatedText,
 } from '@/lib/collection-field-types';
-import type {RelatedCollectionOption} from '@/lib/collection-field-types';
+import type { RelatedCollectionOption } from '@/lib/collection-field-types';
 import {
     parseCollectionFormLayout,
     resolveFormLayoutGroups,
@@ -73,7 +69,6 @@ import {
 } from '@/lib/collection-form-layout';
 import { evaluateFieldFlags } from '@/lib/field-conditions';
 import { cn } from '@/lib/utils';
-import { ChevronDown } from 'lucide-react';
 
 const inputLike =
     'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
@@ -178,7 +173,6 @@ function getDefaultLocale(
     return '';
 }
 
-
 function toNumberOrNull(value: DefaultValue): number | null {
     if (typeof value === 'number' && Number.isFinite(value)) {
         return value;
@@ -203,12 +197,12 @@ function toNumberArray(value: DefaultValue): number[] {
             if (typeof entry === 'number' || typeof entry === 'string') {
                 return Number(entry);
             }
+
             // M2M / relation payloads may arrive as junction objects
             if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
                 return Number(
                     (entry as { related_item_id?: unknown; id?: unknown })
-                        .related_item_id ??
-                        (entry as { id?: unknown }).id,
+                        .related_item_id ?? (entry as { id?: unknown }).id,
                 );
             }
 
@@ -756,6 +750,7 @@ export function DynamicItemFields({
 
     const renderOneField = (field: FieldDef): ReactNode => {
         const flags = evaluateFieldFlags(field.settings, formValues);
+
         if (flags.hidden) {
             return null;
         }
@@ -786,6 +781,7 @@ export function DynamicItemFields({
                         | HTMLInputElement
                         | HTMLSelectElement
                         | HTMLTextAreaElement;
+
                     if (!target.name) {
                         return;
                     }
@@ -879,6 +875,7 @@ export function DynamicItemFields({
             ? groups
             : groups.filter((group) => {
                   const tabId = group.section?.tab_id ?? null;
+
                   if (activeTabId === null) {
                       return true;
                   }
@@ -920,7 +917,8 @@ export function DynamicItemFields({
 
                 {visibleGroups.map((group, index) => {
                     const section = group.section;
-                    if (!section || section.id === 'unsectioned' && !layout) {
+
+                    if (!section || (section.id === 'unsectioned' && !layout)) {
                         return (
                             <Fragment key={`flat-${index}`}>
                                 {renderFieldGrid(group.fields)}

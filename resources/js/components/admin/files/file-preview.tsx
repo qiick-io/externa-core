@@ -1,11 +1,7 @@
 import { FolderOpen } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { FileIcon, defaultStyles } from 'react-file-icon';
-import {
-    filePublicUrl,
-    isImageFile,
-    isPlayableVideo,
-} from '@/lib/files-api';
+import { filePublicUrl, isImageFile, isPlayableVideo } from '@/lib/files-api';
 import { cn } from '@/lib/utils';
 import type { AdminFileRow } from '@/types/files';
 
@@ -121,7 +117,7 @@ export function FilePreview({
 
     return (
         <div className={boxClass}>
-            <div className="flex h-full w-full items-center justify-center [&_svg]:h-full [&_svg]:w-full [&_svg]:max-h-full [&_svg]:max-w-full">
+            <div className="flex h-full w-full items-center justify-center [&_svg]:h-full [&_svg]:max-h-full [&_svg]:w-full [&_svg]:max-w-full">
                 <FileIcon extension={extension} {...style} />
             </div>
         </div>

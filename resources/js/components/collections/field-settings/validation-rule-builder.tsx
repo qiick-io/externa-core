@@ -2,12 +2,11 @@ import { TranslatedInput } from '@/components/collections/field-settings/transla
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    FIELD_VALIDATION_OPERATORS
-    
-    
+import { FIELD_VALIDATION_OPERATORS } from '@/lib/collection-field-types';
+import type {
+    FieldValidationRule,
+    TranslatedText,
 } from '@/lib/collection-field-types';
-import type {FieldValidationRule, TranslatedText} from '@/lib/collection-field-types';
 
 type ValidationRuleBuilderProps = {
     rules: FieldValidationRule[];
@@ -54,21 +53,25 @@ export function ValidationRuleBuilder({
                                         next[index] = { operator };
                                         onRulesChange(next);
                                     }}
-                                    className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm shadow-xs"
+                                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
                                 >
-                                    {FIELD_VALIDATION_OPERATORS.map((option) => (
-                                        <option
-                                            key={option.value}
-                                            value={option.value}
-                                        >
-                                            {option.label}
-                                        </option>
-                                    ))}
+                                    {FIELD_VALIDATION_OPERATORS.map(
+                                        (option) => (
+                                            <option
+                                                key={option.value}
+                                                value={option.value}
+                                            >
+                                                {option.label}
+                                            </option>
+                                        ),
+                                    )}
                                 </select>
                             </div>
                             {meta?.needsValue ? (
                                 <div className="grid gap-2">
-                                    <Label htmlFor={`validation_value_${index}`}>
+                                    <Label
+                                        htmlFor={`validation_value_${index}`}
+                                    >
                                         Value
                                     </Label>
                                     <Input

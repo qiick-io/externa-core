@@ -12,11 +12,12 @@ import {
     parseStringFieldSettings,
     parseTagFieldSettings,
     parseTextareaFieldSettings,
-    serializeStringFieldSettings
-    
-    
+    serializeStringFieldSettings,
 } from '@/lib/collection-field-types';
-import type {StringFieldSettings, TranslatedText} from '@/lib/collection-field-types';
+import type {
+    StringFieldSettings,
+    TranslatedText,
+} from '@/lib/collection-field-types';
 
 type TextNumbersSettingsProps = {
     fieldType: string;
@@ -52,7 +53,7 @@ export function TextNumbersSettings({
                                     inputType: event.target.value,
                                 }))
                             }
-                            className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm shadow-xs"
+                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
                         >
                             {STRING_INPUT_TYPES.map((option) => (
                                 <option key={option.value} value={option.value}>
@@ -157,7 +158,11 @@ export function TextNumbersSettings({
         );
     }
 
-    if (fieldType === 'textarea' || fieldType === 'wysiwyg' || fieldType === 'markdown') {
+    if (
+        fieldType === 'textarea' ||
+        fieldType === 'wysiwyg' ||
+        fieldType === 'markdown'
+    ) {
         return (
             <TextareaLikeSettingsPanel
                 fieldType={fieldType}
@@ -249,7 +254,9 @@ export function TextNumbersSettings({
         return (
             <div className="space-y-4">
                 <div className="grid gap-2">
-                    <Label htmlFor="tag_presets">Presets (comma-separated)</Label>
+                    <Label htmlFor="tag_presets">
+                        Presets (comma-separated)
+                    </Label>
                     <Input
                         id="tag_presets"
                         name="settings[presets]"
@@ -290,15 +297,11 @@ export function TextNumbersSettings({
     }
 
     if (fieldType === 'autocomplete') {
-        return (
-            <AutocompletePlaceholderPanel settings={settings} />
-        );
+        return <AutocompletePlaceholderPanel settings={settings} />;
     }
 
     if (fieldType === 'api_autocomplete') {
-        return (
-            <ApiAutocompleteSettingsPanel settings={settings} />
-        );
+        return <ApiAutocompleteSettingsPanel settings={settings} />;
     }
 
     return null;
@@ -334,7 +337,9 @@ function TextareaLikeSettingsPanel({
                     />
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor={`${fieldType}_max_length`}>Max length</Label>
+                    <Label htmlFor={`${fieldType}_max_length`}>
+                        Max length
+                    </Label>
                     <Input
                         id={`${fieldType}_max_length`}
                         type="number"
@@ -431,7 +436,7 @@ function ApiAutocompleteSettingsPanel({
                         id="api_trigger"
                         name="settings[trigger]"
                         defaultValue={apiSettings.trigger}
-                        className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm shadow-xs"
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
                     >
                         <option value="debounce">Debounce</option>
                         <option value="throttle">Throttle</option>
@@ -462,14 +467,22 @@ function ApiAutocompleteSettingsPanel({
                     value={iconLeft}
                     onChange={setIconLeft}
                 />
-                <input type="hidden" name="settings[icon_left]" value={iconLeft} />
+                <input
+                    type="hidden"
+                    name="settings[icon_left]"
+                    value={iconLeft}
+                />
                 <LucideIconPicker
                     id="api_icon_right"
                     label="Icon right"
                     value={iconRight}
                     onChange={setIconRight}
                 />
-                <input type="hidden" name="settings[icon_right]" value={iconRight} />
+                <input
+                    type="hidden"
+                    name="settings[icon_right]"
+                    value={iconRight}
+                />
             </div>
         </div>
     );

@@ -3,10 +3,8 @@ import { PackagePlus, Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
-import {
-    ApplyFieldPackDialog,
-    type FieldPackSummary,
-} from '@/components/collections/apply-field-pack-dialog';
+import { ApplyFieldPackDialog } from '@/components/collections/apply-field-pack-dialog';
+import type { FieldPackSummary } from '@/components/collections/apply-field-pack-dialog';
 import {
     CollectionEditButton,
     CollectionEditDrawer,
@@ -25,10 +23,8 @@ import { Input } from '@/components/ui/input';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
-import {
-    fieldTypeLabel
-} from '@/lib/collection-field-types';
-import type {RelatedCollectionOption} from '@/lib/collection-field-types';
+import { fieldTypeLabel } from '@/lib/collection-field-types';
+import type { RelatedCollectionOption } from '@/lib/collection-field-types';
 import collections from '@/routes/collections';
 import type { BreadcrumbItem, CollectionFieldRow } from '@/types';
 import { collectionToFormRow } from '@/types';
@@ -139,7 +135,9 @@ export default function CollectionsFields({
                 </>
             }
         >
-            <Head title={t('collections.fieldsTitle', { name: collection.name })} />
+            <Head
+                title={t('collections.fieldsTitle', { name: collection.name })}
+            />
 
             <PageLayout
                 description={`${collection.slug} · ${t('collections.fieldSchema')}`}
@@ -186,7 +184,9 @@ export default function CollectionsFields({
                                     onClick={() => setPackDialogOpen(true)}
                                 >
                                     <PackagePlus className="size-4" />
-                                    {t('collections.packs.addFieldPackEllipsis')}
+                                    {t(
+                                        'collections.packs.addFieldPackEllipsis',
+                                    )}
                                 </Button>
                             ) : null}
                             <Button
@@ -206,9 +206,7 @@ export default function CollectionsFields({
                 ) : (
                     <CollectionFieldsList
                         collectionId={collection.id}
-                        fields={
-                            searchQueryActive ? filteredFields : fields
-                        }
+                        fields={searchQueryActive ? filteredFields : fields}
                         reorderEnabled={!searchQueryActive}
                         onEdit={openEdit}
                     />
@@ -255,7 +253,9 @@ export default function CollectionsFields({
                                 collectionId={collection.id}
                                 fieldType={addFieldType}
                                 relatedCollections={relatedCollections}
-                                siblingFieldNames={fields.map((field) => field.name)}
+                                siblingFieldNames={fields.map(
+                                    (field) => field.name,
+                                )}
                                 onSuccess={closeAddFlow}
                             />
                         </DrawerContent>
@@ -280,7 +280,9 @@ export default function CollectionsFields({
                             field={editField}
                             fieldType={editField.type}
                             relatedCollections={relatedCollections}
-                            siblingFieldNames={fields.map((field) => field.name)}
+                            siblingFieldNames={fields.map(
+                                (field) => field.name,
+                            )}
                             onSuccess={() => setEditField(null)}
                         />
                     )}

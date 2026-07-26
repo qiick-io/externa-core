@@ -1,11 +1,5 @@
 import { MoreHorizontal } from 'lucide-react';
-import {
-    useCallback,
-    useLayoutEffect,
-    useMemo,
-    useRef,
-    useState,
-} from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -163,7 +157,10 @@ export function FilesActionsOverflow({
     return (
         <div
             ref={containerRef}
-            className={cn('flex min-w-0 flex-1 items-center gap-1 overflow-hidden', className)}
+            className={cn(
+                'flex min-w-0 flex-1 items-center gap-1 overflow-hidden',
+                className,
+            )}
         >
             {actions.map((action, index) => {
                 const Icon = action.icon;

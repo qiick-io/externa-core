@@ -3,6 +3,7 @@ import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
+import { SkipToContent } from '@/components/skip-to-content';
 import type { AppLayoutProps } from '@/types';
 
 /**
@@ -20,8 +21,14 @@ export default function AppSidebarLayout({
 }: AppLayoutProps) {
     return (
         <AppShell variant="sidebar">
+            <SkipToContent />
             <AppSidebar />
-            <AppContent variant="sidebar" className="overflow-hidden">
+            <AppContent
+                variant="sidebar"
+                id="main-content"
+                className="overflow-hidden"
+                tabIndex={-1}
+            >
                 <AppSidebarHeader
                     breadcrumbs={breadcrumbs}
                     actions={headerActions}

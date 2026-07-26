@@ -137,14 +137,14 @@ export function FileUploadIndicator({
             )}
         >
             <Collapsible open={expanded} onOpenChange={setExpanded}>
-                <div className="bg-card overflow-hidden rounded-xl border shadow-xl">
+                <div className="overflow-hidden rounded-xl border bg-card shadow-xl">
                     <div className="flex items-center gap-2 border-b px-3 py-2.5">
                         {activeCount > 0 ? (
-                            <Loader2 className="text-primary size-4 shrink-0 animate-spin" />
+                            <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
                         ) : uploads.some(
                               (upload) => upload.status === 'error',
                           ) ? (
-                            <XCircle className="text-destructive size-4 shrink-0" />
+                            <XCircle className="size-4 shrink-0 text-destructive" />
                         ) : (
                             <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
                         )}
@@ -232,10 +232,10 @@ export function FileUploadIndicator({
                                             {(upload.status === 'pending' ||
                                                 upload.status ===
                                                     'uploading') && (
-                                                <Loader2 className="text-muted-foreground size-4 shrink-0 animate-spin" />
+                                                <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
                                             )}
                                         </div>
-                                        <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+                                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                                             <div
                                                 className={cn(
                                                     'h-full transition-all',

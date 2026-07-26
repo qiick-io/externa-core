@@ -5,8 +5,8 @@ import {
     getEchoConnectionState,
     isRealtimeEnabled,
     subscribeEchoConnection,
-    type EchoConnectionState,
 } from '@/lib/echo';
+import type { EchoConnectionState } from '@/lib/echo';
 
 /**
  * Boot Echo when realtime is enabled and expose the WebSocket connection state.
@@ -21,6 +21,7 @@ export function useEchoConnection(): EchoConnectionState {
     useEffect(() => {
         if (!enabled || !page.props.auth.user) {
             setState('disabled');
+
             return;
         }
 
