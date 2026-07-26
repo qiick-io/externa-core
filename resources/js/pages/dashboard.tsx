@@ -257,8 +257,8 @@ export default function Dashboard({
                     <DashboardHealthPanel health={health} />
                 ) : (
                     <div className="flex flex-col gap-4">
-                        <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-                            <Card className="lg:col-span-4">
+                        <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+                            <Card className="xl:col-span-4">
                                 <CardHeader className="pb-3">
                                     <CardTitle>
                                         {t('dashboard.insightsCollections')}
@@ -317,7 +317,7 @@ export default function Dashboard({
                                 </CardContent>
                             </Card>
 
-                            <Card className="lg:col-span-5">
+                            <Card className="xl:col-span-5">
                                 <CardHeader className="pb-3">
                                     <CardTitle>
                                         {t('dashboard.insightsActivity')}
@@ -369,7 +369,7 @@ export default function Dashboard({
                                 </CardContent>
                             </Card>
 
-                            <Card className="lg:col-span-3">
+                            <Card className="xl:col-span-3">
                                 <CardHeader className="pb-3">
                                     <CardTitle>
                                         {t('dashboard.contentEvents')}
@@ -421,8 +421,8 @@ export default function Dashboard({
                             </Card>
                         </section>
 
-                        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
-                            <div className="grid grid-cols-1 gap-4 lg:col-span-5">
+                        <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-12">
+                            <div className="grid grid-cols-1 gap-4 xl:col-span-5">
                                 <Card>
                                     <CardHeader className="pb-3">
                                         <CardTitle>
@@ -606,7 +606,7 @@ export default function Dashboard({
                                     </CardContent>
                                 </Card>
 
-                                <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+                                <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
                                     <Card>
                                         <CardHeader className="pb-3">
                                             <CardTitle>
@@ -759,8 +759,8 @@ export default function Dashboard({
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-4 lg:col-span-7">
-                                <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+                            <div className="flex flex-col gap-4 xl:col-span-7">
+                                <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
                                     <Card>
                                         <CardHeader className="pb-3">
                                             <CardTitle>
@@ -841,7 +841,7 @@ export default function Dashboard({
                                     </Card>
                                 </div>
 
-                                <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+                                <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
                                     <Card>
                                         <CardHeader className="pb-3">
                                             <CardTitle>
@@ -1167,7 +1167,7 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
 
     return (
         <div className="flex flex-col gap-4" data-test="dashboard-health">
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <MetricCard
                     label={t('dashboard.healthQueue')}
                     value={health.queue_connection}
@@ -1191,8 +1191,8 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                 />
             </section>
 
-            <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-                <Card className="lg:col-span-5">
+            <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+                <Card className="xl:col-span-5">
                     <CardHeader className="pb-3">
                         <CardTitle>{t('dashboard.healthPulseTitle')}</CardTitle>
                         <CardDescription>
@@ -1245,7 +1245,7 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                     </CardContent>
                 </Card>
 
-                <Card className="lg:col-span-7">
+                <Card className="xl:col-span-7">
                     <CardHeader className="pb-3">
                         <CardTitle>
                             {t('dashboard.healthPulseChartTitle')}
@@ -1290,8 +1290,8 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                 </Card>
             </section>
 
-            <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-                <Card className="lg:col-span-5">
+            <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+                <Card className="xl:col-span-5">
                     <CardHeader className="pb-3">
                         <CardTitle>
                             {t('dashboard.healthHorizonTitle')}
@@ -1308,7 +1308,7 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                 {t('dashboard.healthHorizonEmpty')}
                             </p>
                         ) : (
-                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                            <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <div className="text-xs text-muted-foreground">
                                         {t('dashboard.healthHorizonStatus')}
@@ -1389,7 +1389,7 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                     </CardContent>
                 </Card>
 
-                <Card className="lg:col-span-7">
+                <Card className="xl:col-span-7">
                     <CardHeader className="pb-3">
                         <CardTitle>
                             {t('dashboard.healthWorkloadsTitle')}
