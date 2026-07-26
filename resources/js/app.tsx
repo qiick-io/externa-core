@@ -8,6 +8,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import '../css/app.css';
 import type { Appearance } from '@/hooks/use-appearance';
 import { initializeTheme } from '@/hooks/use-appearance';
+import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
 import { initI18n } from '@/lib/i18n';
 import type { ProjectAppearance } from '@/types/appearance';
 
@@ -51,6 +52,13 @@ createInertiaApp({
                 props.initialPage.props.projectAppearance,
             ),
         );
+
+        if (
+            props.initialPage.props.auth?.user &&
+            isRealtimeEnabled(props.initialPage.props.realtime)
+        ) {
+            ensureEcho(true);
+        }
 
         const root = createRoot(el);
 

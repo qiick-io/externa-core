@@ -18,10 +18,9 @@ import { FileNameDialog } from '@/components/admin/file-name-dialog';
 import { FileUploadIndicator } from '@/components/admin/file-upload-indicator';
 import {
     resolveContextMenuTargets,
-    resolveFileActions
-    
+    resolveFileActions,
 } from '@/components/admin/files/file-actions';
-import type {FileActionPermissions} from '@/components/admin/files/file-actions';
+import type { FileActionPermissions } from '@/components/admin/files/file-actions';
 import { FileDetailPanel } from '@/components/admin/files/file-detail-panel';
 import { FileGrid } from '@/components/admin/files/file-grid';
 import { FilesSelectionToolbar } from '@/components/admin/files/files-selection-toolbar';
@@ -56,6 +55,7 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
+import { openAiWithPrompt, seedFilesBulkPrompt } from '@/lib/ai-open';
 import {
     addFileUpload,
     createUploadId,
@@ -200,6 +200,7 @@ export default function AdminFilesIndex({
     const canReplace = can(PermissionEnum.CanReplaceFiles);
     const canTag = can(PermissionEnum.CanTagFiles);
     const canUpdateMetadata = can(PermissionEnum.CanUpdateFileMetadata);
+    const canUseAi = can(PermissionEnum.CanUseAi);
     const isTrashed = trashed === 'trashed';
     const uploadsEnabled = canCreate && !isTrashed;
 
@@ -254,6 +255,7 @@ export default function AdminFilesIndex({
             canReplace,
             canTag,
             canUpdateMetadata,
+            canUseAi,
         }),
         [
             canEdit,
@@ -266,6 +268,7 @@ export default function AdminFilesIndex({
             canReplace,
             canTag,
             canUpdateMetadata,
+            canUseAi,
         ],
     );
 
@@ -1123,6 +1126,16 @@ export default function AdminFilesIndex({
                     case 'tag':
                         setTagDialogOpen(true);
                         break;
+                    case 'ask_ai':
+                        openAiWithPrompt(
+                            seedFilesBulkPrompt(
+                                selected.map((file) => ({
+                                    id: file.id,
+                                    name: file.name,
+                                })),
+                            ),
+                        );
+                        break;
                     case 'delete':
                         if (ids.length === 1) {
                             await deleteFile(ids[0]);
@@ -1324,6 +1337,7 @@ export default function AdminFilesIndex({
                             )
                         }
                         filtersRight={
+                            selection.selectedIds.length > 0 ? null : (
                             <div className="flex items-center gap-1.5">
                                 <Select
                                     value={sort}
@@ -1409,6 +1423,7 @@ export default function AdminFilesIndex({
                                     </ToggleGroupItem>
                                 </ToggleGroup>
                             </div>
+                            )
                         }
                     >
                         <FileGrid

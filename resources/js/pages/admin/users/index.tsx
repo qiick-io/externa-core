@@ -3,6 +3,7 @@ import { Trash2, UserPlus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { UserFormDrawer } from '@/components/admin/user-form-drawer';
+import { AskAiButton } from '@/components/ai/ask-ai-button';
 import {
     PageLayout,
     TablePagination,
@@ -23,10 +24,13 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
+import { useOnlineUsers } from '@/hooks/use-online-users';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
+import { seedUserPrompt, seedUsersBulkPrompt } from '@/lib/ai-open';
 import { normalizePaginated  } from '@/lib/pagination';
 import type {LaravelPaginated} from '@/lib/pagination';
+import { cn } from '@/lib/utils';
 import type { AdminUserRow, BreadcrumbItem, Paginated } from '@/types';
 
 type Filters = {
@@ -50,6 +54,7 @@ export default function AdminUsersIndex({
 }) {
     const users = normalizePaginated(usersProp);
     const { can } = useCan();
+    const onlineUsers = useOnlineUsers();
     const [search, setSearch] = useState(filters.search ?? '');
     const [trashed, setTrashed] = useState<'trashed' | 'active'>(
         filters.trashed ? 'trashed' : 'active',
@@ -130,6 +135,15 @@ export default function AdminUsersIndex({
     };
 
     const isTrashed = trashed === 'trashed';
+    const hasSelection = selected.length > 0;
+
+    const userDisplayName = (user: AdminUserRow): string =>
+        [user.first_name, user.last_name].filter(Boolean).join(' ') ||
+        user.email;
+
+    const selectedRows = users.data.filter((user) =>
+        selected.includes(user.id),
+    );
 
     return (
         <AppLayout
@@ -166,6 +180,16 @@ export default function AdminUsersIndex({
                             onClearSelection={() => setSelected([])}
                             bulkActions={
                                 <>
+                                    <AskAiButton
+                                        mode="labeled"
+                                        prompt={seedUsersBulkPrompt(
+                                            selectedRows.map((user) => ({
+                                                id: user.id,
+                                                name: userDisplayName(user),
+                                                email: user.email,
+                                            })),
+                                        )}
+                                    />
                                     {!isTrashed &&
                                         can(PermissionEnum.CanDeleteUsers) && (
                                             <Button
@@ -208,6 +232,7 @@ export default function AdminUsersIndex({
                         />
                     }
                     filtersRight={
+                        hasSelection ? null : (
                         <ToggleGroup
                             type="single"
                             value={trashed}
@@ -236,6 +261,7 @@ export default function AdminUsersIndex({
                                 <Trash2 className="size-4" />
                             </ToggleGroupItem>
                         </ToggleGroup>
+                        )
                     }
                 >
                     <TablePanel
@@ -265,13 +291,16 @@ export default function AdminUsersIndex({
                                     <TableHead>Roles</TableHead>
                                     <TableHead>Groups</TableHead>
                                     <TableHead>Status</TableHead>
+                                    <TableHead className="w-[1%] text-right">
+                                        Actions
+                                    </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {users.data.length === 0 ? (
                                     <TableRow>
                                         <TableCell
-                                            colSpan={6}
+                                            colSpan={7}
                                             className="text-muted-foreground"
                                         >
                                             No users found.
@@ -303,9 +332,29 @@ export default function AdminUsersIndex({
                                                 />
                                             </TableCell>
                                             <TableCell className="font-medium">
-                                                {[user.first_name, user.last_name]
-                                                    .filter(Boolean)
-                                                    .join(' ')}
+                                                <span className="inline-flex items-center gap-2">
+                                                    <span
+                                                        className={cn(
+                                                            'size-2 shrink-0 rounded-full',
+                                                            onlineUsers.has(user.id)
+                                                                ? 'bg-emerald-500'
+                                                                : 'bg-muted-foreground/30',
+                                                        )}
+                                                        title={
+                                                            onlineUsers.has(user.id)
+                                                                ? 'Online'
+                                                                : 'Offline'
+                                                        }
+                                                        data-test="user-online-dot"
+                                                        data-online={
+                                                            onlineUsers.has(user.id)
+                                                                ? '1'
+                                                                : '0'
+                                                        }
+                                                        aria-hidden
+                                                    />
+                                                    {userDisplayName(user)}
+                                                </span>
                                             </TableCell>
                                             <TableCell className="text-muted-foreground">
                                                 {user.email}
@@ -342,6 +391,23 @@ export default function AdminUsersIndex({
                                                         Inactive
                                                     </Badge>
                                                 )}
+                                            </TableCell>
+                                            <TableCell
+                                                className="text-right"
+                                                onClick={(e) =>
+                                                    e.stopPropagation()
+                                                }
+                                            >
+                                                <AskAiButton
+                                                    stopPropagation
+                                                    prompt={seedUserPrompt({
+                                                        id: user.id,
+                                                        name: userDisplayName(
+                                                            user,
+                                                        ),
+                                                        email: user.email,
+                                                    })}
+                                                />
                                             </TableCell>
                                         </TableRow>
                                     ))

@@ -20,6 +20,10 @@ declare module '@inertiajs/core' {
             notifications: {
                 unread_count: number;
             };
+            realtime: {
+                enabled: boolean;
+                broadcaster: string;
+            };
             projectAppearance: ProjectAppearance;
             projectSettings: SharedProjectSettings;
             [key: string]: unknown;

@@ -10,11 +10,12 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
+use App\Support\Auth\HomePath;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return auth()->check()
-        ? redirect()->route('dashboard')
+        ? redirect(HomePath::for(auth()->user()))
         : redirect()->route('login');
 })->name('home');
 

@@ -64,6 +64,14 @@ class HandleInertiaRequests extends Middleware
             'notifications' => [
                 'unread_count' => $user ? $user->unreadNotifications()->count() : 0,
             ],
+            'realtime' => [
+                'enabled' => ! in_array(
+                    (string) config('broadcasting.default'),
+                    ['log', 'null', ''],
+                    true,
+                ),
+                'broadcaster' => (string) config('broadcasting.default'),
+            ],
             'projectAppearance' => $projectAppearance,
             'projectSettings' => $projectSettings->shared(),
             'flash' => [

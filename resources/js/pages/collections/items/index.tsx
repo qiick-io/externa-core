@@ -14,11 +14,21 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Head, Link, router } from '@inertiajs/react';
-import { Download, GripVertical, Pencil, Plus, Rows3, Trash2 } from 'lucide-react';
+import {
+    Download,
+    FolderOpen,
+    GripVertical,
+    Pencil,
+    Plus,
+    RotateCcw,
+    Rows3,
+    Trash2,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
+import { AskAiButton } from '@/components/ai/ask-ai-button';
 import {
     CollectionEditButton,
     CollectionEditDrawer,
@@ -30,6 +40,7 @@ import {
     TablePanel,
 } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -52,10 +63,13 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
+import { seedItemPrompt, seedItemsBulkPrompt } from '@/lib/ai-open';
 import {
+    emptyFilterRule,
     FILTER_META_KEYS,
     parseFiltersFromProps,
     serializeFilterRules,
@@ -113,45 +127,68 @@ function titleContainsFromFilters(filters: ItemsFilters): string {
         if (typeof ops._contains === 'string') {
             return ops._contains;
         }
-        if (typeof ops._eq === 'string') {
-            return ops._eq;
-        }
     }
 
     return '';
 }
 
-/** Field filters excluding the quick title-contains search (handled separately). */
+function itemLabel(row: ItemRow): string | null {
+    const display = row.displays?.title;
+    if (typeof display === 'string' && display.trim() !== '') {
+        return display;
+    }
+
+    const title = row.data?.title;
+    if (typeof title === 'string' && title.trim() !== '') {
+        return title;
+    }
+
+    if (title && typeof title === 'object' && !Array.isArray(title)) {
+        const first = Object.values(title as Record<string, unknown>).find(
+            (value) => typeof value === 'string' && value.trim() !== '',
+        );
+        if (typeof first === 'string') {
+            return first;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Hydrate advanced filter builder from URL/Inertia filters.
+ * Title quick-search is mirrored into a title/_contains rule so the builder
+ * can edit/clear the same filter the search box shows.
+ */
 function advancedRulesFromFilters(filters: ItemsFilters): FilterRule[] {
-    const withoutTitleQuick: Record<string, unknown> = {};
+    const fieldFilters: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(filters)) {
         if (FILTER_META_KEYS.has(key)) {
             continue;
         }
-        if (key === 'title' && typeof value === 'string') {
-            continue;
-        }
-        if (
-            key === 'title' &&
-            value &&
-            typeof value === 'object' &&
-            !Array.isArray(value)
-        ) {
-            const ops = { ...(value as Record<string, unknown>) };
-            if ('_contains' in ops && Object.keys(ops).length === 1) {
-                continue;
-            }
-            delete ops._contains;
-            if (Object.keys(ops).length === 0) {
-                continue;
-            }
-            withoutTitleQuick[key] = ops;
-            continue;
-        }
-        withoutTitleQuick[key] = value;
+        fieldFilters[key] = value;
     }
 
-    return parseFiltersFromProps(withoutTitleQuick);
+    return parseFiltersFromProps(fieldFilters);
+}
+
+/** Keep search box and title/_contains rule in sync before navigating. */
+function rulesWithTitleSearch(
+    rules: FilterRule[],
+    title: string,
+): FilterRule[] {
+    const withoutTitleContains = rules.filter(
+        (rule) => !(rule.field === 'title' && rule.operator === '_contains'),
+    );
+    const trimmed = title.trim();
+    if (trimmed === '') {
+        return withoutTitleContains;
+    }
+
+    return [
+        ...withoutTitleContains,
+        { ...emptyFilterRule('title'), operator: '_contains', value: trimmed },
+    ];
 }
 
 type SortableHeaderProps = {
@@ -234,6 +271,7 @@ export default function ItemsIndex({
     filters: ItemsFilters;
 }) {
     const { can } = useCan();
+    const isTrashed = filters.trashed === true;
     const [filterTitle, setFilterTitle] = useState(() =>
         titleContainsFromFilters(filters),
     );
@@ -243,6 +281,8 @@ export default function ItemsIndex({
     const [listColumns, setListColumns] = useState(listColumnsProp);
     const [columnAligns, setColumnAligns] = useState(columnAlignsProp);
     const [deleteItemId, setDeleteItemId] = useState<number | null>(null);
+    const [selected, setSelected] = useState<number[]>([]);
+    const hasSelection = selected.length > 0;
 
     useEffect(() => {
         setListColumns(listColumnsProp);
@@ -309,50 +349,55 @@ export default function ItemsIndex({
             rules?: FilterRule[];
             sort?: string;
             direction?: 'asc' | 'desc';
+            trashed?: boolean;
         } = {}) => {
-            const nextTitle =
-                overrides.title !== undefined
-                    ? overrides.title
-                    : filterTitle;
-            const nextRules = overrides.rules ?? filterRules;
+            const nextRules =
+                overrides.rules ??
+                (overrides.title !== undefined
+                    ? rulesWithTitleSearch(filterRules, overrides.title)
+                    : filterRules);
             const nextSort = overrides.sort ?? filters.sort ?? 'id';
             const nextDirection =
                 overrides.direction ??
                 (filters.direction === 'asc' ? 'asc' : 'desc');
+            const nextTrashed =
+                overrides.trashed !== undefined
+                    ? overrides.trashed
+                    : isTrashed;
 
             const filterPayload = serializeFilterRules(nextRules);
-            const trimmedTitle = nextTitle.trim();
-            if (trimmedTitle !== '') {
-                const titleBag = filterPayload.title ?? {};
-                if (!('_eq' in titleBag) && !('_neq' in titleBag) && !('_in' in titleBag)) {
-                    filterPayload.title = {
-                        ...titleBag,
-                        _contains: trimmedTitle,
-                    };
-                }
+
+            // ponytail: put query on the Wayfinder URL (not router data) so cleared
+            // filters are dropped instead of merged into the current search string.
+            const query: Record<string, unknown> = {
+                sort: nextSort,
+                direction: nextDirection,
+            };
+            if (Object.keys(filterPayload).length > 0) {
+                query.filter = filterPayload;
+            }
+            if (nextTrashed) {
+                query.trashed = true;
             }
 
             router.get(
-                collections.items.index.url(collection.id),
-                {
-                    filter:
-                        Object.keys(filterPayload).length > 0
-                            ? filterPayload
-                            : undefined,
-                    sort: nextSort,
-                    direction: nextDirection,
-                },
+                collections.items.index.url(collection.id, { query }),
+                {},
                 { preserveState: true, preserveScroll: true },
             );
         },
         [
             collection.id,
             filterRules,
-            filterTitle,
             filters.direction,
             filters.sort,
+            isTrashed,
         ],
     );
+
+    useEffect(() => {
+        setSelected([]);
+    }, [isTrashed, collection.id]);
 
     useEffect(() => {
         if (filterTitle === titleContainsFromFilters(filters)) {
@@ -360,7 +405,12 @@ export default function ItemsIndex({
         }
 
         const timer = setTimeout(() => {
-            visit({ title: filterTitle });
+            setFilterRules((current) => {
+                const nextRules = rulesWithTitleSearch(current, filterTitle);
+                visit({ rules: nextRules });
+
+                return nextRules;
+            });
         }, 350);
 
         return () => clearTimeout(timer);
@@ -369,9 +419,16 @@ export default function ItemsIndex({
     const clearFilters = useCallback(() => {
         setFilterTitle('');
         setFilterRules([]);
-        visit({ title: '', rules: [] });
+        visit({ rules: [] });
     }, [visit]);
 
+    const applyFilterRules = useCallback(() => {
+        const titleContains = filterRules.find(
+            (rule) => rule.field === 'title' && rule.operator === '_contains',
+        );
+        setFilterTitle(titleContains?.value ?? '');
+        visit({ rules: filterRules });
+    }, [filterRules, visit]);
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     );
@@ -392,11 +449,34 @@ export default function ItemsIndex({
     };
 
     const collectionForm = useCollectionEditDrawer();
-    const colSpan = listColumns.length + 1;
+    const colSpan = listColumns.length + 2;
     const canHideColumn = listColumns.length > 1;
     const activeSort = filters.sort ?? 'id';
     const activeDirection =
         filters.direction === 'asc' ? 'asc' : ('desc' as const);
+
+    const toggleAll = (checked: boolean): void => {
+        setSelected(checked ? items.data.map((row) => row.id) : []);
+    };
+
+    const toggleRow = (id: number): void => {
+        setSelected((prev) =>
+            prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id],
+        );
+    };
+
+    const bulk = (action: 'delete' | 'restore' | 'force_delete'): void => {
+        router.post(
+            ItemController.bulk.url(collection.id),
+            { ids: selected, action },
+            {
+                preserveScroll: true,
+                onSuccess: () => setSelected([]),
+            },
+        );
+    };
+
+    const selectedRows = items.data.filter((row) => selected.includes(row.id));
 
     const confirmDelete = (): void => {
         if (deleteItemId === null) {
@@ -520,17 +600,109 @@ export default function ItemsIndex({
                     <DataTableToolbar
                         search={filterTitle}
                         onSearchChange={setFilterTitle}
-                        searchPlaceholder="Search title…"
+                        searchPlaceholder={
+                            isTrashed ? 'Search trash…' : 'Search title…'
+                        }
+                        selectedCount={selected.length}
+                        onClearSelection={() => setSelected([])}
+                        bulkActions={
+                            <>
+                                <AskAiButton
+                                    mode="labeled"
+                                    prompt={seedItemsBulkPrompt(
+                                        {
+                                            id: collection.id,
+                                            name: collection.name,
+                                        },
+                                        selectedRows.map((row) => ({
+                                            id: row.id,
+                                            label: itemLabel(row),
+                                        })),
+                                    )}
+                                />
+                                {!isTrashed &&
+                                    can(
+                                        PermissionEnum.CanDeleteCollections,
+                                    ) && (
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() => bulk('delete')}
+                                        >
+                                            Delete
+                                        </Button>
+                                    )}
+                                {isTrashed &&
+                                    can(
+                                        PermissionEnum.CanRestoreCollections,
+                                    ) && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => bulk('restore')}
+                                        >
+                                            Restore
+                                        </Button>
+                                    )}
+                                {isTrashed &&
+                                    can(
+                                        PermissionEnum.CanForceDeleteCollections,
+                                    ) && (
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() =>
+                                                bulk('force_delete')
+                                            }
+                                        >
+                                            Delete permanently
+                                        </Button>
+                                    )}
+                            </>
+                        }
                         trailing={
                             <ItemFiltersBuilder
                                 fields={collection.fields ?? []}
                                 rules={filterRules}
                                 onChange={setFilterRules}
-                                onApply={() => visit()}
+                                onApply={applyFilterRules}
                                 onClear={clearFilters}
                             />
                         }
                     />
+                }
+                filtersRight={
+                    hasSelection ? null : (
+                        <ToggleGroup
+                            type="single"
+                            value={isTrashed ? 'trashed' : 'active'}
+                            onValueChange={(value) => {
+                                if (!value) {
+                                    return;
+                                }
+
+                                visit({ trashed: value === 'trashed' });
+                            }}
+                        >
+                            <ToggleGroupItem
+                                value="active"
+                                aria-label="Active items"
+                                className="px-2.5"
+                            >
+                                <FolderOpen className="size-4" />
+                            </ToggleGroupItem>
+                            <ToggleGroupItem
+                                value="trashed"
+                                aria-label="Trash"
+                                className="px-2.5"
+                            >
+                                <Trash2 className="size-4" />
+                            </ToggleGroupItem>
+                        </ToggleGroup>
+                    )
                 }
                 footer={
                     items.last_page > 1 ? (
@@ -548,6 +720,19 @@ export default function ItemsIndex({
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead className="w-10">
+                                        <Checkbox
+                                            checked={
+                                                items.data.length > 0 &&
+                                                selected.length ===
+                                                    items.data.length
+                                            }
+                                            onCheckedChange={(c) =>
+                                                toggleAll(c === true)
+                                            }
+                                            aria-label="Select all"
+                                        />
+                                    </TableHead>
                                     <SortableContext
                                         items={listColumns}
                                         strategy={horizontalListSortingStrategy}
@@ -570,7 +755,10 @@ export default function ItemsIndex({
                                                 align={
                                                     columnAligns[path] ?? 'left'
                                                 }
-                                                canHide={canHideColumn}
+                                                canHide={
+                                                    canHideColumn &&
+                                                    !hasSelection
+                                                }
                                                 onSort={(direction) =>
                                                     visit({
                                                         sort: path,
@@ -584,7 +772,10 @@ export default function ItemsIndex({
                                                     })
                                                 }
                                                 onHide={() => {
-                                                    if (!canHideColumn) {
+                                                    if (
+                                                        !canHideColumn ||
+                                                        hasSelection
+                                                    ) {
                                                         return;
                                                     }
 
@@ -600,14 +791,18 @@ export default function ItemsIndex({
                                     </SortableContext>
                                     <TableHead className="w-[1%] whitespace-nowrap text-right">
                                         <div className="flex items-center justify-end gap-1">
-                                            <ColumnPickerPopover
-                                                fields={collection.fields ?? []}
-                                                listColumns={listColumns}
-                                                relatedFieldsCatalog={
-                                                    relatedFieldsCatalog
-                                                }
-                                                onChange={persistColumns}
-                                            />
+                                            {!hasSelection ? (
+                                                <ColumnPickerPopover
+                                                    fields={
+                                                        collection.fields ?? []
+                                                    }
+                                                    listColumns={listColumns}
+                                                    relatedFieldsCatalog={
+                                                        relatedFieldsCatalog
+                                                    }
+                                                    onChange={persistColumns}
+                                                />
+                                            ) : null}
                                             <span>Actions</span>
                                         </div>
                                     </TableHead>
@@ -630,14 +825,34 @@ export default function ItemsIndex({
                                         return (
                                             <TableRow
                                                 key={row.id}
-                                                className="cursor-pointer"
-                                                tabIndex={0}
-                                                role="link"
-                                                aria-label={`Edit item ${row.id}`}
-                                                onClick={() =>
-                                                    router.visit(editUrl)
+                                                className={
+                                                    isTrashed
+                                                        ? undefined
+                                                        : 'cursor-pointer'
                                                 }
+                                                tabIndex={
+                                                    isTrashed ? undefined : 0
+                                                }
+                                                role={
+                                                    isTrashed
+                                                        ? undefined
+                                                        : 'link'
+                                                }
+                                                aria-label={
+                                                    isTrashed
+                                                        ? undefined
+                                                        : `Edit item ${row.id}`
+                                                }
+                                                onClick={() => {
+                                                    if (!isTrashed) {
+                                                        router.visit(editUrl);
+                                                    }
+                                                }}
                                                 onKeyDown={(event) => {
+                                                    if (isTrashed) {
+                                                        return;
+                                                    }
+
                                                     if (
                                                         event.key === 'Enter' ||
                                                         event.key === ' '
@@ -647,6 +862,21 @@ export default function ItemsIndex({
                                                     }
                                                 }}
                                             >
+                                                <TableCell
+                                                    onClick={(event) =>
+                                                        event.stopPropagation()
+                                                    }
+                                                >
+                                                    <Checkbox
+                                                        checked={selected.includes(
+                                                            row.id,
+                                                        )}
+                                                        onCheckedChange={() =>
+                                                            toggleRow(row.id)
+                                                        }
+                                                        aria-label={`Select item ${row.id}`}
+                                                    />
+                                                </TableCell>
                                                 {listColumns.map((path) => (
                                                     <TableCell
                                                         key={path}
@@ -665,41 +895,115 @@ export default function ItemsIndex({
                                                     </TableCell>
                                                 ))}
                                                 <TableCell className="w-[1%] whitespace-nowrap text-right">
-                                                    <div className="flex items-center justify-end gap-1">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            asChild
-                                                        >
-                                                            <Link
-                                                                href={editUrl}
-                                                                onClick={(
-                                                                    event,
-                                                                ) =>
-                                                                    event.stopPropagation()
-                                                                }
-                                                            >
-                                                                <Pencil className="size-3.5" />
-                                                                Edit
-                                                            </Link>
-                                                        </Button>
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="text-destructive hover:text-destructive"
-                                                            onClick={(
-                                                                event,
-                                                            ) => {
-                                                                event.stopPropagation();
-                                                                setDeleteItemId(
-                                                                    row.id,
-                                                                );
-                                                            }}
-                                                        >
-                                                            <Trash2 className="size-3.5" />
-                                                            Delete
-                                                        </Button>
+                                                    <div
+                                                        className="flex items-center justify-end gap-1"
+                                                        onClick={(event) =>
+                                                            event.stopPropagation()
+                                                        }
+                                                    >
+                                                        <AskAiButton
+                                                            stopPropagation
+                                                            prompt={seedItemPrompt(
+                                                                {
+                                                                    id: row.id,
+                                                                    collection_id:
+                                                                        collection.id,
+                                                                    label: itemLabel(
+                                                                        row,
+                                                                    ),
+                                                                },
+                                                            )}
+                                                        />
+                                                        {isTrashed ? (
+                                                            <>
+                                                                {can(
+                                                                    PermissionEnum.CanRestoreCollections,
+                                                                ) && (
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={() =>
+                                                                            router.post(
+                                                                                ItemController.restore.url(
+                                                                                    {
+                                                                                        collection:
+                                                                                            collection.id,
+                                                                                        item: row.id,
+                                                                                    },
+                                                                                ),
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <RotateCcw className="size-3.5" />
+                                                                        Restore
+                                                                    </Button>
+                                                                )}
+                                                                {can(
+                                                                    PermissionEnum.CanForceDeleteCollections,
+                                                                ) && (
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="destructive"
+                                                                        size="sm"
+                                                                        onClick={() =>
+                                                                            router.delete(
+                                                                                ItemController.forceDelete.url(
+                                                                                    {
+                                                                                        collection:
+                                                                                            collection.id,
+                                                                                        item: row.id,
+                                                                                    },
+                                                                                ),
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Trash2 className="size-3.5" />
+                                                                        Delete
+                                                                        permanently
+                                                                    </Button>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    asChild
+                                                                >
+                                                                    <Link
+                                                                        href={
+                                                                            editUrl
+                                                                        }
+                                                                        onClick={(
+                                                                            event,
+                                                                        ) =>
+                                                                            event.stopPropagation()
+                                                                        }
+                                                                    >
+                                                                        <Pencil className="size-3.5" />
+                                                                        Edit
+                                                                    </Link>
+                                                                </Button>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="text-destructive hover:text-destructive"
+                                                                    onClick={(
+                                                                        event,
+                                                                    ) => {
+                                                                        event.stopPropagation();
+                                                                        setDeleteItemId(
+                                                                            row.id,
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    <Trash2 className="size-3.5" />
+                                                                    Delete
+                                                                </Button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>

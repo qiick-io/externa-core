@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { GroupFormDrawer } from '@/components/admin/group-form-drawer';
+import { AskAiButton } from '@/components/ai/ask-ai-button';
 import {
     PageLayout,
     TablePagination,
@@ -24,6 +25,7 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
+import { seedGroupPrompt, seedGroupsBulkPrompt } from '@/lib/ai-open';
 import { normalizePaginated  } from '@/lib/pagination';
 import type {LaravelPaginated} from '@/lib/pagination';
 import type { AdminGroupRow, BreadcrumbItem, Paginated } from '@/types';
@@ -88,6 +90,10 @@ export default function AdminGroupsIndex({
         setDrawerOpen(true);
     };
 
+    const selectedRows = groups.data.filter((group) =>
+        selected.includes(group.id),
+    );
+
     return (
         <AppLayout
             breadcrumbs={breadcrumbs}
@@ -122,26 +128,34 @@ export default function AdminGroupsIndex({
                             selectedCount={selected.length}
                             onClearSelection={() => setSelected([])}
                             bulkActions={
-                                can(PermissionEnum.CanDeleteGroups) ? (
-                                    <Button
-                                        type="button"
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() =>
-                                            router.delete(
-                                                adminRoutes.groups.bulkDestroy(),
-                                                {
-                                                    data: { ids: selected },
-                                                    preserveScroll: true,
-                                                    onSuccess: () =>
-                                                        setSelected([]),
-                                                },
-                                            )
-                                        }
-                                    >
-                                        Delete
-                                    </Button>
-                                ) : null
+                                <>
+                                    <AskAiButton
+                                        mode="labeled"
+                                        prompt={seedGroupsBulkPrompt(
+                                            selectedRows,
+                                        )}
+                                    />
+                                    {can(PermissionEnum.CanDeleteGroups) ? (
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() =>
+                                                router.delete(
+                                                    adminRoutes.groups.bulkDestroy(),
+                                                    {
+                                                        data: { ids: selected },
+                                                        preserveScroll: true,
+                                                        onSuccess: () =>
+                                                            setSelected([]),
+                                                    },
+                                                )
+                                            }
+                                        >
+                                            Delete
+                                        </Button>
+                                    ) : null}
+                                </>
                             }
                         />
                     }
@@ -178,13 +192,16 @@ export default function AdminGroupsIndex({
                                     <TableHead>Slug</TableHead>
                                     <TableHead>Roles</TableHead>
                                     <TableHead>Members</TableHead>
+                                    <TableHead className="w-[1%] text-right">
+                                        Actions
+                                    </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {groups.data.length === 0 ? (
                                     <TableRow>
                                         <TableCell
-                                            colSpan={5}
+                                            colSpan={6}
                                             className="text-muted-foreground"
                                         >
                                             No groups yet.
@@ -248,6 +265,19 @@ export default function AdminGroupsIndex({
                                             </TableCell>
                                             <TableCell>
                                                 {group.users_count ?? '—'}
+                                            </TableCell>
+                                            <TableCell
+                                                className="text-right"
+                                                onClick={(e) =>
+                                                    e.stopPropagation()
+                                                }
+                                            >
+                                                <AskAiButton
+                                                    stopPropagation
+                                                    prompt={seedGroupPrompt(
+                                                        group,
+                                                    )}
+                                                />
                                             </TableCell>
                                         </TableRow>
                                     ))

@@ -73,8 +73,10 @@ class AiChatController extends Controller
         $attachments = $this->resolveAttachments($user, $validated['attachment_ids'] ?? []);
 
         if (! app()->runningUnitTests()) {
-            @ini_set('max_execution_time', '600');
-            set_time_limit(600);
+            // ponytail: FPM defaults to 30s; tool loops + Xdebug burn CPU even while LM I/O waits.
+            // Refresh to 0 (unlimited) — nginx/fastcgi_read_timeout (600s) is the outer ceiling.
+            @ini_set('max_execution_time', '0');
+            set_time_limit(0);
         }
 
         $displayMessage = $validated['message'];
@@ -166,6 +168,11 @@ class AiChatController extends Controller
 
             try {
                 foreach ($stream as $event) {
+                    // Keep the worker alive across long multi-tool LM turns.
+                    if (! app()->runningUnitTests()) {
+                        set_time_limit(0);
+                    }
+
                     $emit((string) $event);
                 }
 

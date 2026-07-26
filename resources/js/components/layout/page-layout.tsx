@@ -16,6 +16,10 @@ export type PageLayoutProps = {
 
 /**
  * Standard admin page scaffold with optional header, scrollable body, and footer.
+ *
+ * When a page enters multi-select mode, callers should pass `filtersRight={null}`
+ * (or omit it) so only bulk actions remain visible in the toolbar row.
+ *
  * @param {PageLayoutProps} props - Layout section props.
  * @returns {JSX.Element}
  */

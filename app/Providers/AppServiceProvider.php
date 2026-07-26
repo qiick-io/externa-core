@@ -100,6 +100,14 @@ class AppServiceProvider extends ServiceProvider
 
             return null;
         });
+
+        Gate::define('viewPulse', function (?User $user = null): bool {
+            if ($user === null) {
+                return false;
+            }
+
+            return app(EffectivePermissionResolver::class)->isSuperAdmin($user);
+        });
     }
 
     protected function configureActivityLogging(): void

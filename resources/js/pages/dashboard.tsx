@@ -1,4 +1,5 @@
 import { Deferred, Head, Link } from '@inertiajs/react';
+import { useState } from 'react';
 import {
     Bar,
     BarChart,
@@ -26,6 +27,7 @@ import {
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
+import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import { useTranslation } from 'react-i18next';
 import type { BreadcrumbItem } from '@/types';
@@ -100,6 +102,40 @@ type ContentEventBreakdown = {
     deleted: number;
 };
 
+type HorizonWorkload = {
+    name: string;
+    length: number;
+    wait: number;
+    processes: number;
+};
+
+type HorizonMetrics = {
+    available: boolean;
+    status: string;
+    masters: number;
+    processes: number;
+    pending: number;
+    failed: number;
+    jobs_per_minute: number | null;
+    throughput: number | null;
+    workloads: HorizonWorkload[];
+};
+
+type HealthMetrics = {
+    queue_connection: string;
+    broadcast_connection: string;
+    pulse_enabled: boolean;
+    pulse_ingest: string;
+    pulse_available: boolean;
+    redis_ok: boolean;
+    failed_jobs: number;
+    pending_jobs: number;
+    exceptions_24h: number;
+    slow_jobs_24h: number;
+    slow_queries_24h: number;
+    horizon: HorizonMetrics;
+};
+
 type DashboardProps = {
     latestActivity: LatestActivityItem[];
     fileStats: { files_count: number; folders_count: number; files_size_sum: number };
@@ -113,7 +149,10 @@ type DashboardProps = {
     collectionCounts?: CollectionCountItem[];
     activityOverTime?: ActivityOverTimeItem[];
     contentEventBreakdown?: ContentEventBreakdown;
+    health?: HealthMetrics;
 };
+
+type DashboardTab = 'overview' | 'health';
 
 /**
  * Formats a byte count using binary units (B through TB).
@@ -152,8 +191,10 @@ export default function Dashboard({
     collectionCounts = [],
     activityOverTime = [],
     contentEventBreakdown = { created: 0, updated: 0, deleted: 0 },
+    health,
 }: DashboardProps) {
     const { t } = useTranslation();
+    const [tab, setTab] = useState<DashboardTab>('overview');
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: t('dashboard.title'),
@@ -173,10 +214,38 @@ export default function Dashboard({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={t('dashboard.title')} />
             <PageLayout
-                description={t('dashboard.description')}
                 scrollContent
+                subheader={
+                    <nav
+                        className="inline-flex items-center gap-3 text-sm"
+                        data-test="dashboard-tabs"
+                        aria-label={t('dashboard.tabsLabel')}
+                    >
+                        {(['overview', 'health'] as const).map((value) => (
+                            <button
+                                key={value}
+                                type="button"
+                                onClick={() => setTab(value)}
+                                className={cn(
+                                    'border-b-2 pb-0.5 transition-colors',
+                                    tab === value
+                                        ? 'border-foreground text-foreground font-medium'
+                                        : 'text-muted-foreground border-transparent hover:text-foreground',
+                                )}
+                                data-test={`dashboard-tab-${value}`}
+                                aria-current={tab === value ? 'page' : undefined}
+                            >
+                                {value === 'overview'
+                                    ? t('dashboard.tabOverview')
+                                    : t('dashboard.tabHealth')}
+                            </button>
+                        ))}
+                    </nav>
+                }
             >
-                {/* ponytail: natural-height cards; PageLayout scrollContent scrolls the page */}
+                {tab === 'health' ? (
+                    <DashboardHealthPanel health={health} />
+                ) : (
                 <div className="flex flex-col gap-4">
                     <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
                         <Card className="lg:col-span-4">
@@ -834,7 +903,319 @@ export default function Dashboard({
                     </div>
                 </div>
                 </div>
+                )}
             </PageLayout>
         </AppLayout>
+    );
+}
+
+function MetricCard({
+    label,
+    value,
+    tone = 'default',
+}: {
+    label: string;
+    value: string;
+    tone?: 'default' | 'danger' | 'ok';
+}) {
+    return (
+        <Card>
+            <CardHeader className="pb-2">
+                <CardDescription>{label}</CardDescription>
+                <CardTitle
+                    className={cn(
+                        'text-xl',
+                        tone === 'danger' && 'text-destructive',
+                        tone === 'ok' && 'text-emerald-600 dark:text-emerald-400',
+                    )}
+                >
+                    {value}
+                </CardTitle>
+            </CardHeader>
+        </Card>
+    );
+}
+
+function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
+    const { t } = useTranslation();
+
+    if (!health) {
+        return (
+            <div className="text-muted-foreground text-sm" data-test="dashboard-health">
+                {t('dashboard.healthUnavailable')}
+            </div>
+        );
+    }
+
+    const horizon = health.horizon;
+    const pulseQuiet =
+        health.exceptions_24h === 0 &&
+        health.slow_jobs_24h === 0 &&
+        health.slow_queries_24h === 0;
+    const pulseChart = [
+        { metric: t('dashboard.healthExceptions'), count: health.exceptions_24h },
+        { metric: t('dashboard.healthSlowJobs'), count: health.slow_jobs_24h },
+        { metric: t('dashboard.healthSlowQueries'), count: health.slow_queries_24h },
+    ];
+
+    return (
+        <div className="flex flex-col gap-4" data-test="dashboard-health">
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <MetricCard
+                    label={t('dashboard.healthQueue')}
+                    value={health.queue_connection}
+                />
+                <MetricCard
+                    label={t('dashboard.healthBroadcast')}
+                    value={health.broadcast_connection}
+                />
+                <MetricCard
+                    label={t('dashboard.healthRedis')}
+                    value={health.redis_ok
+                        ? t('dashboard.healthOk')
+                        : t('dashboard.healthDown')}
+                    tone={health.redis_ok ? 'ok' : 'danger'}
+                />
+                <MetricCard
+                    label={t('dashboard.healthPendingJobs')}
+                    value={health.pending_jobs.toLocaleString()}
+                />
+            </section>
+
+            <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+                <Card className="lg:col-span-5">
+                    <CardHeader className="pb-3">
+                        <CardTitle>{t('dashboard.healthPulseTitle')}</CardTitle>
+                        <CardDescription>
+                            {health.pulse_enabled
+                                ? t('dashboard.healthPulseDesc', {
+                                      ingest: health.pulse_ingest,
+                                  })
+                                : t('dashboard.healthPulseOff')}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {!health.pulse_available ? (
+                            <p className="text-muted-foreground text-sm">
+                                {t('dashboard.healthPulseEmpty')}
+                            </p>
+                        ) : (
+                            <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                    <div className="text-muted-foreground text-xs">
+                                        {t('dashboard.healthExceptions')}
+                                    </div>
+                                    <div
+                                        className={cn(
+                                            'text-2xl font-semibold',
+                                            health.exceptions_24h > 0 && 'text-destructive',
+                                        )}
+                                    >
+                                        {health.exceptions_24h.toLocaleString()}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground text-xs">
+                                        {t('dashboard.healthSlowJobs')}
+                                    </div>
+                                    <div className="text-2xl font-semibold">
+                                        {health.slow_jobs_24h.toLocaleString()}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground text-xs">
+                                        {t('dashboard.healthSlowQueries')}
+                                    </div>
+                                    <div className="text-2xl font-semibold">
+                                        {health.slow_queries_24h.toLocaleString()}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card className="lg:col-span-7">
+                    <CardHeader className="pb-3">
+                        <CardTitle>{t('dashboard.healthPulseChartTitle')}</CardTitle>
+                        <CardDescription>
+                            {t('dashboard.healthPulseChartDesc')}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-44 w-full">
+                            {!health.pulse_available || pulseQuiet ? (
+                                <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
+                                    {t('dashboard.healthPulseQuiet')}
+                                </div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={pulseChart}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <XAxis dataKey="metric" tick={{ fontSize: 11 }} />
+                                        <YAxis
+                                            allowDecimals={false}
+                                            tick={{ fontSize: 11 }}
+                                            width={32}
+                                        />
+                                        <Tooltip />
+                                        <Bar
+                                            dataKey="count"
+                                            fill="var(--color-primary)"
+                                            radius={[4, 4, 0, 0]}
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            </section>
+
+            <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+                <Card className="lg:col-span-5">
+                    <CardHeader className="pb-3">
+                        <CardTitle>{t('dashboard.healthHorizonTitle')}</CardTitle>
+                        <CardDescription>
+                            {horizon.available
+                                ? t('dashboard.healthHorizonDesc')
+                                : t('dashboard.healthHorizonUnavailable')}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {!horizon.available ? (
+                            <p className="text-muted-foreground text-sm">
+                                {t('dashboard.healthHorizonEmpty')}
+                            </p>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                <div>
+                                    <div className="text-muted-foreground text-xs">
+                                        {t('dashboard.healthHorizonStatus')}
+                                    </div>
+                                    <div
+                                        className={cn(
+                                            'text-2xl font-semibold',
+                                            horizon.status === 'running'
+                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                : 'text-destructive',
+                                        )}
+                                    >
+                                        {horizon.status === 'running'
+                                            ? t('dashboard.healthHorizonRunning')
+                                            : t('dashboard.healthHorizonStopped')}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground text-xs">
+                                        {t('dashboard.healthHorizonPending')}
+                                    </div>
+                                    <div className="text-2xl font-semibold">
+                                        {horizon.pending.toLocaleString()}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground text-xs">
+                                        {t('dashboard.healthHorizonFailed')}
+                                    </div>
+                                    <div
+                                        className={cn(
+                                            'text-2xl font-semibold',
+                                            horizon.failed > 0 && 'text-destructive',
+                                        )}
+                                    >
+                                        {horizon.failed.toLocaleString()}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground text-xs">
+                                        {t('dashboard.healthHorizonProcesses')}
+                                    </div>
+                                    <div className="text-2xl font-semibold">
+                                        {horizon.processes.toLocaleString()}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground text-xs">
+                                        {t('dashboard.healthHorizonThroughput')}
+                                    </div>
+                                    <div className="text-2xl font-semibold">
+                                        {(horizon.jobs_per_minute ?? 0).toLocaleString()}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground text-xs">
+                                        {t('dashboard.healthFailedJobs')}
+                                    </div>
+                                    <div
+                                        className={cn(
+                                            'text-2xl font-semibold',
+                                            health.failed_jobs > 0 && 'text-destructive',
+                                        )}
+                                    >
+                                        {health.failed_jobs.toLocaleString()}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card className="lg:col-span-7">
+                    <CardHeader className="pb-3">
+                        <CardTitle>{t('dashboard.healthWorkloadsTitle')}</CardTitle>
+                        <CardDescription>
+                            {t('dashboard.healthWorkloadsDesc')}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {!horizon.available || horizon.workloads.length === 0 ? (
+                            <p className="text-muted-foreground text-sm">
+                                {t('dashboard.healthWorkloadsEmpty')}
+                            </p>
+                        ) : (
+                            <div className="overflow-x-auto rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>
+                                                {t('dashboard.healthWorkloadQueue')}
+                                            </TableHead>
+                                            <TableHead className="w-[6rem] text-right">
+                                                {t('dashboard.healthWorkloadLength')}
+                                            </TableHead>
+                                            <TableHead className="w-[6rem] text-right">
+                                                {t('dashboard.healthWorkloadWait')}
+                                            </TableHead>
+                                            <TableHead className="w-[6rem] text-right">
+                                                {t('dashboard.healthWorkloadProcesses')}
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {horizon.workloads.map((row) => (
+                                            <TableRow key={row.name}>
+                                                <TableCell className="font-medium">
+                                                    {row.name}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {row.length.toLocaleString()}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {row.wait.toLocaleString()}s
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {row.processes.toLocaleString()}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </section>
+        </div>
     );
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Collections;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Collections\ApplyCollectionPackRequest;
+use App\Http\Requests\Collections\BulkCollectionActionRequest;
 use App\Http\Requests\Collections\StoreContentCollectionRequest;
 use App\Http\Requests\Collections\UpdateContentCollectionRequest;
 use App\Http\Requests\Collections\UpsertSingletonCollectionItemRequest;
@@ -203,6 +204,25 @@ class ContentCollectionController extends Controller
 
         return redirect()->route('collections.index', ['trashed' => 1])
             ->with('success', __('Collection permanently deleted.'));
+    }
+
+    /**
+     * Run a bulk delete, restore, or force-delete action on selected collections.
+     */
+    public function bulk(BulkCollectionActionRequest $request): RedirectResponse
+    {
+        $action = $request->validated('action');
+        $ids = $request->validated('ids');
+
+        match ($action) {
+            'delete' => Collection::query()->whereIn('id', $ids)->delete(),
+            'restore' => Collection::query()->onlyTrashed()->whereIn('id', $ids)->restore(),
+            'force_delete' => Collection::query()->onlyTrashed()->whereIn('id', $ids)->forceDelete(),
+        };
+
+        return redirect()
+            ->back()
+            ->with('success', __('Bulk action completed.'));
     }
 
     /**

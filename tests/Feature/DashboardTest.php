@@ -140,7 +140,50 @@ test('authorized users can visit the dashboard', function () {
             ->has('contentEventBreakdown', fn (AssertableInertia $props) => $props
                 ->has('created')
                 ->has('updated')
-                ->has('deleted')));
+                ->has('deleted'))
+            ->has('health', fn (AssertableInertia $props) => $props
+                ->has('queue_connection')
+                ->has('broadcast_connection')
+                ->has('pulse_enabled')
+                ->has('pulse_ingest')
+                ->has('pulse_available')
+                ->has('redis_ok')
+                ->has('failed_jobs')
+                ->has('pending_jobs')
+                ->has('exceptions_24h')
+                ->has('slow_jobs_24h')
+                ->has('slow_queries_24h')
+                ->has('horizon', fn (AssertableInertia $horizon) => $horizon
+                    ->has('available')
+                    ->has('status')
+                    ->has('masters')
+                    ->has('processes')
+                    ->has('pending')
+                    ->has('failed')
+                    ->has('jobs_per_minute')
+                    ->has('throughput')
+                    ->has('workloads')
+                    ->etc())
+                ->etc()));
+});
+
+test('dashboard health props include pulse and horizon aggregates', function () {
+    $user = grantDashboardPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowDashboard->value,
+    ]);
+    $this->actingAs($user);
+
+    $this->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('dashboard')
+            ->has('health.exceptions_24h')
+            ->has('health.slow_queries_24h')
+            ->has('health.horizon.available')
+            ->missing('health.pulse_path')
+            ->missing('health.horizon_path')
+            ->missing('health.can_view_pulse')
+            ->missing('health.can_view_horizon'));
 });
 
 test('dashboard insights include collection item counts', function () {

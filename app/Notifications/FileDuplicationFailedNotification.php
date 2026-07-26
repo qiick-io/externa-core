@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Notifications\Concerns\BroadcastsWithDatabase;
 use Illuminate\Notifications\Notification;
 
 /**
@@ -9,18 +10,12 @@ use Illuminate\Notifications\Notification;
  */
 class FileDuplicationFailedNotification extends Notification
 {
+    use BroadcastsWithDatabase;
+
     public function __construct(
         public readonly string $jobId,
         public readonly string $message,
     ) {}
-
-    /**
-     * @return list<string>
-     */
-    public function via(object $notifiable): array
-    {
-        return ['database'];
-    }
 
     /**
      * @return array<string, mixed>

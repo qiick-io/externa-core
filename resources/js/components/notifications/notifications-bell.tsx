@@ -8,6 +8,10 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import {
+    ensureEcho,
+    isRealtimeEnabled,
+} from '@/lib/echo';
+import {
     fetchUnreadNotificationCount,
     NOTIFICATIONS_UPDATED_EVENT,
 } from '@/lib/notifications-api';
@@ -17,12 +21,11 @@ const UNREAD_POLL_INTERVAL_MS = 60_000;
 
 /**
  * Sidebar bell trigger for the notifications drawer.
- * @param {*} props - Component props.
- * @returns {JSX.Element}
  */
 export function NotificationsBell() {
     const page = usePage();
     const sharedUnreadCount = page.props.notifications?.unread_count ?? 0;
+    const realtimeOn = isRealtimeEnabled(page.props.realtime);
     const [unreadCount, setUnreadCount] = useState(sharedUnreadCount);
     const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -39,25 +42,45 @@ export function NotificationsBell() {
     }, [sharedUnreadCount]);
 
     useEffect(() => {
-        if (!page.props.auth.user) {
+        const user = page.props.auth.user;
+        if (!user) {
             return;
         }
 
-        const poll = window.setInterval(
-            refreshUnreadCount,
-            UNREAD_POLL_INTERVAL_MS,
-        );
-
         window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, refreshUnreadCount);
 
+        let poll: number | undefined;
+        if (!realtimeOn) {
+            // Fallback when BROADCAST_CONNECTION=log/null
+            poll = window.setInterval(
+                refreshUnreadCount,
+                UNREAD_POLL_INTERVAL_MS,
+            );
+        } else {
+            const echo = ensureEcho(true);
+            echo
+                ?.private(`App.Models.User.${user.id}`)
+                .notification(() => {
+                    setUnreadCount((count) => count + 1);
+                    window.dispatchEvent(
+                        new CustomEvent(NOTIFICATIONS_UPDATED_EVENT),
+                    );
+                });
+        }
+
         return () => {
-            window.clearInterval(poll);
+            if (poll) {
+                window.clearInterval(poll);
+            }
             window.removeEventListener(
                 NOTIFICATIONS_UPDATED_EVENT,
                 refreshUnreadCount,
             );
+            if (realtimeOn) {
+                ensureEcho(true)?.leave(`App.Models.User.${user.id}`);
+            }
         };
-    }, [page.props.auth.user, refreshUnreadCount]);
+    }, [page.props.auth.user, realtimeOn, refreshUnreadCount]);
 
     const handleUnreadCountChange = useCallback((count: number) => {
         setUnreadCount(count);

@@ -165,6 +165,25 @@ test('field condition evaluator matches equals empty and not_empty', function ()
 
     expect($evaluator->effectiveFlags($emptyField, ['kind' => ''])['hidden'])->toBeTrue()
         ->and($evaluator->effectiveFlags($emptyField, ['kind' => 'set'])['hidden'])->toBeFalse();
+
+    $showWhen = new CollectionField([
+        'name' => 'video_url',
+        'type' => FieldTypeEnum::String,
+        'settings' => [
+            'conditions' => [
+                'rules' => [
+                    ['field' => 'kind', 'operator' => 'equals', 'value' => 'video'],
+                ],
+                'hidden' => false,
+                'required' => true,
+            ],
+        ],
+    ]);
+
+    expect($evaluator->effectiveFlags($showWhen, ['kind' => 'video']))
+        ->toMatchArray(['hidden' => false, 'required' => true])
+        ->and($evaluator->effectiveFlags($showWhen, ['kind' => 'image']))
+        ->toMatchArray(['hidden' => true, 'required' => false]);
 });
 
 test('select allow_other accepts values outside options', function () {

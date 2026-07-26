@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Collections;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Collections\BulkItemActionRequest;
 use App\Http\Requests\Collections\StoreCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionListColumnsRequest;
@@ -359,6 +360,42 @@ class ItemController extends Controller
             'collection' => $collection,
             'trashed' => 1,
         ])->with('success', __('Item permanently deleted.'));
+    }
+
+    /**
+     * Run a bulk delete, restore, or force-delete action on selected items.
+     */
+    public function bulk(BulkItemActionRequest $request, Collection $collection): RedirectResponse
+    {
+        $action = $request->validated('action');
+        /** @var list<int> $ids */
+        $ids = $request->validated('ids');
+
+        $query = CollectionItem::query()
+            ->where('collection_id', $collection->id)
+            ->whereIn('id', $ids);
+
+        if ($action === 'restore' || $action === 'force_delete') {
+            $query->onlyTrashed();
+        }
+
+        $items = $query->get();
+
+        foreach ($items as $item) {
+            if ($action !== 'restore') {
+                $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+            }
+
+            match ($action) {
+                'delete' => $item->delete(),
+                'restore' => $item->restore(),
+                'force_delete' => $item->forceDelete(),
+            };
+        }
+
+        return redirect()
+            ->back()
+            ->with('success', __('Bulk action completed.'));
     }
 
     /**

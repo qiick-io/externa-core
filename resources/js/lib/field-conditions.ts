@@ -145,6 +145,9 @@ export function parseFieldConditions(
 /**
  * Effective hidden / readonly / required after applying conditions to base settings.
  *
+ * When rules match: apply optional hidden/readonly/required overrides.
+ * When rules do not match and hidden is explicitly false (show-when): force hidden.
+ *
  * ponytail: AND-only equality/emptiness — no OR / nested groups.
  */
 export function evaluateFieldFlags(
@@ -174,6 +177,11 @@ export function evaluateFieldFlags(
 
     const matches = conditions.rules.every((rule) => singleRuleMatches(rule, data));
     if (!matches) {
+        // Show-when: explicit hidden:false means visible only while rules match.
+        if (conditions.hidden === false) {
+            flags.hidden = true;
+        }
+
         return flags;
     }
 

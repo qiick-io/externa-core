@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { AskAiButton } from '@/components/ai/ask-ai-button';
 import {
     FilterSearch,
     filterSelectClassName,
@@ -22,6 +23,7 @@ import {
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
+import { seedActivityLogPrompt } from '@/lib/ai-open';
 import { normalizePaginated  } from '@/lib/pagination';
 import type {LaravelPaginated} from '@/lib/pagination';
 import type {
@@ -252,13 +254,16 @@ export default function AdminActivityLogsIndex({
                                 <TableHead>Action</TableHead>
                                 <TableHead>Description</TableHead>
                                 <TableHead>Subject</TableHead>
+                                <TableHead className="w-[1%] text-right">
+                                    Actions
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {(activityLogs.data ?? []).length === 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={6}
+                                        colSpan={7}
                                         className="text-muted-foreground"
                                     >
                                         No activity found for the selected
@@ -339,10 +344,22 @@ export default function AdminActivityLogsIndex({
                                                         '—'
                                                     )}
                                                 </TableCell>
+                                                <TableCell className="text-right">
+                                                    <AskAiButton
+                                                        prompt={seedActivityLogPrompt(
+                                                            {
+                                                                id: row.id,
+                                                                description:
+                                                                    row.description,
+                                                                event: row.event,
+                                                            },
+                                                        )}
+                                                    />
+                                                </TableCell>
                                             </TableRow>
                                             {isExpanded ? (
                                                 <TableRow key={`${row.id}-details`}>
-                                                    <TableCell colSpan={6}>
+                                                    <TableCell colSpan={7}>
                                                         <div className="space-y-3 py-2">
                                                             <div className="grid gap-2 text-sm sm:grid-cols-2">
                                                                 <div>

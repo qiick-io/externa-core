@@ -203,9 +203,30 @@ export function FieldConditionsSettings({
                     label="Hide when matched"
                     description="Hide this field in the item form when the rules match."
                     checked={conditions.hidden === true}
-                    onCheckedChange={(checked) =>
-                        onChange({ ...conditions, hidden: checked || undefined })
-                    }
+                    onCheckedChange={(checked) => {
+                        if (checked) {
+                            onChange({ ...conditions, hidden: true });
+                            return;
+                        }
+                        const next = { ...conditions };
+                        delete next.hidden;
+                        onChange(next);
+                    }}
+                />
+                <SettingCheckbox
+                    id="condition_show"
+                    label="Show when matched"
+                    description="Hide by default; show this field only when the rules match."
+                    checked={conditions.hidden === false}
+                    onCheckedChange={(checked) => {
+                        if (checked) {
+                            onChange({ ...conditions, hidden: false });
+                            return;
+                        }
+                        const next = { ...conditions };
+                        delete next.hidden;
+                        onChange(next);
+                    }}
                 />
                 <SettingCheckbox
                     id="condition_readonly"

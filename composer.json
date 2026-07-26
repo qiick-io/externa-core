@@ -14,6 +14,9 @@
         "laravel/ai": "^0.7.2",
         "laravel/fortify": "^1.34",
         "laravel/framework": "^13.0",
+        "laravel/horizon": "^5.48",
+        "laravel/pulse": "^1.7",
+        "laravel/reverb": "^1.11",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
         "nuwave/lighthouse": "^6.69",
@@ -61,6 +64,10 @@
         "dev": [
             "Composer\\Config::disableProcessTimeout",
             "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
+        ],
+        "dev:full": [
+            "Composer\\Config::disableProcessTimeout",
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74,#86efac,#f9a8d4\" \"php artisan serve\" \"php artisan horizon\" \"php artisan reverb:start\" \"php artisan pulse:work\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,horizon,reverb,pulse,logs,vite --kill-others"
         ],
         "dev:ssr": [
             "npm run build:ssr",
@@ -120,5 +127,11 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "suggest": {
+        "ext-redis": "Required for QUEUE_CONNECTION=redis, Horizon, Reverb scaling, and Pulse redis ingest.",
+        "laravel/horizon": "Redis queue dashboard and workers (composer require already includes it for full stack).",
+        "laravel/reverb": "WebSocket server for Echo notifications and presence.",
+        "laravel/pulse": "Application metrics; use redis ingest + pulse:work in production."
+    }
 }

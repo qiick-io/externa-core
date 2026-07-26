@@ -6,6 +6,7 @@ import {
     Pencil,
     RefreshCw,
     RotateCcw,
+    Sparkles,
     Star,
     StarOff,
     Tags,
@@ -28,6 +29,7 @@ export type FileActionPermissions = {
     canReplace: boolean;
     canTag: boolean;
     canUpdateMetadata: boolean;
+    canUseAi?: boolean;
 };
 
 const ACTION_ICONS: Record<FileActionKey, FileActionDefinition['icon']> = {
@@ -40,6 +42,7 @@ const ACTION_ICONS: Record<FileActionKey, FileActionDefinition['icon']> = {
     unfavorite: StarOff,
     replace: RefreshCw,
     tag: Tags,
+    ask_ai: Sparkles,
     delete: Trash2,
     restore: RotateCcw,
     force_delete: Trash2,
@@ -124,6 +127,12 @@ export function resolveFileActions(
             label: 'Tag',
             icon: ACTION_ICONS.tag,
             available: permissions.canTag && !isTrashed,
+        },
+        {
+            key: 'ask_ai',
+            label: 'Ask AI',
+            icon: ACTION_ICONS.ask_ai,
+            available: Boolean(permissions.canUseAi),
         },
         {
             key: 'delete',

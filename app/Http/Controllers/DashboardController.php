@@ -8,6 +8,7 @@ use App\Models\CollectionItem;
 use App\Models\File;
 use App\Models\FileUpload;
 use App\Models\User;
+use App\Services\Dashboard\DashboardHealthMetrics;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
@@ -186,6 +187,11 @@ class DashboardController
             'mostActiveUsers' => $mostActiveUsers,
             'suspiciousEvents' => $suspiciousEvents,
             'stuckOrphanUploads' => $stuckOrphanUploads,
+            'health' => Cache::remember(
+                'dashboard:health',
+                $now->copy()->addSeconds(60),
+                fn (): array => app(DashboardHealthMetrics::class)->summary(),
+            ),
             'largestFiles' => Cache::remember(
                 'dashboard:largest-files',
                 $now->copy()->addSeconds(60),

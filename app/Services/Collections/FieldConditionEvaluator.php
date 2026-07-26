@@ -7,6 +7,8 @@ use App\Models\CollectionField;
 /**
  * Evaluate simple per-field form conditions (equals / not_equals / empty / not_empty + AND).
  *
+ * Show-when: conditions.hidden === false means visible only while rules match.
+ *
  * ponytail: AND-only, no nested groups / OR / comparisons beyond equality — upgrade path is a
  * small expression AST if product needs nested rule trees.
  */
@@ -46,6 +48,12 @@ class FieldConditionEvaluator
         }
 
         if (! $this->rulesMatch($rules, $data)) {
+            // Show-when: explicit hidden=false means visible only while rules match.
+            if (array_key_exists('hidden', $conditions)
+                && ! CollectionField::settingsFlagIsEnabled($conditions['hidden'])) {
+                $flags['hidden'] = true;
+            }
+
             return $flags;
         }
 

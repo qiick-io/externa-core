@@ -84,6 +84,7 @@ export type FileActionKey =
     | 'unfavorite'
     | 'replace'
     | 'tag'
+    | 'ask_ai'
     | 'delete'
     | 'restore'
     | 'force_delete';

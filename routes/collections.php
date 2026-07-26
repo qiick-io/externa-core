@@ -23,6 +23,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
         ->name('collections.store');
 
+    Route::post('collections/bulk', [ContentCollectionController::class, 'bulk'])
+        ->name('collections.bulk');
+
     Route::post('collections/packs/{pack}', [ContentCollectionController::class, 'applyPack'])
         ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
         ->name('collections.packs.apply');
@@ -86,6 +89,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('collections/{collection}/items', [ItemController::class, 'store'])
         ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
         ->name('collections.items.store');
+
+    Route::post('collections/{collection}/items/bulk', [ItemController::class, 'bulk'])
+        ->name('collections.items.bulk');
 
     Route::get('collections/{collection}/items/{item}', [ItemController::class, 'show'])
         ->middleware('permission:'.PermissionEnum::CanShowCollections->value)

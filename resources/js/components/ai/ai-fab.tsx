@@ -38,6 +38,7 @@ import {
     uploadAiAttachment,
 } from '@/lib/ai-chat';
 import type { AiChatAttachment, AiStatus } from '@/lib/ai-chat';
+import { AI_OPEN_EVENT, type AiOpenDetail } from '@/lib/ai-open';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { index as aiIndex } from '@/routes/ai';
@@ -131,6 +132,42 @@ export function AiFab() {
             window.clearInterval(intervalId);
         };
     }, [canUseAi]);
+
+    useEffect(() => {
+        if (!canUseAi || isAiRoute) {
+            return;
+        }
+
+        const onOpen = (event: Event): void => {
+            const custom = event as CustomEvent<AiOpenDetail>;
+            const prompt = custom.detail?.prompt;
+
+            if (typeof prompt !== 'string') {
+                return;
+            }
+
+            // Seed a fresh draft chat so contextual prompts don't append to an old thread.
+            abortControllerRef.current?.abort();
+            abortControllerRef.current = null;
+            inFlightTurnRef.current = null;
+            setIsStreaming(false);
+            setToolHint(null);
+            setConversationId(null);
+            conversationIdRef.current = null;
+            setMessages([]);
+            setPendingAttachments([]);
+            setEditingMessageId(null);
+            setEditingDraft('');
+            setComposer(prompt);
+            setOpen(true);
+        };
+
+        window.addEventListener(AI_OPEN_EVENT, onOpen);
+
+        return () => {
+            window.removeEventListener(AI_OPEN_EVENT, onOpen);
+        };
+    }, [canUseAi, isAiRoute]);
 
     if (!canUseAi || isAiRoute) {
         return null;

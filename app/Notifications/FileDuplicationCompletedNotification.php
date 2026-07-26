@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Notifications\Concerns\BroadcastsWithDatabase;
 use Illuminate\Notifications\Notification;
 
 /**
@@ -9,6 +10,8 @@ use Illuminate\Notifications\Notification;
  */
 class FileDuplicationCompletedNotification extends Notification
 {
+    use BroadcastsWithDatabase;
+
     public function __construct(
         public readonly string $jobId,
         public readonly int $count,
@@ -16,14 +19,6 @@ class FileDuplicationCompletedNotification extends Notification
         public readonly ?string $firstFilePath,
         public readonly ?int $folderId,
     ) {}
-
-    /**
-     * @return list<string>
-     */
-    public function via(object $notifiable): array
-    {
-        return ['database'];
-    }
 
     /**
      * @return array<string, mixed>
