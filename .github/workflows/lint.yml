@@ -35,6 +35,13 @@ jobs:
           composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
           npm install
 
+      - name: Prepare Application
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          # actions/routes are gitignored; without them import/order misclassifies @/actions|@/routes as unknown
+          php artisan wayfinder:generate --with-form --no-interaction
+
       - name: Run Pint
         run: composer lint:check
 
