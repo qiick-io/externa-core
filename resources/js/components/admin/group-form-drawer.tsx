@@ -46,8 +46,8 @@ export function GroupFormDrawer({
             form.setData({
                 name: editing.name,
                 description: editing.description ?? '',
-                role_ids: editing.roles.map((r) => r.id),
-                user_ids: [],
+                role_ids: editing.role_ids ?? editing.roles.map((r) => r.id),
+                user_ids: editing.user_ids ?? editing.users?.map((u) => u.id) ?? [],
             });
         } else {
             form.reset();
@@ -79,7 +79,10 @@ export function GroupFormDrawer({
             <DrawerHeader>
                 <DrawerTitle>{title}</DrawerTitle>
                 <DrawerDescription>
-                    Groups inherit role permissions to all members.
+                    Attach Spatie roles to this group so members inherit admin
+                    permissions and any collection/file ACL tied to those roles.
+                    Prefer groups for large memberships instead of assigning
+                    roles user-by-user.
                 </DrawerDescription>
             </DrawerHeader>
 
@@ -127,6 +130,10 @@ export function GroupFormDrawer({
                         initialRoles={editing?.roles}
                         disabled={readOnly}
                     />
+                    <p className="text-muted-foreground text-xs">
+                        Members inherit these roles’ Spatie permissions and
+                        collection/file access matrices.
+                    </p>
                     <InputError message={form.errors.role_ids} />
                 </div>
 
@@ -135,6 +142,7 @@ export function GroupFormDrawer({
                     <UserMultiSelect
                         value={form.data.user_ids}
                         onChange={(user_ids) => form.setData('user_ids', user_ids)}
+                        initialUsers={editing?.users}
                         disabled={readOnly}
                     />
                     <InputError message={form.errors.user_ids} />

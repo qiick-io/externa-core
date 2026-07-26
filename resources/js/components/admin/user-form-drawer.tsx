@@ -92,8 +92,8 @@ export function UserFormDrawer({
                 <DrawerTitle>{title}</DrawerTitle>
                 <DrawerDescription>
                     {editing
-                        ? 'Update profile, roles, and group memberships.'
-                        : 'Create a user and assign roles and groups.'}
+                        ? 'Update profile, direct roles, and group memberships. Groups inherit their attached roles’ permissions and collection/file ACL.'
+                        : 'Create a user and assign direct roles and/or groups. Prefer groups when many users share the same role set.'}
                 </DrawerDescription>
             </DrawerHeader>
 
@@ -215,6 +215,10 @@ export function UserFormDrawer({
                         initialGroups={editing?.groups}
                         disabled={readOnly}
                     />
+                    <p className="text-muted-foreground text-xs">
+                        Group roles are unioned with direct roles for admin
+                        permissions and collection/file access.
+                    </p>
                     <InputError message={form.errors.group_ids} />
                 </div>
                 </DrawerBody>

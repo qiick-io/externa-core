@@ -42,6 +42,10 @@ test('effective permission resolver unions direct roles and group roles', functi
         ->and($permissions)->toContain(PermissionEnum::CanShowCollections->value);
 
     expect($resolver->roleNamesFor($user))->toContain('direct-editor', 'group-viewer');
+    expect($resolver->effectiveRoleIds($user))->toEqualCanonicalizing([
+        (int) $directRole->id,
+        (int) $groupRole->id,
+    ]);
 });
 
 test('super admin resolver exposes all enum permissions and role name', function () {

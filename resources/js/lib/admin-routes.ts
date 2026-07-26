@@ -49,7 +49,15 @@ const adminRoutes = {
             url(
                 `/groups/${typeof group === 'number' ? group : group.group}`,
             ),
-        bulkDestroy: () => url('/groups/bulk/destroy'),
+        restore: (group: number | { group: number }) =>
+            url(
+                `/groups/${typeof group === 'number' ? group : group.group}/restore`,
+            ),
+        forceDelete: (group: number | { group: number }) =>
+            url(
+                `/groups/${typeof group === 'number' ? group : group.group}/force`,
+            ),
+        bulkActions: () => url('/groups/bulk-actions'),
     },
     roles: {
         index: (options?: RouteQueryOptions) =>

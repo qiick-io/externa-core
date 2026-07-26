@@ -1,5 +1,11 @@
 import { Head, router } from '@inertiajs/react';
-import { Trash2, UserPlus } from 'lucide-react';
+import {
+    ArrowDownAZ,
+    ArrowUpAZ,
+    Trash2,
+    UserPlus,
+    Users,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { UserFormDrawer } from '@/components/admin/user-form-drawer';
@@ -13,6 +19,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Drawer } from '@/components/ui/drawer';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import {
     Table,
     TableBody,
@@ -28,17 +41,33 @@ import { useOnlineUsers } from '@/hooks/use-online-users';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
 import { seedUserPrompt, seedUsersBulkPrompt } from '@/lib/ai-open';
-import { normalizePaginated  } from '@/lib/pagination';
-import type {LaravelPaginated} from '@/lib/pagination';
+import { normalizePaginated } from '@/lib/pagination';
+import type { LaravelPaginated } from '@/lib/pagination';
 import { cn } from '@/lib/utils';
 import type { AdminUserRow, BreadcrumbItem, Paginated } from '@/types';
+
+type UserSortField =
+    | 'first_name'
+    | 'last_name'
+    | 'email'
+    | 'created_at'
+    | 'updated_at';
+type UserSortDirection = 'asc' | 'desc';
 
 type Filters = {
     search?: string;
     trashed?: boolean;
-    sort?: string;
-    direction?: 'asc' | 'desc';
+    sort?: UserSortField;
+    direction?: UserSortDirection;
 };
+
+const USER_SORT_FIELDS: { value: UserSortField; label: string }[] = [
+    { value: 'first_name', label: 'Name' },
+    { value: 'last_name', label: 'Last name' },
+    { value: 'email', label: 'Email' },
+    { value: 'created_at', label: 'Created' },
+    { value: 'updated_at', label: 'Updated' },
+];
 
 /**
  * Admin users list with search and form drawer.
@@ -55,9 +84,13 @@ export default function AdminUsersIndex({
     const users = normalizePaginated(usersProp);
     const { can } = useCan();
     const onlineUsers = useOnlineUsers();
+    const isTrashed = filters.trashed === true;
     const [search, setSearch] = useState(filters.search ?? '');
-    const [trashed, setTrashed] = useState<'trashed' | 'active'>(
-        filters.trashed ? 'trashed' : 'active',
+    const [sort, setSort] = useState<UserSortField>(
+        filters.sort ?? 'created_at',
+    );
+    const [direction, setDirection] = useState<UserSortDirection>(
+        filters.direction ?? 'desc',
     );
     const [selected, setSelected] = useState<number[]>([]);
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -70,20 +103,36 @@ export default function AdminUsersIndex({
 
     const visit = useCallback(
         (overrides: Partial<Filters> = {}) => {
+            const nextSearch =
+                overrides.search !== undefined ? overrides.search : search;
+            const nextSort = overrides.sort ?? sort;
+            const nextDirection = overrides.direction ?? direction;
+            const nextTrashed =
+                overrides.trashed !== undefined
+                    ? overrides.trashed
+                    : isTrashed;
+
             router.get(
                 adminRoutes.users.index({
                     query: {
-                        search: search || undefined,
-                        trashed: trashed === 'trashed' ? true : undefined,
-                        ...overrides,
+                        search: nextSearch || undefined,
+                        sort: nextSort,
+                        direction: nextDirection,
+                        trashed: nextTrashed ? true : undefined,
                     },
                 }),
                 {},
                 { preserveState: true, preserveScroll: true },
             );
         },
-        [search, trashed],
+        [direction, isTrashed, search, sort],
     );
+
+    useEffect(() => {
+        setSearch(filters.search ?? '');
+        setSort(filters.sort ?? 'created_at');
+        setDirection(filters.direction ?? 'desc');
+    }, [filters.search, filters.sort, filters.direction]);
 
     useEffect(() => {
         // Only refetch when the user changes search. Mount / pagination remounts
@@ -98,6 +147,10 @@ export default function AdminUsersIndex({
 
         return () => clearTimeout(timer);
     }, [search, filters.search]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        setSelected([]);
+    }, [isTrashed]);
 
     const toggleAll = (checked: boolean): void => {
         setSelected(checked ? users.data.map((u) => u.id) : []);
@@ -134,7 +187,6 @@ export default function AdminUsersIndex({
         );
     };
 
-    const isTrashed = trashed === 'trashed';
     const hasSelection = selected.length > 0;
 
     const userDisplayName = (user: AdminUserRow): string =>
@@ -149,7 +201,7 @@ export default function AdminUsersIndex({
         <AppLayout
             breadcrumbs={breadcrumbs}
             headerActions={
-                can(PermissionEnum.CanCreateUsers) ? (
+                !isTrashed && can(PermissionEnum.CanCreateUsers) ? (
                     <Button type="button" onClick={openCreate}>
                         <UserPlus className="mr-1 size-4" />
                         New user
@@ -175,7 +227,9 @@ export default function AdminUsersIndex({
                         <DataTableToolbar
                             search={search}
                             onSearchChange={setSearch}
-                            searchPlaceholder="Search users…"
+                            searchPlaceholder={
+                                isTrashed ? 'Search trash…' : 'Search users…'
+                            }
                             selectedCount={selected.length}
                             onClearSelection={() => setSelected([])}
                             bulkActions={
@@ -233,34 +287,94 @@ export default function AdminUsersIndex({
                     }
                     filtersRight={
                         hasSelection ? null : (
-                        <ToggleGroup
-                            type="single"
-                            value={trashed}
-                            onValueChange={(value) => {
-                                if (!value) {
-                                    return;
-                                }
+                            <div className="flex items-center gap-1.5">
+                                <Select
+                                    value={sort}
+                                    onValueChange={(value) => {
+                                        if (
+                                            value === 'first_name' ||
+                                            value === 'last_name' ||
+                                            value === 'email' ||
+                                            value === 'created_at' ||
+                                            value === 'updated_at'
+                                        ) {
+                                            setSort(value);
+                                            visit({ sort: value });
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        size="sm"
+                                        aria-label="Sort by"
+                                        className="w-[7.5rem]"
+                                    >
+                                        <SelectValue placeholder="Sort" />
+                                    </SelectTrigger>
+                                    <SelectContent align="end">
+                                        {USER_SORT_FIELDS.map((field) => (
+                                            <SelectItem
+                                                key={field.value}
+                                                value={field.value}
+                                            >
+                                                {field.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-8"
+                                    aria-label={
+                                        direction === 'asc'
+                                            ? 'Sort ascending'
+                                            : 'Sort descending'
+                                    }
+                                    onClick={() => {
+                                        const nextDirection =
+                                            direction === 'asc'
+                                                ? 'desc'
+                                                : 'asc';
+                                        setDirection(nextDirection);
+                                        visit({ direction: nextDirection });
+                                    }}
+                                >
+                                    {direction === 'asc' ? (
+                                        <ArrowUpAZ className="size-4" />
+                                    ) : (
+                                        <ArrowDownAZ className="size-4" />
+                                    )}
+                                </Button>
+                                <ToggleGroup
+                                    type="single"
+                                    value={isTrashed ? 'trashed' : 'active'}
+                                    onValueChange={(value) => {
+                                        if (!value) {
+                                            return;
+                                        }
 
-                                setTrashed(value as 'trashed' | 'active');
-                                visit({
-                                    trashed:
-                                        value === 'trashed' ? true : undefined,
-                                });
-                            }}
-                        >
-                            <ToggleGroupItem
-                                value="active"
-                                aria-label="Active users"
-                            >
-                                Active
-                            </ToggleGroupItem>
-                            <ToggleGroupItem
-                                value="trashed"
-                                aria-label="Trashed users"
-                            >
-                                <Trash2 className="size-4" />
-                            </ToggleGroupItem>
-                        </ToggleGroup>
+                                        visit({
+                                            trashed: value === 'trashed',
+                                        });
+                                    }}
+                                >
+                                    <ToggleGroupItem
+                                        value="active"
+                                        aria-label="Active users"
+                                        className="px-2.5"
+                                    >
+                                        <Users className="size-4" />
+                                    </ToggleGroupItem>
+                                    <ToggleGroupItem
+                                        value="trashed"
+                                        aria-label="Trash"
+                                        className="px-2.5"
+                                    >
+                                        <Trash2 className="size-4" />
+                                    </ToggleGroupItem>
+                                </ToggleGroup>
+                            </div>
                         )
                     }
                 >
@@ -336,18 +450,24 @@ export default function AdminUsersIndex({
                                                     <span
                                                         className={cn(
                                                             'size-2 shrink-0 rounded-full',
-                                                            onlineUsers.has(user.id)
+                                                            onlineUsers.has(
+                                                                user.id,
+                                                            )
                                                                 ? 'bg-emerald-500'
                                                                 : 'bg-muted-foreground/30',
                                                         )}
                                                         title={
-                                                            onlineUsers.has(user.id)
+                                                            onlineUsers.has(
+                                                                user.id,
+                                                            )
                                                                 ? 'Online'
                                                                 : 'Offline'
                                                         }
                                                         data-test="user-online-dot"
                                                         data-online={
-                                                            onlineUsers.has(user.id)
+                                                            onlineUsers.has(
+                                                                user.id,
+                                                            )
                                                                 ? '1'
                                                                 : '0'
                                                         }

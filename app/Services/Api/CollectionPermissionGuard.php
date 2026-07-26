@@ -66,11 +66,13 @@ class CollectionPermissionGuard
             return null;
         }
 
-        if (app(EffectivePermissionResolver::class)->isSuperAdmin($user)) {
+        $resolver = app(EffectivePermissionResolver::class);
+
+        if ($resolver->isSuperAdmin($user)) {
             return $this->rulesService->normalize(null);
         }
 
-        $roleIds = $user->roles()->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $roleIds = $resolver->effectiveRoleIds($user);
         if ($roleIds === []) {
             return null;
         }

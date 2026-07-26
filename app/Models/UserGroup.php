@@ -41,4 +41,17 @@ class UserGroup extends Model
     {
         return $this->belongsToMany(Role::class, 'user_group_role')->withTimestamps();
     }
+
+    /**
+     * Resolve route binding including soft-deleted groups.
+     *
+     * @param  mixed  $value
+     * @param  string|null  $field
+     */
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        return $this->withTrashed()
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->firstOrFail();
+    }
 }

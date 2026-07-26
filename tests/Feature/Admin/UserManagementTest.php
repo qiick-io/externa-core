@@ -66,7 +66,26 @@ test('authorized users can list users with filters and relationships', function 
             ->component('admin/users/index')
             ->has('users.data', 1)
             ->where('filters.search', 'zelda')
-            ->where('filters.sort', 'email'));
+            ->where('filters.sort', 'email')
+            ->where('filters.direction', 'asc'));
+
+    $this->get(route('users.index', [
+        'sort' => 'first_name',
+        'direction' => 'desc',
+    ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('filters.sort', 'first_name')
+            ->where('filters.direction', 'desc'));
+
+    $this->get(route('users.index', [
+        'sort' => 'created_at',
+        'direction' => 'asc',
+    ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('filters.sort', 'created_at')
+            ->where('filters.direction', 'asc'));
 
     $trashed = User::factory()->create();
     $trashed->delete();

@@ -2,30 +2,34 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\BulkDestroyUserGroupsRequest;
+use App\Http\Requests\Admin\BulkUserGroupActionRequest;
 use App\Http\Requests\Admin\StoreUserGroupRequest;
 use App\Http\Requests\Admin\UpdateUserGroupRequest;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Http\Resources\UserGroupResource;
+use App\Models\Role;
 use App\Models\UserGroup;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Models\Role;
 
 /**
- * Admin CRUD and bulk delete actions for user groups and their memberships.
+ * Admin CRUD and bulk actions for user groups and their memberships.
  */
 class UserGroupController extends Controller
 {
+    use AuthorizesWithPermission;
+
     /**
      * @var list<string>
      */
     private const SORTABLE_COLUMNS = ['name', 'created_at', 'updated_at'];
 
     /**
-     * List user groups with search, sort, and role assignment context.
+     * List user groups with search, trash, sort, and role assignment context.
      */
     public function index(Request $request): Response
     {
@@ -38,8 +42,15 @@ class UserGroupController extends Controller
         }
 
         $query = UserGroup::query()
-            ->with(['roles:id,name'])
+            ->with([
+                'roles:id,name',
+                'users:id,first_name,last_name,email',
+            ])
             ->withCount(['users', 'roles']);
+
+        if ($request->boolean('trashed')) {
+            $query->onlyTrashed();
+        }
 
         if ($search !== '') {
             $query->where(function ($builder) use ($search): void {
@@ -63,6 +74,7 @@ class UserGroupController extends Controller
             'groups' => $paginator,
             'filters' => [
                 'search' => $search,
+                'trashed' => $request->boolean('trashed'),
                 'sort' => $sort,
                 'direction' => $direction,
             ],
@@ -101,12 +113,13 @@ class UserGroupController extends Controller
             'description' => $validated['description'] ?? null,
         ]);
 
-        if ($request->has('user_ids')) {
-            $group->users()->sync($request->input('user_ids', []));
+        // Only sync when the key is present (empty array = intentional clear).
+        if (array_key_exists('user_ids', $validated)) {
+            $group->users()->sync($validated['user_ids'] ?? []);
         }
 
-        if ($request->has('role_ids')) {
-            $group->roles()->sync($request->input('role_ids', []));
+        if (array_key_exists('role_ids', $validated)) {
+            $group->roles()->sync($validated['role_ids'] ?? []);
         }
 
         return redirect()->route('groups.index')
@@ -114,10 +127,12 @@ class UserGroupController extends Controller
     }
 
     /**
-     * Delete a user group.
+     * Soft-delete a user group.
      */
     public function destroy(UserGroup $group): RedirectResponse
     {
+        $this->authorizePermission(PermissionEnum::CanDeleteGroups->value);
+
         $group->delete();
 
         return redirect()->route('groups.index')
@@ -125,13 +140,49 @@ class UserGroupController extends Controller
     }
 
     /**
-     * Delete multiple user groups in one request.
+     * Restore a soft-deleted user group.
      */
-    public function bulkDestroy(BulkDestroyUserGroupsRequest $request): RedirectResponse
+    public function restore(UserGroup $group): RedirectResponse
     {
-        UserGroup::query()->whereIn('id', $request->validated('ids'))->delete();
+        $this->authorizePermission(PermissionEnum::CanRestoreGroups->value);
 
-        return redirect()->route('groups.index')
-            ->with('success', __('User groups deleted.'));
+        $group->restore();
+
+        return redirect()
+            ->route('groups.index', ['trashed' => 1])
+            ->with('success', __('User group restored.'));
+    }
+
+    /**
+     * Permanently delete a soft-deleted user group.
+     */
+    public function forceDelete(UserGroup $group): RedirectResponse
+    {
+        $this->authorizePermission(PermissionEnum::CanForceDeleteGroups->value);
+
+        $group->forceDelete();
+
+        return redirect()
+            ->route('groups.index', ['trashed' => 1])
+            ->with('success', __('User group permanently deleted.'));
+    }
+
+    /**
+     * Run a bulk delete, restore, or force-delete action on selected groups.
+     */
+    public function bulkActions(BulkUserGroupActionRequest $request): RedirectResponse
+    {
+        $action = $request->validated('action');
+        $ids = $request->validated('ids');
+
+        match ($action) {
+            'delete' => UserGroup::query()->whereIn('id', $ids)->delete(),
+            'restore' => UserGroup::query()->onlyTrashed()->whereIn('id', $ids)->restore(),
+            'force_delete' => UserGroup::query()->onlyTrashed()->whereIn('id', $ids)->forceDelete(),
+        };
+
+        return redirect()
+            ->back()
+            ->with('success', __('Bulk action completed.'));
     }
 }

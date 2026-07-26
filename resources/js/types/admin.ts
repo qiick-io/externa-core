@@ -56,6 +56,9 @@ export type AdminGroupRow = {
     deleted_at: string | null;
     users_count?: number;
     roles: AdminRoleRef[];
+    users?: Pick<AdminUserRow, 'id' | 'first_name' | 'last_name' | 'email'>[];
+    user_ids?: number[];
+    role_ids?: number[];
     created_at: string;
     updated_at: string;
 };

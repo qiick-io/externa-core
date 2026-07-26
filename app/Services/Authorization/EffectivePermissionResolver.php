@@ -13,7 +13,7 @@ use Spatie\Permission\Models\Permission;
 class EffectivePermissionResolver
 {
     /**
-     * @var array<int, array{permissions: list<string>, role_names: list<string>}>
+     * @var array<int, array{permissions: list<string>, role_names: list<string>, role_ids: list<int>}>
      */
     private array $cache = [];
 
@@ -48,6 +48,16 @@ class EffectivePermissionResolver
     }
 
     /**
+     * Role ids from direct assignment ∪ roles attached via the user's groups.
+     *
+     * @return list<int>
+     */
+    public function effectiveRoleIds(User $user): array
+    {
+        return $this->resolve($user)['role_ids'];
+    }
+
+    /**
      * Whether the user holds the super-admin role via direct or group roles.
      */
     public function isSuperAdmin(User $user): bool
@@ -70,7 +80,7 @@ class EffectivePermissionResolver
     }
 
     /**
-     * @return array{permissions: list<string>, role_names: list<string>}
+     * @return array{permissions: list<string>, role_names: list<string>, role_ids: list<int>}
      */
     private function resolve(User $user): array
     {
@@ -78,14 +88,27 @@ class EffectivePermissionResolver
             return $this->cache[$user->id];
         }
 
-        $directRoleNames = $user->roles()->pluck('name');
-        $groupRoleNames = $user->groups()
+        $directRoles = $user->roles()->select('roles.id', 'roles.name')->get();
+        $groupRoles = $user->groups()
             ->with('roles:id,name')
             ->get()
-            ->flatMap(fn ($group) => $group->roles->pluck('name'));
+            ->flatMap(fn ($group) => $group->roles);
 
-        $roleNames = $directRoleNames
-            ->merge($groupRoleNames)
+        $mergedRoles = $directRoles
+            ->concat($groupRoles)
+            ->unique('id')
+            ->values();
+
+        $roleNames = $mergedRoles
+            ->pluck('name')
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        $roleIds = $mergedRoles
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
             ->unique()
             ->sort()
             ->values()
@@ -118,6 +141,7 @@ class EffectivePermissionResolver
         return $this->cache[$user->id] = [
             'permissions' => $permissions,
             'role_names' => $roleNames,
+            'role_ids' => $roleIds,
         ];
     }
 }

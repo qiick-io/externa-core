@@ -3,6 +3,8 @@
 namespace App\Support\Auth;
 
 use App\Enums\PermissionEnum;
+use App\Models\User;
+use App\Services\Authorization\EffectivePermissionResolver;
 use Illuminate\Contracts\Auth\Authenticatable;
 
 /**
@@ -29,8 +31,10 @@ final class HomePath
             [PermissionEnum::CanShowActivityLogs, '/activity-logs'],
         ];
 
+        $resolver = app(EffectivePermissionResolver::class);
+
         foreach ($candidates as [$permission, $path]) {
-            if (method_exists($user, 'can') && $user->can($permission->value)) {
+            if ($user instanceof User && $resolver->hasPermission($user, $permission->value)) {
                 return $path;
             }
         }

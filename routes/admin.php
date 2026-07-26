@@ -62,9 +62,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:'.PermissionEnum::CanDeleteGroups->value)
         ->name('groups.destroy');
 
-    Route::delete('groups/bulk/destroy', [UserGroupController::class, 'bulkDestroy'])
-        ->middleware('permission:'.PermissionEnum::CanDeleteGroups->value)
-        ->name('groups.bulk-destroy');
+    Route::post('groups/{group}/restore', [UserGroupController::class, 'restore'])
+        ->middleware('permission:'.PermissionEnum::CanRestoreGroups->value)
+        ->name('groups.restore');
+
+    Route::delete('groups/{group}/force', [UserGroupController::class, 'forceDelete'])
+        ->middleware('permission:'.PermissionEnum::CanForceDeleteGroups->value)
+        ->name('groups.force-delete');
+
+    Route::post('groups/bulk-actions', [UserGroupController::class, 'bulkActions'])
+        ->name('groups.bulk-actions');
 
     /*
      * Access settings: roles, permissions, API keys live under /settings/*.

@@ -32,6 +32,7 @@ class UserGroupResource extends JsonResource
             'description' => $group->description,
             'users_count' => $group->users_count,
             'roles_count' => $group->roles_count,
+            'deleted_at' => $group->deleted_at?->toIso8601String(),
             'roles' => $this->whenLoaded(
                 'roles',
                 fn () => $group->roles
@@ -43,8 +44,29 @@ class UserGroupResource extends JsonResource
                     ->all(),
                 [],
             ),
-            'user_ids' => $this->whenLoaded('users', fn () => $group->users->pluck('id')->values()->all()),
-            'role_ids' => $this->whenLoaded('roles', fn () => $group->roles->pluck('id')->values()->all()),
+            'users' => $this->whenLoaded(
+                'users',
+                fn () => $group->users
+                    ->map(fn ($user): array => [
+                        'id' => $user->id,
+                        'first_name' => $user->first_name,
+                        'last_name' => $user->last_name,
+                        'email' => $user->email,
+                    ])
+                    ->values()
+                    ->all(),
+                [],
+            ),
+            'user_ids' => $this->whenLoaded(
+                'users',
+                fn () => $group->users->pluck('id')->values()->all(),
+                [],
+            ),
+            'role_ids' => $this->whenLoaded(
+                'roles',
+                fn () => $group->roles->pluck('id')->values()->all(),
+                [],
+            ),
             'created_at' => $group->created_at?->toIso8601String(),
             'updated_at' => $group->updated_at?->toIso8601String(),
         ];
