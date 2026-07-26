@@ -76,7 +76,10 @@ class SyncPermissionsCommand extends Command
         $lines[] = '}';
         $lines[] = '';
         $lines[] = '/** @deprecated Use PermissionEnum — kept for backwards compatibility */';
-        $lines[] = 'export const PermissionEnumValues = Object.values(PermissionEnum) as PermissionEnum[];';
+        // ponytail: match Prettier printWidth so permissions:sync does not fail format:check
+        $lines[] = 'export const PermissionEnumValues = Object.values(';
+        $lines[] = '    PermissionEnum,';
+        $lines[] = ') as PermissionEnum[];';
         $lines[] = '';
 
         $path = resource_path('js/enums/permission-enum.ts');
