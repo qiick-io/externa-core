@@ -51,6 +51,4 @@ export enum PermissionEnum {
 }
 
 /** @deprecated Use PermissionEnum — kept for backwards compatibility */
-export const PermissionEnumValues = Object.values(
-    PermissionEnum,
-) as PermissionEnum[];
+export const PermissionEnumValues = Object.values(PermissionEnum) as PermissionEnum[];
