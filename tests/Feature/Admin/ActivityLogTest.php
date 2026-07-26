@@ -71,6 +71,7 @@ test('login creates auth activity and updates last login fields', function () {
         'last_login_at' => null,
         'last_login_ip' => null,
     ]);
+    $user->givePermissionTo(PermissionEnum::CanShowDashboard->value);
 
     $this->post(route('login.store'), [
         'email' => $user->email,
