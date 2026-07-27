@@ -4,8 +4,8 @@ import { useAppearance } from '@/hooks/use-appearance';
 
 /**
  * Brand mark and application name for sidebar and header chrome.
- * Custom project logos render as a plain image; the default SVG keeps a
- * contrasting mark box so the icon stays readable on the sidebar.
+ * Custom project logos render as a plain image; the default mark is the
+ * colored 3-tone Externa isometric (same teal fills as public/logo.svg).
  * @returns {JSX.Element}
  */
 export default function AppLogo() {
@@ -26,8 +26,8 @@ export default function AppLogo() {
                     className="h-8 w-auto max-w-24 object-contain"
                 />
             ) : (
-                <div className="flex aspect-square size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-                    <AppLogoIcon className="size-5 fill-current text-white dark:text-black" />
+                <div className="flex aspect-square size-8 items-center justify-center">
+                    <AppLogoIcon className="size-7" />
                 </div>
             )}
             <div className="ml-1 grid flex-1 text-left text-sm">

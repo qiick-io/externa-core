@@ -45,7 +45,7 @@ export default function AuthSimpleLayout({
                                         className="size-9 object-contain"
                                     />
                                 ) : (
-                                    <AppLogoIcon className="size-9 fill-current text-[var(--foreground)] dark:text-white" />
+                                    <AppLogoIcon className="size-9" />
                                 )}
                             </div>
                             <span className="sr-only">{title}</span>

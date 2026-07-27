@@ -154,7 +154,7 @@ export function AppSidebar() {
         },
         {
             title: t('nav.documentation'),
-            href: 'https://laravel.com/docs/starter-kits#react',
+            href: 'https://docs.externa.qiick.io',
             icon: BookOpen,
         },
     ];
