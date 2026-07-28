@@ -59,7 +59,7 @@ export function AppSidebar() {
     const { t } = useTranslation();
     const { can } = useCan();
     const { isCurrentUrl } = useCurrentUrl();
-    const { projectSettings } = usePage().props;
+    const { projectSettings, appVersion } = usePage().props;
 
     const moduleDefs = useMemo<Record<string, ModuleDef>>(
         () => ({
@@ -149,7 +149,7 @@ export function AppSidebar() {
     const footerNavItems: NavItem[] = [
         {
             title: t('nav.repository'),
-            href: 'https://github.com/laravel/react-starter-kit',
+            href: 'https://github.com/qiick-io/externa-core',
             icon: FolderGit2,
         },
         {
@@ -232,6 +232,11 @@ export function AppSidebar() {
 
             <SidebarFooter>
                 <NavFooter items={footerNavItems} className="mt-auto" />
+                {appVersion ? (
+                    <p className="truncate px-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+                        v{appVersion}
+                    </p>
+                ) : null}
                 <NotificationsBell />
                 <NavUser />
             </SidebarFooter>

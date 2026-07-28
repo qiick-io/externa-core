@@ -1,6 +1,6 @@
 # Externa
 
-Externa is a headless CMS / content API with an operator admin UI. Manage **dynamic collections**, a **hierarchical file tree**, and **RBAC** (roles, groups, effective permissions), then expose content to websites via the **Public CMS API** (`/api/v1`) and **GraphQL** (`/api/graphql`). An optional in-app AI assistant (OpenAI-compatible / LM Studio) respects the signed-in user’s permissions.
+Externa is a headless CMS / content API with an operator admin UI. **Version:** `1.0.0-beta.1` (from `composer.json`; mirrored in `package.json`). Manage **dynamic collections**, a **hierarchical file tree**, and **RBAC** (roles, groups, effective permissions), then expose content to websites via the **Public CMS API** (`/api/v1`) and **GraphQL** (`/api/graphql`). An optional in-app AI assistant (OpenAI-compatible / LM Studio) respects the signed-in user’s permissions.
 
 Stack: **Laravel 13**, **Inertia + React 19**, Vite, Spatie Permission / Activitylog, Wayfinder typed routes.
 

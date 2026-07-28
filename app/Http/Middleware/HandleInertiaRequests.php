@@ -49,6 +49,17 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => $projectSettings->displayName(),
+            // ponytail: composer.json is the single version source; package.json mirrors it for npm tooling
+            'appVersion' => once(function (): string {
+                $composer = json_decode(
+                    (string) file_get_contents(base_path('composer.json')),
+                    true,
+                );
+
+                return is_array($composer) && is_string($composer['version'] ?? null)
+                    ? $composer['version']
+                    : 'dev';
+            }),
             'auth' => [
                 'user' => $user,
                 'permissions' => $user ? $permissionResolver->permissionsFor($user) : [],
