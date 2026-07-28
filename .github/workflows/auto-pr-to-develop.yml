@@ -1,0 +1,58 @@
+name: Auto PR to Develop
+
+on:
+  push:
+    branches-ignore:
+      - main
+      - develop
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 50
+
+      - name: Compute Conventional PR title
+        id: pr_title
+        shell: bash
+        run: |
+          # Prefer a conventional commit subject from the last 50 commits
+          REGEX='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([^)]+\))?: .+'
+          TITLE=""
+
+          while read -r line; do
+            if [[ "$line" =~ $REGEX ]]; then
+              TITLE="$line"
+              break
+            fi
+          done < <(git log --pretty=%s -n 50 --no-merges)
+
+          # Fallback from branch name if no conventional subject found
+          if [[ -z "$TITLE" ]]; then
+            TYPE="chore"
+            if [[ "${GITHUB_REF_NAME}" =~ ^feat ]]; then TYPE="feat"; fi
+            if [[ "${GITHUB_REF_NAME}" =~ ^fix ]]; then TYPE="fix"; fi
+            if [[ "${GITHUB_REF_NAME}" =~ ^docs ]]; then TYPE="docs"; fi
+            if [[ "${GITHUB_REF_NAME}" =~ ^refactor ]]; then TYPE="refactor"; fi
+            TITLE="$TYPE: merge ${GITHUB_REF_NAME} into develop"
+          fi
+
+          TITLE="[${GITHUB_REF_NAME}] $TITLE"
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
+
+      - name: Create Pull Request to develop
+        uses: repo-sync/pull-request@v2
+        with:
+          source_branch: ${{ github.ref_name }}
+          destination_branch: develop
+          pr_title: ${{ steps.pr_title.outputs.title }}
+          pr_body: |
+            Automatic PR opened by `auto-pr-to-develop.yml` on push to `${{ github.ref_name }}`.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
