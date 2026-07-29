@@ -225,6 +225,9 @@ export default function ProjectSettingsPage({
         url: project.url ?? '',
         default_user_role: project.default_user_role ?? '',
         allowed_domains: (project.allowed_domains ?? []).join(', '),
+        public_api_allowed_origins: (
+            project.public_api_allowed_origins ?? []
+        ).join('\n'),
         preset_transformations: project.preset_transformations ?? [],
         report_issue_url: project.report_issue_url ?? '',
         report_bug_url: project.report_bug_url ?? '',
@@ -852,6 +855,53 @@ export default function ProjectSettingsPage({
                                     </p>
                                     <InputError
                                         message={errors.allowed_domains}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t('settings.project.publicApiTitle')}
+                                    description={t(
+                                        'settings.project.publicApiDescription',
+                                    )}
+                                />
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="public_api_allowed_origins">
+                                        {t(
+                                            'settings.project.publicApiAllowedOrigins',
+                                        )}
+                                    </Label>
+                                    <Textarea
+                                        id="public_api_allowed_origins"
+                                        name="public_api_allowed_origins"
+                                        value={form.public_api_allowed_origins}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                public_api_allowed_origins:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder={
+                                            'https://www.example.com\nhttps://app.example.com'
+                                        }
+                                        rows={4}
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.publicApiAllowedOriginsHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={
+                                            errors.public_api_allowed_origins ??
+                                            errors[
+                                                'public_api_allowed_origins.0'
+                                            ]
+                                        }
                                     />
                                 </div>
                             </div>

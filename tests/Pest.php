@@ -1,8 +1,14 @@
 <?php
 
+use App\Enums\CollectionPermissionAction;
 use App\Enums\PermissionEnum;
+use App\Enums\RoleEnum;
+use App\Models\ApiKey;
+use App\Models\Collection;
+use App\Models\CollectionPermission;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Api\CollectionPermissionGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -53,6 +59,72 @@ expect()->extend('toBeOne', function () {
 | global functions to help you to reduce the number of lines of code in your test files.
 |
 */
+
+function publicRole(): Role
+{
+    return Role::query()->where('name', RoleEnum::Public->value)->firstOrFail();
+}
+
+/**
+ * @param  list<CollectionPermissionAction|string>  $actions
+ */
+function grantRoleActions(Role $role, Collection $collection, array $actions): void
+{
+    foreach ($actions as $action) {
+        $value = $action instanceof CollectionPermissionAction ? $action->value : $action;
+        CollectionPermission::query()->updateOrCreate(
+            [
+                'role_id' => $role->id,
+                'collection_id' => $collection->id,
+                'action' => $value,
+            ],
+            ['allowed' => true],
+        );
+    }
+
+    app(CollectionPermissionGuard::class)->forget($role->id);
+}
+
+/**
+ * @param  list<CollectionPermissionAction|string>  $actions
+ */
+function grantPublicActions(Collection $collection, array $actions): void
+{
+    grantRoleActions(publicRole(), $collection, $actions);
+}
+
+function makePostsCollection(): Collection
+{
+    return Collection::query()->create([
+        'name' => 'Posts',
+        'slug' => 'posts',
+        'is_singleton' => false,
+        'sort_order' => 1,
+    ]);
+}
+
+/**
+ * @return array{role: Role, plain: string, key: ApiKey}
+ */
+function makeApiKeyForRole(?Role $role = null): array
+{
+    $role ??= Role::query()->create([
+        'name' => 'api-consumer-'.uniqid(),
+        'guard_name' => 'web',
+        'is_system' => false,
+        'is_assignable' => true,
+    ]);
+
+    $secret = ApiKey::generateSecret();
+    $key = ApiKey::query()->create([
+        'name' => 'Partner',
+        'key_prefix' => $secret['prefix'],
+        'key_hash' => $secret['hash'],
+        'role_id' => $role->id,
+    ]);
+
+    return ['role' => $role, 'plain' => $secret['plain'], 'key' => $key];
+}
 
 /**
  * Assign AI-related permissions to a user via a disposable test role.

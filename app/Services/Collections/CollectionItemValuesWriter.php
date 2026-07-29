@@ -6,6 +6,7 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
+use App\Services\Api\PublicApiResponseCache;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 
 /**
@@ -16,6 +17,7 @@ class CollectionItemValuesWriter
     public function __construct(
         private CollectionItemRevisionRecorder $revisionRecorder,
         private OutboundWebhookDispatcher $webhooks,
+        private PublicApiResponseCache $responseCache,
     ) {}
 
     /**
@@ -66,6 +68,13 @@ class CollectionItemValuesWriter
             $item,
             $collection,
         );
+
+        // Synchronous: next public GET must miss and reassemble fresh JSON.
+        $this->responseCache->bump((int) $collection->id);
+
+        // Permission checks / prior assemble() may have loadMissing'd fieldValues;
+        // rows were replaced above — drop the stale relation so the mutation response is fresh.
+        $item->unsetRelation('fieldValues');
     }
 
     /**

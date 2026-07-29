@@ -6,7 +6,9 @@ use App\Models\CollectionItem;
 use App\Models\User;
 use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Api\FileFieldExpander;
+use App\Services\Api\RelationIncludeHydrator;
 use App\Support\Api\ApiAccess;
+use App\Support\Api\PublicApiIncludeParser;
 use App\Support\Collections\CollectionItemDataAccessor;
 use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Http\Request;
@@ -39,8 +41,19 @@ class CollectionItemResource extends JsonResource
 
         $data = app(CollectionItemDataAccessor::class)->flattenForLocale($item, $locale, $includeAll);
 
-        // Expand file fields only on public CMS API surfaces (admin forms keep raw IDs).
-        if ($request->is('api/*') && $item->collection !== null) {
+        $isPublicV1 = $request->is('api/v1/*');
+        $includeParser = app(PublicApiIncludeParser::class);
+        $include = $isPublicV1 ? $includeParser->parse($request->query('include')) : [];
+
+        // Public REST v1: slim by default; GraphQL / other api/* keep always-expand-files.
+        $wantsFiles = $isPublicV1
+            ? $includeParser->has($include, PublicApiIncludeParser::TOKEN_FILES)
+            : $request->is('api/*');
+        $wantsUsers = $isPublicV1
+            ? $includeParser->has($include, PublicApiIncludeParser::TOKEN_USERS)
+            : true;
+
+        if ($wantsFiles && $item->collection !== null) {
             $access = $request->attributes->get('apiAccess');
             if (! $access instanceof ApiAccess) {
                 try {
@@ -53,12 +66,18 @@ class CollectionItemResource extends JsonResource
             $data = app(FileFieldExpander::class)->expand($data, $item->collection, $access);
         }
 
+        if ($isPublicV1 && $item->collection !== null && $include !== []) {
+            $data = app(RelationIncludeHydrator::class)->hydrate($data, $item->collection, $include, $request);
+        }
+
         if ($item->collection !== null) {
             $data = app(CollectionPermissionEnforcer::class)
                 ->stripData($request, $item->collection, $data);
         }
 
-        $item->loadMissing(['userCreated:id,first_name,last_name,email', 'userUpdated:id,first_name,last_name,email']);
+        if ($wantsUsers) {
+            $item->loadMissing(['userCreated:id,first_name,last_name,email', 'userUpdated:id,first_name,last_name,email']);
+        }
 
         return [
             'id' => $item->id,
@@ -68,8 +87,8 @@ class CollectionItemResource extends JsonResource
             'updated_at' => $item->updated_at?->toIso8601String(),
             'user_created_id' => $item->user_created_id,
             'user_updated_id' => $item->user_updated_id,
-            'user_created' => $this->miniUser($item->userCreated),
-            'user_updated' => $this->miniUser($item->userUpdated),
+            'user_created' => $wantsUsers ? $this->miniUser($item->userCreated) : null,
+            'user_updated' => $wantsUsers ? $this->miniUser($item->userUpdated) : null,
         ];
     }
 

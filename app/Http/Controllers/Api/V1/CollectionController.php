@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Collection;
 use App\Services\Api\CollectionPermissionGuard;
+use App\Services\Api\PublicApiResponseCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,6 +17,10 @@ use Illuminate\Http\Request;
 class CollectionController extends Controller
 {
     use AuthorizesCollectionAccess;
+
+    public function __construct(
+        private PublicApiResponseCache $responseCache,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -49,21 +54,28 @@ class CollectionController extends Controller
         $collection = $this->findCollectionBySlug($slug);
         $this->authorizeCollection($request, $collection, CollectionPermissionAction::Read);
 
-        $collection->load(['fields' => fn ($q) => $q->ordered()]);
+        $version = $this->responseCache->version((int) $collection->id);
+        $key = $this->responseCache->collectionKey($slug, $version);
 
-        return response()->json([
-            'data' => [
-                'id' => $collection->id,
-                'name' => $collection->name,
-                'slug' => $collection->slug,
-                'is_singleton' => (bool) $collection->is_singleton,
-                'fields' => $collection->fields->map(fn ($field): array => [
-                    'id' => $field->id,
-                    'name' => $field->name,
-                    'type' => $field->type,
-                    'settings' => $field->settings,
-                ])->values()->all(),
-            ],
-        ]);
+        $payload = $this->responseCache->remember($key, function () use ($collection): array {
+            $collection->load(['fields' => fn ($q) => $q->ordered()]);
+
+            return [
+                'data' => [
+                    'id' => $collection->id,
+                    'name' => $collection->name,
+                    'slug' => $collection->slug,
+                    'is_singleton' => (bool) $collection->is_singleton,
+                    'fields' => $collection->fields->map(fn ($field): array => [
+                        'id' => $field->id,
+                        'name' => $field->name,
+                        'type' => $field->type instanceof \BackedEnum ? $field->type->value : $field->type,
+                        'settings' => $field->settings,
+                    ])->values()->all(),
+                ],
+            ];
+        });
+
+        return response()->json($payload);
     }
 }

@@ -4,6 +4,7 @@ namespace App\GraphQL\Queries;
 
 use App\Enums\CollectionPermissionAction;
 use App\GraphQL\Concerns\AuthorizesGraphqlCollection;
+use App\Services\Api\PublicApiResponseCache;
 
 final class CollectionQuery
 {
@@ -18,11 +19,15 @@ final class CollectionQuery
         $collection = $this->findCollection($args['slug']);
         $this->authorize($collection, CollectionPermissionAction::Read);
 
-        return [
+        $cache = app(PublicApiResponseCache::class);
+        $version = $cache->version((int) $collection->id);
+        $key = $cache->collectionKey($collection->slug, $version, 'graphql');
+
+        return $cache->remember($key, fn (): array => [
             'id' => $collection->id,
             'name' => $collection->name,
             'slug' => $collection->slug,
             'is_singleton' => (bool) $collection->is_singleton,
-        ];
+        ]);
     }
 }

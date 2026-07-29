@@ -3,13 +3,8 @@
 use App\Enums\CollectionPermissionAction;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
-use App\Models\ApiKey;
-use App\Models\Collection;
 use App\Models\CollectionItem;
-use App\Models\CollectionPermission;
-use App\Models\Role;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionGuard;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 
@@ -17,72 +12,6 @@ beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
 });
-
-function publicRole(): Role
-{
-    return Role::query()->where('name', RoleEnum::Public->value)->firstOrFail();
-}
-
-/**
- * @param  list<CollectionPermissionAction|string>  $actions
- */
-function grantRoleActions(Role $role, Collection $collection, array $actions): void
-{
-    foreach ($actions as $action) {
-        $value = $action instanceof CollectionPermissionAction ? $action->value : $action;
-        CollectionPermission::query()->updateOrCreate(
-            [
-                'role_id' => $role->id,
-                'collection_id' => $collection->id,
-                'action' => $value,
-            ],
-            ['allowed' => true],
-        );
-    }
-
-    app(CollectionPermissionGuard::class)->forget($role->id);
-}
-
-/**
- * @param  list<CollectionPermissionAction|string>  $actions
- */
-function grantPublicActions(Collection $collection, array $actions): void
-{
-    grantRoleActions(publicRole(), $collection, $actions);
-}
-
-function makePostsCollection(): Collection
-{
-    return Collection::query()->create([
-        'name' => 'Posts',
-        'slug' => 'posts',
-        'is_singleton' => false,
-        'sort_order' => 1,
-    ]);
-}
-
-/**
- * @return array{role: Role, plain: string, key: ApiKey}
- */
-function makeApiKeyForRole(?Role $role = null): array
-{
-    $role ??= Role::query()->create([
-        'name' => 'api-consumer-'.uniqid(),
-        'guard_name' => 'web',
-        'is_system' => false,
-        'is_assignable' => true,
-    ]);
-
-    $secret = ApiKey::generateSecret();
-    $key = ApiKey::query()->create([
-        'name' => 'Partner',
-        'key_prefix' => $secret['prefix'],
-        'key_hash' => $secret['hash'],
-        'role_id' => $role->id,
-    ]);
-
-    return ['role' => $role, 'plain' => $secret['plain'], 'key' => $key];
-}
 
 it('denies anonymous collection list by default', function (): void {
     makePostsCollection();

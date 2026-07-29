@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\LogsApplicationActivity;
+use App\Services\Api\PublicApiResponseCache;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 use Database\Factories\CollectionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -60,6 +61,10 @@ class Collection extends Model implements Sortable
 
         static::updated(function (Collection $collection): void {
             app(OutboundWebhookDispatcher::class)->dispatchCollection('collection.updated', $collection);
+
+            if ($collection->wasChanged('slug')) {
+                app(PublicApiResponseCache::class)->bump((int) $collection->id);
+            }
         });
 
         static::deleted(function (Collection $collection): void {

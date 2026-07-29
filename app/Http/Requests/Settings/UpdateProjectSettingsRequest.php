@@ -5,6 +5,7 @@ namespace App\Http\Requests\Settings;
 use App\Enums\PermissionEnum;
 use App\Services\Authorization\EffectivePermissionResolver;
 use App\Services\Settings\ProjectSettings;
+use App\Support\Api\PublicApiOrigin;
 use App\Support\Collections\ContentLocaleCatalog;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -66,6 +67,16 @@ class UpdateProjectSettingsRequest extends FormRequest
             'email_verification_required' => ['required', 'boolean'],
             'allowed_domains' => ['nullable', 'array'],
             'allowed_domains.*' => ['string', 'max:255'],
+            'public_api_allowed_origins' => ['nullable', 'array'],
+            'public_api_allowed_origins.*' => [
+                'string',
+                'max:2048',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! is_string($value) || ! PublicApiOrigin::isValid($value)) {
+                        $fail('Each public API origin must be an http(s) origin URL with no path (e.g. https://www.example.com).');
+                    }
+                },
+            ],
             'allowed_transformations' => ['nullable', 'array'],
             'allowed_transformations.*' => ['string', Rule::in($transformations)],
             'preset_transformations' => ['required', 'array', 'min:1'],
@@ -160,6 +171,13 @@ class UpdateProjectSettingsRequest extends FormRequest
             ->values()
             ->all();
 
+        $origins = collect($validated['public_api_allowed_origins'] ?? [])
+            ->map(fn (string $origin): ?string => PublicApiOrigin::normalize($origin))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
         $presets = collect($validated['preset_transformations'])
             ->map(function (array $preset): array {
                 return [
@@ -190,6 +208,7 @@ class UpdateProjectSettingsRequest extends FormRequest
             'default_user_role' => $validated['default_user_role'] ?? null,
             'email_verification_required' => (bool) $validated['email_verification_required'],
             'allowed_domains' => $domains,
+            'public_api_allowed_origins' => $origins,
             'allowed_transformations' => array_values($validated['allowed_transformations'] ?? []),
             'preset_transformations' => $presets,
             'report_issue_url' => $validated['report_issue_url'] ?? null,
@@ -248,6 +267,16 @@ class UpdateProjectSettingsRequest extends FormRequest
         if ($this->has('allowed_domains') && is_string($this->input('allowed_domains'))) {
             $merge['allowed_domains'] = collect(preg_split('/[\s,]+/', (string) $this->input('allowed_domains')) ?: [])
                 ->map(fn (string $domain): string => trim($domain))
+                ->filter()
+                ->values()
+                ->all();
+        }
+
+        if ($this->has('public_api_allowed_origins') && is_string($this->input('public_api_allowed_origins'))) {
+            $merge['public_api_allowed_origins'] = collect(
+                preg_split('/[\s,]+/', (string) $this->input('public_api_allowed_origins')) ?: [],
+            )
+                ->map(fn (string $origin): string => trim($origin))
                 ->filter()
                 ->values()
                 ->all();

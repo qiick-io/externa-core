@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\ConfigurePublicApiCors;
 use App\Http\Middleware\EnsureCanManageFiles;
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\HandleAppearance;
@@ -24,6 +25,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => EnsureUserHasPermission::class,
             'can.manage.files' => EnsureCanManageFiles::class,
         ]);
+
+        // Before HandleCors so project allowlist can override cors.allowed_origins
+        $middleware->prepend(ConfigurePublicApiCors::class);
 
         $middleware->encryptCookies(except: [
             'appearance',

@@ -212,15 +212,20 @@ it('expands image fields on item api when file read is granted', function (): vo
     );
     app(CollectionPermissionGuard::class)->forget(filesPublicRole()->id);
 
-    // Without file read: id only
+    // Without include=files: raw id (even if file read is later granted).
     $this->getJson("/api/v1/collections/articles/items/{$item->id}")
+        ->assertOk()
+        ->assertJsonPath('data.data.cover', $file->id);
+
+    // With include=files but without file read: id-only expansion
+    $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")
         ->assertOk()
         ->assertJsonPath('data.data.cover.id', $file->id)
         ->assertJsonMissingPath('data.data.cover.url');
 
     grantPublicFileActions([FilePermissionAction::Read]);
 
-    $this->getJson("/api/v1/collections/articles/items/{$item->id}")
+    $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")
         ->assertOk()
         ->assertJsonPath('data.data.cover.id', $file->id)
         ->assertJsonPath('data.data.cover.filename', 'cover.jpg')
@@ -281,13 +286,18 @@ it('expands nested files inside blocks fields on item api when file read is gran
 
     $this->getJson("/api/v1/collections/articles/items/{$item->id}")
         ->assertOk()
+        ->assertJsonPath('data.data.content.0.data.image', $cover->id)
+        ->assertJsonPath('data.data.content.0.data.gallery.0', $gallery->id);
+
+    $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")
+        ->assertOk()
         ->assertJsonPath('data.data.content.0.data.image.id', $cover->id)
         ->assertJsonPath('data.data.content.0.data.gallery.0.id', $gallery->id)
         ->assertJsonMissingPath('data.data.content.0.data.image.url');
 
     grantPublicFileActions([FilePermissionAction::Read]);
 
-    $this->getJson("/api/v1/collections/articles/items/{$item->id}")
+    $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")
         ->assertOk()
         ->assertJsonPath('data.data.content.0.data.image.filename', 'nested-cover.jpg')
         ->assertJsonPath('data.data.content.0.data.gallery.0.filename', 'nested-gallery.jpg')
@@ -471,13 +481,13 @@ it('nulls private image fields on items without read_private even when collectio
     app(CollectionPermissionGuard::class)->forget(filesPublicRole()->id);
     grantPublicFileActions([FilePermissionAction::Read]);
 
-    $this->getJson("/api/v1/collections/articles/items/{$item->id}")
+    $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")
         ->assertOk()
         ->assertJsonPath('data.data.cover', null);
 
     grantPublicFileActions([FilePermissionAction::Read, FilePermissionAction::ReadPrivate]);
 
-    $this->getJson("/api/v1/collections/articles/items/{$item->id}")
+    $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")
         ->assertOk()
         ->assertJsonPath('data.data.cover.id', $file->id)
         ->assertJsonPath('data.data.cover.url', url("/api/v1/files/{$file->id}/content"));
@@ -537,7 +547,7 @@ it('omits private nested block images without read_private', function (): void {
     app(CollectionPermissionGuard::class)->forget(filesPublicRole()->id);
     grantPublicFileActions([FilePermissionAction::Read]);
 
-    $this->getJson("/api/v1/collections/articles/items/{$item->id}")
+    $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")
         ->assertOk()
         ->assertJsonPath('data.data.content.0.data.image', null)
         ->assertJsonCount(1, 'data.data.content.0.data.gallery')

@@ -2,6 +2,7 @@
 
 namespace App\Services\Api;
 
+use App\Enums\CollectionPermissionAction;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
@@ -58,15 +59,31 @@ class CollectionPermissionEnforcer
 
     public function assertItemReadable(Request $request, Collection $collection, CollectionItem $item): void
     {
+        if (! $this->isItemReadable($request, $collection, $item)) {
+            abort(404);
+        }
+    }
+
+    /**
+     * Soft readability check (collection Read grant + item_filter). Does not abort.
+     */
+    public function isItemReadable(Request $request, Collection $collection, CollectionItem $item): bool
+    {
+        $access = $request->attributes->get('apiAccess');
+        if ($access instanceof ApiAccess) {
+            if (! $this->guard->allows($access->roleId(), (int) $collection->id, CollectionPermissionAction::Read)) {
+                return false;
+            }
+        }
+
         $rules = $this->resolveRules($request, $collection);
         if ($rules === null) {
-            return;
+            return true;
         }
 
         $data = $this->assembler->assemble($item);
-        if (! $this->rulesService->itemMatchesMerged($rules, $data)) {
-            abort(404);
-        }
+
+        return $this->rulesService->itemMatchesMerged($rules, $data);
     }
 
     public function assertItemWritable(Request $request, Collection $collection, CollectionItem $item): void

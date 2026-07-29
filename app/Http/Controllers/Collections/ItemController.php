@@ -84,7 +84,12 @@ class ItemController extends Controller
         $query = CollectionItem::query()
             ->when($trashed, fn ($query) => $query->onlyTrashed())
             ->where('collection_id', $collection->id)
-            ->with(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
+            ->with([
+                'fieldValues',
+                'userCreated:id,first_name,last_name,email',
+                'userUpdated:id,first_name,last_name,email',
+                'collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()]),
+            ]);
         $this->itemQueryService->applyFilters($query, $collection, $stringFilters);
 
         $sortParam = $request->query('sort');
@@ -261,7 +266,12 @@ class ItemController extends Controller
         }
 
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
-        $item->load(['collection.fields']);
+        $item->load([
+            'fieldValues',
+            'userCreated:id,first_name,last_name,email',
+            'userUpdated:id,first_name,last_name,email',
+            'collection.fields',
+        ]);
 
         $rawData = $this->collectionItemValuesAssembler->assemble($item);
 

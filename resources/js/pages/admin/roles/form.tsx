@@ -1,6 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Check, X } from 'lucide-react';
-import { Fragment, useEffect, useMemo } from 'react';
+import { Check, Search, X } from 'lucide-react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -82,6 +82,12 @@ const COLLECTION_ACTIONS = [
     { key: 'read' as const, label: 'Read' },
     { key: 'update' as const, label: 'Update' },
     { key: 'delete' as const, label: 'Delete' },
+];
+
+const FIELD_ACTIONS = [
+    { key: 'read' as const, label: 'Read' },
+    { key: 'create' as const, label: 'Create' },
+    { key: 'update' as const, label: 'Update' },
 ];
 
 /**
@@ -184,6 +190,15 @@ export default function AdminRoleForm({
             },
         ],
         [isEdit, role?.id, t],
+    );
+
+    const [collectionSearch, setCollectionSearch] = useState('');
+    const collectionQuery = collectionSearch.trim().toLowerCase();
+    const filteredCollections = collections.filter(
+        (c) =>
+            !collectionQuery ||
+            c.name.toLowerCase().includes(collectionQuery) ||
+            c.slug.toLowerCase().includes(collectionQuery),
     );
 
     const groupPermissionIds = (group: PermissionGroup): number[] => {
@@ -555,19 +570,42 @@ export default function AdminRoleForm({
                         </section>
 
                         <section className="space-y-3">
-                            <div>
-                                <h2 className="text-lg font-medium">
-                                    Collection access
-                                </h2>
-                                <p className="text-sm text-muted-foreground">
-                                    Public CMS API permissions (create / read /
-                                    update / delete). Missing grant = deny.
-                                </p>
+                            <div className="flex flex-wrap items-end justify-between gap-4">
+                                <div>
+                                    <h2 className="text-lg font-medium">
+                                        Collection access
+                                    </h2>
+                                    <p className="text-sm text-muted-foreground">
+                                        Public CMS API permissions (create /
+                                        read / update / delete). Missing grant =
+                                        deny.
+                                    </p>
+                                </div>
+                                {collections.length > 0 ? (
+                                    <div className="relative w-full max-w-xs sm:w-56">
+                                        <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input
+                                            value={collectionSearch}
+                                            onChange={(e) =>
+                                                setCollectionSearch(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder="Search collections…"
+                                            className="pl-9"
+                                            aria-label="Search collections"
+                                        />
+                                    </div>
+                                ) : null}
                             </div>
 
                             {collections.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">
                                     No collections yet.
+                                </p>
+                            ) : filteredCollections.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                    No collections match.
                                 </p>
                             ) : (
                                 <div className="overflow-x-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
@@ -590,7 +628,8 @@ export default function AdminRoleForm({
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {collections.map((collection) => {
+                                            {filteredCollections.map(
+                                                (collection) => {
                                                 const key = String(
                                                     collection.id,
                                                 );
@@ -709,7 +748,7 @@ export default function AdminRoleForm({
                                                                         item
                                                                         filter
                                                                     </div>
-                                                                    <div className="grid gap-2 sm:grid-cols-2">
+                                                                    <div className="grid gap-3 sm:grid-cols-2">
                                                                         {fieldOptions.map(
                                                                             (
                                                                                 field,
@@ -727,33 +766,33 @@ export default function AdminRoleForm({
                                                                                         key={
                                                                                             field.name
                                                                                         }
-                                                                                        className="flex flex-wrap items-center gap-3 rounded-md border border-sidebar-border/60 px-2 py-1.5 text-xs"
+                                                                                        className="grid grid-cols-[minmax(0,1fr)_4.5rem_5rem_5rem] items-center gap-x-3 rounded-md border border-sidebar-border/60 px-3 py-2.5 text-xs"
                                                                                     >
-                                                                                        <span className="min-w-20 font-medium">
+                                                                                        <span
+                                                                                            className="min-w-0 truncate font-medium"
+                                                                                            title={
+                                                                                                field.name
+                                                                                            }
+                                                                                        >
                                                                                             {
                                                                                                 field.name
                                                                                             }
                                                                                         </span>
-                                                                                        {(
-                                                                                            [
-                                                                                                'read',
-                                                                                                'create',
-                                                                                                'update',
-                                                                                            ] as const
-                                                                                        ).map(
+                                                                                        {FIELD_ACTIONS.map(
                                                                                             (
-                                                                                                flag,
+                                                                                                action,
                                                                                             ) => (
                                                                                                 <label
                                                                                                     key={
-                                                                                                        flag
+                                                                                                        action.key
                                                                                                     }
-                                                                                                    className="flex items-center gap-1"
+                                                                                                    className="flex items-center gap-1.5 whitespace-nowrap"
                                                                                                 >
                                                                                                     <Checkbox
                                                                                                         checked={
                                                                                                             flags[
-                                                                                                                flag
+                                                                                                                action
+                                                                                                                    .key
                                                                                                             ]
                                                                                                         }
                                                                                                         onCheckedChange={(
@@ -762,14 +801,14 @@ export default function AdminRoleForm({
                                                                                                             setFieldFlag(
                                                                                                                 collection.id,
                                                                                                                 field.name,
-                                                                                                                flag,
+                                                                                                                action.key,
                                                                                                                 c ===
                                                                                                                     true,
                                                                                                             )
                                                                                                         }
                                                                                                     />
                                                                                                     {
-                                                                                                        flag
+                                                                                                        action.label
                                                                                                     }
                                                                                                 </label>
                                                                                             ),

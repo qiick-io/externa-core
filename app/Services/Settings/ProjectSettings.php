@@ -2,8 +2,10 @@
 
 namespace App\Services\Settings;
 
+use App\Support\Api\PublicApiOrigin;
 use App\Support\Collections\ContentLocaleCatalog;
 use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\Rules\Password;
 
@@ -12,6 +14,11 @@ use Illuminate\Validation\Rules\Password;
  */
 class ProjectSettings
 {
+    public const PUBLIC_API_ORIGINS_CACHE_KEY = 'project.public_api_allowed_origins';
+
+    /** Short TTL; forgotten on project settings save. */
+    private const PUBLIC_API_ORIGINS_CACHE_TTL_SECONDS = 60;
+
     public function __construct(
         private readonly SettingsRepository $settings,
     ) {}
@@ -150,6 +157,29 @@ class ProjectSettings
     public function allowedDomains(): array
     {
         return $this->raw()['allowed_domains'];
+    }
+
+    /**
+     * Browser origins allowed for the public API when non-empty (CORS + request gate).
+     *
+     * @return list<string>
+     */
+    public function publicApiAllowedOrigins(): array
+    {
+        /** @var list<string> */
+        return Cache::remember(
+            self::PUBLIC_API_ORIGINS_CACHE_KEY,
+            self::PUBLIC_API_ORIGINS_CACHE_TTL_SECONDS,
+            fn (): array => $this->raw()['public_api_allowed_origins'],
+        );
+    }
+
+    /**
+     * Drop the short-lived origins cache after project settings change.
+     */
+    public function forgetPublicApiAllowedOriginsCache(): void
+    {
+        Cache::forget(self::PUBLIC_API_ORIGINS_CACHE_KEY);
     }
 
     public function loginMaxAttempts(): int
@@ -329,6 +359,7 @@ class ProjectSettings
                 : null,
             'email_verification_required' => (bool) ($raw['email_verification_required'] ?? false),
             'allowed_domains' => $this->normalizeDomains($raw['allowed_domains'] ?? []),
+            'public_api_allowed_origins' => $this->normalizeOrigins($raw['public_api_allowed_origins'] ?? []),
             'allowed_transformations' => $this->normalizeTransformations($raw['allowed_transformations'] ?? null),
             'preset_transformations' => $this->normalizePresets($raw['preset_transformations'] ?? null),
             'report_issue_url' => $this->nullableUrl($raw['report_issue_url'] ?? null),
@@ -557,6 +588,34 @@ class ProjectSettings
             ->unique()
             ->values()
             ->all();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeOrigins(mixed $value): array
+    {
+        if (is_string($value)) {
+            $value = preg_split('/[\s,]+/', $value) ?: [];
+        }
+
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($value as $entry) {
+            if (! is_string($entry)) {
+                continue;
+            }
+            $origin = PublicApiOrigin::normalize($entry);
+            if ($origin === null || in_array($origin, $normalized, true)) {
+                continue;
+            }
+            $normalized[] = $origin;
+        }
+
+        return $normalized;
     }
 
     /**

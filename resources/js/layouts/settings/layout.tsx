@@ -11,6 +11,7 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 import adminRoutes from '@/lib/admin-routes';
 import { cn, toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
+import { edit as editPerformance } from '@/routes/performance';
 import { edit } from '@/routes/profile';
 import { edit as editProject } from '@/routes/project';
 import { edit as editSecurity } from '@/routes/security';
@@ -61,6 +62,11 @@ export default function SettingsLayout({
               {
                   title: t('settings.layout.appearance'),
                   href: editAppearance(),
+                  icon: null,
+              },
+              {
+                  title: t('settings.layout.performance'),
+                  href: editPerformance(),
                   icon: null,
               },
           ]

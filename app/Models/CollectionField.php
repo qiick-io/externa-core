@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Concerns\LogsApplicationActivity;
 use App\Enums\FieldTypeEnum;
+use App\Services\Api\PublicApiResponseCache;
 use App\Support\Collections\CollectionLocaleResolver;
 use Database\Factories\CollectionFieldFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -50,6 +51,17 @@ class CollectionField extends Model implements Sortable
         'settings',
         'sort_order',
     ];
+
+    protected static function booted(): void
+    {
+        $bump = static function (CollectionField $field): void {
+            app(PublicApiResponseCache::class)->bump((int) $field->collection_id);
+        };
+
+        static::created($bump);
+        static::updated($bump);
+        static::deleted($bump);
+    }
 
     /**
      * @return BelongsTo<Collection, $this>

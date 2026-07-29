@@ -63,6 +63,8 @@ class ProjectSettingsController extends Controller
             $request->projectValues(),
         );
 
+        $this->projectSettings->forgetPublicApiAllowedOriginsCache();
+
         return to_route('project.edit');
     }
 

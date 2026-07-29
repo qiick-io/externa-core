@@ -70,6 +70,7 @@ test('authorized users can view and update project settings', function () {
             'default_user_role' => $role->name,
             'email_verification_required' => true,
             'allowed_domains' => ['example.com', 'qiick.io'],
+            'public_api_allowed_origins' => ['https://www.example.com', 'https://app.example.com'],
             'allowed_transformations' => ['thumbnail'],
             'preset_transformations' => $presets,
             'report_issue_url' => 'https://example.com/issues',
@@ -94,7 +95,9 @@ test('authorized users can view and update project settings', function () {
         ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'default_user_role'))
         ->toBe('member')
         ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'preset_transformations'))
-        ->toBe($presets);
+        ->toBe($presets)
+        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'public_api_allowed_origins'))
+        ->toBe(['https://www.example.com', 'https://app.example.com']);
 
     $project = app(ProjectSettings::class);
     expect($project->maxTransformSize())->toBe(800)

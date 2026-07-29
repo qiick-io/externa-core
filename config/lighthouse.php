@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use App\Http\Middleware\EnforcePublicApiOrigin;
 use App\Http\Middleware\ResolveApiAccess;
 use GraphQL\Error\DebugFlag;
 use GraphQL\Validator\Rules\DisableIntrospection;
@@ -52,6 +53,7 @@ return [
         'middleware' => [
             AcceptJson::class,
             'throttle:api',
+            EnforcePublicApiOrigin::class,
             ResolveApiAccess::class,
         ],
 

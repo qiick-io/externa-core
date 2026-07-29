@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\LogsApplicationActivity;
+use App\Services\Api\PublicApiResponseCache;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 use App\Support\Collections\CollectionItemDataAccessor;
 use Database\Factories\CollectionItemFactory;
@@ -60,14 +61,17 @@ class CollectionItem extends Model
         // Create/update webhooks fire from CollectionItemValuesWriter (avoids empty create[])
         static::deleted(function (CollectionItem $item): void {
             app(OutboundWebhookDispatcher::class)->dispatchItem('item.deleted', $item);
+            app(PublicApiResponseCache::class)->bump((int) $item->collection_id);
         });
 
         static::restored(function (CollectionItem $item): void {
             app(OutboundWebhookDispatcher::class)->dispatchItem('item.restored', $item);
+            app(PublicApiResponseCache::class)->bump((int) $item->collection_id);
         });
 
         static::forceDeleted(function (CollectionItem $item): void {
             app(OutboundWebhookDispatcher::class)->dispatchItem('item.deleted', $item);
+            app(PublicApiResponseCache::class)->bump((int) $item->collection_id);
         });
     }
 

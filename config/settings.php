@@ -49,6 +49,7 @@ return [
             'default_user_role',
             'email_verification_required',
             'allowed_domains',
+            'public_api_allowed_origins',
             'allowed_transformations',
             'preset_transformations',
             'report_issue_url',
@@ -84,6 +85,7 @@ return [
             'default_user_role' => null,
             'email_verification_required' => false,
             'allowed_domains' => [],
+            'public_api_allowed_origins' => [],
             'allowed_transformations' => ['thumbnail'],
             // Structured image presets (GD-backed; see FileTransformService)
             'preset_transformations' => [
