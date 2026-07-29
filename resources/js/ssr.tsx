@@ -2,6 +2,7 @@ import { createInertiaApp } from '@inertiajs/react';
 import createServer from '@inertiajs/react/server';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import ReactDOMServer from 'react-dom/server';
+import { UnsavedChangesProvider } from '@/components/unsaved-changes-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initI18n } from '@/lib/i18n';
 
@@ -24,7 +25,9 @@ createServer((page) => {
         setup: ({ App, props }) => {
             return (
                 <TooltipProvider delayDuration={0}>
-                    <App {...props} />
+                    <UnsavedChangesProvider>
+                        <App {...props} />
+                    </UnsavedChangesProvider>
                 </TooltipProvider>
             );
         },

@@ -617,6 +617,7 @@ export default function CollectionsIndex({
                     form={form}
                     title={title}
                     submit={submit}
+                    onCancel={() => handleDrawerOpenChange(false)}
                 />
             </Drawer>
         </AppLayout>

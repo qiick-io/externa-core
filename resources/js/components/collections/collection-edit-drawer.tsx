@@ -44,6 +44,7 @@ export function CollectionEditDrawer({
                 form={collectionForm.form}
                 title={collectionForm.title}
                 submit={collectionForm.submit}
+                onCancel={() => collectionForm.handleDrawerOpenChange(false)}
             />
         </Drawer>
     );

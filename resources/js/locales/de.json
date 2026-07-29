@@ -702,5 +702,11 @@
         "connecting": "Verbinde…",
         "disabled": "Realtime aus",
         "offline": "Realtime offline"
+    },
+    "unsavedChanges": {
+        "title": "Ungespeicherte Änderungen",
+        "description": "Es gibt ungespeicherte Änderungen. Wirklich verwerfen?",
+        "discard": "Änderungen verwerfen",
+        "keepEditing": "Weiter bearbeiten"
     }
 }

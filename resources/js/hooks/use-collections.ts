@@ -1,7 +1,17 @@
 import { useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
+import {
+    useRegisterUnsavedChanges,
+    useRequestLeave,
+} from '@/hooks/use-unsaved-changes';
 import type { CollectionRow } from '@/types/collections';
+
+const EMPTY_COLLECTION_FORM = {
+    name: '',
+    slug: '',
+    is_singleton: false,
+};
 
 /**
  * Converts a collection display name to a URL-safe slug.
@@ -28,11 +38,18 @@ export function useCollections() {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<CollectionRow | null>(null);
     const [slugManual, setSlugManual] = useState(false);
+    const requestLeave = useRequestLeave();
 
-    const form = useForm({
-        name: '',
-        slug: '',
-        is_singleton: false,
+    const form = useForm({ ...EMPTY_COLLECTION_FORM });
+
+    useRegisterUnsavedChanges({
+        scope: 'drawer',
+        isDirty: form.isDirty,
+        enabled: open,
+        onDiscard: () => {
+            form.reset();
+            form.clearErrors();
+        },
     });
 
     useEffect(() => {
@@ -41,30 +58,42 @@ export function useCollections() {
         }
 
         if (editing) {
-            form.setData({
+            // Fresh object for setDefaults — avoid sharing the setData reference
+            // (Inertia setDefaults() with no args stores dataRef as defaults).
+            const payload = {
                 name: editing.name,
                 slug: editing.slug,
-                is_singleton: editing.is_singleton,
-            });
+                is_singleton: Boolean(editing.is_singleton),
+            };
+            form.setData(payload);
+            form.setDefaults({ ...payload });
             setSlugManual(true);
         } else {
+            form.setDefaults({ ...EMPTY_COLLECTION_FORM });
             form.reset();
             form.clearErrors();
             setSlugManual(false);
         }
         /* `form` omitted from deps: Inertia useForm identity can change every render */
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, editing]);
 
     const title = editing ? 'Edit collection' : 'New collection';
+
+    const closeDrawer = (): void => {
+        setOpen(false);
+        setEditing(null);
+        form.setDefaults({ ...EMPTY_COLLECTION_FORM });
+        form.reset();
+        form.clearErrors();
+        setSlugManual(false);
+    };
 
     const submit = (): void => {
         const opts = {
             preserveScroll: true,
             onSuccess: () => {
-                setOpen(false);
-                setEditing(null);
-                form.reset();
-                setSlugManual(false);
+                closeDrawer();
             },
         };
 
@@ -96,11 +125,19 @@ export function useCollections() {
      * @returns {void}
      */
     const handleDrawerOpenChange = (next: boolean): void => {
-        setOpen(next);
+        if (next) {
+            setOpen(true);
 
-        if (!next) {
-            setEditing(null);
+            return;
         }
+
+        void requestLeave().then((ok) => {
+            if (!ok) {
+                return;
+            }
+
+            closeDrawer();
+        });
     };
 
     return {

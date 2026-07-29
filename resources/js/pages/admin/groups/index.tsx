@@ -31,6 +31,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
+import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
 import { seedGroupPrompt, seedGroupsBulkPrompt } from '@/lib/ai-open';
@@ -66,6 +67,7 @@ export default function AdminGroupsIndex({
 }) {
     const groups = normalizePaginated(groupsProp);
     const { can } = useCan();
+    const requestLeave = useRequestLeave();
     const isTrashed = filters.trashed === true;
     const [search, setSearch] = useState(filters.search ?? '');
     const [sort, setSort] = useState<GroupSortField>(filters.sort ?? 'name');
@@ -144,6 +146,23 @@ export default function AdminGroupsIndex({
         setDrawerOpen(true);
     };
 
+    const handleDrawerOpenChange = (open: boolean): void => {
+        if (open) {
+            setDrawerOpen(true);
+
+            return;
+        }
+
+        void requestLeave().then((ok) => {
+            if (!ok) {
+                return;
+            }
+
+            setDrawerOpen(false);
+            setEditing(null);
+        });
+    };
+
     const bulk = (action: string): void => {
         router.post(
             adminRoutes.groups.bulkActions(),
@@ -178,13 +197,7 @@ export default function AdminGroupsIndex({
             <Drawer
                 direction="right"
                 open={drawerOpen}
-                onOpenChange={(open) => {
-                    setDrawerOpen(open);
-
-                    if (!open) {
-                        setEditing(null);
-                    }
-                }}
+                onOpenChange={handleDrawerOpenChange}
             >
                 <PageLayout
                     filters={
@@ -519,11 +532,13 @@ export default function AdminGroupsIndex({
 
                 <GroupFormDrawer
                     editing={editing}
+                    open={drawerOpen}
                     readOnly={
                         editing
                             ? !can(PermissionEnum.CanEditGroups)
                             : !can(PermissionEnum.CanCreateGroups)
                     }
+                    onCancel={() => handleDrawerOpenChange(false)}
                     onSuccess={() => {
                         setDrawerOpen(false);
                         setEditing(null);

@@ -6,7 +6,6 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     DrawerBody,
-    DrawerClose,
     DrawerContent,
     DrawerDescription,
     DrawerFooter,
@@ -15,12 +14,27 @@ import {
 } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import adminRoutes from '@/lib/admin-routes';
 import type { AdminUserRow } from '@/types/admin';
+
+const EMPTY_USER_FORM = {
+    first_name: '',
+    last_name: '',
+    email: '',
+    username: '',
+    password: '',
+    is_active: true,
+    role_ids: [] as number[],
+    group_ids: [] as number[],
+};
 
 export type UserFormDrawerProps = {
     editing: AdminUserRow | null;
     readOnly?: boolean;
+    open?: boolean;
+    /** Prefer over DrawerClose so leave goes through requestLeave. */
+    onCancel?: () => void;
     onSuccess?: () => void;
 };
 
@@ -32,22 +46,30 @@ export type UserFormDrawerProps = {
 export function UserFormDrawer({
     editing,
     readOnly = false,
+    open = true,
+    onCancel,
     onSuccess,
 }: UserFormDrawerProps) {
-    const form = useForm({
-        first_name: '',
-        last_name: '',
-        email: '',
-        username: '',
-        password: '',
-        is_active: true,
-        role_ids: [] as number[],
-        group_ids: [] as number[],
+    const form = useForm({ ...EMPTY_USER_FORM });
+
+    useRegisterUnsavedChanges({
+        scope: 'drawer',
+        isDirty: form.isDirty,
+        enabled: open && !readOnly,
+        onDiscard: () => {
+            form.reset();
+            form.clearErrors();
+        },
     });
 
     useEffect(() => {
+        if (!open) {
+            return;
+        }
+
         if (editing) {
-            form.setData({
+            // Fresh object for setDefaults — avoid sharing the setData reference.
+            const payload = {
                 first_name: editing.first_name,
                 last_name: editing.last_name ?? '',
                 email: editing.email,
@@ -56,13 +78,16 @@ export function UserFormDrawer({
                 is_active: editing.is_active,
                 role_ids: editing.roles.map((r) => r.id),
                 group_ids: editing.groups.map((g) => g.id),
-            });
+            };
+            form.setData(payload);
+            form.setDefaults({ ...payload });
         } else {
+            form.setDefaults({ ...EMPTY_USER_FORM });
             form.reset();
             form.clearErrors();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- Inertia form identity is unstable
-    }, [editing]);
+    }, [editing, open]);
 
     const submit = (): void => {
         const opts = {
@@ -228,11 +253,13 @@ export function UserFormDrawer({
                 </DrawerBody>
 
                 <DrawerFooter className="flex flex-row justify-end gap-2">
-                    <DrawerClose asChild>
-                        <Button type="button" variant="outline">
-                            Cancel
-                        </Button>
-                    </DrawerClose>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => onCancel?.()}
+                    >
+                        Cancel
+                    </Button>
                     {!readOnly && (
                         <Button type="submit" disabled={form.processing}>
                             {editing ? 'Save' : 'Create'}

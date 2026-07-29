@@ -3,6 +3,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AppErrorBoundary } from '@/components/app-error-boundary';
+import { UnsavedChangesProvider } from '@/components/unsaved-changes-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import '../css/app.css';
@@ -68,7 +69,10 @@ createInertiaApp({
             <StrictMode>
                 <AppErrorBoundary>
                     <TooltipProvider delayDuration={0}>
-                        <App {...props} />
+                        {/* Provider wraps App so page-level hooks are inside context. */}
+                        <UnsavedChangesProvider>
+                            <App {...props} />
+                        </UnsavedChangesProvider>
                         <Toaster position="top-right" duration={5000} />
                     </TooltipProvider>
                 </AppErrorBoundary>

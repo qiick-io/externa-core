@@ -6,7 +6,6 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     DrawerBody,
-    DrawerClose,
     DrawerContent,
     DrawerDescription,
     DrawerFooter,
@@ -15,12 +14,23 @@ import {
 } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import adminRoutes from '@/lib/admin-routes';
 import type { AdminGroupRow } from '@/types/admin';
+
+const EMPTY_GROUP_FORM = {
+    name: '',
+    description: '',
+    role_ids: [] as number[],
+    user_ids: [] as number[],
+};
 
 export type GroupFormDrawerProps = {
     editing: AdminGroupRow | null;
     readOnly?: boolean;
+    open?: boolean;
+    /** Prefer over DrawerClose so leave goes through requestLeave. */
+    onCancel?: () => void;
     onSuccess?: () => void;
 };
 
@@ -32,30 +42,45 @@ export type GroupFormDrawerProps = {
 export function GroupFormDrawer({
     editing,
     readOnly = false,
+    open = true,
+    onCancel,
     onSuccess,
 }: GroupFormDrawerProps) {
-    const form = useForm({
-        name: '',
-        description: '',
-        role_ids: [] as number[],
-        user_ids: [] as number[],
+    const form = useForm({ ...EMPTY_GROUP_FORM });
+
+    useRegisterUnsavedChanges({
+        scope: 'drawer',
+        isDirty: form.isDirty,
+        enabled: open && !readOnly,
+        onDiscard: () => {
+            form.reset();
+            form.clearErrors();
+        },
     });
 
     useEffect(() => {
+        if (!open) {
+            return;
+        }
+
         if (editing) {
-            form.setData({
+            // Fresh object for setDefaults — avoid sharing the setData reference.
+            const payload = {
                 name: editing.name,
                 description: editing.description ?? '',
                 role_ids: editing.role_ids ?? editing.roles.map((r) => r.id),
                 user_ids:
                     editing.user_ids ?? editing.users?.map((u) => u.id) ?? [],
-            });
+            };
+            form.setData(payload);
+            form.setDefaults({ ...payload });
         } else {
+            form.setDefaults({ ...EMPTY_GROUP_FORM });
             form.reset();
             form.clearErrors();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editing]);
+    }, [editing, open]);
 
     const submit = (): void => {
         const opts = {
@@ -157,11 +182,13 @@ export function GroupFormDrawer({
                 </DrawerBody>
 
                 <DrawerFooter className="flex flex-row justify-end gap-2">
-                    <DrawerClose asChild>
-                        <Button type="button" variant="outline">
-                            Cancel
-                        </Button>
-                    </DrawerClose>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => onCancel?.()}
+                    >
+                        Cancel
+                    </Button>
                     {!readOnly && (
                         <Button type="submit" disabled={form.processing}>
                             {editing ? 'Save' : 'Create'}

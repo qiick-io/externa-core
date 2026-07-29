@@ -732,5 +732,11 @@
         "connecting": "Connecting…",
         "disabled": "Realtime off",
         "offline": "Realtime offline"
+    },
+    "unsavedChanges": {
+        "title": "Unsaved changes",
+        "description": "You have unsaved changes. Are you sure you want to discard them?",
+        "discard": "Discard changes",
+        "keepEditing": "Keep editing"
     }
 }

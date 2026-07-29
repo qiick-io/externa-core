@@ -50,7 +50,6 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     DrawerBody,
-    DrawerClose,
     DrawerDescription,
     DrawerFooter,
     DrawerHeader,
@@ -58,6 +57,7 @@ import {
 } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import {
     DEFAULT_BLOCKS_DEPTH,
     MAX_BLOCKS_DEPTH,
@@ -1604,6 +1604,8 @@ export type CollectionFieldFormDrawerProps = {
     fieldType: string;
     relatedCollections: RelatedCollectionOption[];
     siblingFieldNames?: string[];
+    /** Prefer over DrawerClose so leave goes through requestLeave. */
+    onCancel: () => void;
     onSuccess: () => void;
 };
 
@@ -1619,6 +1621,7 @@ export function CollectionFieldFormDrawer({
     fieldType,
     relatedCollections,
     siblingFieldNames = [],
+    onCancel,
     onSuccess,
 }: CollectionFieldFormDrawerProps) {
     const [options, setOptions] = useState<FieldOptionRow[]>(() =>
@@ -1739,6 +1742,21 @@ export function CollectionFieldFormDrawer({
         treeOptions,
     ]);
 
+    // ponytail: snapshot compare for settings; Form onInput catches field key / native inputs
+    const [initialSettingsSnapshot] = useState(() =>
+        JSON.stringify(settingsPayload),
+    );
+    const [inputDirty, setInputDirty] = useState(false);
+    const isDirty =
+        inputDirty ||
+        JSON.stringify(settingsPayload) !== initialSettingsSnapshot;
+
+    useRegisterUnsavedChanges({
+        scope: 'drawer',
+        isDirty,
+        onDiscard: () => setInputDirty(false),
+    });
+
     const formProps =
         mode === 'create'
             ? wayfinderInertiaFormProps(
@@ -1769,7 +1787,12 @@ export function CollectionFieldFormDrawer({
                 key={field?.id ?? `new-${fieldType}`}
                 className="flex min-h-0 flex-1 flex-col overflow-hidden"
                 options={{ preserveScroll: true }}
-                onSuccess={onSuccess}
+                onSuccess={() => {
+                    setInputDirty(false);
+                    onSuccess();
+                }}
+                onInput={() => setInputDirty(true)}
+                onChange={() => setInputDirty(true)}
                 onError={(formErrors) => {
                     const first = Object.values(formErrors).find(
                         (message) =>
@@ -1836,11 +1859,13 @@ export function CollectionFieldFormDrawer({
                         </DrawerBody>
 
                         <DrawerFooter className="flex flex-row justify-end gap-3">
-                            <DrawerClose asChild>
-                                <Button type="button" variant="outline">
-                                    Cancel
-                                </Button>
-                            </DrawerClose>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={onCancel}
+                            >
+                                Cancel
+                            </Button>
                             <Button type="submit" disabled={processing}>
                                 {mode === 'create'
                                     ? 'Create field'

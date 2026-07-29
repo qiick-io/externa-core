@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import adminRoutes from '@/lib/admin-routes';
@@ -153,21 +154,40 @@ export default function AdminRoleForm({
         } as FileActions,
     });
 
-    useEffect(() => {
-        if (role?.permissions?.length) {
-            form.setData(
-                'permission_ids',
-                role.permissions.map((p) => p.id),
-            );
-        }
+    useRegisterUnsavedChanges({
+        scope: 'page',
+        isDirty: form.isDirty,
+        onDiscard: () => {
+            form.reset();
+            form.clearErrors();
+        },
+    });
 
-        form.setData('collection_permissions', emptyMatrix());
-        form.setData('file_permissions', {
+    useEffect(() => {
+        const permissionIds = role?.permissions?.length
+            ? role.permissions.map((p) => p.id)
+            : [];
+        const collection_permissions = emptyMatrix();
+        const file_permissions = {
             create: filePermissions.create ?? false,
             read: filePermissions.read ?? false,
             read_private: filePermissions.read_private ?? false,
             update: filePermissions.update ?? false,
             delete: filePermissions.delete ?? false,
+        };
+        // Fresh object for setDefaults — avoid sharing the setData reference.
+        const payload = {
+            name: role?.name ?? '',
+            permission_ids: permissionIds,
+            collection_permissions,
+            file_permissions,
+        };
+        form.setData(payload);
+        form.setDefaults({
+            ...payload,
+            permission_ids: [...permissionIds],
+            collection_permissions: { ...collection_permissions },
+            file_permissions: { ...file_permissions },
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [role?.id, collections.length]);

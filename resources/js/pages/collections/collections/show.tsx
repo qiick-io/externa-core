@@ -1,5 +1,6 @@
 import { Form, Head, Link } from '@inertiajs/react';
 import { Rows3, Save, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import {
@@ -11,6 +12,7 @@ import { DynamicItemFields } from '@/components/collections/dynamic-item-fields'
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { useCollection } from '@/hooks/use-collection';
+import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import { collectCollectionDataErrorMessages } from '@/lib/collection-data-errors';
 import { collectionToFormRow } from '@/types';
@@ -38,6 +40,14 @@ export default function CollectionsShow({
     });
 
     const collectionForm = useCollectionEditDrawer();
+    const [isDirty, setIsDirty] = useState(false);
+
+    useRegisterUnsavedChanges({
+        scope: 'page',
+        isDirty,
+        // ponytail: only clear dirty — leave navigation is replayed by the provider
+        onDiscard: () => setIsDirty(false),
+    });
 
     return (
         <AppLayout
@@ -120,6 +130,9 @@ export default function CollectionsShow({
                         id={COLLECTION_CONTENT_FORM_ID}
                         className="space-y-6"
                         options={{ preserveScroll: true }}
+                        onSuccess={() => setIsDirty(false)}
+                        onInput={() => setIsDirty(true)}
+                        onChange={() => setIsDirty(true)}
                     >
                         {({ errors }) => {
                             const dataErrors =

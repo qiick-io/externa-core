@@ -22,6 +22,7 @@ import { Drawer, DrawerContent, DrawerNested } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
+import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import { fieldTypeLabel } from '@/lib/collection-field-types';
 import type { RelatedCollectionOption } from '@/lib/collection-field-types';
@@ -46,6 +47,7 @@ export default function CollectionsFields({
     const { t } = useTranslation();
     const { can } = useCan();
     const canEditSchema = can(PermissionEnum.CanEditCollections);
+    const requestLeave = useRequestLeave();
     const [addOpen, setAddOpen] = useState(false);
     const [addFormOpen, setAddFormOpen] = useState(false);
     const [addFieldType, setAddFieldType] = useState('string');
@@ -104,6 +106,46 @@ export default function CollectionsFields({
         setAddFormOpen(false);
         setAddOpen(false);
         setAddFieldType('string');
+    };
+
+    const handleAddDrawerOpenChange = (open: boolean): void => {
+        if (open) {
+            setAddOpen(true);
+
+            return;
+        }
+
+        void requestLeave().then((ok) => {
+            if (ok) {
+                closeAddFlow();
+            }
+        });
+    };
+
+    const handleAddFormOpenChange = (open: boolean): void => {
+        if (open) {
+            setAddFormOpen(true);
+
+            return;
+        }
+
+        void requestLeave().then((ok) => {
+            if (ok) {
+                setAddFormOpen(false);
+            }
+        });
+    };
+
+    const handleEditDrawerOpenChange = (open: boolean): void => {
+        if (open) {
+            return;
+        }
+
+        void requestLeave().then((ok) => {
+            if (ok) {
+                setEditField(null);
+            }
+        });
     };
 
     return (
@@ -224,15 +266,7 @@ export default function CollectionsFields({
                 direction="right"
                 shouldScaleBackground
                 open={addOpen}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        closeAddFlow();
-
-                        return;
-                    }
-
-                    setAddOpen(true);
-                }}
+                onOpenChange={handleAddDrawerOpenChange}
             >
                 <DrawerContent className="data-[vaul-drawer-direction=right]:max-w-3xl">
                     <CollectionFieldTypeDrawer
@@ -245,7 +279,7 @@ export default function CollectionsFields({
                     <DrawerNested
                         direction="right"
                         open={addFormOpen}
-                        onOpenChange={setAddFormOpen}
+                        onOpenChange={handleAddFormOpenChange}
                     >
                         <DrawerContent className="data-[vaul-drawer-direction=right]:max-w-3xl">
                             <CollectionFieldFormDrawer
@@ -256,6 +290,7 @@ export default function CollectionsFields({
                                 siblingFieldNames={fields.map(
                                     (field) => field.name,
                                 )}
+                                onCancel={() => handleAddFormOpenChange(false)}
                                 onSuccess={closeAddFlow}
                             />
                         </DrawerContent>
@@ -266,11 +301,7 @@ export default function CollectionsFields({
             <Drawer
                 direction="right"
                 open={editField !== null}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setEditField(null);
-                    }
-                }}
+                onOpenChange={handleEditDrawerOpenChange}
             >
                 <DrawerContent className="data-[vaul-drawer-direction=right]:max-w-3xl">
                     {editField !== null && (
@@ -283,6 +314,7 @@ export default function CollectionsFields({
                             siblingFieldNames={fields.map(
                                 (field) => field.name,
                             )}
+                            onCancel={() => handleEditDrawerOpenChange(false)}
                             onSuccess={() => setEditField(null)}
                         />
                     )}

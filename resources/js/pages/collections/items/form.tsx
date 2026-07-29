@@ -1,11 +1,13 @@
 import { Form, Head, Link } from '@inertiajs/react';
 import { History, Rows3, Save, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { useCollection } from '@/hooks/use-collection';
+import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import { collectCollectionDataErrorMessages } from '@/lib/collection-data-errors';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
@@ -50,6 +52,15 @@ export default function ItemsForm({
         collection,
         singletonRawData: null,
         editableRawData: rawData,
+    });
+
+    const [isDirty, setIsDirty] = useState(false);
+
+    useRegisterUnsavedChanges({
+        scope: 'page',
+        isDirty,
+        // ponytail: only clear dirty — leave navigation is replayed by the provider
+        onDiscard: () => setIsDirty(false),
     });
 
     const lastCrumb: BreadcrumbItem = isNew
@@ -187,6 +198,9 @@ export default function ItemsForm({
                         id={COLLECTION_ITEM_FORM_ID}
                         className="space-y-6"
                         options={{ preserveScroll: true }}
+                        onSuccess={() => setIsDirty(false)}
+                        onInput={() => setIsDirty(true)}
+                        onChange={() => setIsDirty(true)}
                     >
                         {({ errors }) => {
                             const dataErrors =

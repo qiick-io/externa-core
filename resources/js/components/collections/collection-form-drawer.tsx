@@ -2,7 +2,6 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     DrawerBody,
-    DrawerClose,
     DrawerContent,
     DrawerDescription,
     DrawerFooter,
@@ -22,6 +21,8 @@ export type CollectionFormDrawerProps = {
     form: UseCollectionsReturn['form'];
     title: string;
     submit: () => void;
+    /** Prefer over DrawerClose so leave goes through requestLeave. */
+    onCancel: () => void;
 };
 
 /**
@@ -36,6 +37,7 @@ export function CollectionFormDrawer({
     form,
     title,
     submit,
+    onCancel,
 }: CollectionFormDrawerProps) {
     return (
         <DrawerContent>
@@ -125,11 +127,13 @@ export function CollectionFormDrawer({
                 </DrawerBody>
 
                 <DrawerFooter className="flex flex-row justify-end gap-2">
-                    <DrawerClose asChild>
-                        <Button type="button" variant="outline">
-                            Cancel
-                        </Button>
-                    </DrawerClose>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onCancel}
+                    >
+                        Cancel
+                    </Button>
                     <Button type="submit" disabled={form.processing}>
                         {editing ? 'Save' : 'Create'}
                     </Button>

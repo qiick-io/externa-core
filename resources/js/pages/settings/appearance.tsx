@@ -1,5 +1,6 @@
 import { Form, Head, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import AppearanceSettingsController from '@/actions/App/Http/Controllers/Settings/AppearanceSettingsController';
 import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
@@ -16,6 +17,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { contrastingForeground } from '@/lib/contrasting-foreground';
@@ -132,25 +134,65 @@ export default function Appearance({
     const { t } = useTranslation();
     const { projectAppearance } = usePage().props;
 
-    const [projectColor, setProjectColor] = useState(
-        appearance.project_color ?? DEFAULT_PROJECT_COLOR,
-    );
-    const [projectColorDark, setProjectColorDark] = useState(
+    const initialColor = appearance.project_color ?? DEFAULT_PROJECT_COLOR;
+    const initialColorDark =
         appearance.project_color_dark ??
-            appearance.project_color ??
-            DEFAULT_PROJECT_COLOR,
+        appearance.project_color ??
+        DEFAULT_PROJECT_COLOR;
+    const initialAppearance = appearance.default_appearance;
+    const initialFiles = useMemo(
+        () => ({
+            project_logo: appearance.project_logo,
+            project_logo_dark: appearance.project_logo_dark,
+            public_favicon: appearance.public_favicon,
+        }),
+        [appearance],
     );
-    const [defaultAppearance, setDefaultAppearance] = useState(
-        appearance.default_appearance,
-    );
-    const [files, setFiles] = useState<
-        Record<FileFieldKey, AppearanceFileMeta | null>
-    >({
-        project_logo: appearance.project_logo,
-        project_logo_dark: appearance.project_logo_dark,
-        public_favicon: appearance.public_favicon,
-    });
+
+    const [projectColor, setProjectColorState] = useState(initialColor);
+    const [projectColorDark, setProjectColorDarkState] =
+        useState(initialColorDark);
+    const [defaultAppearance, setDefaultAppearanceState] =
+        useState(initialAppearance);
+    const [files, setFilesState] =
+        useState<Record<FileFieldKey, AppearanceFileMeta | null>>(initialFiles);
     const [pickerField, setPickerField] = useState<FileFieldKey | null>(null);
+    const [isDirty, setIsDirty] = useState(false);
+
+    const setProjectColor = (value: string): void => {
+        setIsDirty(true);
+        setProjectColorState(value);
+    };
+    const setProjectColorDark = (value: string): void => {
+        setIsDirty(true);
+        setProjectColorDarkState(value);
+    };
+    const setDefaultAppearance = (
+        value: AppearanceSettings['default_appearance'],
+    ): void => {
+        setIsDirty(true);
+        setDefaultAppearanceState(value);
+    };
+    const setFiles = (
+        action: SetStateAction<
+            Record<FileFieldKey, AppearanceFileMeta | null>
+        >,
+    ): void => {
+        setIsDirty(true);
+        setFilesState(action);
+    };
+
+    useRegisterUnsavedChanges({
+        scope: 'page',
+        isDirty,
+        onDiscard: () => {
+            setProjectColorState(initialColor);
+            setProjectColorDarkState(initialColorDark);
+            setDefaultAppearanceState(initialAppearance);
+            setFilesState(initialFiles);
+            setIsDirty(false);
+        },
+    });
 
     // Live preview: CSS picks light vs dark brand from .dark class.
     useEffect(() => {
@@ -222,6 +264,7 @@ export default function Appearance({
                     {...AppearanceSettingsController.update.form()}
                     options={{ preserveScroll: true }}
                     className="space-y-10"
+                    onSuccess={() => setIsDirty(false)}
                 >
                     {({ processing, recentlySuccessful, errors }) => (
                         <>

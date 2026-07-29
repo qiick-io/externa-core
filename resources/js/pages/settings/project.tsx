@@ -17,8 +17,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Form, Head, router } from '@inertiajs/react';
 import { GripVertical, Lock } from 'lucide-react';
-import { useState } from 'react';
-import type { ReactNode } from 'react';
+import { useMemo, useState } from 'react';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import ProjectSettingsController from '@/actions/App/Http/Controllers/Settings/ProjectSettingsController';
 import Heading from '@/components/heading';
@@ -38,6 +38,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import type { ContentLocaleCatalogEntry } from '@/lib/content-locales-catalog';
@@ -64,6 +65,35 @@ type Props = {
 
 /** Matches config('settings.project.sidebar_pinned_module_ids'). */
 const PINNED_SIDEBAR_MODULE_IDS = new Set(['ai']);
+
+function buildProjectFormState(project: ProjectSettingsForm) {
+    return {
+        ...project,
+        name: project.name ?? '',
+        description: project.description ?? '',
+        url: project.url ?? '',
+        default_user_role: project.default_user_role ?? '',
+        allowed_domains: (project.allowed_domains ?? []).join(', '),
+        public_api_allowed_origins: (
+            project.public_api_allowed_origins ?? []
+        ).join('\n'),
+        preset_transformations: project.preset_transformations ?? [],
+        report_issue_url: project.report_issue_url ?? '',
+        report_bug_url: project.report_bug_url ?? '',
+        report_error_url: project.report_error_url ?? '',
+        webhook_url: project.webhook_url ?? '',
+        webhook_secret: '',
+        sidebar_modules: pinSidebarModules(project.sidebar_modules),
+        allowed_transformations: project.allowed_transformations ?? [],
+        content_locales: project.content_locales ?? ['en', 'it'],
+        default_content_locale:
+            project.default_content_locale ??
+            project.content_locales?.[0] ??
+            'en',
+        fallback_content_locales: project.fallback_content_locales ??
+            project.content_locales ?? ['en', 'it'],
+    };
+}
 
 function presetTransformErrors(
     errors: Record<string, string | undefined>,
@@ -218,33 +248,26 @@ export default function ProjectSettingsPage({
     transformFormats,
 }: Props) {
     const { t } = useTranslation();
-    const [form, setForm] = useState({
-        ...project,
-        name: project.name ?? '',
-        description: project.description ?? '',
-        url: project.url ?? '',
-        default_user_role: project.default_user_role ?? '',
-        allowed_domains: (project.allowed_domains ?? []).join(', '),
-        public_api_allowed_origins: (
-            project.public_api_allowed_origins ?? []
-        ).join('\n'),
-        preset_transformations: project.preset_transformations ?? [],
-        report_issue_url: project.report_issue_url ?? '',
-        report_bug_url: project.report_bug_url ?? '',
-        report_error_url: project.report_error_url ?? '',
-        webhook_url: project.webhook_url ?? '',
-        webhook_secret: '',
-        sidebar_modules: pinSidebarModules(project.sidebar_modules),
-        allowed_transformations: project.allowed_transformations ?? [],
-        content_locales: project.content_locales ?? ['en', 'it'],
-        default_content_locale:
-            project.default_content_locale ??
-            project.content_locales?.[0] ??
-            'en',
-        fallback_content_locales: project.fallback_content_locales ??
-            project.content_locales ?? ['en', 'it'],
-    });
+    const initialForm = useMemo(() => buildProjectFormState(project), [project]);
+    const [form, setFormState] = useState(initialForm);
+    const [isDirty, setIsDirty] = useState(false);
     const [sendingTestWebhook, setSendingTestWebhook] = useState(false);
+
+    const setForm: Dispatch<SetStateAction<typeof initialForm>> = (
+        action,
+    ) => {
+        setIsDirty(true);
+        setFormState(action);
+    };
+
+    useRegisterUnsavedChanges({
+        scope: 'page',
+        isDirty,
+        onDiscard: () => {
+            setFormState(initialForm);
+            setIsDirty(false);
+        },
+    });
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -350,6 +373,7 @@ export default function ProjectSettingsPage({
                     {...ProjectSettingsController.update.form()}
                     options={{ preserveScroll: true }}
                     className="space-y-10"
+                    onSuccess={() => setIsDirty(false)}
                 >
                     {({ processing, recentlySuccessful, errors }) => (
                         <>
