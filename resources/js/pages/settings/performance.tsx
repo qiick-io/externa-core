@@ -18,15 +18,45 @@ type FlushAction = {
     url: string;
 };
 
+type Status = {
+    cacheStore: string;
+    redisReachable: boolean;
+    queueConnection: string;
+    appEnv: string;
+    appDebug: boolean;
+};
+
+type Bootstrap = {
+    configCached: boolean;
+    routesCached: boolean;
+    eventsCached: boolean;
+    packagesCached: boolean;
+};
+
+type PublicApi = {
+    ttlSeconds: number;
+    epoch: number;
+};
+
+type Links = {
+    jobs: string | null;
+    pulse: string | null;
+    horizon: string | null;
+};
+
 /**
  * Cache status and targeted flush actions.
  */
 export default function PerformanceSettingsPage({
-    cacheStore,
-    redisReachable,
+    status,
+    bootstrap,
+    publicApi,
+    links,
 }: {
-    cacheStore: string;
-    redisReachable: boolean;
+    status: Status;
+    bootstrap: Bootstrap;
+    publicApi: PublicApi;
+    links: Links;
 }) {
     const { t } = useTranslation();
     const [flushing, setFlushing] = useState<string | null>(null);
@@ -113,7 +143,7 @@ export default function PerformanceSettingsPage({
                                     className="font-mono"
                                     data-test="performance-cache-store"
                                 >
-                                    {cacheStore}
+                                    {status.cacheStore}
                                 </dd>
                             </div>
                             <div className="grid gap-1">
@@ -121,7 +151,39 @@ export default function PerformanceSettingsPage({
                                     {t('settings.performance.redisReachable')}
                                 </dt>
                                 <dd data-test="performance-redis-reachable">
-                                    {redisReachable
+                                    {status.redisReachable
+                                        ? t('settings.performance.yes')
+                                        : t('settings.performance.no')}
+                                </dd>
+                            </div>
+                            <div className="grid gap-1">
+                                <dt className="text-muted-foreground">
+                                    {t('settings.performance.queueConnection')}
+                                </dt>
+                                <dd
+                                    className="font-mono"
+                                    data-test="performance-queue-connection"
+                                >
+                                    {status.queueConnection}
+                                </dd>
+                            </div>
+                            <div className="grid gap-1">
+                                <dt className="text-muted-foreground">
+                                    {t('settings.performance.appEnv')}
+                                </dt>
+                                <dd
+                                    className="font-mono"
+                                    data-test="performance-app-env"
+                                >
+                                    {status.appEnv}
+                                </dd>
+                            </div>
+                            <div className="grid gap-1">
+                                <dt className="text-muted-foreground">
+                                    {t('settings.performance.appDebug')}
+                                </dt>
+                                <dd data-test="performance-app-debug">
+                                    {status.appDebug
                                         ? t('settings.performance.yes')
                                         : t('settings.performance.no')}
                                 </dd>
@@ -130,6 +192,156 @@ export default function PerformanceSettingsPage({
                     </div>
 
                     <Separator />
+
+                    <div className="space-y-6">
+                        <Heading
+                            variant="small"
+                            title={t('settings.performance.bootstrapTitle')}
+                            description={t(
+                                'settings.performance.bootstrapDescription',
+                            )}
+                        />
+
+                        <dl className="grid gap-4 text-sm">
+                            <div className="grid gap-1">
+                                <dt className="text-muted-foreground">
+                                    {t('settings.performance.configCached')}
+                                </dt>
+                                <dd data-test="performance-config-cached">
+                                    {bootstrap.configCached
+                                        ? t('settings.performance.yes')
+                                        : t('settings.performance.no')}
+                                </dd>
+                            </div>
+                            <div className="grid gap-1">
+                                <dt className="text-muted-foreground">
+                                    {t('settings.performance.routesCached')}
+                                </dt>
+                                <dd data-test="performance-routes-cached">
+                                    {bootstrap.routesCached
+                                        ? t('settings.performance.yes')
+                                        : t('settings.performance.no')}
+                                </dd>
+                            </div>
+                            <div className="grid gap-1">
+                                <dt className="text-muted-foreground">
+                                    {t('settings.performance.eventsCached')}
+                                </dt>
+                                <dd data-test="performance-events-cached">
+                                    {bootstrap.eventsCached
+                                        ? t('settings.performance.yes')
+                                        : t('settings.performance.no')}
+                                </dd>
+                            </div>
+                            <div className="grid gap-1">
+                                <dt className="text-muted-foreground">
+                                    {t('settings.performance.packagesCached')}
+                                </dt>
+                                <dd data-test="performance-packages-cached">
+                                    {bootstrap.packagesCached
+                                        ? t('settings.performance.yes')
+                                        : t('settings.performance.no')}
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-6">
+                        <Heading
+                            variant="small"
+                            title={t('settings.performance.publicApiTitle')}
+                            description={t(
+                                'settings.performance.publicApiDescription',
+                            )}
+                        />
+
+                        <dl className="grid gap-4 text-sm">
+                            <div className="grid gap-1">
+                                <dt className="text-muted-foreground">
+                                    {t('settings.performance.ttlSeconds')}
+                                </dt>
+                                <dd data-test="performance-public-api-ttl">
+                                    {publicApi.ttlSeconds}
+                                </dd>
+                            </div>
+                            <div className="grid gap-1">
+                                <dt className="text-muted-foreground">
+                                    {t('settings.performance.epoch')}
+                                </dt>
+                                <dd data-test="performance-public-api-epoch">
+                                    {publicApi.epoch}
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
+
+                    <Separator />
+
+                    {(links.jobs || links.pulse || links.horizon) && (
+                        <>
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t(
+                                        'settings.performance.observabilityTitle',
+                                    )}
+                                    description={t(
+                                        'settings.performance.observabilityDescription',
+                                    )}
+                                />
+
+                                <div className="flex gap-3 flex-wrap">
+                                    {links.jobs && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            asChild
+                                            data-test="performance-link-jobs"
+                                        >
+                                            <a href={links.jobs}>
+                                                {t(
+                                                    'settings.performance.linkJobs',
+                                                )}
+                                            </a>
+                                        </Button>
+                                    )}
+                                    {links.pulse && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            asChild
+                                            data-test="performance-link-pulse"
+                                        >
+                                            <a href={links.pulse}>
+                                                {t(
+                                                    'settings.performance.linkPulse',
+                                                )}
+                                            </a>
+                                        </Button>
+                                    )}
+                                    {links.horizon && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            asChild
+                                            data-test="performance-link-horizon"
+                                        >
+                                            <a href={links.horizon}>
+                                                {t(
+                                                    'settings.performance.linkHorizon',
+                                                )}
+                                            </a>
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <Separator />
+                        </>
+                    )}
+
 
                     <div className="space-y-6">
                         <Heading

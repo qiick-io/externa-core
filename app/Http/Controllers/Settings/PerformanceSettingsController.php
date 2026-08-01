@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Services\Api\CollectionPermissionGuard;
@@ -9,6 +10,7 @@ use App\Services\Api\FilePermissionGuard;
 use App\Services\Api\PublicApiResponseCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Redis;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -52,9 +54,26 @@ class PerformanceSettingsController extends Controller
      */
     public function edit(): Response
     {
+        $user = auth()->user();
+
         return Inertia::render('settings/performance', [
-            'cacheStore' => (string) config('cache.default'),
-            'redisReachable' => $this->redisReachable(),
+            'status' => [
+                'cacheStore' => (string) config('cache.default'),
+                'redisReachable' => $this->redisReachable(),
+                'queueConnection' => (string) config('queue.default'),
+                'appEnv' => app()->environment(),
+                'appDebug' => (bool) config('app.debug'),
+            ],
+            'bootstrap' => $this->bootstrapCacheStatus(),
+            'publicApi' => [
+                'ttlSeconds' => PublicApiResponseCache::TTL_SECONDS,
+                'epoch' => $this->publicApiResponseCache->epoch(),
+            ],
+            'links' => [
+                'jobs' => $user?->can(PermissionEnum::CanShowJobs->value) ? url('/settings/jobs') : null,
+                'pulse' => Gate::allows('viewPulse') ? url('/pulse') : null,
+                'horizon' => Gate::allows('viewHorizon') ? url('/horizon') : null,
+            ],
         ]);
     }
 
@@ -119,5 +138,34 @@ class PerformanceSettingsController extends Controller
         } catch (Throwable) {
             return false;
         }
+    }
+
+    /**
+     * Check Laravel bootstrap cache file presence.
+     *
+     * @return array<string, bool>
+     */
+    private function bootstrapCacheStatus(): array
+    {
+        $basePath = base_path('bootstrap/cache');
+
+        $routesFile = null;
+        if (file_exists("{$basePath}/routes-v7.php")) {
+            $routesFile = 'routes-v7.php';
+        } elseif (file_exists("{$basePath}/routes.php")) {
+            $routesFile = 'routes.php';
+        } else {
+            foreach (glob("{$basePath}/routes-v*.php") ?: [] as $file) {
+                $routesFile = basename($file);
+                break;
+            }
+        }
+
+        return [
+            'configCached' => file_exists("{$basePath}/config.php"),
+            'routesCached' => $routesFile !== null,
+            'eventsCached' => file_exists("{$basePath}/events.php"),
+            'packagesCached' => file_exists("{$basePath}/packages.php"),
+        ];
     }
 }
