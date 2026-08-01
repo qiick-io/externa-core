@@ -58,6 +58,9 @@
             "forgotPassword": "Password dimenticata?",
             "rememberMe": "Ricordami",
             "submit": "Accedi",
+            "passkey": "Accedi con passkey",
+            "passkeyCancelled": "Accesso con passkey annullato.",
+            "orContinueWithEmail": "oppure continua con email",
             "noAccount": "Non hai un account?",
             "signUp": "Registrati"
         },
@@ -87,7 +90,10 @@
             "title": "Conferma la password",
             "description": "Questa è un'area protetta dell'applicazione. Conferma la password per continuare.",
             "head": "Conferma password",
-            "submit": "Conferma password"
+            "submit": "Conferma password",
+            "passkey": "Conferma con passkey",
+            "passkeyCancelled": "Conferma con passkey annullata.",
+            "orConfirmWithPasskey": "oppure conferma con passkey"
         },
         "verifyEmail": {
             "title": "Verifica email",
@@ -152,7 +158,17 @@
             "enable2fa": "Attiva 2FA",
             "continueSetup": "Continua configurazione",
             "requiredBannerTitle": "Autenticazione a due fattori obbligatoria",
-            "requiredBannerDescription": "Questo progetto richiede l'autenticazione a due fattori. Attiva la 2FA qui sotto prima di poter usare il resto dell'app."
+            "requiredBannerDescription": "Questo progetto richiede l'autenticazione a due fattori. Attiva la 2FA o registra una passkey qui sotto prima di poter usare il resto dell'app.",
+            "passkeysTitle": "Passkey",
+            "passkeysDescription": "Accedi senza password con una passkey del dispositivo. Una passkey soddisfa anche il requisito di autenticazione a due fattori del progetto.",
+            "passkeysEmpty": "Nessuna passkey registrata.",
+            "passkeyName": "Nome passkey",
+            "passkeyNamePlaceholder": "es. MacBook Pro",
+            "passkeyCreated": "Aggiunta {{date}}",
+            "addPasskey": "Aggiungi passkey",
+            "deletePasskey": "Elimina",
+            "passkeysUnsupported": "Questo browser non supporta le passkey.",
+            "passkeysInsecureContext": "Le passkey richiedono un contesto sicuro (HTTPS, oppure http://localhost). http://*.test non è sicuro — usa HTTPS di Herd (herd secure) e imposta APP_URL su https://…, oppure apri via localhost."
         },
         "project": {
             "breadcrumb": "Impostazioni progetto",
@@ -191,7 +207,7 @@
             },
             "loginMaxAttempts": "Tentativi di login massimi al minuto",
             "twoFactorRequired": "Richiedi autenticazione a due fattori per tutti gli utenti",
-            "twoFactorRequiredHint": "Se attiva, gli utenti senza 2FA devono completare la configurazione nella pagina Sicurezza prima di usare l'app.",
+            "twoFactorRequiredHint": "Se attiva, gli utenti devono abilitare la 2FA TOTP o registrare una passkey nella pagina Sicurezza prima di usare l'app.",
             "registrationTitle": "Registrazione utenti",
             "registrationDescription": "Controlla la registrazione pubblica e i default dei nuovi account",
             "registrationEnabled": "Registrazione abilitata",

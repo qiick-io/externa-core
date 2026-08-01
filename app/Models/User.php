@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Ai\Concerns\HasConversations;
+use Laravel\Fortify\Contracts\PasskeyUser;
+use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Permission\Traits\HasRoles;
@@ -33,10 +35,10 @@ use Spatie\Permission\Traits\HasRoles;
 /**
  * Authenticated application user with roles, groups, soft deletes, and AI conversations.
  */
-class User extends Authenticatable
+class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasConversations, HasFactory, HasRoles, LogsApplicationActivity, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
+    use HasConversations, HasFactory, HasRoles, LogsApplicationActivity, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
 
     /**
      * Activity log options excluding sensitive credential fields.

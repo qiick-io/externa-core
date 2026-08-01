@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Http\Responses\LoginResponse;
+use App\Http\Responses\PasskeyLoginResponse;
 use App\Services\Settings\ProjectSettings;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ use Inertia\Inertia;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
+use Laravel\Passkeys\Contracts\PasskeyLoginResponse as PasskeyLoginResponseContract;
 
 /**
  * Configures Laravel Fortify authentication views, actions, and rate limiting.
@@ -30,6 +32,7 @@ class FortifyServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(LoginResponseContract::class, LoginResponse::class);
+        $this->app->singleton(PasskeyLoginResponseContract::class, PasskeyLoginResponse::class);
     }
 
     /**
@@ -60,6 +63,7 @@ class FortifyServiceProvider extends ServiceProvider
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
             'canRegister' => Features::enabled(Features::registration())
                 && app(ProjectSettings::class)->registrationEnabled(),
+            'canManagePasskeys' => Features::canManagePasskeys(),
             'status' => $request->session()->get('status'),
         ]));
 
@@ -87,7 +91,17 @@ class FortifyServiceProvider extends ServiceProvider
 
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/two-factor-challenge'));
 
-        Fortify::confirmPasswordView(fn () => Inertia::render('auth/confirm-password'));
+        Fortify::confirmPasswordView(function () {
+            $canManagePasskeys = Features::canManagePasskeys();
+            $user = auth()->user();
+
+            return Inertia::render('auth/confirm-password', [
+                'canManagePasskeys' => $canManagePasskeys,
+                'hasPasskeys' => $canManagePasskeys
+                    && $user !== null
+                    && $user->hasPasskeysEnabled(),
+            ]);
+        });
     }
 
     /**
@@ -104,6 +118,14 @@ class FortifyServiceProvider extends ServiceProvider
             $maxAttempts = app(ProjectSettings::class)->loginMaxAttempts();
 
             return Limit::perMinute($maxAttempts)->by($throttleKey);
+        });
+
+        RateLimiter::for('passkeys', function (Request $request) {
+            $credentialId = $request->input('credential.id');
+
+            return Limit::perMinute(10)->by(
+                ($credentialId ?: $request->session()->getId()).'|'.$request->ip()
+            );
         });
     }
 }

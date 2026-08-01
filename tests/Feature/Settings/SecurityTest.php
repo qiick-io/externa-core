@@ -22,6 +22,7 @@ test('security page is displayed', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/security')
             ->where('canManageTwoFactor', true)
+            ->where('canManagePasskeys', Features::canManagePasskeys())
             ->where('twoFactorEnabled', false)
             ->where('twoFactorRequired', false)
             ->where('twoFactorEnforcedForUser', false),
@@ -109,6 +110,9 @@ test('security page does not require password confirmation when disabled', funct
         'confirm' => true,
         'confirmPassword' => false,
     ]);
+    Features::passkeys([
+        'confirmPassword' => false,
+    ]);
 
     $this->actingAs($user)
         ->get(route('security.edit'))
@@ -131,10 +135,12 @@ test('security page renders without two factor when feature is disabled', functi
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/security')
             ->where('canManageTwoFactor', false)
+            ->where('canManagePasskeys', false)
             ->where('twoFactorRequired', false)
             ->where('twoFactorEnforcedForUser', false)
             ->missing('twoFactorEnabled')
-            ->missing('requiresConfirmation'),
+            ->missing('requiresConfirmation')
+            ->missing('passkeys'),
         );
 });
 

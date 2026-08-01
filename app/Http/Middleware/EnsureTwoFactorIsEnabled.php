@@ -10,6 +10,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * When project settings require 2FA, redirect users who have not completed Fortify setup.
+ *
+ * Satisfied by confirmed TOTP or at least one registered passkey.
  */
 class EnsureTwoFactorIsEnabled
 {
@@ -35,6 +37,9 @@ class EnsureTwoFactorIsEnabled
         'two-factor.secret-key',
         'two-factor.recovery-codes',
         'two-factor.regenerate-recovery-codes',
+        'passkey.registration-options',
+        'passkey.store',
+        'passkey.destroy',
     ];
 
     public function __construct(
@@ -56,6 +61,7 @@ class EnsureTwoFactorIsEnabled
         if (! $this->projectSettings->twoFactorRequired()
             || ! Features::canManageTwoFactorAuthentication()
             || $user->hasEnabledTwoFactorAuthentication()
+            || (Features::canManagePasskeys() && $user->hasPasskeysEnabled())
         ) {
             return $next($request);
         }

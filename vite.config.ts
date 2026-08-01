@@ -80,6 +80,9 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
             ssr: 'resources/js/ssr.tsx',
             refresh: true,
+            // Herd `secure` → use site certs; hot URL must be https://externa-core.test:5173
+            // (not https://127.0.0.1:5173 — cert SAN is only externa-core.test).
+            detectTls: 'externa-core.test',
         }),
         react({
             babel: {
@@ -91,10 +94,7 @@ export default defineConfig({
             `"${resolvePhpBinary()}" artisan wayfinder:generate --with-form`,
         ),
     ],
-    // ponytail: Node on macOS often binds Vite to [::1] only; Herd then writes
-    // public/hot as http://[::1]:5173. Prefer IPv4 so browsers always reach deps.
     server: {
-        host: '127.0.0.1',
         port: 5173,
         strictPort: true,
     },

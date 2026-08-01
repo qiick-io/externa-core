@@ -1,6 +1,8 @@
 import { Transition } from '@headlessui/react';
-import { Form, Head } from '@inertiajs/react';
-import { ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Form, Head, router } from '@inertiajs/react';
+import { UserCancelledError } from '@laravel/passkeys';
+import { usePasskeyRegister } from '@laravel/passkeys/react';
+import { KeyRound, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
@@ -11,35 +13,53 @@ import TwoFactorRecoveryCodes from '@/components/two-factor-recovery-codes';
 import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Spinner } from '@/components/ui/spinner';
 import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { destroy as destroyPasskey } from '@/routes/passkey';
 import { edit } from '@/routes/security';
 import { disable, enable } from '@/routes/two-factor';
 import type { BreadcrumbItem } from '@/types';
 
+type PasskeyItem = {
+    id: number;
+    name: string;
+    created_at: string | null;
+    last_used_at: string | null;
+};
+
 type Props = {
     canManageTwoFactor?: boolean;
+    canManagePasskeys?: boolean;
     requiresConfirmation?: boolean;
     twoFactorEnabled?: boolean;
     twoFactorRequired?: boolean;
     twoFactorEnforcedForUser?: boolean;
+    passkeys?: PasskeyItem[];
 };
 
 /**
- * Password and two-factor security settings.
+ * Password, two-factor, and passkey security settings.
  */
 export default function Security({
     canManageTwoFactor = false,
+    canManagePasskeys = false,
     requiresConfirmation = false,
     twoFactorEnabled = false,
     twoFactorEnforcedForUser = false,
+    passkeys = [],
 }: Props) {
     const { t } = useTranslation();
     const passwordInput = useRef<HTMLInputElement>(null);
     const currentPasswordInput = useRef<HTMLInputElement>(null);
+    const [passkeyName, setPasskeyName] = useState('');
+    const [deletingPasskeyId, setDeletingPasskeyId] = useState<number | null>(
+        null,
+    );
 
     const {
         qrCodeSvg,
@@ -53,12 +73,36 @@ export default function Security({
     } = useTwoFactorAuth();
     const [showSetupModal, setShowSetupModal] = useState<boolean>(false);
 
+    const {
+        register: registerPasskey,
+        isLoading: registeringPasskey,
+        error: registerPasskeyError,
+        errorInstance: registerPasskeyErrorInstance,
+        isSupported: passkeysSupported,
+    } = usePasskeyRegister({
+        onSuccess: () => {
+            setPasskeyName('');
+            router.reload({ only: ['passkeys', 'twoFactorEnforcedForUser'] });
+        },
+        onError: (error) => {
+            // User dismissed the platform prompt — not a server failure.
+            if (error instanceof UserCancelledError) {
+                return;
+            }
+        },
+    });
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: t('settings.security.breadcrumb'),
             href: edit(),
         },
     ];
+
+    const registerErrorMessage =
+        registerPasskeyErrorInstance instanceof UserCancelledError
+            ? null
+            : registerPasskeyError;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -322,6 +366,159 @@ export default function Security({
                                     fetchSetupData={fetchSetupData}
                                     errors={errors}
                                 />
+                            </div>
+                        </>
+                    )}
+
+                    {canManagePasskeys && (
+                        <>
+                            <Separator />
+
+                            <div className="space-y-6" data-test="passkeys-section">
+                                <Heading
+                                    variant="small"
+                                    title={t(
+                                        'settings.security.passkeysTitle',
+                                    )}
+                                    description={t(
+                                        'settings.security.passkeysDescription',
+                                    )}
+                                />
+
+                                {passkeys.length > 0 ? (
+                                    <ul className="divide-y divide-border rounded-md border">
+                                        {passkeys.map((passkey) => (
+                                            <li
+                                                key={passkey.id}
+                                                className="flex items-center justify-between gap-4 px-4 py-3"
+                                                data-test="passkey-item"
+                                            >
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-sm font-medium">
+                                                        {passkey.name}
+                                                    </p>
+                                                    {passkey.created_at && (
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {t(
+                                                                'settings.security.passkeyCreated',
+                                                                {
+                                                                    date: new Date(
+                                                                        passkey.created_at,
+                                                                    ).toLocaleString(),
+                                                                },
+                                                            )}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    disabled={
+                                                        deletingPasskeyId ===
+                                                        passkey.id
+                                                    }
+                                                    data-test="delete-passkey-button"
+                                                    onClick={() => {
+                                                        setDeletingPasskeyId(
+                                                            passkey.id,
+                                                        );
+                                                        router.delete(
+                                                            destroyPasskey.url(
+                                                                passkey.id,
+                                                            ),
+                                                            {
+                                                                preserveScroll:
+                                                                    true,
+                                                                onFinish: () =>
+                                                                    setDeletingPasskeyId(
+                                                                        null,
+                                                                    ),
+                                                            },
+                                                        );
+                                                    }}
+                                                >
+                                                    {deletingPasskeyId ===
+                                                        passkey.id && (
+                                                        <Spinner />
+                                                    )}
+                                                    {t(
+                                                        'settings.security.deletePasskey',
+                                                    )}
+                                                </Button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.security.passkeysEmpty',
+                                        )}
+                                    </p>
+                                )}
+
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                                    <div className="grid flex-1 gap-2">
+                                        <Label htmlFor="passkey_name">
+                                            {t(
+                                                'settings.security.passkeyName',
+                                            )}
+                                        </Label>
+                                        <Input
+                                            id="passkey_name"
+                                            value={passkeyName}
+                                            onChange={(event) =>
+                                                setPasskeyName(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder={t(
+                                                'settings.security.passkeyNamePlaceholder',
+                                            )}
+                                            disabled={
+                                                !passkeysSupported ||
+                                                registeringPasskey
+                                            }
+                                            data-test="passkey-name-input"
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        disabled={
+                                            !passkeysSupported ||
+                                            registeringPasskey ||
+                                            passkeyName.trim() === ''
+                                        }
+                                        data-test="add-passkey-button"
+                                        onClick={() =>
+                                            void registerPasskey(
+                                                passkeyName.trim(),
+                                            )
+                                        }
+                                    >
+                                        {registeringPasskey ? (
+                                            <Spinner />
+                                        ) : (
+                                            <KeyRound />
+                                        )}
+                                        {t('settings.security.addPasskey')}
+                                    </Button>
+                                </div>
+
+                                {!passkeysSupported && (
+                                    <p className="text-sm text-muted-foreground">
+                                        {typeof window !== 'undefined' &&
+                                        !window.isSecureContext
+                                            ? t(
+                                                  'settings.security.passkeysInsecureContext',
+                                              )
+                                            : t(
+                                                  'settings.security.passkeysUnsupported',
+                                              )}
+                                    </p>
+                                )}
+
+                                <InputError message={registerErrorMessage} />
                             </div>
                         </>
                     )}

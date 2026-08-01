@@ -91,7 +91,7 @@ Copy from `.env.example` and tune. Full reference: [Environment variables](../ex
 
 | Group | Keys (curated) | Notes |
 | --- | --- | --- |
-| **App** | `APP_NAME`, `APP_ENV`, `APP_KEY`, `APP_DEBUG`, `APP_URL` | `APP_URL` must match how you browse (Herd `.test`, HTTPS, port). |
+| **App** | `APP_NAME`, `APP_ENV`, `APP_KEY`, `APP_DEBUG`, `APP_URL` | `APP_URL` must match how you browse. **HTTP is fine** for password login, TOTP 2FA, and the rest of the CMS. **Passkeys / WebAuthn** need a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts): HTTPS, or `http://localhost` / `http://*.localhost`. Plain `http://externa-core.test` is not secure — browsers hide `PublicKeyCredential` (expected, not a Brave bug). Local fix: `herd secure externa-core`, `APP_URL=https://externa-core.test`, keep Vite `detectTls: 'externa-core.test'` so `public/hot` is `https://externa-core.test:5173` (not `127.0.0.1` — blank/black screen via mixed content / bad cert SAN), hard refresh; clear http+https cookies if the session is weird. Docs: [Passkeys](../externa-docs/src/app/docs/passkeys/page.md). |
 | **Database** | `DB_CONNECTION` (+ `DB_*` if not SQLite) | Default `sqlite`. |
 | **Session / cache** | `SESSION_DRIVER`, `CACHE_STORE` | Default `database`. |
 | **Queue** | `QUEUE_CONNECTION` | Full: `redis` + Horizon. Minimal: `database` + `queue:listen`. |

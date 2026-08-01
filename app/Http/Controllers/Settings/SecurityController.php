@@ -14,7 +14,7 @@ use Inertia\Response;
 use Laravel\Fortify\Features;
 
 /**
- * Manages password and two-factor security settings for the authenticated user.
+ * Manages password, two-factor, and passkey security settings for the authenticated user.
  */
 class SecurityController extends Controller implements HasMiddleware
 {
@@ -23,29 +23,38 @@ class SecurityController extends Controller implements HasMiddleware
     ) {}
 
     /**
-     * Register Fortify password-confirmation middleware when required for 2FA setup.
+     * Register Fortify password-confirmation middleware when required for 2FA or passkeys.
      *
      * @return list<Middleware>
      */
     public static function middleware(): array
     {
-        return Features::canManageTwoFactorAuthentication()
-            && Features::optionEnabled(Features::twoFactorAuthentication(), 'confirmPassword')
-                ? [new Middleware('password.confirm', only: ['edit'])]
-                : [];
+        $confirmForTwoFactor = Features::canManageTwoFactorAuthentication()
+            && Features::optionEnabled(Features::twoFactorAuthentication(), 'confirmPassword');
+
+        $confirmForPasskeys = Features::canManagePasskeys()
+            && Features::optionEnabled(Features::passkeys(), 'confirmPassword');
+
+        return ($confirmForTwoFactor || $confirmForPasskeys)
+            ? [new Middleware('password.confirm', only: ['edit'])]
+            : [];
     }
 
     /**
-     * Render the security settings page with two-factor state when enabled.
+     * Render the security settings page with two-factor and passkey state when enabled.
      */
     public function edit(TwoFactorAuthenticationRequest $request): Response
     {
+        $user = $request->user();
         $canManageTwoFactor = Features::canManageTwoFactorAuthentication();
+        $canManagePasskeys = Features::canManagePasskeys();
         $twoFactorRequired = $this->projectSettings->twoFactorRequired();
         $twoFactorEnabled = false;
+        $hasPasskeys = false;
 
         $props = [
             'canManageTwoFactor' => $canManageTwoFactor,
+            'canManagePasskeys' => $canManagePasskeys,
             'twoFactorRequired' => $twoFactorRequired,
         ];
 
@@ -56,15 +65,31 @@ class SecurityController extends Controller implements HasMiddleware
             // Inertia redirects/prefetch and EnsureTwoFactorIsEnabled while the
             // QR modal still shows the old secret — OTP then never verifies.
             // Abandoned secrets stay usable via Enable (no-op) + QR endpoints.
-            $twoFactorEnabled = $request->user()->hasEnabledTwoFactorAuthentication();
+            $twoFactorEnabled = $user->hasEnabledTwoFactorAuthentication();
             $props['twoFactorEnabled'] = $twoFactorEnabled;
             $props['requiresConfirmation'] = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');
         }
 
-        // Banner: project requires 2FA and this user has not completed Fortify enrollment.
+        if ($canManagePasskeys) {
+            $hasPasskeys = $user->hasPasskeysEnabled();
+            $props['passkeys'] = $user->passkeys()
+                ->latest()
+                ->get(['id', 'name', 'created_at', 'last_used_at'])
+                ->map(fn ($passkey) => [
+                    'id' => $passkey->id,
+                    'name' => $passkey->name,
+                    'created_at' => $passkey->created_at?->toIso8601String(),
+                    'last_used_at' => $passkey->last_used_at?->toIso8601String(),
+                ])
+                ->values()
+                ->all();
+        }
+
+        // Banner: project requires MFA and this user has neither TOTP nor a passkey.
         $props['twoFactorEnforcedForUser'] = $canManageTwoFactor
             && $twoFactorRequired
-            && ! $twoFactorEnabled;
+            && ! $twoFactorEnabled
+            && ! ($canManagePasskeys && $hasPasskeys);
 
         return Inertia::render('settings/security', $props);
     }

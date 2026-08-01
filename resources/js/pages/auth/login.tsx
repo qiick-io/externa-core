@@ -1,4 +1,7 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, router } from '@inertiajs/react';
+import { UserCancelledError } from '@laravel/passkeys';
+import { usePasskeyVerify } from '@laravel/passkeys/react';
+import { KeyRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
@@ -17,17 +20,49 @@ type Props = {
     status?: string;
     canResetPassword: boolean;
     canRegister: boolean;
+    canManagePasskeys?: boolean;
 };
 
 /**
- * User login form.
+ * User login form with optional passkey sign-in.
+ *
+ * Conditional WebAuthn autofill (`autofill: true` + `autocomplete="… webauthn"`) is
+ * intentionally off. @laravel/passkeys sets shared `isLoading` for the whole autofill
+ * ceremony, which can hang indefinitely on some browsers (e.g. Brave) and leaves the
+ * passkey button spinning on mount. Sign-in is click-only; the password form stays usable.
  */
 export default function Login({
     status,
     canResetPassword,
     canRegister,
+    canManagePasskeys = false,
 }: Props) {
     const { t } = useTranslation();
+
+    const {
+        verify,
+        isLoading: verifyingPasskey,
+        error: passkeyError,
+        errorInstance: passkeyErrorInstance,
+        isSupported: passkeysSupported,
+    } = usePasskeyVerify({
+        // ponytail: no conditional autofill — package isLoading blocks the CTA until the
+        // hung ceremony resolves; upgrade path: call Passkeys.autofill() separately without
+        // wiring its pending state to the button.
+        autofill: false,
+        onSuccess: (response) => {
+            if (response.redirect) {
+                router.visit(response.redirect);
+            } else {
+                router.visit('/');
+            }
+        },
+    });
+
+    const passkeyErrorMessage =
+        passkeyErrorInstance instanceof UserCancelledError
+            ? t('auth.login.passkeyCancelled')
+            : passkeyError;
 
     return (
         <AuthLayout
@@ -35,6 +70,34 @@ export default function Login({
             description={t('auth.login.description')}
         >
             <Head title={t('auth.login.head')} />
+
+            {canManagePasskeys && passkeysSupported && (
+                <div className="mb-6 flex flex-col gap-3">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        disabled={verifyingPasskey}
+                        data-test="passkey-login-button"
+                        aria-busy={verifyingPasskey}
+                        onClick={() => void verify()}
+                    >
+                        {verifyingPasskey ? <Spinner /> : <KeyRound />}
+                        {t('auth.login.passkey')}
+                    </Button>
+                    <InputError message={passkeyErrorMessage} />
+                    <div className="relative py-1">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                                {t('auth.login.orContinueWithEmail')}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <Form
                 {...store.form()}

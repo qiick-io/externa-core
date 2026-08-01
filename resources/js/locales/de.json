@@ -58,6 +58,9 @@
             "forgotPassword": "Passwort vergessen?",
             "rememberMe": "Angemeldet bleiben",
             "submit": "Anmelden",
+            "passkey": "Mit Passkey anmelden",
+            "passkeyCancelled": "Passkey-Anmeldung wurde abgebrochen.",
+            "orContinueWithEmail": "oder mit E-Mail fortfahren",
             "noAccount": "Noch kein Konto?",
             "signUp": "Registrieren"
         },
@@ -87,7 +90,10 @@
             "title": "Passwort bestätigen",
             "description": "Dies ist ein geschützter Bereich. Bitte bestätigen Sie Ihr Passwort, um fortzufahren.",
             "head": "Passwort bestätigen",
-            "submit": "Passwort bestätigen"
+            "submit": "Passwort bestätigen",
+            "passkey": "Mit Passkey bestätigen",
+            "passkeyCancelled": "Passkey-Bestätigung wurde abgebrochen.",
+            "orConfirmWithPasskey": "oder mit Passkey bestätigen"
         },
         "verifyEmail": {
             "title": "E-Mail bestätigen",
@@ -151,7 +157,17 @@
             "enable2fa": "2FA aktivieren",
             "continueSetup": "Einrichtung fortsetzen",
             "requiredBannerTitle": "Zwei-Faktor-Authentifizierung erforderlich",
-            "requiredBannerDescription": "Dieses Projekt erfordert die Zwei-Faktor-Authentifizierung. Aktivieren Sie 2FA unten, bevor Sie den Rest der App nutzen können."
+            "requiredBannerDescription": "Dieses Projekt erfordert die Zwei-Faktor-Authentifizierung. Aktivieren Sie 2FA oder registrieren Sie unten einen Passkey, bevor Sie den Rest der App nutzen können.",
+            "passkeysTitle": "Passkeys",
+            "passkeysDescription": "Melden Sie sich ohne Passwort mit einem Geräte-Passkey an. Ein Passkey erfüllt auch die Zwei-Faktor-Anforderung des Projekts.",
+            "passkeysEmpty": "Noch keine Passkeys registriert.",
+            "passkeyName": "Passkey-Name",
+            "passkeyNamePlaceholder": "z. B. MacBook Pro",
+            "passkeyCreated": "Hinzugefügt {{date}}",
+            "addPasskey": "Passkey hinzufügen",
+            "deletePasskey": "Löschen",
+            "passkeysUnsupported": "Dieser Browser unterstützt keine Passkeys.",
+            "passkeysInsecureContext": "Passkeys brauchen einen sicheren Kontext (HTTPS oder http://localhost). http://*.test ist unsicher — Herd-HTTPS nutzen (herd secure) und APP_URL auf https://… setzen, oder über localhost öffnen."
         },
         "project": {
             "breadcrumb": "Projekteinstellungen",
@@ -190,7 +206,7 @@
             },
             "loginMaxAttempts": "Max. Login-Versuche pro Minute",
             "twoFactorRequired": "Zwei-Faktor-Authentifizierung für alle Benutzer verlangen",
-            "twoFactorRequiredHint": "Wenn aktiv, müssen Benutzer ohne 2FA die Einrichtung auf der Sicherheitsseite abschließen, bevor sie die App nutzen.",
+            "twoFactorRequiredHint": "Wenn aktiv, müssen Benutzer TOTP-2FA aktivieren oder einen Passkey auf der Sicherheitsseite registrieren, bevor sie die App nutzen.",
             "registrationTitle": "Benutzerregistrierung",
             "registrationDescription": "Öffentliche Registrierung und Standardwerte für neue Konten steuern",
             "registrationEnabled": "Registrierung aktiviert",

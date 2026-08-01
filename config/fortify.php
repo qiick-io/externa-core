@@ -117,6 +117,7 @@ return [
     'limiters' => [
         'login' => 'login',
         'two-factor' => 'two-factor',
+        'passkeys' => 'passkeys',
     ],
 
     /*
@@ -131,6 +132,26 @@ return [
     */
 
     'views' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Passkeys
+    |--------------------------------------------------------------------------
+    |
+    | Fortify passkey (WebAuthn) settings. RP ID and allowed origins must match
+    | APP_URL. WebAuthn also requires a secure context in the browser: HTTPS, or
+    | http://localhost / http://*.localhost. http://externa-core.test is not
+    | secure — use Herd HTTPS (and https://… APP_URL) or localhost for local
+    | passkey testing.
+    |
+    */
+
+    'passkeys' => [
+        'relying_party_id' => parse_url(config('app.url'), PHP_URL_HOST),
+        'allowed_origins' => [config('app.url')],
+        'user_handle_secret' => config('app.key'),
+        'timeout' => 60000,
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -152,6 +173,9 @@ return [
             'confirmPassword' => true,
             // Allow ±30s skew (Microsoft Authenticator / device clock drift).
             'window' => 1,
+        ]),
+        Features::passkeys([
+            'confirmPassword' => true,
         ]),
     ],
 

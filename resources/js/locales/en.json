@@ -58,6 +58,9 @@
             "forgotPassword": "Forgot password?",
             "rememberMe": "Remember me",
             "submit": "Log in",
+            "passkey": "Sign in with passkey",
+            "passkeyCancelled": "Passkey sign-in was cancelled.",
+            "orContinueWithEmail": "or continue with email",
             "noAccount": "Don't have an account?",
             "signUp": "Sign up"
         },
@@ -87,7 +90,10 @@
             "title": "Confirm your password",
             "description": "This is a secure area of the application. Please confirm your password before continuing.",
             "head": "Confirm password",
-            "submit": "Confirm password"
+            "submit": "Confirm password",
+            "passkey": "Confirm with passkey",
+            "passkeyCancelled": "Passkey confirmation was cancelled.",
+            "orConfirmWithPasskey": "or confirm with passkey"
         },
         "verifyEmail": {
             "title": "Verify email",
@@ -152,7 +158,17 @@
             "enable2fa": "Enable 2FA",
             "continueSetup": "Continue setup",
             "requiredBannerTitle": "Two-factor authentication required",
-            "requiredBannerDescription": "This project requires two-factor authentication. Enable 2FA below before you can use the rest of the app."
+            "requiredBannerDescription": "This project requires two-factor authentication. Enable 2FA or register a passkey below before you can use the rest of the app.",
+            "passkeysTitle": "Passkeys",
+            "passkeysDescription": "Sign in without a password using a device passkey. A passkey also satisfies the project two-factor requirement.",
+            "passkeysEmpty": "No passkeys registered yet.",
+            "passkeyName": "Passkey name",
+            "passkeyNamePlaceholder": "e.g. MacBook Pro",
+            "passkeyCreated": "Added {{date}}",
+            "addPasskey": "Add passkey",
+            "deletePasskey": "Delete",
+            "passkeysUnsupported": "This browser does not support passkeys.",
+            "passkeysInsecureContext": "Passkeys need a secure context (HTTPS, or http://localhost). http://*.test is not secure — use Herd HTTPS (herd secure) and set APP_URL to https://…, or browse via localhost."
         },
         "project": {
             "breadcrumb": "Project settings",
@@ -191,7 +207,7 @@
             },
             "loginMaxAttempts": "Max login attempts per minute",
             "twoFactorRequired": "Require two-factor authentication for all users",
-            "twoFactorRequiredHint": "When enabled, users without 2FA must complete setup on the Security page before using the app.",
+            "twoFactorRequiredHint": "When enabled, users must enable TOTP 2FA or register a passkey on the Security page before using the app.",
             "registrationTitle": "User registration",
             "registrationDescription": "Control public sign-up and defaults for new accounts",
             "registrationEnabled": "Registration enabled",
