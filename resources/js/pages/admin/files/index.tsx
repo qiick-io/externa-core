@@ -431,15 +431,42 @@ export default function AdminFilesIndex({
     }, [direction, initialBreadcrumbs, isTrashed, selectedTagIds, sort]);
 
     const refreshPage = useCallback(() => {
-        // Invalidate in-flight load-more before Inertia replaces page 1.
-        listGenerationRef.current += 1;
+        // Invalidate in-flight load-more before fetching fresh data.
+        const requestGeneration = listGenerationRef.current + 1;
+        listGenerationRef.current = requestGeneration;
         loadingMoreRef.current = false;
         setLoadingMore(false);
-        // Inertia reload always preserves scroll/state; those options were removed from ReloadOptions.
-        router.reload({
-            only: ['files'],
-        });
-    }, []);
+        // ponytail: after file upload, immediately fetch fresh page-1 data from the API
+        // to ensure newly uploaded files appear. Inertia reload can cache stale responses.
+        void (async () => {
+            try {
+                const next = await listFilesPage({
+                    parentId,
+                    trashed: isTrashed ? 'only' : null,
+                    page: 1,
+                    search: search.trim() || undefined,
+                    tagIds: selectedTagIds,
+                    sort,
+                    direction,
+                });
+
+                if (requestGeneration !== listGenerationRef.current) {
+                    return;
+                }
+
+                setFiles(next.data);
+                setPage(next.current_page);
+                setLastPage(next.last_page);
+            } catch (error) {
+                // Fallback to Inertia reload if API fetch fails
+                router.visit(window.location.href, {
+                    only: ['files'],
+                    preserveScroll: true,
+                    preserveState: true,
+                });
+            }
+        })();
+    }, [direction, isTrashed, parentId, search, selectedTagIds, sort]);
 
     const trackPendingDuplication = useCallback((jobId: string) => {
         pendingDuplicationJobIdsRef.current.add(jobId);

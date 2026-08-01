@@ -17,6 +17,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -482,41 +487,50 @@ export default function Security({
                                             data-test="passkey-name-input"
                                         />
                                     </div>
-                                    <Button
-                                        type="button"
-                                        disabled={
-                                            !passkeysSupported ||
-                                            registeringPasskey ||
-                                            passkeyName.trim() === ''
-                                        }
-                                        data-test="add-passkey-button"
-                                        onClick={() =>
-                                            void registerPasskey(
-                                                passkeyName.trim(),
-                                            )
-                                        }
-                                    >
-                                        {registeringPasskey ? (
-                                            <Spinner />
-                                        ) : (
-                                            <KeyRound />
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <span className="inline-flex">
+                                                <Button
+                                                    type="button"
+                                                    disabled={
+                                                        !passkeysSupported ||
+                                                        registeringPasskey ||
+                                                        passkeyName.trim() ===
+                                                            ''
+                                                    }
+                                                    data-test="add-passkey-button"
+                                                    onClick={() =>
+                                                        void registerPasskey(
+                                                            passkeyName.trim(),
+                                                        )
+                                                    }
+                                                >
+                                                    {registeringPasskey ? (
+                                                        <Spinner />
+                                                    ) : (
+                                                        <KeyRound />
+                                                    )}
+                                                    {t(
+                                                        'settings.security.addPasskey',
+                                                    )}
+                                                </Button>
+                                            </span>
+                                        </TooltipTrigger>
+                                        {!passkeysSupported && (
+                                            <TooltipContent>
+                                                {typeof window !==
+                                                    'undefined' &&
+                                                !window.isSecureContext
+                                                    ? t(
+                                                          'settings.security.passkeysNeedHttps',
+                                                      )
+                                                    : t(
+                                                          'settings.security.passkeysUnsupported',
+                                                      )}
+                                            </TooltipContent>
                                         )}
-                                        {t('settings.security.addPasskey')}
-                                    </Button>
+                                    </Tooltip>
                                 </div>
-
-                                {!passkeysSupported && (
-                                    <p className="text-sm text-muted-foreground">
-                                        {typeof window !== 'undefined' &&
-                                        !window.isSecureContext
-                                            ? t(
-                                                  'settings.security.passkeysInsecureContext',
-                                              )
-                                            : t(
-                                                  'settings.security.passkeysUnsupported',
-                                              )}
-                                    </p>
-                                )}
 
                                 <InputError message={registerErrorMessage} />
                             </div>

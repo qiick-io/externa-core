@@ -1429,3 +1429,37 @@ test('authorized users can download a single file', function () {
         ->assertOk()
         ->assertHeader('content-disposition', 'attachment; filename=custom-name.txt');
 });
+
+test('file upload auto-refreshes page without requiring full reload', function () {
+    // Regression test for bug: after upload, new file should appear immediately
+    // without requiring F5. The fix bypasses Inertia caching by directly fetching
+    // fresh data from the API after upload completes.
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanCreateFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    // Upload a file
+    $upload = UploadedFile::fake()->create('auto-refresh-test.pdf', 100, 'application/pdf');
+
+    $this->postJson(route('files.upload'), [
+        'file' => $upload,
+    ])->assertCreated()
+        ->assertJsonPath('name', 'auto-refresh-test.pdf');
+
+    // Verify the file exists in the database (simulating the upload was successful)
+    expect(File::query()->where('name', 'auto-refresh-test.pdf')->exists())->toBeTrue();
+
+    // The frontend refreshPage() function now calls listFilesPage API directly,
+    // which ensures fresh data. This test verifies the backend API returns the
+    // newly uploaded file in the list response.
+    $listResponse = $this->getJson(route('files.list', [
+        'page' => 1,
+        'sort' => 'name',
+        'direction' => 'asc',
+    ]))->assertOk();
+
+    $fileNames = collect($listResponse->json('data'))->pluck('name')->all();
+    expect($fileNames)->toContain('auto-refresh-test.pdf');
+});

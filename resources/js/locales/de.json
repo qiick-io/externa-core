@@ -60,6 +60,8 @@
             "submit": "Anmelden",
             "passkey": "Mit Passkey anmelden",
             "passkeyCancelled": "Passkey-Anmeldung wurde abgebrochen.",
+            "passkeysUnsupported": "Passkeys werden in diesem Browser nicht unterstützt.",
+            "passkeysNeedHttps": "Passkeys benötigen HTTPS.",
             "orContinueWithEmail": "oder mit E-Mail fortfahren",
             "noAccount": "Noch kein Konto?",
             "signUp": "Registrieren"
@@ -166,8 +168,8 @@
             "passkeyCreated": "Hinzugefügt {{date}}",
             "addPasskey": "Passkey hinzufügen",
             "deletePasskey": "Löschen",
-            "passkeysUnsupported": "Dieser Browser unterstützt keine Passkeys.",
-            "passkeysInsecureContext": "Passkeys brauchen einen sicheren Kontext (HTTPS oder http://localhost). http://*.test ist unsicher — Herd-HTTPS nutzen (herd secure) und APP_URL auf https://… setzen, oder über localhost öffnen."
+            "passkeysUnsupported": "Passkeys werden in diesem Browser nicht unterstützt.",
+            "passkeysNeedHttps": "Passkeys benötigen HTTPS."
         },
         "project": {
             "breadcrumb": "Projekteinstellungen",

@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process';
 import { chromium, selectors } from 'playwright';
 
 function totp(secret) {
-    const php = process.env.PHP_BIN ?? '/Users/lucagiardi/Library/Application Support/Herd/bin/php84';
+    const php = process.env.PHP_BIN ?? 'php';
     return execFileSync(
         php,
         [

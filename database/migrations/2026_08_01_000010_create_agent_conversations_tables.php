@@ -6,9 +6,6 @@ use Laravel\Ai\Migrations\AiMigration;
 
 return new class extends AiMigration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         $conversationsTable = config('ai.conversations.tables.conversations', 'agent_conversations');
@@ -18,9 +15,11 @@ return new class extends AiMigration
             $table->string('id', 36)->primary();
             $table->foreignId('user_id')->nullable();
             $table->string('title');
+            $table->timestamp('pinned_at')->nullable();
             $table->timestamps();
 
             $table->index(['user_id', 'updated_at']);
+            $table->index(['user_id', 'pinned_at']);
         });
 
         Schema::create($messagesTable, function (Blueprint $table) {
@@ -42,9 +41,6 @@ return new class extends AiMigration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists(config('ai.conversations.tables.messages', 'agent_conversation_messages'));

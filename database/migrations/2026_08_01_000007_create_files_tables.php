@@ -16,6 +16,7 @@ return new class extends Migration
                 ->constrained('files')
                 ->nullOnDelete();
             $table->string('type')->index();
+            $table->string('access', 16)->nullable()->index();
             $table->string('name');
             $table->string('title')->nullable();
             $table->text('description')->nullable();
@@ -125,9 +126,9 @@ return new class extends Migration
         });
 
         Schema::dropIfExists('fileables');
-        Schema::dropIfExists('file_favorites');
         Schema::dropIfExists('file_uploads');
         Schema::dropIfExists('file_versions');
+        Schema::dropIfExists('file_favorites');
         Schema::dropIfExists('files');
     }
 };

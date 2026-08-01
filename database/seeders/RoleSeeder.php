@@ -28,7 +28,7 @@ class RoleSeeder extends Seeder
 
         $superAdmin = Role::query()->firstOrCreate(
             ['name' => RoleEnum::SuperAdmin->value, 'guard_name' => $guard],
-            ['is_system' => false, 'is_assignable' => true],
+            ['is_system' => true, 'is_assignable' => true],
         );
 
         $admin = Role::query()->firstOrCreate(

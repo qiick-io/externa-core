@@ -11,6 +11,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import AuthLayout from '@/layouts/auth-layout';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
@@ -64,6 +69,31 @@ export default function Login({
             ? t('auth.login.passkeyCancelled')
             : passkeyError;
 
+    const passkeyUnavailableHint = !passkeysSupported
+        ? typeof window !== 'undefined' && !window.isSecureContext
+            ? t('auth.login.passkeysNeedHttps')
+            : t('auth.login.passkeysUnsupported')
+        : undefined;
+
+    const passkeyButton = (
+        <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={!passkeysSupported || verifyingPasskey}
+            data-test="passkey-login-button"
+            aria-busy={verifyingPasskey}
+            onClick={() => {
+                if (passkeysSupported) {
+                    void verify();
+                }
+            }}
+        >
+            {verifyingPasskey ? <Spinner /> : <KeyRound />}
+            {t('auth.login.passkey')}
+        </Button>
+    );
+
     return (
         <AuthLayout
             title={t('auth.login.title')}
@@ -71,20 +101,22 @@ export default function Login({
         >
             <Head title={t('auth.login.head')} />
 
-            {canManagePasskeys && passkeysSupported && (
+            {canManagePasskeys && (
                 <div className="mb-6 flex flex-col gap-3">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        disabled={verifyingPasskey}
-                        data-test="passkey-login-button"
-                        aria-busy={verifyingPasskey}
-                        onClick={() => void verify()}
-                    >
-                        {verifyingPasskey ? <Spinner /> : <KeyRound />}
-                        {t('auth.login.passkey')}
-                    </Button>
+                    {passkeyUnavailableHint ? (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span className="inline-flex w-full">
+                                    {passkeyButton}
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {passkeyUnavailableHint}
+                            </TooltipContent>
+                        </Tooltip>
+                    ) : (
+                        passkeyButton
+                    )}
                     <InputError message={passkeyErrorMessage} />
                     <div className="relative py-1">
                         <div className="absolute inset-0 flex items-center">

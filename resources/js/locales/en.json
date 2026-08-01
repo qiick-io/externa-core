@@ -60,6 +60,8 @@
             "submit": "Log in",
             "passkey": "Sign in with passkey",
             "passkeyCancelled": "Passkey sign-in was cancelled.",
+            "passkeysUnsupported": "Passkeys are not supported in this browser.",
+            "passkeysNeedHttps": "Passkeys need HTTPS.",
             "orContinueWithEmail": "or continue with email",
             "noAccount": "Don't have an account?",
             "signUp": "Sign up"
@@ -167,8 +169,8 @@
             "passkeyCreated": "Added {{date}}",
             "addPasskey": "Add passkey",
             "deletePasskey": "Delete",
-            "passkeysUnsupported": "This browser does not support passkeys.",
-            "passkeysInsecureContext": "Passkeys need a secure context (HTTPS, or http://localhost). http://*.test is not secure — use Herd HTTPS (herd secure) and set APP_URL to https://…, or browse via localhost."
+            "passkeysUnsupported": "Passkeys are not supported in this browser.",
+            "passkeysNeedHttps": "Passkeys need HTTPS."
         },
         "project": {
             "breadcrumb": "Project settings",

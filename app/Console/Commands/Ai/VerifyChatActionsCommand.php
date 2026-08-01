@@ -412,11 +412,7 @@ PROMPT,
             return self::FAILURE;
         }
 
-        $node = '/Users/lucagiardi/.nvm/versions/node/v22.22.1/bin/node';
-        if (! is_file($node)) {
-            $node = 'node';
-        }
-
+        $node = 'node';
         $command = escapeshellarg($node).' '.escapeshellarg($script);
         $this->line($command);
         passthru($command, $exitCode);
