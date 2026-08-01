@@ -6,6 +6,7 @@
         "continue": "Continue",
         "back": "Back",
         "close": "Close",
+        "delete": "Delete",
         "email": "Email",
         "emailAddress": "Email address",
         "password": "Password",
@@ -149,7 +150,9 @@
             "disabledHint": "When you enable two-factor authentication, you will be prompted for a secure pin during login. This pin can be retrieved from a TOTP-supported application on your phone.",
             "disable2fa": "Disable 2FA",
             "enable2fa": "Enable 2FA",
-            "continueSetup": "Continue setup"
+            "continueSetup": "Continue setup",
+            "requiredBannerTitle": "Two-factor authentication required",
+            "requiredBannerDescription": "This project requires two-factor authentication. Enable 2FA below before you can use the rest of the app."
         },
         "project": {
             "breadcrumb": "Project settings",
@@ -170,7 +173,7 @@
             "sidebarTitle": "Sidebar modules",
             "sidebarDescription": "Reorder modules and choose which appear in the sidebar. Locked items always stay enabled.",
             "securityTitle": "Security",
-            "securityDescription": "Password strength and login attempt limits",
+            "securityDescription": "Password strength, login limits, and two-factor policy",
             "passwordPolicy": "Password security",
             "passwordPolicies": {
                 "weak": {
@@ -187,6 +190,8 @@
                 }
             },
             "loginMaxAttempts": "Max login attempts per minute",
+            "twoFactorRequired": "Require two-factor authentication for all users",
+            "twoFactorRequiredHint": "When enabled, users without 2FA must complete setup on the Security page before using the app.",
             "registrationTitle": "User registration",
             "registrationDescription": "Control public sign-up and defaults for new accounts",
             "registrationEnabled": "Registration enabled",
@@ -737,6 +742,11 @@
         "title": "Unsaved changes",
         "description": "You have unsaved changes. Are you sure you want to discard them?",
         "discard": "Discard changes",
-        "keepEditing": "Keep editing"
+        "discardToolbar": "Discard",
+        "badge": "Unsaved",
+        "keepEditing": "Keep editing",
+        "uploadTitle": "Upload in progress",
+        "uploadDescription": "Files are still uploading. You can leave — uploads will finish in the background.",
+        "uploadLeave": "Leave anyway"
     }
 }

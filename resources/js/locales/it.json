@@ -6,6 +6,7 @@
         "continue": "Continua",
         "back": "Indietro",
         "close": "Chiudi",
+        "delete": "Elimina",
         "email": "Email",
         "emailAddress": "Indirizzo email",
         "password": "Password",
@@ -149,7 +150,9 @@
             "disabledHint": "Quando attivi l'autenticazione a due fattori, al login ti verrà chiesto un PIN sicuro recuperabile da un'app TOTP sul telefono.",
             "disable2fa": "Disattiva 2FA",
             "enable2fa": "Attiva 2FA",
-            "continueSetup": "Continua configurazione"
+            "continueSetup": "Continua configurazione",
+            "requiredBannerTitle": "Autenticazione a due fattori obbligatoria",
+            "requiredBannerDescription": "Questo progetto richiede l'autenticazione a due fattori. Attiva la 2FA qui sotto prima di poter usare il resto dell'app."
         },
         "project": {
             "breadcrumb": "Impostazioni progetto",
@@ -170,7 +173,7 @@
             "sidebarTitle": "Moduli sidebar",
             "sidebarDescription": "Riordina i moduli e scegli quali mostrare. Gli elementi bloccati restano sempre attivi.",
             "securityTitle": "Sicurezza",
-            "securityDescription": "Sicurezza password e limite tentativi di login",
+            "securityDescription": "Sicurezza password, limite tentativi di login e policy 2FA",
             "passwordPolicy": "Sicurezza password",
             "passwordPolicies": {
                 "weak": {
@@ -187,6 +190,8 @@
                 }
             },
             "loginMaxAttempts": "Tentativi di login massimi al minuto",
+            "twoFactorRequired": "Richiedi autenticazione a due fattori per tutti gli utenti",
+            "twoFactorRequiredHint": "Se attiva, gli utenti senza 2FA devono completare la configurazione nella pagina Sicurezza prima di usare l'app.",
             "registrationTitle": "Registrazione utenti",
             "registrationDescription": "Controlla la registrazione pubblica e i default dei nuovi account",
             "registrationEnabled": "Registrazione abilitata",
@@ -737,6 +742,11 @@
         "title": "Modifiche non salvate",
         "description": "Hai modifiche non salvate. Vuoi davvero scartarle?",
         "discard": "Scarta modifiche",
-        "keepEditing": "Continua a modificare"
+        "discardToolbar": "Scarta",
+        "badge": "Non salvato",
+        "keepEditing": "Continua a modificare",
+        "uploadTitle": "Caricamento in corso",
+        "uploadDescription": "I file sono ancora in caricamento. Puoi uscire: i caricamenti continueranno in background.",
+        "uploadLeave": "Esci comunque"
     }
 }

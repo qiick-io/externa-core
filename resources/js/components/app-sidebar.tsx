@@ -232,13 +232,13 @@ export function AppSidebar() {
 
             <SidebarFooter>
                 <NavFooter items={footerNavItems} className="mt-auto" />
+                <NotificationsBell />
+                <NavUser />
                 {appVersion ? (
-                    <p className="truncate px-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+                    <p className="truncate px-2 text-center text-[10px] leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
                         v{appVersion}
                     </p>
                 ) : null}
-                <NotificationsBell />
-                <NavUser />
             </SidebarFooter>
         </Sidebar>
     );

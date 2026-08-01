@@ -21,6 +21,10 @@ declare module '@inertiajs/core' {
             notifications: {
                 unread_count: number;
             };
+            healthBadge: {
+                status: 'ok' | 'warn' | 'fail';
+                label: string;
+            } | null;
             realtime: {
                 enabled: boolean;
                 broadcaster: string;

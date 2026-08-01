@@ -264,6 +264,37 @@ export async function deleteFile(fileId: number): Promise<void> {
     await assertOkResponse(response, 'Failed to delete file');
 }
 
+export type FileWhereUsedReference = {
+    collection_id: number;
+    collection_name: string;
+    collection_slug: string;
+    item_id: number;
+    field: string;
+};
+
+export type FileWhereUsedResponse = {
+    file_id: number;
+    count: number;
+    references: FileWhereUsedReference[];
+};
+
+/**
+ * Scan collection items that reference a file (on-demand).
+ */
+export async function fetchFileWhereUsed(
+    fileId: number,
+): Promise<FileWhereUsedResponse> {
+    const response = await fetch(adminRoutes.files.whereUsed(fileId), {
+        method: 'GET',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+    });
+
+    await assertOkResponse(response, 'Failed to scan file references');
+
+    return (await response.json()) as FileWhereUsedResponse;
+}
+
 /**
  * Restores a soft-deleted file or folder.
  *

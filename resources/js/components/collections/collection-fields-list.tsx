@@ -41,6 +41,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { FIELD_TYPE_ICONS } from '@/components/collections/collection-field-form';
 import { Button } from '@/components/ui/button';
 import {
@@ -261,6 +262,8 @@ function CollectionFieldRowActions({
     collectionId: number;
     onEdit: (field: CollectionFieldRow) => void;
 }) {
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const hiddenInForm = isFieldHiddenInForm(field.settings);
     const layoutWidth = getFieldLayoutWidth(field.settings);
 
@@ -298,6 +301,7 @@ function CollectionFieldRowActions({
     };
 
     const deleteField = (): void => {
+        setDeleting(true);
         router.delete(
             FieldController.destroy.url({
                 collection: collectionId,
@@ -305,14 +309,20 @@ function CollectionFieldRowActions({
             }),
             {
                 preserveScroll: true,
-                onError: () => toast.error('Could not delete field.'),
+                onFinish: () => setDeleting(false),
+                onSuccess: () => setDeleteOpen(false),
+                onError: () => {
+                    toast.error('Could not delete field.');
+                    setDeleteOpen(false);
+                },
             },
         );
     };
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                 <Button
                     type="button"
                     variant="ghost"
@@ -401,7 +411,7 @@ function CollectionFieldRowActions({
                     variant="destructive"
                     onClick={(event) => {
                         event.stopPropagation();
-                        deleteField();
+                        setDeleteOpen(true);
                     }}
                 >
                     <Trash2 className="size-4" />
@@ -409,6 +419,16 @@ function CollectionFieldRowActions({
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
+
+            <ConfirmDestructiveDialog
+                open={deleteOpen}
+                onOpenChange={setDeleteOpen}
+                title="Delete field?"
+                description={`Delete "${field.name}"? This cannot be undone.`}
+                confirming={deleting}
+                onConfirm={deleteField}
+            />
+        </>
     );
 }
 

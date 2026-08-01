@@ -1,21 +1,37 @@
-import { Form, Head, Link } from '@inertiajs/react';
+import { Form, Head, Link, router, usePage } from '@inertiajs/react';
 import { History, Rows3, Save, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
+import { ItemActivityStrip } from '@/components/collections/item-activity-strip';
+import { ItemPreviewAsRoleDialog } from '@/components/collections/item-preview-as-role-dialog';
+import type { PreviewRoleOption } from '@/components/collections/item-preview-as-role-dialog';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
 import { PageLayout } from '@/components/layout/page-layout';
+import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { Button } from '@/components/ui/button';
 import { useCollection } from '@/hooks/use-collection';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import { collectCollectionDataErrorMessages } from '@/lib/collection-data-errors';
+import {
+    applyItemDraftToForm,
+    clearItemDraft,
+    readItemDraft,
+    serializeItemForm,
+    writeItemDraft,
+} from '@/lib/item-draft-storage';
+import { readReturnParam } from '@/lib/safe-return-url';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import collections from '@/routes/collections';
 import type { BreadcrumbItem } from '@/types';
 import type { CollectionView } from '@/types/collections';
 
 const COLLECTION_ITEM_FORM_ID = 'collection-item-form';
+const DRAFT_DEBOUNCE_MS = 800;
+
+type FieldGrant = { read: boolean; create: boolean; update: boolean };
 
 type ItemPayload = {
     id: number;
@@ -24,6 +40,14 @@ type ItemPayload = {
     updated_at?: string | null;
     user_created?: { id: number; name: string; email?: string | null } | null;
     user_updated?: { id: number; name: string; email?: string | null } | null;
+};
+
+type RecentActivity = {
+    id: number;
+    description: string;
+    event: string | null;
+    created_at: string | null;
+    causer: string | null;
 };
 
 /**
@@ -36,13 +60,34 @@ export default function ItemsForm({
     rawData,
     isNew,
     relatedCollections = [],
+    fieldGrants = null,
+    previewRoles = [],
+    recentActivity = [],
 }: {
     collection: CollectionView;
     item: ItemPayload | null;
     rawData: Record<string, unknown>;
     isNew: boolean;
     relatedCollections?: { id: number; name: string; slug: string }[];
+    /** null = unrestricted; otherwise per-field read/create/update flags */
+    fieldGrants?: Record<string, FieldGrant> | null;
+    previewRoles?: PreviewRoleOption[];
+    recentActivity?: RecentActivity[];
 }) {
+    const page = usePage();
+    const listHref = useMemo(() => {
+        const fromReturn = readReturnParam(page.url);
+        return fromReturn ?? collections.items.index.url(collection.id);
+    }, [page.url, collection.id]);
+
+    const draftItemKey = isNew ? ('new' as const) : item!.id;
+    const initialDraft = useMemo(
+        () => readItemDraft(collection.id, draftItemKey),
+        // one-shot on mount for this item
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [collection.id, draftItemKey],
+    );
+
     const {
         locales,
         breadcrumbs: collectionBreadcrumbs,
@@ -55,13 +100,65 @@ export default function ItemsForm({
     });
 
     const [isDirty, setIsDirty] = useState(false);
+    const [formKey, setFormKey] = useState(0);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [draftBanner, setDraftBanner] = useState(
+        () => initialDraft !== null && Object.keys(initialDraft).length > 0,
+    );
+    const draftTimer = useRef<number | null>(null);
 
     useRegisterUnsavedChanges({
         scope: 'page',
         isDirty,
-        // ponytail: only clear dirty — leave navigation is replayed by the provider
-        onDiscard: () => setIsDirty(false),
+        onDiscard: () => {
+            setIsDirty(false);
+            clearItemDraft(collection.id, draftItemKey);
+            setDraftBanner(false);
+            setFormKey((key) => key + 1);
+        },
     });
+
+    useEffect(() => {
+        if (!draftBanner || !initialDraft) {
+            return;
+        }
+        const form = document.getElementById(
+            COLLECTION_ITEM_FORM_ID,
+        ) as HTMLFormElement | null;
+        if (!form) {
+            return;
+        }
+        applyItemDraftToForm(form, initialDraft);
+        setIsDirty(true);
+    }, [draftBanner, initialDraft, formKey]);
+
+    const scheduleDraftSave = (): void => {
+        if (draftTimer.current) {
+            window.clearTimeout(draftTimer.current);
+        }
+        draftTimer.current = window.setTimeout(() => {
+            const form = document.getElementById(
+                COLLECTION_ITEM_FORM_ID,
+            ) as HTMLFormElement | null;
+            if (!form) {
+                return;
+            }
+            writeItemDraft(
+                collection.id,
+                draftItemKey,
+                serializeItemForm(form),
+            );
+        }, DRAFT_DEBOUNCE_MS);
+    };
+
+    useEffect(() => {
+        return () => {
+            if (draftTimer.current) {
+                window.clearTimeout(draftTimer.current);
+            }
+        };
+    }, []);
 
     const lastCrumb: BreadcrumbItem = isNew
         ? {
@@ -80,7 +177,7 @@ export default function ItemsForm({
         ...collectionBreadcrumbs,
         {
             title: 'Items',
-            href: collections.items.index.url(collection.id),
+            href: listHref,
         },
         lastCrumb,
     ];
@@ -112,6 +209,13 @@ export default function ItemsForm({
             headerActions={
                 <>
                     {!isNew && item !== null && (
+                        <ItemPreviewAsRoleDialog
+                            collectionId={collection.id}
+                            itemId={item.id}
+                            roles={previewRoles}
+                        />
+                    )}
+                    {!isNew && item !== null && (
                         <Button variant="outline" asChild>
                             <Link
                                 href={`/collections/${collection.id}/items/${item.id}/revisions`}
@@ -128,28 +232,19 @@ export default function ItemsForm({
                         </Link>
                     </Button>
                     {!isNew && item !== null && (
-                        <Form
-                            {...wayfinderInertiaFormProps(
-                                ItemController.destroy,
-                                {
-                                    collection: collection.id,
-                                    item: item.id,
-                                },
-                                'delete',
-                            )}
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={() => setDeleteOpen(true)}
                         >
-                            {({ processing }) => (
-                                <Button
-                                    type="submit"
-                                    variant="destructive"
-                                    disabled={processing}
-                                >
-                                    <Trash2 className="size-4" />
-                                    Delete
-                                </Button>
-                            )}
-                        </Form>
+                            <Trash2 className="size-4" />
+                            Delete
+                        </Button>
                     )}
+                    <UnsavedChangesToolbar
+                        isDirty={isDirty}
+                        className="flex items-center gap-2"
+                    />
                     {hasFields && (
                         <Button type="submit" form={COLLECTION_ITEM_FORM_ID}>
                             <Save className="size-4" />
@@ -179,6 +274,39 @@ export default function ItemsForm({
                 }
                 scrollContent
             >
+                {!isNew && item !== null && (
+                    <ItemActivityStrip
+                        collectionId={collection.id}
+                        itemId={item.id}
+                        updatedAt={item.updated_at}
+                        userUpdatedName={item.user_updated?.name}
+                        recentActivity={recentActivity}
+                    />
+                )}
+
+                {draftBanner && (
+                    <div
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+                        data-test="item-draft-banner"
+                    >
+                        <span>Restored unsaved draft from this browser.</span>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            data-test="discard-item-draft"
+                            onClick={() => {
+                                clearItemDraft(collection.id, draftItemKey);
+                                setDraftBanner(false);
+                                setIsDirty(false);
+                                setFormKey((key) => key + 1);
+                            }}
+                        >
+                            Discard draft
+                        </Button>
+                    </div>
+                )}
+
                 {!hasFields && (
                     <p className="rounded-xl border border-dashed border-sidebar-border/70 p-6 text-sm text-muted-foreground dark:border-sidebar-border">
                         No fields yet.{' '}
@@ -194,13 +322,24 @@ export default function ItemsForm({
 
                 {hasFields && (
                     <Form
+                        key={formKey}
                         {...formProps}
                         id={COLLECTION_ITEM_FORM_ID}
                         className="space-y-6"
                         options={{ preserveScroll: true }}
-                        onSuccess={() => setIsDirty(false)}
-                        onInput={() => setIsDirty(true)}
-                        onChange={() => setIsDirty(true)}
+                        onSuccess={() => {
+                            setIsDirty(false);
+                            clearItemDraft(collection.id, draftItemKey);
+                            setDraftBanner(false);
+                        }}
+                        onInput={() => {
+                            setIsDirty(true);
+                            scheduleDraftSave();
+                        }}
+                        onChange={() => {
+                            setIsDirty(true);
+                            scheduleDraftSave();
+                        }}
                     >
                         {({ errors }) => {
                             const dataErrors =
@@ -225,6 +364,8 @@ export default function ItemsForm({
                                         defaults={contentDefaults}
                                         relatedCollections={relatedCollections}
                                         formLayout={collection.form_layout}
+                                        fieldGrants={fieldGrants}
+                                        isNew={isNew}
                                     />
                                     {!isNew && item !== null && (
                                         <dl className="grid gap-3 border-t pt-6 text-sm text-muted-foreground sm:grid-cols-2">
@@ -278,6 +419,29 @@ export default function ItemsForm({
                     </Form>
                 )}
             </PageLayout>
+
+            {!isNew && item !== null && (
+                <ConfirmDestructiveDialog
+                    open={deleteOpen}
+                    onOpenChange={setDeleteOpen}
+                    title="Delete item?"
+                    description="This item will be soft-deleted and removed from the active list."
+                    confirming={deleting}
+                    onConfirm={() => {
+                        setDeleting(true);
+                        router.delete(
+                            ItemController.destroy.url({
+                                collection: collection.id,
+                                item: item.id,
+                            }),
+                            {
+                                onFinish: () => setDeleting(false),
+                                onError: () => setDeleteOpen(false),
+                            },
+                        );
+                    }}
+                />
+            )}
         </AppLayout>
     );
 }

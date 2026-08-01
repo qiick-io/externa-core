@@ -3,6 +3,7 @@ import { Check, Search, X } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import InputError from '@/components/input-error';
+import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -359,6 +360,10 @@ export default function AdminRoleForm({
                                 )}
                             </div>
                             <div className="flex gap-2">
+                                <UnsavedChangesToolbar
+                                    isDirty={form.isDirty}
+                                    className="flex items-center gap-2"
+                                />
                                 <Button variant="outline" asChild>
                                     <Link href={adminRoutes.roles.index()}>
                                         Cancel

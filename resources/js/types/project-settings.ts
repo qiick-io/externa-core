@@ -28,6 +28,7 @@ export type ProjectSettingsForm = {
     registration_enabled: boolean;
     default_user_role: string | null;
     email_verification_required: boolean;
+    two_factor_required: boolean;
     allowed_domains: string[];
     public_api_allowed_origins: string[];
     allowed_transformations: string[];

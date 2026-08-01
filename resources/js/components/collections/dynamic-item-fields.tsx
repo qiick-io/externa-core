@@ -700,6 +700,8 @@ export function DynamicItemFields({
     variant = 'plain',
     fieldActions,
     formLayout,
+    fieldGrants = null,
+    isNew = false,
 }: {
     fields: FieldDef[];
     locales: string[];
@@ -709,6 +711,12 @@ export function DynamicItemFields({
     variant?: 'plain' | 'cards';
     fieldActions?: (field: FieldDef) => ReactNode;
     formLayout?: Record<string, unknown> | null;
+    /** null = unrestricted; otherwise enforce read/create/update per field */
+    fieldGrants?: Record<
+        string,
+        { read: boolean; create: boolean; update: boolean }
+    > | null;
+    isNew?: boolean;
 }) {
     const showFieldNameHeading = variant === 'plain';
     const gapClass = variant === 'cards' ? 'space-y-4' : 'space-y-6';
@@ -729,9 +737,17 @@ export function DynamicItemFields({
                     field.settings?.hidden_in_form === 1 ||
                     field.settings?.hidden_in_form === '1';
 
-                return !schemaHidden;
+                if (schemaHidden) {
+                    return false;
+                }
+
+                if (fieldGrants === null) {
+                    return true;
+                }
+
+                return fieldGrants[field.name]?.read === true;
             }),
-        [fields],
+        [fields, fieldGrants],
     );
 
     const groups = useMemo(
@@ -760,7 +776,11 @@ export function DynamicItemFields({
             field.name,
             locales,
         );
-        const readonly = flags.readonly;
+        const grant = fieldGrants?.[field.name];
+        const aclReadonly =
+            fieldGrants !== null &&
+            !(isNew ? grant?.create === true : grant?.update === true);
+        const readonly = flags.readonly || aclReadonly;
 
         const inner = field.translatable ? (
             <TranslatableItemField
@@ -830,7 +850,11 @@ export function DynamicItemFields({
                                 <Badge variant="secondary">Translatable</Badge>
                             )}
                             {readonly && (
-                                <Badge variant="secondary">Readonly</Badge>
+                                <Badge variant="secondary">
+                                    {aclReadonly && !flags.readonly
+                                        ? 'No write access'
+                                        : 'Readonly'}
+                                </Badge>
                             )}
                             {flags.required && (
                                 <Badge variant="secondary">Required</Badge>

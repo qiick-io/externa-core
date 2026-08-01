@@ -11,6 +11,7 @@ use App\Http\Resources\CollectionItemResource;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
+use App\Models\Role;
 use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemExportService;
@@ -20,12 +21,14 @@ use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\Collections\CollectionListColumnsNormalizer;
 use App\Services\Collections\CollectionListDisplayEnricher;
+use App\Services\Collections\ItemRolePreviewService;
 use App\Services\Settings\SettingsRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Activitylog\Models\Activity;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -44,6 +47,7 @@ class ItemController extends Controller
         private SettingsRepository $settingsRepository,
         private CollectionPermissionEnforcer $permissionEnforcer,
         private CollectionItemExportService $itemExportService,
+        private ItemRolePreviewService $itemRolePreviewService,
     ) {}
 
     /**
@@ -221,6 +225,9 @@ class ItemController extends Controller
             'rawData' => [],
             'isNew' => true,
             'relatedCollections' => $this->relatedCollectionsForSelect(),
+            'fieldGrants' => $this->permissionEnforcer->fieldGrantsForForm($request, $collection),
+            'previewRoles' => $this->previewRoles(),
+            'recentActivity' => [],
         ]);
     }
 
@@ -281,7 +288,40 @@ class ItemController extends Controller
             'rawData' => $rawData,
             'isNew' => false,
             'relatedCollections' => $this->relatedCollectionsForSelect(),
+            'fieldGrants' => $this->permissionEnforcer->fieldGrantsForForm($request, $collection),
+            'previewRoles' => $this->previewRoles(),
+            'recentActivity' => $this->recentActivityForItem($item),
         ]);
+    }
+
+    /**
+     * Preview item field data as seen by a role (including public).
+     */
+    public function previewAsRole(Request $request, Collection $collection, CollectionItem $item): JsonResponse
+    {
+        $this->assertItemBelongsToCollection($collection, $item);
+        $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
+
+        $validated = $request->validate([
+            'role_id' => ['nullable', 'integer', 'exists:roles,id'],
+            'as_public' => ['nullable', 'boolean'],
+        ]);
+
+        $asPublic = (bool) ($validated['as_public'] ?? false);
+        if (! $asPublic && empty($validated['role_id'])) {
+            return response()->json(['message' => 'role_id or as_public is required.'], 422);
+        }
+
+        $role = $this->itemRolePreviewService->resolveRole(
+            isset($validated['role_id']) ? (int) $validated['role_id'] : null,
+            $asPublic,
+        );
+
+        $item->loadMissing(['collection.fields', 'fieldValues']);
+
+        return response()->json(
+            $this->itemRolePreviewService->preview($request, $collection, $item, $role),
+        );
     }
 
     /**
@@ -518,5 +558,58 @@ class ItemController extends Controller
         }
 
         return $out;
+    }
+
+    /**
+     * Compact role list for the “Preview as…” dialog.
+     *
+     * @return list<array{id: int, name: string, is_public: bool}>
+     */
+    private function previewRoles(): array
+    {
+        return Role::query()
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(static fn (Role $role): array => [
+                'id' => (int) $role->id,
+                'name' => (string) $role->name,
+                'is_public' => $role->isPublic(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Recent Spatie activity for the item subject (row-level, not field values).
+     *
+     * @return list<array{id: int, description: string, event: string|null, created_at: string|null, causer: string|null}>
+     */
+    private function recentActivityForItem(CollectionItem $item): array
+    {
+        return Activity::query()
+            ->forSubject($item)
+            ->latest('id')
+            ->limit(5)
+            ->with('causer')
+            ->get()
+            ->map(static function (Activity $activity): array {
+                $causer = $activity->causer;
+                $causerName = null;
+                if ($causer !== null) {
+                    $causerName = method_exists($causer, 'name')
+                        ? (string) $causer->name
+                        : (string) ($causer->email ?? class_basename($causer));
+                }
+
+                return [
+                    'id' => (int) $activity->id,
+                    'description' => (string) $activity->description,
+                    'event' => $activity->event,
+                    'created_at' => $activity->created_at?->toIso8601String(),
+                    'causer' => $causerName,
+                ];
+            })
+            ->values()
+            ->all();
     }
 }

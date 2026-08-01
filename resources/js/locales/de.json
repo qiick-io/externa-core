@@ -6,6 +6,7 @@
         "continue": "Weiter",
         "back": "Zurück",
         "close": "Schließen",
+        "delete": "Löschen",
         "email": "E-Mail",
         "emailAddress": "E-Mail-Adresse",
         "password": "Passwort",
@@ -148,7 +149,9 @@
             "disabledHint": "Wenn Sie die Zwei-Faktor-Authentifizierung aktivieren, werden Sie beim Login nach einer sicheren PIN gefragt, die Sie aus einer TOTP-App abrufen können.",
             "disable2fa": "2FA deaktivieren",
             "enable2fa": "2FA aktivieren",
-            "continueSetup": "Einrichtung fortsetzen"
+            "continueSetup": "Einrichtung fortsetzen",
+            "requiredBannerTitle": "Zwei-Faktor-Authentifizierung erforderlich",
+            "requiredBannerDescription": "Dieses Projekt erfordert die Zwei-Faktor-Authentifizierung. Aktivieren Sie 2FA unten, bevor Sie den Rest der App nutzen können."
         },
         "project": {
             "breadcrumb": "Projekteinstellungen",
@@ -169,7 +172,7 @@
             "sidebarTitle": "Sidebar-Module",
             "sidebarDescription": "Module neu anordnen und auswählen. Gesperrte Einträge bleiben immer aktiv.",
             "securityTitle": "Sicherheit",
-            "securityDescription": "Passwortstärke und Login-Versuchslimits",
+            "securityDescription": "Passwortstärke, Login-Limits und Zwei-Faktor-Richtlinie",
             "passwordPolicy": "Passwortsicherheit",
             "passwordPolicies": {
                 "weak": {
@@ -186,6 +189,8 @@
                 }
             },
             "loginMaxAttempts": "Max. Login-Versuche pro Minute",
+            "twoFactorRequired": "Zwei-Faktor-Authentifizierung für alle Benutzer verlangen",
+            "twoFactorRequiredHint": "Wenn aktiv, müssen Benutzer ohne 2FA die Einrichtung auf der Sicherheitsseite abschließen, bevor sie die App nutzen.",
             "registrationTitle": "Benutzerregistrierung",
             "registrationDescription": "Öffentliche Registrierung und Standardwerte für neue Konten steuern",
             "registrationEnabled": "Registrierung aktiviert",
@@ -707,6 +712,11 @@
         "title": "Ungespeicherte Änderungen",
         "description": "Es gibt ungespeicherte Änderungen. Wirklich verwerfen?",
         "discard": "Änderungen verwerfen",
-        "keepEditing": "Weiter bearbeiten"
+        "discardToolbar": "Verwerfen",
+        "badge": "Ungespeichert",
+        "keepEditing": "Weiter bearbeiten",
+        "uploadTitle": "Upload läuft",
+        "uploadDescription": "Dateien werden noch hochgeladen. Du kannst die Seite verlassen — Uploads laufen im Hintergrund weiter.",
+        "uploadLeave": "Trotzdem verlassen"
     }
 }

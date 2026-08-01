@@ -4,15 +4,16 @@ namespace App\Http\Requests\Settings;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Laravel\Fortify\InteractsWithTwoFactorState;
 
 /**
- * Gate access to two-factor security settings using Fortify state checks.
+ * Gate access to two-factor security settings.
+ *
+ * Intentionally does not use Fortify's InteractsWithTwoFactorState: ensureStateIsValid()
+ * wipes unconfirmed secrets on later security.edit visits, which breaks OTP confirm
+ * when Inertia/middleware revisits the page while the QR modal is still open.
  */
 class TwoFactorAuthenticationRequest extends FormRequest
 {
-    use InteractsWithTwoFactorState;
-
     /**
      * Two-factor settings pages do not accept input fields.
      *

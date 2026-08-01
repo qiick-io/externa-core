@@ -2,6 +2,7 @@ import {
     FileText,
     HardDrive,
     ImageIcon,
+    Link2,
     Lock,
     MapPin,
     MoveHorizontal,
@@ -27,12 +28,14 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import {
+    fetchFileWhereUsed,
     filePublicUrl,
     isImageFile,
     isPlayableVideo,
     replaceFile,
     syncFileTags,
     updateFileMetadata,
+    type FileWhereUsedReference,
 } from '@/lib/files-api';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
@@ -176,6 +179,11 @@ export function FileDetailPanel({
     const [tags, setTags] = useState(file.tags.map((tag) => tag.name));
     const [saving, setSaving] = useState(false);
     const [replacing, setReplacing] = useState(false);
+    const [whereUsedLoading, setWhereUsedLoading] = useState(false);
+    const [whereUsedError, setWhereUsedError] = useState<string | null>(null);
+    const [whereUsedRefs, setWhereUsedRefs] = useState<
+        FileWhereUsedReference[] | null
+    >(null);
 
     useEffect(() => {
         setTitle(file.title ?? '');
@@ -189,7 +197,45 @@ export function FileDetailPanel({
         setScale(optionalNumberString(file.scale));
         setAccess(accessChoiceFromFile(file));
         setTags(file.tags.map((tag) => tag.name));
+        setWhereUsedRefs(null);
+        setWhereUsedError(null);
     }, [file]);
+
+    useEffect(() => {
+        if (file.type !== 'file') {
+            return;
+        }
+
+        let cancelled = false;
+        setWhereUsedLoading(true);
+        setWhereUsedError(null);
+
+        void fetchFileWhereUsed(file.id)
+            .then((result) => {
+                if (!cancelled) {
+                    setWhereUsedRefs(result.references);
+                }
+            })
+            .catch((error: unknown) => {
+                if (!cancelled) {
+                    setWhereUsedError(
+                        error instanceof Error
+                            ? error.message
+                            : 'Failed to scan references',
+                    );
+                    setWhereUsedRefs([]);
+                }
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setWhereUsedLoading(false);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [file.id, file.type]);
 
     const parseOptionalNumber = (value: string): number | null => {
         if (value.trim() === '') {
@@ -437,6 +483,71 @@ export function FileDetailPanel({
                 </div>
 
                 <Separator />
+
+                {file.type === 'file' && (
+                    <>
+                        <div
+                            className="space-y-3"
+                            data-test="file-where-used"
+                        >
+                            <SectionHeading icon={Link2}>
+                                Where used
+                            </SectionHeading>
+                            {whereUsedLoading && (
+                                <p className="text-xs text-muted-foreground">
+                                    Scanning collections…
+                                </p>
+                            )}
+                            {whereUsedError && (
+                                <p className="text-xs text-destructive">
+                                    {whereUsedError}
+                                </p>
+                            )}
+                            {!whereUsedLoading &&
+                                !whereUsedError &&
+                                whereUsedRefs !== null &&
+                                whereUsedRefs.length === 0 && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Not referenced by any collection items.
+                                    </p>
+                                )}
+                            {!whereUsedLoading &&
+                                whereUsedRefs !== null &&
+                                whereUsedRefs.length > 0 && (
+                                    <ul className="space-y-2 text-xs">
+                                        <li className="text-muted-foreground">
+                                            {whereUsedRefs.length} reference
+                                            {whereUsedRefs.length === 1
+                                                ? ''
+                                                : 's'}
+                                        </li>
+                                        {whereUsedRefs.slice(0, 20).map((ref) => (
+                                            <li key={`${ref.collection_id}-${ref.item_id}-${ref.field}`}>
+                                                <a
+                                                    className="text-primary underline-offset-2 hover:underline"
+                                                    href={`/collections/${ref.collection_id}/items/${ref.item_id}`}
+                                                >
+                                                    {ref.collection_name} #
+                                                    {ref.item_id}
+                                                </a>
+                                                <span className="text-muted-foreground">
+                                                    {' '}
+                                                    · {ref.field}
+                                                </span>
+                                            </li>
+                                        ))}
+                                        {whereUsedRefs.length > 20 && (
+                                            <li className="text-muted-foreground">
+                                                +{whereUsedRefs.length - 20}{' '}
+                                                more
+                                            </li>
+                                        )}
+                                    </ul>
+                                )}
+                        </div>
+                        <Separator />
+                    </>
+                )}
 
                 <div className="space-y-3">
                     <SectionHeading icon={ImageIcon}>

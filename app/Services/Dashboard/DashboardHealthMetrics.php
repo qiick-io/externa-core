@@ -40,6 +40,42 @@ class DashboardHealthMetrics
     }
 
     /**
+     * Compact chrome badge status derived from {@see summary()}.
+     *
+     * @return array{status: 'ok'|'warn'|'fail', label: string}
+     */
+    public function badge(): array
+    {
+        $summary = $this->summary();
+        $horizon = is_array($summary['horizon'] ?? null) ? $summary['horizon'] : [];
+        $horizonStatus = (string) ($horizon['status'] ?? 'unavailable');
+        $horizonAvailable = (bool) ($horizon['available'] ?? false);
+
+        if (! (bool) $summary['redis_ok'] || ($horizonAvailable && $horizonStatus === 'stopped')) {
+            return [
+                'status' => 'fail',
+                'label' => 'Health issue',
+            ];
+        }
+
+        if (
+            (int) $summary['failed_jobs'] > 0
+            || (int) $summary['exceptions_24h'] > 0
+            || ($horizonAvailable && (int) ($horizon['failed'] ?? 0) > 0)
+        ) {
+            return [
+                'status' => 'warn',
+                'label' => 'Health warning',
+            ];
+        }
+
+        return [
+            'status' => 'ok',
+            'label' => 'Healthy',
+        ];
+    }
+
+    /**
      * @return array{
      *     available: bool,
      *     status: string,

@@ -6,6 +6,7 @@ import {
     useMemo,
     useRef,
     useState,
+    useSyncExternalStore,
 } from 'react';
 import type { ReactNode } from 'react';
 import { UnsavedChangesDialog } from '@/components/unsaved-changes-dialog';
@@ -15,8 +16,12 @@ import {
     getActiveUnsavedChangesEntry,
     hasUnsavedChangesInRegistry,
     registerUnsavedChangesEntry,
+    subscribeUnsavedChangesRegistry,
 } from '@/lib/unsaved-changes/registry';
-import type { UnsavedChangesScope } from '@/lib/unsaved-changes/registry';
+import type {
+    UnsavedChangesDialogCopy,
+    UnsavedChangesScope,
+} from '@/lib/unsaved-changes/registry';
 
 type Props = {
     children: ReactNode;
@@ -29,20 +34,31 @@ type Props = {
  */
 export function UnsavedChangesProvider({ children }: Props) {
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [dialogCopy, setDialogCopy] = useState<
+        UnsavedChangesDialogCopy | undefined
+    >(undefined);
     const pendingConfirmationRef = useRef<Promise<boolean> | null>(null);
     const resolveDialogRef = useRef<((leave: boolean) => void) | null>(null);
     const allowNextRef = useRef(false);
     const pendingVisitRef = useRef<PendingVisit | null>(null);
 
+    const hasUnsavedChanges = useSyncExternalStore(
+        subscribeUnsavedChangesRegistry,
+        hasUnsavedChangesInRegistry,
+        () => false,
+    );
+
     const showConfirmDialog = useCallback((): Promise<boolean> => {
         return new Promise<boolean>((resolve) => {
             resolveDialogRef.current = resolve;
+            setDialogCopy(getActiveUnsavedChangesEntry()?.dialogCopy);
             setDialogOpen(true);
         });
     }, []);
 
     const settleDialog = useCallback((leave: boolean) => {
         setDialogOpen(false);
+        setDialogCopy(undefined);
         resolveDialogRef.current?.(leave);
         resolveDialogRef.current = null;
     }, []);
@@ -89,6 +105,7 @@ export function UnsavedChangesProvider({ children }: Props) {
             scope: UnsavedChangesScope;
             isDirty: () => boolean;
             onDiscard?: () => void;
+            dialogCopy?: UnsavedChangesDialogCopy;
         }): (() => void) => {
             const registrationId =
                 options.id ?? Symbol('unsavedChangesRegistration');
@@ -98,6 +115,7 @@ export function UnsavedChangesProvider({ children }: Props) {
                 isDirty: options.isDirty,
                 onDiscard: options.onDiscard,
                 scope: options.scope,
+                dialogCopy: options.dialogCopy,
             });
         },
         [],
@@ -183,9 +201,11 @@ export function UnsavedChangesProvider({ children }: Props) {
     const value = useMemo<UnsavedChangesContextValue>(
         () => ({
             requestLeave,
+            requestDiscard: requestLeave,
+            hasUnsavedChanges,
             register,
         }),
-        [register, requestLeave],
+        [hasUnsavedChanges, register, requestLeave],
     );
 
     return (
@@ -193,6 +213,7 @@ export function UnsavedChangesProvider({ children }: Props) {
             {children}
             <UnsavedChangesDialog
                 open={dialogOpen}
+                copy={dialogCopy}
                 onKeepEditing={() => settleDialog(false)}
                 onDiscard={() => settleDialog(true)}
             />

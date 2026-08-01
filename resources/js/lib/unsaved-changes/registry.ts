@@ -6,23 +6,47 @@ const SCOPE_PRIORITY: Record<UnsavedChangesScope, number> = {
     page: 2,
 };
 
+export type UnsavedChangesDialogCopy = {
+    titleKey?: string;
+    descriptionKey?: string;
+    discardKey?: string;
+};
+
 export type UnsavedChangesEntry = {
     id: symbol;
     scope: UnsavedChangesScope;
     isDirty: () => boolean;
     onDiscard?: () => void;
+    dialogCopy?: UnsavedChangesDialogCopy;
     registeredAt: number;
 };
 
 const registrations = new Map<symbol, UnsavedChangesEntry>();
+const listeners = new Set<() => void>();
+
+export function subscribeUnsavedChangesRegistry(
+    listener: () => void,
+): () => void {
+    listeners.add(listener);
+
+    return () => {
+        listeners.delete(listener);
+    };
+}
+
+export function notifyUnsavedChangesRegistry(): void {
+    listeners.forEach((listener) => listener());
+}
 
 export function registerUnsavedChangesEntry(
     entry: Omit<UnsavedChangesEntry, 'registeredAt'>,
 ): () => void {
     registrations.set(entry.id, { ...entry, registeredAt: Date.now() });
+    notifyUnsavedChangesRegistry();
 
     return () => {
         registrations.delete(entry.id);
+        notifyUnsavedChangesRegistry();
     };
 }
 

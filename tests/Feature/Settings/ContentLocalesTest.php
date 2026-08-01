@@ -66,6 +66,7 @@ test('project settings reject empty content locales', function () {
             'login_max_attempts' => 5,
             'registration_enabled' => true,
             'email_verification_required' => false,
+            'two_factor_required' => false,
             'sidebar_modules' => config('settings.project.defaults.sidebar_modules'),
             'preset_transformations' => contentLocalesSamplePresets(),
         ])
@@ -84,6 +85,7 @@ test('project settings require default content locale to be selected', function 
             'login_max_attempts' => 5,
             'registration_enabled' => true,
             'email_verification_required' => false,
+            'two_factor_required' => false,
             'sidebar_modules' => config('settings.project.defaults.sidebar_modules'),
             'preset_transformations' => contentLocalesSamplePresets(),
         ])
@@ -103,6 +105,7 @@ test('project settings persist content locales and resolver reads them', functio
             'login_max_attempts' => 5,
             'registration_enabled' => true,
             'email_verification_required' => false,
+            'two_factor_required' => false,
             'sidebar_modules' => config('settings.project.defaults.sidebar_modules'),
             'preset_transformations' => contentLocalesSamplePresets(),
         ])

@@ -34,6 +34,7 @@ import {
     CollectionEditDrawer,
     useCollectionEditDrawer,
 } from '@/components/collections/collection-edit-drawer';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import {
     PageLayout,
     TablePagination,
@@ -41,14 +42,6 @@ import {
 } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -75,6 +68,10 @@ import {
     serializeFilterRules,
 } from '@/lib/item-list-filters';
 import type { FilterRule } from '@/lib/item-list-filters';
+import {
+    currentPathWithQuery,
+    withReturnParam,
+} from '@/lib/safe-return-url';
 import { cn } from '@/lib/utils';
 import collections from '@/routes/collections';
 import type {
@@ -299,6 +296,13 @@ export default function ItemsIndex({
     const [listColumns, setListColumns] = useState(listColumnsProp);
     const [columnAligns, setColumnAligns] = useState(columnAlignsProp);
     const [deleteItemId, setDeleteItemId] = useState<number | null>(null);
+    const [pendingBulkAction, setPendingBulkAction] = useState<
+        'delete' | 'force_delete' | null
+    >(null);
+    const [pendingForceDeleteItemId, setPendingForceDeleteItemId] = useState<
+        number | null
+    >(null);
+    const [confirmingDestructive, setConfirmingDestructive] = useState(false);
     const [selected, setSelected] = useState<number[]>([]);
     const hasSelection = selected.length > 0;
 
@@ -509,6 +513,7 @@ export default function ItemsIndex({
             return;
         }
 
+        setConfirmingDestructive(true);
         router.delete(
             ItemController.destroy.url({
                 collection: collection.id,
@@ -516,16 +521,29 @@ export default function ItemsIndex({
             }),
             {
                 preserveScroll: true,
+                onFinish: () => setConfirmingDestructive(false),
                 onSuccess: () => setDeleteItemId(null),
+                onError: () => setDeleteItemId(null),
             },
         );
     };
 
+    const listReturnUrl = (): string => currentPathWithQuery();
+
     const itemEditUrl = (itemId: number): string =>
-        collections.items.show.url({
-            collection: collection.id,
-            item: itemId,
-        });
+        withReturnParam(
+            collections.items.show.url({
+                collection: collection.id,
+                item: itemId,
+            }),
+            listReturnUrl(),
+        );
+
+    const itemNewUrl = (): string =>
+        withReturnParam(
+            collections.items.new.url(collection.id),
+            listReturnUrl(),
+        );
 
     const exportUrl = (format: 'csv' | 'json'): string => {
         const filterPayload = serializeFilterRules(filterRules);
@@ -608,9 +626,7 @@ export default function ItemsIndex({
                     ) : null}
                     {can(PermissionEnum.CanCreateCollections) ? (
                         <Button asChild>
-                            <Link
-                                href={collections.items.new.url(collection.id)}
-                            >
+                            <Link href={itemNewUrl()}>
                                 <Plus className="size-4" />
                                 New item
                             </Link>
@@ -654,7 +670,9 @@ export default function ItemsIndex({
                                             type="button"
                                             variant="destructive"
                                             size="sm"
-                                            onClick={() => bulk('delete')}
+                                            onClick={() =>
+                                                setPendingBulkAction('delete')
+                                            }
                                         >
                                             Delete
                                         </Button>
@@ -680,7 +698,11 @@ export default function ItemsIndex({
                                             type="button"
                                             variant="destructive"
                                             size="sm"
-                                            onClick={() => bulk('force_delete')}
+                                            onClick={() =>
+                                                setPendingBulkAction(
+                                                    'force_delete',
+                                                )
+                                            }
                                         >
                                             Delete permanently
                                         </Button>
@@ -972,14 +994,8 @@ export default function ItemsIndex({
                                                                         variant="destructive"
                                                                         size="sm"
                                                                         onClick={() =>
-                                                                            router.delete(
-                                                                                ItemController.forceDelete.url(
-                                                                                    {
-                                                                                        collection:
-                                                                                            collection.id,
-                                                                                        item: row.id,
-                                                                                    },
-                                                                                ),
+                                                                            setPendingForceDeleteItemId(
+                                                                                row.id,
                                                                             )
                                                                         }
                                                                     >
@@ -1041,36 +1057,95 @@ export default function ItemsIndex({
                 </TablePanel>
             </PageLayout>
 
-            <Dialog
+            <ConfirmDestructiveDialog
                 open={deleteItemId !== null}
                 onOpenChange={(open) => {
                     if (!open) {
                         setDeleteItemId(null);
                     }
                 }}
-            >
-                <DialogContent>
-                    <DialogTitle>Delete item?</DialogTitle>
-                    <DialogDescription>
-                        This item will be soft-deleted and removed from the
-                        active list.
-                    </DialogDescription>
-                    <DialogFooter className="gap-2">
-                        <DialogClose asChild>
-                            <Button type="button" variant="secondary">
-                                Cancel
-                            </Button>
-                        </DialogClose>
-                        <Button
-                            type="button"
-                            variant="destructive"
-                            onClick={confirmDelete}
-                        >
-                            Delete
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                title="Delete item?"
+                description="This item will be soft-deleted and removed from the active list."
+                confirming={confirmingDestructive}
+                onConfirm={confirmDelete}
+            />
+
+            <ConfirmDestructiveDialog
+                open={pendingBulkAction !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPendingBulkAction(null);
+                    }
+                }}
+                title={
+                    pendingBulkAction === 'force_delete'
+                        ? `Delete ${selected.length} selected items permanently?`
+                        : `Delete ${selected.length} selected items?`
+                }
+                description={
+                    pendingBulkAction === 'force_delete'
+                        ? 'Selected items will be permanently removed. This cannot be undone.'
+                        : 'Selected items will be soft-deleted and moved to trash.'
+                }
+                confirmLabel={
+                    pendingBulkAction === 'force_delete'
+                        ? 'Delete permanently'
+                        : 'Delete'
+                }
+                confirming={confirmingDestructive}
+                onConfirm={() => {
+                    if (pendingBulkAction === null) {
+                        return;
+                    }
+
+                    setConfirmingDestructive(true);
+                    router.post(
+                        ItemController.bulk.url(collection.id),
+                        { ids: selected, action: pendingBulkAction },
+                        {
+                            preserveScroll: true,
+                            onFinish: () => setConfirmingDestructive(false),
+                            onSuccess: () => {
+                                setSelected([]);
+                                setPendingBulkAction(null);
+                            },
+                            onError: () => setPendingBulkAction(null),
+                        },
+                    );
+                }}
+            />
+
+            <ConfirmDestructiveDialog
+                open={pendingForceDeleteItemId !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPendingForceDeleteItemId(null);
+                    }
+                }}
+                title="Delete item permanently?"
+                description="This item will be permanently removed. This cannot be undone."
+                confirmLabel="Delete permanently"
+                confirming={confirmingDestructive}
+                onConfirm={() => {
+                    if (pendingForceDeleteItemId === null) {
+                        return;
+                    }
+
+                    setConfirmingDestructive(true);
+                    router.delete(
+                        ItemController.forceDelete.url({
+                            collection: collection.id,
+                            item: pendingForceDeleteItemId,
+                        }),
+                        {
+                            preserveScroll: true,
+                            onFinish: () => setConfirmingDestructive(false),
+                            onSuccess: () => setPendingForceDeleteItemId(null),
+                            onError: () => setPendingForceDeleteItemId(null),
+                        },
+                    );
+                }}
+            />
 
             <CollectionEditDrawer collectionForm={collectionForm} />
         </AppLayout>

@@ -142,6 +142,10 @@ const adminRoutes = {
             url(
                 `/files/${typeof file === 'number' ? file : file.file}/download`,
             ),
+        whereUsed: (file: number | { file: number }) =>
+            url(
+                `/files/${typeof file === 'number' ? file : file.file}/where-used`,
+            ),
         move: (file: number | { file: number }) =>
             url(`/files/${typeof file === 'number' ? file : file.file}/move`),
         rename: (file: number | { file: number }) =>

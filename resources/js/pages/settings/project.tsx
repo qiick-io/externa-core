@@ -37,6 +37,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
@@ -412,6 +413,11 @@ export default function ProjectSettingsPage({
                             />
                             <input
                                 type="hidden"
+                                name="two_factor_required"
+                                value={form.two_factor_required ? '1' : '0'}
+                            />
+                            <input
+                                type="hidden"
                                 name="default_language"
                                 value={form.default_language}
                             />
@@ -546,6 +552,8 @@ export default function ProjectSettingsPage({
                                 </div>
                             </div>
 
+                            <Separator />
+
                             <div className="space-y-6">
                                 <Heading
                                     variant="small"
@@ -585,6 +593,8 @@ export default function ProjectSettingsPage({
                                     }
                                 />
                             </div>
+
+                            <Separator />
 
                             <div className="space-y-6">
                                 <Heading
@@ -644,6 +654,8 @@ export default function ProjectSettingsPage({
                                 </div>
                                 <InputError message={errors.sidebar_modules} />
                             </div>
+
+                            <Separator />
 
                             <div className="space-y-6">
                                 <Heading
@@ -753,7 +765,38 @@ export default function ProjectSettingsPage({
                                         message={errors.login_max_attempts}
                                     />
                                 </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-3">
+                                        <Checkbox
+                                            id="two_factor_required"
+                                            checked={form.two_factor_required}
+                                            onCheckedChange={(checked) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    two_factor_required:
+                                                        checked === true,
+                                                }))
+                                            }
+                                        />
+                                        <Label htmlFor="two_factor_required">
+                                            {t(
+                                                'settings.project.twoFactorRequired',
+                                            )}
+                                        </Label>
+                                    </div>
+                                    <p className="pl-7 text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.twoFactorRequiredHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={errors.two_factor_required}
+                                    />
+                                </div>
                             </div>
+
+                            <Separator />
 
                             <div className="space-y-6">
                                 <Heading
@@ -883,6 +926,8 @@ export default function ProjectSettingsPage({
                                 </div>
                             </div>
 
+                            <Separator />
+
                             <div className="space-y-6">
                                 <Heading
                                     variant="small"
@@ -929,6 +974,8 @@ export default function ProjectSettingsPage({
                                     />
                                 </div>
                             </div>
+
+                            <Separator />
 
                             <div className="space-y-6">
                                 <Heading
@@ -1008,6 +1055,8 @@ export default function ProjectSettingsPage({
                                 />
                             </div>
 
+                            <Separator />
+
                             <div className="space-y-6">
                                 <Heading
                                     variant="small"
@@ -1055,6 +1104,8 @@ export default function ProjectSettingsPage({
                                     </div>
                                 ))}
                             </div>
+
+                            <Separator />
 
                             <div className="space-y-6">
                                 <Heading
@@ -1165,6 +1216,7 @@ export default function ProjectSettingsPage({
                             <SettingsFormActions
                                 processing={processing}
                                 recentlySuccessful={recentlySuccessful}
+                                isDirty={isDirty}
                                 data-test="project-settings-save"
                             />
                         </>

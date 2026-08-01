@@ -44,6 +44,22 @@ class CollectionPermissionEnforcer
     }
 
     /**
+     * Field ACL map for admin item forms, or null when unrestricted
+     * (super-admin / Spatie-only access / empty fields map).
+     *
+     * @return array<string, array{read: bool, create: bool, update: bool}>|null
+     */
+    public function fieldGrantsForForm(Request $request, Collection $collection): ?array
+    {
+        $rules = $this->resolveRules($request, $collection);
+        if ($rules === null || ($rules['fields'] ?? []) === []) {
+            return null;
+        }
+
+        return $rules['fields'];
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */

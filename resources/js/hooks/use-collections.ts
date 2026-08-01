@@ -34,11 +34,12 @@ export function slugify(value: string): string {
  *
  * @returns Drawer open state, form instance, slug manual override flag, and submit helpers
  */
-export function useCollections() {
+export function useCollections(options?: { onClosed?: () => void }) {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<CollectionRow | null>(null);
     const [slugManual, setSlugManual] = useState(false);
     const requestLeave = useRequestLeave();
+    const onClosed = options?.onClosed;
 
     const form = useForm({ ...EMPTY_COLLECTION_FORM });
 
@@ -87,6 +88,7 @@ export function useCollections() {
         form.reset();
         form.clearErrors();
         setSlugManual(false);
+        onClosed?.();
     };
 
     const submit = (): void => {

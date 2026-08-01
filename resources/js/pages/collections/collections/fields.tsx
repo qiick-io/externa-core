@@ -22,6 +22,7 @@ import { Drawer, DrawerContent, DrawerNested } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
+import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import { fieldTypeLabel } from '@/lib/collection-field-types';
@@ -54,6 +55,33 @@ export default function CollectionsFields({
     const [editField, setEditField] = useState<CollectionFieldRow | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [packDialogOpen, setPackDialogOpen] = useState(false);
+
+    const deepLink = useDrawerDeepLink({
+        editParam: 'field',
+        newParam: 'newField',
+        onEdit: (id) => {
+            if (!canEditSchema) {
+                return;
+            }
+
+            const field = collection.fields.find((f) => String(f.id) === id);
+
+            if (!field) {
+                return;
+            }
+
+            setEditField(field);
+        },
+        onNew: () => {
+            if (!canEditSchema) {
+                return;
+            }
+
+            setAddFieldType('string');
+            setAddFormOpen(false);
+            setAddOpen(true);
+        },
+    });
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [
@@ -94,18 +122,21 @@ export default function CollectionsFields({
 
     const openEdit = (field: CollectionFieldRow): void => {
         setEditField(field);
+        deepLink.syncEdit(field.id);
     };
 
     const openAdd = (): void => {
         setAddFieldType('string');
         setAddFormOpen(false);
         setAddOpen(true);
+        deepLink.syncNew();
     };
 
     const closeAddFlow = (): void => {
         setAddFormOpen(false);
         setAddOpen(false);
         setAddFieldType('string');
+        deepLink.syncClosed();
     };
 
     const handleAddDrawerOpenChange = (open: boolean): void => {
@@ -144,6 +175,7 @@ export default function CollectionsFields({
         void requestLeave().then((ok) => {
             if (ok) {
                 setEditField(null);
+                deepLink.syncClosed();
             }
         });
     };
@@ -315,7 +347,10 @@ export default function CollectionsFields({
                                 (field) => field.name,
                             )}
                             onCancel={() => handleEditDrawerOpenChange(false)}
-                            onSuccess={() => setEditField(null)}
+                            onSuccess={() => {
+                                setEditField(null);
+                                deepLink.syncClosed();
+                            }}
                         />
                     )}
                 </DrawerContent>

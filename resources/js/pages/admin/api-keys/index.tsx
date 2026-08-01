@@ -3,6 +3,7 @@ import { KeyRound, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import InputError from '@/components/input-error';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { TablePagination } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,6 +70,10 @@ export default function AdminApiKeysIndex({
     const rows = apiKeys.data ?? [];
 
     const [ipText, setIpText] = useState('');
+    const [pendingRevokeKeyId, setPendingRevokeKeyId] = useState<number | null>(
+        null,
+    );
+    const [revoking, setRevoking] = useState(false);
 
     const form = useForm({
         name: '',
@@ -303,19 +308,11 @@ export default function AdminApiKeysIndex({
                                                             <Button
                                                                 variant="ghost"
                                                                 size="sm"
-                                                                onClick={() => {
-                                                                    if (
-                                                                        confirm(
-                                                                            'Revoke this API key?',
-                                                                        )
-                                                                    ) {
-                                                                        router.delete(
-                                                                            adminRoutes.apiKeys.destroy(
-                                                                                key.id,
-                                                                            ),
-                                                                        );
-                                                                    }
-                                                                }}
+                                                                onClick={() =>
+                                                                    setPendingRevokeKeyId(
+                                                                        key.id,
+                                                                    )
+                                                                }
                                                             >
                                                                 <Trash2 className="size-4" />
                                                             </Button>
@@ -338,6 +335,34 @@ export default function AdminApiKeysIndex({
                     </div>
                 </div>
             </SettingsLayout>
+
+            <ConfirmDestructiveDialog
+                open={pendingRevokeKeyId !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPendingRevokeKeyId(null);
+                    }
+                }}
+                title="Revoke this API key?"
+                description="This key will stop working immediately."
+                confirmLabel="Revoke"
+                confirming={revoking}
+                onConfirm={() => {
+                    if (pendingRevokeKeyId === null) {
+                        return;
+                    }
+
+                    setRevoking(true);
+                    router.delete(
+                        adminRoutes.apiKeys.destroy(pendingRevokeKeyId),
+                        {
+                            onFinish: () => setRevoking(false),
+                            onSuccess: () => setPendingRevokeKeyId(null),
+                            onError: () => setPendingRevokeKeyId(null),
+                        },
+                    );
+                }}
+            />
         </AppLayout>
     );
 }

@@ -217,10 +217,11 @@ it('expands image fields on item api when file read is granted', function (): vo
         ->assertOk()
         ->assertJsonPath('data.data.cover', $file->id);
 
-    // With include=files but without file read: id-only expansion
+    // With include=files but without file read: id + access denied signal
     $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")
         ->assertOk()
         ->assertJsonPath('data.data.cover.id', $file->id)
+        ->assertJsonPath('data.data.cover.access', 'denied')
         ->assertJsonMissingPath('data.data.cover.url');
 
     grantPublicFileActions([FilePermissionAction::Read]);
@@ -229,7 +230,8 @@ it('expands image fields on item api when file read is granted', function (): vo
         ->assertOk()
         ->assertJsonPath('data.data.cover.id', $file->id)
         ->assertJsonPath('data.data.cover.filename', 'cover.jpg')
-        ->assertJsonPath('data.data.cover.url', url("/api/v1/files/{$file->id}/content"));
+        ->assertJsonPath('data.data.cover.url', url("/api/v1/files/{$file->id}/content"))
+        ->assertJsonMissingPath('data.data.cover.access');
 });
 
 it('expands nested files inside blocks fields on item api when file read is granted', function (): void {
@@ -292,7 +294,9 @@ it('expands nested files inside blocks fields on item api when file read is gran
     $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")
         ->assertOk()
         ->assertJsonPath('data.data.content.0.data.image.id', $cover->id)
+        ->assertJsonPath('data.data.content.0.data.image.access', 'denied')
         ->assertJsonPath('data.data.content.0.data.gallery.0.id', $gallery->id)
+        ->assertJsonPath('data.data.content.0.data.gallery.0.access', 'denied')
         ->assertJsonMissingPath('data.data.content.0.data.image.url');
 
     grantPublicFileActions([FilePermissionAction::Read]);

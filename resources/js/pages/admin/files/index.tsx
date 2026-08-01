@@ -26,6 +26,7 @@ import { FolderPickerDialog } from '@/components/admin/files/folder-picker-dialo
 import { TagFilterPopover } from '@/components/admin/files/tag-filter-popover';
 import { TagPicker } from '@/components/admin/files/tag-picker';
 import { useFilesSelection } from '@/components/admin/files/use-files-selection';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import {
@@ -51,7 +52,9 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
+import { useRegisterActiveUploads } from '@/hooks/use-register-active-uploads';
 import AppLayout from '@/layouts/app-layout';
+import { getQueryParam, patchLocationQuery } from '@/lib/admin-query-params';
 import adminRoutes from '@/lib/admin-routes';
 import { openAiWithPrompt, seedFilesBulkPrompt } from '@/lib/ai-open';
 import {
@@ -71,6 +74,8 @@ import {
     downloadFileUrl,
     downloadPreparedZipUrl,
     favoriteFile,
+    fetchFileWhereUsed,
+    fetchFilesByIds,
     forceDeleteFile,
     listFileTagsCatalog,
     listFilesPage,
@@ -145,6 +150,7 @@ export default function AdminFilesIndex({
     filters?: FileFilters;
 }) {
     const { can } = useCan();
+    useRegisterActiveUploads();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);
     const [files, setFiles] = useState(initialFiles.data);
@@ -185,6 +191,13 @@ export default function AdminFilesIndex({
         useState(0);
     const pendingZipJobIdsRef = useRef(new Set<string>());
     const [pendingZipJobCount, setPendingZipJobCount] = useState(0);
+    const [pendingDestructive, setPendingDestructive] = useState<{
+        action: 'delete' | 'force_delete';
+        targets: AdminFileRow[];
+    } | null>(null);
+    const [destructiveRefCount, setDestructiveRefCount] = useState(0);
+    const [destructiveRefLoading, setDestructiveRefLoading] = useState(false);
+    const [confirmingDestructive, setConfirmingDestructive] = useState(false);
 
     const canCreate = can(PermissionEnum.CanCreateFiles);
     const canEdit = can(PermissionEnum.CanEditFiles);
@@ -1007,7 +1020,56 @@ export default function AdminFilesIndex({
     const openFileDetails = (file: AdminFileRow): void => {
         setDetailFile(file);
         selection.selectOnly(file.id);
+        patchLocationQuery({ file: String(file.id) });
     };
+
+    const closeFileDetails = (): void => {
+        setDetailFile(null);
+        patchLocationQuery({ file: null });
+    };
+
+    const fileDeepLinkBooted = useRef(false);
+
+    useEffect(() => {
+        if (fileDeepLinkBooted.current || isTrashed) {
+            return;
+        }
+
+        fileDeepLinkBooted.current = true;
+        const raw = getQueryParam(
+            window.location.pathname + window.location.search,
+            'file',
+        );
+        const id = raw ? Number.parseInt(raw, 10) : NaN;
+
+        if (!Number.isFinite(id) || id <= 0) {
+            return;
+        }
+
+        const local = files.find((f) => f.id === id);
+
+        if (local) {
+            setDetailFile(local);
+            selection.selectOnly(local.id);
+
+            return;
+        }
+
+        void fetchFilesByIds([id]).then((rows) => {
+            const row = rows[0];
+
+            if (!row) {
+                patchLocationQuery({ file: null });
+
+                return;
+            }
+
+            setDetailFile(row);
+            selection.selectOnly(row.id);
+        });
+        // Boot once from URL; selection/files identity changes intentionally ignored
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const openRenameDialog = (file: AdminFileRow): void => {
         setRenameTargetFile(file);
@@ -1035,6 +1097,29 @@ export default function AdminFilesIndex({
             }
 
             const ids = selected.map((file) => file.id);
+
+            if (action === 'delete' || action === 'force_delete') {
+                setPendingDestructive({ action, targets: selected });
+                setDestructiveRefCount(0);
+                const fileTargets = selected.filter((f) => f.type === 'file');
+                if (fileTargets.length > 0 && fileTargets.length <= 10) {
+                    setDestructiveRefLoading(true);
+                    void Promise.all(
+                        fileTargets.map((f) =>
+                            fetchFileWhereUsed(f.id)
+                                .then((r) => r.count)
+                                .catch(() => 0),
+                        ),
+                    )
+                        .then((counts) => {
+                            setDestructiveRefCount(
+                                counts.reduce((sum, n) => sum + n, 0),
+                            );
+                        })
+                        .finally(() => setDestructiveRefLoading(false));
+                }
+                return;
+            }
 
             try {
                 switch (action) {
@@ -1138,17 +1223,6 @@ export default function AdminFilesIndex({
                             ),
                         );
                         break;
-                    case 'delete':
-                        if (ids.length === 1) {
-                            await deleteFile(ids[0]);
-                        } else {
-                            await bulkFileAction('delete', ids);
-                        }
-
-                        selection.clearSelection();
-                        setDetailFile(null);
-                        refreshPage();
-                        break;
                     case 'restore':
                         if (ids.length === 1) {
                             await restoreFile(ids[0]);
@@ -1157,17 +1231,6 @@ export default function AdminFilesIndex({
                         }
 
                         selection.clearSelection();
-                        refreshPage();
-                        break;
-                    case 'force_delete':
-                        if (ids.length === 1) {
-                            await forceDeleteFile(ids[0]);
-                        } else {
-                            await bulkFileAction('force_delete', ids);
-                        }
-
-                        selection.clearSelection();
-                        setDetailFile(null);
                         refreshPage();
                         break;
                 }
@@ -1179,6 +1242,53 @@ export default function AdminFilesIndex({
         },
         [parentId, refreshPage, selection, trackPendingDuplication],
     );
+
+    const executePendingDestructive = async (): Promise<void> => {
+        if (!pendingDestructive) {
+            return;
+        }
+
+        const { action, targets } = pendingDestructive;
+        const ids = targets.map((file) => file.id);
+
+        setConfirmingDestructive(true);
+
+        try {
+            if (action === 'delete') {
+                if (ids.length === 1) {
+                    await deleteFile(ids[0]);
+                } else {
+                    await bulkFileAction('delete', ids);
+                }
+
+                selection.clearSelection();
+                setDetailFile(null);
+                refreshPage();
+            } else {
+                if (ids.length === 1) {
+                    await forceDeleteFile(ids[0]);
+                } else {
+                    await bulkFileAction('force_delete', ids);
+                }
+
+                selection.clearSelection();
+                setDetailFile(null);
+                refreshPage();
+            }
+
+            setPendingDestructive(null);
+        } catch (error) {
+            toast.error(
+                error instanceof Error ? error.message : 'Action failed',
+            );
+        } finally {
+            setConfirmingDestructive(false);
+        }
+    };
+
+    const destructiveCount = pendingDestructive?.targets.length ?? 0;
+    const destructiveIsForce =
+        pendingDestructive?.action === 'force_delete';
 
     const resetBulkTagDialog = (): void => {
         setBulkTags([]);
@@ -1519,7 +1629,7 @@ export default function AdminFilesIndex({
                             canTag={canTag}
                             canReplace={canReplace}
                             tagCatalog={tagCatalog}
-                            onClose={() => setDetailFile(null)}
+                            onClose={closeFileDetails}
                             onUpdated={(updated) => {
                                 setDetailFile(updated);
                                 setFiles((current) =>
@@ -1604,6 +1714,63 @@ export default function AdminFilesIndex({
                 }}
                 blockedFolders={blockedMoveFolders}
                 onConfirm={handleConfirmMove}
+            />
+
+            <ConfirmDestructiveDialog
+                open={pendingDestructive !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPendingDestructive(null);
+                        setDestructiveRefCount(0);
+                        setDestructiveRefLoading(false);
+                    }
+                }}
+                title={
+                    destructiveIsForce
+                        ? destructiveCount === 1
+                            ? 'Delete this file permanently?'
+                            : `Delete ${destructiveCount} selected files permanently?`
+                        : destructiveCount === 1
+                          ? 'Delete this file?'
+                          : `Delete ${destructiveCount} selected files?`
+                }
+                description={
+                    <>
+                        {destructiveIsForce
+                            ? destructiveCount === 1
+                                ? 'This file will be permanently removed. This cannot be undone.'
+                                : 'Selected files will be permanently removed. This cannot be undone.'
+                            : destructiveCount === 1
+                              ? 'This file will be moved to trash.'
+                              : 'Selected files will be moved to trash.'}
+                        {destructiveRefLoading && (
+                            <> Scanning item references…</>
+                        )}
+                        {!destructiveRefLoading && destructiveRefCount > 0 && (
+                            <>
+                                {' '}
+                                Referenced by {destructiveRefCount} collection
+                                item
+                                {destructiveRefCount === 1 ? '' : 's'} — open
+                                the detail panel for links. You can still delete
+                                anyway.
+                            </>
+                        )}
+                    </>
+                }
+                confirmLabel={
+                    destructiveIsForce
+                        ? destructiveRefCount > 0
+                            ? 'Delete permanently anyway'
+                            : 'Delete permanently'
+                        : destructiveRefCount > 0
+                          ? 'Delete anyway'
+                          : 'Delete'
+                }
+                confirming={confirmingDestructive}
+                onConfirm={() => {
+                    void executePendingDestructive();
+                }}
             />
 
             <FileUploadIndicator

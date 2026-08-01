@@ -182,6 +182,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('{file}/tags', [FileController::class, 'syncTags'])->name('tags');
             Route::get('{file}/download', [FileController::class, 'download'])->name('download');
             Route::get('{file}/thumbnail', [FileController::class, 'thumbnail'])->name('thumbnail');
+            Route::get('{file}/where-used', [FileController::class, 'whereUsed'])->name('where-used');
             Route::patch('{file}/move', [FileController::class, 'move'])->name('move');
             Route::patch('{file}/rename', [FileController::class, 'rename'])->name('rename');
             Route::delete('{file}', [FileController::class, 'destroy'])->name('destroy');

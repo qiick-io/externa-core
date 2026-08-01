@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
 use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
+use App\Services\Settings\ProjectSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -17,6 +18,10 @@ use Laravel\Fortify\Features;
  */
 class SecurityController extends Controller implements HasMiddleware
 {
+    public function __construct(
+        private readonly ProjectSettings $projectSettings,
+    ) {}
+
     /**
      * Register Fortify password-confirmation middleware when required for 2FA setup.
      *
@@ -35,16 +40,31 @@ class SecurityController extends Controller implements HasMiddleware
      */
     public function edit(TwoFactorAuthenticationRequest $request): Response
     {
+        $canManageTwoFactor = Features::canManageTwoFactorAuthentication();
+        $twoFactorRequired = $this->projectSettings->twoFactorRequired();
+        $twoFactorEnabled = false;
+
         $props = [
-            'canManageTwoFactor' => Features::canManageTwoFactorAuthentication(),
+            'canManageTwoFactor' => $canManageTwoFactor,
+            'twoFactorRequired' => $twoFactorRequired,
         ];
 
-        if (Features::canManageTwoFactorAuthentication()) {
-            $request->ensureStateIsValid();
-
-            $props['twoFactorEnabled'] = $request->user()->hasEnabledTwoFactorAuthentication();
+        if ($canManageTwoFactor) {
+            // ponytail: do not call Fortify ensureStateIsValid() here.
+            // It disables unfinished enrollment on any later security.edit in a
+            // different Unix second (InteractsWithTwoFactorState), which races
+            // Inertia redirects/prefetch and EnsureTwoFactorIsEnabled while the
+            // QR modal still shows the old secret — OTP then never verifies.
+            // Abandoned secrets stay usable via Enable (no-op) + QR endpoints.
+            $twoFactorEnabled = $request->user()->hasEnabledTwoFactorAuthentication();
+            $props['twoFactorEnabled'] = $twoFactorEnabled;
             $props['requiresConfirmation'] = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');
         }
+
+        // Banner: project requires 2FA and this user has not completed Fortify enrollment.
+        $props['twoFactorEnforcedForUser'] = $canManageTwoFactor
+            && $twoFactorRequired
+            && ! $twoFactorEnabled;
 
         return Inertia::render('settings/security', $props);
     }

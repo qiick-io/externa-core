@@ -144,6 +144,11 @@ class ProjectSettings
         return (bool) $this->raw()['email_verification_required'];
     }
 
+    public function twoFactorRequired(): bool
+    {
+        return (bool) $this->raw()['two_factor_required'];
+    }
+
     public function defaultUserRole(): ?string
     {
         $role = $this->raw()['default_user_role'] ?? null;
@@ -358,6 +363,7 @@ class ProjectSettings
                 ? $raw['default_user_role']
                 : null,
             'email_verification_required' => (bool) ($raw['email_verification_required'] ?? false),
+            'two_factor_required' => (bool) ($raw['two_factor_required'] ?? false),
             'allowed_domains' => $this->normalizeDomains($raw['allowed_domains'] ?? []),
             'public_api_allowed_origins' => $this->normalizeOrigins($raw['public_api_allowed_origins'] ?? []),
             'allowed_transformations' => $this->normalizeTransformations($raw['allowed_transformations'] ?? null),

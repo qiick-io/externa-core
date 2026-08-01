@@ -1,4 +1,4 @@
-import { Form, Head, Link } from '@inertiajs/react';
+import { Form, Head, Link, router } from '@inertiajs/react';
 import { Rows3, Save, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
@@ -8,8 +8,10 @@ import {
     CollectionEditDrawer,
     useCollectionEditDrawer,
 } from '@/components/collections/collection-edit-drawer';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
 import { PageLayout } from '@/components/layout/page-layout';
+import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { Button } from '@/components/ui/button';
 import { useCollection } from '@/hooks/use-collection';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
@@ -28,10 +30,15 @@ export default function CollectionsShow({
     collection,
     singletonRawData,
     relatedCollections = [],
+    fieldGrants = null,
 }: {
     collection: CollectionView;
     singletonRawData: Record<string, unknown> | null;
     relatedCollections?: { id: number; name: string; slug: string }[];
+    fieldGrants?: Record<
+        string,
+        { read: boolean; create: boolean; update: boolean }
+    > | null;
 }) {
     const { locales, breadcrumbs, contentDefaults, hasFields } = useCollection({
         collection,
@@ -41,12 +48,17 @@ export default function CollectionsShow({
 
     const collectionForm = useCollectionEditDrawer();
     const [isDirty, setIsDirty] = useState(false);
+    const [formKey, setFormKey] = useState(0);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     useRegisterUnsavedChanges({
         scope: 'page',
         isDirty,
-        // ponytail: only clear dirty — leave navigation is replayed by the provider
-        onDiscard: () => setIsDirty(false),
+        onDiscard: () => {
+            setIsDirty(false);
+            setFormKey((key) => key + 1);
+        },
     });
 
     return (
@@ -64,22 +76,18 @@ export default function CollectionsShow({
                         collectionForm={collectionForm}
                         collection={collectionToFormRow(collection)}
                     />
-                    <Form
-                        {...ContentCollectionController.destroy.form({
-                            collection: collection.id,
-                        })}
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={() => setDeleteOpen(true)}
                     >
-                        {({ processing }) => (
-                            <Button
-                                type="submit"
-                                variant="destructive"
-                                disabled={processing}
-                            >
-                                <Trash2 className="size-4" />
-                                Delete collection
-                            </Button>
-                        )}
-                    </Form>
+                        <Trash2 className="size-4" />
+                        Delete collection
+                    </Button>
+                    <UnsavedChangesToolbar
+                        isDirty={isDirty}
+                        className="flex items-center gap-2"
+                    />
                     {hasFields && (
                         <Button type="submit" form={COLLECTION_CONTENT_FORM_ID}>
                             <Save className="size-4" />
@@ -122,6 +130,7 @@ export default function CollectionsShow({
 
                 {hasFields && (
                     <Form
+                        key={formKey}
                         {...ContentCollectionController.upsertSingletonContent.form(
                             {
                                 collection: collection.id,
@@ -157,6 +166,8 @@ export default function CollectionsShow({
                                         defaults={contentDefaults}
                                         relatedCollections={relatedCollections}
                                         formLayout={collection.form_layout}
+                                        fieldGrants={fieldGrants}
+                                        isNew={singletonRawData === null}
                                     />
                                 </>
                             );
@@ -166,6 +177,26 @@ export default function CollectionsShow({
 
                 <CollectionEditDrawer collectionForm={collectionForm} />
             </PageLayout>
+
+            <ConfirmDestructiveDialog
+                open={deleteOpen}
+                onOpenChange={setDeleteOpen}
+                title="Delete collection?"
+                description={`Delete "${collection.name}"? This collection will be soft-deleted.`}
+                confirming={deleting}
+                onConfirm={() => {
+                    setDeleting(true);
+                    router.delete(
+                        ContentCollectionController.destroy.url({
+                            collection: collection.id,
+                        }),
+                        {
+                            onFinish: () => setDeleting(false),
+                            onError: () => setDeleteOpen(false),
+                        },
+                    );
+                }}
+            />
         </AppLayout>
     );
 }

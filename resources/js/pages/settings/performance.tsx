@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import PerformanceSettingsController from '@/actions/App/Http/Controllers/Settings/PerformanceSettingsController';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { edit as editPerformance } from '@/routes/performance';
@@ -127,6 +128,8 @@ export default function PerformanceSettingsPage({
                             </div>
                         </dl>
                     </div>
+
+                    <Separator />
 
                     <div className="space-y-6">
                         <Heading

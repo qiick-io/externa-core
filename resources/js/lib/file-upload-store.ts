@@ -111,3 +111,26 @@ export function dismissAllFileUploads(): void {
     uploads = [];
     notifyListeners();
 }
+
+// ponytail: browser QA injects pending uploads without a real multipart
+if (import.meta.env.DEV) {
+    (
+        window as unknown as {
+            __externaFileUploads?: {
+                createUploadId: typeof createUploadId;
+                addFileUpload: typeof addFileUpload;
+                updateFileUpload: typeof updateFileUpload;
+                removeFileUpload: typeof removeFileUpload;
+                dismissAllFileUploads: typeof dismissAllFileUploads;
+                getFileUploads: typeof getFileUploads;
+            };
+        }
+    ).__externaFileUploads = {
+        createUploadId,
+        addFileUpload,
+        updateFileUpload,
+        removeFileUpload,
+        dismissAllFileUploads,
+        getFileUploads,
+    };
+}

@@ -10,6 +10,7 @@ use App\Http\Requests\Collections\UpdateContentCollectionRequest;
 use App\Http\Requests\Collections\UpsertSingletonCollectionItemRequest;
 use App\Models\Collection;
 use App\Models\CollectionItem;
+use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Collections\ApplyCollectionPackService;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemOptionsService;
@@ -41,6 +42,7 @@ class ContentCollectionController extends Controller
         private CollectionItemValuesWriter $collectionItemValuesWriter,
         private CollectionItemValuesAssembler $collectionItemValuesAssembler,
         private CollectionItemOptionsService $collectionItemOptionsService,
+        private CollectionPermissionEnforcer $permissionEnforcer,
     ) {}
 
     /**
@@ -159,6 +161,7 @@ class ContentCollectionController extends Controller
             'collection' => $collection,
             'singletonRawData' => $singletonRawData,
             'relatedCollections' => $this->collectionItemOptionsService->collectionsForSelect(),
+            'fieldGrants' => $this->permissionEnforcer->fieldGrantsForForm($request, $collection),
         ]);
     }
 

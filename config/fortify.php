@@ -150,7 +150,8 @@ return [
         Features::twoFactorAuthentication([
             'confirm' => true,
             'confirmPassword' => true,
-            // 'window' => 0
+            // Allow ±30s skew (Microsoft Authenticator / device clock drift).
+            'window' => 1,
         ]),
     ],
 

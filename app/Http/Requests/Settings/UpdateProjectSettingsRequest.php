@@ -65,6 +65,7 @@ class UpdateProjectSettingsRequest extends FormRequest
                 Rule::exists('roles', 'name')->where(fn ($query) => $query->where('guard_name', $guard)),
             ],
             'email_verification_required' => ['required', 'boolean'],
+            'two_factor_required' => ['required', 'boolean'],
             'allowed_domains' => ['nullable', 'array'],
             'allowed_domains.*' => ['string', 'max:255'],
             'public_api_allowed_origins' => ['nullable', 'array'],
@@ -207,6 +208,7 @@ class UpdateProjectSettingsRequest extends FormRequest
             'registration_enabled' => (bool) $validated['registration_enabled'],
             'default_user_role' => $validated['default_user_role'] ?? null,
             'email_verification_required' => (bool) $validated['email_verification_required'],
+            'two_factor_required' => (bool) $validated['two_factor_required'],
             'allowed_domains' => $domains,
             'public_api_allowed_origins' => $origins,
             'allowed_transformations' => array_values($validated['allowed_transformations'] ?? []),
@@ -258,6 +260,7 @@ class UpdateProjectSettingsRequest extends FormRequest
         foreach ([
             'registration_enabled',
             'email_verification_required',
+            'two_factor_required',
         ] as $boolField) {
             if ($this->has($boolField)) {
                 $merge[$boolField] = filter_var($this->input($boolField), FILTER_VALIDATE_BOOLEAN);

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { GroupFormDrawer } from '@/components/admin/group-form-drawer';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import {
     PageLayout,
     TablePagination,
@@ -31,6 +32,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
+import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
@@ -77,6 +79,38 @@ export default function AdminGroupsIndex({
     const [selected, setSelected] = useState<number[]>([]);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [editing, setEditing] = useState<AdminGroupRow | null>(null);
+    const [pendingBulkAction, setPendingBulkAction] = useState<
+        'delete' | 'force_delete' | null
+    >(null);
+    const [pendingForceDeleteGroupId, setPendingForceDeleteGroupId] = useState<
+        number | null
+    >(null);
+    const [confirmingDestructive, setConfirmingDestructive] = useState(false);
+
+    const deepLink = useDrawerDeepLink({
+        onEdit: (id) => {
+            if (!can(PermissionEnum.CanEditGroups) || isTrashed) {
+                return;
+            }
+
+            const row = groups.data.find((g) => String(g.id) === id);
+
+            if (!row) {
+                return;
+            }
+
+            setEditing(row);
+            setDrawerOpen(true);
+        },
+        onNew: () => {
+            if (!can(PermissionEnum.CanCreateGroups) || isTrashed) {
+                return;
+            }
+
+            setEditing(null);
+            setDrawerOpen(true);
+        },
+    });
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [{ title: 'Groups', href: adminRoutes.groups.index() }],
@@ -135,6 +169,7 @@ export default function AdminGroupsIndex({
     const openCreate = (): void => {
         setEditing(null);
         setDrawerOpen(true);
+        deepLink.syncNew();
     };
 
     const openEdit = (group: AdminGroupRow): void => {
@@ -144,6 +179,7 @@ export default function AdminGroupsIndex({
 
         setEditing(group);
         setDrawerOpen(true);
+        deepLink.syncEdit(group.id);
     };
 
     const handleDrawerOpenChange = (open: boolean): void => {
@@ -160,6 +196,7 @@ export default function AdminGroupsIndex({
 
             setDrawerOpen(false);
             setEditing(null);
+            deepLink.syncClosed();
         });
     };
 
@@ -178,6 +215,10 @@ export default function AdminGroupsIndex({
 
     const selectedRows = groups.data.filter((group) =>
         selected.includes(group.id),
+    );
+
+    const pendingForceDeleteGroup = groups.data.find(
+        (group) => group.id === pendingForceDeleteGroupId,
     );
 
     return (
@@ -223,7 +264,11 @@ export default function AdminGroupsIndex({
                                                 type="button"
                                                 variant="destructive"
                                                 size="sm"
-                                                onClick={() => bulk('delete')}
+                                                onClick={() =>
+                                                    setPendingBulkAction(
+                                                        'delete',
+                                                    )
+                                                }
                                             >
                                                 Delete
                                             </Button>
@@ -250,7 +295,9 @@ export default function AdminGroupsIndex({
                                                 variant="destructive"
                                                 size="sm"
                                                 onClick={() =>
-                                                    bulk('force_delete')
+                                                    setPendingBulkAction(
+                                                        'force_delete',
+                                                    )
                                                 }
                                             >
                                                 Delete permanently
@@ -499,13 +546,8 @@ export default function AdminGroupsIndex({
                                                                 variant="destructive"
                                                                 size="sm"
                                                                 onClick={() =>
-                                                                    router.delete(
-                                                                        adminRoutes.groups.forceDelete(
-                                                                            group.id,
-                                                                        ),
-                                                                        {
-                                                                            preserveScroll: true,
-                                                                        },
+                                                                    setPendingForceDeleteGroupId(
+                                                                        group.id,
                                                                     )
                                                                 }
                                                             >
@@ -542,9 +584,91 @@ export default function AdminGroupsIndex({
                     onSuccess={() => {
                         setDrawerOpen(false);
                         setEditing(null);
+                        deepLink.syncClosed();
                     }}
                 />
             </Drawer>
+
+            <ConfirmDestructiveDialog
+                open={pendingBulkAction !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPendingBulkAction(null);
+                    }
+                }}
+                title={
+                    pendingBulkAction === 'force_delete'
+                        ? `Delete ${selected.length} selected groups permanently?`
+                        : `Delete ${selected.length} selected groups?`
+                }
+                description={
+                    pendingBulkAction === 'force_delete'
+                        ? 'Selected groups will be permanently removed. This cannot be undone.'
+                        : 'Selected groups will be soft-deleted and moved to trash.'
+                }
+                confirmLabel={
+                    pendingBulkAction === 'force_delete'
+                        ? 'Delete permanently'
+                        : 'Delete'
+                }
+                confirming={confirmingDestructive}
+                onConfirm={() => {
+                    if (pendingBulkAction === null) {
+                        return;
+                    }
+
+                    setConfirmingDestructive(true);
+                    router.post(
+                        adminRoutes.groups.bulkActions(),
+                        { ids: selected, action: pendingBulkAction },
+                        {
+                            preserveScroll: true,
+                            onFinish: () => setConfirmingDestructive(false),
+                            onSuccess: () => {
+                                setSelected([]);
+                                setPendingBulkAction(null);
+                            },
+                            onError: () => setPendingBulkAction(null),
+                        },
+                    );
+                }}
+            />
+
+            <ConfirmDestructiveDialog
+                open={pendingForceDeleteGroupId !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPendingForceDeleteGroupId(null);
+                    }
+                }}
+                title="Delete group permanently?"
+                description={
+                    pendingForceDeleteGroup
+                        ? `Delete "${pendingForceDeleteGroup.name}" permanently? This cannot be undone.`
+                        : 'This cannot be undone.'
+                }
+                confirmLabel="Delete permanently"
+                confirming={confirmingDestructive}
+                onConfirm={() => {
+                    if (pendingForceDeleteGroupId === null) {
+                        return;
+                    }
+
+                    setConfirmingDestructive(true);
+                    router.delete(
+                        adminRoutes.groups.forceDelete(
+                            pendingForceDeleteGroupId,
+                        ),
+                        {
+                            preserveScroll: true,
+                            onFinish: () => setConfirmingDestructive(false),
+                            onSuccess: () =>
+                                setPendingForceDeleteGroupId(null),
+                            onError: () => setPendingForceDeleteGroupId(null),
+                        },
+                    );
+                }}
+            />
         </AppLayout>
     );
 }

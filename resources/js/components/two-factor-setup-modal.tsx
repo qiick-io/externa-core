@@ -68,11 +68,13 @@ function TwoFactorSetupStep({
     const [copiedText, copy] = useClipboard();
     const IconComponent = copiedText === manualSetupKey ? Check : Copy;
 
+    const showSetupUi = Boolean(qrCodeSvg || manualSetupKey || !errors?.length);
+
     return (
         <>
-            {errors?.length ? (
-                <AlertError errors={errors} />
-            ) : (
+            {errors?.length ? <AlertError errors={errors} /> : null}
+
+            {showSetupUi ? (
                 <>
                     <div className="mx-auto flex max-w-md overflow-hidden">
                         <div className="mx-auto aspect-square w-64 rounded-lg border border-border">
@@ -135,7 +137,7 @@ function TwoFactorSetupStep({
                         </div>
                     </div>
                 </>
-            )}
+            ) : null}
         </>
     );
 }
@@ -160,7 +162,12 @@ function TwoFactorVerificationStep({
     return (
         <Form
             {...confirm.form()}
+            // Fortify puts failures in the confirmTwoFactorAuthentication bag.
+            errorBag="confirmTwoFactorAuthentication"
+            // Always send React state — InputOTP + resetOnError can desync FormData.
+            transform={(data) => ({ ...data, code })}
             onSuccess={() => onClose()}
+            onError={() => setCode('')}
             resetOnError
             resetOnSuccess
         >
@@ -169,64 +176,76 @@ function TwoFactorVerificationStep({
                 errors,
             }: {
                 processing: boolean;
-                errors?: { confirmTwoFactorAuthentication?: { code?: string } };
-            }) => (
-                <>
-                    <div
-                        ref={pinInputContainerRef}
-                        className="relative w-full space-y-3"
-                    >
-                        <div className="flex w-full flex-col items-center space-y-3 py-2">
-                            <InputOTP
-                                id="otp"
-                                name="code"
-                                maxLength={OTP_MAX_LENGTH}
-                                onChange={setCode}
-                                disabled={processing}
-                                pattern={REGEXP_ONLY_DIGITS}
-                            >
-                                <InputOTPGroup>
-                                    {Array.from(
-                                        { length: OTP_MAX_LENGTH },
-                                        (_, index) => (
-                                            <InputOTPSlot
-                                                key={index}
-                                                index={index}
-                                            />
-                                        ),
-                                    )}
-                                </InputOTPGroup>
-                            </InputOTP>
-                            <InputError
-                                message={
-                                    errors?.confirmTwoFactorAuthentication?.code
-                                }
-                            />
-                        </div>
+                errors?: {
+                    code?: string;
+                    confirmTwoFactorAuthentication?: { code?: string };
+                };
+            }) => {
+                const codeError =
+                    errors?.code ??
+                    errors?.confirmTwoFactorAuthentication?.code;
 
-                        <div className="flex w-full space-x-5">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="flex-1"
-                                onClick={onBack}
-                                disabled={processing}
-                            >
-                                {t('common.back')}
-                            </Button>
-                            <Button
-                                type="submit"
-                                className="flex-1"
-                                disabled={
-                                    processing || code.length < OTP_MAX_LENGTH
-                                }
-                            >
-                                {t('settings.twoFactor.confirm')}
-                            </Button>
+                return (
+                    <>
+                        <div
+                            ref={pinInputContainerRef}
+                            className="relative w-full space-y-3"
+                        >
+                            {codeError ? (
+                                <AlertError errors={[codeError]} />
+                            ) : null}
+
+                            <div className="flex w-full flex-col items-center space-y-3 py-2">
+                                <InputOTP
+                                    id="otp"
+                                    name="code"
+                                    maxLength={OTP_MAX_LENGTH}
+                                    value={code}
+                                    onChange={setCode}
+                                    disabled={processing}
+                                    pattern={REGEXP_ONLY_DIGITS}
+                                    autoFocus
+                                >
+                                    <InputOTPGroup>
+                                        {Array.from(
+                                            { length: OTP_MAX_LENGTH },
+                                            (_, index) => (
+                                                <InputOTPSlot
+                                                    key={index}
+                                                    index={index}
+                                                />
+                                            ),
+                                        )}
+                                    </InputOTPGroup>
+                                </InputOTP>
+                                <InputError message={codeError} />
+                            </div>
+
+                            <div className="flex w-full space-x-5">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={onBack}
+                                    disabled={processing}
+                                >
+                                    {t('common.back')}
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    className="flex-1"
+                                    disabled={
+                                        processing ||
+                                        code.length < OTP_MAX_LENGTH
+                                    }
+                                >
+                                    {t('settings.twoFactor.confirm')}
+                                </Button>
+                            </div>
                         </div>
-                    </div>
-                </>
-            )}
+                    </>
+                );
+            }}
         </Form>
     );
 }
@@ -310,11 +329,19 @@ export default function TwoFactorSetupModal({
         }
     }, [twoFactorEnabled, clearSetupData]);
 
+    // Stable fetchSetupData + inflight coalesce in the hook; only kick off when opened
+    // without setup data. Do not depend on per-render identity of fetch helpers.
     useEffect(() => {
-        if (isOpen && !qrCodeSvg) {
-            fetchSetupData();
+        if (!isOpen) {
+            return;
         }
-    }, [isOpen, qrCodeSvg, fetchSetupData]);
+
+        if (qrCodeSvg && manualSetupKey) {
+            return;
+        }
+
+        void fetchSetupData();
+    }, [isOpen, qrCodeSvg, manualSetupKey, fetchSetupData]);
 
     const handleClose = useCallback(() => {
         resetModalState();
@@ -335,7 +362,7 @@ export default function TwoFactorSetupModal({
                 <div className="flex flex-col items-center space-y-5">
                     {showVerificationStep ? (
                         <TwoFactorVerificationStep
-                            onClose={onClose}
+                            onClose={handleClose}
                             onBack={() => setShowVerificationStep(false)}
                         />
                     ) : (

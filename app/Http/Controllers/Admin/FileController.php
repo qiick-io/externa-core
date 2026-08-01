@@ -10,6 +10,7 @@ use App\Jobs\DuplicateFilesJob;
 use App\Jobs\PrepareFilesZipJob;
 use App\Models\File;
 use App\Services\FileService;
+use App\Services\Files\FileWhereUsedScanner;
 use App\Services\FileTransformService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -41,7 +42,22 @@ class FileController extends Controller
     public function __construct(
         protected FileService $fileService,
         protected FileTransformService $fileTransformService,
+        protected FileWhereUsedScanner $fileWhereUsedScanner,
     ) {}
+
+    /**
+     * On-demand scan of collection items that reference this file.
+     */
+    public function whereUsed(File $file): JsonResponse
+    {
+        $references = $this->fileWhereUsedScanner->findReferences((int) $file->id);
+
+        return response()->json([
+            'file_id' => (int) $file->id,
+            'count' => count($references),
+            'references' => $references,
+        ]);
+    }
 
     /**
      * Render the file manager index for a folder, bootstrapping page 1 for infinite scroll.

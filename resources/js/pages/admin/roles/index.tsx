@@ -1,7 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import {
     PageLayout,
     TablePagination,
@@ -38,6 +39,10 @@ export default function AdminRolesIndex({
     const { can } = useCan();
     const roles = normalizePaginated(rolesProp);
     const rows = roles.data;
+    const [pendingRoleId, setPendingRoleId] = useState<number | null>(null);
+    const [deleting, setDeleting] = useState(false);
+
+    const pendingRole = rows.find((role) => role.id === pendingRoleId);
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [
@@ -143,13 +148,8 @@ export default function AdminRolesIndex({
                                                             size="sm"
                                                             className="text-destructive"
                                                             onClick={() =>
-                                                                router.delete(
-                                                                    adminRoutes.roles.destroy(
-                                                                        role.id,
-                                                                    ),
-                                                                    {
-                                                                        preserveScroll: true,
-                                                                    },
+                                                                setPendingRoleId(
+                                                                    role.id,
                                                                 )
                                                             }
                                                         >
@@ -165,6 +165,38 @@ export default function AdminRolesIndex({
                     </TablePanel>
                 </PageLayout>
             </SettingsLayout>
+
+            <ConfirmDestructiveDialog
+                open={pendingRoleId !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPendingRoleId(null);
+                    }
+                }}
+                title="Delete role?"
+                description={
+                    pendingRole
+                        ? `Delete "${pendingRole.name}"? This cannot be undone.`
+                        : 'This cannot be undone.'
+                }
+                confirming={deleting}
+                onConfirm={() => {
+                    if (pendingRoleId === null) {
+                        return;
+                    }
+
+                    setDeleting(true);
+                    router.delete(
+                        adminRoutes.roles.destroy(pendingRoleId),
+                        {
+                            preserveScroll: true,
+                            onFinish: () => setDeleting(false),
+                            onSuccess: () => setPendingRoleId(null),
+                            onError: () => setPendingRoleId(null),
+                        },
+                    );
+                }}
+            />
         </AppLayout>
     );
 }

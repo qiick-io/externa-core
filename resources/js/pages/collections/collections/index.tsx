@@ -10,7 +10,7 @@ import {
     Rows3,
     Trash2,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
@@ -18,6 +18,7 @@ import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ApplyCollectionPackDialog } from '@/components/collections/apply-collection-pack-dialog';
 import type { CollectionPackSummary } from '@/components/collections/apply-collection-pack-dialog';
 import { CollectionFormDrawer } from '@/components/collections/collection-form-drawer';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { PageLayout, TablePanel } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -33,6 +34,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useCollections } from '@/hooks/use-collections';
+import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
 import AppLayout from '@/layouts/app-layout';
 import { seedCollectionPrompt, seedCollectionsBulkPrompt } from '@/lib/ai-open';
 import collectionRoutes from '@/routes/collections';
@@ -82,11 +84,22 @@ export default function CollectionsIndex({
     );
     const [selected, setSelected] = useState<number[]>([]);
     const [packDialogOpen, setPackDialogOpen] = useState(false);
+    const [pendingBulkAction, setPendingBulkAction] = useState<
+        'delete' | 'force_delete' | null
+    >(null);
+    const [pendingRowDelete, setPendingRowDelete] = useState<{
+        id: number;
+        name: string;
+        force: boolean;
+    } | null>(null);
+    const [confirmingDestructive, setConfirmingDestructive] = useState(false);
     const hasSelection = selected.length > 0;
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Collections', href: collectionRoutes.index.url() },
     ];
+
+    const syncClosedRef = useRef<() => void>(() => {});
 
     const {
         open,
@@ -99,7 +112,47 @@ export default function CollectionsIndex({
         title,
         submit,
         handleDrawerOpenChange,
-    } = useCollections();
+    } = useCollections({
+        onClosed: () => syncClosedRef.current(),
+    });
+
+    const deepLink = useDrawerDeepLink({
+        onEdit: (id) => {
+            if (!can(PermissionEnum.CanEditCollections)) {
+                return;
+            }
+
+            const row = collections.find((c) => String(c.id) === id);
+
+            if (!row) {
+                return;
+            }
+
+            setEditing(row);
+            setOpen(true);
+        },
+        onNew: () => {
+            if (!can(PermissionEnum.CanCreateCollections) || isTrashed) {
+                return;
+            }
+
+            setEditing(null);
+            setOpen(true);
+        },
+    });
+    syncClosedRef.current = deepLink.syncClosed;
+
+    const openCreate = (): void => {
+        setEditing(null);
+        setOpen(true);
+        deepLink.syncNew();
+    };
+
+    const openEdit = (row: CollectionRow): void => {
+        setEditing(row);
+        setOpen(true);
+        deepLink.syncEdit(row.id);
+    };
 
     const visit = useCallback(
         (overrides: Partial<CollectionFilters> = {}) => {
@@ -188,13 +241,7 @@ export default function CollectionsIndex({
                             <PackagePlus className="mr-1 size-4" />
                             {t('collections.packs.createFromPackEllipsis')}
                         </Button>
-                        <Button
-                            type="button"
-                            onClick={() => {
-                                setEditing(null);
-                                setOpen(true);
-                            }}
-                        >
+                        <Button type="button" onClick={openCreate}>
                             <Plus className="mr-1 size-4" />
                             {t('collections.newCollection')}
                         </Button>
@@ -242,7 +289,11 @@ export default function CollectionsIndex({
                                                 type="button"
                                                 variant="destructive"
                                                 size="sm"
-                                                onClick={() => bulk('delete')}
+                                                onClick={() =>
+                                                    setPendingBulkAction(
+                                                        'delete',
+                                                    )
+                                                }
                                             >
                                                 Delete
                                             </Button>
@@ -269,7 +320,9 @@ export default function CollectionsIndex({
                                                 variant="destructive"
                                                 size="sm"
                                                 onClick={() =>
-                                                    bulk('force_delete')
+                                                    setPendingBulkAction(
+                                                        'force_delete',
+                                                    )
                                                 }
                                             >
                                                 Delete permanently
@@ -532,10 +585,12 @@ export default function CollectionsIndex({
                                                                         variant="destructive"
                                                                         size="sm"
                                                                         onClick={() =>
-                                                                            router.delete(
-                                                                                collectionRoutes.forceDelete.url(
-                                                                                    c.id,
-                                                                                ),
+                                                                            setPendingRowDelete(
+                                                                                {
+                                                                                    id: c.id,
+                                                                                    name: c.name,
+                                                                                    force: true,
+                                                                                },
                                                                             )
                                                                         }
                                                                     >
@@ -566,14 +621,11 @@ export default function CollectionsIndex({
                                                                     type="button"
                                                                     variant="outline"
                                                                     size="sm"
-                                                                    onClick={() => {
-                                                                        setEditing(
+                                                                    onClick={() =>
+                                                                        openEdit(
                                                                             c,
-                                                                        );
-                                                                        setOpen(
-                                                                            true,
-                                                                        );
-                                                                    }}
+                                                                        )
+                                                                    }
                                                                 >
                                                                     <Pencil className="size-3.5" />
                                                                     Edit
@@ -586,10 +638,12 @@ export default function CollectionsIndex({
                                                                         variant="destructive"
                                                                         size="sm"
                                                                         onClick={() =>
-                                                                            router.delete(
-                                                                                collectionRoutes.destroy.url(
-                                                                                    c.id,
-                                                                                ),
+                                                                            setPendingRowDelete(
+                                                                                {
+                                                                                    id: c.id,
+                                                                                    name: c.name,
+                                                                                    force: false,
+                                                                                },
                                                                             )
                                                                         }
                                                                     >
@@ -620,6 +674,94 @@ export default function CollectionsIndex({
                     onCancel={() => handleDrawerOpenChange(false)}
                 />
             </Drawer>
+
+            <ConfirmDestructiveDialog
+                open={pendingBulkAction !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPendingBulkAction(null);
+                    }
+                }}
+                title={
+                    pendingBulkAction === 'force_delete'
+                        ? `Delete ${selected.length} selected collections permanently?`
+                        : `Delete ${selected.length} selected collections?`
+                }
+                description={
+                    pendingBulkAction === 'force_delete'
+                        ? 'Selected collections will be permanently removed. This cannot be undone.'
+                        : 'Selected collections will be soft-deleted and moved to trash.'
+                }
+                confirmLabel={
+                    pendingBulkAction === 'force_delete'
+                        ? 'Delete permanently'
+                        : 'Delete'
+                }
+                confirming={confirmingDestructive}
+                onConfirm={() => {
+                    if (pendingBulkAction === null) {
+                        return;
+                    }
+
+                    setConfirmingDestructive(true);
+                    router.post(
+                        collectionRoutes.bulk.url(),
+                        { ids: selected, action: pendingBulkAction },
+                        {
+                            preserveScroll: true,
+                            onFinish: () => setConfirmingDestructive(false),
+                            onSuccess: () => {
+                                setSelected([]);
+                                setPendingBulkAction(null);
+                            },
+                            onError: () => setPendingBulkAction(null),
+                        },
+                    );
+                }}
+            />
+
+            <ConfirmDestructiveDialog
+                open={pendingRowDelete !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPendingRowDelete(null);
+                    }
+                }}
+                title={
+                    pendingRowDelete?.force
+                        ? 'Delete collection permanently?'
+                        : 'Delete collection?'
+                }
+                description={
+                    pendingRowDelete
+                        ? pendingRowDelete.force
+                            ? `Delete "${pendingRowDelete.name}" permanently? This cannot be undone.`
+                            : `Delete "${pendingRowDelete.name}"? This collection will be soft-deleted.`
+                        : ''
+                }
+                confirmLabel={
+                    pendingRowDelete?.force ? 'Delete permanently' : 'Delete'
+                }
+                confirming={confirmingDestructive}
+                onConfirm={() => {
+                    if (pendingRowDelete === null) {
+                        return;
+                    }
+
+                    setConfirmingDestructive(true);
+                    const { id, force } = pendingRowDelete;
+                    const url = force
+                        ? collectionRoutes.forceDelete.url(id)
+                        : collectionRoutes.destroy.url(id);
+
+                    router.delete(url, {
+                        preserveScroll: true,
+                        onFinish: () => setConfirmingDestructive(false),
+                        onSuccess: () => setPendingRowDelete(null),
+                        onError: () => setPendingRowDelete(null),
+                    });
+                }}
+            />
         </AppLayout>
     );
 }

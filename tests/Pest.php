@@ -240,6 +240,7 @@ function baseProjectPayload(array $overrides = []): array
         'login_max_attempts' => 5,
         'registration_enabled' => true,
         'email_verification_required' => false,
+        'two_factor_required' => false,
         'sidebar_modules' => config('settings.project.defaults.sidebar_modules'),
         'preset_transformations' => sampleTransformPresets(),
     ], $overrides);

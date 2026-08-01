@@ -3,9 +3,11 @@
 namespace App\Http\Middleware;
 
 use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Dashboard\DashboardHealthMetrics;
 use App\Services\Settings\ProjectAppearance;
 use App\Services\Settings\ProjectSettings;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
 
 /**
@@ -75,6 +77,13 @@ class HandleInertiaRequests extends Middleware
             'notifications' => [
                 'unread_count' => $user ? $user->unreadNotifications()->count() : 0,
             ],
+            'healthBadge' => $user
+                ? Cache::remember(
+                    'health-badge',
+                    now()->addSeconds(60),
+                    fn (): array => app(DashboardHealthMetrics::class)->badge(),
+                )
+                : null,
             'realtime' => [
                 'enabled' => ! in_array(
                     (string) config('broadcasting.default'),

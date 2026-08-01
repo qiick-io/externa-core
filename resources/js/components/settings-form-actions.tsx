@@ -1,11 +1,13 @@
 import { Transition } from '@headlessui/react';
 import { Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { Button } from '@/components/ui/button';
 
 type SettingsFormActionsProps = {
     processing: boolean;
     recentlySuccessful: boolean;
+    isDirty?: boolean;
     'data-test'?: string;
 };
 
@@ -16,6 +18,7 @@ type SettingsFormActionsProps = {
 export function SettingsFormActions({
     processing,
     recentlySuccessful,
+    isDirty = false,
     'data-test': dataTest,
 }: SettingsFormActionsProps) {
     const { t } = useTranslation();
@@ -34,6 +37,10 @@ export function SettingsFormActions({
                         {t('common.saved')}
                     </p>
                 </Transition>
+                <UnsavedChangesToolbar
+                    isDirty={isDirty}
+                    className="flex items-center gap-2"
+                />
                 <Button
                     type="submit"
                     disabled={processing}

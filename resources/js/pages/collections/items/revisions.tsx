@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
@@ -29,6 +30,10 @@ export default function ItemRevisions({
     const [selected, setSelected] = useState<number[]>(
         revisions.slice(0, 2).map((r) => r.id),
     );
+    const [restoreRevisionId, setRestoreRevisionId] = useState<number | null>(
+        null,
+    );
+    const [restoring, setRestoring] = useState(false);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Collections', href: collections.index.url() },
@@ -90,16 +95,15 @@ export default function ItemRevisions({
     };
 
     const restore = (revisionId: number): void => {
-        if (
-            !confirm(
-                'Restore this revision? Current values will be overwritten.',
-            )
-        ) {
-            return;
-        }
-
+        setRestoring(true);
         router.post(
             `/collections/${collection.id}/items/${item.id}/revisions/${revisionId}/restore`,
+            {},
+            {
+                onFinish: () => setRestoring(false),
+                onSuccess: () => setRestoreRevisionId(null),
+                onError: () => setRestoreRevisionId(null),
+            },
         );
     };
 
@@ -163,7 +167,9 @@ export default function ItemRevisions({
                                                 size="sm"
                                                 variant="outline"
                                                 onClick={() =>
-                                                    restore(revision.id)
+                                                    setRestoreRevisionId(
+                                                        revision.id,
+                                                    )
                                                 }
                                             >
                                                 Restore
@@ -218,6 +224,26 @@ export default function ItemRevisions({
                     </div>
                 </div>
             </PageLayout>
+
+            <ConfirmDestructiveDialog
+                open={restoreRevisionId !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setRestoreRevisionId(null);
+                    }
+                }}
+                title="Restore this revision?"
+                description="Current values will be overwritten."
+                confirmLabel="Restore"
+                confirming={restoring}
+                onConfirm={() => {
+                    if (restoreRevisionId === null) {
+                        return;
+                    }
+
+                    restore(restoreRevisionId);
+                }}
+            />
         </AppLayout>
     );
 }

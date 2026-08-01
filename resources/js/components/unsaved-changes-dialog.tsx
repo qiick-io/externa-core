@@ -8,11 +8,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import type { UnsavedChangesDialogCopy } from '@/lib/unsaved-changes/registry';
 
 export type UnsavedChangesDialogProps = {
     open: boolean;
     onKeepEditing: () => void;
     onDiscard: () => void;
+    copy?: UnsavedChangesDialogCopy;
 };
 
 /**
@@ -23,6 +25,7 @@ export function UnsavedChangesDialog({
     open,
     onKeepEditing,
     onDiscard,
+    copy,
 }: UnsavedChangesDialogProps) {
     const { t } = useTranslation();
 
@@ -47,14 +50,16 @@ export function UnsavedChangesDialog({
                 }}
             >
                 <DialogHeader>
-                    <DialogTitle>{t('unsavedChanges.title')}</DialogTitle>
+                    <DialogTitle>
+                        {t(copy?.titleKey ?? 'unsavedChanges.title')}
+                    </DialogTitle>
                     <DialogDescription>
-                        {t('unsavedChanges.description')}
+                        {t(copy?.descriptionKey ?? 'unsavedChanges.description')}
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter className="gap-2 sm:justify-end">
                     <Button type="button" variant="outline" onClick={onDiscard}>
-                        {t('unsavedChanges.discard')}
+                        {t(copy?.discardKey ?? 'unsavedChanges.discard')}
                     </Button>
                     <Button type="button" onClick={onKeepEditing}>
                         {t('unsavedChanges.keepEditing')}

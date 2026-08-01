@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { UserFormDrawer } from '@/components/admin/user-form-drawer';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import {
     PageLayout,
     TablePagination,
@@ -31,6 +32,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
+import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
 import { useOnlineUsers } from '@/hooks/use-online-users';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
@@ -87,6 +89,35 @@ export default function AdminUsersIndex({
     const [selected, setSelected] = useState<number[]>([]);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [editing, setEditing] = useState<AdminUserRow | null>(null);
+    const [pendingBulkAction, setPendingBulkAction] = useState<
+        'delete' | 'force_delete' | null
+    >(null);
+    const [confirmingBulk, setConfirmingBulk] = useState(false);
+
+    const deepLink = useDrawerDeepLink({
+        onEdit: (id) => {
+            if (!can(PermissionEnum.CanEditUsers)) {
+                return;
+            }
+
+            const row = users.data.find((u) => String(u.id) === id);
+
+            if (!row) {
+                return;
+            }
+
+            setEditing(row);
+            setDrawerOpen(true);
+        },
+        onNew: () => {
+            if (!can(PermissionEnum.CanCreateUsers) || isTrashed) {
+                return;
+            }
+
+            setEditing(null);
+            setDrawerOpen(true);
+        },
+    });
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [{ title: 'Users', href: adminRoutes.users.index() }],
@@ -155,6 +186,7 @@ export default function AdminUsersIndex({
     const openCreate = (): void => {
         setEditing(null);
         setDrawerOpen(true);
+        deepLink.syncNew();
     };
 
     const openEdit = (user: AdminUserRow): void => {
@@ -164,6 +196,7 @@ export default function AdminUsersIndex({
 
         setEditing(user);
         setDrawerOpen(true);
+        deepLink.syncEdit(user.id);
     };
 
     const handleDrawerOpenChange = (open: boolean): void => {
@@ -180,6 +213,7 @@ export default function AdminUsersIndex({
 
             setDrawerOpen(false);
             setEditing(null);
+            deepLink.syncClosed();
         });
     };
 
@@ -251,7 +285,11 @@ export default function AdminUsersIndex({
                                                 type="button"
                                                 variant="destructive"
                                                 size="sm"
-                                                onClick={() => bulk('delete')}
+                                                onClick={() =>
+                                                    setPendingBulkAction(
+                                                        'delete',
+                                                    )
+                                                }
                                             >
                                                 Delete
                                             </Button>
@@ -276,7 +314,9 @@ export default function AdminUsersIndex({
                                                 variant="destructive"
                                                 size="sm"
                                                 onClick={() =>
-                                                    bulk('force_delete')
+                                                    setPendingBulkAction(
+                                                        'force_delete',
+                                                    )
                                                 }
                                             >
                                                 Delete permanently
@@ -550,9 +590,55 @@ export default function AdminUsersIndex({
                     onSuccess={() => {
                         setDrawerOpen(false);
                         setEditing(null);
+                        deepLink.syncClosed();
                     }}
                 />
             </Drawer>
+
+            <ConfirmDestructiveDialog
+                open={pendingBulkAction !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPendingBulkAction(null);
+                    }
+                }}
+                title={
+                    pendingBulkAction === 'force_delete'
+                        ? `Delete ${selected.length} selected users permanently?`
+                        : `Delete ${selected.length} selected users?`
+                }
+                description={
+                    pendingBulkAction === 'force_delete'
+                        ? 'Selected users will be permanently removed. This cannot be undone.'
+                        : 'Selected users will be soft-deleted and moved to trash.'
+                }
+                confirmLabel={
+                    pendingBulkAction === 'force_delete'
+                        ? 'Delete permanently'
+                        : 'Delete'
+                }
+                confirming={confirmingBulk}
+                onConfirm={() => {
+                    if (pendingBulkAction === null) {
+                        return;
+                    }
+
+                    setConfirmingBulk(true);
+                    router.post(
+                        adminRoutes.users.bulkActions(),
+                        { ids: selected, action: pendingBulkAction },
+                        {
+                            preserveScroll: true,
+                            onFinish: () => setConfirmingBulk(false),
+                            onSuccess: () => {
+                                setSelected([]);
+                                setPendingBulkAction(null);
+                            },
+                            onError: () => setPendingBulkAction(null),
+                        },
+                    );
+                }}
+            />
         </AppLayout>
     );
 }

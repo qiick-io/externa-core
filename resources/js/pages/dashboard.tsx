@@ -202,7 +202,15 @@ export default function Dashboard({
     health,
 }: DashboardProps) {
     const { t } = useTranslation();
-    const [tab, setTab] = useState<DashboardTab>('overview');
+    const [tab, setTab] = useState<DashboardTab>(() => {
+        if (typeof window === 'undefined') {
+            return 'overview';
+        }
+        return new URLSearchParams(window.location.search).get('tab') ===
+            'health'
+            ? 'health'
+            : 'overview';
+    });
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: t('dashboard.title'),
@@ -217,6 +225,17 @@ export default function Dashboard({
         { event: t('dashboard.updated'), count: contentEventBreakdown.updated },
         { event: t('dashboard.deleted'), count: contentEventBreakdown.deleted },
     ];
+
+    const selectTab = (value: DashboardTab): void => {
+        setTab(value);
+        const url = new URL(window.location.href);
+        if (value === 'health') {
+            url.searchParams.set('tab', 'health');
+        } else {
+            url.searchParams.delete('tab');
+        }
+        window.history.replaceState({}, '', url.pathname + url.search);
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -233,7 +252,7 @@ export default function Dashboard({
                             <button
                                 key={value}
                                 type="button"
-                                onClick={() => setTab(value)}
+                                onClick={() => selectTab(value)}
                                 className={cn(
                                     'border-b-2 pb-0.5 transition-colors',
                                     tab === value

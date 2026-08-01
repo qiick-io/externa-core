@@ -17,6 +17,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -431,6 +432,8 @@ export default function Appearance({
                                 })}
                             </div>
 
+                            <Separator />
+
                             <div className="space-y-6">
                                 <Heading
                                     variant="small"
@@ -494,6 +497,7 @@ export default function Appearance({
                             <SettingsFormActions
                                 processing={processing}
                                 recentlySuccessful={recentlySuccessful}
+                                isDirty={isDirty}
                                 data-test="appearance-save"
                             />
                         </>

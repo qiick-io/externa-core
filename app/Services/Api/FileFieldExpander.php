@@ -14,7 +14,7 @@ use App\Support\Collections\BlocksFieldSchema;
  * Expand image/file/files field values to public file payloads on API responses.
  *
  * Private files without read_private are redacted (null / omitted) — no id leak.
- * Public files without read still return { id } only (legacy behavior).
+ * Public files without read return { id, access: "denied" }.
  */
 class FileFieldExpander
 {
@@ -426,8 +426,11 @@ class FileFieldExpander
                 return null;
             }
         } elseif ($roleId === null || ! $this->filePermissionGuard->canReadFile($roleId, $file)) {
-            // Public file, no read grant: id only (legacy).
-            return ['id' => $id];
+            // Public file, no read grant: id + explicit denial signal (clients can prompt for Files → Read).
+            return [
+                'id' => $id,
+                'access' => 'denied',
+            ];
         }
 
         $transforms = [];
