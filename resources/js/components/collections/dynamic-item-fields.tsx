@@ -723,6 +723,7 @@ export function DynamicItemFields({
     isNew = false,
     fieldSearch = '',
     errors = {},
+    defaultLocale,
 }: {
     fields: FieldDef[];
     locales: string[];
@@ -740,6 +741,7 @@ export function DynamicItemFields({
     isNew?: boolean;
     fieldSearch?: string;
     errors?: Record<string, unknown>;
+    defaultLocale?: string;
 }) {
     const showFieldNameHeading = variant === 'plain';
     const gapClass = variant === 'cards' ? 'space-y-4' : 'space-y-6';
@@ -948,7 +950,7 @@ export function DynamicItemFields({
               });
 
     return (
-        <ContentLocaleProvider locales={locales}>
+        <ContentLocaleProvider locales={locales} defaultLocale={defaultLocale}>
             <div className="space-y-6">
                 {tabs.length > 0 ? (
                     <div className="flex flex-wrap gap-2 border-b pb-2">

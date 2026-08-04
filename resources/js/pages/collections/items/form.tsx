@@ -1,11 +1,12 @@
 import { Form, Head, Link, router, usePage } from '@inertiajs/react';
-import { History, Rows3, Save, ScrollText, Trash2 } from 'lucide-react';
+import { History, Languages, Rows3, Save, ScrollText, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { ItemPreviewAsRoleDialog } from '@/components/collections/item-preview-as-role-dialog';
 import type { PreviewRoleOption } from '@/components/collections/item-preview-as-role-dialog';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
+import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
 import {
     PageLayout,
@@ -16,6 +17,12 @@ import { FilterSearch } from '@/components/layout/page-header';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
     Table,
     TableBody,
@@ -30,6 +37,7 @@ import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
 import { getNonFieldErrors } from '@/lib/collection-data-errors';
+import { contentLocaleMeta } from '@/lib/content-locales-catalog';
 import {
     applyItemDraftToForm,
     clearItemDraft,
@@ -124,6 +132,7 @@ export default function ItemsForm({
     );
     const [activeTab, setActiveTab] = useState<'fields' | 'activity'>('fields');
     const [fieldSearch, setFieldSearch] = useState('');
+    const [globalLocale, setGlobalLocale] = useState(locales[0] ?? 'en');
     const draftTimer = useRef<number | null>(null);
 
     useRegisterUnsavedChanges({
@@ -285,38 +294,79 @@ export default function ItemsForm({
                     ) : undefined
                 }
                 filtersRight={
-                    !isNew && item !== null ? (
-                        <ToggleGroup
-                            type="single"
-                            value={activeTab}
-                            onValueChange={(value) => {
-                                if (value === 'fields' || value === 'activity') {
-                                    setActiveTab(value);
-                                }
-                            }}
-                        >
-                            <ToggleGroupItem
-                                value="fields"
-                                aria-label="Fields"
-                                className="px-2.5"
+                    <div className="flex items-center gap-2">
+                        {hasFields && locales.length > 1 && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-2"
+                                    >
+                                        <ContentLocaleFlag
+                                            region={contentLocaleMeta(globalLocale).flag}
+                                            title={contentLocaleMeta(globalLocale).name}
+                                        />
+                                        <span className="font-mono text-xs uppercase">
+                                            {globalLocale}
+                                        </span>
+                                        <Languages className="size-3.5 opacity-60" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="min-w-48">
+                                    {locales.map((code) => {
+                                        const meta = contentLocaleMeta(code);
+                                        return (
+                                            <DropdownMenuItem
+                                                key={code}
+                                                onClick={() => setGlobalLocale(code)}
+                                                className="gap-2"
+                                            >
+                                                <ContentLocaleFlag region={meta.flag} />
+                                                <span className="flex-1">{meta.name}</span>
+                                                <span className="font-mono text-xs text-muted-foreground">
+                                                    {code}
+                                                </span>
+                                            </DropdownMenuItem>
+                                        );
+                                    })}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                        {!isNew && item !== null && (
+                            <ToggleGroup
+                                type="single"
+                                value={activeTab}
+                                onValueChange={(value) => {
+                                    if (value === 'fields' || value === 'activity') {
+                                        setActiveTab(value);
+                                    }
+                                }}
                             >
-                                <ScrollText className="size-4" />
-                            </ToggleGroupItem>
-                            <ToggleGroupItem
-                                value="activity"
-                                aria-label="Activity"
-                                className="px-2.5"
-                            >
-                                <History className="size-4" />
-                            </ToggleGroupItem>
-                        </ToggleGroup>
-                    ) : undefined
+                                <ToggleGroupItem
+                                    value="fields"
+                                    aria-label="Fields"
+                                    className="px-2.5"
+                                >
+                                    <ScrollText className="size-4" />
+                                </ToggleGroupItem>
+                                <ToggleGroupItem
+                                    value="activity"
+                                    aria-label="Activity"
+                                    className="px-2.5"
+                                >
+                                    <History className="size-4" />
+                                </ToggleGroupItem>
+                            </ToggleGroup>
+                        )}
+                    </div>
                 }
                 scrollContent
             >
                 {draftBanner && (
                     <div
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+                        className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
                         data-test="item-draft-banner"
                     >
                         <span>Restored unsaved draft from this browser.</span>
@@ -394,6 +444,7 @@ export default function ItemsForm({
                                         isNew={isNew}
                                         fieldSearch={fieldSearch}
                                         errors={errors as Record<string, unknown>}
+                                        defaultLocale={globalLocale}
                                     />
                                 )}
                             </Form>
@@ -441,6 +492,7 @@ export default function ItemsForm({
                                                 isNew={isNew}
                                                 fieldSearch={fieldSearch}
                                                 errors={errors as Record<string, unknown>}
+                                                defaultLocale={globalLocale}
                                             />
                                         )}
                                     </Form>
