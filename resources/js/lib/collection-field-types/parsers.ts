@@ -91,10 +91,20 @@ export function parseFieldOptions(
 
     return raw.map((row) => {
         const option = row as { value?: unknown; label?: unknown };
+        const value = String(option.value ?? '');
+        let label = option.label;
+
+        // ponytail: translatable labels are objects like {en: "Label"}, extract first value
+        if (label && typeof label === 'object' && !Array.isArray(label)) {
+            const firstValue = Object.values(label as Record<string, unknown>).find(
+                (v) => typeof v === 'string' && v.trim() !== '',
+            );
+            label = firstValue ?? value;
+        }
 
         return {
-            value: String(option.value ?? ''),
-            label: String(option.label ?? option.value ?? ''),
+            value,
+            label: String(label ?? value),
         };
     });
 }
@@ -120,13 +130,24 @@ export function parseFieldTreeOptions(
             label?: unknown;
             children?: unknown;
         };
+        const value = String(option.value ?? '');
+        let label = option.label;
+
+        // ponytail: translatable labels are objects like {en: "Label"}, extract first value
+        if (label && typeof label === 'object' && !Array.isArray(label)) {
+            const firstValue = Object.values(label as Record<string, unknown>).find(
+                (v) => typeof v === 'string' && v.trim() !== '',
+            );
+            label = firstValue ?? value;
+        }
+
         const children = Array.isArray(option.children)
             ? option.children.map(parseNode)
             : [];
 
         return {
-            value: String(option.value ?? ''),
-            label: String(option.label ?? option.value ?? ''),
+            value,
+            label: String(label ?? value),
             children,
         };
     };
