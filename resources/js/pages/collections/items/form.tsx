@@ -23,7 +23,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useCollection } from '@/hooks/use-collection';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
@@ -120,6 +120,7 @@ export default function ItemsForm({
     const [draftBanner, setDraftBanner] = useState(
         () => initialDraft !== null && Object.keys(initialDraft).length > 0,
     );
+    const [activeTab, setActiveTab] = useState<'fields' | 'activity'>('fields');
     const draftTimer = useRef<number | null>(null);
 
     useRegisterUnsavedChanges({
@@ -271,20 +272,33 @@ export default function ItemsForm({
             <Head title={pageTitle} />
 
             <PageLayout
-                description={
-                    <>
-                        {heading} · {collection.slug}.{' '}
-                        {isNew
-                            ? 'Fill in values for this new item. Define fields under '
-                            : 'Values for this item only. Change field definitions under '}
-                        <Link
-                            className="text-primary underline-offset-4 hover:underline"
-                            href={FieldController.index.url(collection.id)}
+                filtersRight={
+                    !isNew && item !== null ? (
+                        <ToggleGroup
+                            type="single"
+                            value={activeTab}
+                            onValueChange={(value) => {
+                                if (value === 'fields' || value === 'activity') {
+                                    setActiveTab(value);
+                                }
+                            }}
                         >
-                            Edit fields
-                        </Link>
-                        .
-                    </>
+                            <ToggleGroupItem
+                                value="fields"
+                                aria-label="Fields"
+                                className="px-2.5"
+                            >
+                                <ScrollText className="size-4" />
+                            </ToggleGroupItem>
+                            <ToggleGroupItem
+                                value="activity"
+                                aria-label="Activity"
+                                className="px-2.5"
+                            >
+                                <History className="size-4" />
+                            </ToggleGroupItem>
+                        </ToggleGroup>
+                    ) : undefined
                 }
                 scrollContent
             >
@@ -378,12 +392,8 @@ export default function ItemsForm({
                                 }}
                             </Form>
                         ) : (
-                            <Tabs defaultValue="fields" className="space-y-6">
-                                <TabsList>
-                                    <TabsTrigger value="fields">Fields</TabsTrigger>
-                                    <TabsTrigger value="activity">Activity</TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="fields">
+                            <>
+                                {activeTab === 'fields' && (
                                     <Form
                                         key={formKey}
                                         {...formProps}
@@ -434,152 +444,150 @@ export default function ItemsForm({
                                             );
                                         }}
                                     </Form>
-                                </TabsContent>
-                                <TabsContent value="activity" className="space-y-6">
-                                    {item !== null && (
-                                        <>
-                                            <div className="rounded-lg border border-sidebar-border/70 bg-muted/30 p-4 text-sm dark:border-sidebar-border">
-                                                <dl className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
-                                                    <div>
-                                                        <dt className="font-medium text-foreground">
-                                                            Created by
-                                                        </dt>
-                                                        <dd>
-                                                            {item.user_created?.name ??
-                                                                '—'}
-                                                        </dd>
-                                                    </div>
-                                                    <div>
-                                                        <dt className="font-medium text-foreground">
-                                                            Updated by
-                                                        </dt>
-                                                        <dd>
-                                                            {item.user_updated?.name ??
-                                                                '—'}
-                                                        </dd>
-                                                    </div>
-                                                    <div>
-                                                        <dt className="font-medium text-foreground">
-                                                            Created at
-                                                        </dt>
-                                                        <dd>
-                                                            {item.created_at
-                                                                ? new Date(
-                                                                      item.created_at,
-                                                                  ).toLocaleString()
-                                                                : '—'}
-                                                        </dd>
-                                                    </div>
-                                                    <div>
-                                                        <dt className="font-medium text-foreground">
-                                                            Updated at
-                                                        </dt>
-                                                        <dd>
-                                                            {item.updated_at
-                                                                ? new Date(
-                                                                      item.updated_at,
-                                                                  ).toLocaleString()
-                                                                : '—'}
-                                                        </dd>
-                                                    </div>
-                                                </dl>
-                                            </div>
-                                            <TablePanel
-                                                footer={
-                                                    activityLogs &&
-                                                    activityLogs.last_page > 1 ? (
-                                                        <TablePagination
-                                                            links={
-                                                                activityLogs.links ??
-                                                                []
-                                                            }
-                                                        />
-                                                    ) : undefined
-                                                }
-                                            >
-                                                <Table>
-                                                    <TableHeader>
+                                )}
+                                {activeTab === 'activity' && item !== null && (
+                                    <div className="space-y-6">
+                                        <div className="rounded-lg border border-sidebar-border/70 bg-muted/30 p-4 text-sm dark:border-sidebar-border">
+                                            <dl className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
+                                                <div>
+                                                    <dt className="font-medium text-foreground">
+                                                        Created by
+                                                    </dt>
+                                                    <dd>
+                                                        {item.user_created?.name ??
+                                                            '—'}
+                                                    </dd>
+                                                </div>
+                                                <div>
+                                                    <dt className="font-medium text-foreground">
+                                                        Updated by
+                                                    </dt>
+                                                    <dd>
+                                                        {item.user_updated?.name ??
+                                                            '—'}
+                                                    </dd>
+                                                </div>
+                                                <div>
+                                                    <dt className="font-medium text-foreground">
+                                                        Created at
+                                                    </dt>
+                                                    <dd>
+                                                        {item.created_at
+                                                            ? new Date(
+                                                                  item.created_at,
+                                                              ).toLocaleString()
+                                                            : '—'}
+                                                    </dd>
+                                                </div>
+                                                <div>
+                                                    <dt className="font-medium text-foreground">
+                                                        Updated at
+                                                    </dt>
+                                                    <dd>
+                                                        {item.updated_at
+                                                            ? new Date(
+                                                                  item.updated_at,
+                                                              ).toLocaleString()
+                                                            : '—'}
+                                                    </dd>
+                                                </div>
+                                            </dl>
+                                        </div>
+                                        <TablePanel
+                                            footer={
+                                                activityLogs &&
+                                                activityLogs.last_page > 1 ? (
+                                                    <TablePagination
+                                                        links={
+                                                            activityLogs.links ??
+                                                            []
+                                                        }
+                                                    />
+                                                ) : undefined
+                                            }
+                                        >
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>Date</TableHead>
+                                                        <TableHead>User</TableHead>
+                                                        <TableHead>Action</TableHead>
+                                                        <TableHead>
+                                                            Description
+                                                        </TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {activityLogs &&
+                                                    (activityLogs.data ?? [])
+                                                        .length === 0 ? (
                                                         <TableRow>
-                                                            <TableHead>Date</TableHead>
-                                                            <TableHead>User</TableHead>
-                                                            <TableHead>Action</TableHead>
-                                                            <TableHead>
-                                                                Description
-                                                            </TableHead>
+                                                            <TableCell
+                                                                colSpan={4}
+                                                                className="text-muted-foreground"
+                                                            >
+                                                                No activity recorded
+                                                                yet.
+                                                            </TableCell>
                                                         </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {activityLogs &&
-                                                        (activityLogs.data ?? [])
-                                                            .length === 0 ? (
-                                                            <TableRow>
-                                                                <TableCell
-                                                                    colSpan={4}
-                                                                    className="text-muted-foreground"
+                                                    ) : (
+                                                        (activityLogs?.data ?? []).map(
+                                                            (row) => (
+                                                                <TableRow
+                                                                    key={row.id}
                                                                 >
-                                                                    No activity recorded
-                                                                    yet.
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ) : (
-                                                            (activityLogs?.data ?? []).map(
-                                                                (row) => (
-                                                                    <TableRow
-                                                                        key={row.id}
-                                                                    >
-                                                                        <TableCell className="whitespace-nowrap text-sm">
-                                                                            {row.created_at
-                                                                                ? new Date(
-                                                                                      row.created_at,
-                                                                                  ).toLocaleString()
-                                                                                : '—'}
-                                                                        </TableCell>
-                                                                        <TableCell>
-                                                                            {row.causer ? (
-                                                                                <div className="text-sm">
-                                                                                    <div>
-                                                                                        {
-                                                                                            row
-                                                                                                .causer
-                                                                                                .name
-                                                                                        }
-                                                                                    </div>
-                                                                                    <div className="text-xs text-muted-foreground">
-                                                                                        {
-                                                                                            row
-                                                                                                .causer
-                                                                                                .email
-                                                                                        }
-                                                                                    </div>
+                                                                    <TableCell className="whitespace-nowrap text-sm">
+                                                                        {row.created_at
+                                                                            ? new Date(
+                                                                                  row.created_at,
+                                                                              ).toLocaleString()
+                                                                            : '—'}
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                        {row.causer ? (
+                                                                            <div className="text-sm">
+                                                                                <div>
+                                                                                    {
+                                                                                        row
+                                                                                            .causer
+                                                                                            .name
+                                                                                    }
                                                                                 </div>
-                                                                            ) : (
-                                                                                <span className="text-sm text-muted-foreground">
-                                                                                    System
-                                                                                </span>
-                                                                            )}
-                                                                        </TableCell>
-                                                                        <TableCell>
-                                                                            <Badge variant="secondary">
-                                                                                {row.event ??
-                                                                                    '—'}
-                                                                            </Badge>
-                                                                        </TableCell>
-                                                                        <TableCell className="max-w-xs truncate text-sm">
-                                                                            {
-                                                                                row.description
-                                                                            }
-                                                                        </TableCell>
-                                                                    </TableRow>
-                                                                ),
-                                                            )
-                                                        )}
-                                                    </TableBody>
-                                                </Table>
-                                            </TablePanel>
-                                        </>
-                                    )}
-                                </TabsContent>
-                            </Tabs>
+                                                                                <div className="text-xs text-muted-foreground">
+                                                                                    {
+                                                                                        row
+                                                                                            .causer
+                                                                                            .email
+                                                                                    }
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <span className="text-sm text-muted-foreground">
+                                                                                System
+                                                                            </span>
+                                                                        )}
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                        <Badge variant="secondary">
+                                                                            {row.event ??
+                                                                                '—'}
+                                                                        </Badge>
+                                                                    </TableCell>
+                                                                    <TableCell className="max-w-xs truncate text-sm">
+                                                                        {
+                                                                            row.description
+                                                                        }
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ),
+                                                        )
+                                                    )}
+                                                </TableBody>
+                                            </Table>
+                                        </TablePanel>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </>
                 )}
