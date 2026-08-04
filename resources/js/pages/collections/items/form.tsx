@@ -29,7 +29,7 @@ import { useCollection } from '@/hooks/use-collection';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/lib/admin-routes';
-import { collectCollectionDataErrorMessages } from '@/lib/collection-data-errors';
+import { getNonFieldErrors } from '@/lib/collection-data-errors';
 import {
     applyItemDraftToForm,
     clearItemDraft,
@@ -40,6 +40,7 @@ import {
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { readReturnParam } from '@/lib/safe-return-url';
+import { toast } from '@/lib/toast';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import collections from '@/routes/collections';
 import type { AdminActivityLogRow, BreadcrumbItem, Paginated } from '@/types';
@@ -363,6 +364,14 @@ export default function ItemsForm({
                                     clearItemDraft(collection.id, draftItemKey);
                                     setDraftBanner(false);
                                 }}
+                                onError={(errors) => {
+                                    const nonFieldErrors = getNonFieldErrors(errors);
+                                    if (nonFieldErrors.length > 0) {
+                                        nonFieldErrors.forEach((msg) => {
+                                            toast.error(msg);
+                                        });
+                                    }
+                                }}
                                 onInput={() => {
                                     setIsDirty(true);
                                     scheduleDraftSave();
@@ -372,36 +381,21 @@ export default function ItemsForm({
                                     scheduleDraftSave();
                                 }}
                             >
-                                {({ errors }) => {
-                                    const dataErrors =
-                                        collectCollectionDataErrorMessages(
-                                            errors as Record<string, unknown>,
-                                        );
-
-                                    return (
-                                        <>
-                                            {dataErrors.length > 0 && (
-                                                <ul className="list-inside list-disc space-y-1 text-sm text-destructive">
-                                                    {dataErrors.map((msg, idx) => (
-                                                        <li key={idx}>{msg}</li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                            <DynamicItemFields
-                                                variant="cards"
-                                                collectionId={collection.id}
-                                                fields={collection.fields}
-                                                locales={locales}
-                                                defaults={contentDefaults}
-                                                relatedCollections={relatedCollections}
-                                                formLayout={collection.form_layout}
-                                                fieldGrants={fieldGrants}
-                                                isNew={isNew}
-                                                fieldSearch={fieldSearch}
-                                            />
-                                        </>
-                                    );
-                                }}
+                                {({ errors }) => (
+                                    <DynamicItemFields
+                                        variant="cards"
+                                        collectionId={collection.id}
+                                        fields={collection.fields}
+                                        locales={locales}
+                                        defaults={contentDefaults}
+                                        relatedCollections={relatedCollections}
+                                        formLayout={collection.form_layout}
+                                        fieldGrants={fieldGrants}
+                                        isNew={isNew}
+                                        fieldSearch={fieldSearch}
+                                        errors={errors as Record<string, unknown>}
+                                    />
+                                )}
                             </Form>
                         ) : (
                             <>
@@ -417,6 +411,14 @@ export default function ItemsForm({
                                             clearItemDraft(collection.id, draftItemKey);
                                             setDraftBanner(false);
                                         }}
+                                        onError={(errors) => {
+                                            const nonFieldErrors = getNonFieldErrors(errors);
+                                            if (nonFieldErrors.length > 0) {
+                                                nonFieldErrors.forEach((msg) => {
+                                                    toast.error(msg);
+                                                });
+                                            }
+                                        }}
                                         onInput={() => {
                                             setIsDirty(true);
                                             scheduleDraftSave();
@@ -426,36 +428,21 @@ export default function ItemsForm({
                                             scheduleDraftSave();
                                         }}
                                     >
-                                        {({ errors }) => {
-                                            const dataErrors =
-                                                collectCollectionDataErrorMessages(
-                                                    errors as Record<string, unknown>,
-                                                );
-
-                                            return (
-                                                <>
-                                                    {dataErrors.length > 0 && (
-                                                        <ul className="list-inside list-disc space-y-1 text-sm text-destructive">
-                                                            {dataErrors.map((msg, idx) => (
-                                                                <li key={idx}>{msg}</li>
-                                                            ))}
-                                                        </ul>
-                                                    )}
-                                                    <DynamicItemFields
-                                                        variant="cards"
-                                                        collectionId={collection.id}
-                                                        fields={collection.fields}
-                                                        locales={locales}
-                                                        defaults={contentDefaults}
-                                                        relatedCollections={relatedCollections}
-                                                        formLayout={collection.form_layout}
-                                                        fieldGrants={fieldGrants}
-                                                        isNew={isNew}
-                                                        fieldSearch={fieldSearch}
-                                                    />
-                                                </>
-                                            );
-                                        }}
+                                        {({ errors }) => (
+                                            <DynamicItemFields
+                                                variant="cards"
+                                                collectionId={collection.id}
+                                                fields={collection.fields}
+                                                locales={locales}
+                                                defaults={contentDefaults}
+                                                relatedCollections={relatedCollections}
+                                                formLayout={collection.form_layout}
+                                                fieldGrants={fieldGrants}
+                                                isNew={isNew}
+                                                fieldSearch={fieldSearch}
+                                                errors={errors as Record<string, unknown>}
+                                            />
+                                        )}
                                     </Form>
                                 )}
                                 {activeTab === 'activity' && item !== null && (

@@ -63,11 +63,12 @@ class CollectionItemDataRuleBuilder
 
         if ($field->translatable) {
             $allowedLocales = $this->allowedLocales();
+            $isRequired = $this->fieldIsEffectivelyRequired($field, $data);
             $rules = [
                 $prefix => [
                     $presence,
                     'array',
-                    function (string $attribute, mixed $value, \Closure $fail) use ($allowedLocales): void {
+                    function (string $attribute, mixed $value, \Closure $fail) use ($allowedLocales, $isRequired): void {
                         if (! is_array($value)) {
                             return;
                         }
@@ -75,6 +76,20 @@ class CollectionItemDataRuleBuilder
                         foreach (array_keys($value) as $locale) {
                             if (! is_string($locale) || ! in_array($locale, $allowedLocales, true)) {
                                 $fail(__('Locale :locale is not enabled.', ['locale' => (string) $locale]));
+                            }
+                        }
+
+                        if ($isRequired) {
+                            $hasValue = false;
+                            foreach ($allowedLocales as $locale) {
+                                $localeValue = $value[$locale] ?? null;
+                                if ($this->hasNonEmptyValue($localeValue)) {
+                                    $hasValue = true;
+                                    break;
+                                }
+                            }
+                            if (! $hasValue) {
+                                $fail(__('At least one locale must be filled.'));
                             }
                         }
                     },
@@ -86,7 +101,7 @@ class CollectionItemDataRuleBuilder
                     $this->rulesForTranslatableLocale(
                         $field,
                         $prefix.'.'.$locale,
-                        $this->fieldIsEffectivelyRequired($field, $data),
+                        false,
                         $excludeItemId,
                     )
                 );
@@ -559,6 +574,26 @@ class CollectionItemDataRuleBuilder
     private function allowedLocales(): array
     {
         return $this->localeResolver->allowedLocales();
+    }
+
+    /**
+     * Check if a value is non-empty for translatable field validation.
+     */
+    private function hasNonEmptyValue(mixed $value): bool
+    {
+        if ($value === null || $value === '' || $value === []) {
+            return false;
+        }
+
+        if (is_array($value) && count($value) === 0) {
+            return false;
+        }
+
+        if (is_string($value) && trim($value) === '') {
+            return false;
+        }
+
+        return true;
     }
 
     /**

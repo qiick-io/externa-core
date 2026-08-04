@@ -40,6 +40,7 @@ export type LocalizedFieldProps = {
         setValue: (next: string) => void;
     }) => ReactNode;
     showCopyActions?: boolean;
+    errorMessage?: string;
 };
 
 function normalizeLocales(
@@ -69,6 +70,7 @@ export function LocalizedField({
     className,
     children,
     showCopyActions = true,
+    errorMessage,
 }: LocalizedFieldProps) {
     const { t } = useTranslation();
     const localeEntries = normalizeLocales(localesProp);
@@ -225,6 +227,7 @@ export function LocalizedField({
                     onChange={(event) => setValue(event.target.value)}
                     placeholder={placeholder}
                     disabled={disabled}
+                    aria-invalid={!!errorMessage}
                 />
             ) : (
                 <Input
@@ -233,7 +236,12 @@ export function LocalizedField({
                     onChange={(event) => setValue(event.target.value)}
                     placeholder={placeholder}
                     disabled={disabled}
+                    aria-invalid={!!errorMessage}
                 />
+            )}
+            
+            {errorMessage && (
+                <p className="text-sm text-destructive">{errorMessage}</p>
             )}
         </div>
     );

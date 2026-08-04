@@ -48,6 +48,7 @@ import {
 } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getFieldError } from '@/lib/collection-data-errors';
 import {
     getFieldDisplayName,
     getFieldPlaceholder,
@@ -104,6 +105,8 @@ type FieldRenderContext = {
     nestingDepth?: number;
     /** Root blocks max nesting, threaded through nested blocks. */
     maxBlocksDepth?: number;
+    /** Whether this field has a validation error */
+    hasError?: boolean;
 };
 
 function getDefaultScalar(
@@ -231,6 +234,7 @@ function renderFieldControl(context: FieldRenderContext) {
         relatedCollections,
         nestingDepth,
         maxBlocksDepth,
+        hasError,
     } = context;
     const options = parseFieldOptions(field.settings).filter(
         (option) => option.value.trim() !== '',
@@ -264,6 +268,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     defaultValue={String(defaultValue ?? '')}
                     placeholder={placeholder}
                     readOnly={readonly}
+                    aria-invalid={hasError}
                 />
             );
         case 'slider':
@@ -280,7 +285,7 @@ function renderFieldControl(context: FieldRenderContext) {
                 <textarea
                     id={id}
                     name={name}
-                    className={cn(inputLike, 'min-h-[120px] py-2')}
+                    className={cn(inputLike, 'min-h-[120px] py-2', hasError && 'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive')}
                     defaultValue={String(defaultValue ?? '')}
                     rows={textareaSettings.rows}
                     placeholder={resolveTranslatedText(
@@ -289,6 +294,7 @@ function renderFieldControl(context: FieldRenderContext) {
                         placeholder,
                     )}
                     readOnly={readonly}
+                    aria-invalid={hasError}
                 />
             );
         case 'wysiwyg':
@@ -423,6 +429,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     }
                     defaultValue={value}
                     readOnly={readonly}
+                    aria-invalid={hasError}
                 />
             );
         }
@@ -509,6 +516,7 @@ function renderFieldControl(context: FieldRenderContext) {
                         placeholder={placeholder}
                         maxLength={stringSettings.maxLength ?? undefined}
                         readOnly={readonly}
+                        aria-invalid={hasError}
                     />
                 </InputWithIcons>
             );
@@ -617,6 +625,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     defaultValue={String(defaultValue ?? '')}
                     placeholder={placeholder}
                     readOnly={readonly}
+                    aria-invalid={hasError}
                 />
             );
     }
@@ -635,6 +644,7 @@ function TranslatableItemField({
     relatedCollections,
     defaults,
     required,
+    errorMessage,
 }: {
     field: FieldDef;
     locales: string[];
@@ -645,6 +655,7 @@ function TranslatableItemField({
     relatedCollections: RelatedCollectionOption[];
     defaults?: Record<string, unknown>;
     required: boolean;
+    errorMessage?: string;
 }) {
     const labelText = showFieldNameHeading
         ? `${displayName}${required ? ' *' : ''}`
@@ -655,6 +666,7 @@ function TranslatableItemField({
             locales={locales}
             label={labelText}
             showCopyActions={false}
+            errorMessage={errorMessage}
         >
             {({ locale }) => (
                 <div className="space-y-2">
@@ -682,6 +694,7 @@ function TranslatableItemField({
                                         field.name,
                                         code,
                                     ),
+                                    hasError: !!errorMessage,
                                 })}
                             </div>
                         );
@@ -709,6 +722,7 @@ export function DynamicItemFields({
     fieldGrants = null,
     isNew = false,
     fieldSearch = '',
+    errors = {},
 }: {
     fields: FieldDef[];
     locales: string[];
@@ -725,6 +739,7 @@ export function DynamicItemFields({
     > | null;
     isNew?: boolean;
     fieldSearch?: string;
+    errors?: Record<string, unknown>;
 }) {
     const showFieldNameHeading = variant === 'plain';
     const gapClass = variant === 'cards' ? 'space-y-4' : 'space-y-6';
@@ -804,6 +819,7 @@ export function DynamicItemFields({
             fieldGrants !== null &&
             !(isNew ? grant?.create === true : grant?.update === true);
         const readonly = flags.readonly || aclReadonly;
+        const errorMessage = getFieldError(errors, field.name);
 
         const inner = field.translatable ? (
             <TranslatableItemField
@@ -816,6 +832,7 @@ export function DynamicItemFields({
                 relatedCollections={relatedCollections}
                 defaults={defaults}
                 required={flags.required}
+                errorMessage={errorMessage}
             />
         ) : (
             <div
@@ -830,7 +847,6 @@ export function DynamicItemFields({
                         return;
                     }
 
-                    // ponytail: listen at wrapper for condition re-eval (ceiling: no deep controlled tree)
                     if (target.type === 'checkbox') {
                         return;
                     }
@@ -854,7 +870,11 @@ export function DynamicItemFields({
                     readonly,
                     relatedCollections,
                     defaultValue: getDefaultScalar(defaults, field.name),
+                    hasError: !!errorMessage,
                 })}
+                {errorMessage && (
+                    <p className="text-sm text-destructive">{errorMessage}</p>
+                )}
             </div>
         );
 

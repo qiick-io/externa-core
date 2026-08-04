@@ -62,3 +62,59 @@ export function collectCollectionDataErrorMessages(
 
     return [...new Set(messages)];
 }
+
+/**
+ * Extracts field-specific error message for a given field name from Inertia errors.
+ * Handles both non-translatable (data.field) and translatable (data.field.locale) patterns.
+ *
+ * @param errors - Inertia validation errors object
+ * @param fieldName - The field name (without data. prefix)
+ * @returns First error message for this field or undefined
+ */
+export function getFieldError(
+    errors: Record<string, unknown> | undefined,
+    fieldName: string,
+): string | undefined {
+    if (!errors || typeof errors !== 'object') {
+        return undefined;
+    }
+
+    const dataKey = `data.${fieldName}`;
+    if (typeof errors[dataKey] === 'string') {
+        return errors[dataKey] as string;
+    }
+
+    const dataPattern = new RegExp(`^data\\.${fieldName.replace('.', '\\.')}(\\.|$)`);
+    for (const [key, value] of Object.entries(errors)) {
+        if (dataPattern.test(key) && typeof value === 'string') {
+            return value;
+        }
+    }
+
+    return undefined;
+}
+
+/**
+ * Extracts non-field errors (errors not related to data.* fields).
+ *
+ * @param errors - Inertia validation errors object
+ * @returns Array of non-field error messages
+ */
+export function getNonFieldErrors(
+    errors: Record<string, unknown> | undefined,
+): string[] {
+    if (!errors || typeof errors !== 'object') {
+        return [];
+    }
+
+    const messages: string[] = [];
+    for (const [key, value] of Object.entries(errors)) {
+        if (!key.startsWith('data') && !key.startsWith('data.')) {
+            if (typeof value === 'string' && value.trim() !== '') {
+                messages.push(value);
+            }
+        }
+    }
+
+    return messages;
+}
