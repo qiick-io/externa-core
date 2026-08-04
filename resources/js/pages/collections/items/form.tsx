@@ -1,6 +1,7 @@
 import { Form, Head, Link, router, usePage } from '@inertiajs/react';
-import { History, Languages, Rows3, Save, ScrollText, Trash2 } from 'lucide-react';
+import { Copy, History, Languages, Rows3, Save, ScrollText, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { ItemPreviewAsRoleDialog } from '@/components/collections/item-preview-as-role-dialog';
@@ -8,7 +9,6 @@ import type { PreviewRoleOption } from '@/components/collections/item-preview-as
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
-import { FillFromLocaleDialog } from '@/components/collections/fill-from-locale-dialog';
 import {
     PageLayout,
     TablePagination,
@@ -22,6 +22,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -96,6 +97,7 @@ export default function ItemsForm({
         | Paginated<AdminActivityLogRow>
         | null;
 }) {
+    const { t } = useTranslation();
     const page = usePage();
     const activityLogs = activityLogsProp
         ? normalizePaginated(activityLogsProp)
@@ -137,9 +139,9 @@ export default function ItemsForm({
     const draftTimer = useRef<number | null>(null);
 
     /**
-     * Fill all translatable fields from another locale (ponytail: DOM manipulation).
+     * Apply current locale values to all locales (ponytail: DOM manipulation).
      */
-    const handleFillFromLocale = (sourceLocale: string): void => {
+    const handleApplyToAll = (): void => {
         const form = document.getElementById(
             COLLECTION_ITEM_FORM_ID,
         ) as HTMLFormElement | null;
@@ -147,14 +149,12 @@ export default function ItemsForm({
             return;
         }
 
-        // Find all translatable field inputs for both locales
         const inputs = form.querySelectorAll<
             HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
         >('input, textarea, select');
 
         for (const input of inputs) {
             const name = input.name;
-            // Match pattern data[fieldName][locale]
             const match = name.match(/^data\[([^\]]+)\]\[([^\]]+)\]$/);
             if (!match) {
                 continue;
@@ -162,23 +162,84 @@ export default function ItemsForm({
 
             const [, fieldName, locale] = match;
             if (locale === globalLocale) {
-                // Find corresponding source input
-                const sourceName = `data[${fieldName}][${sourceLocale}]`;
-                const sourceInput = form.querySelector<
-                    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-                >(`[name="${sourceName}"]`);
-
-                if (sourceInput) {
-                    // Copy value
-                    if (input.type === 'checkbox' || input.type === 'radio') {
-                        (input as HTMLInputElement).checked = (
-                            sourceInput as HTMLInputElement
-                        ).checked;
-                    } else {
-                        input.value = sourceInput.value;
+                // Apply this value to all other locales
+                for (const targetLocale of locales) {
+                    if (targetLocale === globalLocale) {
+                        continue;
                     }
-                    // Trigger input event for draft save
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    const targetName = `data[${fieldName}][${targetLocale}]`;
+                    const targetInput = form.querySelector<
+                        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+                    >(`[name="${targetName}"]`);
+
+                    if (targetInput) {
+                        if (input.type === 'checkbox' || input.type === 'radio') {
+                            (targetInput as HTMLInputElement).checked = (
+                                input as HTMLInputElement
+                            ).checked;
+                        } else {
+                            targetInput.value = input.value;
+                        }
+                        targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+            }
+        }
+
+        setIsDirty(true);
+        scheduleDraftSave();
+    };
+
+    /**
+     * Apply current locale values to empty locales only (ponytail: DOM manipulation).
+     */
+    const handleApplyToEmpty = (): void => {
+        const form = document.getElementById(
+            COLLECTION_ITEM_FORM_ID,
+        ) as HTMLFormElement | null;
+        if (!form) {
+            return;
+        }
+
+        const inputs = form.querySelectorAll<
+            HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+        >('input, textarea, select');
+
+        for (const input of inputs) {
+            const name = input.name;
+            const match = name.match(/^data\[([^\]]+)\]\[([^\]]+)\]$/);
+            if (!match) {
+                continue;
+            }
+
+            const [, fieldName, locale] = match;
+            if (locale === globalLocale) {
+                // Apply this value only to empty locales
+                for (const targetLocale of locales) {
+                    if (targetLocale === globalLocale) {
+                        continue;
+                    }
+                    const targetName = `data[${fieldName}][${targetLocale}]`;
+                    const targetInput = form.querySelector<
+                        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+                    >(`[name="${targetName}"]`);
+
+                    if (targetInput) {
+                        const isEmpty = targetInput.type === 'checkbox' || targetInput.type === 'radio'
+                            ? !(targetInput as HTMLInputElement).checked
+                            : (targetInput.value ?? '').trim() === '';
+
+                        if (isEmpty) {
+                            if (input.type === 'checkbox' || input.type === 'radio') {
+                                (targetInput as HTMLInputElement).checked = (
+                                    input as HTMLInputElement
+                                ).checked;
+                            } else {
+                                targetInput.value = input.value;
+                            }
+                            targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                    }
                 }
             }
         }
@@ -348,50 +409,58 @@ export default function ItemsForm({
                 filtersRight={
                     <div className="flex items-center gap-2">
                         {hasFields && locales.length > 1 && (
-                            <>
-                                <FillFromLocaleDialog
-                                    locales={locales}
-                                    currentLocale={globalLocale}
-                                    onFill={handleFillFromLocale}
-                                />
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="gap-2"
-                                        >
-                                            <ContentLocaleFlag
-                                                region={contentLocaleMeta(globalLocale).flag}
-                                                title={contentLocaleMeta(globalLocale).name}
-                                            />
-                                            <span className="font-mono text-xs uppercase">
-                                                {globalLocale}
-                                            </span>
-                                            <Languages className="size-3.5 opacity-60" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="min-w-48">
-                                        {locales.map((code) => {
-                                            const meta = contentLocaleMeta(code);
-                                            return (
-                                                <DropdownMenuItem
-                                                    key={code}
-                                                    onClick={() => setGlobalLocale(code)}
-                                                    className="gap-2"
-                                                >
-                                                    <ContentLocaleFlag region={meta.flag} />
-                                                    <span className="flex-1">{meta.name}</span>
-                                                    <span className="font-mono text-xs text-muted-foreground">
-                                                        {code}
-                                                    </span>
-                                                </DropdownMenuItem>
-                                            );
-                                        })}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-2"
+                                    >
+                                        <ContentLocaleFlag
+                                            region={contentLocaleMeta(globalLocale).flag}
+                                            title={contentLocaleMeta(globalLocale).name}
+                                        />
+                                        <span className="font-mono text-xs uppercase">
+                                            {globalLocale}
+                                        </span>
+                                        <Languages className="size-3.5 opacity-60" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="min-w-48">
+                                    {locales.map((code) => {
+                                        const meta = contentLocaleMeta(code);
+                                        return (
+                                            <DropdownMenuItem
+                                                key={code}
+                                                onClick={() => setGlobalLocale(code)}
+                                                className="gap-2"
+                                            >
+                                                <ContentLocaleFlag region={meta.flag} />
+                                                <span className="flex-1">{meta.name}</span>
+                                                <span className="font-mono text-xs text-muted-foreground">
+                                                    {code}
+                                                </span>
+                                            </DropdownMenuItem>
+                                        );
+                                    })}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        onClick={handleApplyToAll}
+                                        className="gap-2"
+                                    >
+                                        <Copy className="size-3.5" />
+                                        {t('collections.localized.applyAll')}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onClick={handleApplyToEmpty}
+                                        className="gap-2"
+                                    >
+                                        <Copy className="size-3.5" />
+                                        {t('collections.localized.applyEmpty')}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         )}
                         {!isNew && item !== null && (
                             <ToggleGroup

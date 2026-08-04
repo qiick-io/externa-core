@@ -1,6 +1,7 @@
 import { ChevronDown } from 'lucide-react';
 import { Fragment, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useContentLocale } from '@/components/collections/content-locale-provider';
 
 import { ContentLocaleProvider } from '@/components/collections/content-locale-provider';
 import { BlocksFieldInput } from '@/components/collections/item-field-blocks-input';
@@ -632,7 +633,9 @@ function renderFieldControl(context: FieldRenderContext) {
 }
 
 /**
- * Translatable item field with shared locale switcher (one control visible).
+ * Translatable item field with per-field locale switcher (one control visible per field).
+ * ponytail: uses hidden inputs for uncontrolled form submission; fill actions manipulate DOM.
+ * Per-field locale state prevents switching one field from affecting others.
  */
 function TranslatableItemField({
     field,
@@ -661,12 +664,20 @@ function TranslatableItemField({
         ? `${displayName}${required ? ' *' : ''}`
         : undefined;
 
+    const shared = useContentLocale(locales);
+    const [fieldLocale, setFieldLocale] = useState(
+        locales.includes(shared.locale) ? shared.locale : (locales[0] ?? 'en'),
+    );
+
     return (
         <LocalizedField
             locales={locales}
             label={labelText}
-            showCopyActions={false}
+            showCopyActions={!readonly}
             errorMessage={errorMessage}
+            namePrefix={`data[${field.name}]`}
+            locale={fieldLocale}
+            onLocaleChange={setFieldLocale}
         >
             {({ locale }) => (
                 <div className="space-y-2">

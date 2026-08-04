@@ -98,25 +98,75 @@ export function LocalizedField({
     };
 
     const applyToAll = (): void => {
-        const updated: Partial<Record<string, string>> = { ...value };
+        if (onChange) {
+            const updated: Partial<Record<string, string>> = { ...value };
 
-        for (const code of localeCodes) {
-            updated[code] = currentValue;
+            for (const code of localeCodes) {
+                updated[code] = currentValue;
+            }
+
+            onChange(updated);
+        } else if (namePrefix) {
+            // ponytail: DOM manipulation fallback for uncontrolled forms
+            const form = document.querySelector('form');
+            if (!form) {
+                return;
+            }
+
+            const sourceInput = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+                `[name="${namePrefix}[${locale}]"]`,
+            );
+            if (!sourceInput) {
+                return;
+            }
+
+            for (const code of localeCodes) {
+                const targetInput = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+                    `[name="${namePrefix}[${code}]"]`,
+                );
+                if (targetInput) {
+                    targetInput.value = sourceInput.value;
+                    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
         }
-
-        onChange?.(updated);
     };
 
     const applyToEmpty = (): void => {
-        const updated: Partial<Record<string, string>> = { ...value };
+        if (onChange) {
+            const updated: Partial<Record<string, string>> = { ...value };
 
-        for (const code of localeCodes) {
-            if ((updated[code] ?? '').trim() === '') {
-                updated[code] = currentValue;
+            for (const code of localeCodes) {
+                if ((updated[code] ?? '').trim() === '') {
+                    updated[code] = currentValue;
+                }
+            }
+
+            onChange(updated);
+        } else if (namePrefix) {
+            // ponytail: DOM manipulation fallback for uncontrolled forms
+            const form = document.querySelector('form');
+            if (!form) {
+                return;
+            }
+
+            const sourceInput = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+                `[name="${namePrefix}[${locale}]"]`,
+            );
+            if (!sourceInput) {
+                return;
+            }
+
+            for (const code of localeCodes) {
+                const targetInput = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+                    `[name="${namePrefix}[${code}]"]`,
+                );
+                if (targetInput && (targetInput.value ?? '').trim() === '') {
+                    targetInput.value = sourceInput.value;
+                    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
             }
         }
-
-        onChange?.(updated);
     };
 
     const activeMeta = contentLocaleMeta(locale);
