@@ -12,6 +12,7 @@ import {
     TablePagination,
     TablePanel,
 } from '@/components/layout/page-layout';
+import { FilterSearch } from '@/components/layout/page-header';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -121,6 +122,7 @@ export default function ItemsForm({
         () => initialDraft !== null && Object.keys(initialDraft).length > 0,
     );
     const [activeTab, setActiveTab] = useState<'fields' | 'activity'>('fields');
+    const [fieldSearch, setFieldSearch] = useState('');
     const draftTimer = useRef<number | null>(null);
 
     useRegisterUnsavedChanges({
@@ -272,6 +274,15 @@ export default function ItemsForm({
             <Head title={pageTitle} />
 
             <PageLayout
+                filters={
+                    activeTab === 'fields' && hasFields ? (
+                        <FilterSearch
+                            value={fieldSearch}
+                            onChange={setFieldSearch}
+                            placeholder="Search fields…"
+                        />
+                    ) : undefined
+                }
                 filtersRight={
                     !isNew && item !== null ? (
                         <ToggleGroup
@@ -386,6 +397,7 @@ export default function ItemsForm({
                                                 formLayout={collection.form_layout}
                                                 fieldGrants={fieldGrants}
                                                 isNew={isNew}
+                                                fieldSearch={fieldSearch}
                                             />
                                         </>
                                     );
@@ -439,6 +451,7 @@ export default function ItemsForm({
                                                         formLayout={collection.form_layout}
                                                         fieldGrants={fieldGrants}
                                                         isNew={isNew}
+                                                        fieldSearch={fieldSearch}
                                                     />
                                                 </>
                                             );

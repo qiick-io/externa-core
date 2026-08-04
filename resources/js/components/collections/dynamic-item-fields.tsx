@@ -634,6 +634,7 @@ function TranslatableItemField({
     collectionId,
     relatedCollections,
     defaults,
+    required,
 }: {
     field: FieldDef;
     locales: string[];
@@ -643,11 +644,16 @@ function TranslatableItemField({
     collectionId: number;
     relatedCollections: RelatedCollectionOption[];
     defaults?: Record<string, unknown>;
+    required: boolean;
 }) {
+    const labelText = showFieldNameHeading
+        ? `${displayName}${required ? ' *' : ''}`
+        : undefined;
+
     return (
         <LocalizedField
             locales={locales}
-            label={showFieldNameHeading ? displayName : undefined}
+            label={labelText}
             showCopyActions={false}
         >
             {({ locale }) => (
@@ -702,6 +708,7 @@ export function DynamicItemFields({
     formLayout,
     fieldGrants = null,
     isNew = false,
+    fieldSearch = '',
 }: {
     fields: FieldDef[];
     locales: string[];
@@ -717,6 +724,7 @@ export function DynamicItemFields({
         { read: boolean; create: boolean; update: boolean }
     > | null;
     isNew?: boolean;
+    fieldSearch?: string;
 }) {
     const showFieldNameHeading = variant === 'plain';
     const gapClass = variant === 'cards' ? 'space-y-4' : 'space-y-6';
@@ -741,13 +749,28 @@ export function DynamicItemFields({
                     return false;
                 }
 
-                if (fieldGrants === null) {
-                    return true;
+                if (fieldGrants !== null && fieldGrants[field.name]?.read !== true) {
+                    return false;
                 }
 
-                return fieldGrants[field.name]?.read === true;
+                if (fieldSearch.trim() !== '') {
+                    const searchLower = fieldSearch.toLowerCase();
+                    const displayName = getFieldDisplayName(
+                        field.settings,
+                        field.name,
+                        locales,
+                    ).toLowerCase();
+                    const fieldName = field.name.toLowerCase();
+                    
+                    return (
+                        displayName.includes(searchLower) ||
+                        fieldName.includes(searchLower)
+                    );
+                }
+
+                return true;
             }),
-        [fields, fieldGrants],
+        [fields, fieldGrants, fieldSearch, locales],
     );
 
     const groups = useMemo(
@@ -792,6 +815,7 @@ export function DynamicItemFields({
                 collectionId={collectionId}
                 relatedCollections={relatedCollections}
                 defaults={defaults}
+                required={flags.required}
             />
         ) : (
             <div
@@ -843,9 +867,8 @@ export function DynamicItemFields({
                     <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-sidebar-border/70 pb-3 dark:border-sidebar-border">
                         <div className="flex flex-wrap items-center gap-2">
                             <span className="font-mono text-sm font-medium">
-                                {displayName}
+                                {displayName}{flags.required ? ' *' : ''}
                             </span>
-                            <Badge variant="outline">{field.type}</Badge>
                             {field.translatable && (
                                 <Badge variant="secondary">Translatable</Badge>
                             )}
@@ -855,9 +878,6 @@ export function DynamicItemFields({
                                         ? 'No write access'
                                         : 'Readonly'}
                                 </Badge>
-                            )}
-                            {flags.required && (
-                                <Badge variant="secondary">Required</Badge>
                             )}
                         </div>
                         {fieldActions?.(field)}
