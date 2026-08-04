@@ -41,6 +41,8 @@ export type LocalizedFieldProps = {
     }) => ReactNode;
     showCopyActions?: boolean;
     errorMessage?: string;
+    /** Extra controls on the title row (right, beside locale) — e.g. markdown edit/preview. */
+    headerActions?: ReactNode;
 };
 
 function normalizeLocales(
@@ -71,6 +73,7 @@ export function LocalizedField({
     children,
     showCopyActions = true,
     errorMessage,
+    headerActions,
 }: LocalizedFieldProps) {
     const { t } = useTranslation();
     const localeEntries = normalizeLocales(localesProp);
@@ -171,9 +174,12 @@ export function LocalizedField({
 
     const activeMeta = contentLocaleMeta(locale);
 
+    const canCopy =
+        showCopyActions && (Boolean(onChange) || Boolean(namePrefix));
+
     return (
         <div className={cn('space-y-2', className)}>
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                     {label ? <Label>{label}</Label> : null}
                     {description ? (
@@ -182,78 +188,80 @@ export function LocalizedField({
                         </p>
                     ) : null}
                 </div>
-                <div className="flex items-center gap-1">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="gap-2"
-                                disabled={
-                                    disabled || localeCodes.length === 0
-                                }
-                            >
-                                <ContentLocaleFlag
-                                    region={activeMeta.flag}
-                                    title={activeMeta.name}
-                                />
-                                <span className="font-mono text-xs uppercase">
-                                    {locale}
-                                </span>
-                                <Languages className="size-3.5 opacity-60" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                            align="end"
-                            className="min-w-48"
-                        >
-                            {localeEntries.map((entry) => (
-                                <DropdownMenuItem
-                                    key={entry.code}
-                                    onClick={() => setLocale(entry.code)}
+                <div className="flex shrink-0 items-center gap-1">
+                    {headerActions}
+                    {localeCodes.length > 0 ? (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
                                     className="gap-2"
+                                    disabled={disabled}
                                 >
                                     <ContentLocaleFlag
-                                        region={entry.flag}
+                                        region={activeMeta.flag}
+                                        title={activeMeta.name}
                                     />
-                                    <span className="flex-1">
-                                        {entry.name}
+                                    <span className="font-mono text-xs uppercase">
+                                        {locale}
                                     </span>
-                                    <span className="font-mono text-xs text-muted-foreground">
-                                        {entry.code}
-                                    </span>
-                                </DropdownMenuItem>
-                            ))}
-                            {showCopyActions && onChange ? (
-                                <>
-                                    <DropdownMenuSeparator />
+                                    <Languages className="size-3.5 opacity-60" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="end"
+                                className="min-w-48"
+                            >
+                                {localeEntries.map((entry) => (
                                     <DropdownMenuItem
-                                        onClick={applyToAll}
+                                        key={entry.code}
+                                        onClick={() => setLocale(entry.code)}
                                         className="gap-2"
                                     >
-                                        <Copy className="size-3.5" />
-                                        {t(
-                                            'collections.localized.applyAll',
-                                        )}
+                                        <ContentLocaleFlag
+                                            region={entry.flag}
+                                        />
+                                        <span className="flex-1">
+                                            {entry.name}
+                                        </span>
+                                        <span className="font-mono text-xs text-muted-foreground">
+                                            {entry.code}
+                                        </span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onClick={applyToEmpty}
-                                        className="gap-2"
-                                    >
-                                        <Copy className="size-3.5" />
-                                        {t(
-                                            'collections.localized.applyEmpty',
-                                        )}
-                                    </DropdownMenuItem>
-                                </>
-                            ) : null}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                                ))}
+                                {canCopy ? (
+                                    <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            onClick={applyToAll}
+                                            className="gap-2"
+                                        >
+                                            <Copy className="size-3.5" />
+                                            {t(
+                                                'collections.localized.applyAll',
+                                            )}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={applyToEmpty}
+                                            className="gap-2"
+                                        >
+                                            <Copy className="size-3.5" />
+                                            {t(
+                                                'collections.localized.applyEmpty',
+                                            )}
+                                        </DropdownMenuItem>
+                                    </>
+                                ) : null}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    ) : null}
                 </div>
             </div>
 
-            {namePrefix
+            {/* ponytail: skip hidden mirrors when children own the real inputs */}
+            {namePrefix && !children
                 ? localeCodes.map((code) => (
                       <input
                           key={code}

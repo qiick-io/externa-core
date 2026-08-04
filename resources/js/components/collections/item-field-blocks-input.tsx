@@ -104,7 +104,7 @@ function FieldNote({
         return null;
     }
 
-    return <p className="text-sm text-muted-foreground">{note}</p>;
+    return <p className="mt-1 text-sm text-muted-foreground">{note}</p>;
 }
 
 function newBlockId(): string {
@@ -663,9 +663,17 @@ export function BlocksFieldInput({
                                                                         locales
                                                                     }
                                                                     label={`${nestedLabel}${flags.required ? ' *' : ''}`}
-                                                                    showCopyActions={
-                                                                        false
+                                                                    description={
+                                                                        getFieldNote(
+                                                                            nestedFieldDef.settings,
+                                                                            locales,
+                                                                        ) ||
+                                                                        undefined
                                                                     }
+                                                                    showCopyActions={
+                                                                        !fieldReadonly
+                                                                    }
+                                                                    namePrefix={`${name}[${index}][data][${nestedField.name}]`}
                                                                 >
                                                                     {({
                                                                         locale,
@@ -696,14 +704,6 @@ export function BlocksFieldInput({
                                                                                 );
                                                                             }}
                                                                         >
-                                                                            <FieldNote
-                                                                                settings={
-                                                                                    nestedFieldDef.settings
-                                                                                }
-                                                                                locales={
-                                                                                    locales
-                                                                                }
-                                                                            />
                                                                             {locales.map(
                                                                                 (
                                                                                     code,
@@ -822,24 +822,28 @@ export function BlocksFieldInput({
                                                                     );
                                                                 }}
                                                             >
-                                                                <Label
-                                                                    htmlFor={`${field.name}_${block.id}_${nestedField.name}`}
-                                                                >
-                                                                    {
-                                                                        nestedLabel
-                                                                    }
-                                                                    {flags.required
-                                                                        ? ' *'
-                                                                        : ''}
-                                                                </Label>
-                                                                <FieldNote
-                                                                    settings={
-                                                                        nestedFieldDef.settings
-                                                                    }
-                                                                    locales={
-                                                                        locales
-                                                                    }
-                                                                />
+                                                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <Label
+                                                                            htmlFor={`${field.name}_${block.id}_${nestedField.name}`}
+                                                                        >
+                                                                            {
+                                                                                nestedLabel
+                                                                            }
+                                                                            {flags.required
+                                                                                ? ' *'
+                                                                                : ''}
+                                                                        </Label>
+                                                                        <FieldNote
+                                                                            settings={
+                                                                                nestedFieldDef.settings
+                                                                            }
+                                                                            locales={
+                                                                                locales
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                </div>
                                                                 {renderNestedField(
                                                                     {
                                                                         field: nestedFieldDef,

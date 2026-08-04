@@ -305,6 +305,45 @@ export function WysiwygFieldInput({
 }
 
 /**
+ * Edit / preview toggle for markdown fields (place on the field title row).
+ */
+export function MarkdownModeToggle({
+    value,
+    onChange,
+    disabled = false,
+}: {
+    value: 'edit' | 'preview';
+    onChange: (next: 'edit' | 'preview') => void;
+    disabled?: boolean;
+}) {
+    return (
+        <ToggleGroup
+            type="single"
+            value={value}
+            onValueChange={(next) => {
+                if (next === 'edit' || next === 'preview') {
+                    onChange(next);
+                }
+            }}
+            size="sm"
+            className="justify-start"
+            disabled={disabled}
+        >
+            <ToggleGroupItem value="edit" aria-label="Edit" className="px-2.5">
+                <FileText className="size-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem
+                value="preview"
+                aria-label="Preview"
+                className="px-2.5"
+            >
+                <Eye className="size-4" />
+            </ToggleGroupItem>
+        </ToggleGroup>
+    );
+}
+
+/**
  * Markdown editor input for collection item fields.
  * @returns {JSX.Element}
  */
@@ -316,6 +355,9 @@ export function MarkdownFieldInput({
     defaultValue,
     readonly,
     placeholder,
+    mode: modeProp,
+    onModeChange,
+    showModeToggle = true,
 }: {
     id: string;
     name: string;
@@ -324,40 +366,27 @@ export function MarkdownFieldInput({
     defaultValue: string;
     readonly: boolean;
     placeholder: string;
+    mode?: 'edit' | 'preview';
+    onModeChange?: (next: 'edit' | 'preview') => void;
+    /** When false, parent should render MarkdownModeToggle on the title row. */
+    showModeToggle?: boolean;
 }) {
     const textareaSettings = parseTextareaFieldSettings(settings);
     const [value, setValue] = useState(defaultValue);
-    const [tab, setTab] = useState<'edit' | 'preview'>('edit');
+    const [internalMode, setInternalMode] = useState<'edit' | 'preview'>('edit');
+    const tab = modeProp ?? internalMode;
+    const setTab = onModeChange ?? setInternalMode;
     const previewHtml = useMemo(() => renderMarkdownPreview(value), [value]);
 
     return (
         <div className="space-y-2">
-            <ToggleGroup
-                type="single"
-                value={tab}
-                onValueChange={(value) => {
-                    if (value === 'edit' || value === 'preview') {
-                        setTab(value);
-                    }
-                }}
-                size="sm"
-                className="justify-start"
-            >
-                <ToggleGroupItem
-                    value="edit"
-                    aria-label="Edit"
-                    className="px-2.5"
-                >
-                    <FileText className="size-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                    value="preview"
-                    aria-label="Preview"
-                    className="px-2.5"
-                >
-                    <Eye className="size-4" />
-                </ToggleGroupItem>
-            </ToggleGroup>
+            {showModeToggle ? (
+                <MarkdownModeToggle
+                    value={tab}
+                    onChange={setTab}
+                    disabled={readonly}
+                />
+            ) : null}
             {tab === 'edit' ? (
                 <textarea
                     id={id}

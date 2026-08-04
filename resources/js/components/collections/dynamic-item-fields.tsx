@@ -10,7 +10,6 @@ import {
     BooleanToggleInput,
     CheckboxGroupInput,
     CheckboxGroupTreeInput,
-    FieldNote,
     HashFieldInput,
     InputWithIcons,
     MultiselectWithOtherInput,
@@ -36,6 +35,7 @@ import {
     CodeFieldInput,
     ColorFieldInput,
     MarkdownFieldInput,
+    MarkdownModeToggle,
     TagChipInput,
     WysiwygFieldInput,
 } from '@/components/collections/item-field-rich-inputs';
@@ -52,6 +52,7 @@ import { Label } from '@/components/ui/label';
 import { getFieldError } from '@/lib/collection-data-errors';
 import {
     getFieldDisplayName,
+    getFieldNote,
     getFieldPlaceholder,
     groupFieldsIntoLayoutRows,
     isImageFieldMultiple,
@@ -108,6 +109,9 @@ type FieldRenderContext = {
     maxBlocksDepth?: number;
     /** Whether this field has a validation error */
     hasError?: boolean;
+    markdownMode?: 'edit' | 'preview';
+    onMarkdownModeChange?: (mode: 'edit' | 'preview') => void;
+    showMarkdownModeToggle?: boolean;
 };
 
 function getDefaultScalar(
@@ -236,6 +240,9 @@ function renderFieldControl(context: FieldRenderContext) {
         nestingDepth,
         maxBlocksDepth,
         hasError,
+        markdownMode,
+        onMarkdownModeChange,
+        showMarkdownModeToggle,
     } = context;
     const options = parseFieldOptions(field.settings).filter(
         (option) => option.value.trim() !== '',
@@ -320,6 +327,9 @@ function renderFieldControl(context: FieldRenderContext) {
                     defaultValue={String(defaultValue ?? '')}
                     readonly={readonly}
                     placeholder={placeholder}
+                    mode={markdownMode}
+                    onModeChange={onMarkdownModeChange}
+                    showModeToggle={showMarkdownModeToggle ?? true}
                 />
             );
         case 'code':
@@ -668,20 +678,34 @@ function TranslatableItemField({
     const [fieldLocale, setFieldLocale] = useState(
         locales.includes(shared.locale) ? shared.locale : (locales[0] ?? 'en'),
     );
+    const [markdownMode, setMarkdownMode] = useState<'edit' | 'preview'>(
+        'edit',
+    );
+    const note = getFieldNote(field.settings, locales);
+    const isMarkdown = field.type === 'markdown';
 
     return (
         <LocalizedField
             locales={locales}
             label={labelText}
+            description={note || undefined}
             showCopyActions={!readonly}
             errorMessage={errorMessage}
             namePrefix={`data[${field.name}]`}
             locale={fieldLocale}
             onLocaleChange={setFieldLocale}
+            headerActions={
+                isMarkdown ? (
+                    <MarkdownModeToggle
+                        value={markdownMode}
+                        onChange={setMarkdownMode}
+                        disabled={readonly}
+                    />
+                ) : undefined
+            }
         >
             {({ locale }) => (
                 <div className="space-y-2">
-                    <FieldNote settings={field.settings} locales={locales} />
                     {locales.map((code) => {
                         const inputId = `data_${field.name}_${code}`;
                         const isActive = code === locale;
@@ -706,6 +730,9 @@ function TranslatableItemField({
                                         code,
                                     ),
                                     hasError: !!errorMessage,
+                                    markdownMode,
+                                    onMarkdownModeChange: setMarkdownMode,
+                                    showMarkdownModeToggle: false,
                                 })}
                             </div>
                         );
@@ -713,6 +740,109 @@ function TranslatableItemField({
                 </div>
             )}
         </LocalizedField>
+    );
+}
+
+/**
+ * Non-translatable item field: title + notes left; optional markdown actions right.
+ */
+function NonTranslatableItemField({
+    field,
+    locales,
+    displayName,
+    showFieldNameHeading,
+    readonly,
+    collectionId,
+    relatedCollections,
+    defaults,
+    required,
+    errorMessage,
+    onValueChange,
+}: {
+    field: FieldDef;
+    locales: string[];
+    displayName: string;
+    showFieldNameHeading: boolean;
+    readonly: boolean;
+    collectionId: number;
+    relatedCollections: RelatedCollectionOption[];
+    defaults?: Record<string, unknown>;
+    required: boolean;
+    errorMessage?: string;
+    onValueChange: (fieldName: string, value: unknown) => void;
+}) {
+    const [markdownMode, setMarkdownMode] = useState<'edit' | 'preview'>(
+        'edit',
+    );
+    const note = getFieldNote(field.settings, locales);
+    const isMarkdown = field.type === 'markdown';
+    const labelText = showFieldNameHeading
+        ? `${displayName}${required ? ' *' : ''}`
+        : undefined;
+
+    return (
+        <div
+            className="space-y-2"
+            onChange={(event) => {
+                const target = event.target as
+                    | HTMLInputElement
+                    | HTMLSelectElement
+                    | HTMLTextAreaElement;
+
+                if (!target.name) {
+                    return;
+                }
+
+                if (target.type === 'checkbox') {
+                    return;
+                }
+
+                onValueChange(field.name, target.value);
+            }}
+        >
+            {labelText || note || isMarkdown ? (
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                        {labelText ? (
+                            <Label htmlFor={`data_${field.name}`}>
+                                {labelText}
+                            </Label>
+                        ) : null}
+                        {note ? (
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                {note}
+                            </p>
+                        ) : null}
+                    </div>
+                    {isMarkdown ? (
+                        <div className="flex shrink-0 items-center gap-1">
+                            <MarkdownModeToggle
+                                value={markdownMode}
+                                onChange={setMarkdownMode}
+                                disabled={readonly}
+                            />
+                        </div>
+                    ) : null}
+                </div>
+            ) : null}
+            {renderFieldControl({
+                field,
+                name: `data[${field.name}]`,
+                id: `data_${field.name}`,
+                collectionId,
+                locales,
+                readonly,
+                relatedCollections,
+                defaultValue: getDefaultScalar(defaults, field.name),
+                hasError: !!errorMessage,
+                markdownMode,
+                onMarkdownModeChange: setMarkdownMode,
+                showMarkdownModeToggle: false,
+            })}
+            {errorMessage ? (
+                <p className="text-sm text-destructive">{errorMessage}</p>
+            ) : null}
+        </div>
     );
 }
 
@@ -848,47 +978,19 @@ export function DynamicItemFields({
                 errorMessage={errorMessage}
             />
         ) : (
-            <div
-                className="grid gap-2"
-                onChange={(event) => {
-                    const target = event.target as
-                        | HTMLInputElement
-                        | HTMLSelectElement
-                        | HTMLTextAreaElement;
-
-                    if (!target.name) {
-                        return;
-                    }
-
-                    if (target.type === 'checkbox') {
-                        return;
-                    }
-
-                    updateFormValue(field.name, target.value);
-                }}
-            >
-                {showFieldNameHeading && (
-                    <Label htmlFor={`data_${field.name}`}>
-                        {displayName}
-                        {flags.required ? ' *' : ''}
-                    </Label>
-                )}
-                <FieldNote settings={field.settings} locales={locales} />
-                {renderFieldControl({
-                    field,
-                    name: `data[${field.name}]`,
-                    id: `data_${field.name}`,
-                    collectionId,
-                    locales,
-                    readonly,
-                    relatedCollections,
-                    defaultValue: getDefaultScalar(defaults, field.name),
-                    hasError: !!errorMessage,
-                })}
-                {errorMessage && (
-                    <p className="text-sm text-destructive">{errorMessage}</p>
-                )}
-            </div>
+            <NonTranslatableItemField
+                field={field}
+                locales={locales}
+                displayName={displayName}
+                showFieldNameHeading={showFieldNameHeading}
+                readonly={readonly}
+                collectionId={collectionId}
+                relatedCollections={relatedCollections}
+                defaults={defaults}
+                required={flags.required}
+                errorMessage={errorMessage}
+                onValueChange={updateFormValue}
+            />
         );
 
         if (variant === 'cards') {
