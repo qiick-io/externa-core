@@ -1,9 +1,8 @@
 import { Form, Head, Link, router, usePage } from '@inertiajs/react';
-import { History, Rows3, Save, Trash2 } from 'lucide-react';
+import { History, Rows3, Save, ScrollText, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
-import { ItemActivityStrip } from '@/components/collections/item-activity-strip';
 import { ItemPreviewAsRoleDialog } from '@/components/collections/item-preview-as-role-dialog';
 import type { PreviewRoleOption } from '@/components/collections/item-preview-as-role-dialog';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
@@ -14,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { useCollection } from '@/hooks/use-collection';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
+import adminRoutes from '@/lib/admin-routes';
 import { collectCollectionDataErrorMessages } from '@/lib/collection-data-errors';
 import {
     applyItemDraftToForm,
@@ -42,14 +42,6 @@ type ItemPayload = {
     user_updated?: { id: number; name: string; email?: string | null } | null;
 };
 
-type RecentActivity = {
-    id: number;
-    description: string;
-    event: string | null;
-    created_at: string | null;
-    causer: string | null;
-};
-
 /**
  * Create or edit a collection item.
  * @returns {JSX.Element}
@@ -62,7 +54,6 @@ export default function ItemsForm({
     relatedCollections = [],
     fieldGrants = null,
     previewRoles = [],
-    recentActivity = [],
 }: {
     collection: CollectionView;
     item: ItemPayload | null;
@@ -72,7 +63,6 @@ export default function ItemsForm({
     /** null = unrestricted; otherwise per-field read/create/update flags */
     fieldGrants?: Record<string, FieldGrant> | null;
     previewRoles?: PreviewRoleOption[];
-    recentActivity?: RecentActivity[];
 }) {
     const page = usePage();
     const listHref = useMemo(() => {
@@ -216,14 +206,30 @@ export default function ItemsForm({
                         />
                     )}
                     {!isNew && item !== null && (
-                        <Button variant="outline" asChild>
-                            <Link
-                                href={`/collections/${collection.id}/items/${item.id}/revisions`}
-                            >
-                                <History className="size-4" />
-                                History
-                            </Link>
-                        </Button>
+                        <>
+                            <Button variant="outline" asChild>
+                                <Link
+                                    href={`/collections/${collection.id}/items/${item.id}/revisions`}
+                                >
+                                    <History className="size-4" />
+                                    Revisions
+                                </Link>
+                            </Button>
+                            <Button variant="outline" asChild>
+                                <Link
+                                    href={adminRoutes.activityLogs.index({
+                                        query: {
+                                            subject_type:
+                                                'App\\Models\\CollectionItem',
+                                            subject_id: item.id,
+                                        },
+                                    })}
+                                >
+                                    <ScrollText className="size-4" />
+                                    Activity
+                                </Link>
+                            </Button>
+                        </>
                     )}
                     <Button variant="outline" asChild>
                         <Link href={FieldController.index.url(collection.id)}>
@@ -274,16 +280,6 @@ export default function ItemsForm({
                 }
                 scrollContent
             >
-                {!isNew && item !== null && (
-                    <ItemActivityStrip
-                        collectionId={collection.id}
-                        itemId={item.id}
-                        updatedAt={item.updated_at}
-                        userUpdatedName={item.user_updated?.name}
-                        recentActivity={recentActivity}
-                    />
-                )}
-
                 {draftBanner && (
                     <div
                         className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
