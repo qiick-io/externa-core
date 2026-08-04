@@ -388,7 +388,13 @@
     "collections": {
         "localized": {
             "applyAll": "Apply to all locales",
-            "applyEmpty": "Apply to empty locales"
+            "applyEmpty": "Apply to empty locales",
+            "fillFrom": "Fill from locale",
+            "fillFromDialogTitle": "Fill all fields from another locale",
+            "fillFromDialogDescription": "Copy all translatable field values from the selected locale to {{targetLocale}}.",
+            "sourceLocale": "Source locale",
+            "confirmFill": "Fill",
+            "overwriteWarning": "This will overwrite existing non-empty values in {{targetLocale}}."
         },
         "packs": {
             "createFromPack": "Create from pack",

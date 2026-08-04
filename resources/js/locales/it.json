@@ -388,7 +388,13 @@
     "collections": {
         "localized": {
             "applyAll": "Applica a tutte le lingue",
-            "applyEmpty": "Applica alle lingue vuote"
+            "applyEmpty": "Applica alle lingue vuote",
+            "fillFrom": "Riempi da altra lingua",
+            "fillFromDialogTitle": "Riempi tutti i campi da altra lingua",
+            "fillFromDialogDescription": "Copia tutti i valori dei campi traducibili dalla lingua selezionata a {{targetLocale}}.",
+            "sourceLocale": "Lingua sorgente",
+            "confirmFill": "Riempi",
+            "overwriteWarning": "Questo sovrascriverà i valori non vuoti esistenti in {{targetLocale}}."
         },
         "packs": {
             "createFromPack": "Crea da pack",

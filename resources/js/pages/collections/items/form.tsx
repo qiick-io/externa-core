@@ -8,6 +8,7 @@ import type { PreviewRoleOption } from '@/components/collections/item-preview-as
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
+import { FillFromLocaleDialog } from '@/components/collections/fill-from-locale-dialog';
 import {
     PageLayout,
     TablePagination,
@@ -134,6 +135,57 @@ export default function ItemsForm({
     const [fieldSearch, setFieldSearch] = useState('');
     const [globalLocale, setGlobalLocale] = useState(locales[0] ?? 'en');
     const draftTimer = useRef<number | null>(null);
+
+    /**
+     * Fill all translatable fields from another locale (ponytail: DOM manipulation).
+     */
+    const handleFillFromLocale = (sourceLocale: string): void => {
+        const form = document.getElementById(
+            COLLECTION_ITEM_FORM_ID,
+        ) as HTMLFormElement | null;
+        if (!form) {
+            return;
+        }
+
+        // Find all translatable field inputs for both locales
+        const inputs = form.querySelectorAll<
+            HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+        >('input, textarea, select');
+
+        for (const input of inputs) {
+            const name = input.name;
+            // Match pattern data[fieldName][locale]
+            const match = name.match(/^data\[([^\]]+)\]\[([^\]]+)\]$/);
+            if (!match) {
+                continue;
+            }
+
+            const [, fieldName, locale] = match;
+            if (locale === globalLocale) {
+                // Find corresponding source input
+                const sourceName = `data[${fieldName}][${sourceLocale}]`;
+                const sourceInput = form.querySelector<
+                    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+                >(`[name="${sourceName}"]`);
+
+                if (sourceInput) {
+                    // Copy value
+                    if (input.type === 'checkbox' || input.type === 'radio') {
+                        (input as HTMLInputElement).checked = (
+                            sourceInput as HTMLInputElement
+                        ).checked;
+                    } else {
+                        input.value = sourceInput.value;
+                    }
+                    // Trigger input event for draft save
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+        }
+
+        setIsDirty(true);
+        scheduleDraftSave();
+    };
 
     useRegisterUnsavedChanges({
         scope: 'page',
@@ -296,43 +348,50 @@ export default function ItemsForm({
                 filtersRight={
                     <div className="flex items-center gap-2">
                         {hasFields && locales.length > 1 && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        className="gap-2"
-                                    >
-                                        <ContentLocaleFlag
-                                            region={contentLocaleMeta(globalLocale).flag}
-                                            title={contentLocaleMeta(globalLocale).name}
-                                        />
-                                        <span className="font-mono text-xs uppercase">
-                                            {globalLocale}
-                                        </span>
-                                        <Languages className="size-3.5 opacity-60" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="min-w-48">
-                                    {locales.map((code) => {
-                                        const meta = contentLocaleMeta(code);
-                                        return (
-                                            <DropdownMenuItem
-                                                key={code}
-                                                onClick={() => setGlobalLocale(code)}
-                                                className="gap-2"
-                                            >
-                                                <ContentLocaleFlag region={meta.flag} />
-                                                <span className="flex-1">{meta.name}</span>
-                                                <span className="font-mono text-xs text-muted-foreground">
-                                                    {code}
-                                                </span>
-                                            </DropdownMenuItem>
-                                        );
-                                    })}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            <>
+                                <FillFromLocaleDialog
+                                    locales={locales}
+                                    currentLocale={globalLocale}
+                                    onFill={handleFillFromLocale}
+                                />
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="gap-2"
+                                        >
+                                            <ContentLocaleFlag
+                                                region={contentLocaleMeta(globalLocale).flag}
+                                                title={contentLocaleMeta(globalLocale).name}
+                                            />
+                                            <span className="font-mono text-xs uppercase">
+                                                {globalLocale}
+                                            </span>
+                                            <Languages className="size-3.5 opacity-60" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="min-w-48">
+                                        {locales.map((code) => {
+                                            const meta = contentLocaleMeta(code);
+                                            return (
+                                                <DropdownMenuItem
+                                                    key={code}
+                                                    onClick={() => setGlobalLocale(code)}
+                                                    className="gap-2"
+                                                >
+                                                    <ContentLocaleFlag region={meta.flag} />
+                                                    <span className="flex-1">{meta.name}</span>
+                                                    <span className="font-mono text-xs text-muted-foreground">
+                                                        {code}
+                                                    </span>
+                                                </DropdownMenuItem>
+                                            );
+                                        })}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </>
                         )}
                         {!isNew && item !== null && (
                             <ToggleGroup
@@ -433,7 +492,7 @@ export default function ItemsForm({
                             >
                                 {({ errors }) => (
                                     <DynamicItemFields
-                                        variant="cards"
+                                        variant="plain"
                                         collectionId={collection.id}
                                         fields={collection.fields}
                                         locales={locales}
@@ -481,7 +540,7 @@ export default function ItemsForm({
                                     >
                                         {({ errors }) => (
                                             <DynamicItemFields
-                                                variant="cards"
+                                                variant="plain"
                                                 collectionId={collection.id}
                                                 fields={collection.fields}
                                                 locales={locales}

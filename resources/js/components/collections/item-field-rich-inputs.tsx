@@ -5,6 +5,8 @@ import type { Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import {
     Bold,
+    Eye,
+    FileText,
     Heading2,
     Heading3,
     Italic,
@@ -23,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     parseCodeFieldSettings,
     parseColorFieldSettings,
@@ -329,24 +332,32 @@ export function MarkdownFieldInput({
 
     return (
         <div className="space-y-2">
-            <div className="flex gap-2">
-                <Button
-                    type="button"
-                    size="sm"
-                    variant={tab === 'edit' ? 'default' : 'outline'}
-                    onClick={() => setTab('edit')}
+            <ToggleGroup
+                type="single"
+                value={tab}
+                onValueChange={(value) => {
+                    if (value === 'edit' || value === 'preview') {
+                        setTab(value);
+                    }
+                }}
+                size="sm"
+                className="justify-start"
+            >
+                <ToggleGroupItem
+                    value="edit"
+                    aria-label="Edit"
+                    className="px-2.5"
                 >
-                    Edit
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant={tab === 'preview' ? 'default' : 'outline'}
-                    onClick={() => setTab('preview')}
+                    <FileText className="size-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                    value="preview"
+                    aria-label="Preview"
+                    className="px-2.5"
                 >
-                    Preview
-                </Button>
-            </div>
+                    <Eye className="size-4" />
+                </ToggleGroupItem>
+            </ToggleGroup>
             {tab === 'edit' ? (
                 <textarea
                     id={id}
