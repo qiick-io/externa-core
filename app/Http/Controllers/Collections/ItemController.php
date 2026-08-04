@@ -7,6 +7,7 @@ use App\Http\Requests\Collections\BulkItemActionRequest;
 use App\Http\Requests\Collections\StoreCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionListColumnsRequest;
+use App\Http\Resources\Admin\ActivityLogResource;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\Collection;
 use App\Models\CollectionField;
@@ -227,7 +228,7 @@ class ItemController extends Controller
             'relatedCollections' => $this->relatedCollectionsForSelect(),
             'fieldGrants' => $this->permissionEnforcer->fieldGrantsForForm($request, $collection),
             'previewRoles' => $this->previewRoles(),
-            'recentActivity' => [],
+            'activityLogs' => null,
         ]);
     }
 
@@ -282,6 +283,13 @@ class ItemController extends Controller
 
         $rawData = $this->collectionItemValuesAssembler->assemble($item);
 
+        $activityLogs = Activity::query()
+            ->forSubject($item)
+            ->with(['causer', 'subject'])
+            ->latest('id')
+            ->paginate($request->integer('per_page', 10))
+            ->withQueryString();
+
         return Inertia::render('collections/items/form', [
             'collection' => $collection,
             'item' => (new CollectionItemResource($item))->toArray($request),
@@ -290,7 +298,7 @@ class ItemController extends Controller
             'relatedCollections' => $this->relatedCollectionsForSelect(),
             'fieldGrants' => $this->permissionEnforcer->fieldGrantsForForm($request, $collection),
             'previewRoles' => $this->previewRoles(),
-            'recentActivity' => $this->recentActivityForItem($item),
+            'activityLogs' => ActivityLogResource::collection($activityLogs),
         ]);
     }
 
@@ -575,40 +583,6 @@ class ItemController extends Controller
                 'name' => (string) $role->name,
                 'is_public' => $role->isPublic(),
             ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * Recent Spatie activity for the item subject (row-level, not field values).
-     *
-     * @return list<array{id: int, description: string, event: string|null, created_at: string|null, causer: string|null}>
-     */
-    private function recentActivityForItem(CollectionItem $item): array
-    {
-        return Activity::query()
-            ->forSubject($item)
-            ->latest('id')
-            ->limit(5)
-            ->with('causer')
-            ->get()
-            ->map(static function (Activity $activity): array {
-                $causer = $activity->causer;
-                $causerName = null;
-                if ($causer !== null) {
-                    $causerName = method_exists($causer, 'name')
-                        ? (string) $causer->name
-                        : (string) ($causer->email ?? class_basename($causer));
-                }
-
-                return [
-                    'id' => (int) $activity->id,
-                    'description' => (string) $activity->description,
-                    'event' => $activity->event,
-                    'created_at' => $activity->created_at?->toIso8601String(),
-                    'causer' => $causerName,
-                ];
-            })
             ->values()
             ->all();
     }

@@ -7,9 +7,22 @@ import { ItemPreviewAsRoleDialog } from '@/components/collections/item-preview-a
 import type { PreviewRoleOption } from '@/components/collections/item-preview-as-role-dialog';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
-import { PageLayout } from '@/components/layout/page-layout';
+import {
+    PageLayout,
+    TablePagination,
+    TablePanel,
+} from '@/components/layout/page-layout';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCollection } from '@/hooks/use-collection';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
@@ -23,10 +36,12 @@ import {
     serializeItemForm,
     writeItemDraft,
 } from '@/lib/item-draft-storage';
+import { normalizePaginated } from '@/lib/pagination';
+import type { LaravelPaginated } from '@/lib/pagination';
 import { readReturnParam } from '@/lib/safe-return-url';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import collections from '@/routes/collections';
-import type { BreadcrumbItem } from '@/types';
+import type { AdminActivityLogRow, BreadcrumbItem, Paginated } from '@/types';
 import type { CollectionView } from '@/types/collections';
 
 const COLLECTION_ITEM_FORM_ID = 'collection-item-form';
@@ -43,14 +58,6 @@ type ItemPayload = {
     user_updated?: { id: number; name: string; email?: string | null } | null;
 };
 
-type ActivityEntry = {
-    id: number;
-    description: string;
-    event: string | null;
-    created_at: string | null;
-    causer: string | null;
-};
-
 /**
  * Create or edit a collection item.
  * @returns {JSX.Element}
@@ -63,7 +70,7 @@ export default function ItemsForm({
     relatedCollections = [],
     fieldGrants = null,
     previewRoles = [],
-    recentActivity = [],
+    activityLogs: activityLogsProp = null,
 }: {
     collection: CollectionView;
     item: ItemPayload | null;
@@ -73,9 +80,15 @@ export default function ItemsForm({
     /** null = unrestricted; otherwise per-field read/create/update flags */
     fieldGrants?: Record<string, FieldGrant> | null;
     previewRoles?: PreviewRoleOption[];
-    recentActivity?: ActivityEntry[];
+    activityLogs?:
+        | LaravelPaginated<AdminActivityLogRow>
+        | Paginated<AdminActivityLogRow>
+        | null;
 }) {
     const page = usePage();
+    const activityLogs = activityLogsProp
+        ? normalizePaginated(activityLogsProp)
+        : null;
     const listHref = useMemo(() => {
         const fromReturn = readReturnParam(page.url);
         return fromReturn ?? collections.items.index.url(collection.id);
@@ -471,76 +484,98 @@ export default function ItemsForm({
                                                     </div>
                                                 </dl>
                                             </div>
-                                            <div className="space-y-4">
-                                                <div className="flex items-center justify-between">
-                                                    <h3 className="text-lg font-medium">Recent Activity</h3>
-                                                    <Button variant="outline" size="sm" asChild>
-                                                        <Link
-                                                            href={adminRoutes.activityLogs.index({
-                                                                query: {
-                                                                    subject_type:
-                                                                        'App\\Models\\CollectionItem',
-                                                                    subject_id: item.id,
-                                                                },
-                                                            })}
-                                                        >
-                                                            <ScrollText className="size-4" />
-                                                            View all
-                                                        </Link>
-                                                    </Button>
-                                                </div>
-                                                {recentActivity.length > 0 ? (
-                                                    <div className="rounded-lg border">
-                                                        <table className="w-full">
-                                                            <thead>
-                                                                <tr className="border-b bg-muted/50">
-                                                                    <th className="px-4 py-2 text-left text-sm font-medium">
-                                                                        Date
-                                                                    </th>
-                                                                    <th className="px-4 py-2 text-left text-sm font-medium">
-                                                                        Event
-                                                                    </th>
-                                                                    <th className="px-4 py-2 text-left text-sm font-medium">
-                                                                        Description
-                                                                    </th>
-                                                                    <th className="px-4 py-2 text-left text-sm font-medium">
-                                                                        User
-                                                                    </th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {recentActivity.map((entry) => (
-                                                                    <tr
-                                                                        key={entry.id}
-                                                                        className="border-b last:border-0"
+                                            <TablePanel
+                                                footer={
+                                                    activityLogs &&
+                                                    activityLogs.last_page > 1 ? (
+                                                        <TablePagination
+                                                            links={
+                                                                activityLogs.links ??
+                                                                []
+                                                            }
+                                                        />
+                                                    ) : undefined
+                                                }
+                                            >
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow>
+                                                            <TableHead>Date</TableHead>
+                                                            <TableHead>User</TableHead>
+                                                            <TableHead>Action</TableHead>
+                                                            <TableHead>
+                                                                Description
+                                                            </TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {activityLogs &&
+                                                        (activityLogs.data ?? [])
+                                                            .length === 0 ? (
+                                                            <TableRow>
+                                                                <TableCell
+                                                                    colSpan={4}
+                                                                    className="text-muted-foreground"
+                                                                >
+                                                                    No activity recorded
+                                                                    yet.
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ) : (
+                                                            (activityLogs?.data ?? []).map(
+                                                                (row) => (
+                                                                    <TableRow
+                                                                        key={row.id}
                                                                     >
-                                                                        <td className="px-4 py-3 text-sm">
-                                                                            {entry.created_at
+                                                                        <TableCell className="whitespace-nowrap text-sm">
+                                                                            {row.created_at
                                                                                 ? new Date(
-                                                                                      entry.created_at,
+                                                                                      row.created_at,
                                                                                   ).toLocaleString()
                                                                                 : '—'}
-                                                                        </td>
-                                                                        <td className="px-4 py-3 text-sm">
-                                                                            {entry.event ?? '—'}
-                                                                        </td>
-                                                                        <td className="px-4 py-3 text-sm">
-                                                                            {entry.description}
-                                                                        </td>
-                                                                        <td className="px-4 py-3 text-sm">
-                                                                            {entry.causer ?? '—'}
-                                                                        </td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                ) : (
-                                                    <p className="rounded-xl border border-dashed border-sidebar-border/70 p-6 text-sm text-muted-foreground dark:border-sidebar-border">
-                                                        No activity recorded yet.
-                                                    </p>
-                                                )}
-                                            </div>
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            {row.causer ? (
+                                                                                <div className="text-sm">
+                                                                                    <div>
+                                                                                        {
+                                                                                            row
+                                                                                                .causer
+                                                                                                .name
+                                                                                        }
+                                                                                    </div>
+                                                                                    <div className="text-xs text-muted-foreground">
+                                                                                        {
+                                                                                            row
+                                                                                                .causer
+                                                                                                .email
+                                                                                        }
+                                                                                    </div>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <span className="text-sm text-muted-foreground">
+                                                                                    System
+                                                                                </span>
+                                                                            )}
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            <Badge variant="secondary">
+                                                                                {row.event ??
+                                                                                    '—'}
+                                                                            </Badge>
+                                                                        </TableCell>
+                                                                        <TableCell className="max-w-xs truncate text-sm">
+                                                                            {
+                                                                                row.description
+                                                                            }
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                ),
+                                                            )
+                                                        )}
+                                                    </TableBody>
+                                                </Table>
+                                            </TablePanel>
                                         </>
                                     )}
                                 </TabsContent>
