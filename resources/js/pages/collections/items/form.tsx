@@ -10,6 +10,7 @@ import { DynamicItemFields } from '@/components/collections/dynamic-item-fields'
 import { PageLayout } from '@/components/layout/page-layout';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCollection } from '@/hooks/use-collection';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
@@ -42,6 +43,14 @@ type ItemPayload = {
     user_updated?: { id: number; name: string; email?: string | null } | null;
 };
 
+type ActivityEntry = {
+    id: number;
+    description: string;
+    event: string | null;
+    created_at: string | null;
+    causer: string | null;
+};
+
 /**
  * Create or edit a collection item.
  * @returns {JSX.Element}
@@ -54,6 +63,7 @@ export default function ItemsForm({
     relatedCollections = [],
     fieldGrants = null,
     previewRoles = [],
+    recentActivity = [],
 }: {
     collection: CollectionView;
     item: ItemPayload | null;
@@ -63,6 +73,7 @@ export default function ItemsForm({
     /** null = unrestricted; otherwise per-field read/create/update flags */
     fieldGrants?: Record<string, FieldGrant> | null;
     previewRoles?: PreviewRoleOption[];
+    recentActivity?: ActivityEntry[];
 }) {
     const page = usePage();
     const listHref = useMemo(() => {
@@ -206,30 +217,14 @@ export default function ItemsForm({
                         />
                     )}
                     {!isNew && item !== null && (
-                        <>
-                            <Button variant="outline" asChild>
-                                <Link
-                                    href={`/collections/${collection.id}/items/${item.id}/revisions`}
-                                >
-                                    <History className="size-4" />
-                                    Revisions
-                                </Link>
-                            </Button>
-                            <Button variant="outline" asChild>
-                                <Link
-                                    href={adminRoutes.activityLogs.index({
-                                        query: {
-                                            subject_type:
-                                                'App\\Models\\CollectionItem',
-                                            subject_id: item.id,
-                                        },
-                                    })}
-                                >
-                                    <ScrollText className="size-4" />
-                                    Activity
-                                </Link>
-                            </Button>
-                        </>
+                        <Button variant="outline" asChild>
+                            <Link
+                                href={`/collections/${collection.id}/items/${item.id}/revisions`}
+                            >
+                                <History className="size-4" />
+                                Revisions
+                            </Link>
+                        </Button>
                     )}
                     <Button variant="outline" asChild>
                         <Link href={FieldController.index.url(collection.id)}>
@@ -317,102 +312,241 @@ export default function ItemsForm({
                 )}
 
                 {hasFields && (
-                    <Form
-                        key={formKey}
-                        {...formProps}
-                        id={COLLECTION_ITEM_FORM_ID}
-                        className="space-y-6"
-                        options={{ preserveScroll: true }}
-                        onSuccess={() => {
-                            setIsDirty(false);
-                            clearItemDraft(collection.id, draftItemKey);
-                            setDraftBanner(false);
-                        }}
-                        onInput={() => {
-                            setIsDirty(true);
-                            scheduleDraftSave();
-                        }}
-                        onChange={() => {
-                            setIsDirty(true);
-                            scheduleDraftSave();
-                        }}
-                    >
-                        {({ errors }) => {
-                            const dataErrors =
-                                collectCollectionDataErrorMessages(
-                                    errors as Record<string, unknown>,
-                                );
+                    <>
+                        {isNew ? (
+                            <Form
+                                key={formKey}
+                                {...formProps}
+                                id={COLLECTION_ITEM_FORM_ID}
+                                className="space-y-6"
+                                options={{ preserveScroll: true }}
+                                onSuccess={() => {
+                                    setIsDirty(false);
+                                    clearItemDraft(collection.id, draftItemKey);
+                                    setDraftBanner(false);
+                                }}
+                                onInput={() => {
+                                    setIsDirty(true);
+                                    scheduleDraftSave();
+                                }}
+                                onChange={() => {
+                                    setIsDirty(true);
+                                    scheduleDraftSave();
+                                }}
+                            >
+                                {({ errors }) => {
+                                    const dataErrors =
+                                        collectCollectionDataErrorMessages(
+                                            errors as Record<string, unknown>,
+                                        );
 
-                            return (
-                                <>
-                                    {dataErrors.length > 0 && (
-                                        <ul className="list-inside list-disc space-y-1 text-sm text-destructive">
-                                            {dataErrors.map((msg, idx) => (
-                                                <li key={idx}>{msg}</li>
-                                            ))}
-                                        </ul>
+                                    return (
+                                        <>
+                                            {dataErrors.length > 0 && (
+                                                <ul className="list-inside list-disc space-y-1 text-sm text-destructive">
+                                                    {dataErrors.map((msg, idx) => (
+                                                        <li key={idx}>{msg}</li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                            <DynamicItemFields
+                                                variant="cards"
+                                                collectionId={collection.id}
+                                                fields={collection.fields}
+                                                locales={locales}
+                                                defaults={contentDefaults}
+                                                relatedCollections={relatedCollections}
+                                                formLayout={collection.form_layout}
+                                                fieldGrants={fieldGrants}
+                                                isNew={isNew}
+                                            />
+                                        </>
+                                    );
+                                }}
+                            </Form>
+                        ) : (
+                            <Tabs defaultValue="fields" className="space-y-6">
+                                <TabsList>
+                                    <TabsTrigger value="fields">Fields</TabsTrigger>
+                                    <TabsTrigger value="activity">Activity</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="fields">
+                                    <Form
+                                        key={formKey}
+                                        {...formProps}
+                                        id={COLLECTION_ITEM_FORM_ID}
+                                        className="space-y-6"
+                                        options={{ preserveScroll: true }}
+                                        onSuccess={() => {
+                                            setIsDirty(false);
+                                            clearItemDraft(collection.id, draftItemKey);
+                                            setDraftBanner(false);
+                                        }}
+                                        onInput={() => {
+                                            setIsDirty(true);
+                                            scheduleDraftSave();
+                                        }}
+                                        onChange={() => {
+                                            setIsDirty(true);
+                                            scheduleDraftSave();
+                                        }}
+                                    >
+                                        {({ errors }) => {
+                                            const dataErrors =
+                                                collectCollectionDataErrorMessages(
+                                                    errors as Record<string, unknown>,
+                                                );
+
+                                            return (
+                                                <>
+                                                    {dataErrors.length > 0 && (
+                                                        <ul className="list-inside list-disc space-y-1 text-sm text-destructive">
+                                                            {dataErrors.map((msg, idx) => (
+                                                                <li key={idx}>{msg}</li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
+                                                    <DynamicItemFields
+                                                        variant="cards"
+                                                        collectionId={collection.id}
+                                                        fields={collection.fields}
+                                                        locales={locales}
+                                                        defaults={contentDefaults}
+                                                        relatedCollections={relatedCollections}
+                                                        formLayout={collection.form_layout}
+                                                        fieldGrants={fieldGrants}
+                                                        isNew={isNew}
+                                                    />
+                                                </>
+                                            );
+                                        }}
+                                    </Form>
+                                </TabsContent>
+                                <TabsContent value="activity" className="space-y-6">
+                                    {item !== null && (
+                                        <>
+                                            <div className="rounded-lg border border-sidebar-border/70 bg-muted/30 p-4 text-sm dark:border-sidebar-border">
+                                                <dl className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
+                                                    <div>
+                                                        <dt className="font-medium text-foreground">
+                                                            Created by
+                                                        </dt>
+                                                        <dd>
+                                                            {item.user_created?.name ??
+                                                                '—'}
+                                                        </dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt className="font-medium text-foreground">
+                                                            Updated by
+                                                        </dt>
+                                                        <dd>
+                                                            {item.user_updated?.name ??
+                                                                '—'}
+                                                        </dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt className="font-medium text-foreground">
+                                                            Created at
+                                                        </dt>
+                                                        <dd>
+                                                            {item.created_at
+                                                                ? new Date(
+                                                                      item.created_at,
+                                                                  ).toLocaleString()
+                                                                : '—'}
+                                                        </dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt className="font-medium text-foreground">
+                                                            Updated at
+                                                        </dt>
+                                                        <dd>
+                                                            {item.updated_at
+                                                                ? new Date(
+                                                                      item.updated_at,
+                                                                  ).toLocaleString()
+                                                                : '—'}
+                                                        </dd>
+                                                    </div>
+                                                </dl>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <h3 className="text-lg font-medium">Recent Activity</h3>
+                                                    <Button variant="outline" size="sm" asChild>
+                                                        <Link
+                                                            href={adminRoutes.activityLogs.index({
+                                                                query: {
+                                                                    subject_type:
+                                                                        'App\\Models\\CollectionItem',
+                                                                    subject_id: item.id,
+                                                                },
+                                                            })}
+                                                        >
+                                                            <ScrollText className="size-4" />
+                                                            View all
+                                                        </Link>
+                                                    </Button>
+                                                </div>
+                                                {recentActivity.length > 0 ? (
+                                                    <div className="rounded-lg border">
+                                                        <table className="w-full">
+                                                            <thead>
+                                                                <tr className="border-b bg-muted/50">
+                                                                    <th className="px-4 py-2 text-left text-sm font-medium">
+                                                                        Date
+                                                                    </th>
+                                                                    <th className="px-4 py-2 text-left text-sm font-medium">
+                                                                        Event
+                                                                    </th>
+                                                                    <th className="px-4 py-2 text-left text-sm font-medium">
+                                                                        Description
+                                                                    </th>
+                                                                    <th className="px-4 py-2 text-left text-sm font-medium">
+                                                                        User
+                                                                    </th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {recentActivity.map((entry) => (
+                                                                    <tr
+                                                                        key={entry.id}
+                                                                        className="border-b last:border-0"
+                                                                    >
+                                                                        <td className="px-4 py-3 text-sm">
+                                                                            {entry.created_at
+                                                                                ? new Date(
+                                                                                      entry.created_at,
+                                                                                  ).toLocaleString()
+                                                                                : '—'}
+                                                                        </td>
+                                                                        <td className="px-4 py-3 text-sm">
+                                                                            {entry.event ?? '—'}
+                                                                        </td>
+                                                                        <td className="px-4 py-3 text-sm">
+                                                                            {entry.description}
+                                                                        </td>
+                                                                        <td className="px-4 py-3 text-sm">
+                                                                            {entry.causer ?? '—'}
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                ) : (
+                                                    <p className="rounded-xl border border-dashed border-sidebar-border/70 p-6 text-sm text-muted-foreground dark:border-sidebar-border">
+                                                        No activity recorded yet.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </>
                                     )}
-                                    <DynamicItemFields
-                                        variant="cards"
-                                        collectionId={collection.id}
-                                        fields={collection.fields}
-                                        locales={locales}
-                                        defaults={contentDefaults}
-                                        relatedCollections={relatedCollections}
-                                        formLayout={collection.form_layout}
-                                        fieldGrants={fieldGrants}
-                                        isNew={isNew}
-                                    />
-                                    {!isNew && item !== null && (
-                                        <dl className="grid gap-3 border-t pt-6 text-sm text-muted-foreground sm:grid-cols-2">
-                                            <div>
-                                                <dt className="font-medium text-foreground">
-                                                    Created by
-                                                </dt>
-                                                <dd>
-                                                    {item.user_created?.name ??
-                                                        '—'}
-                                                </dd>
-                                            </div>
-                                            <div>
-                                                <dt className="font-medium text-foreground">
-                                                    Updated by
-                                                </dt>
-                                                <dd>
-                                                    {item.user_updated?.name ??
-                                                        '—'}
-                                                </dd>
-                                            </div>
-                                            <div>
-                                                <dt className="font-medium text-foreground">
-                                                    Created at
-                                                </dt>
-                                                <dd>
-                                                    {item.created_at
-                                                        ? new Date(
-                                                              item.created_at,
-                                                          ).toLocaleString()
-                                                        : '—'}
-                                                </dd>
-                                            </div>
-                                            <div>
-                                                <dt className="font-medium text-foreground">
-                                                    Updated at
-                                                </dt>
-                                                <dd>
-                                                    {item.updated_at
-                                                        ? new Date(
-                                                              item.updated_at,
-                                                          ).toLocaleString()
-                                                        : '—'}
-                                                </dd>
-                                            </div>
-                                        </dl>
-                                    )}
-                                </>
-                            );
-                        }}
-                    </Form>
+                                </TabsContent>
+                            </Tabs>
+                        )}
+                    </>
                 )}
             </PageLayout>
 
