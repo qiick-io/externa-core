@@ -414,8 +414,7 @@ export default function ItemsForm({
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        size="sm"
-                                        className="gap-2"
+                                        className="h-9 gap-2"
                                     >
                                         <ContentLocaleFlag
                                             region={contentLocaleMeta(globalLocale).flag}

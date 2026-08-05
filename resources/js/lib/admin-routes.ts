@@ -121,6 +121,7 @@ const adminRoutes = {
         tagsCatalog: () => url('/files/tags'),
         createFolder: () => url('/files/folders'),
         upload: () => url('/files/upload'),
+        importUrl: () => url('/files/import-url'),
         bulk: () => url('/files/bulk'),
         downloadMany: () => url('/files/download'),
         downloadZip: (jobId: string) => url(`/files/zips/${jobId}`),

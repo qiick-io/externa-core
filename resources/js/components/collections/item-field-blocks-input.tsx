@@ -26,6 +26,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { LocalizedField } from '@/components/collections/localized-field';
+import { FieldNoteSlot } from '@/components/collections/item-field-choice-inputs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -90,22 +91,6 @@ type BlocksFieldBlock = {
     type: string;
     data: Record<string, unknown>;
 };
-
-function FieldNote({
-    settings,
-    locales,
-}: {
-    settings?: Record<string, unknown> | null;
-    locales: string[];
-}) {
-    const note = getFieldNote(settings, locales);
-
-    if (!note) {
-        return null;
-    }
-
-    return <p className="mt-1 text-sm text-muted-foreground">{note}</p>;
-}
 
 function newBlockId(): string {
     if (
@@ -662,14 +647,24 @@ export function BlocksFieldInput({
                                                                     locales={
                                                                         locales
                                                                     }
-                                                                    label={`${nestedLabel}${flags.required ? ' *' : ''}`}
-                                                                    description={
-                                                                        getFieldNote(
-                                                                            nestedFieldDef.settings,
-                                                                            locales,
-                                                                        ) ||
-                                                                        undefined
+                                                                    label={
+                                                                        <>
+                                                                            {
+                                                                                nestedLabel
+                                                                            }
+                                                                            {flags.required ? (
+                                                                                <span className="text-destructive">
+                                                                                    {' '}
+                                                                                    *
+                                                                                </span>
+                                                                            ) : null}
+                                                                        </>
                                                                     }
+                                                                    description={getFieldNote(
+                                                                        nestedFieldDef.settings,
+                                                                        locales,
+                                                                    )}
+                                                                    reserveDescriptionSpace
                                                                     showCopyActions={
                                                                         !fieldReadonly
                                                                     }
@@ -822,7 +817,7 @@ export function BlocksFieldInput({
                                                                     );
                                                                 }}
                                                             >
-                                                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                                                <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
                                                                     <div className="min-w-0 flex-1">
                                                                         <Label
                                                                             htmlFor={`${field.name}_${block.id}_${nestedField.name}`}
@@ -830,18 +825,13 @@ export function BlocksFieldInput({
                                                                             {
                                                                                 nestedLabel
                                                                             }
-                                                                            {flags.required
-                                                                                ? ' *'
-                                                                                : ''}
+                                                                            {flags.required ? (
+                                                                                <span className="text-destructive">
+                                                                                    {' '}
+                                                                                    *
+                                                                                </span>
+                                                                            ) : null}
                                                                         </Label>
-                                                                        <FieldNote
-                                                                            settings={
-                                                                                nestedFieldDef.settings
-                                                                            }
-                                                                            locales={
-                                                                                locales
-                                                                            }
-                                                                        />
                                                                     </div>
                                                                 </div>
                                                                 {renderNestedField(
@@ -862,6 +852,12 @@ export function BlocksFieldInput({
                                                                         maxBlocksDepth,
                                                                     },
                                                                 )}
+                                                                <FieldNoteSlot
+                                                                    note={getFieldNote(
+                                                                        nestedFieldDef.settings,
+                                                                        locales,
+                                                                    )}
+                                                                />
                                                             </div>
                                                         );
                                                     },

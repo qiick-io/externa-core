@@ -240,6 +240,8 @@ export type CommonFieldSettings = {
     defaultValue: unknown;
     validationRules: FieldValidationRule[];
     validationMessage: TranslatedText;
+    layoutWidth: FieldLayoutWidth;
+    layoutStartsNewRow: boolean;
 };
 
 /**
@@ -394,6 +396,8 @@ export function parseCommonFieldSettings(
         defaultValue: settings?.default_value ?? null,
         validationRules: parseValidationRules(settings),
         validationMessage: parseTranslatedText(settings?.validation_message),
+        layoutWidth: getFieldLayoutWidth(settings),
+        layoutStartsNewRow: fieldStartsNewLayoutRow(settings),
     };
 }
 
@@ -410,6 +414,8 @@ export function serializeCommonFieldSettings(
         required: common.required ? '1' : '0',
         readonly: common.readonly ? '1' : '0',
         hidden_in_form: common.hiddenInForm ? '1' : '0',
+        layout_width: common.layoutWidth,
+        layout_starts_new_row: common.layoutStartsNewRow ? '1' : '0',
     };
 
     const displayName = serializeTranslatedText(common.displayName);

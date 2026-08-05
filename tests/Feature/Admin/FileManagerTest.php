@@ -226,6 +226,52 @@ test('authorized users can upload files', function () {
     expect(File::query()->where('name', 'report.pdf')->exists())->toBeTrue();
 });
 
+test('import from url rejects localhost ssrf targets', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanCreateFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $this->postJson(route('files.import-url'), [
+        'url' => 'http://127.0.0.1/secret.png',
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['url']);
+
+    $this->postJson(route('files.import-url'), [
+        'url' => 'http://localhost/secret.png',
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['url']);
+
+    expect(File::query()->count())->toBe(0);
+});
+
+test('authorized users can import a file from a mocked remote url', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanCreateFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    \Illuminate\Support\Facades\Http::fake([
+        'https://example.com/photo.png' => \Illuminate\Support\Facades\Http::response(
+            'fake-png-bytes',
+            200,
+            ['Content-Type' => 'image/png'],
+        ),
+    ]);
+
+    $response = $this->postJson(route('files.import-url'), [
+        'url' => 'https://example.com/photo.png',
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('name', 'photo.png')
+        ->assertJsonPath('type', FileTypeEnum::File->value);
+
+    expect(File::query()->where('name', 'photo.png')->whereNull('parent_id')->exists())->toBeTrue();
+});
+
 test('authorized users can upload files into nested folders', function () {
     $user = grantFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,

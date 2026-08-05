@@ -34,6 +34,8 @@ trait ValidatesCollectionFieldSettings
             'settings.required' => ['sometimes'],
             'settings.readonly' => ['sometimes'],
             'settings.hidden_in_form' => ['sometimes'],
+            'settings.layout_width' => ['sometimes', Rule::in(['half', 'full', 'fill'])],
+            'settings.layout_starts_new_row' => ['sometimes'],
             'settings.default_value' => ['sometimes', 'nullable'],
             'settings.validation_rules' => ['sometimes', 'array'],
             'settings.validation_rules.*.operator' => [
@@ -87,7 +89,9 @@ trait ValidatesCollectionFieldSettings
             'settings.placeholder' => ['sometimes', 'array'],
             'settings.icon_left' => ['sometimes', 'nullable', 'string', 'max:64'],
             'settings.icon_right' => ['sometimes', 'nullable', 'string', 'max:64'],
-            'settings.url' => ['sometimes', 'nullable', 'string', 'max:2048'],
+            'settings.url' => $fieldType === FieldTypeEnum::ApiAutocomplete
+                ? ['required', 'string', 'max:2048']
+                : ['sometimes', 'nullable', 'string', 'max:2048'],
             'settings.results_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'settings.text_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'settings.value_path' => ['sometimes', 'nullable', 'string', 'max:255'],

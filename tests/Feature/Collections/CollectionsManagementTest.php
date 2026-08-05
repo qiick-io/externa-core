@@ -494,6 +494,34 @@ test('collection field layout width can be updated', function () {
     expect($field->fresh()->layoutWidth())->toBe('half');
 });
 
+test('updating field settings preserves layout width and starts-new-row', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+    $field = CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+        'settings' => ['layout_width' => 'full'],
+    ]);
+
+    $this->patch(route('collections.fields.update', [$collection, $field]), [
+        'settings' => [
+            'required' => '1',
+            'readonly' => '0',
+            'hidden_in_form' => '0',
+            'layout_width' => 'half',
+            'layout_starts_new_row' => '1',
+        ],
+    ])->assertRedirect(route('collections.fields.index', $collection));
+
+    $settings = $field->fresh()->settings;
+    expect($settings['layout_width'] ?? null)->toBe('half');
+    expect($settings['layout_starts_new_row'] ?? null)->toBe('1');
+    expect($settings['required'] ?? null)->toBe('1');
+});
+
 test('duplicated field keeps layout width setting', function () {
     $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
@@ -723,6 +751,32 @@ test('api autocomplete field type can be created with remote settings', function
     expect($field->settings['rate'])->toBe(400);
     expect($field->settings['placeholder']['en'])->toBe('Search cities…');
     expect($field->settings['icon_left'])->toBe('Search');
+});
+
+test('api autocomplete field requires a url template', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+
+    $this->post(route('collections.fields.store', $collection), [
+        'name' => 'city',
+        'type' => FieldTypeEnum::ApiAutocomplete->value,
+        'settings' => [
+            'results_path' => 'data',
+            'text_path' => 'label',
+            'value_path' => 'value',
+        ],
+    ])->assertSessionHasErrors(['settings.url']);
+
+    $this->post(route('collections.fields.store', $collection), [
+        'name' => 'city',
+        'type' => FieldTypeEnum::ApiAutocomplete->value,
+        'settings' => [
+            'url' => '',
+            'results_path' => 'data',
+        ],
+    ])->assertSessionHasErrors(['settings.url']);
 });
 
 test('selection field types can be created', function () {

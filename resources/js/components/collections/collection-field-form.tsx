@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
+import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { CommonAdvancedSettings } from '@/components/collections/field-settings/common-advanced-settings';
 import { FieldConditionsSettings } from '@/components/collections/field-settings/field-conditions-settings';
@@ -73,6 +74,7 @@ import {
     flattenSettingsForForm,
     isImageFieldMultiple,
     parseAllowedCollectionIds,
+    parseApiAutocompleteFieldSettings,
     parseBlocksFieldSettings,
     serializeBlocksFieldSettings,
     parseCommonFieldSettings,
@@ -83,6 +85,7 @@ import {
     parseStringFieldSettings,
 } from '@/lib/collection-field-types';
 import type {
+    ApiAutocompleteFieldSettings,
     BlocksTypeDefinition,
     CommonFieldSettings,
     CollectionFieldTypeOption,
@@ -329,8 +332,9 @@ function TreeOptionsEditor({
                 <div>
                     <Label>Tree choices</Label>
                     <p className="mt-1.5 text-sm text-muted-foreground">
-                        Define nested options. Parent and child nodes can be
-                        selected independently in the form.
+                        Define nested options. Checking a parent selects all
+                        descendants; mixed children show an indeterminate
+                        parent.
                     </p>
                 </div>
             )}
@@ -1211,6 +1215,12 @@ type FieldConfigPanelProps = {
     onStringSettingsChange: (
         updater: (current: StringFieldSettings) => StringFieldSettings,
     ) => void;
+    apiAutocompleteSettings: ApiAutocompleteFieldSettings;
+    onApiAutocompleteSettingsChange: (
+        updater: (
+            current: ApiAutocompleteFieldSettings,
+        ) => ApiAutocompleteFieldSettings,
+    ) => void;
     booleanLabels: ReturnType<typeof parseBooleanFieldSettings>;
     onBooleanLabelsChange: (
         next: ReturnType<typeof parseBooleanFieldSettings>,
@@ -1252,6 +1262,8 @@ function FieldConfigPanel({
     onCommonSettingsChange,
     stringSettings,
     onStringSettingsChange,
+    apiAutocompleteSettings,
+    onApiAutocompleteSettingsChange,
     booleanLabels,
     onBooleanLabelsChange,
     options,
@@ -1279,6 +1291,7 @@ function FieldConfigPanel({
     fieldConditions,
     onFieldConditionsChange,
 }: FieldConfigPanelProps) {
+    const { t } = useTranslation();
     const typeGroup = fieldTypeGroupForType(fieldType);
     const typeMeta = fieldTypeMeta(fieldType);
     const [fieldKey, setFieldKey] = useState(field?.name ?? '');
@@ -1364,6 +1377,10 @@ function FieldConfigPanel({
                     settings={field?.settings}
                     stringSettings={stringSettings}
                     onStringSettingsChange={onStringSettingsChange}
+                    apiAutocompleteSettings={apiAutocompleteSettings}
+                    onApiAutocompleteSettingsChange={
+                        onApiAutocompleteSettingsChange
+                    }
                 />
             ) : null}
 
@@ -1418,8 +1435,8 @@ function FieldConfigPanel({
     return (
         <div className="space-y-6">
             <SettingsPanel
-                title="General"
-                description="Key, display name, and helper text for this field."
+                title={t('collections.general')}
+                description={t('collections.generalDescription')}
             >
                 <div className="space-y-6">
                     <div className="grid gap-2.5">
@@ -1476,9 +1493,20 @@ function FieldConfigPanel({
                 </div>
             </SettingsPanel>
 
-            <SettingsDivider label="Avanzate" />
+            <SettingsDivider label={t('collections.advanced')} />
 
-            <SettingsPanel title="Field behavior">
+            {hasTypeSpecificSettings ? (
+                <SettingsPanel
+                    title={t('collections.typeSettings', {
+                        type: typeMeta.label,
+                    })}
+                    description={t('collections.typeSettingsDescription')}
+                >
+                    <div className="space-y-6">{typeSpecificContent}</div>
+                </SettingsPanel>
+            ) : null}
+
+            <SettingsPanel title={t('collections.fieldBehavior')}>
                 <CommonAdvancedSettings
                     fieldType={fieldType}
                     settings={commonSettings}
@@ -1487,8 +1515,8 @@ function FieldConfigPanel({
             </SettingsPanel>
 
             <SettingsPanel
-                title="Conditions"
-                description="Hide, lock, or require this field based on other values."
+                title={t('collections.conditions')}
+                description={t('collections.conditionsDescription')}
             >
                 <FieldConditionsSettings
                     settings={field?.settings}
@@ -1498,18 +1526,9 @@ function FieldConfigPanel({
                 />
             </SettingsPanel>
 
-            {hasTypeSpecificSettings ? (
-                <SettingsPanel
-                    title={`${typeMeta.label} settings`}
-                    description="Type-specific options for this field."
-                >
-                    <div className="space-y-6">{typeSpecificContent}</div>
-                </SettingsPanel>
-            ) : null}
-
             <SettingsPanel
-                title="Validation"
-                description="Rules checked when saving item content."
+                title={t('collections.validation')}
+                description={t('collections.validationDescription')}
             >
                 <ValidationRuleBuilder
                     rules={commonSettings.validationRules}
@@ -1642,6 +1661,10 @@ export function CollectionFieldFormDrawer({
     const [stringSettings, setStringSettings] = useState<StringFieldSettings>(
         () => parseStringFieldSettings(field?.settings),
     );
+    const [apiAutocompleteSettings, setApiAutocompleteSettings] =
+        useState<ApiAutocompleteFieldSettings>(() =>
+            parseApiAutocompleteFieldSettings(field?.settings),
+        );
     const [booleanLabels, setBooleanLabels] = useState(() =>
         parseBooleanFieldSettings(field?.settings),
     );
@@ -1670,7 +1693,11 @@ export function CollectionFieldFormDrawer({
 
     const settingsPayload = useMemo(() => {
         const typeSettings: Record<string, unknown> = {
-            ...serializeTextNumbersTypeSettings(fieldType, stringSettings),
+            ...serializeTextNumbersTypeSettings(
+                fieldType,
+                stringSettings,
+                apiAutocompleteSettings,
+            ),
             ...serializeBooleanFieldSettings(booleanLabels),
         };
 
@@ -1727,6 +1754,7 @@ export function CollectionFieldFormDrawer({
     }, [
         allowMultipleImages,
         allowedCollectionIds,
+        apiAutocompleteSettings,
         blockTypes,
         maxBlocksDepth,
         booleanLabels,
@@ -1821,6 +1849,12 @@ export function CollectionFieldFormDrawer({
                                 onCommonSettingsChange={setCommonSettings}
                                 stringSettings={stringSettings}
                                 onStringSettingsChange={setStringSettings}
+                                apiAutocompleteSettings={
+                                    apiAutocompleteSettings
+                                }
+                                onApiAutocompleteSettingsChange={
+                                    setApiAutocompleteSettings
+                                }
                                 booleanLabels={booleanLabels}
                                 onBooleanLabelsChange={setBooleanLabels}
                                 options={options}

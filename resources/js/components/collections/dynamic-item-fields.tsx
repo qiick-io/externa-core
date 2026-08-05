@@ -1,6 +1,7 @@
 import { ChevronDown } from 'lucide-react';
 import { Fragment, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { CollectionFieldFormDrawer } from '@/components/collections/collection-field-form';
 import { useContentLocale } from '@/components/collections/content-locale-provider';
 
 import { ContentLocaleProvider } from '@/components/collections/content-locale-provider';
@@ -10,6 +11,7 @@ import {
     BooleanToggleInput,
     CheckboxGroupInput,
     CheckboxGroupTreeInput,
+    FieldNoteSlot,
     HashFieldInput,
     InputWithIcons,
     MultiselectWithOtherInput,
@@ -26,6 +28,7 @@ import {
     FileFieldInput,
     MultipleFilesFieldInput,
 } from '@/components/collections/item-field-files-input';
+import { ItemFieldLabelMenu } from '@/components/collections/item-field-label-menu';
 import { M2aFieldInput } from '@/components/collections/item-field-m2a-input';
 import {
     ManyToManyFieldInput,
@@ -47,8 +50,12 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PermissionEnum } from '@/enums/permission-enum';
+import { useCan } from '@/hooks/use-can';
+import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import { getFieldError } from '@/lib/collection-data-errors';
 import {
     getFieldDisplayName,
@@ -71,7 +78,15 @@ import {
     resolveFormLayoutLabel,
 } from '@/lib/collection-form-layout';
 import { evaluateFieldFlags } from '@/lib/field-conditions';
+import {
+    clearFieldRawValue,
+    readFieldRawFromForm,
+    withLocaleSlice,
+} from '@/lib/item-field-raw-value';
 import { cn } from '@/lib/utils';
+import type { CollectionFieldRow } from '@/types';
+
+const ITEM_FORM_ID = 'collection-item-form';
 
 const inputLike =
     'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
@@ -81,6 +96,7 @@ type FieldDef = {
     name: string;
     type: string;
     translatable: boolean;
+    sort_order?: number;
     settings?: Record<string, unknown> | null;
 };
 
@@ -658,6 +674,13 @@ function TranslatableItemField({
     defaults,
     required,
     errorMessage,
+    remountKey,
+    isDirty,
+    canEditFieldSchema,
+    onMarkDirty,
+    onApplyValue,
+    onUndo,
+    onEditField,
 }: {
     field: FieldDef;
     locales: string[];
@@ -669,10 +692,22 @@ function TranslatableItemField({
     defaults?: Record<string, unknown>;
     required: boolean;
     errorMessage?: string;
+    remountKey: number;
+    isDirty: boolean;
+    canEditFieldSchema: boolean;
+    onMarkDirty: () => void;
+    onApplyValue: (value: unknown) => void;
+    onUndo: () => void;
+    onEditField?: () => void;
 }) {
-    const labelText = showFieldNameHeading
-        ? `${displayName}${required ? ' *' : ''}`
-        : undefined;
+    const labelText = showFieldNameHeading ? (
+        <>
+            {displayName}
+            {required ? (
+                <span className="text-destructive"> *</span>
+            ) : null}
+        </>
+    ) : undefined;
 
     const shared = useContentLocale(locales);
     const [fieldLocale, setFieldLocale] = useState(
@@ -684,11 +719,48 @@ function TranslatableItemField({
     const note = getFieldNote(field.settings, locales);
     const isMarkdown = field.type === 'markdown';
 
+    const resolveCurrent = (): unknown => {
+        const form = document.getElementById(
+            ITEM_FORM_ID,
+        ) as HTMLFormElement | null;
+        if (form) {
+            const live = readFieldRawFromForm(form, field.name, fieldLocale);
+            if (live !== undefined) {
+                return live;
+            }
+        }
+
+        return getDefaultLocale(defaults, field.name, fieldLocale);
+    };
+
+    const applyLocaleSlice = (slice: unknown): void => {
+        const full = defaults?.[field.name];
+        onApplyValue(withLocaleSlice(full, fieldLocale, slice));
+    };
+
     return (
         <LocalizedField
+            key={remountKey}
             locales={locales}
             label={labelText}
-            description={note || undefined}
+            labelAddon={
+                showFieldNameHeading ? (
+                    <ItemFieldLabelMenu
+                        getCurrentValue={resolveCurrent}
+                        isDirty={isDirty}
+                        readonly={readonly}
+                        canEditFieldSchema={canEditFieldSchema}
+                        onApplyValue={applyLocaleSlice}
+                        onUndo={onUndo}
+                        onClear={() => {
+                            applyLocaleSlice(clearFieldRawValue(resolveCurrent()));
+                        }}
+                        onEditField={onEditField}
+                    />
+                ) : undefined
+            }
+            description={note}
+            reserveDescriptionSpace
             showCopyActions={!readonly}
             errorMessage={errorMessage}
             namePrefix={`data[${field.name}]`}
@@ -705,7 +777,11 @@ function TranslatableItemField({
             }
         >
             {({ locale }) => (
-                <div className="space-y-2">
+                <div
+                    className="space-y-2"
+                    onChange={onMarkDirty}
+                    onInput={onMarkDirty}
+                >
                     {locales.map((code) => {
                         const inputId = `data_${field.name}_${code}`;
                         const isActive = code === locale;
@@ -744,7 +820,7 @@ function TranslatableItemField({
 }
 
 /**
- * Non-translatable item field: title + notes left; optional markdown actions right.
+ * Non-translatable item field: title left; optional markdown actions right; note under control.
  */
 function NonTranslatableItemField({
     field,
@@ -757,7 +833,15 @@ function NonTranslatableItemField({
     defaults,
     required,
     errorMessage,
+    remountKey,
+    isDirty,
+    canEditFieldSchema,
     onValueChange,
+    onMarkDirty,
+    onApplyValue,
+    onUndo,
+    onClear,
+    onEditField,
 }: {
     field: FieldDef;
     locales: string[];
@@ -769,21 +853,50 @@ function NonTranslatableItemField({
     defaults?: Record<string, unknown>;
     required: boolean;
     errorMessage?: string;
+    remountKey: number;
+    isDirty: boolean;
+    canEditFieldSchema: boolean;
     onValueChange: (fieldName: string, value: unknown) => void;
+    onMarkDirty: () => void;
+    onApplyValue: (value: unknown) => void;
+    onUndo: () => void;
+    onClear: () => void;
+    onEditField?: () => void;
 }) {
     const [markdownMode, setMarkdownMode] = useState<'edit' | 'preview'>(
         'edit',
     );
     const note = getFieldNote(field.settings, locales);
     const isMarkdown = field.type === 'markdown';
-    const labelText = showFieldNameHeading
-        ? `${displayName}${required ? ' *' : ''}`
-        : undefined;
+    const labelText = showFieldNameHeading ? (
+        <>
+            {displayName}
+            {required ? (
+                <span className="text-destructive"> *</span>
+            ) : null}
+        </>
+    ) : undefined;
+
+    const resolveCurrent = (): unknown => {
+        const form = document.getElementById(
+            ITEM_FORM_ID,
+        ) as HTMLFormElement | null;
+        if (form) {
+            const live = readFieldRawFromForm(form, field.name);
+            if (live !== undefined) {
+                return live;
+            }
+        }
+
+        return getDefaultScalar(defaults, field.name);
+    };
 
     return (
         <div
+            key={remountKey}
             className="space-y-2"
             onChange={(event) => {
+                onMarkDirty();
                 const target = event.target as
                     | HTMLInputElement
                     | HTMLSelectElement
@@ -799,32 +912,39 @@ function NonTranslatableItemField({
 
                 onValueChange(field.name, target.value);
             }}
+            onInput={onMarkDirty}
         >
-            {labelText || note || isMarkdown ? (
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                        {labelText ? (
-                            <Label htmlFor={`data_${field.name}`}>
-                                {labelText}
-                            </Label>
-                        ) : null}
-                        {note ? (
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                {note}
-                            </p>
-                        ) : null}
-                    </div>
-                    {isMarkdown ? (
-                        <div className="flex shrink-0 items-center gap-1">
-                            <MarkdownModeToggle
-                                value={markdownMode}
-                                onChange={setMarkdownMode}
-                                disabled={readonly}
-                            />
-                        </div>
+            {/* min-h-8 matches Button/ToggleGroup sm so half-width siblings align with/without actions */}
+            <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-0.5">
+                    {labelText ? (
+                        <Label htmlFor={`data_${field.name}`}>
+                            {labelText}
+                        </Label>
+                    ) : null}
+                    {showFieldNameHeading ? (
+                        <ItemFieldLabelMenu
+                            getCurrentValue={resolveCurrent}
+                            isDirty={isDirty}
+                            readonly={readonly}
+                            canEditFieldSchema={canEditFieldSchema}
+                            onApplyValue={onApplyValue}
+                            onUndo={onUndo}
+                            onClear={onClear}
+                            onEditField={onEditField}
+                        />
                     ) : null}
                 </div>
-            ) : null}
+                {isMarkdown ? (
+                    <div className="flex shrink-0 items-center gap-1">
+                        <MarkdownModeToggle
+                            value={markdownMode}
+                            onChange={setMarkdownMode}
+                            disabled={readonly}
+                        />
+                    </div>
+                ) : null}
+            </div>
             {renderFieldControl({
                 field,
                 name: `data[${field.name}]`,
@@ -839,6 +959,8 @@ function NonTranslatableItemField({
                 onMarkdownModeChange: setMarkdownMode,
                 showMarkdownModeToggle: false,
             })}
+            {/* Always reserve note line below control so half-width siblings stay aligned */}
+            <FieldNoteSlot note={note} />
             {errorMessage ? (
                 <p className="text-sm text-destructive">{errorMessage}</p>
             ) : null}
@@ -884,8 +1006,30 @@ export function DynamicItemFields({
     errors?: Record<string, unknown>;
     defaultLocale?: string;
 }) {
+    const { can } = useCan();
+    const canEditFieldSchema = can(PermissionEnum.CanEditCollections);
+    const requestLeave = useRequestLeave();
     const showFieldNameHeading = variant === 'plain';
     const gapClass = variant === 'cards' ? 'space-y-4' : 'space-y-6';
+
+    // Stable loaded values for Undo (ignore later parent identity churn)
+    const [initialDefaults] = useState<Record<string, unknown>>(
+        () => ({ ...(defaults ?? {}) }),
+    );
+    const [valueOverrides, setValueOverrides] = useState<
+        Record<string, unknown>
+    >({});
+    const [remountKeys, setRemountKeys] = useState<Record<string, number>>({});
+    const [dirtyFields, setDirtyFields] = useState<Record<string, boolean>>(
+        {},
+    );
+    const [editField, setEditField] = useState<CollectionFieldRow | null>(null);
+
+    const effectiveDefaults = useMemo(
+        () => ({ ...initialDefaults, ...valueOverrides }),
+        [initialDefaults, valueOverrides],
+    );
+
     const [formValues, setFormValues] = useState<Record<string, unknown>>(
         () => ({ ...(defaults ?? {}) }),
     );
@@ -919,7 +1063,7 @@ export function DynamicItemFields({
                         locales,
                     ).toLowerCase();
                     const fieldName = field.name.toLowerCase();
-                    
+
                     return (
                         displayName.includes(searchLower) ||
                         fieldName.includes(searchLower)
@@ -945,6 +1089,54 @@ export function DynamicItemFields({
         setFormValues((current) => ({ ...current, [fieldName]: value }));
     };
 
+    const markFieldDirty = (fieldName: string): void => {
+        setDirtyFields((current) =>
+            current[fieldName] ? current : { ...current, [fieldName]: true },
+        );
+    };
+
+    const applyFieldValue = (fieldName: string, value: unknown): void => {
+        setValueOverrides((current) => ({ ...current, [fieldName]: value }));
+        setRemountKeys((current) => ({
+            ...current,
+            [fieldName]: (current[fieldName] ?? 0) + 1,
+        }));
+        setDirtyFields((current) => ({ ...current, [fieldName]: true }));
+        updateFormValue(fieldName, value);
+    };
+
+    const undoFieldValue = (fieldName: string): void => {
+        setValueOverrides((current) => {
+            const next = { ...current };
+            delete next[fieldName];
+
+            return next;
+        });
+        setRemountKeys((current) => ({
+            ...current,
+            [fieldName]: (current[fieldName] ?? 0) + 1,
+        }));
+        setDirtyFields((current) => ({ ...current, [fieldName]: false }));
+        updateFormValue(fieldName, initialDefaults[fieldName] ?? '');
+    };
+
+    const clearFieldValue = (fieldName: string): void => {
+        const sample = effectiveDefaults[fieldName];
+        applyFieldValue(fieldName, clearFieldRawValue(sample));
+    };
+
+    const handleEditDrawerOpenChange = (open: boolean): void => {
+        if (open) {
+            return;
+        }
+
+        void requestLeave().then((ok) => {
+            if (ok) {
+                setEditField(null);
+            }
+        });
+    };
+
     const renderOneField = (field: FieldDef): ReactNode => {
         const flags = evaluateFieldFlags(field.settings, formValues);
 
@@ -963,6 +1155,11 @@ export function DynamicItemFields({
             !(isNew ? grant?.create === true : grant?.update === true);
         const readonly = flags.readonly || aclReadonly;
         const errorMessage = getFieldError(errors, field.name);
+        const remountKey = remountKeys[field.name] ?? 0;
+        const isDirty = dirtyFields[field.name] === true;
+        const openEditField = canEditFieldSchema
+            ? () => setEditField(field as CollectionFieldRow)
+            : undefined;
 
         const inner = field.translatable ? (
             <TranslatableItemField
@@ -973,9 +1170,16 @@ export function DynamicItemFields({
                 readonly={readonly}
                 collectionId={collectionId}
                 relatedCollections={relatedCollections}
-                defaults={defaults}
+                defaults={effectiveDefaults}
                 required={flags.required}
                 errorMessage={errorMessage}
+                remountKey={remountKey}
+                isDirty={isDirty}
+                canEditFieldSchema={canEditFieldSchema}
+                onMarkDirty={() => markFieldDirty(field.name)}
+                onApplyValue={(value) => applyFieldValue(field.name, value)}
+                onUndo={() => undoFieldValue(field.name)}
+                onEditField={openEditField}
             />
         ) : (
             <NonTranslatableItemField
@@ -986,10 +1190,18 @@ export function DynamicItemFields({
                 readonly={readonly}
                 collectionId={collectionId}
                 relatedCollections={relatedCollections}
-                defaults={defaults}
+                defaults={effectiveDefaults}
                 required={flags.required}
                 errorMessage={errorMessage}
+                remountKey={remountKey}
+                isDirty={isDirty}
+                canEditFieldSchema={canEditFieldSchema}
                 onValueChange={updateFormValue}
+                onMarkDirty={() => markFieldDirty(field.name)}
+                onApplyValue={(value) => applyFieldValue(field.name, value)}
+                onUndo={() => undoFieldValue(field.name)}
+                onClear={() => clearFieldValue(field.name)}
+                onEditField={openEditField}
             />
         );
 
@@ -1002,7 +1214,10 @@ export function DynamicItemFields({
                     <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-sidebar-border/70 pb-3 dark:border-sidebar-border">
                         <div className="flex flex-wrap items-center gap-2">
                             <span className="font-mono text-sm font-medium">
-                                {displayName}{flags.required ? ' *' : ''}
+                                {displayName}
+                                {flags.required ? (
+                                    <span className="text-destructive"> *</span>
+                                ) : null}
                             </span>
                             {field.translatable && (
                                 <Badge variant="secondary">Translatable</Badge>
@@ -1038,7 +1253,10 @@ export function DynamicItemFields({
                         {row.map(({ field, colSpan }) => (
                             <div
                                 key={field.id}
-                                className={colSpan === 2 ? 'md:col-span-2' : ''}
+                                className={cn(
+                                    'px-1',
+                                    colSpan === 2 ? 'md:col-span-2' : '',
+                                )}
                             >
                                 {renderOneField(field)}
                             </div>
@@ -1137,6 +1355,27 @@ export function DynamicItemFields({
                     );
                 })}
             </div>
+
+            <Drawer
+                direction="right"
+                open={editField !== null}
+                onOpenChange={handleEditDrawerOpenChange}
+            >
+                <DrawerContent className="data-[vaul-drawer-direction=right]:max-w-3xl">
+                    {editField !== null ? (
+                        <CollectionFieldFormDrawer
+                            mode="edit"
+                            collectionId={collectionId}
+                            field={editField}
+                            fieldType={editField.type}
+                            relatedCollections={relatedCollections}
+                            siblingFieldNames={fields.map((item) => item.name)}
+                            onCancel={() => handleEditDrawerOpenChange(false)}
+                            onSuccess={() => setEditField(null)}
+                        />
+                    ) : null}
+                </DrawerContent>
+            </Drawer>
         </ContentLocaleProvider>
     );
 }

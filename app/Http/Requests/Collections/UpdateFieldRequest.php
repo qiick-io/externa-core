@@ -92,7 +92,9 @@ class UpdateFieldRequest extends FormRequest
             ],
             'type' => ['sometimes', Rule::enum(FieldTypeEnum::class)],
             'translatable' => ['sometimes', 'boolean'],
-            ...$this->fieldSettingsRules($field->type),
+            ...$this->fieldSettingsRules(
+                FieldTypeEnum::tryFrom((string) $this->input('type')) ?? $field->type,
+            ),
         ];
     }
 }

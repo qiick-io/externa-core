@@ -171,6 +171,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('tags', [FileController::class, 'listTags'])->name('tags.index');
             Route::post('folders', [FileController::class, 'createFolder'])->name('folders.store');
             Route::post('upload', [FileController::class, 'upload'])->name('upload');
+            Route::post('import-url', [FileController::class, 'importFromUrl'])->name('import-url');
             Route::post('bulk', [FileController::class, 'bulk'])->name('bulk');
             Route::post('download', [FileController::class, 'downloadMany'])->name('download-many');
             Route::get('zips/{jobId}', [FileController::class, 'downloadPreparedZip'])->name('zips.download');

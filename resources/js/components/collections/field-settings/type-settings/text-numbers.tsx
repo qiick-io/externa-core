@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { LucideIconPicker } from '@/components/collections/field-settings/lucide-icon-picker';
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { TranslatedInput } from '@/components/collections/field-settings/translated-input';
@@ -9,12 +8,15 @@ import {
     parseApiAutocompleteFieldSettings,
     parseCodeFieldSettings,
     parseNumberFieldSettings,
+    parseSelectFieldSettings,
     parseStringFieldSettings,
     parseTagFieldSettings,
     parseTextareaFieldSettings,
+    serializeApiAutocompleteFieldSettings,
     serializeStringFieldSettings,
 } from '@/lib/collection-field-types';
 import type {
+    ApiAutocompleteFieldSettings,
     StringFieldSettings,
     TranslatedText,
 } from '@/lib/collection-field-types';
@@ -25,6 +27,12 @@ type TextNumbersSettingsProps = {
     stringSettings: StringFieldSettings;
     onStringSettingsChange: (
         updater: (current: StringFieldSettings) => StringFieldSettings,
+    ) => void;
+    apiAutocompleteSettings?: ApiAutocompleteFieldSettings;
+    onApiAutocompleteSettingsChange?: (
+        updater: (
+            current: ApiAutocompleteFieldSettings,
+        ) => ApiAutocompleteFieldSettings,
     ) => void;
 };
 
@@ -37,6 +45,8 @@ export function TextNumbersSettings({
     settings,
     stringSettings,
     onStringSettingsChange,
+    apiAutocompleteSettings,
+    onApiAutocompleteSettingsChange,
 }: TextNumbersSettingsProps) {
     if (fieldType === 'string') {
         return (
@@ -301,7 +311,19 @@ export function TextNumbersSettings({
     }
 
     if (fieldType === 'api_autocomplete') {
-        return <ApiAutocompleteSettingsPanel settings={settings} />;
+        const apiSettings =
+            apiAutocompleteSettings ??
+            parseApiAutocompleteFieldSettings(settings);
+
+        return (
+            <ApiAutocompleteSettingsPanel
+                settings={apiSettings}
+                onChange={
+                    onApiAutocompleteSettingsChange ??
+                    (() => undefined)
+                }
+            />
+        );
     }
 
     return null;
@@ -359,6 +381,7 @@ function AutocompletePlaceholderPanel({
     settings?: Record<string, unknown> | null;
 }) {
     const placeholder = parseStringFieldSettings(settings).placeholder;
+    const selectSettings = parseSelectFieldSettings(settings);
 
     return (
         <div className="space-y-4">
@@ -373,31 +396,50 @@ function AutocompletePlaceholderPanel({
                 onChange={() => undefined}
                 namePrefix="settings[placeholder]"
             />
+            <SettingCheckbox
+                id="autocomplete_allow_other"
+                name="settings[allow_other]"
+                label="Allow values outside options"
+                description="Accept custom values not listed in the choices."
+                defaultChecked={selectSettings.allowOther}
+            />
         </div>
     );
 }
 
 function ApiAutocompleteSettingsPanel({
     settings,
+    onChange,
 }: {
-    settings?: Record<string, unknown> | null;
+    settings: ApiAutocompleteFieldSettings;
+    onChange: (
+        updater: (
+            current: ApiAutocompleteFieldSettings,
+        ) => ApiAutocompleteFieldSettings,
+    ) => void;
 }) {
-    const apiSettings = parseApiAutocompleteFieldSettings(settings);
-    const [iconLeft, setIconLeft] = useState(apiSettings.iconLeft);
-    const [iconRight, setIconRight] = useState(apiSettings.iconRight);
-
     return (
         <div className="space-y-6">
             <div className="grid gap-2">
-                <Label htmlFor="api_autocomplete_url">URL template</Label>
+                <Label htmlFor="api_autocomplete_url">
+                    URL template <span className="text-destructive">*</span>
+                </Label>
                 <Input
                     id="api_autocomplete_url"
-                    name="settings[url]"
-                    defaultValue={apiSettings.url}
-                    placeholder="https://api.example.com/search?q={{value}}"
+                    value={settings.url}
+                    required
+                    aria-required="true"
+                    onChange={(event) =>
+                        onChange((current) => ({
+                            ...current,
+                            url: event.target.value,
+                        }))
+                    }
+                    placeholder="/demo/cities?q={{value}}"
                 />
                 <p className="text-xs text-muted-foreground">
-                    Use {'{{value}}'} as the search term placeholder.
+                    Use {'{{value}}'} as the search term placeholder. Same-origin
+                    URLs avoid CORS (e.g. /demo/cities?q={'{{value}}'}).
                 </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
@@ -405,8 +447,13 @@ function ApiAutocompleteSettingsPanel({
                     <Label htmlFor="api_results_path">Results path</Label>
                     <Input
                         id="api_results_path"
-                        name="settings[results_path]"
-                        defaultValue={apiSettings.resultsPath}
+                        value={settings.resultsPath}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                resultsPath: event.target.value,
+                            }))
+                        }
                         placeholder="data"
                     />
                 </div>
@@ -414,8 +461,13 @@ function ApiAutocompleteSettingsPanel({
                     <Label htmlFor="api_text_path">Text path</Label>
                     <Input
                         id="api_text_path"
-                        name="settings[text_path]"
-                        defaultValue={apiSettings.textPath}
+                        value={settings.textPath}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                textPath: event.target.value,
+                            }))
+                        }
                         placeholder="label"
                     />
                 </div>
@@ -423,8 +475,13 @@ function ApiAutocompleteSettingsPanel({
                     <Label htmlFor="api_value_path">Value path</Label>
                     <Input
                         id="api_value_path"
-                        name="settings[value_path]"
-                        defaultValue={apiSettings.valuePath}
+                        value={settings.valuePath}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                valuePath: event.target.value,
+                            }))
+                        }
                         placeholder="value"
                     />
                 </div>
@@ -434,8 +491,16 @@ function ApiAutocompleteSettingsPanel({
                     <Label htmlFor="api_trigger">Trigger</Label>
                     <select
                         id="api_trigger"
-                        name="settings[trigger]"
-                        defaultValue={apiSettings.trigger}
+                        value={settings.trigger}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                trigger:
+                                    event.target.value === 'throttle'
+                                        ? 'throttle'
+                                        : 'debounce',
+                            }))
+                        }
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
                     >
                         <option value="debounce">Debounce</option>
@@ -448,40 +513,40 @@ function ApiAutocompleteSettingsPanel({
                         id="api_rate"
                         type="number"
                         min={0}
-                        name="settings[rate]"
-                        defaultValue={apiSettings.rate}
+                        value={settings.rate}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                rate: Number(event.target.value) || 0,
+                            }))
+                        }
                     />
                 </div>
             </div>
             <TranslatedInput
                 idPrefix="api_autocomplete_placeholder"
                 label="Placeholder"
-                value={apiSettings.placeholder}
-                onChange={() => undefined}
-                namePrefix="settings[placeholder]"
+                value={settings.placeholder}
+                onChange={(placeholder) =>
+                    onChange((current) => ({ ...current, placeholder }))
+                }
             />
             <div className="grid gap-4 sm:grid-cols-2">
                 <LucideIconPicker
                     id="api_icon_left"
                     label="Icon left"
-                    value={iconLeft}
-                    onChange={setIconLeft}
-                />
-                <input
-                    type="hidden"
-                    name="settings[icon_left]"
-                    value={iconLeft}
+                    value={settings.iconLeft}
+                    onChange={(iconLeft) =>
+                        onChange((current) => ({ ...current, iconLeft }))
+                    }
                 />
                 <LucideIconPicker
                     id="api_icon_right"
                     label="Icon right"
-                    value={iconRight}
-                    onChange={setIconRight}
-                />
-                <input
-                    type="hidden"
-                    name="settings[icon_right]"
-                    value={iconRight}
+                    value={settings.iconRight}
+                    onChange={(iconRight) =>
+                        onChange((current) => ({ ...current, iconRight }))
+                    }
                 />
             </div>
         </div>
@@ -495,9 +560,14 @@ function ApiAutocompleteSettingsPanel({
 export function serializeTextNumbersTypeSettings(
     fieldType: string,
     stringSettings: StringFieldSettings,
+    apiAutocompleteSettings?: ApiAutocompleteFieldSettings,
 ): Record<string, unknown> {
     if (fieldType === 'string') {
         return serializeStringFieldSettings(stringSettings);
+    }
+
+    if (fieldType === 'api_autocomplete' && apiAutocompleteSettings) {
+        return serializeApiAutocompleteFieldSettings(apiAutocompleteSettings);
     }
 
     return {};

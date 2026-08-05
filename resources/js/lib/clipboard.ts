@@ -7,10 +7,6 @@
  * @returns Whether the copy succeeded
  */
 export async function copyTextToClipboard(text: string): Promise<boolean> {
-    if (text === '') {
-        return false;
-    }
-
     try {
         if (navigator.clipboard?.writeText) {
             await navigator.clipboard.writeText(text);
@@ -40,4 +36,21 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
     } catch {
         return false;
     }
+}
+
+/**
+ * Read plain text from the clipboard (Clipboard API only).
+ *
+ * @returns Clipboard text, or null when unavailable / denied
+ */
+export async function readTextFromClipboard(): Promise<string | null> {
+    try {
+        if (navigator.clipboard?.readText) {
+            return await navigator.clipboard.readText();
+        }
+    } catch {
+        /* denied or unavailable */
+    }
+
+    return null;
 }

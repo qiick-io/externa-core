@@ -401,9 +401,11 @@ export function parseApiAutocompleteFieldSettings(
     settings?: Record<string, unknown> | null,
 ): ApiAutocompleteFieldSettings {
     const trigger = String(settings?.trigger ?? 'debounce');
+    // null from ConvertEmptyStringsToNull must not become the string "null"
+    const urlRaw = settings?.url;
 
     return {
-        url: String(settings?.url ?? ''),
+        url: typeof urlRaw === 'string' ? urlRaw : '',
         resultsPath: String(settings?.results_path ?? 'data'),
         textPath: String(settings?.text_path ?? 'label'),
         valuePath: String(settings?.value_path ?? 'value'),
@@ -415,6 +417,41 @@ export function parseApiAutocompleteFieldSettings(
         iconLeft: String(settings?.icon_left ?? ''),
         iconRight: String(settings?.icon_right ?? ''),
     };
+}
+
+/**
+ * Serialize API autocomplete settings for persistence.
+ *
+ * @param apiSettings - API autocomplete editor state
+ * @returns Settings object ready to persist
+ */
+export function serializeApiAutocompleteFieldSettings(
+    apiSettings: ApiAutocompleteFieldSettings,
+): Record<string, unknown> {
+    const out: Record<string, unknown> = {
+        url: apiSettings.url.trim(),
+        results_path: apiSettings.resultsPath.trim() || 'data',
+        text_path: apiSettings.textPath.trim() || 'label',
+        value_path: apiSettings.valuePath.trim() || 'value',
+        trigger: apiSettings.trigger,
+        rate: apiSettings.rate,
+    };
+
+    const placeholder = serializeTranslatedText(apiSettings.placeholder);
+
+    if (placeholder) {
+        out.placeholder = placeholder;
+    }
+
+    if (apiSettings.iconLeft.trim()) {
+        out.icon_left = apiSettings.iconLeft.trim();
+    }
+
+    if (apiSettings.iconRight.trim()) {
+        out.icon_right = apiSettings.iconRight.trim();
+    }
+
+    return out;
 }
 
 /** Select field behavior flags. */

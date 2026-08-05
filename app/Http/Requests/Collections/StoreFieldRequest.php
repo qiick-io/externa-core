@@ -87,7 +87,9 @@ class StoreFieldRequest extends FormRequest
             ],
             'type' => ['required', Rule::enum(FieldTypeEnum::class)],
             'translatable' => ['sometimes', 'boolean'],
-            ...$this->fieldSettingsRules(),
+            ...$this->fieldSettingsRules(
+                FieldTypeEnum::tryFrom((string) $this->input('type')),
+            ),
         ];
     }
 }

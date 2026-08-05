@@ -203,6 +203,39 @@ export async function uploadFileDirect(
 }
 
 /**
+ * Downloads a remote URL server-side and stores it in the file manager root (or folder).
+ *
+ * @param url - Public http(s) URL of a file/image
+ * @param parentId - Destination folder id, or null for root
+ * @param name - Optional override filename
+ * @returns Created file row
+ */
+export async function importFileFromUrl(
+    url: string,
+    parentId: number | null,
+    name?: string,
+): Promise<AdminFileRow> {
+    const response = await request(
+        adminRoutes.files.importUrl(),
+        {
+            method: 'POST',
+            headers: jsonRequestHeaders(),
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                url,
+                parent_id: parentId,
+                ...(name ? { name } : {}),
+            }),
+        },
+        'Failed to import file from URL',
+    );
+
+    await assertOkResponse(response, 'Failed to import file from URL');
+
+    return (await response.json()) as AdminFileRow;
+}
+
+/**
  * Moves a file or folder to a new parent.
  *
  * @param fileId - Id of the item to move

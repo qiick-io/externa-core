@@ -25,8 +25,10 @@ export type LocalizedFieldProps = {
     onLocaleChange?: (locale: string) => void;
     value?: Partial<Record<string, string>>;
     onChange?: (value: Partial<Record<string, string>>) => void;
-    label?: string;
+    label?: ReactNode;
     description?: string;
+    /** Always render a one-line description slot below the control (even when empty) for row alignment. */
+    reserveDescriptionSpace?: boolean;
     placeholder?: string;
     disabled?: boolean;
     inputType?: 'input' | 'textarea';
@@ -43,6 +45,8 @@ export type LocalizedFieldProps = {
     errorMessage?: string;
     /** Extra controls on the title row (right, beside locale) — e.g. markdown edit/preview. */
     headerActions?: ReactNode;
+    /** Controls beside the label (left) — e.g. field value caret menu. */
+    labelAddon?: ReactNode;
 };
 
 function normalizeLocales(
@@ -64,6 +68,7 @@ export function LocalizedField({
     onChange,
     label,
     description,
+    reserveDescriptionSpace = false,
     placeholder,
     disabled = false,
     inputType = 'input',
@@ -74,6 +79,7 @@ export function LocalizedField({
     showCopyActions = true,
     errorMessage,
     headerActions,
+    labelAddon,
 }: LocalizedFieldProps) {
     const { t } = useTranslation();
     const localeEntries = normalizeLocales(localesProp);
@@ -179,14 +185,11 @@ export function LocalizedField({
 
     return (
         <div className={cn('space-y-2', className)}>
-            <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
+            {/* min-h-8 matches Button/ToggleGroup sm so half-width siblings align with/without headerActions */}
+            <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-0.5">
                     {label ? <Label>{label}</Label> : null}
-                    {description ? (
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            {description}
-                        </p>
-                    ) : null}
+                    {labelAddon}
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                     {headerActions}
@@ -297,7 +300,16 @@ export function LocalizedField({
                     aria-invalid={!!errorMessage}
                 />
             )}
-            
+
+            {reserveDescriptionSpace || description ? (
+                <p
+                    className="min-h-5 text-sm text-muted-foreground"
+                    aria-hidden={!description}
+                >
+                    {description || '\u00A0'}
+                </p>
+            ) : null}
+
             {errorMessage && (
                 <p className="text-sm text-destructive">{errorMessage}</p>
             )}

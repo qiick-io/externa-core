@@ -7,11 +7,18 @@ import {
     useState,
 } from 'react';
 import type { ReactNode } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 import { LucideIconByName } from '@/components/collections/field-settings/lucide-icon-picker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
+import {
+    cascadeToggleValues,
+    collectExpandableKeys,
+    collectTreeLeafValues,
+    getTreeNodeCheckState,
+} from '@/lib/checkbox-group-tree';
 import {
     getFieldNote,
     getFieldPlaceholder,
@@ -29,6 +36,18 @@ import { cn } from '@/lib/utils';
 
 const inputLike =
     'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
+
+/** Shared border/ring chrome for naked choice controls (boolean, checkbox group, radio, tree, slider). */
+const choiceFieldChromeBase =
+    'w-full rounded-md border border-input bg-transparent shadow-xs has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-inset';
+
+/** Single-line choice chrome — matches Input h-9 (36px). */
+const choiceFieldChromeSingle =
+    cn(choiceFieldChromeBase, 'flex h-9 min-h-9 items-center px-3');
+
+/** Multi-option / growing chrome — tight padding, height follows content. */
+const choiceFieldChrome =
+    cn(choiceFieldChromeBase, 'px-3 py-1.5');
 
 type DefaultValue =
     | string
@@ -140,22 +159,42 @@ function getPathValue(source: unknown, path: string): unknown {
     }, source);
 }
 
+/**
+ * Always reserves one line of vertical space below the control so half-width siblings stay aligned.
+ */
+export function FieldNoteSlot({ note }: { note?: string }) {
+    return (
+        <p
+            className="min-h-5 text-sm text-muted-foreground"
+            aria-hidden={!note}
+        >
+            {note || '\u00A0'}
+        </p>
+    );
+}
+
 export function FieldNote({
     settings,
     locales,
+    reserveSpace = false,
 }: {
     settings?: Record<string, unknown> | null;
     locales: string[];
+    /** When true, always render a one-line slot even if note is empty. */
+    reserveSpace?: boolean;
 }) {
     const note = getFieldNote(settings, locales);
 
-    if (!note) {
+    if (!note && !reserveSpace) {
         return null;
     }
 
-    return <p className="text-sm text-muted-foreground">{note}</p>;
+    return <FieldNoteSlot note={note} />;
 }
 
+/**
+ * Antd-style Input.Group: icon in a bordered addon flush to the input (not floating inside).
+ */
 export function InputWithIcons({
     iconLeft,
     iconRight,
@@ -169,28 +208,38 @@ export function InputWithIcons({
         return <>{children}</>;
     }
 
+    const addonClass =
+        'inline-flex h-9 w-9 shrink-0 items-center justify-center border border-input bg-muted/50 text-muted-foreground';
+
     return (
-        <div className="relative flex items-center">
+        <div className="flex w-full items-stretch">
             {iconLeft ? (
-                <LucideIconByName
-                    name={iconLeft}
-                    className="pointer-events-none absolute left-3 size-4 text-muted-foreground"
-                />
+                <span
+                    className={cn(addonClass, 'rounded-l-md border-r-0')}
+                    aria-hidden
+                >
+                    <LucideIconByName name={iconLeft} className="size-4" />
+                </span>
             ) : null}
             <div
                 className={cn(
-                    'w-full',
-                    iconLeft && 'pl-9',
-                    iconRight && 'pr-9',
+                    'min-w-0 flex-1',
+                    // strip input corners where they meet the addon
+                    iconLeft &&
+                        '[&_[data-slot=input]]:rounded-l-none [&_input]:rounded-l-none [&_select]:rounded-l-none [&_textarea]:rounded-l-none [&_button]:rounded-l-none',
+                    iconRight &&
+                        '[&_[data-slot=input]]:rounded-r-none [&_input]:rounded-r-none [&_select]:rounded-r-none [&_textarea]:rounded-r-none [&_button]:rounded-r-none',
                 )}
             >
                 {children}
             </div>
             {iconRight ? (
-                <LucideIconByName
-                    name={iconRight}
-                    className="pointer-events-none absolute right-3 size-4 text-muted-foreground"
-                />
+                <span
+                    className={cn(addonClass, 'rounded-r-md border-l-0')}
+                    aria-hidden
+                >
+                    <LucideIconByName name={iconRight} className="size-4" />
+                </span>
             ) : null}
         </div>
     );
@@ -225,7 +274,7 @@ export function BooleanToggleInput({
     );
 
     return (
-        <div className="flex items-center gap-3">
+        <div className={cn(choiceFieldChromeSingle, 'gap-3')}>
             <button
                 id={id}
                 type="button"
@@ -238,7 +287,7 @@ export function BooleanToggleInput({
                     }
                 }}
                 className={cn(
-                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-none',
+                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none',
                     checked ? 'bg-primary' : 'bg-muted',
                     readonly && 'cursor-not-allowed opacity-50',
                 )}
@@ -250,7 +299,9 @@ export function BooleanToggleInput({
                     )}
                 />
             </button>
-            <span className="text-sm">{checked ? onLabel : offLabel}</span>
+            <span className="truncate text-sm leading-none">
+                {checked ? onLabel : offLabel}
+            </span>
             <input type="hidden" name={name} value={checked ? '1' : '0'} />
         </div>
     );
@@ -322,7 +373,20 @@ export function ApiAutocompleteInput({
     readonly: boolean;
 }) {
     const listId = useId();
+    const containerRef = useRef<HTMLDivElement>(null);
     const apiSettings = parseApiAutocompleteFieldSettings(settings);
+    // ponytail: primitives only — parseApiAutocompleteFieldSettings() returns a
+    // new object each render; putting it in effect deps re-fired the debounce forever.
+    const {
+        url,
+        resultsPath,
+        textPath,
+        valuePath,
+        trigger,
+        rate,
+        iconLeft,
+        iconRight,
+    } = apiSettings;
     const placeholder = resolveTranslatedText(
         apiSettings.placeholder,
         locales,
@@ -331,13 +395,17 @@ export function ApiAutocompleteInput({
     const [query, setQuery] = useState(defaultValue);
     const [suggestions, setSuggestions] = useState<ApiSuggestion[]>([]);
     const [loading, setLoading] = useState(false);
+    const [open, setOpen] = useState(false);
     const lastRequestAtRef = useRef(0);
     const abortControllerRef = useRef<AbortController | null>(null);
+    /** When set, matches `query` after picking a suggestion — skip refetch until the user types. */
+    const committedSelectionRef = useRef<string | null>(null);
 
     const fetchSuggestions = useCallback(
         async (searchTerm: string) => {
-            if (!apiSettings.url.trim() || searchTerm.trim() === '') {
+            if (!url.trim() || searchTerm.trim() === '') {
                 setSuggestions([]);
+                setOpen(false);
 
                 return;
             }
@@ -346,7 +414,7 @@ export function ApiAutocompleteInput({
             const abortController = new AbortController();
             abortControllerRef.current = abortController;
 
-            const requestUrl = apiSettings.url.replace(
+            const requestUrl = url.replace(
                 /\{\{value\}\}/g,
                 encodeURIComponent(searchTerm),
             );
@@ -357,43 +425,46 @@ export function ApiAutocompleteInput({
                 const response = await fetch(requestUrl, {
                     signal: abortController.signal,
                     headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
                 });
 
                 if (!response.ok) {
                     setSuggestions([]);
+                    setOpen(false);
 
                     return;
                 }
 
                 const payload = await response.json();
-                const results = getPathValue(payload, apiSettings.resultsPath);
+                const results = getPathValue(payload, resultsPath);
                 const rows = Array.isArray(results) ? results : [];
 
-                setSuggestions(
-                    rows
-                        .map((row) => {
-                            const text = String(
-                                getPathValue(row, apiSettings.textPath) ?? '',
-                            );
-                            const value = String(
-                                getPathValue(row, apiSettings.valuePath) ??
-                                    text,
-                            );
+                const next = rows
+                    .map((row) => {
+                        const text = String(
+                            getPathValue(row, textPath) ?? '',
+                        );
+                        const value = String(
+                            getPathValue(row, valuePath) ?? text,
+                        );
 
-                            if (!text && !value) {
-                                return null;
-                            }
+                        if (!text && !value) {
+                            return null;
+                        }
 
-                            return {
-                                text: text || value,
-                                value: value || text,
-                            };
-                        })
-                        .filter((row): row is ApiSuggestion => row !== null),
-                );
+                        return {
+                            text: text || value,
+                            value: value || text,
+                        };
+                    })
+                    .filter((row): row is ApiSuggestion => row !== null);
+
+                setSuggestions(next);
+                setOpen(next.length > 0);
             } catch {
                 if (!abortController.signal.aborted) {
                     setSuggestions([]);
+                    setOpen(false);
                 }
             } finally {
                 if (!abortController.signal.aborted) {
@@ -401,19 +472,26 @@ export function ApiAutocompleteInput({
                 }
             }
         },
-        [apiSettings],
+        [url, resultsPath, textPath, valuePath],
     );
 
     useEffect(() => {
-        if (!apiSettings.url.trim()) {
+        if (!url.trim()) {
             return;
         }
 
-        const delayTimer = window.setTimeout(() => {
-            const now = Date.now();
+        // Selecting an option updates `query` — don't re-fetch until the user types again.
+        if (committedSelectionRef.current === query) {
+            return;
+        }
 
-            if (apiSettings.trigger === 'throttle') {
-                if (now - lastRequestAtRef.current < apiSettings.rate) {
+        committedSelectionRef.current = null;
+
+        const delayTimer = window.setTimeout(() => {
+            if (trigger === 'throttle') {
+                const now = Date.now();
+
+                if (now - lastRequestAtRef.current < rate) {
                     return;
                 }
 
@@ -421,40 +499,87 @@ export function ApiAutocompleteInput({
             }
 
             void fetchSuggestions(query);
-        }, apiSettings.rate);
+        }, rate);
 
         return () => window.clearTimeout(delayTimer);
-    }, [apiSettings, fetchSuggestions, query]);
+    }, [url, trigger, rate, fetchSuggestions, query]);
+
+    useEffect(() => {
+        const onPointerDown = (event: MouseEvent) => {
+            if (
+                containerRef.current &&
+                !containerRef.current.contains(event.target as Node)
+            ) {
+                setOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', onPointerDown);
+
+        return () => document.removeEventListener('mousedown', onPointerDown);
+    }, []);
 
     return (
-        <div className="space-y-1">
-            <InputWithIcons
-                iconLeft={apiSettings.iconLeft}
-                iconRight={apiSettings.iconRight}
-            >
+        <div className="relative space-y-1" ref={containerRef}>
+            <InputWithIcons iconLeft={iconLeft} iconRight={iconRight}>
                 <Input
                     id={id}
                     name={name}
-                    list={listId}
+                    role="combobox"
+                    aria-expanded={open}
+                    aria-controls={listId}
+                    aria-autocomplete="list"
+                    autoComplete="off"
                     value={query}
                     placeholder={placeholder}
                     readOnly={readonly}
-                    onChange={(event) => setQuery(event.target.value)}
+                    onChange={(event) => {
+                        committedSelectionRef.current = null;
+                        setQuery(event.target.value);
+                        setOpen(true);
+                    }}
+                    onFocus={() => {
+                        if (suggestions.length > 0) {
+                            setOpen(true);
+                        }
+                    }}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Escape') {
+                            setOpen(false);
+                        }
+                    }}
                 />
             </InputWithIcons>
-            <datalist id={listId}>
-                {suggestions.map((suggestion) => (
-                    <option
-                        key={`${suggestion.value}-${suggestion.text}`}
-                        value={suggestion.value}
-                        label={suggestion.text}
-                    />
-                ))}
-            </datalist>
+            {open && suggestions.length > 0 ? (
+                <ul
+                    id={listId}
+                    role="listbox"
+                    className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-input bg-popover p-1 text-sm shadow-md"
+                >
+                    {suggestions.map((suggestion) => (
+                        <li key={`${suggestion.value}-${suggestion.text}`} role="option">
+                            <button
+                                type="button"
+                                className="flex w-full cursor-pointer rounded-sm px-2 py-1.5 text-left hover:bg-accent hover:text-accent-foreground"
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={() => {
+                                    committedSelectionRef.current =
+                                        suggestion.value;
+                                    setQuery(suggestion.value);
+                                    setOpen(false);
+                                    setSuggestions([]);
+                                }}
+                            >
+                                {suggestion.text}
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            ) : null}
             {loading ? (
                 <p className="text-xs text-muted-foreground">Loading…</p>
             ) : null}
-            {!apiSettings.url.trim() ? (
+            {!url.trim() ? (
                 <p className="text-xs text-muted-foreground">
                     Configure an API URL in field settings to enable
                     suggestions.
@@ -519,7 +644,13 @@ export function SliderFieldInput({
     const [value, setValue] = useState(initialValue);
 
     return (
-        <div className="space-y-3">
+        <div
+            className={cn(
+                sliderSettings.showValue
+                    ? cn('flex flex-col gap-1.5', choiceFieldChrome)
+                    : choiceFieldChromeSingle,
+            )}
+        >
             <Slider
                 min={sliderSettings.min}
                 max={sliderSettings.max}
@@ -531,7 +662,9 @@ export function SliderFieldInput({
                 }
             />
             {sliderSettings.showValue ? (
-                <p className="text-sm text-muted-foreground">{value}</p>
+                <p className="text-sm leading-none text-muted-foreground">
+                    {value}
+                </p>
             ) : null}
             <input type="hidden" name={name} value={String(value)} />
         </div>
@@ -581,7 +714,7 @@ export function CheckboxGroupInput({
     ];
 
     return (
-        <div className="flex flex-col gap-2">
+        <div className={cn('flex flex-col gap-2', choiceFieldChrome)}>
             {options.map((option) => {
                 const checked = selectedValues.includes(option.value);
 
@@ -738,7 +871,7 @@ export function RadioWithOtherInput({
     const submitted = selected === '__other__' ? otherValue : selected;
 
     return (
-        <div className="flex flex-col gap-2">
+        <div className={cn('flex flex-col gap-2', choiceFieldChrome)}>
             {options.map((option) => (
                 <label
                     key={option.value}
@@ -806,33 +939,139 @@ export function MultiselectWithOtherInput({
         defaultValues.filter((value) => optionValues.includes(value)),
     );
     const [otherValue, setOtherValue] = useState(initialOther ?? '');
+    const [open, setOpen] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     const stored = [
         ...selected,
         ...(allowOther && otherValue.trim() !== '' ? [otherValue.trim()] : []),
     ];
 
+    const toggle = (value: string): void => {
+        setSelected((current) =>
+            current.includes(value)
+                ? current.filter((v) => v !== value)
+                : [...current, value],
+        );
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: Event): void => {
+            if (
+                containerRef.current &&
+                !containerRef.current.contains(event.target as Node)
+            ) {
+                setOpen(false);
+            }
+        };
+
+        if (open) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
+
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+                document.removeEventListener('touchstart', handleClickOutside);
+            };
+        }
+
+        return () => {};
+    }, [open]);
+
     return (
         <div className="space-y-2">
-            <select
-                className={inputLike}
-                multiple
-                value={selected}
-                disabled={readonly}
-                onChange={(event) => {
-                    setSelected(
-                        Array.from(event.target.selectedOptions).map(
-                            (option) => option.value,
-                        ),
-                    );
-                }}
-            >
-                {options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                        {option.label || option.value}
-                    </option>
-                ))}
-            </select>
+            <div ref={containerRef} className="relative">
+                <button
+                    type="button"
+                    disabled={readonly}
+                    onClick={() => setOpen(!open)}
+                    className={cn(
+                        inputLike,
+                        'flex h-auto min-h-9 w-full items-center justify-between gap-2 text-left',
+                    )}
+                >
+                    {selected.length === 0 ? (
+                        <span className="text-muted-foreground">
+                            Select options…
+                        </span>
+                    ) : (
+                        <div className="flex flex-wrap gap-1">
+                            {selected.map((value) => {
+                                const option = options.find(
+                                    (opt) => opt.value === value,
+                                );
+
+                                return (
+                                    <span
+                                        key={value}
+                                        className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-0.5 text-xs"
+                                    >
+                                        {option?.label || value}
+                                    </span>
+                                );
+                            })}
+                        </div>
+                    )}
+                    <svg
+                        className="size-4 shrink-0 opacity-50"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                        />
+                    </svg>
+                </button>
+                {open && !readonly && (
+                    <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-md border bg-popover p-1 shadow-md">
+                        {options.length === 0 ? (
+                            <p className="p-3 text-sm text-muted-foreground">
+                                No options available.
+                            </p>
+                        ) : (
+                            options.map((option) => {
+                                const checked = selected.includes(option.value);
+
+                                return (
+                                    <div
+                                        key={option.value}
+                                        role="option"
+                                        aria-selected={checked}
+                                        tabIndex={0}
+                                        className={cn(
+                                            'flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent',
+                                            checked && 'bg-accent/50',
+                                        )}
+                                        onClick={() => toggle(option.value)}
+                                        onKeyDown={(event) => {
+                                            if (
+                                                event.key === 'Enter' ||
+                                                event.key === ' '
+                                            ) {
+                                                event.preventDefault();
+                                                toggle(option.value);
+                                            }
+                                        }}
+                                    >
+                                        <Checkbox
+                                            checked={checked}
+                                            tabIndex={-1}
+                                            className="pointer-events-none"
+                                        />
+                                        <span className="flex-1 truncate">
+                                            {option.label || option.value}
+                                        </span>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                )}
+            </div>
             {allowOther ? (
                 <Input
                     value={otherValue}
@@ -857,13 +1096,17 @@ function CheckboxGroupTreeNodes({
     nodes,
     depth,
     selectedValues,
+    expandedKeys,
     onToggle,
+    onToggleExpand,
     readonly,
 }: {
     nodes: FieldTreeOptionRow[];
     depth: number;
     selectedValues: string[];
+    expandedKeys: ReadonlySet<string>;
     onToggle: (value: string, checked: boolean) => void;
+    onToggleExpand: (value: string) => void;
     readonly: boolean;
 }) {
     return (
@@ -873,29 +1116,67 @@ function CheckboxGroupTreeNodes({
                     return null;
                 }
 
-                const checked = selectedValues.includes(node.value);
+                const hasChildren = Boolean(node.children?.length);
+                const expanded =
+                    hasChildren && expandedKeys.has(node.value);
+                const checkState = getTreeNodeCheckState(
+                    node,
+                    selectedValues,
+                );
 
                 return (
                     <Fragment key={`${depth}-${node.value}`}>
-                        <label
-                            className="flex items-center gap-2 text-sm"
+                        <div
+                            className="flex items-center gap-1 text-sm"
                             style={{ paddingLeft: depth * 16 }}
                         >
-                            <Checkbox
-                                checked={checked}
-                                disabled={readonly}
-                                onCheckedChange={(next) =>
-                                    onToggle(node.value, next === true)
-                                }
-                            />
-                            {node.label || node.value}
-                        </label>
-                        {node.children && node.children.length > 0 ? (
+                            {hasChildren ? (
+                                <button
+                                    type="button"
+                                    className="text-muted-foreground flex size-5 shrink-0 items-center justify-center"
+                                    aria-expanded={expanded}
+                                    aria-label={
+                                        expanded
+                                            ? 'Collapse'
+                                            : 'Expand'
+                                    }
+                                    onClick={() =>
+                                        onToggleExpand(node.value)
+                                    }
+                                >
+                                    {expanded ? (
+                                        <ChevronDown className="size-3.5" />
+                                    ) : (
+                                        <ChevronRight className="size-3.5" />
+                                    )}
+                                </button>
+                            ) : (
+                                <span className="size-5 shrink-0" />
+                            )}
+                            <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+                                <Checkbox
+                                    checked={checkState}
+                                    disabled={readonly}
+                                    onCheckedChange={(next) =>
+                                        onToggle(
+                                            node.value,
+                                            next === true,
+                                        )
+                                    }
+                                />
+                                <span className="truncate">
+                                    {node.label || node.value}
+                                </span>
+                            </label>
+                        </div>
+                        {hasChildren && expanded ? (
                             <CheckboxGroupTreeNodes
-                                nodes={node.children}
+                                nodes={node.children!}
                                 depth={depth + 1}
                                 selectedValues={selectedValues}
+                                expandedKeys={expandedKeys}
                                 onToggle={onToggle}
+                                onToggleExpand={onToggleExpand}
                                 readonly={readonly}
                             />
                         ) : null}
@@ -904,23 +1185,6 @@ function CheckboxGroupTreeNodes({
             })}
         </>
     );
-}
-
-function collectTreeLeafValues(nodes: FieldTreeOptionRow[]): string[] {
-    const leafValues: string[] = [];
-
-    for (const node of nodes) {
-        if (node.children && node.children.length > 0) {
-            leafValues.push(...collectTreeLeafValues(node.children));
-            continue;
-        }
-
-        if (node.value.trim() !== '') {
-            leafValues.push(node.value);
-        }
-    }
-
-    return leafValues;
 }
 
 export function CheckboxGroupTreeInput({
@@ -938,16 +1202,30 @@ export function CheckboxGroupTreeInput({
     const valueCombining = String(settings?.value_combining ?? 'all');
     const [selectedValues, setSelectedValues] =
         useState<string[]>(defaultValues);
+    const [expandedKeys, setExpandedKeys] = useState(
+        () => new Set(collectExpandableKeys(treeOptions)),
+    );
 
     const toggleValue = (optionValue: string, checked: boolean) => {
-        setSelectedValues((current) => {
-            if (checked) {
-                return current.includes(optionValue)
-                    ? current
-                    : [...current, optionValue];
-            }
+        setSelectedValues((current) =>
+            cascadeToggleValues(
+                treeOptions,
+                current,
+                optionValue,
+                checked,
+            ),
+        );
+    };
 
-            return current.filter((value) => value !== optionValue);
+    const toggleExpand = (optionValue: string) => {
+        setExpandedKeys((current) => {
+            const next = new Set(current);
+            if (next.has(optionValue)) {
+                next.delete(optionValue);
+            } else {
+                next.add(optionValue);
+            }
+            return next;
         });
     };
 
@@ -959,12 +1237,14 @@ export function CheckboxGroupTreeInput({
             : selectedValues;
 
     return (
-        <div className="flex flex-col gap-2">
+        <div className={cn('flex flex-col gap-2', choiceFieldChrome)}>
             <CheckboxGroupTreeNodes
                 nodes={treeOptions}
                 depth={0}
                 selectedValues={selectedValues}
+                expandedKeys={expandedKeys}
                 onToggle={toggleValue}
+                onToggleExpand={toggleExpand}
                 readonly={readonly}
             />
             {storedValues.map((value) => (

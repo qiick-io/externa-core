@@ -38,6 +38,10 @@ import { cn } from '@/lib/utils';
 const inputLike =
     'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
 
+/** Outer chrome for color picker — matches choice-field bordered groups. */
+const colorFieldChrome =
+    'w-full rounded-md border border-input bg-transparent px-3 py-1.5 shadow-xs dark:border-white/25 has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-inset';
+
 function escapeHtml(value: string): string {
     return value
         .replace(/&/g, '&amp;')
@@ -290,16 +294,12 @@ export function WysiwygFieldInput({
     }
 
     return (
-        <div className="space-y-2">
+        <div>
             <input type="hidden" name={name} value={value} />
             <div className="overflow-hidden rounded-md border border-input bg-background shadow-xs">
                 {editor ? <WysiwygToolbar editor={editor} /> : null}
                 <EditorContent editor={editor} />
             </div>
-            <p className="text-xs text-muted-foreground">
-                TipTap editor — paste from Word/HTML is sanitized on save
-                (scripts and unsafe tags stripped).
-            </p>
         </div>
     );
 }
@@ -329,15 +329,15 @@ export function MarkdownModeToggle({
             className="justify-start"
             disabled={disabled}
         >
-            <ToggleGroupItem value="edit" aria-label="Edit" className="px-2.5">
-                <FileText className="size-4" />
+            <ToggleGroupItem value="edit" aria-label="Edit" className="px-2">
+                <FileText className="size-3.5" />
             </ToggleGroupItem>
             <ToggleGroupItem
                 value="preview"
                 aria-label="Preview"
-                className="px-2.5"
+                className="px-2"
             >
-                <Eye className="size-4" />
+                <Eye className="size-3.5" />
             </ToggleGroupItem>
         </ToggleGroup>
     );
@@ -578,23 +578,6 @@ export function TagChipInput({
     );
 }
 
-function hexToRgba(hex: string, alpha: number): string {
-    const normalized = hex.replace('#', '');
-    const chunk =
-        normalized.length === 3
-            ? normalized
-                  .split('')
-                  .map((part) => part + part)
-                  .join('')
-            : normalized.padEnd(6, '0').slice(0, 6);
-
-    const red = Number.parseInt(chunk.slice(0, 2), 16);
-    const green = Number.parseInt(chunk.slice(2, 4), 16);
-    const blue = Number.parseInt(chunk.slice(4, 6), 16);
-
-    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-}
-
 /**
  * Color picker input for collection item fields.
  * @returns {JSX.Element}
@@ -631,33 +614,25 @@ export function ColorFieldInput({
         : hex;
 
     return (
-        <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-3">
+        <div className={cn(colorFieldChrome, 'space-y-2')}>
+            <div className="flex h-7 items-center gap-2">
                 <Input
                     id={id}
                     type="color"
                     value={hex}
                     disabled={readonly}
-                    className="h-10 w-14 p-1"
+                    className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0"
                     onChange={(event) => setHex(event.target.value)}
                 />
                 <Input
                     type="text"
                     value={storedValue}
                     readOnly
-                    className="max-w-[140px] font-mono text-sm"
-                />
-                <span
-                    className="size-8 rounded border"
-                    style={{
-                        backgroundColor: colorSettings.opacity
-                            ? hexToRgba(hex, alpha)
-                            : hex,
-                    }}
+                    className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono text-sm shadow-none focus-visible:ring-0"
                 />
             </div>
             {colorSettings.opacity ? (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                     <p className="text-xs text-muted-foreground">
                         Opacity {Math.round(alpha * 100)}%
                     </p>

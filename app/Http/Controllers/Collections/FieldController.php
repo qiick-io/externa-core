@@ -114,7 +114,8 @@ class FieldController extends Controller
             'translatable' => $translatable,
         ]);
 
-        return redirect()->route('collections.fields.index', $collection)
+        return redirect()
+            ->to(url()->previous(route('collections.fields.index', $collection)))
             ->with('success', __('Field updated.'));
     }
 
