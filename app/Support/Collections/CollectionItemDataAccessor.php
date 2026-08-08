@@ -60,6 +60,10 @@ class CollectionItemDataAccessor
 
         $out = [];
         foreach ($fields as $field) {
+            if ($field->type->isNoData()) {
+                continue;
+            }
+
             $key = $field->name;
             if (! array_key_exists($key, $data)) {
                 continue;

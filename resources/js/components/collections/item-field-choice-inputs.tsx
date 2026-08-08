@@ -252,6 +252,7 @@ export function BooleanToggleInput({
     settings,
     locales,
     readonly,
+    onCheckedChange,
 }: {
     id: string;
     name: string;
@@ -259,6 +260,8 @@ export function BooleanToggleInput({
     settings?: Record<string, unknown> | null;
     locales: string[];
     readonly: boolean;
+    /** Notify parent (conditions / formValues) — hidden input alone does not bubble change. */
+    onCheckedChange?: (checked: boolean) => void;
 }) {
     const booleanSettings = parseBooleanFieldSettings(settings);
     const [checked, setChecked] = useState(defaultChecked);
@@ -283,7 +286,12 @@ export function BooleanToggleInput({
                 disabled={readonly}
                 onClick={() => {
                     if (!readonly) {
-                        setChecked((current) => !current);
+                        setChecked((current) => {
+                            const next = !current;
+                            onCheckedChange?.(next);
+
+                            return next;
+                        });
                     }
                 }}
                 className={cn(

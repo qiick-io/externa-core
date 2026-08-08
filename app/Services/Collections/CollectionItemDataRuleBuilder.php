@@ -42,7 +42,7 @@ class CollectionItemDataRuleBuilder
         ];
 
         foreach ($collection->fields as $field) {
-            if ($field->isHiddenInForm()) {
+            if ($field->isHiddenInForm() || $field->type->isNoData()) {
                 continue;
             }
 

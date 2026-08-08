@@ -1,9 +1,9 @@
 import {
     Braces,
-    ChevronDown,
     ClipboardPaste,
     Copy,
     Eraser,
+    MoreVertical,
     Settings2,
     Undo2,
 } from 'lucide-react';
@@ -108,7 +108,7 @@ export function ItemFieldLabelMenu({
                         className="size-6 shrink-0 text-muted-foreground"
                         aria-label={t('collections.fieldMenu.open')}
                     >
-                        <ChevronDown className="size-3.5" />
+                        <MoreVertical className="size-3.5" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="min-w-48">

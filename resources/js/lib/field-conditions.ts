@@ -49,6 +49,18 @@ function isEmpty(value: unknown): boolean {
     return false;
 }
 
+function asLooseBoolean(value: unknown): boolean | null {
+    if (value === true || value === 1 || value === '1' || value === 'true' || value === 'on') {
+        return true;
+    }
+
+    if (value === false || value === 0 || value === '0' || value === 'false' || value === 'off') {
+        return false;
+    }
+
+    return null;
+}
+
 function valuesEqual(actual: unknown, expected: unknown): boolean {
     if (Array.isArray(actual)) {
         if (typeof expected === 'string' || typeof expected === 'number') {
@@ -60,6 +72,14 @@ function valuesEqual(actual: unknown, expected: unknown): boolean {
 
     if (actual === null || actual === undefined) {
         return expected === null || expected === undefined || expected === '';
+    }
+
+    // ponytail: HTML booleans are "0"/"1"; conditions often store true/false
+    const actualBool = asLooseBoolean(actual);
+    const expectedBool = asLooseBoolean(expected);
+
+    if (actualBool !== null && expectedBool !== null) {
+        return actualBool === expectedBool;
     }
 
     return String(actual) === String(expected);

@@ -4,10 +4,12 @@ namespace App\Http\Requests\Collections\Concerns;
 
 use App\Enums\FieldTypeEnum;
 use App\Models\CollectionField;
+use App\Services\Collections\CollectionFieldGroupService;
 use App\Services\Collections\FieldConditionEvaluator;
 use App\Support\Collections\BlocksFieldSchema;
 use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Shared validation rules and normalization for collection field settings payloads.
@@ -36,6 +38,10 @@ trait ValidatesCollectionFieldSettings
             'settings.hidden_in_form' => ['sometimes'],
             'settings.layout_width' => ['sometimes', Rule::in(['half', 'full', 'fill'])],
             'settings.layout_starts_new_row' => ['sometimes'],
+            'settings.group' => ['sometimes', 'nullable', 'string', 'max:64', 'regex:/^[a-z][a-z0-9_]*$/'],
+            'settings.accordion_mode' => ['sometimes'],
+            'settings.fill_width' => ['sometimes'],
+            'settings.start' => ['sometimes', Rule::in(['closed', 'first', 'opened', 'open'])],
             'settings.default_value' => ['sometimes', 'nullable'],
             'settings.validation_rules' => ['sometimes', 'array'],
             'settings.validation_rules.*.operator' => [
@@ -161,6 +167,54 @@ trait ValidatesCollectionFieldSettings
     }
 
     /**
+     * After base rules pass: force group width + validate nesting parent.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            $type = $this->resolveFieldTypeForTranslatable();
+            $settings = $this->input('settings');
+            if (! is_array($settings)) {
+                $settings = null;
+            }
+
+            $groupService = app(CollectionFieldGroupService::class);
+
+            if ($type !== null && is_array($settings)) {
+                $settings = $groupService->forceFullWidthForGroup($type, $settings);
+                $this->merge(['settings' => $settings]);
+            }
+
+            $collection = $this->route('collection');
+            if (! $collection instanceof \App\Models\Collection) {
+                return;
+            }
+
+            $field = $this->route('field');
+            $fieldModel = $field instanceof CollectionField ? $field : null;
+
+            try {
+                $groupService->assertValidGroupParent(
+                    $collection,
+                    is_array($this->input('settings')) ? $this->input('settings') : null,
+                    $fieldModel,
+                    $type,
+                );
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                foreach ($e->errors() as $key => $messages) {
+                    foreach ($messages as $message) {
+                        $validator->errors()->add($key, $message);
+                    }
+                }
+            }
+        });
+    }
+
+    /**
      * Decode string filter values and drop empty filters before validation.
      *
      * @param  array<string, mixed>  $settings
@@ -170,6 +224,39 @@ trait ValidatesCollectionFieldSettings
     {
         $settings = app(BlocksFieldSchema::class)->normalizeSettings($settings);
         $settings = $this->pruneEmptyTranslatedSettings($settings);
+
+        if (array_key_exists('group', $settings)) {
+            $group = $settings['group'];
+            if (! is_string($group) || trim($group) === '') {
+                unset($settings['group']);
+            } else {
+                $settings['group'] = trim($group);
+            }
+        }
+
+        if (array_key_exists('accordion_mode', $settings)) {
+            $settings['accordion_mode'] = CollectionField::settingsFlagIsEnabled($settings['accordion_mode']);
+        }
+
+        if (array_key_exists('fill_width', $settings)) {
+            $settings['fill_width'] = CollectionField::settingsFlagIsEnabled($settings['fill_width']);
+        }
+
+        if (isset($settings['start']) && is_string($settings['start'])) {
+            $start = $settings['start'];
+            // Detail uses open|closed; accordion uses closed|first|opened — accept both.
+            if (! in_array($start, ['closed', 'first', 'opened', 'open'], true)) {
+                unset($settings['start']);
+            }
+        }
+
+        // Directus: "all open" is only valid when accordion mode is off.
+        $accordionMode = array_key_exists('accordion_mode', $settings)
+            ? CollectionField::settingsFlagIsEnabled($settings['accordion_mode'])
+            : null;
+        if ($accordionMode === true && ($settings['start'] ?? null) === 'opened') {
+            $settings['start'] = 'closed';
+        }
 
         if (isset($settings['filter']) && is_string($settings['filter'])) {
             $trimmed = trim($settings['filter']);

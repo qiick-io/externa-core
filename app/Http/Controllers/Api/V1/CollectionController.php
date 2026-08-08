@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\CollectionPermissionAction;
+use App\Enums\FieldTypeEnum;
 use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Collection;
+use App\Models\CollectionField;
 use App\Services\Api\CollectionPermissionGuard;
 use App\Services\Api\PublicApiResponseCache;
 use Illuminate\Http\JsonResponse;
@@ -66,12 +68,20 @@ class CollectionController extends Controller
                     'name' => $collection->name,
                     'slug' => $collection->slug,
                     'is_singleton' => (bool) $collection->is_singleton,
-                    'fields' => $collection->fields->map(fn ($field): array => [
-                        'id' => $field->id,
-                        'name' => $field->name,
-                        'type' => $field->type instanceof \BackedEnum ? $field->type->value : $field->type,
-                        'settings' => $field->settings,
-                    ])->values()->all(),
+                    'fields' => $collection->fields
+                        ->filter(function (CollectionField $field): bool {
+                            $type = $field->type instanceof FieldTypeEnum
+                                ? $field->type
+                                : FieldTypeEnum::tryFrom((string) $field->type);
+
+                            return $type === null || ! $type->isNoData();
+                        })
+                        ->map(fn (CollectionField $field): array => [
+                            'id' => $field->id,
+                            'name' => $field->name,
+                            'type' => $field->type instanceof \BackedEnum ? $field->type->value : $field->type,
+                            'settings' => $field->settings,
+                        ])->values()->all(),
                 ],
             ];
         });

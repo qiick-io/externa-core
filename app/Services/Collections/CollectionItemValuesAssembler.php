@@ -29,6 +29,10 @@ class CollectionItemValuesAssembler
         $data = [];
 
         foreach ($collection->fields as $field) {
+            if ($field->type->isNoData()) {
+                continue;
+            }
+
             $rows = $item->fieldValues->where('field_id', $field->id)->values();
             if ($rows->isEmpty()) {
                 continue;

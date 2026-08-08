@@ -33,6 +33,8 @@ class ReorderFieldsRequest extends FormRequest
             'ids.*' => ['integer', 'distinct'],
             'starts_new_row_ids' => ['sometimes', 'array'],
             'starts_new_row_ids.*' => ['integer', 'distinct'],
+            'groups' => ['sometimes', 'array'],
+            'groups.*' => ['nullable', 'string', 'max:64', 'regex:/^[a-z][a-z0-9_]*$/'],
         ];
     }
 }

@@ -6,13 +6,16 @@ import {
     MouseSensor,
     PointerSensor,
     pointerWithin,
+    useDroppable,
     useSensor,
     useSensors,
 } from '@dnd-kit/core';
 import type {
     CollisionDetection,
+    DragEndEvent,
     DragOverEvent,
     DragStartEvent,
+    UniqueIdentifier,
 } from '@dnd-kit/core';
 import {
     arrayMove,
@@ -33,11 +36,13 @@ import {
     Maximize2,
     MoreHorizontal,
     Pencil,
+    Plus,
     StretchHorizontal,
     Trash2,
     Type,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
@@ -63,14 +68,146 @@ import {
     isFieldRequired,
 } from '@/lib/collection-field-types';
 import type { FieldLayoutWidth } from '@/lib/collection-field-types';
+import {
+    buildFieldTree,
+    fieldsWithGroupOverrides,
+    getFieldGroupName,
+    isLayoutGroupType,
+    isPanelContainerType,
+    moveFieldInGroupTree,
+    wouldCreateGroupCycle,
+} from '@/lib/collection-field-groups';
+import type { FieldTreeNode } from '@/lib/collection-field-groups';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { CollectionFieldRow } from '@/types';
 
+/** Droppable id for a group's interior nest zone (body only, not header). */
+const GROUP_DROP_PREFIX = 'group-drop:';
+
+function groupDropId(fieldId: number): string {
+    return `${GROUP_DROP_PREFIX}${fieldId}`;
+}
+
+function parseGroupDropId(id: UniqueIdentifier): number | null {
+    const raw = String(id);
+
+    if (!raw.startsWith(GROUP_DROP_PREFIX)) {
+        return null;
+    }
+
+    const fieldId = Number(raw.slice(GROUP_DROP_PREFIX.length));
+
+    return Number.isFinite(fieldId) ? fieldId : null;
+}
+
+function uniqueFieldName(used: Set<string>, base: string): string {
+    if (!used.has(base)) {
+        return base;
+    }
+
+    let suffix = 2;
+    while (used.has(`${base}_${suffix}`)) {
+        suffix++;
+    }
+
+    return `${base}_${suffix}`;
+}
+
+/**
+ * Create a Raw section/tab under Accordion/Tabs (Directus: nest group-raw).
+ * Uses field store — same path as Add layout → Raw group + nest.
+ */
+function createPanelSectionField(
+    collectionId: number,
+    parent: CollectionFieldRow,
+    allFields: CollectionFieldRow[],
+): void {
+    if (!isPanelContainerType(parent.type)) {
+        return;
+    }
+
+    const childCount = allFields.filter(
+        (field) => getFieldGroupName(field) === parent.name,
+    ).length;
+    const index = childCount + 1;
+    const isTabs = parent.type === 'group_tabs';
+    const baseName = isTabs
+        ? `${parent.name}_tab_${index}`
+        : `${parent.name}_section_${index}`;
+    const used = new Set(allFields.map((field) => field.name));
+    const name = uniqueFieldName(used, baseName);
+
+    router.post(
+        FieldController.store.url(collectionId),
+        {
+            name,
+            type: 'group_raw',
+            translatable: false,
+            settings: {
+                layout_width: 'full',
+                group: parent.name,
+                display_name: isTabs
+                    ? {
+                          en: `Tab ${index}`,
+                          it: `Scheda ${index}`,
+                          de: `Tab ${index}`,
+                      }
+                    : {
+                          en: `Section ${index}`,
+                          it: `Sezione ${index}`,
+                          de: `Abschnitt ${index}`,
+                      },
+            },
+        },
+        { preserveScroll: true },
+    );
+}
+
+/**
+ * Prefer innermost group-drop body; otherwise the field under the pointer.
+ * Falls back to closestCenter for gaps between items.
+ */
 const sortableFieldsCollisionDetection: CollisionDetection = (args) => {
     const pointerCollisions = pointerWithin(args);
 
     if (pointerCollisions.length > 0) {
+        const groupDrops = pointerCollisions.filter((collision) =>
+            String(collision.id).startsWith(GROUP_DROP_PREFIX),
+        );
+
+        if (groupDrops.length > 0) {
+            // Innermost body: smallest measured rect under the pointer.
+            let chosen = groupDrops[0];
+            let chosenArea = Number.POSITIVE_INFINITY;
+
+            for (const collision of groupDrops) {
+                const container = args.droppableContainers.find(
+                    (entry) => entry.id === collision.id,
+                );
+                const rect = container?.rect.current;
+
+                if (!rect) {
+                    continue;
+                }
+
+                const area = rect.width * rect.height;
+
+                if (area < chosenArea) {
+                    chosenArea = area;
+                    chosen = collision;
+                }
+            }
+
+            const nestedField = pointerCollisions.find(
+                (collision) =>
+                    !String(collision.id).startsWith(GROUP_DROP_PREFIX),
+            );
+
+            // Child field under pointer → reorder among siblings; else nest into body.
+            return nestedField ? [nestedField] : [chosen];
+        }
+
         return pointerCollisions;
     }
 
@@ -89,7 +226,7 @@ const sortableFieldsCollisionDetection: CollisionDetection = (args) => {
 };
 
 type DropIntent = 'before' | 'after';
-type DropLayoutIntent = 'below-new-row' | 'beside' | null;
+type DropLayoutIntent = 'below-new-row' | 'beside' | 'into-group' | null;
 
 type CollectionFieldsListProps = {
     collectionId: number;
@@ -102,10 +239,14 @@ type FieldRowProps = {
     field: CollectionFieldRow;
     collectionId: number;
     onEdit: (field: CollectionFieldRow) => void;
+    allFields: CollectionFieldRow[];
     reorderEnabled: boolean;
     isGhost?: boolean;
     isDragging?: boolean;
+    /** Stretch to parent height (half-width grid rows). Off in tree layout. */
+    fillHeight?: boolean;
 };
+
 
 function rowBreakFieldIdsFromFields(fields: CollectionFieldRow[]): Set<number> {
     return new Set(
@@ -257,15 +398,20 @@ function CollectionFieldRowActions({
     field,
     collectionId,
     onEdit,
+    allFields,
 }: {
     field: CollectionFieldRow;
     collectionId: number;
     onEdit: (field: CollectionFieldRow) => void;
+    allFields: CollectionFieldRow[];
 }) {
+    const { t } = useTranslation();
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const hiddenInForm = isFieldHiddenInForm(field.settings);
     const layoutWidth = getFieldLayoutWidth(field.settings);
+    const isGroup = isLayoutGroupType(field.type);
+    const isPanel = isPanelContainerType(field.type);
 
     const duplicateField = (): void => {
         router.post(
@@ -354,6 +500,23 @@ function CollectionFieldRowActions({
                     <Copy className="size-4" />
                     Duplica Campo
                 </DropdownMenuItem>
+                {isPanel ? (
+                    <DropdownMenuItem
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            createPanelSectionField(
+                                collectionId,
+                                field,
+                                allFields,
+                            );
+                        }}
+                    >
+                        <Plus className="size-4" />
+                        {field.type === 'group_tabs'
+                            ? t('collections.groups.addTab')
+                            : t('collections.groups.addSection')}
+                    </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem
                     onClick={(event) => {
                         event.stopPropagation();
@@ -369,43 +532,47 @@ function CollectionFieldRowActions({
                         ? 'Mostra campo nel dettaglio'
                         : 'Nascondi campo nel dettaglio'}
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        updateLayoutWidth('half');
-                    }}
-                >
-                    <Columns2 className="size-4" />
-                    Metà larghezza
-                    {layoutWidth === 'half' && (
-                        <Check className="ml-auto size-4" />
-                    )}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        updateLayoutWidth('full');
-                    }}
-                >
-                    <Maximize2 className="size-4" />
-                    Larghezza massima
-                    {layoutWidth === 'full' && (
-                        <Check className="ml-auto size-4" />
-                    )}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        updateLayoutWidth('fill');
-                    }}
-                >
-                    <StretchHorizontal className="size-4" />
-                    Riempi larghezza
-                    {layoutWidth === 'fill' && (
-                        <Check className="ml-auto size-4" />
-                    )}
-                </DropdownMenuItem>
+                {!isGroup && (
+                    <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                updateLayoutWidth('half');
+                            }}
+                        >
+                            <Columns2 className="size-4" />
+                            Metà larghezza
+                            {layoutWidth === 'half' && (
+                                <Check className="ml-auto size-4" />
+                            )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                updateLayoutWidth('full');
+                            }}
+                        >
+                            <Maximize2 className="size-4" />
+                            Larghezza massima
+                            {layoutWidth === 'full' && (
+                                <Check className="ml-auto size-4" />
+                            )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                updateLayoutWidth('fill');
+                            }}
+                        >
+                            <StretchHorizontal className="size-4" />
+                            Riempi larghezza
+                            {layoutWidth === 'fill' && (
+                                <Check className="ml-auto size-4" />
+                            )}
+                        </DropdownMenuItem>
+                    </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                     variant="destructive"
@@ -436,26 +603,33 @@ function CollectionFieldRow({
     field,
     collectionId,
     onEdit,
+    allFields,
     reorderEnabled,
     isGhost = false,
     isDragging = false,
+    fillHeight = true,
 }: FieldRowProps) {
     const { t } = useTranslation();
     const Icon = FIELD_TYPE_ICONS[field.type] ?? Type;
     const hiddenInForm = isFieldHiddenInForm(field.settings);
     const layoutWidth = getFieldLayoutWidth(field.settings);
+    const isGroup = isLayoutGroupType(field.type);
 
     return (
         <div
             className={cn(
-                'flex h-full items-center gap-3 rounded-xl border bg-card px-3 py-2.5',
+                'flex items-center gap-3 rounded-xl border px-3 py-2.5',
+                fillHeight && 'h-full',
+                isGroup ? 'border-transparent bg-transparent' : 'bg-card',
                 isGhost
-                    ? 'cursor-grabbing border-primary/40 shadow-lg ring-2 ring-primary/20'
-                    : 'border-sidebar-border/70 dark:border-sidebar-border',
+                    ? 'cursor-grabbing border-primary/40 bg-card shadow-lg ring-2 ring-primary/20'
+                    : !isGroup &&
+                          'border-sidebar-border/70 dark:border-sidebar-border',
                 isDragging && !isGhost && 'opacity-30',
                 hiddenInForm && !isGhost && 'opacity-80',
             )}
         >
+
             <div
                 className={cn(
                     'flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground',
@@ -524,6 +698,7 @@ function CollectionFieldRow({
                     field={field}
                     collectionId={collectionId}
                     onEdit={onEdit}
+                    allFields={allFields}
                 />
             )}
         </div>
@@ -538,7 +713,10 @@ type SortableFieldRowProps = {
     dropLayoutIntent: DropLayoutIntent;
     isDropTarget: boolean;
     onEdit: (field: CollectionFieldRow) => void;
+    allFields: CollectionFieldRow[];
     reorderEnabled: boolean;
+    /** Tree layout: no h-full, no sortable transforms (DragOverlay only). */
+    treeLayout?: boolean;
 };
 
 function SortableCollectionFieldRow({
@@ -549,7 +727,9 @@ function SortableCollectionFieldRow({
     dropLayoutIntent,
     isDropTarget,
     onEdit,
+    allFields,
     reorderEnabled,
+    treeLayout = false,
 }: SortableFieldRowProps) {
     const {
         attributes,
@@ -561,12 +741,16 @@ function SortableCollectionFieldRow({
     } = useSortable({
         id: field.id,
         disabled: !reorderEnabled,
+        animateLayoutChanges: treeLayout ? () => false : undefined,
     });
 
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-    };
+    // ponytail: tree DOM + flat-list transforms = overlaps/voids; overlay carries the ghost.
+    const style = treeLayout
+        ? undefined
+        : {
+              transform: CSS.Transform.toString(transform),
+              transition,
+          };
 
     return (
         <div
@@ -574,12 +758,14 @@ function SortableCollectionFieldRow({
             style={style}
             data-sortable-id={field.id}
             data-field-name={field.name}
+            data-field-type={field.type}
             data-layout-width={getFieldLayoutWidth(field.settings)}
             {...attributes}
             {...listeners}
             aria-label={reorderEnabled ? 'Drag to reorder' : undefined}
             className={cn(
-                'relative h-full min-w-0 touch-none',
+                'relative min-w-0 touch-none',
+                !treeLayout && 'h-full',
                 reorderEnabled && 'cursor-grab active:cursor-grabbing',
                 colSpan === 2 ? 'col-span-1 md:col-span-2' : 'col-span-1',
             )}
@@ -597,6 +783,7 @@ function SortableCollectionFieldRow({
                 />
             )}
             {isDropTarget &&
+                dropLayoutIntent !== 'into-group' &&
                 (dropIntent === 'before' || dropIntent === 'after') && (
                     <div
                         aria-hidden
@@ -612,10 +799,392 @@ function SortableCollectionFieldRow({
                 field={field}
                 collectionId={collectionId}
                 onEdit={onEdit}
+                allFields={allFields}
                 reorderEnabled={reorderEnabled}
                 isDragging={isDragging}
+                fillHeight={!treeLayout}
             />
         </div>
+    );
+}
+
+type GroupNestDropZoneProps = {
+    groupFieldId: number;
+    groupName: string;
+    active: boolean;
+    empty: boolean;
+    header: ReactNode;
+    children: ReactNode;
+};
+
+/**
+ * Directus-style group: header + nested body droppable.
+ * Only the body is nest-into; header stays a sibling sortable.
+ */
+function GroupNestDropZone({
+    groupFieldId,
+    groupName,
+    active,
+    empty,
+    header,
+    children,
+}: GroupNestDropZoneProps) {
+    const { setNodeRef, isOver } = useDroppable({
+        id: groupDropId(groupFieldId),
+    });
+
+    return (
+        <div
+            data-group-container={groupName}
+            className={cn(
+                groupSurfaceClass,
+                (active || isOver) &&
+                    'ring-2 ring-primary/40 ring-offset-2 ring-offset-background',
+            )}
+        >
+            {header}
+            <div
+                ref={setNodeRef}
+                data-group-drop={groupFieldId}
+                className={cn(
+                    'rounded-md',
+                    empty ? 'min-h-10 px-1 py-1' : 'space-y-2 px-1 py-1',
+                )}
+            >
+                {children}
+            </div>
+        </div>
+    );
+}
+
+function PanelAddSectionControl({
+    parent,
+    collectionId,
+    allFields,
+    empty,
+}: {
+    parent: CollectionFieldRow;
+    collectionId: number;
+    allFields: CollectionFieldRow[];
+    empty: boolean;
+}) {
+    const { t } = useTranslation();
+    const isTabs = parent.type === 'group_tabs';
+    const isPanel = isPanelContainerType(parent.type);
+    const label = isTabs
+        ? t('collections.groups.addTab')
+        : t('collections.groups.addSection');
+
+    if (!isPanel) {
+        return empty ? (
+            <p className="px-2 py-2 text-center text-sm text-muted-foreground">
+                {t('collections.groups.dropIntoSection')}
+            </p>
+        ) : null;
+    }
+
+    return (
+        <div
+            className={cn(
+                'flex flex-col items-center gap-2 px-2',
+                empty ? 'py-3' : 'pt-1 pb-1',
+            )}
+        >
+            {empty ? (
+                <p className="text-center text-sm text-muted-foreground">
+                    {isTabs
+                        ? t('collections.groups.emptyTabsHint')
+                        : t('collections.groups.emptyPanelHint')}
+                </p>
+            ) : null}
+            <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={(event) => {
+                    event.stopPropagation();
+                    createPanelSectionField(collectionId, parent, allFields);
+                }}
+                onPointerDown={(event) => event.stopPropagation()}
+            >
+                <Plus className="size-4" />
+                {label}
+            </Button>
+        </div>
+    );
+}
+
+const groupSurfaceClass =
+    'space-y-2 rounded-lg border bg-muted/30 p-3 dark:border-sidebar-border';
+
+/**
+ * Pack sibling tree nodes into half/full layout rows (same rules as flat mode).
+ * Layout groups always span a full row so nest containers stay full width.
+ */
+function groupTreeNodesIntoLayoutRows(
+    nodes: FieldTreeNode<CollectionFieldRow>[],
+): { node: FieldTreeNode<CollectionFieldRow>; colSpan: 1 | 2 }[][] {
+    const fieldsForLayout = nodes.map((node) => {
+        if (!isLayoutGroupType(node.field.type)) {
+            return node.field;
+        }
+
+        return {
+            ...node.field,
+            settings: {
+                ...node.field.settings,
+                layout_width: 'full',
+            },
+        };
+    });
+
+    const byId = new Map(nodes.map((node) => [node.field.id, node]));
+
+    return groupFieldsIntoLayoutRows(fieldsForLayout).map((row) =>
+        row.flatMap(({ field, colSpan }) => {
+            const node = byId.get(field.id);
+
+            return node ? [{ node, colSpan }] : [];
+        }),
+    );
+}
+
+type FieldTreeRenderProps = {
+    collectionId: number;
+    onEdit: (field: CollectionFieldRow) => void;
+    allFields: CollectionFieldRow[];
+    reorderEnabled: boolean;
+    dropTargetFieldId?: number | null;
+    dropIntent?: DropIntent | null;
+    dropLayoutIntent?: DropLayoutIntent;
+};
+
+function StaticFieldTreeNodes({
+    nodes,
+    collectionId,
+    onEdit,
+    allFields,
+    reorderEnabled,
+}: {
+    nodes: FieldTreeNode<CollectionFieldRow>[];
+} & Omit<
+    FieldTreeRenderProps,
+    'dropTargetFieldId' | 'dropIntent' | 'dropLayoutIntent'
+>) {
+    const layoutRows = groupTreeNodesIntoLayoutRows(nodes);
+
+    return (
+        <div className="flex flex-col gap-3">
+            {layoutRows.map((row) => (
+                <div
+                    key={row.map((item) => item.node.field.id).join('-')}
+                    className="grid grid-cols-1 gap-3 md:grid-cols-2"
+                >
+                    {row.map(({ node, colSpan }) => {
+                        if (isLayoutGroupType(node.field.type)) {
+                            return (
+                                <div
+                                    key={node.field.id}
+                                    data-group-container={node.field.name}
+                                    className={cn(
+                                        groupSurfaceClass,
+                                        'min-w-0 col-span-1 md:col-span-2',
+                                    )}
+                                >
+                                    <CollectionFieldRow
+                                        field={node.field}
+                                        collectionId={collectionId}
+                                        onEdit={onEdit}
+                                        allFields={allFields}
+                                        reorderEnabled={reorderEnabled}
+                                        fillHeight={false}
+                                    />
+                                    <div className="px-1 py-1">
+                                        {node.children.length > 0 ? (
+                                            <StaticFieldTreeNodes
+                                                nodes={node.children}
+                                                collectionId={collectionId}
+                                                onEdit={onEdit}
+                                                allFields={allFields}
+                                                reorderEnabled={reorderEnabled}
+                                            />
+                                        ) : null}
+                                        <PanelAddSectionControl
+                                            parent={node.field}
+                                            collectionId={collectionId}
+                                            allFields={allFields}
+                                            empty={node.children.length === 0}
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        return (
+                            <div
+                                key={node.field.id}
+                                className={cn(
+                                    'min-w-0',
+                                    colSpan === 2
+                                        ? 'col-span-1 md:col-span-2'
+                                        : 'col-span-1',
+                                )}
+                            >
+                                <CollectionFieldRow
+                                    field={node.field}
+                                    collectionId={collectionId}
+                                    onEdit={onEdit}
+                                    allFields={allFields}
+                                    reorderEnabled={reorderEnabled}
+                                    fillHeight={false}
+                                />
+                            </div>
+                        );
+                    })}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function SortableFieldTreeNodes({
+    nodes,
+    collectionId,
+    onEdit,
+    allFields,
+    dropTargetFieldId,
+    dropIntent,
+    dropLayoutIntent,
+}: {
+    nodes: FieldTreeNode<CollectionFieldRow>[];
+} & FieldTreeRenderProps) {
+    const siblingIds = nodes.map((node) => node.field.id);
+    const layoutRows = groupTreeNodesIntoLayoutRows(nodes);
+
+    return (
+        <SortableContext
+            items={siblingIds}
+            strategy={verticalListSortingStrategy}
+        >
+            <div className="flex flex-col gap-3">
+                {layoutRows.map((row) => (
+                    <div
+                        key={row.map((item) => item.node.field.id).join('-')}
+                        className="grid grid-cols-1 gap-3 md:grid-cols-2"
+                    >
+                        {row.map(({ node, colSpan }) => {
+                            const isIntoTarget =
+                                dropTargetFieldId === node.field.id &&
+                                dropLayoutIntent === 'into-group';
+
+                            const header = (
+                                <SortableCollectionFieldRow
+                                    field={node.field}
+                                    colSpan={
+                                        isLayoutGroupType(node.field.type)
+                                            ? 2
+                                            : colSpan
+                                    }
+                                    dropIntent={
+                                        dropTargetFieldId === node.field.id &&
+                                        dropLayoutIntent !== 'into-group'
+                                            ? (dropIntent ?? null)
+                                            : null
+                                    }
+                                    dropLayoutIntent={
+                                        dropTargetFieldId === node.field.id &&
+                                        dropLayoutIntent !== 'into-group'
+                                            ? (dropLayoutIntent ?? null)
+                                            : null
+                                    }
+                                    isDropTarget={
+                                        dropTargetFieldId === node.field.id &&
+                                        dropLayoutIntent !== 'into-group'
+                                    }
+                                    collectionId={collectionId}
+                                    onEdit={onEdit}
+                                    allFields={allFields}
+                                    reorderEnabled
+                                    treeLayout
+                                />
+                            );
+
+                            if (isLayoutGroupType(node.field.type)) {
+                                return (
+                                    <div
+                                        key={node.field.id}
+                                        className="min-w-0 col-span-1 md:col-span-2"
+                                    >
+                                        <GroupNestDropZone
+                                            groupFieldId={node.field.id}
+                                            groupName={node.field.name}
+                                            active={isIntoTarget}
+                                            empty={node.children.length === 0}
+                                            header={header}
+                                        >
+                                            {node.children.length > 0 ? (
+                                                <SortableFieldTreeNodes
+                                                    nodes={node.children}
+                                                    collectionId={collectionId}
+                                                    onEdit={onEdit}
+                                                    allFields={allFields}
+                                                    reorderEnabled
+                                                    dropTargetFieldId={
+                                                        dropTargetFieldId
+                                                    }
+                                                    dropIntent={dropIntent}
+                                                    dropLayoutIntent={
+                                                        dropLayoutIntent
+                                                    }
+                                                />
+                                            ) : null}
+                                            <PanelAddSectionControl
+                                                parent={node.field}
+                                                collectionId={collectionId}
+                                                allFields={allFields}
+                                                empty={
+                                                    node.children.length === 0
+                                                }
+                                            />
+                                        </GroupNestDropZone>
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <SortableCollectionFieldRow
+                                    key={node.field.id}
+                                    field={node.field}
+                                    colSpan={colSpan}
+                                    dropIntent={
+                                        dropTargetFieldId === node.field.id &&
+                                        dropLayoutIntent !== 'into-group'
+                                            ? (dropIntent ?? null)
+                                            : null
+                                    }
+                                    dropLayoutIntent={
+                                        dropTargetFieldId === node.field.id &&
+                                        dropLayoutIntent !== 'into-group'
+                                            ? (dropLayoutIntent ?? null)
+                                            : null
+                                    }
+                                    isDropTarget={
+                                        dropTargetFieldId === node.field.id &&
+                                        dropLayoutIntent !== 'into-group'
+                                    }
+                                    collectionId={collectionId}
+                                    onEdit={onEdit}
+                                    allFields={allFields}
+                                    reorderEnabled
+                                    treeLayout
+                                />
+                            );
+                        })}
+                    </div>
+                ))}
+            </div>
+        </SortableContext>
     );
 }
 
@@ -625,14 +1194,44 @@ function StaticFieldsList({
     reorderEnabled,
     onEdit,
 }: CollectionFieldsListProps) {
-    const layoutRows = useMemo(
-        () => groupFieldsIntoLayoutRows(fields),
-        [fields],
-    );
+    const hasGroups = useMemo(() => {
+        return fields.some(
+            (field) =>
+                isLayoutGroupType(field.type) || getFieldGroupName(field) !== null,
+        );
+    }, [fields]);
+
+    const fieldTree = useMemo(() => {
+        if (!hasGroups) {
+            return null;
+        }
+
+        return buildFieldTree(fields);
+    }, [fields, hasGroups]);
+
+    const layoutRows = useMemo(() => {
+        if (hasGroups) {
+            return null;
+        }
+
+        return groupFieldsIntoLayoutRows(fields);
+    }, [fields, hasGroups]);
+
+    if (hasGroups && fieldTree) {
+        return (
+            <StaticFieldTreeNodes
+                nodes={fieldTree}
+                collectionId={collectionId}
+                onEdit={onEdit}
+                allFields={fields}
+                reorderEnabled={reorderEnabled}
+            />
+        );
+    }
 
     return (
         <div className="flex flex-col gap-3">
-            {layoutRows.map((row) => (
+            {layoutRows?.map((row) => (
                 <div
                     key={row.map((item) => item.field.id).join('-')}
                     className="grid grid-cols-1 gap-3 md:grid-cols-2"
@@ -651,6 +1250,7 @@ function StaticFieldsList({
                                 field={field}
                                 collectionId={collectionId}
                                 onEdit={onEdit}
+                                allFields={fields}
                                 reorderEnabled={reorderEnabled}
                             />
                         </div>
@@ -679,15 +1279,64 @@ function SortableFieldsList({
     const [rowBreakFieldIds, setRowBreakFieldIds] = useState<Set<number>>(() =>
         rowBreakFieldIdsFromFields(fields),
     );
+    const [fieldGroups, setFieldGroups] = useState<Map<number, string | null>>(
+        () => {
+            const map = new Map<number, string | null>();
+            for (const field of fields) {
+                const groupName = getFieldGroupName(field);
+                map.set(field.id, groupName);
+            }
+            return map;
+        },
+    );
     const rowBreakFieldIdsRef = useRef(rowBreakFieldIds);
+    const fieldGroupsRef = useRef(fieldGroups);
     const orderAtDragStartRef = useRef<number[]>([]);
     const rowBreakAtDragStartRef = useRef<number[]>([]);
+    const groupsAtDragStartRef = useRef<Map<number, string | null>>(new Map());
+    /** Pending parent for the active field; applied on drop to avoid mid-drag layout thrash. */
+    const pendingActiveGroupRef = useRef<string | null | undefined>(undefined);
+    const pendingBeforeSiblingRef = useRef<number | null>(null);
+    const dropIntentRef = useRef<DropIntent | null>(null);
+    const activeFieldIdRef = useRef<number | null>(null);
 
     useEffect(() => {
         const nextRowBreakFieldIds = rowBreakFieldIdsFromFields(fields);
         rowBreakFieldIdsRef.current = nextRowBreakFieldIds;
         setRowBreakFieldIds(nextRowBreakFieldIds);
+
+        const nextFieldGroups = new Map<number, string | null>();
+        for (const field of fields) {
+            const groupName = getFieldGroupName(field);
+            nextFieldGroups.set(field.id, groupName);
+        }
+        fieldGroupsRef.current = nextFieldGroups;
+        setFieldGroups(nextFieldGroups);
     }, [fields]);
+
+    const hasGroups = useMemo(() => {
+        const fieldsWithOverrides = fieldsWithGroupOverrides(
+            orderedFields,
+            fieldGroups,
+        );
+        return fieldsWithOverrides.some(
+            (field) =>
+                isLayoutGroupType(field.type) || getFieldGroupName(field) !== null,
+        );
+    }, [orderedFields, fieldGroups]);
+
+    const fieldTree = useMemo(() => {
+        if (!hasGroups) {
+            return null;
+        }
+
+        const fieldsWithOverrides = fieldsWithGroupOverrides(
+            orderedFields,
+            fieldGroups,
+        );
+
+        return buildFieldTree(fieldsWithOverrides);
+    }, [orderedFields, fieldGroups, hasGroups]);
 
     const fieldsForLayout = useMemo(
         () => fieldsWithRowBreakOverrides(orderedFields, rowBreakFieldIds),
@@ -699,10 +1348,13 @@ function SortableFieldsList({
         [fieldsForLayout],
     );
 
-    const layoutRows = useMemo(
-        () => groupFieldsIntoLayoutRows(fieldsForLayout),
-        [fieldsForLayout],
-    );
+    const layoutRows = useMemo(() => {
+        if (hasGroups) {
+            return null;
+        }
+
+        return groupFieldsIntoLayoutRows(fieldsForLayout);
+    }, [fieldsForLayout, hasGroups]);
 
     useEffect(() => {
         setOrderedFields(fields);
@@ -727,13 +1379,19 @@ function SortableFieldsList({
               null);
 
     const handleDragStart = (event: DragStartEvent): void => {
+        const id = Number(event.active.id);
         flushSync(() => {
-            setActiveFieldId(Number(event.active.id));
+            setActiveFieldId(id);
         });
+        activeFieldIdRef.current = id;
+        pendingActiveGroupRef.current = undefined;
+        pendingBeforeSiblingRef.current = null;
+        dropIntentRef.current = null;
         orderAtDragStartRef.current = orderedFields.map((field) => field.id);
         rowBreakAtDragStartRef.current = Array.from(
             rowBreakFieldIdsRef.current,
         );
+        groupsAtDragStartRef.current = new Map(fieldGroupsRef.current);
 
         const draggedElement = document.querySelector(
             `[data-sortable-id="${String(event.active.id)}"]`,
@@ -744,57 +1402,192 @@ function SortableFieldsList({
         }
     };
 
+    /** Highlight nest target only — membership commits on drop. */
+    const previewNestIntoGroup = (
+        activeFieldRow: CollectionFieldRow,
+        groupField: CollectionFieldRow,
+    ): boolean => {
+        const fieldsWithOverrides = fieldsWithGroupOverrides(
+            orderedFields,
+            fieldGroupsRef.current,
+        );
+
+        if (
+            wouldCreateGroupCycle(
+                fieldsWithOverrides,
+                activeFieldRow.name,
+                groupField.name,
+            )
+        ) {
+            return false;
+        }
+
+        pendingActiveGroupRef.current = groupField.name;
+        pendingBeforeSiblingRef.current = null;
+        setDropTargetFieldId(groupField.id);
+        setDropIntent('after');
+        dropIntentRef.current = 'after';
+        setDropLayoutIntent('into-group');
+
+        return true;
+    };
+
     const handleDragOver = (event: DragOverEvent): void => {
         const { active, over } = event;
 
         if (over === null) {
             setDropTargetFieldId(null);
             setDropIntent(null);
+            dropIntentRef.current = null;
             setDropLayoutIntent(null);
 
             return;
         }
 
-        const layoutFields = fieldsWithRowBreakOverrides(
-            orderedFields,
-            rowBreakFieldIds,
-        );
-        const layoutColSpans = getFieldGridColSpans(layoutFields);
-        const intentResult = computeFieldDropIntent(
-            event,
-            layoutFields,
-            layoutColSpans,
-        );
-
-        if (intentResult !== null) {
-            setDropTargetFieldId(intentResult.overFieldId);
-            setDropIntent(intentResult.intent);
-            setDropLayoutIntent(intentResult.layoutIntent);
-        }
-
         const activeFieldIdNumber = Number(active.id);
+        const activeFieldRow = orderedFields.find(
+            (field) => field.id === activeFieldIdNumber,
+        );
 
-        if (intentResult?.layoutIntent === 'below-new-row') {
-            setRowBreakFieldIds((currentRowBreakFieldIds) => {
-                const nextRowBreakFieldIds = new Set(currentRowBreakFieldIds);
-                nextRowBreakFieldIds.add(activeFieldIdNumber);
-                rowBreakFieldIdsRef.current = nextRowBreakFieldIds;
-
-                return nextRowBreakFieldIds;
-            });
+        if (!activeFieldRow) {
+            return;
         }
 
-        if (intentResult?.layoutIntent === 'beside') {
-            setRowBreakFieldIds((currentRowBreakFieldIds) => {
-                const nextRowBreakFieldIds = new Set(currentRowBreakFieldIds);
-                nextRowBreakFieldIds.delete(activeFieldIdNumber);
-                rowBreakFieldIdsRef.current = nextRowBreakFieldIds;
+        const nestGroupId = parseGroupDropId(over.id);
 
-                return nextRowBreakFieldIds;
-            });
+        if (nestGroupId !== null) {
+            const groupField = orderedFields.find(
+                (field) => field.id === nestGroupId,
+            );
+
+            if (
+                groupField &&
+                isLayoutGroupType(groupField.type) &&
+                groupField.id !== activeFieldIdNumber
+            ) {
+                previewNestIntoGroup(activeFieldRow, groupField);
+            }
+
+            return;
+        }
+
+        const overFieldId = Number(over.id);
+        const overField = orderedFields.find((f) => f.id === overFieldId);
+
+        if (!overField) {
+            return;
+        }
+
+        const fieldsWithOverrides = fieldsWithGroupOverrides(
+            orderedFields,
+            fieldGroups,
+        );
+        const overFieldWithOverrides = fieldsWithOverrides.find(
+            (f) => f.id === overFieldId,
+        );
+        // Group header / field drop = sibling under that field's parent (not nest-into).
+        const parentForActive = getFieldGroupName(
+            overFieldWithOverrides ?? overField,
+        );
+
+        if (
+            parentForActive !== null &&
+            wouldCreateGroupCycle(
+                fieldsWithOverrides,
+                activeFieldRow.name,
+                parentForActive,
+            )
+        ) {
+            return;
+        }
+
+        pendingActiveGroupRef.current = parentForActive;
+
+
+        if (!hasGroups) {
+            const layoutFields = fieldsWithRowBreakOverrides(
+                orderedFields,
+                rowBreakFieldIds,
+            );
+            const layoutColSpans = getFieldGridColSpans(layoutFields);
+            const intentResult = computeFieldDropIntent(
+                event,
+                layoutFields,
+                layoutColSpans,
+            );
+
+            if (intentResult !== null) {
+                setDropTargetFieldId(intentResult.overFieldId);
+                setDropIntent(intentResult.intent);
+                dropIntentRef.current = intentResult.intent;
+                setDropLayoutIntent(intentResult.layoutIntent);
+
+                if (intentResult.layoutIntent === 'below-new-row') {
+                    setRowBreakFieldIds((currentRowBreakFieldIds) => {
+                        const nextRowBreakFieldIds = new Set(
+                            currentRowBreakFieldIds,
+                        );
+                        nextRowBreakFieldIds.add(activeFieldIdNumber);
+                        rowBreakFieldIdsRef.current = nextRowBreakFieldIds;
+
+                        return nextRowBreakFieldIds;
+                    });
+                }
+
+                if (intentResult.layoutIntent === 'beside') {
+                    setRowBreakFieldIds((currentRowBreakFieldIds) => {
+                        const nextRowBreakFieldIds = new Set(
+                            currentRowBreakFieldIds,
+                        );
+                        nextRowBreakFieldIds.delete(activeFieldIdNumber);
+                        rowBreakFieldIdsRef.current = nextRowBreakFieldIds;
+
+                        return nextRowBreakFieldIds;
+                    });
+                }
+            }
+        } else {
+            const overElement = document.querySelector(
+                `[data-sortable-id="${String(overFieldId)}"]`,
+            );
+            const translatedRect = active.rect.current.translated;
+            let intent: DropIntent = 'after';
+
+            if (overElement instanceof HTMLElement && translatedRect !== null) {
+                const overRect = overElement.getBoundingClientRect();
+                const pointerY = translatedRect.top + translatedRect.height / 2;
+                const relativeY = (pointerY - overRect.top) / overRect.height;
+                intent = relativeY < 0.5 ? 'before' : 'after';
+            }
+
+            setDropTargetFieldId(overFieldId);
+            setDropIntent(intent);
+            dropIntentRef.current = intent;
+            setDropLayoutIntent(null);
+
+            if (intent === 'before') {
+                pendingBeforeSiblingRef.current = overFieldId;
+            } else {
+                // Insert before the next same-parent sibling after `over`, else append.
+                const siblings = fieldsWithOverrides.filter(
+                    (field) =>
+                        getFieldGroupName(field) === parentForActive &&
+                        field.id !== activeFieldIdNumber,
+                );
+                const overSiblingIndex = siblings.findIndex(
+                    (field) => field.id === overFieldId,
+                );
+                const nextSibling = siblings[overSiblingIndex + 1];
+                pendingBeforeSiblingRef.current = nextSibling?.id ?? null;
+            }
         }
 
         if (active.id === over.id) {
+            return;
+        }
+
+        // ponytail: tree mode commits order+nest on drop (nested contexts, no live shuffle).
+        if (hasGroups) {
             return;
         }
 
@@ -811,8 +1604,8 @@ function SortableFieldsList({
             }
 
             if (
-                intentResult?.layoutIntent === 'below-new-row' ||
-                intentResult?.layoutIntent === 'beside'
+                dropLayoutIntent === 'below-new-row' ||
+                dropLayoutIntent === 'beside'
             ) {
                 const insertAfterOverIndex = overIndex + 1;
 
@@ -833,15 +1626,143 @@ function SortableFieldsList({
         });
     };
 
-    const handleDragEnd = (): void => {
+    const handleDragEnd = (event: DragEndEvent): void => {
+        const activeId = activeFieldIdRef.current;
+        let pendingGroup = pendingActiveGroupRef.current;
+        let beforeSiblingId = pendingBeforeSiblingRef.current;
+        const { over } = event;
+
+        // Prefer the drop target at release in case the last dragOver was stale.
+        if (activeId !== null && over !== null) {
+            const nestGroupId = parseGroupDropId(over.id);
+
+            if (nestGroupId !== null) {
+                const groupField = orderedFields.find(
+                    (field) => field.id === nestGroupId,
+                );
+                const activeRow = orderedFields.find(
+                    (field) => field.id === activeId,
+                );
+
+                if (
+                    groupField &&
+                    activeRow &&
+                    isLayoutGroupType(groupField.type) &&
+                    !wouldCreateGroupCycle(
+                        fieldsWithGroupOverrides(
+                            orderedFields,
+                            fieldGroupsRef.current,
+                        ),
+                        activeRow.name,
+                        groupField.name,
+                    )
+                ) {
+                    pendingGroup = groupField.name;
+                    beforeSiblingId = null;
+                }
+            } else if (pendingGroup === undefined) {
+                const overField = orderedFields.find(
+                    (field) => field.id === Number(over.id),
+                );
+
+                if (overField) {
+                    const overrides = fieldsWithGroupOverrides(
+                        orderedFields,
+                        fieldGroupsRef.current,
+                    );
+                    const overWithGroup =
+                        overrides.find((field) => field.id === overField.id) ??
+                        overField;
+                    const nextParent = getFieldGroupName(overWithGroup);
+                    const activeRow = orderedFields.find(
+                        (field) => field.id === activeId,
+                    );
+
+                    if (
+                        nextParent !== null &&
+                        activeRow &&
+                        wouldCreateGroupCycle(
+                            overrides,
+                            activeRow.name,
+                            nextParent,
+                        )
+                    ) {
+                        // Keep existing parent; still allow sibling reorder below.
+                        pendingGroup = fieldGroupsRef.current.get(activeId) ?? null;
+                    } else {
+                        pendingGroup = nextParent;
+                    }
+
+                    const intent = dropIntentRef.current ?? 'after';
+                    if (intent === 'before') {
+                        beforeSiblingId = overField.id;
+                    } else {
+                        const siblings = overrides.filter(
+                            (field) =>
+                                getFieldGroupName(field) === pendingGroup &&
+                                field.id !== activeId,
+                        );
+                        const overSiblingIndex = siblings.findIndex(
+                            (field) => field.id === overField.id,
+                        );
+                        beforeSiblingId =
+                            siblings[overSiblingIndex + 1]?.id ?? null;
+                    }
+                }
+            }
+        }
+
         setActiveFieldId(null);
+        activeFieldIdRef.current = null;
         setGhostWidth(undefined);
         setDropTargetFieldId(null);
         setDropIntent(null);
+        dropIntentRef.current = null;
         setDropLayoutIntent(null);
+        pendingActiveGroupRef.current = undefined;
+        pendingBeforeSiblingRef.current = null;
 
         setOrderedFields((currentFields) => {
-            const currentOrderIds = currentFields.map((field) => field.id);
+            let nextFields = currentFields;
+            let nextGroups = new Map(fieldGroupsRef.current);
+
+            if (hasGroups && activeId !== null && pendingGroup !== undefined) {
+                const moved = moveFieldInGroupTree(
+                    currentFields,
+                    nextGroups,
+                    activeId,
+                    pendingGroup,
+                    beforeSiblingId,
+                );
+                nextFields = moved.fields;
+                nextGroups = moved.groups;
+                fieldGroupsRef.current = nextGroups;
+                setFieldGroups(nextGroups);
+            } else if (
+                !hasGroups &&
+                activeId !== null &&
+                over !== null &&
+                !parseGroupDropId(over.id)
+            ) {
+                // Flat layout: order already live-updated in dragOver; keep as-is
+                // unless drop landed without prior over shuffle.
+                const overIndex = nextFields.findIndex(
+                    (field) => field.id === Number(over.id),
+                );
+                const oldIndex = nextFields.findIndex(
+                    (field) => field.id === activeId,
+                );
+
+                if (
+                    oldIndex !== -1 &&
+                    overIndex !== -1 &&
+                    oldIndex !== overIndex
+                ) {
+                    nextFields = arrayMove(nextFields, oldIndex, overIndex);
+                }
+            }
+
+            const currentOrderIds = nextFields.map((field) => field.id);
             const currentRowBreakIds = Array.from(
                 rowBreakFieldIdsRef.current,
             ).sort((left, right) => left - right);
@@ -852,23 +1773,41 @@ function SortableFieldsList({
                 currentRowBreakIds.join(',') !==
                 rowBreakAtDragStartRef.current.sort((a, b) => a - b).join(',');
 
-            if (orderChanged || rowBreakChanged) {
+            const currentGroups = fieldGroupsRef.current;
+            const startGroups = groupsAtDragStartRef.current;
+            const groupsChanged =
+                currentGroups.size !== startGroups.size ||
+                Array.from(currentGroups.entries()).some(
+                    ([id, group]) => startGroups.get(id) !== group,
+                );
+
+            if (orderChanged || rowBreakChanged || groupsChanged) {
+                const groupsPayload: Record<number, string | null> = {};
+                for (const [id, group] of currentGroups.entries()) {
+                    groupsPayload[id] = group;
+                }
+
                 router.post(
                     FieldController.reorder.url(collectionId),
                     {
                         ids: currentOrderIds,
                         starts_new_row_ids: currentRowBreakIds,
+                        groups: groupsPayload,
                     },
                     { preserveScroll: true },
                 );
             }
 
-            return currentFields;
+            return nextFields;
         });
     };
 
     const handleDragCancel = (): void => {
         setActiveFieldId(null);
+        activeFieldIdRef.current = null;
+        pendingActiveGroupRef.current = undefined;
+        pendingBeforeSiblingRef.current = null;
+        dropIntentRef.current = null;
         setGhostWidth(undefined);
         setDropTargetFieldId(null);
         setDropIntent(null);
@@ -876,6 +1815,14 @@ function SortableFieldsList({
         setOrderedFields(fields);
         setRowBreakFieldIds(rowBreakFieldIdsFromFields(fields));
         rowBreakFieldIdsRef.current = rowBreakFieldIdsFromFields(fields);
+
+        const resetGroups = new Map<number, string | null>();
+        for (const field of fields) {
+            const groupName = getFieldGroupName(field);
+            resetGroups.set(field.id, groupName);
+        }
+        setFieldGroups(resetGroups);
+        fieldGroupsRef.current = resetGroups;
     };
 
     return (
@@ -887,54 +1834,68 @@ function SortableFieldsList({
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
         >
-            <SortableContext
-                items={orderedFields.map((field) => field.id)}
-                strategy={verticalListSortingStrategy}
-            >
-                <div className="flex flex-col gap-3">
-                    {layoutRows.map((row) => (
-                        <div
-                            key={row.map((item) => item.field.id).join('-')}
-                            className="grid grid-cols-1 gap-3 md:grid-cols-2"
-                        >
-                            {row.map(({ field, colSpan }) => {
-                                const fieldIndex = orderedFields.findIndex(
-                                    (orderedField) =>
-                                        orderedField.id === field.id,
-                                );
+            {hasGroups && fieldTree ? (
+                <SortableFieldTreeNodes
+                    nodes={fieldTree}
+                    collectionId={collectionId}
+                    onEdit={onEdit}
+                    allFields={orderedFields}
+                    reorderEnabled
+                    dropTargetFieldId={dropTargetFieldId}
+                    dropIntent={dropIntent}
+                    dropLayoutIntent={dropLayoutIntent}
+                />
+            ) : (
+                <SortableContext
+                    items={orderedFields.map((field) => field.id)}
+                    strategy={verticalListSortingStrategy}
+                >
+                    <div className="flex flex-col gap-3">
+                        {layoutRows?.map((row) => (
+                            <div
+                                key={row.map((item) => item.field.id).join('-')}
+                                className="grid grid-cols-1 gap-3 md:grid-cols-2"
+                            >
+                                {row.map(({ field, colSpan }) => {
+                                    const fieldIndex = orderedFields.findIndex(
+                                        (orderedField) =>
+                                            orderedField.id === field.id,
+                                    );
 
-                                return (
-                                    <SortableCollectionFieldRow
-                                        key={field.id}
-                                        field={field}
-                                        colSpan={
-                                            fieldIndex === -1
-                                                ? colSpan
-                                                : (colSpans[fieldIndex] ?? 2)
-                                        }
-                                        dropIntent={
-                                            dropTargetFieldId === field.id
-                                                ? dropIntent
-                                                : null
-                                        }
-                                        dropLayoutIntent={
-                                            dropTargetFieldId === field.id
-                                                ? dropLayoutIntent
-                                                : null
-                                        }
-                                        isDropTarget={
-                                            dropTargetFieldId === field.id
-                                        }
-                                        collectionId={collectionId}
-                                        onEdit={onEdit}
-                                        reorderEnabled
-                                    />
-                                );
-                            })}
-                        </div>
-                    ))}
-                </div>
-            </SortableContext>
+                                    return (
+                                        <SortableCollectionFieldRow
+                                            key={field.id}
+                                            field={field}
+                                            colSpan={
+                                                fieldIndex === -1
+                                                    ? colSpan
+                                                    : (colSpans[fieldIndex] ?? 2)
+                                            }
+                                            dropIntent={
+                                                dropTargetFieldId === field.id
+                                                    ? dropIntent
+                                                    : null
+                                            }
+                                            dropLayoutIntent={
+                                                dropTargetFieldId === field.id
+                                                    ? dropLayoutIntent
+                                                    : null
+                                            }
+                                            isDropTarget={
+                                                dropTargetFieldId === field.id
+                                            }
+                                            collectionId={collectionId}
+                                            onEdit={onEdit}
+                                            allFields={orderedFields}
+                                            reorderEnabled
+                                        />
+                                    );
+                                })}
+                            </div>
+                        ))}
+                    </div>
+                </SortableContext>
+            )}
 
             <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
                 {activeField !== null ? (
@@ -943,8 +1904,10 @@ function SortableFieldsList({
                             field={activeField}
                             collectionId={collectionId}
                             onEdit={onEdit}
+                            allFields={orderedFields}
                             reorderEnabled
                             isGhost
+                            fillHeight={false}
                         />
                     </div>
                 ) : null}

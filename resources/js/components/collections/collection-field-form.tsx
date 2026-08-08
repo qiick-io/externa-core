@@ -17,8 +17,11 @@ import {
     MapPin,
     Network,
     Palette,
+    PanelsTopLeft,
+    Rows3,
     Search,
     SlidersHorizontal,
+    SquareStack,
     ToggleLeft,
     Type,
     Tags,
@@ -36,6 +39,18 @@ import {
 } from '@/components/collections/field-settings/settings-layout';
 import { TranslatedInput } from '@/components/collections/field-settings/translated-input';
 import { AltroSettings } from '@/components/collections/field-settings/type-settings/altro';
+import {
+    GroupsSettings,
+    parseAccordionGroupSettings,
+    parseDetailGroupSettings,
+    parseTabsGroupSettings,
+    serializeGroupsTypeSettings,
+} from '@/components/collections/field-settings/type-settings/groups';
+import type {
+    AccordionGroupSettings,
+    DetailGroupSettings,
+    TabsGroupSettings,
+} from '@/components/collections/field-settings/type-settings/groups';
 import { RelationalSettings } from '@/components/collections/field-settings/type-settings/relational';
 import {
     parseBooleanFieldSettings,
@@ -136,6 +151,10 @@ const FIELD_TYPE_ICONS: Record<
     relation_many: Link2,
     hash: Fingerprint,
     slider: SlidersHorizontal,
+    group_accordion: Rows3,
+    group_detail: PanelsTopLeft,
+    group_raw: SquareStack,
+    group_tabs: LayoutTemplate,
 };
 
 const TYPES_PER_ROW = 4;
@@ -1248,6 +1267,18 @@ type FieldConfigPanelProps = {
     ) => void;
     sliderShowValue: boolean;
     onSliderShowValueChange: (value: boolean) => void;
+    accordionSettings: AccordionGroupSettings;
+    onAccordionSettingsChange: (
+        updater: (current: AccordionGroupSettings) => AccordionGroupSettings,
+    ) => void;
+    detailSettings: DetailGroupSettings;
+    onDetailSettingsChange: (
+        updater: (current: DetailGroupSettings) => DetailGroupSettings,
+    ) => void;
+    tabsSettings: TabsGroupSettings;
+    onTabsSettingsChange: (
+        updater: (current: TabsGroupSettings) => TabsGroupSettings,
+    ) => void;
     siblingFieldNames: string[];
     fieldConditions: FieldConditions | null;
     onFieldConditionsChange: (next: FieldConditions | null) => void;
@@ -1287,6 +1318,12 @@ function FieldConfigPanel({
     onSliderSettingsChange,
     sliderShowValue,
     onSliderShowValueChange,
+    accordionSettings,
+    onAccordionSettingsChange,
+    detailSettings,
+    onDetailSettingsChange,
+    tabsSettings,
+    onTabsSettingsChange,
     siblingFieldNames,
     fieldConditions,
     onFieldConditionsChange,
@@ -1419,6 +1456,18 @@ function FieldConfigPanel({
                     onSliderShowValueChange={onSliderShowValueChange}
                 />
             ) : null}
+
+            {typeGroup === 'Groups' ? (
+                <GroupsSettings
+                    fieldType={fieldType}
+                    accordionSettings={accordionSettings}
+                    onAccordionSettingsChange={onAccordionSettingsChange}
+                    detailSettings={detailSettings}
+                    onDetailSettingsChange={onDetailSettingsChange}
+                    tabsSettings={tabsSettings}
+                    onTabsSettingsChange={onTabsSettingsChange}
+                />
+            ) : null}
         </>
     );
 
@@ -1430,7 +1479,8 @@ function FieldConfigPanel({
         typeGroup === 'Text & numbers' ||
         typeGroup === 'Selection' ||
         typeGroup === 'Relational' ||
-        typeGroup === 'Altro';
+        typeGroup === 'Altro' ||
+        typeGroup === 'Groups';
 
     return (
         <div className="space-y-6">
@@ -1481,7 +1531,7 @@ function FieldConfigPanel({
                     <TranslatedInput
                         idPrefix={`note_${mode}`}
                         label="Note"
-                        description="Optional helper text shown below the field label in the item form."
+                        description="Optional helper text shown under the field control in the item form."
                         value={commonSettings.note}
                         onChange={(note) =>
                             onCommonSettingsChange((current) => ({
@@ -1686,6 +1736,16 @@ export function CollectionFieldFormDrawer({
     const [sliderShowValue, setSliderShowValue] = useState(
         () => parseSliderFieldSettings(field?.settings).showValue,
     );
+    const [accordionSettings, setAccordionSettings] =
+        useState<AccordionGroupSettings>(() =>
+            parseAccordionGroupSettings(field?.settings),
+        );
+    const [detailSettings, setDetailSettings] = useState<DetailGroupSettings>(
+        () => parseDetailGroupSettings(field?.settings),
+    );
+    const [tabsSettings, setTabsSettings] = useState<TabsGroupSettings>(() =>
+        parseTabsGroupSettings(field?.settings),
+    );
     const [fieldConditions, setFieldConditions] =
         useState<FieldConditions | null>(() =>
             parseFieldConditions(field?.settings),
@@ -1738,6 +1798,16 @@ export function CollectionFieldFormDrawer({
             });
         }
 
+        Object.assign(
+            typeSettings,
+            serializeGroupsTypeSettings(
+                fieldType,
+                accordionSettings,
+                detailSettings,
+                tabsSettings,
+            ),
+        );
+
         const payload = buildFieldSettingsPayload(
             fieldType,
             commonSettings,
@@ -1755,10 +1825,13 @@ export function CollectionFieldFormDrawer({
         allowMultipleImages,
         allowedCollectionIds,
         apiAutocompleteSettings,
+        accordionSettings,
         blockTypes,
         maxBlocksDepth,
         booleanLabels,
         commonSettings,
+        detailSettings,
+        tabsSettings,
         displayField,
         fieldConditions,
         fieldType,
@@ -1884,6 +1957,12 @@ export function CollectionFieldFormDrawer({
                                 onSliderSettingsChange={setSliderSettings}
                                 sliderShowValue={sliderShowValue}
                                 onSliderShowValueChange={setSliderShowValue}
+                                accordionSettings={accordionSettings}
+                                onAccordionSettingsChange={setAccordionSettings}
+                                detailSettings={detailSettings}
+                                onDetailSettingsChange={setDetailSettings}
+                                tabsSettings={tabsSettings}
+                                onTabsSettingsChange={setTabsSettings}
                                 siblingFieldNames={siblingFieldNames.filter(
                                     (name) => name !== field?.name,
                                 )}

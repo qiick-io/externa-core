@@ -38,6 +38,10 @@ enum FieldTypeEnum: string
     case RelationMany = 'relation_many';
     case Hash = 'hash';
     case Slider = 'slider';
+    case GroupAccordion = 'group_accordion';
+    case GroupDetail = 'group_detail';
+    case GroupRaw = 'group_raw';
+    case GroupTabs = 'group_tabs';
 
     /**
      * @return list<string>
@@ -45,6 +49,28 @@ enum FieldTypeEnum: string
     public static function values(): array
     {
         return array_column(self::cases(), 'value');
+    }
+
+    /**
+     * Layout container types (Directus-style alias / no-data groups).
+     */
+    public function isLayoutGroup(): bool
+    {
+        return match ($this) {
+            self::GroupAccordion,
+            self::GroupDetail,
+            self::GroupRaw,
+            self::GroupTabs => true,
+            default => false,
+        };
+    }
+
+    /**
+     * Presentation-only types that never store item values and are omitted from public schema.
+     */
+    public function isNoData(): bool
+    {
+        return $this->isLayoutGroup();
     }
 
     /**
@@ -113,7 +139,11 @@ enum FieldTypeEnum: string
             self::M2a,
             self::Blocks,
             self::RelationTree,
-            self::RelationMany => false,
+            self::RelationMany,
+            self::GroupAccordion,
+            self::GroupDetail,
+            self::GroupRaw,
+            self::GroupTabs => false,
             default => true,
         };
     }

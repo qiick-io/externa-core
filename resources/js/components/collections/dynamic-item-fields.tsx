@@ -3,6 +3,11 @@ import { Fragment, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { CollectionFieldFormDrawer } from '@/components/collections/collection-field-form';
 import { useContentLocale } from '@/components/collections/content-locale-provider';
+import {
+    buildFieldTree,
+    isLayoutGroupType,
+} from '@/lib/collection-field-groups';
+import { renderGroupFieldTree } from '@/components/collections/group-field-renderer';
 
 import { ContentLocaleProvider } from '@/components/collections/content-locale-provider';
 import { BlocksFieldInput } from '@/components/collections/item-field-blocks-input';
@@ -128,6 +133,8 @@ type FieldRenderContext = {
     markdownMode?: 'edit' | 'preview';
     onMarkdownModeChange?: (mode: 'edit' | 'preview') => void;
     showMarkdownModeToggle?: boolean;
+    /** Live value changes for conditions (boolean switch has no native change bubble). */
+    onValueChange?: (value: unknown) => void;
 };
 
 function getDefaultScalar(
@@ -259,6 +266,7 @@ function renderFieldControl(context: FieldRenderContext) {
         markdownMode,
         onMarkdownModeChange,
         showMarkdownModeToggle,
+        onValueChange,
     } = context;
     const options = parseFieldOptions(field.settings).filter(
         (option) => option.value.trim() !== '',
@@ -278,6 +286,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     settings={field.settings}
                     locales={locales}
                     readonly={readonly}
+                    onCheckedChange={(checked) => onValueChange?.(checked)}
                 />
             );
         case 'number':
@@ -958,6 +967,7 @@ function NonTranslatableItemField({
                 markdownMode,
                 onMarkdownModeChange: setMarkdownMode,
                 showMarkdownModeToggle: false,
+                onValueChange: (value) => onValueChange(field.name, value),
             })}
             {/* Always reserve note line below control so half-width siblings stay aligned */}
             <FieldNoteSlot note={note} />
@@ -1080,6 +1090,18 @@ export function DynamicItemFields({
         [layout, visibleFields],
     );
 
+    const hasAnyLayoutGroups = useMemo(
+        () => visibleFields.some((field) => isLayoutGroupType(field.type)),
+        [visibleFields],
+    );
+
+    const fieldTree = useMemo(() => {
+        if (!hasAnyLayoutGroups) {
+            return null;
+        }
+        return buildFieldTree(visibleFields);
+    }, [hasAnyLayoutGroups, visibleFields]);
+
     const tabs = layout?.tabs ?? [];
     const [activeTabId, setActiveTabId] = useState<string | null>(
         () => tabs[0]?.id ?? null,
@@ -1137,12 +1159,18 @@ export function DynamicItemFields({
         });
     };
 
-    const renderOneField = (field: FieldDef): ReactNode => {
+    const renderOneField = (
+        field: FieldDef,
+        options?: { hideLabels?: boolean },
+    ): ReactNode => {
         const flags = evaluateFieldFlags(field.settings, formValues);
 
         if (flags.hidden) {
             return null;
         }
+
+        const hideLabels = options?.hideLabels === true;
+        const headingVisible = showFieldNameHeading && !hideLabels;
 
         const displayName = getFieldDisplayName(
             field.settings,
@@ -1166,7 +1194,7 @@ export function DynamicItemFields({
                 field={field}
                 locales={locales}
                 displayName={displayName}
-                showFieldNameHeading={showFieldNameHeading}
+                showFieldNameHeading={headingVisible}
                 readonly={readonly}
                 collectionId={collectionId}
                 relatedCollections={relatedCollections}
@@ -1186,7 +1214,7 @@ export function DynamicItemFields({
                 field={field}
                 locales={locales}
                 displayName={displayName}
-                showFieldNameHeading={showFieldNameHeading}
+                showFieldNameHeading={headingVisible}
                 readonly={readonly}
                 collectionId={collectionId}
                 relatedCollections={relatedCollections}
@@ -1240,7 +1268,10 @@ export function DynamicItemFields({
         return <Fragment key={field.id}>{inner}</Fragment>;
     };
 
-    const renderFieldGrid = (sectionFields: FieldDef[]): ReactNode => {
+    const renderFieldGrid = (
+        sectionFields: FieldDef[],
+        options?: { hideLabels?: boolean },
+    ): ReactNode => {
         const rows = groupFieldsIntoLayoutRows(sectionFields);
 
         return (
@@ -1258,7 +1289,7 @@ export function DynamicItemFields({
                                     colSpan === 2 ? 'md:col-span-2' : '',
                                 )}
                             >
-                                {renderOneField(field)}
+                                {renderOneField(field, options)}
                             </div>
                         ))}
                     </div>
@@ -1312,48 +1343,70 @@ export function DynamicItemFields({
                     </div>
                 ) : null}
 
-                {visibleGroups.map((group, index) => {
-                    const section = group.section;
+                {fieldTree !== null
+                    ? renderGroupFieldTree({
+                          tree: fieldTree,
+                          locales,
+                          renderField: renderOneField,
+                          renderFields: renderFieldGrid,
+                          checkHidden: (field) => {
+                              const flags = evaluateFieldFlags(
+                                  field.settings,
+                                  formValues,
+                              );
+                              return flags.hidden;
+                          },
+                      })
+                    : visibleGroups.map((group, index) => {
+                          const section = group.section;
 
-                    if (!section || (section.id === 'unsectioned' && !layout)) {
-                        return (
-                            <Fragment key={`flat-${index}`}>
-                                {renderFieldGrid(group.fields)}
-                            </Fragment>
-                        );
-                    }
+                          if (
+                              !section ||
+                              (section.id === 'unsectioned' && !layout)
+                          ) {
+                              return (
+                                  <Fragment key={`flat-${index}`}>
+                                      {renderFieldGrid(group.fields)}
+                                  </Fragment>
+                              );
+                          }
 
-                    const title = resolveFormLayoutLabel(
-                        section.label,
-                        locales,
-                        'Section',
-                    );
+                          const title = resolveFormLayoutLabel(
+                              section.label,
+                              locales,
+                              'Section',
+                          );
 
-                    if (!section.collapsible) {
-                        return (
-                            <section key={section.id} className="space-y-3">
-                                <h3 className="text-sm font-medium">{title}</h3>
-                                {renderFieldGrid(group.fields)}
-                            </section>
-                        );
-                    }
+                          if (!section.collapsible) {
+                              return (
+                                  <section
+                                      key={section.id}
+                                      className="space-y-3"
+                                  >
+                                      <h3 className="text-sm font-medium">
+                                          {title}
+                                      </h3>
+                                      {renderFieldGrid(group.fields)}
+                                  </section>
+                              );
+                          }
 
-                    return (
-                        <Collapsible
-                            key={section.id}
-                            defaultOpen={!section.collapsed}
-                            className="space-y-3 rounded-xl border border-sidebar-border/70 p-4"
-                        >
-                            <CollapsibleTrigger className="flex w-full items-center justify-between text-left text-sm font-medium">
-                                {title}
-                                <ChevronDown className="size-4" />
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                                {renderFieldGrid(group.fields)}
-                            </CollapsibleContent>
-                        </Collapsible>
-                    );
-                })}
+                          return (
+                              <Collapsible
+                                  key={section.id}
+                                  defaultOpen={!section.collapsed}
+                                  className="space-y-3 rounded-lg border bg-muted/30 p-4 dark:border-sidebar-border"
+                              >
+                                  <CollapsibleTrigger className="flex w-full items-center justify-between text-left text-sm font-medium">
+                                      {title}
+                                      <ChevronDown className="size-4" />
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent>
+                                      {renderFieldGrid(group.fields)}
+                                  </CollapsibleContent>
+                              </Collapsible>
+                          );
+                      })}
             </div>
 
             <Drawer

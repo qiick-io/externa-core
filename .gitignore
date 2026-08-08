@@ -57,3 +57,6 @@ Thumbs.db
 /.php-cs-fixer.cache
 /.turbo
 /coverage
+
+# Ephemeral Playwright QA screenshots
+tests/Browser/*.png

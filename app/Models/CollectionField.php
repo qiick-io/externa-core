@@ -174,6 +174,10 @@ class CollectionField extends Model implements Sortable
      */
     public function layoutWidth(): string
     {
+        if ($this->type->isLayoutGroup()) {
+            return 'full';
+        }
+
         $width = data_get($this->settings, 'layout_width', 'full');
 
         return in_array($width, ['half', 'full', 'fill'], true) ? $width : 'full';

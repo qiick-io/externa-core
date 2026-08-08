@@ -145,6 +145,26 @@ export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
         label: 'Relation tree (alias)',
         description: 'Alias of Molti a Uno — no tree UI yet',
     },
+    {
+        value: 'group_accordion',
+        label: 'Accordion',
+        description: 'Collapsible sections — one per direct child',
+    },
+    {
+        value: 'group_detail',
+        label: 'Detail group',
+        description: 'Single collapsible panel for nested fields',
+    },
+    {
+        value: 'group_raw',
+        label: 'Raw group',
+        description: 'Logical nesting without visual chrome',
+    },
+    {
+        value: 'group_tabs',
+        label: 'Tabs',
+        description: 'Children rendered as tabs',
+    },
 ];
 
 /** Field type groupings used in the field type picker UI. */
@@ -197,6 +217,15 @@ export const COLLECTION_FIELD_TYPE_GROUPS: {
         label: 'Altro',
         types: ['hash', 'slider'],
     },
+    {
+        label: 'Groups',
+        types: [
+            'group_accordion',
+            'group_detail',
+            'group_raw',
+            'group_tabs',
+        ],
+    },
 ];
 
 /**
@@ -245,6 +274,10 @@ export function fieldTypeSupportsTranslatable(type: string): boolean {
         'blocks',
         'm2a',
         'relation_tree',
+        'group_accordion',
+        'group_detail',
+        'group_raw',
+        'group_tabs',
     ].includes(type);
 }
 
@@ -500,5 +533,19 @@ export function supportsDefaultValue(fieldType: string): boolean {
         'many_to_one',
         'relation',
         'relation_many',
+        'group_accordion',
+        'group_detail',
+        'group_raw',
+        'group_tabs',
     ].includes(fieldType);
+}
+
+/** Whether the type is a layout group (alias / no-data container). */
+export function fieldTypeIsLayoutGroup(type: string): boolean {
+    return (
+        type === 'group_accordion' ||
+        type === 'group_detail' ||
+        type === 'group_raw' ||
+        type === 'group_tabs'
+    );
 }

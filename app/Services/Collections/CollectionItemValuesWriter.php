@@ -37,6 +37,10 @@ class CollectionItemValuesWriter
         CollectionItemValue::query()->where('item_id', $item->id)->delete();
 
         foreach ($collection->fields as $field) {
+            if ($field->type->isNoData()) {
+                continue;
+            }
+
             if (! array_key_exists($field->name, $normalizedData)) {
                 continue;
             }

@@ -181,6 +181,13 @@ export function groupFieldsIntoLayoutRows<
             currentRowColumns = 0;
         }
 
+        // Full-width fields always start their own row (don't share a grid with an unpaired half).
+        if (colSpan === 2 && currentRow.length > 0) {
+            rows.push(currentRow);
+            currentRow = [];
+            currentRowColumns = 0;
+        }
+
         currentRow.push({ field, colSpan });
         currentRowColumns += colSpan;
 
@@ -612,6 +619,16 @@ export function buildFieldSettingsPayload(
         ...serializeCommonFieldSettings(common),
         ...typeSettings,
     };
+
+    if (
+        fieldType === 'group_accordion' ||
+        fieldType === 'group_detail' ||
+        fieldType === 'group_raw' ||
+        fieldType === 'group_tabs'
+    ) {
+        payload.layout_width = 'full';
+        delete payload.layout_starts_new_row;
+    }
 
     if (
         options &&

@@ -34,6 +34,10 @@ class CollectionItemDataNormalizer
         $out = [];
 
         foreach ($collection->fields as $field) {
+            if ($field->type->isNoData()) {
+                continue;
+            }
+
             if (! array_key_exists($field->name, $data)) {
                 if ($creating) {
                     $defaultValue = $field->defaultValue();
@@ -139,6 +143,10 @@ class CollectionItemDataNormalizer
             FieldTypeEnum::RelationMany,
             FieldTypeEnum::OneToMany,
             FieldTypeEnum::ManyToMany => $this->normalizeM2mLinks($value),
+            FieldTypeEnum::GroupAccordion,
+            FieldTypeEnum::GroupDetail,
+            FieldTypeEnum::GroupRaw,
+            FieldTypeEnum::GroupTabs => null,
         };
     }
 

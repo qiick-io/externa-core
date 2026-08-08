@@ -13,6 +13,7 @@ use App\Http\Requests\Collections\UpdateFieldRequest;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Services\Collections\ApplyFieldPackService;
+use App\Services\Collections\CollectionFieldGroupService;
 use App\Support\Collections\FieldPacks\FieldPackRegistry;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -77,10 +78,28 @@ class FieldController extends Controller
             ? $validated['type']
             : FieldTypeEnum::from((string) $validated['type']);
 
-        $collection->fields()->create([
+        if (isset($validated['settings']) && is_array($validated['settings'])) {
+            $validated['settings'] = app(CollectionFieldGroupService::class)
+                ->forceFullWidthForGroup($type, $validated['settings']);
+        } elseif ($type->isLayoutGroup()) {
+            $validated['settings'] = ['layout_width' => 'full'];
+        }
+
+        /** @var CollectionField $field */
+        $field = $collection->fields()->create([
             ...$validated,
             'translatable' => $type->supportsTranslatable() && $request->boolean('translatable'),
         ]);
+
+        $groupService = app(CollectionFieldGroupService::class);
+
+        // Directus UX: Accordion/Tabs need section panels before fields can nest.
+        $groupService->seedDefaultPanelSections($collection, $field);
+
+        // Creating a leaf with settings.group = accordion|tabs → wrap in a Raw section.
+        if (! $type->isLayoutGroup()) {
+            $groupService->wrapLeafUnderPanelIfNeeded($collection, $field);
+        }
 
         return redirect()->route('collections.fields.index', $collection)
             ->with('success', __('Field created.'));
@@ -93,6 +112,7 @@ class FieldController extends Controller
     {
         $this->assertFieldBelongsToCollection($collection, $field);
 
+        $oldName = $field->name;
         $validated = $request->validated();
         $type = isset($validated['type'])
             ? ($validated['type'] instanceof FieldTypeEnum
@@ -109,10 +129,21 @@ class FieldController extends Controller
             $translatable = false;
         }
 
+        if (isset($validated['settings']) && is_array($validated['settings'])) {
+            $validated['settings'] = app(CollectionFieldGroupService::class)
+                ->forceFullWidthForGroup($type, $validated['settings']);
+        }
+
         $field->update([
             ...$validated,
             'translatable' => $translatable,
         ]);
+
+        $newName = $field->fresh()->name;
+        if ($type->isLayoutGroup() && $oldName !== $newName) {
+            app(CollectionFieldGroupService::class)
+                ->rewriteGroupNameReferences($collection, $oldName, $newName);
+        }
 
         return redirect()
             ->to(url()->previous(route('collections.fields.index', $collection)))
@@ -126,7 +157,14 @@ class FieldController extends Controller
     {
         $this->assertFieldBelongsToCollection($collection, $field);
 
+        $wasGroup = $field->type->isLayoutGroup();
+        $groupName = $field->name;
+
         $field->delete();
+
+        if ($wasGroup) {
+            app(CollectionFieldGroupService::class)->ungroupChildren($collection, $groupName);
+        }
 
         return redirect()->route('collections.fields.index', $collection)
             ->with('success', __('Field deleted.'));
@@ -140,6 +178,8 @@ class FieldController extends Controller
         $ids = $request->validated('ids');
         /** @var list<int> $startsNewRowIds */
         $startsNewRowIds = $request->validated('starts_new_row_ids', []);
+        /** @var array<int|string, string|null> $groups */
+        $groups = $request->validated('groups', []);
 
         CollectionField::setNewOrder($ids, 1, null, fn ($query) => $query->where('collection_id', $collection->id));
 
@@ -157,7 +197,16 @@ class FieldController extends Controller
                 unset($settings['layout_starts_new_row']);
             }
 
+            if ($field->type->isLayoutGroup()) {
+                $settings = app(CollectionFieldGroupService::class)
+                    ->forceFullWidthForGroup($field->type, $settings);
+            }
+
             $field->update(['settings' => $settings]);
+        }
+
+        if ($groups !== []) {
+            app(CollectionFieldGroupService::class)->applyGroupsFromReorder($collection, $groups);
         }
 
         return redirect()->route('collections.fields.index', $collection)
@@ -208,7 +257,11 @@ class FieldController extends Controller
         $this->assertFieldBelongsToCollection($collection, $field);
 
         $settings = $field->settings ?? [];
-        $settings['layout_width'] = $request->validated('layout_width');
+        $width = $request->validated('layout_width');
+        if ($field->type->isLayoutGroup()) {
+            $width = 'full';
+        }
+        $settings['layout_width'] = $width;
         $field->update(['settings' => $settings]);
 
         return redirect()->route('collections.fields.index', $collection)

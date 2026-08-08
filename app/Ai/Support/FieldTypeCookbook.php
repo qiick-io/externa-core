@@ -181,6 +181,10 @@ final class FieldTypeCookbook
             FieldTypeEnum::RelationMany => 'Legacy multi-relation (prefer one_to_many / many_to_many).',
             FieldTypeEnum::Hash => 'One-way hash fingerprint (not translatable).',
             FieldTypeEnum::Slider => 'Numeric slider with min/max/step.',
+            FieldTypeEnum::GroupAccordion => 'Layout group: accordion with Raw section children (no data). Drop fields into sections.',
+            FieldTypeEnum::GroupDetail => 'Layout group: single collapsible panel (no data).',
+            FieldTypeEnum::GroupRaw => 'Layout group: nesting only, no chrome (no data). Used as accordion/tab sections.',
+            FieldTypeEnum::GroupTabs => 'Layout group: tabs with Raw panel children (no data). Drop fields into panels.',
         };
     }
 
@@ -314,6 +318,22 @@ final class FieldTypeCookbook
             FieldTypeEnum::Files => [
                 'layout' => 'list',
             ],
+            FieldTypeEnum::GroupAccordion => [
+                'layout_width' => 'full',
+                'accordion_mode' => true,
+                'start' => 'closed',
+            ],
+            FieldTypeEnum::GroupDetail => [
+                'layout_width' => 'full',
+                'start' => 'open',
+            ],
+            FieldTypeEnum::GroupTabs => [
+                'layout_width' => 'full',
+                'fill_width' => false,
+            ],
+            FieldTypeEnum::GroupRaw => [
+                'layout_width' => 'full',
+            ],
             default => new \stdClass,
         };
     }
@@ -340,6 +360,10 @@ final class FieldTypeCookbook
             FieldTypeEnum::Boolean => 'bool | null',
             FieldTypeEnum::Number,
             FieldTypeEnum::Slider => 'number | null',
+            FieldTypeEnum::GroupAccordion,
+            FieldTypeEnum::GroupDetail,
+            FieldTypeEnum::GroupRaw,
+            FieldTypeEnum::GroupTabs => 'none (alias / no-data — never stored)',
             default => 'string | null (or locale map when translatable)',
         };
     }
@@ -383,7 +407,11 @@ final class FieldTypeCookbook
             FieldTypeEnum::Blocks,
             FieldTypeEnum::Relation,
             FieldTypeEnum::RelationTree,
-            FieldTypeEnum::RelationMany => [
+            FieldTypeEnum::RelationMany,
+            FieldTypeEnum::GroupAccordion,
+            FieldTypeEnum::GroupDetail,
+            FieldTypeEnum::GroupRaw,
+            FieldTypeEnum::GroupTabs => [
                 'translatable is forced false for this type.',
             ],
             default => [],
