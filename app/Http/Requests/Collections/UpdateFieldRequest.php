@@ -85,7 +85,8 @@ class UpdateFieldRequest extends FormRequest
                 'sometimes',
                 'string',
                 'max:64',
-                'regex:/^[a-z][a-z0-9_]*$/',
+                // Str::slug style (a-z0-9 + hyphens); underscores kept for legacy field keys.
+                'regex:/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/',
                 Rule::unique('collections_fields', 'name')
                     ->where(fn ($q) => $q->where('collection_id', $collection->id))
                     ->ignore($field->id),

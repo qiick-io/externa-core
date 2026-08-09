@@ -1,11 +1,13 @@
 <?php
 
+use App\Enums\CollectionPermissionAction;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
 use App\Models\User;
+use App\Services\Collections\CollectionFieldGroupService;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\MigrateFormLayoutToGroupsService;
 use Database\Seeders\PermissionSeeder;
@@ -109,7 +111,6 @@ test('accordion accepts nested raw section via field store', function () {
         ->and($section->settings['display_name']['en'] ?? null)->toBe('Section 3');
 });
 
-
 test('nesting via settings.group validates parent and reorder wraps leaf under accordion', function () {
     $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
@@ -155,6 +156,69 @@ test('nesting via settings.group validates parent and reorder wraps leaf under a
     expect($section)->not->toBeNull()
         ->and($section->type)->toBe(FieldTypeEnum::GroupRaw)
         ->and($section->settings['group'] ?? null)->toBe('acc');
+});
+
+test('accordion and tabs accept any layout group children (Directus parity)', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'acc',
+        'type' => FieldTypeEnum::GroupAccordion,
+        'settings' => ['layout_width' => 'full'],
+        'sort_order' => 1,
+    ]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'tabs',
+        'type' => FieldTypeEnum::GroupTabs,
+        'settings' => ['layout_width' => 'full'],
+        'sort_order' => 2,
+    ]);
+
+    $this->post(route('collections.fields.store', $collection), [
+        'name' => 'nested_tabs',
+        'type' => FieldTypeEnum::GroupTabs->value,
+        'settings' => [
+            'layout_width' => 'full',
+            'group' => 'acc',
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $this->post(route('collections.fields.store', $collection), [
+        'name' => 'nested_detail',
+        'type' => FieldTypeEnum::GroupDetail->value,
+        'settings' => [
+            'layout_width' => 'full',
+            'group' => 'tabs',
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $this->post(route('collections.fields.store', $collection), [
+        'name' => 'nested_raw',
+        'type' => FieldTypeEnum::GroupRaw->value,
+        'settings' => [
+            'layout_width' => 'full',
+            'group' => 'acc',
+            'display_name' => ['en' => 'OK'],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $nestedTabs = CollectionField::query()
+        ->where('collection_id', $collection->id)
+        ->where('name', 'nested_tabs')
+        ->first();
+    $nestedDetail = CollectionField::query()
+        ->where('collection_id', $collection->id)
+        ->where('name', 'nested_detail')
+        ->first();
+
+    expect($nestedTabs)->not->toBeNull()
+        ->and($nestedTabs->settings['group'] ?? null)->toBe('acc');
+    expect($nestedDetail)->not->toBeNull()
+        ->and($nestedDetail->settings['group'] ?? null)->toBe('tabs');
 });
 
 test('dropping a group onto accordion nests it as a section without wrap', function () {
@@ -240,7 +304,7 @@ test('wrapLegacyPanelLeaves migrates leaf accordion children into raw sections',
         'sort_order' => 3,
     ]);
 
-    $created = app(\App\Services\Collections\CollectionFieldGroupService::class)
+    $created = app(CollectionFieldGroupService::class)
         ->wrapLegacyPanelLeaves($collection);
 
     expect($created)->toBe(1);
@@ -337,7 +401,7 @@ test('public collection schema omits layout group fields', function () {
         'settings' => ['layout_width' => 'full'],
     ]);
 
-    grantPublicActions($collection, [\App\Enums\CollectionPermissionAction::Read]);
+    grantPublicActions($collection, [CollectionPermissionAction::Read]);
 
     $response = $this->getJson('/api/v1/collections/'.$collection->slug);
     $response->assertOk();

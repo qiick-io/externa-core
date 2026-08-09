@@ -62,3 +62,51 @@ test('login redirects limited file user to files not dashboard', function () {
     $response->assertRedirect('/files');
     $this->assertAuthenticatedAs($user);
 });
+
+test('login ignores stale intended urls that would 404', function () {
+    $user = User::factory()->create([
+        'email' => 'home-path-stale@example.com',
+        'password' => 'password',
+    ]);
+    $role = Role::query()->create([
+        'name' => 'hp-stale-'.uniqid(),
+        'guard_name' => config('auth.defaults.guard', 'web'),
+    ]);
+    $role->syncPermissions([PermissionEnum::CanShowDashboard->value]);
+    $user->syncRoles([$role]);
+
+    $response = $this
+        ->withSession(['url.intended' => url('/this-page-does-not-exist-xyz')])
+        ->post('/login', [
+            'email' => 'home-path-stale@example.com',
+            'password' => 'password',
+        ]);
+
+    $response->assertRedirect('/dashboard');
+    $this->assertAuthenticatedAs($user);
+});
+
+test('inertia login returns location header to home', function () {
+    $user = User::factory()->create([
+        'email' => 'home-path-inertia@example.com',
+        'password' => 'password',
+    ]);
+    $role = Role::query()->create([
+        'name' => 'hp-inertia-'.uniqid(),
+        'guard_name' => config('auth.defaults.guard', 'web'),
+    ]);
+    $role->syncPermissions([PermissionEnum::CanShowDashboard->value]);
+    $user->syncRoles([$role]);
+
+    $response = $this->withHeaders([
+        'X-Inertia' => 'true',
+        'X-Requested-With' => 'XMLHttpRequest',
+    ])->post('/login', [
+        'email' => 'home-path-inertia@example.com',
+        'password' => 'password',
+    ]);
+
+    $response->assertStatus(409);
+    expect($response->headers->get('X-Inertia-Location'))->toEndWith('/dashboard');
+    $this->assertAuthenticatedAs($user);
+});

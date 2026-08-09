@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
+import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { CommonAdvancedSettings } from '@/components/collections/field-settings/common-advanced-settings';
@@ -74,6 +75,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
+import { FIELD_KEY_PATTERN, slugify, slugifyInput } from '@/lib/slugify';
 import {
     DEFAULT_BLOCKS_DEPTH,
     MAX_BLOCKS_DEPTH,
@@ -1338,23 +1340,26 @@ function FieldConfigPanel({
 
     useEffect(() => {
         const handle = window.setTimeout(() => {
-            const trimmed = fieldKey.trim();
+            // Trailing `-` while typing → compare the finalized slug; leave legacy `_` keys alone.
+            const key = FIELD_KEY_PATTERN.test(fieldKey)
+                ? fieldKey
+                : slugify(fieldKey);
 
-            if (trimmed === '') {
+            if (key === '') {
                 setDebouncedKeyError(undefined);
 
                 return;
             }
 
-            if (!/^[a-z][a-z0-9_]*$/.test(trimmed)) {
+            if (!FIELD_KEY_PATTERN.test(key)) {
                 setDebouncedKeyError(
-                    'Use lowercase letters, numbers, and underscores; start with a letter.',
+                    'Use lowercase letters, numbers, and hyphens (e.g. my-field).',
                 );
 
                 return;
             }
 
-            if (siblingFieldNames.includes(trimmed)) {
+            if (siblingFieldNames.includes(key)) {
                 setDebouncedKeyError(
                     'A field with this key already exists in this collection.',
                 );
@@ -1499,10 +1504,18 @@ function FieldConfigPanel({
                             required
                             value={fieldKey}
                             onChange={(event) =>
-                                setFieldKey(event.target.value)
+                                setFieldKey(slugifyInput(event.target.value))
                             }
-                            placeholder="A unique column name…"
-                            pattern="[a-z][a-z0-9_]*"
+                            onBlur={() =>
+                                setFieldKey((current) =>
+                                    // Keep legacy underscore keys until the user edits them.
+                                    FIELD_KEY_PATTERN.test(current)
+                                        ? current
+                                        : slugify(current),
+                                )
+                            }
+                            placeholder="my-field"
+                            pattern="[a-z0-9]+(?:[-_][a-z0-9]+)*"
                             className="w-full"
                             aria-invalid={Boolean(keyError)}
                         />
@@ -1844,7 +1857,7 @@ export function CollectionFieldFormDrawer({
     ]);
 
     // ponytail: snapshot compare for settings; Form onInput catches field key / native inputs
-    const [initialSettingsSnapshot] = useState(() =>
+    const [initialSettingsSnapshot, setInitialSettingsSnapshot] = useState(() =>
         JSON.stringify(settingsPayload),
     );
     const [inputDirty, setInputDirty] = useState(false);
@@ -1889,7 +1902,14 @@ export function CollectionFieldFormDrawer({
                 className="flex min-h-0 flex-1 flex-col overflow-hidden"
                 options={{ preserveScroll: true }}
                 onSuccess={() => {
-                    setInputDirty(false);
+                    // flushSync: parent onSuccess closes drawer + deepLink GET before
+                    // the next paint; without it the leave guard still sees dirty.
+                    flushSync(() => {
+                        setInputDirty(false);
+                        setInitialSettingsSnapshot(
+                            JSON.stringify(settingsPayload),
+                        );
+                    });
                     onSuccess();
                 }}
                 onInput={() => setInputDirty(true)}

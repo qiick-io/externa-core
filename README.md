@@ -130,7 +130,7 @@ npm run format:check
 npm run types:check
 ```
 
-Browser tests (Pest + Playwright) live under `tests/Browser/` — see [Testing](../externa-docs/src/app/docs/testing/page.md).
+Pest browser tests live under `tests/Browser/`. Local Playwright QA harnesses (`.mjs`) live under gitignored `.e2e/` (agents/local only) — see [Testing](../externa-docs/src/app/docs/testing/page.md).
 
 ## Related packages
 

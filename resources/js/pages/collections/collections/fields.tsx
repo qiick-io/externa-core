@@ -1,5 +1,5 @@
-import { Head, router } from '@inertiajs/react';
-import { ChevronDown, PackagePlus, Plus, Search } from 'lucide-react';
+import { Head } from '@inertiajs/react';
+import { PackagePlus, Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
@@ -18,12 +18,6 @@ import { CollectionFieldsList } from '@/components/collections/collection-fields
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Drawer, DrawerContent, DrawerNested } from '@/components/ui/drawer';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
@@ -32,21 +26,10 @@ import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import { fieldTypeLabel } from '@/lib/collection-field-types';
 import type { RelatedCollectionOption } from '@/lib/collection-field-types';
-import { LAYOUT_GROUP_TYPES } from '@/lib/collection-field-groups';
 import collections from '@/routes/collections';
 import type { BreadcrumbItem, CollectionFieldRow } from '@/types';
 import { collectionToFormRow } from '@/types';
 import type { CollectionView } from '@/types/collections';
-
-const LAYOUT_GROUP_OPTIONS: {
-    type: (typeof LAYOUT_GROUP_TYPES)[number];
-    labelKey: string;
-}[] = [
-    { type: 'group_accordion', labelKey: 'collections.groups.accordion' },
-    { type: 'group_detail', labelKey: 'collections.groups.detail' },
-    { type: 'group_raw', labelKey: 'collections.groups.raw' },
-    { type: 'group_tabs', labelKey: 'collections.groups.tabs' },
-];
 
 /**
  * Field schema editor for a collection.
@@ -148,48 +131,6 @@ export default function CollectionsFields({
         deepLink.syncNew();
     };
 
-    const uniqueGroupName = (base: string): string => {
-        const used = new Set(fields.map((field) => field.name));
-        let candidate = base;
-        let suffix = 2;
-        while (used.has(candidate)) {
-            candidate = `${base}_${suffix}`;
-            suffix++;
-        }
-        return candidate;
-    };
-
-    const createLayoutGroup = (type: (typeof LAYOUT_GROUP_TYPES)[number]): void => {
-        const base =
-            type === 'group_accordion'
-                ? 'accordion'
-                : type === 'group_detail'
-                  ? 'detail'
-                  : type === 'group_tabs'
-                    ? 'tabs'
-                    : 'group';
-
-        router.post(
-            FieldController.store.url(collection.id),
-            {
-                name: uniqueGroupName(base),
-                type,
-                translatable: false,
-                settings: {
-                    layout_width: 'full',
-                    display_name: {
-                        en: fieldTypeLabel(type),
-                    },
-                    ...(type === 'group_accordion'
-                        ? { accordion_mode: '0', start: 'closed' }
-                        : {}),
-                    ...(type === 'group_detail' ? { start: 'open' } : {}),
-                },
-            },
-            { preserveScroll: true },
-        );
-    };
-
     const closeAddFlow = (): void => {
         setAddFormOpen(false);
         setAddOpen(false);
@@ -262,26 +203,6 @@ export default function CollectionsFields({
                                 <Plus className="size-4" />
                                 {t('collections.createField')}
                             </Button>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button type="button" variant="outline">
-                                        {t('collections.groups.addLayout')}
-                                        <ChevronDown className="size-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    {LAYOUT_GROUP_OPTIONS.map((option) => (
-                                        <DropdownMenuItem
-                                            key={option.type}
-                                            onClick={() =>
-                                                createLayoutGroup(option.type)
-                                            }
-                                        >
-                                            {t(option.labelKey)}
-                                        </DropdownMenuItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
                         </>
                     ) : null}
                 </>

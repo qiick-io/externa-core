@@ -24,6 +24,21 @@ export function isPanelContainerType(type: string): boolean {
 }
 
 /**
+ * Directus data-model: any field may nest under any layout group (API + UI).
+ * Cycle checks stay separate. Leaf→Accordion/Tabs still auto-wrap into Raw
+ * on reorder for UX (sections), but groups nest as-is.
+ *
+ * @param _childType - Dragged field type (unused; Directus has no type gate)
+ * @param parentType - Target group type
+ */
+export function canNestFieldIntoGroup(
+    _childType: string,
+    parentType: string,
+): boolean {
+    return isLayoutGroupType(parentType);
+}
+
+/**
  * @param field - Field definition
  * @returns Parent field name from settings.group, or null
  */
@@ -96,6 +111,113 @@ export function buildFieldTree<
 }
 
 /**
+ * Reorder a sibling list in-place-style (new array only when order changes).
+ * Moved node object is reused so React can skip untouched subtrees.
+ */
+function reorderSiblingNodes<T extends { id: number }>(
+    siblings: FieldTreeNode<T>[],
+    activeId: number,
+    beforeSiblingId: number | null,
+): FieldTreeNode<T>[] {
+    const activeIndex = siblings.findIndex(
+        (node) => node.field.id === activeId,
+    );
+
+    if (activeIndex === -1) {
+        return siblings;
+    }
+
+    const activeNode = siblings[activeIndex];
+    const rest = siblings.filter((node) => node.field.id !== activeId);
+    let insertAt = rest.length;
+
+    if (beforeSiblingId !== null) {
+        const siblingIndex = rest.findIndex(
+            (node) => node.field.id === beforeSiblingId,
+        );
+
+        if (siblingIndex !== -1) {
+            insertAt = siblingIndex;
+        }
+    }
+
+    const next = [
+        ...rest.slice(0, insertAt),
+        activeNode,
+        ...rest.slice(insertAt),
+    ];
+
+    const unchanged = next.every((node, index) => node === siblings[index]);
+
+    return unchanged ? siblings : next;
+}
+
+/**
+ * Same-parent live drag: reorder one sibling list without rebuilding the whole
+ * tree (preserves node identity outside the touched parent path).
+ */
+export function reorderTreeSiblings<T extends { id: number; name: string }>(
+    nodes: FieldTreeNode<T>[],
+    parentName: string | null,
+    activeId: number,
+    beforeSiblingId: number | null,
+): FieldTreeNode<T>[] {
+    if (parentName === null) {
+        return reorderSiblingNodes(nodes, activeId, beforeSiblingId);
+    }
+
+    let changed = false;
+
+    const walk = (list: FieldTreeNode<T>[]): FieldTreeNode<T>[] => {
+        let listChanged = false;
+
+        const next = list.map((node) => {
+            if (node.field.name === parentName) {
+                const nextChildren = reorderSiblingNodes(
+                    node.children,
+                    activeId,
+                    beforeSiblingId,
+                );
+
+                if (nextChildren === node.children) {
+                    return node;
+                }
+
+                listChanged = true;
+
+                return { field: node.field, children: nextChildren };
+            }
+
+            if (node.children.length === 0) {
+                return node;
+            }
+
+            const nextChildren = walk(node.children);
+
+            if (nextChildren === node.children) {
+                return node;
+            }
+
+            listChanged = true;
+
+            return { field: node.field, children: nextChildren };
+        });
+
+        if (listChanged) {
+            changed = true;
+
+            return next;
+        }
+
+        return list;
+    };
+
+    const result = walk(nodes);
+
+    return changed ? result : nodes;
+}
+
+/**
  * Depth-first flatten of a field tree (for indented list UI).
  */
 export function flattenFieldTree<T>(
@@ -130,6 +252,13 @@ export function fieldsWithGroupOverrides<
         }
 
         const group = groups.get(field.id) ?? null;
+
+        // ponytail: keep object identity when parent already matches — drag
+        // rebuilds this map every frame; cloning 100+ rows kills React.
+        if (getFieldGroupName(field) === group) {
+            return field;
+        }
+
         const settings = { ...(field.settings ?? {}) };
 
         if (group === null) {
@@ -208,6 +337,137 @@ export function collectFieldTreeIds<T extends { id: number }>(
     return ids;
 }
 
+function fieldIsUnderGroupName<
+    T extends {
+        id: number;
+        name: string;
+        settings?: Record<string, unknown> | null;
+    },
+>(
+    field: T,
+    groupName: string,
+    groups: Map<number, string | null>,
+    byName: Map<string, T>,
+): boolean {
+    let cursor: string | null = groups.get(field.id) ?? getFieldGroupName(field);
+
+    for (let depth = 0; depth < 32 && cursor !== null; depth += 1) {
+        if (cursor === groupName) {
+            return true;
+        }
+
+        const parent = byName.get(cursor);
+        cursor = parent
+            ? (groups.get(parent.id) ?? getFieldGroupName(parent))
+            : null;
+    }
+
+    return false;
+}
+
+/**
+ * Same-parent sibling reorder: relocate the active DFS block without rebuilding
+ * the group map or running nest/cycle checks (live drag path).
+ *
+ * @param beforeSiblingId - Insert before this sibling; null appends under parent.
+ * @returns Same `fields` reference when the slot is unchanged.
+ */
+export function moveSameParentSiblingBlock<
+    T extends {
+        id: number;
+        name: string;
+        type?: string;
+        settings?: Record<string, unknown> | null;
+    },
+>(
+    fields: T[],
+    groups: Map<number, string | null>,
+    activeId: number,
+    beforeSiblingId: number | null,
+): T[] {
+    const activeField = fields.find((field) => field.id === activeId);
+
+    if (!activeField) {
+        return fields;
+    }
+
+    const parentName =
+        groups.get(activeId) ?? getFieldGroupName(activeField);
+    const byName = new Map(fields.map((field) => [field.name, field]));
+    const subtreeIds = new Set<number>([activeId]);
+
+    // Collect DFS descendants by parent chain (not type) so same-parent moves
+    // keep nested blocks contiguous even when type is missing in tests/helpers.
+    for (const field of fields) {
+        if (
+            field.id !== activeId &&
+            fieldIsUnderGroupName(field, activeField.name, groups, byName)
+        ) {
+            subtreeIds.add(field.id);
+        }
+    }
+
+    const block: T[] = [];
+    const rest: T[] = [];
+
+    for (const field of fields) {
+        if (subtreeIds.has(field.id)) {
+            block.push(field);
+        } else {
+            rest.push(field);
+        }
+    }
+
+    let insertAt = rest.length;
+
+    if (beforeSiblingId !== null) {
+        const siblingIndex = rest.findIndex(
+            (field) => field.id === beforeSiblingId,
+        );
+
+        if (siblingIndex !== -1) {
+            insertAt = siblingIndex;
+        }
+    } else if (parentName !== null) {
+        const parentIndex = rest.findIndex(
+            (field) => field.name === parentName,
+        );
+
+        if (parentIndex !== -1) {
+            let lastIndex = parentIndex;
+
+            for (let index = parentIndex + 1; index < rest.length; index += 1) {
+                if (
+                    fieldIsUnderGroupName(
+                        rest[index],
+                        parentName,
+                        groups,
+                        byName,
+                    )
+                ) {
+                    lastIndex = index;
+                } else {
+                    break;
+                }
+            }
+
+            insertAt = lastIndex + 1;
+        }
+    }
+
+    const next = [
+        ...rest.slice(0, insertAt),
+        ...block,
+        ...rest.slice(insertAt),
+    ];
+
+    const unchanged =
+        next.length === fields.length &&
+        next.every((field, index) => field.id === fields[index]?.id);
+
+    return unchanged ? fields : next;
+}
+
 /**
  * Move a field (and its descendant block) under a new parent / sibling slot.
  * Flat order stays DFS-contiguous like Directus nested sort.
@@ -231,6 +491,22 @@ export function moveFieldInGroupTree<
 
     if (!activeField) {
         return { fields, groups };
+    }
+
+    const currentParent =
+        groups.get(activeId) ?? getFieldGroupName(activeField);
+
+    // Same parent: skip nest/cycle work — live drag calls this path a lot.
+    if (currentParent === newParentName) {
+        return {
+            fields: moveSameParentSiblingBlock(
+                fields,
+                groups,
+                activeId,
+                beforeSiblingId,
+            ),
+            groups,
+        };
     }
 
     if (

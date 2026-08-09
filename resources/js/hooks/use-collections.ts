@@ -5,6 +5,7 @@ import {
     useRegisterUnsavedChanges,
     useRequestLeave,
 } from '@/hooks/use-unsaved-changes';
+import { slugify as toSlug } from '@/lib/slugify';
 import type { CollectionRow } from '@/types/collections';
 
 const EMPTY_COLLECTION_FORM = {
@@ -20,13 +21,7 @@ const EMPTY_COLLECTION_FORM = {
  * @returns Slug with non-alphanumeric segments replaced by hyphens
  */
 export function slugify(value: string): string {
-    const s = value
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-
-    return s || 'collection';
+    return toSlug(value) || 'collection';
 }
 
 /**

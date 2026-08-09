@@ -34,7 +34,8 @@ class ReorderFieldsRequest extends FormRequest
             'starts_new_row_ids' => ['sometimes', 'array'],
             'starts_new_row_ids.*' => ['integer', 'distinct'],
             'groups' => ['sometimes', 'array'],
-            'groups.*' => ['nullable', 'string', 'max:64', 'regex:/^[a-z][a-z0-9_]*$/'],
+            // Match field name slug rules (hyphens + underscores); group values are parent field names.
+            'groups.*' => ['nullable', 'string', 'max:64', 'regex:/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/'],
         ];
     }
 }

@@ -172,16 +172,22 @@ class FieldController extends Controller
 
     /**
      * Reorder fields and persist row-break layout settings.
+     *
+     * Full `ids` order is accepted for correctness; only dirty sort_order /
+     * settings rows are written (avoids activity-log + cache-bump storms).
      */
     public function reorder(ReorderFieldsRequest $request, Collection $collection): RedirectResponse
     {
-        $ids = $request->validated('ids');
+        $ids = array_map('intval', $request->validated('ids'));
         /** @var list<int> $startsNewRowIds */
-        $startsNewRowIds = $request->validated('starts_new_row_ids', []);
+        $startsNewRowIds = array_map('intval', $request->validated('starts_new_row_ids', []));
         /** @var array<int|string, string|null> $groups */
         $groups = $request->validated('groups', []);
 
-        CollectionField::setNewOrder($ids, 1, null, fn ($query) => $query->where('collection_id', $collection->id));
+        $this->applySortOrderFromIds($collection, $ids);
+
+        $startsNewRowIdSet = array_fill_keys($startsNewRowIds, true);
+        $groupService = app(CollectionFieldGroupService::class);
 
         $fields = CollectionField::query()
             ->where('collection_id', $collection->id)
@@ -190,27 +196,65 @@ class FieldController extends Controller
 
         foreach ($fields as $field) {
             $settings = $field->settings ?? [];
+            $shouldStartNewRow = isset($startsNewRowIdSet[$field->id]);
 
-            if (in_array($field->id, $startsNewRowIds, true)) {
+            if ($shouldStartNewRow) {
                 $settings['layout_starts_new_row'] = true;
             } else {
                 unset($settings['layout_starts_new_row']);
             }
 
             if ($field->type->isLayoutGroup()) {
-                $settings = app(CollectionFieldGroupService::class)
-                    ->forceFullWidthForGroup($field->type, $settings);
+                $settings = $groupService->forceFullWidthForGroup($field->type, $settings);
             }
 
-            $field->update(['settings' => $settings]);
+            $nextSettings = $settings === [] ? null : $settings;
+
+            // ponytail: skip Eloquent update when settings unchanged — each update
+            // bumps PublicApiResponseCache + activity log.
+            if ($field->settings == $nextSettings) {
+                continue;
+            }
+
+            $field->update(['settings' => $nextSettings]);
         }
 
         if ($groups !== []) {
-            app(CollectionFieldGroupService::class)->applyGroupsFromReorder($collection, $groups);
+            $groupService->applyGroupsFromReorder($collection, $groups);
         }
 
         return redirect()->route('collections.fields.index', $collection)
             ->with('success', __('Fields reordered.'));
+    }
+
+    /**
+     * Persist sort_order for ids that actually moved (query builder, no model events).
+     *
+     * @param  list<int>  $ids
+     */
+    private function applySortOrderFromIds(Collection $collection, array $ids): void
+    {
+        if ($ids === []) {
+            return;
+        }
+
+        $currentOrders = CollectionField::query()
+            ->where('collection_id', $collection->id)
+            ->whereIn('id', $ids)
+            ->pluck('sort_order', 'id');
+
+        $order = 1;
+
+        foreach ($ids as $id) {
+            if ((int) ($currentOrders[$id] ?? -1) !== $order) {
+                CollectionField::query()
+                    ->where('collection_id', $collection->id)
+                    ->whereKey($id)
+                    ->update(['sort_order' => $order]);
+            }
+
+            $order++;
+        }
     }
 
     /**

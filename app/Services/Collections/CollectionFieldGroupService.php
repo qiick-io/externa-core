@@ -5,6 +5,7 @@ namespace App\Services\Collections;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -22,6 +23,17 @@ class CollectionFieldGroupService
     {
         return $type === FieldTypeEnum::GroupAccordion
             || $type === FieldTypeEnum::GroupTabs;
+    }
+
+    /**
+     * Directus parity: any field type may nest under any layout group.
+     * Cycle prevention stays in assertValidGroupParent / wouldCreateCycle.
+     * Leaf→Accordion/Tabs auto-wrap into Raw happens separately on reorder.
+     */
+    public function canNestFieldIntoGroup(FieldTypeEnum $childType, FieldTypeEnum $parentType): bool
+    {
+        // $childType kept for call-site symmetry; Directus has no child-type gate.
+        return $parentType->isLayoutGroup();
     }
 
     /**
@@ -140,6 +152,18 @@ class CollectionFieldGroupService
             ]);
         }
 
+        if (
+            $resolvedType !== null
+            && ! $this->canNestFieldIntoGroup($resolvedType, $parent->type)
+        ) {
+            throw ValidationException::withMessages([
+                'settings.group' => __(
+                    'Parent :name is not a layout group.',
+                    ['name' => $groupName],
+                ),
+            ]);
+        }
+
         if ($field !== null && $this->wouldCreateCycle($collection, $field, $groupName)) {
             throw ValidationException::withMessages([
                 'settings.group' => __('Nesting under :name would create a cycle.', ['name' => $groupName]),
@@ -205,64 +229,76 @@ class CollectionFieldGroupService
             return;
         }
 
-        $fields = CollectionField::query()
-            ->where('collection_id', $collection->id)
-            ->whereIn('id', array_map('intval', array_keys($groupsById)))
-            ->get()
-            ->keyBy('id');
+        // Validate first so a bad nest cannot partially ungroup siblings.
+        DB::transaction(function () use ($collection, $groupsById): void {
+            $fields = CollectionField::query()
+                ->where('collection_id', $collection->id)
+                ->whereIn('id', array_map('intval', array_keys($groupsById)))
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
 
-        $parentsByName = CollectionField::query()
-            ->where('collection_id', $collection->id)
-            ->get()
-            ->keyBy('name');
+            $parentsByName = CollectionField::query()
+                ->where('collection_id', $collection->id)
+                ->get()
+                ->keyBy('name');
 
-        foreach ($groupsById as $rawId => $groupName) {
-            $id = (int) $rawId;
-            $field = $fields->get($id);
-            if ($field === null) {
-                continue;
-            }
-
-            $normalizedGroup = is_string($groupName) && trim($groupName) !== ''
-                ? trim($groupName)
-                : null;
-
-            // Auto-wrap only when a leaf is newly nested under Accordion/Tabs.
-            // Reorders that keep an existing (legacy) leaf→panel link stay as-is
-            // until wrapLegacyPanelLeaves() migrates them.
-            if (
-                $normalizedGroup !== null
-                && ! $field->type->isLayoutGroup()
-            ) {
-                $parent = $parentsByName->get($normalizedGroup);
-                $previousGroup = $this->groupNameFromSettings($field->settings);
-                if (
-                    $parent !== null
-                    && $this->isPanelContainer($parent->type)
-                    && $previousGroup !== $normalizedGroup
-                ) {
-                    $section = $this->createPanelSection($collection, $parent);
-                    $this->insertFieldBeforeSibling($collection, $section, $field);
-                    $parentsByName->put($section->name, $section);
-                    $normalizedGroup = $section->name;
+            foreach ($groupsById as $rawId => $groupName) {
+                $id = (int) $rawId;
+                $field = $fields->get($id);
+                if ($field === null) {
+                    continue;
                 }
+
+                $normalizedGroup = is_string($groupName) && trim($groupName) !== ''
+                    ? trim($groupName)
+                    : null;
+
+                $previousGroup = $this->groupNameFromSettings($field->settings);
+
+                // Auto-wrap only when a leaf is newly nested under Accordion/Tabs.
+                // Reorders that keep an existing (legacy) leaf→panel link stay as-is
+                // until wrapLegacyPanelLeaves() migrates them.
+                if (
+                    $normalizedGroup !== null
+                    && ! $field->type->isLayoutGroup()
+                ) {
+                    $parent = $parentsByName->get($normalizedGroup);
+                    if (
+                        $parent !== null
+                        && $this->isPanelContainer($parent->type)
+                        && $previousGroup !== $normalizedGroup
+                    ) {
+                        $section = $this->createPanelSection($collection, $parent);
+                        $this->insertFieldBeforeSibling($collection, $section, $field);
+                        $parentsByName->put($section->name, $section);
+                        $normalizedGroup = $section->name;
+                    }
+                }
+
+                $settings = $field->settings ?? [];
+                if ($normalizedGroup === null) {
+                    unset($settings['group']);
+                } else {
+                    $settings['group'] = $normalizedGroup;
+                }
+
+                if ($field->type->isLayoutGroup()) {
+                    $settings = $this->forceFullWidthForGroup($field->type, $settings);
+                }
+
+                $nextSettings = $settings === [] ? null : $settings;
+
+                // ponytail: payload may include unchanged ids; skip to avoid N updates.
+                if ($field->settings == $nextSettings) {
+                    continue;
+                }
+
+                $this->assertValidGroupParent($collection, $settings, $field, $field->type);
+
+                $field->update(['settings' => $nextSettings]);
             }
-
-            $settings = $field->settings ?? [];
-            if ($normalizedGroup === null) {
-                unset($settings['group']);
-            } else {
-                $settings['group'] = $normalizedGroup;
-            }
-
-            if ($field->type->isLayoutGroup()) {
-                $settings = $this->forceFullWidthForGroup($field->type, $settings);
-            }
-
-            $this->assertValidGroupParent($collection, $settings, $field, $field->type);
-
-            $field->update(['settings' => $settings === [] ? null : $settings]);
-        }
+        });
     }
 
     /**

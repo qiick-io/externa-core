@@ -3,12 +3,14 @@
 namespace App\Http\Requests\Collections\Concerns;
 
 use App\Enums\FieldTypeEnum;
+use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Services\Collections\CollectionFieldGroupService;
 use App\Services\Collections\FieldConditionEvaluator;
 use App\Support\Collections\BlocksFieldSchema;
 use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Validator;
 
 /**
@@ -38,7 +40,7 @@ trait ValidatesCollectionFieldSettings
             'settings.hidden_in_form' => ['sometimes'],
             'settings.layout_width' => ['sometimes', Rule::in(['half', 'full', 'fill'])],
             'settings.layout_starts_new_row' => ['sometimes'],
-            'settings.group' => ['sometimes', 'nullable', 'string', 'max:64', 'regex:/^[a-z][a-z0-9_]*$/'],
+            'settings.group' => ['sometimes', 'nullable', 'string', 'max:64', 'regex:/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/'],
             'settings.accordion_mode' => ['sometimes'],
             'settings.fill_width' => ['sometimes'],
             'settings.start' => ['sometimes', Rule::in(['closed', 'first', 'opened', 'open'])],
@@ -190,7 +192,7 @@ trait ValidatesCollectionFieldSettings
             }
 
             $collection = $this->route('collection');
-            if (! $collection instanceof \App\Models\Collection) {
+            if (! $collection instanceof Collection) {
                 return;
             }
 
@@ -204,7 +206,7 @@ trait ValidatesCollectionFieldSettings
                     $fieldModel,
                     $type,
                 );
-            } catch (\Illuminate\Validation\ValidationException $e) {
+            } catch (ValidationException $e) {
                 foreach ($e->errors() as $key => $messages) {
                     foreach ($messages as $message) {
                         $validator->errors()->add($key, $message);

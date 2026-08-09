@@ -407,6 +407,42 @@ test('collection field reorder can persist layout row breaks', function () {
     expect($titleField->fresh()->settings)->not->toHaveKey('layout_starts_new_row');
 });
 
+test('collection field reorder skips settings writes when unchanged', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+    $titleField = CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'sort_order' => 1,
+        'settings' => ['layout_width' => 'half'],
+    ]);
+    $statusField = CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'status',
+        'sort_order' => 2,
+        'settings' => [
+            'layout_width' => 'half',
+            'layout_starts_new_row' => true,
+        ],
+    ]);
+
+    // Pure order swap; row breaks already match payload — settings must stay put.
+    $this->post(route('collections.fields.reorder', $collection), [
+        'ids' => [$statusField->id, $titleField->id],
+        'starts_new_row_ids' => [$statusField->id],
+    ])->assertRedirect(route('collections.fields.index', $collection));
+
+    expect($titleField->fresh()->settings)->toBe(['layout_width' => 'half'])
+        ->and($statusField->fresh()->settings)->toBe([
+            'layout_width' => 'half',
+            'layout_starts_new_row' => true,
+        ])
+        ->and($statusField->fresh()->sort_order)->toBe(1)
+        ->and($titleField->fresh()->sort_order)->toBe(2);
+});
+
 test('collection field can be duplicated', function () {
     $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);

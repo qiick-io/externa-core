@@ -4,6 +4,7 @@ namespace App\Http\Responses;
 
 use App\Support\Auth\HomePath;
 use Illuminate\Http\JsonResponse;
+use Inertia\Inertia;
 use Laravel\Passkeys\Contracts\PasskeyLoginResponse as PasskeyLoginResponseContract;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -17,10 +18,10 @@ class PasskeyLoginResponse implements PasskeyLoginResponseContract
      */
     public function toResponse($request): Response
     {
-        $home = HomePath::for($request->user());
+        $target = HomePath::afterLogin($request);
 
         return $request->wantsJson()
-            ? new JsonResponse(['redirect' => redirect()->intended($home)->getTargetUrl()], 200)
-            : redirect()->intended($home);
+            ? new JsonResponse(['redirect' => url($target)], 200)
+            : Inertia::location($target);
     }
 }
