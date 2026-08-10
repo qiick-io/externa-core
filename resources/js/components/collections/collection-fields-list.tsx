@@ -46,7 +46,6 @@ import {
     Type,
 } from 'lucide-react';
 import {
-    Fragment,
     useEffect,
     useMemo,
     useRef,
@@ -106,6 +105,285 @@ import type { CollectionFieldRow } from '@/types';
 /** Droppable id for a group's interior nest zone (body only, not header). */
 const GROUP_DROP_PREFIX = 'group-drop:';
 
+/** Field-grid gap — enough air for between-item / between-group inserts. */
+const FIELD_LIST_GAP_CLASS = 'gap-5';
+
+/** Directus .sortable-ghost dashed slot — shared by leaf rows and group chrome. */
+const SORTABLE_GHOST_SLOT_CLASS =
+    'border-dashed border-primary bg-transparent shadow-none';
+
+/**
+ * Leaf DragOverlay width — the visible card, not the sortable hit wrapper.
+ * Lone halves expand to col-span-2 for the empty partner column; measuring the
+ * wrapper made half ghosts jump to full width (Directus keeps half).
+ */
+function measureLeafDragGhostWidth(activeId: UniqueIdentifier): number | undefined {
+    const sortable = document.querySelector(
+        `[data-sortable-id="${String(activeId)}"]`,
+    );
+
+    if (!(sortable instanceof HTMLElement)) {
+        return undefined;
+    }
+
+    if (sortable.getAttribute('data-open-partner-slot') === '1') {
+        const partner = sortable.querySelector('[data-empty-partner-slot]');
+        const card = partner?.previousElementSibling;
+
+        if (card instanceof HTMLElement && card.offsetWidth > 0) {
+            return card.offsetWidth;
+        }
+    }
+
+    const card = sortable.querySelector(':scope > div.bg-card, :scope > div > div.bg-card');
+
+    if (card instanceof HTMLElement && card.offsetWidth > 0) {
+        return card.offsetWidth;
+    }
+
+    return sortable.offsetWidth > 0 ? sortable.offsetWidth : undefined;
+}
+
+/**
+ * Measure the full group chrome for DragOverlay (header + nest body).
+ * Sortable handle is only the header row — SortableJS/Directus ghost the whole block.
+ * Snapshot HTML before isDragging opacity so the fallback matches the live block.
+ */
+function measureGroupDragGhost(activeId: UniqueIdentifier): {
+    width: number;
+    height: number;
+    html: string;
+} | null {
+    const sortable = document.querySelector(
+        `[data-sortable-id="${String(activeId)}"]`,
+    );
+    const container = sortable?.closest('[data-group-container]');
+
+    if (!(container instanceof HTMLElement)) {
+        return null;
+    }
+
+    const clone = container.cloneNode(true) as HTMLElement;
+    clone.removeAttribute('data-group-container');
+    clone.removeAttribute('data-group-field-id');
+    // Match leaf DragOverlay chrome (primary ring) — resting muted border looks muddy at 0.85.
+    clone.className =
+        'space-y-2 rounded-lg border border-primary/40 bg-muted/30 p-3 shadow-lg ring-2 ring-primary/20';
+    clone.querySelectorAll('[data-nest-drop-ghost]').forEach((el) => {
+        el.remove();
+    });
+    clone.querySelectorAll('[data-group-drop]').forEach((el) => {
+        el.removeAttribute('data-group-drop');
+    });
+    clone.querySelectorAll('[data-sortable-id]').forEach((el) => {
+        el.removeAttribute('data-sortable-id');
+    });
+
+    return {
+        width: container.offsetWidth,
+        height: container.offsetHeight,
+        html: clone.outerHTML,
+    };
+}
+
+/** Full item box for hit-testing — group chrome, else the sortable row. */
+function fieldItemRect(sortable: HTMLElement): DOMRect {
+    const container = sortable.closest('[data-group-container]');
+
+    if (container instanceof HTMLElement) {
+        return container.getBoundingClientRect();
+    }
+
+    return sortable.getBoundingClientRect();
+}
+
+/** True when pointer is on the top/bottom insert band of a group nest body. */
+function isPointerOnGroupInsertEdge(
+    pointer: { x: number; y: number },
+    groupFieldId: number,
+): boolean {
+    // Thin bands only — Directus treats most of the nested field-grid as nest
+    // (min-height ~54px + padding). Wide edges made nest feel pixel-precise.
+    const body = document.querySelector(
+        `[data-group-drop="${groupFieldId}"]`,
+    );
+    const container =
+        body ??
+        document.querySelector(`[data-group-field-id="${groupFieldId}"]`);
+
+    if (!(container instanceof HTMLElement)) {
+        return false;
+    }
+
+    const rect = container.getBoundingClientRect();
+
+    if (rect.height < 48) {
+        // Short / empty body: no edge — whole zone is nest.
+        return false;
+    }
+
+    const band = Math.min(20, rect.height * 0.1);
+
+    return pointer.y < rect.top + band || pointer.y > rect.bottom - band;
+}
+
+function pointerInsideGroupChrome(
+    pointer: { x: number; y: number },
+    groupFieldId: number,
+): boolean {
+    const container = document.querySelector(
+        `[data-group-field-id="${groupFieldId}"]`,
+    );
+
+    if (!(container instanceof HTMLElement)) {
+        return false;
+    }
+
+    const rect = container.getBoundingClientRect();
+
+    return (
+        pointer.x >= rect.left &&
+        pointer.x <= rect.right &&
+        pointer.y >= rect.top &&
+        pointer.y <= rect.bottom
+    );
+}
+
+/**
+ * Pointer in the vertical seam between two consecutive sibling cells in any
+ * tree grid (root or nested under tabs/accordion/raw) → sibling insert.
+ * Prefer this over nest-into-parent so the ghost follows the opened slot
+ * instead of the parent's bottom nest pad. Skips the active cell so a
+ * live-moved ghost between A|B still counts as the A↔B seam.
+ * Returns the sibling id to aim (before/after refined by geometry below).
+ */
+function siblingIdInTreeGap(
+    pointer: { x: number; y: number },
+    activeId: number,
+): number | null {
+    type Cell = {
+        id: number;
+        top: number;
+        bottom: number;
+        left: number;
+        right: number;
+    };
+
+    let bestId: number | null = null;
+    let bestDepth = -1;
+
+    for (const grid of document.querySelectorAll('[data-tree-depth]')) {
+        if (!(grid instanceof HTMLElement)) {
+            continue;
+        }
+
+        const depth = Number(grid.getAttribute('data-tree-depth') ?? -1);
+
+        if (!Number.isFinite(depth) || depth < bestDepth) {
+            continue;
+        }
+
+        const gridRect = grid.getBoundingClientRect();
+        // Nested panels need a wider approach band than root.
+        const approach = depth > 0 ? 32 : 20;
+
+        if (
+            pointer.y < gridRect.top - approach ||
+            pointer.y > gridRect.bottom + approach ||
+            pointer.x < gridRect.left - 8 ||
+            pointer.x > gridRect.right + 8
+        ) {
+            continue;
+        }
+
+        const cells: Cell[] = [];
+
+        for (const child of grid.children) {
+            if (
+                !(child instanceof HTMLElement) ||
+                child.hasAttribute('data-row-break')
+            ) {
+                continue;
+            }
+
+            // Outermost group in this cell, else the cell's sortable leaf.
+            const container =
+                child.querySelector(':scope > [data-group-container]') ??
+                child.querySelector(':scope > * > [data-group-container]');
+            const sortable =
+                child.matches('[data-sortable-id]')
+                    ? child
+                    : child.querySelector(':scope > [data-sortable-id]');
+
+            let id = NaN;
+
+            if (container instanceof HTMLElement) {
+                id = Number(container.getAttribute('data-group-field-id'));
+            } else if (sortable instanceof HTMLElement) {
+                id = Number(sortable.getAttribute('data-sortable-id'));
+            }
+
+            // Skip active — live-moved placeholder between A|B must not split the seam.
+            if (!Number.isFinite(id) || id === activeId) {
+                continue;
+            }
+
+            const rect = child.getBoundingClientRect();
+            cells.push({
+                id,
+                top: rect.top,
+                bottom: rect.bottom,
+                left: rect.left,
+                right: rect.right,
+            });
+        }
+
+        const band = depth > 0 ? 28 : 18;
+        const slop = depth > 0 ? 22 : 14;
+        let hitId: number | null = null;
+
+        for (let index = 0; index < cells.length - 1; index += 1) {
+            const above = cells[index];
+            const below = cells[index + 1];
+            const gapTop = above.bottom;
+            const gapBottom = below.top;
+            const xMin = Math.min(above.left, below.left);
+            const xMax = Math.max(above.right, below.right);
+
+            if (pointer.x < xMin || pointer.x > xMax) {
+                continue;
+            }
+
+            if (gapBottom - gapTop < 2) {
+                const seam = (gapTop + gapBottom) / 2;
+
+                if (pointer.y >= seam - band && pointer.y <= seam + band) {
+                    hitId = pointer.y >= seam ? below.id : above.id;
+                    break;
+                }
+
+                continue;
+            }
+
+            if (
+                pointer.y >= gapTop - slop &&
+                pointer.y <= gapBottom + slop
+            ) {
+                const mid = (gapTop + gapBottom) / 2;
+                hitId = pointer.y >= mid ? below.id : above.id;
+                break;
+            }
+        }
+
+        if (hitId !== null) {
+            bestId = hitId;
+            bestDepth = depth;
+        }
+    }
+
+    return bestId;
+}
+
 /** Nearest overflow scroll ancestor (PageLayout scrollContent), not window. */
 function findOverflowScrollParent(
     start: Element | null,
@@ -156,8 +434,14 @@ function parseGroupDropId(id: UniqueIdentifier): number | null {
     return Number.isFinite(fieldId) ? fieldId : null;
 }
 
-/** Live sortable box — dnd-kit over.rect lags same-parent FLIP / live moves. */
-function liveSortableRect(fieldId: number): {
+/**
+ * Intent geometry for a field: header when the pointer is on it, else full group
+ * chrome. Header-only boxes made "after" unreachable once remapped off a nest body.
+ */
+function liveDropIntentRect(
+    fieldId: number,
+    pointer: { x: number; y: number } | null,
+): {
     top: number;
     left: number;
     width: number;
@@ -169,13 +453,28 @@ function liveSortableRect(fieldId: number): {
         return null;
     }
 
-    const box = node.getBoundingClientRect();
+    const header = node.getBoundingClientRect();
+
+    if (
+        pointer !== null &&
+        pointer.y >= header.top &&
+        pointer.y <= header.bottom
+    ) {
+        return {
+            top: header.top,
+            left: header.left,
+            width: header.width,
+            height: header.height,
+        };
+    }
+
+    const item = fieldItemRect(node);
 
     return {
-        top: box.top,
-        left: box.left,
-        width: box.width,
-        height: box.height,
+        top: item.top,
+        left: item.left,
+        width: item.width,
+        height: item.height,
     };
 }
 
@@ -370,6 +669,20 @@ function droppableIdUnderPointer(
             continue;
         }
 
+        // Header sortable wins over nest body — otherwise closestCenter / a tall
+        // group chrome maps mid-header aims to into-group and the ghost lands
+        // elsewhere than the sibling insert the user is pointing at.
+        // (Sticky nest while already into-group is handled in processDragOver.)
+        const sortable = hit.closest('[data-sortable-id]');
+
+        if (sortable instanceof HTMLElement) {
+            const id = Number(sortable.getAttribute('data-sortable-id'));
+
+            if (Number.isFinite(id) && id !== Number(activeId)) {
+                return id;
+            }
+        }
+
         const groupDrop = hit.closest('[data-group-drop], [id^="group-drop:"]');
 
         if (groupDrop instanceof HTMLElement) {
@@ -379,29 +692,24 @@ function droppableIdUnderPointer(
             const groupId = Number(raw);
 
             if (Number.isFinite(groupId) && groupId !== Number(activeId)) {
+                // Edge band → sibling sortable (insert before/after the group block).
+                if (isPointerOnGroupInsertEdge(pointer, groupId)) {
+                    return groupId;
+                }
+
                 return `${GROUP_DROP_PREFIX}${groupId}`;
             }
         }
-
-        const sortable = hit.closest('[data-sortable-id]');
-
-        if (!(sortable instanceof HTMLElement)) {
-            continue;
-        }
-
-        const id = Number(sortable.getAttribute('data-sortable-id'));
-
-        if (!Number.isFinite(id) || id === Number(activeId)) {
-            continue;
-        }
-
-        return id;
     }
 
-    // Gap / overlay hole: stay on the same row band (don't jump to the full
-    // field above). Prefer X containment, else nearest center-X in that band.
-    type RowHit = { id: number; rect: DOMRect };
+    // Gap / overlay hole / sticky-chrome occlusion: pick the best field under
+    // the pointer by geometry. Tall group chrome must NOT steal hits from a
+    // sibling header that sits lower in the list but still under the cursor.
+    type Contained = { id: number; area: number; top: number; isHeader: boolean };
+    const contained: Contained[] = [];
+    type RowHit = { id: number; rect: DOMRect; edgeDist: number };
     const rowHits: RowHit[] = [];
+    let nearestGap: { id: number; dist: number } | null = null;
 
     for (const node of document.querySelectorAll('[data-sortable-id]')) {
         if (!(node instanceof HTMLElement)) {
@@ -414,20 +722,113 @@ function droppableIdUnderPointer(
             continue;
         }
 
-        const rect = node.getBoundingClientRect();
+        const headerRect = node.getBoundingClientRect();
 
         if (
-            pointer.x >= rect.left &&
-            pointer.x <= rect.right &&
-            pointer.y >= rect.top &&
-            pointer.y <= rect.bottom
+            pointer.x >= headerRect.left &&
+            pointer.x <= headerRect.right &&
+            pointer.y >= headerRect.top &&
+            pointer.y <= headerRect.bottom
         ) {
-            return id;
+            contained.push({
+                id,
+                area: headerRect.width * headerRect.height,
+                top: headerRect.top,
+                isHeader: true,
+            });
+            continue;
         }
 
-        if (pointer.y >= rect.top - 10 && pointer.y <= rect.bottom + 10) {
-            rowHits.push({ id, rect });
+        // Nest only via the body droppable rect — never the full group chrome.
+        // Tall groups were swallowing sibling headers that sit below them in
+        // document order while still overlapping in y during scroll/sticky.
+        const nestBody = document.querySelector(
+            `[data-group-drop="${id}"]`,
+        );
+
+        if (nestBody instanceof HTMLElement) {
+            const bodyRect = nestBody.getBoundingClientRect();
+
+            if (
+                pointer.x >= bodyRect.left &&
+                pointer.x <= bodyRect.right &&
+                pointer.y >= bodyRect.top &&
+                pointer.y <= bodyRect.bottom
+            ) {
+                contained.push({
+                    id,
+                    area: bodyRect.width * bodyRect.height,
+                    top: bodyRect.top,
+                    isHeader: false,
+                });
+                continue;
+            }
+        } else {
+            const rect = fieldItemRect(node);
+
+            if (
+                pointer.x >= rect.left &&
+                pointer.x <= rect.right &&
+                pointer.y >= rect.top &&
+                pointer.y <= rect.bottom
+            ) {
+                contained.push({
+                    id,
+                    area: rect.width * rect.height,
+                    top: rect.top,
+                    isHeader: false,
+                });
+                continue;
+            }
         }
+
+        const rect = fieldItemRect(node);
+
+        const edgeDist =
+            pointer.y < rect.top
+                ? rect.top - pointer.y
+                : pointer.y > rect.bottom
+                  ? pointer.y - rect.bottom
+                  : 0;
+
+        if (edgeDist > 0 && edgeDist <= 28) {
+            if (nearestGap === null || edgeDist < nearestGap.dist) {
+                nearestGap = { id, dist: edgeDist };
+            }
+        }
+
+        if (pointer.y >= rect.top - 16 && pointer.y <= rect.bottom + 16) {
+            rowHits.push({ id, rect, edgeDist });
+        }
+    }
+
+    if (contained.length > 0) {
+        // Prefer header hits, then the smallest box (leaf/header over tall group).
+        contained.sort((left, right) => {
+            if (left.isHeader !== right.isHeader) {
+                return left.isHeader ? -1 : 1;
+            }
+
+            if (left.area !== right.area) {
+                return left.area - right.area;
+            }
+
+            return right.top - left.top;
+        });
+
+        const best = contained[0];
+
+        if (best.isHeader) {
+            return best.id;
+        }
+
+        return isPointerOnGroupInsertEdge(pointer, best.id)
+            ? best.id
+            : `${GROUP_DROP_PREFIX}${best.id}`;
+    }
+
+    if (nearestGap !== null) {
+        return nearestGap.id;
     }
 
     if (rowHits.length === 0) {
@@ -1207,6 +1608,10 @@ function CollectionFieldRow({
     const layoutWidth = getFieldLayoutWidth(field.settings);
     const isGroup = isLayoutGroupType(field.type);
     const showInListGhost = isDragging && !suppressGhostSlot;
+    // Group chrome (dashed slot / fallback ring) lives on GroupNestDropZone /
+    // DragOverlay — the header row stays transparent like the resting group.
+    const leafGhostChrome = isGhost && !isGroup;
+    const leafInListGhost = showInListGhost && !isGroup;
 
     return (
         <div
@@ -1214,16 +1619,18 @@ function CollectionFieldRow({
                 'flex items-center gap-3 rounded-xl border px-3 py-2.5',
                 fillHeight && 'h-full',
                 isGroup ? 'border-transparent bg-transparent' : 'bg-card',
-                isGhost
+                leafGhostChrome
                     ? 'cursor-grabbing border-primary/40 bg-card shadow-lg ring-2 ring-primary/20'
-                    : showInListGhost
-                      ? // Directus .sortable-ghost: dashed slot, hide contents
-                        'border-dashed border-primary bg-transparent shadow-none'
-                      : isDragging && suppressGhostSlot
-                        ? // Nest preview: origin stays in flow for hit-testing, unlit.
-                          'border-transparent bg-transparent shadow-none opacity-0'
-                        : !isGroup &&
-                          'border-sidebar-border/70 dark:border-sidebar-border',
+                    : isGhost && isGroup
+                      ? 'cursor-grabbing border-transparent bg-transparent'
+                      : leafInListGhost
+                        ? // Directus .sortable-ghost: dashed slot, hide contents
+                          SORTABLE_GHOST_SLOT_CLASS
+                        : isDragging && suppressGhostSlot
+                          ? // Nest preview: origin stays in flow for hit-testing, unlit.
+                            'border-transparent bg-transparent shadow-none opacity-0'
+                          : !isGroup &&
+                            'border-sidebar-border/70 dark:border-sidebar-border',
                 hiddenInForm && !isGhost && !isDragging && 'opacity-80',
             )}
         >
@@ -1320,15 +1727,15 @@ type SortableFieldRowProps = {
     treeLayout?: boolean;
     /** Lone half with empty partner column — expand hit target + show slot ghost. */
     openPartnerSlot?: boolean;
-    /**
-     * Half dragged above/below a full: dashed ghost spans the full row so the
-     * full never packs into the empty partner column during live preview.
-     */
-    forceFullRowPlaceholder?: boolean;
     /** True while any sortable is active — skip menus + non-FLIP CSS transitions. */
     listDragging?: boolean;
     /** Nest-into: unlit origin slot (ghost lives in the nest zone). */
     suppressGhostSlot?: boolean;
+    /**
+     * Start a new grid row without an empty spacer track — spacers ate a full
+     * `gap` on both sides and doubled the space above lone halves.
+     */
+    forceNewRow?: boolean;
 };
 
 function SortableCollectionFieldRow({
@@ -1343,9 +1750,9 @@ function SortableCollectionFieldRow({
     reorderEnabled,
     treeLayout = false,
     openPartnerSlot = false,
-    forceFullRowPlaceholder = false,
     listDragging = false,
     suppressGhostSlot = false,
+    forceNewRow = false,
 }: SortableFieldRowProps) {
     const {
         attributes,
@@ -1365,7 +1772,7 @@ function SortableCollectionFieldRow({
         },
     });
 
-    const isFullSpan = colSpan === 2 || forceFullRowPlaceholder;
+    const isFullSpan = colSpan === 2;
     // Full-width items never get horizontal FLIP (half beside / grid reflow).
     // Matches SortableJS vertical direction when target isn't a shareable half.
     const clampedTransform =
@@ -1411,6 +1818,8 @@ function SortableCollectionFieldRow({
                 isFullSpan || expandsForOpenSlot
                     ? 'col-span-1 md:col-span-2'
                     : 'col-span-1',
+                // col-start forces a new track without a gap-eating spacer row.
+                forceNewRow && 'md:col-start-1',
             )}
         >
             {expandsForOpenSlot ? (
@@ -1459,6 +1868,10 @@ type GroupNestDropZoneProps = {
     groupName: string;
     active: boolean;
     empty: boolean;
+    /** This group is the active drag — full-block dashed slot (Directus .sortable-ghost). */
+    originGhost?: boolean;
+    /** Nest/beside preview: keep layout for hit-testing, unlit. */
+    suppressGhostSlot?: boolean;
     header: ReactNode;
     children: ReactNode;
 };
@@ -1474,6 +1887,8 @@ function GroupNestDropZone({
     groupName,
     active,
     empty,
+    originGhost = false,
+    suppressGhostSlot = false,
     header,
     children,
 }: GroupNestDropZoneProps) {
@@ -1481,32 +1896,57 @@ function GroupNestDropZone({
         id: groupDropId(groupFieldId),
     });
 
+    // Exclusive chrome when ghosting — groupSurfaceClass's dark:border-sidebar-border
+    // otherwise overrides border-primary and the dashed slot looks dimmer than leaf ghosts.
+    const surfaceClass = originGhost
+        ? cn('space-y-2 rounded-lg border p-3', SORTABLE_GHOST_SLOT_CLASS)
+        : suppressGhostSlot
+          ? 'space-y-2 rounded-lg border border-transparent bg-transparent p-3 shadow-none'
+          : groupSurfaceClass;
+
     return (
         <div
             data-group-container={groupName}
+            data-group-field-id={groupFieldId}
             className={cn(
-                groupSurfaceClass,
+                surfaceClass,
                 active &&
                     'ring-2 ring-primary/40 ring-offset-2 ring-offset-background',
             )}
         >
-            {header}
             <div
-                ref={setNodeRef}
-                data-group-drop={groupFieldId}
                 className={cn(
-                    'rounded-md',
-                    empty ? 'min-h-10 px-1 py-1' : 'space-y-2 px-1 py-1',
+                    (originGhost || suppressGhostSlot) && 'opacity-0',
                 )}
             >
-                {children}
-                {active ? (
-                    <div
-                        aria-hidden
-                        data-nest-drop-ghost
-                        className="min-h-[3.25rem] rounded-xl border border-dashed border-primary bg-transparent"
-                    />
-                ) : null}
+                {header}
+                <div
+                    ref={setNodeRef}
+                    data-group-drop={groupFieldId}
+                    className={cn(
+                        // Directus nested field-grid: min-height ~54px + pad so
+                        // nest-into has real surface (not a 1px sliver).
+                        'rounded-md px-2',
+                        empty
+                            ? 'flex min-h-14 flex-col justify-center py-3'
+                            : 'min-h-14 space-y-2 py-2',
+                    )}
+                >
+                    {children}
+                    {/* Nest ghost only while into-group — idle min-h pad was
+                        adding a permanent gap under the last nested field. */}
+                    {active ? (
+                        <div
+                            aria-hidden
+                            data-nest-drop-ghost
+                            data-nest-drop-pad
+                            className={cn(
+                                'min-h-14 rounded-md border',
+                                SORTABLE_GHOST_SLOT_CLASS,
+                            )}
+                        />
+                    ) : null}
+                </div>
             </div>
         </div>
     );
@@ -1621,6 +2061,8 @@ type FieldTreeRenderProps = {
     activeFieldId?: number | null;
     listDragging?: boolean;
     rowBreakFieldIds?: Set<number>;
+    /** Nesting depth — 0 at collection root (for DnD QA / hit tests). */
+    depth?: number;
 };
 
 function StaticFieldTreeNodes({
@@ -1639,11 +2081,14 @@ function StaticFieldTreeNodes({
     const layoutRows = groupTreeNodesIntoLayoutRows(nodes, rowBreakFieldIds);
 
     return (
-        <div className="flex flex-col gap-3">
+        <div className={cn('flex flex-col', FIELD_LIST_GAP_CLASS)}>
             {layoutRows.map((row) => (
                 <div
                     key={row.map((item) => item.node.field.id).join('-')}
-                    className="grid grid-cols-1 gap-3 md:grid-cols-2"
+                    className={cn(
+                        'grid grid-cols-1 md:grid-cols-2',
+                        FIELD_LIST_GAP_CLASS,
+                    )}
                 >
                     {row.map(({ node, colSpan }) => {
                         if (isLayoutGroupType(node.field.type)) {
@@ -1726,6 +2171,7 @@ function SortableFieldTreeNodes({
     activeFieldId = null,
     listDragging = false,
     rowBreakFieldIds = new Set(),
+    depth = 0,
 }: {
     nodes: FieldTreeNode<CollectionFieldRow>[];
 } & FieldTreeRenderProps) {
@@ -1760,26 +2206,24 @@ function SortableFieldTreeNodes({
         rowBreakFieldIds,
     );
     const layoutColSpansForSlots = flatItems.map(({ colSpan }) => colSpan);
-    const dropTargetField =
-        dropTargetFieldId == null
-            ? null
-            : (flatItems.find((item) => item.node.field.id === dropTargetFieldId)
-                  ?.node.field ?? null);
-    const dropTargetWidth = dropTargetField
-        ? getFieldLayoutWidth(dropTargetField.settings)
-        : null;
 
     return (
         <SortableContext
             items={siblingIds}
             strategy={noDisplacementSortingStrategy}
         >
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div
+                className={cn(
+                    'grid grid-cols-1 md:grid-cols-2',
+                    FIELD_LIST_GAP_CLASS,
+                )}
+                data-tree-depth={depth}
+            >
                 {flatItems.map(({ node, colSpan, startsNewRow }, index) => {
                     const isIntoTarget =
                         dropTargetFieldId === node.field.id &&
                         dropLayoutIntent === 'into-group';
-                    const showRowBreak =
+                    const forceNewRow =
                         startsNewRow &&
                         index > 0 &&
                         dropLayoutIntent !== 'beside';
@@ -1792,17 +2236,12 @@ function SortableFieldTreeNodes({
                             index,
                             activeFieldId,
                         );
-                    const forceFullRowPlaceholder =
-                        activeFieldId === node.field.id &&
-                        dropLayoutIntent === null &&
-                        getFieldLayoutWidth(node.field.settings) === 'half' &&
-                        (dropTargetWidth === 'full' ||
-                            dropTargetWidth === 'fill');
-                    // Nest + beside: origin unlit; drop SoT is nest/partner ghost.
+                    // Beside / into-group: origin unlit (partner column or nest
+                    // pad is the slot; DragOverlay carries the field visual).
                     const suppressGhostSlot =
                         activeFieldId === node.field.id &&
-                        (dropLayoutIntent === 'into-group' ||
-                            dropLayoutIntent === 'beside');
+                        (dropLayoutIntent === 'beside' ||
+                            dropLayoutIntent === 'into-group');
 
                     const header = (
                         <SortableCollectionFieldRow
@@ -1832,28 +2271,31 @@ function SortableFieldTreeNodes({
                             reorderEnabled
                             treeLayout
                             openPartnerSlot={openPartnerSlot}
-                            forceFullRowPlaceholder={forceFullRowPlaceholder}
                             listDragging={listDragging}
                             suppressGhostSlot={suppressGhostSlot}
+                            forceNewRow={forceNewRow}
                         />
                     );
 
                     if (isLayoutGroupType(node.field.type)) {
                         return (
-                            <Fragment key={node.field.id}>
-                                {showRowBreak ? (
-                                    <div
-                                        className="col-span-1 h-0 overflow-hidden md:col-span-2"
-                                        aria-hidden
-                                        data-row-break
-                                    />
-                                ) : null}
-                                <div className="col-span-1 min-w-0 md:col-span-2">
+                            <div
+                                key={node.field.id}
+                                className={cn(
+                                    'col-span-1 min-w-0 md:col-span-2',
+                                    forceNewRow && 'md:col-start-1',
+                                )}
+                            >
                                     <GroupNestDropZone
                                         groupFieldId={node.field.id}
                                         groupName={node.field.name}
                                         active={isIntoTarget}
                                         empty={node.children.length === 0}
+                                        originGhost={
+                                            activeFieldId === node.field.id &&
+                                            !suppressGhostSlot
+                                        }
+                                        suppressGhostSlot={suppressGhostSlot}
                                         header={header}
                                     >
                                         {node.children.length > 0 ? (
@@ -1875,6 +2317,7 @@ function SortableFieldTreeNodes({
                                                 rowBreakFieldIds={
                                                     rowBreakFieldIds
                                                 }
+                                                depth={depth + 1}
                                             />
                                         ) : null}
                                         <PanelAddSectionControl
@@ -1884,52 +2327,41 @@ function SortableFieldTreeNodes({
                                             empty={node.children.length === 0}
                                         />
                                     </GroupNestDropZone>
-                                </div>
-                            </Fragment>
+                            </div>
                         );
                     }
 
                     return (
-                        <Fragment key={node.field.id}>
-                            {showRowBreak ? (
-                                <div
-                                    className="col-span-1 h-0 overflow-hidden md:col-span-2"
-                                    aria-hidden
-                                    data-row-break
-                                />
-                            ) : null}
-                            <SortableCollectionFieldRow
-                                field={node.field}
-                                colSpan={colSpan}
-                                dropIntent={
-                                    dropTargetFieldId === node.field.id &&
-                                    dropLayoutIntent !== 'into-group'
-                                        ? (dropIntent ?? null)
-                                        : null
-                                }
-                                dropLayoutIntent={
-                                    dropTargetFieldId === node.field.id &&
-                                    dropLayoutIntent !== 'into-group'
-                                        ? (dropLayoutIntent ?? null)
-                                        : null
-                                }
-                                isDropTarget={
-                                    dropTargetFieldId === node.field.id &&
-                                    dropLayoutIntent !== 'into-group'
-                                }
-                                collectionId={collectionId}
-                                onEdit={onEdit}
-                                allFields={allFields}
-                                reorderEnabled
-                                treeLayout
-                                openPartnerSlot={openPartnerSlot}
-                                forceFullRowPlaceholder={
-                                    forceFullRowPlaceholder
-                                }
-                                listDragging={listDragging}
-                                suppressGhostSlot={suppressGhostSlot}
-                            />
-                        </Fragment>
+                        <SortableCollectionFieldRow
+                            key={node.field.id}
+                            field={node.field}
+                            colSpan={colSpan}
+                            dropIntent={
+                                dropTargetFieldId === node.field.id &&
+                                dropLayoutIntent !== 'into-group'
+                                    ? (dropIntent ?? null)
+                                    : null
+                            }
+                            dropLayoutIntent={
+                                dropTargetFieldId === node.field.id &&
+                                dropLayoutIntent !== 'into-group'
+                                    ? (dropLayoutIntent ?? null)
+                                    : null
+                            }
+                            isDropTarget={
+                                dropTargetFieldId === node.field.id &&
+                                dropLayoutIntent !== 'into-group'
+                            }
+                            collectionId={collectionId}
+                            onEdit={onEdit}
+                            allFields={allFields}
+                            reorderEnabled
+                            treeLayout
+                            openPartnerSlot={openPartnerSlot}
+                            listDragging={listDragging}
+                            suppressGhostSlot={suppressGhostSlot}
+                            forceNewRow={forceNewRow}
+                        />
                     );
                 })}
             </div>
@@ -1979,11 +2411,14 @@ function StaticFieldsList({
     }
 
     return (
-        <div className="flex flex-col gap-3">
+        <div className={cn('flex flex-col', FIELD_LIST_GAP_CLASS)}>
             {layoutRows?.map((row) => (
                 <div
                     key={row.map((item) => item.field.id).join('-')}
-                    className="grid grid-cols-1 gap-3 md:grid-cols-2"
+                    className={cn(
+                        'grid grid-cols-1 md:grid-cols-2',
+                        FIELD_LIST_GAP_CLASS,
+                    )}
                 >
                     {row.map(({ field, colSpan }) => (
                         <div
@@ -2019,6 +2454,8 @@ function SortableFieldsList({
         useState<CollectionFieldRow[]>(fields);
     const [activeFieldId, setActiveFieldId] = useState<number | null>(null);
     const [ghostWidth, setGhostWidth] = useState<number | undefined>();
+    const [ghostHeight, setGhostHeight] = useState<number | undefined>();
+    const [groupGhostHtml, setGroupGhostHtml] = useState<string | null>(null);
     const [dropTargetFieldId, setDropTargetFieldId] = useState<number | null>(
         null,
     );
@@ -2228,20 +2665,37 @@ function SortableFieldsList({
     const handleDragStart = (event: DragStartEvent): void => {
         const id = Number(event.active.id);
         // Measure before flushSync / tree collapse — display:none zeros offsetWidth.
-        const measured =
-            event.active.rect.current.initial ??
-            event.active.rect.current.translated;
-        const widthFromRect = measured?.width;
+        const activeRow = orderedFieldsRef.current.find(
+            (field) => field.id === id,
+        );
+        const groupGhost =
+            activeRow && isLayoutGroupType(activeRow.type)
+                ? measureGroupDragGhost(event.active.id)
+                : null;
 
-        if (widthFromRect && widthFromRect > 0) {
-            setGhostWidth(widthFromRect);
+        if (groupGhost) {
+            setGhostWidth(groupGhost.width);
+            setGhostHeight(groupGhost.height);
+            setGroupGhostHtml(groupGhost.html);
         } else {
-            const draggedElement = document.querySelector(
-                `[data-sortable-id="${String(event.active.id)}"]`,
-            );
+            setGroupGhostHtml(null);
+            setGhostHeight(undefined);
+            const cardWidth = measureLeafDragGhostWidth(event.active.id);
+            const measured =
+                event.active.rect.current.initial ??
+                event.active.rect.current.translated;
+            const widthFromRect = measured?.width;
+            const activeIsHalf =
+                activeRow !== undefined &&
+                getFieldLayoutWidth(activeRow.settings) === 'half';
 
-            if (draggedElement instanceof HTMLElement) {
-                setGhostWidth(draggedElement.offsetWidth);
+            // Half: always the card column (wrapper may be full-row for open partner).
+            if (activeIsHalf && cardWidth && cardWidth > 0) {
+                setGhostWidth(cardWidth);
+            } else if (widthFromRect && widthFromRect > 0) {
+                setGhostWidth(widthFromRect);
+            } else if (cardWidth && cardWidth > 0) {
+                setGhostWidth(cardWidth);
             }
         }
 
@@ -2262,47 +2716,86 @@ function SortableFieldsList({
         groupsAtDragStartRef.current = new Map(fieldGroupsRef.current);
     };
 
-    /** Same-parent live reorder — flat block + surgical tree sibling reorder. */
-    const applyLiveTreeMove = (
+    /** Same- or cross-parent live reorder — ghost tracks the drop slot (Directus). */
+    const applyLiveGroupMove = (
         activeId: number,
         parentGroup: string | null,
         beforeSiblingId: number | null,
     ): void => {
         const currentFields = orderedFieldsRef.current;
-        const moved = moveSameParentSiblingBlock(
-            currentFields,
-            fieldGroupsRef.current,
-            activeId,
-            beforeSiblingId,
-        );
+        const currentGroups = fieldGroupsRef.current;
+        const activeField = currentFields.find((field) => field.id === activeId);
+        const currentParent =
+            currentGroups.get(activeId) ??
+            (activeField ? getFieldGroupName(activeField) : null);
 
-        if (moved === currentFields) {
-            return;
-        }
-
-        orderedFieldsRef.current = moved;
-        overridesCacheRef.current = null;
-        setOrderedFields(moved);
-
-        const currentTree = fieldTreeRef.current;
-
-        if (currentTree) {
-            const nextTree = reorderTreeSiblings(
-                currentTree,
-                parentGroup,
+        if (currentParent === parentGroup) {
+            const moved = moveSameParentSiblingBlock(
+                currentFields,
+                currentGroups,
                 activeId,
                 beforeSiblingId,
             );
 
-            if (nextTree !== currentTree) {
-                fieldTreeRef.current = nextTree;
-                setFieldTree(nextTree);
+            if (moved === currentFields) {
+                return;
             }
+
+            orderedFieldsRef.current = moved;
+            overridesCacheRef.current = null;
+            setOrderedFields(moved);
+
+            const currentTree = fieldTreeRef.current;
+
+            if (currentTree) {
+                const nextTree = reorderTreeSiblings(
+                    currentTree,
+                    parentGroup,
+                    activeId,
+                    beforeSiblingId,
+                );
+
+                if (nextTree !== currentTree) {
+                    fieldTreeRef.current = nextTree;
+                    setFieldTree(nextTree);
+                }
+            }
+
+            return;
         }
+
+        // Cross-parent (unnest / reparent to another group's sibling list).
+        // Nest-into stays preview-only — this path is sibling insert only.
+        const moved = moveFieldInGroupTree(
+            currentFields,
+            currentGroups,
+            activeId,
+            parentGroup,
+            beforeSiblingId,
+        );
+
+        if (
+            moved.fields === currentFields &&
+            moved.groups === currentGroups
+        ) {
+            return;
+        }
+
+        fieldGroupsRef.current = moved.groups;
+        orderedFieldsRef.current = moved.fields;
+        overridesCacheRef.current = null;
+        setFieldGroups(moved.groups);
+        setOrderedFields(moved.fields);
+
+        const nextTree = buildFieldTree(
+            fieldsWithGroupOverrides(moved.fields, moved.groups),
+        );
+        fieldTreeRef.current = nextTree;
+        setFieldTree(nextTree);
     };
 
     /**
-     * Highlight nest-into only — do not live-mutate the tree.
+     * Highlight nest-into only — do not live-mutate into the nest zone.
      * Live nest + header sibling-reorder oscillate (body↔header) and can blow
      * React's update depth when dragging a group past other groups.
      */
@@ -2341,6 +2834,9 @@ function SortableFieldsList({
             return false;
         }
 
+        // Highlight nest-into only — never live-append into the group.
+        // Live nest ↔ root-gap sibling fought (flicker, wrong drop, vanish,
+        // Accordion/Tabs auto-wrap growth). Commit on dragEnd from pending refs.
         if (
             dropTargetFieldIdRef.current === groupField.id &&
             dropLayoutIntentRef.current === 'into-group' &&
@@ -2376,19 +2872,8 @@ function SortableFieldsList({
         const ordered = orderedFieldsRef.current;
 
         if (over === null) {
-            if (
-                dropTargetFieldIdRef.current !== null ||
-                dropIntentRef.current !== null ||
-                dropLayoutIntentRef.current !== null
-            ) {
-                dropTargetFieldIdRef.current = null;
-                setDropTargetFieldId(null);
-                setDropIntent(null);
-                dropIntentRef.current = null;
-                setDropLayoutIntent(null);
-                dropLayoutIntentRef.current = null;
-            }
-
+            // Keep last sibling/nest preview — release / gaps often report null
+            // briefly and clearing here made dragEnd synthesize a wrong nest.
             return;
         }
 
@@ -2401,12 +2886,105 @@ function SortableFieldsList({
             return;
         }
 
-        const nestGroupId = parseGroupDropId(over.id);
+        const nestGroupIdFromOver = parseGroupDropId(over.id);
         let overFieldId = Number(over.id);
         let overField =
-            nestGroupId === null
+            nestGroupIdFromOver === null
                 ? ordered.find((f) => f.id === overFieldId)
                 : undefined;
+
+        // Pointer DOM SoT wins over dnd-kit `over` (nested SortableContexts +
+        // live moves leave stale over ids → ghost elsewhere than the drop).
+        const pointerForOver =
+            getWindowDragPointer() ?? latestCollisionPointer;
+        let nestGroupId = nestGroupIdFromOver;
+
+        if (pointerForOver !== null) {
+            let underId = droppableIdUnderPointer(
+                pointerForOver,
+                activeFieldIdNumber,
+            );
+
+            // Gap between sibling cells (root or nested under tabs/raw/…) →
+            // sibling insert. Beats nest-into so the ghost tracks the opened
+            // slot instead of the parent’s bottom nest pad.
+            const gapSiblingId = siblingIdInTreeGap(
+                pointerForOver,
+                activeFieldIdNumber,
+            );
+
+            if (gapSiblingId !== null) {
+                underId = gapSiblingId;
+                // Gap = sibling insert. Clear sticky nest + stale pending nest
+                // so dragEnd cannot commit into-group from a prior pad / SoT lag.
+                if (dropLayoutIntentRef.current === 'into-group') {
+                    dropLayoutIntentRef.current = null;
+                    setDropLayoutIntent(null);
+                }
+                pendingActiveGroupRef.current = null;
+                // Provisional: insert before the gap-aim sibling; path below
+                // refines before/after from pointer geometry.
+                pendingBeforeSiblingRef.current = gapSiblingId;
+            } else if (
+                // Sticky nest (Directus): stay in the current group while the pointer
+                // remains on empty pad / nest body / that group's header. Exit when
+                // aiming at another field or another group's nest (unnest / retarget).
+                dropLayoutIntentRef.current === 'into-group' &&
+                dropTargetFieldIdRef.current !== null &&
+                pointerInsideGroupChrome(
+                    pointerForOver,
+                    dropTargetFieldIdRef.current,
+                )
+            ) {
+                const stickyId = dropTargetFieldIdRef.current;
+                const rawUnder = droppableIdUnderPointer(
+                    pointerForOver,
+                    activeFieldIdNumber,
+                );
+                const rawNest = rawUnder !== null ? parseGroupDropId(rawUnder) : null;
+                const rawFieldId =
+                    rawUnder !== null && rawNest === null
+                        ? Number(rawUnder)
+                        : NaN;
+
+                if (rawNest !== null && rawNest !== stickyId) {
+                    underId = rawUnder;
+                } else if (
+                    Number.isFinite(rawFieldId) &&
+                    rawFieldId !== stickyId
+                ) {
+                    const rawField = ordered.find((f) => f.id === rawFieldId);
+                    const rawParent =
+                        fieldGroupsRef.current.get(rawFieldId) ??
+                        (rawField ? getFieldGroupName(rawField) : null);
+                    const stickyField = ordered.find((f) => f.id === stickyId);
+                    const stickyName = stickyField?.name ?? null;
+
+                    if (rawParent !== stickyName) {
+                        underId = rawUnder;
+                    } else {
+                        underId = groupDropId(stickyId);
+                    }
+                } else {
+                    underId = groupDropId(stickyId);
+                }
+            }
+
+            if (underId !== null) {
+                const underNest = parseGroupDropId(underId);
+
+                if (underNest !== null) {
+                    nestGroupId = underNest;
+                    overFieldId = underNest;
+                    overField = undefined;
+                } else {
+                    nestGroupId = null;
+                    overFieldId = Number(underId);
+                    overField = ordered.find((f) => f.id === overFieldId);
+                }
+            }
+        }
+
         if (nestGroupId !== null) {
             const groupField = ordered.find(
                 (field) => field.id === nestGroupId,
@@ -2430,55 +3008,174 @@ function SortableFieldsList({
                         groupField.name,
                     );
 
-                // Already a member: body hits must NOT abort dragOver (that froze
-                // stale before/after and left the ghost disagreeing with intent).
-                // Remap to the sibling field under the pointer and continue.
+                // Already a member: reorder among siblings inside; don't treat the
+                // group's own header as "unnest to sibling of parent" (oscillation).
                 if (alreadyInside) {
-                    const pointer = latestCollisionPointer;
-                    // Overlay sits under the cursor — walk the stack for a real row.
-                    const hits =
+                    const pointer =
+                        getWindowDragPointer() ?? latestCollisionPointer;
+                    // Between two sibling cells inside this parent → sibling aim,
+                    // not the bottom nest pad (live gap vs ghost SoT mismatch).
+                    const innerSeamId =
                         pointer !== null
-                            ? document.elementsFromPoint(pointer.x, pointer.y)
-                            : [];
-                    let remappedId = NaN;
+                            ? siblingIdInTreeGap(pointer, activeFieldIdNumber)
+                            : null;
 
-                    for (const hit of hits) {
-                        if (!(hit instanceof Element)) {
-                            continue;
+                    if (innerSeamId !== null) {
+                        if (dropLayoutIntentRef.current === 'into-group') {
+                            dropLayoutIntentRef.current = null;
+                            setDropLayoutIntent(null);
                         }
 
-                        const sortable = hit.closest('[data-sortable-id]');
+                        overFieldId = innerSeamId;
+                        overField = ordered.find((f) => f.id === overFieldId);
 
-                        if (!(sortable instanceof HTMLElement)) {
-                            continue;
+                        if (!overField) {
+                            return;
+                        }
+                    } else {
+                        const hits =
+                            pointer !== null
+                                ? document.elementsFromPoint(
+                                      pointer.x,
+                                      pointer.y,
+                                  )
+                                : [];
+                        let remappedId = NaN;
+
+                        for (const hit of hits) {
+                            if (!(hit instanceof Element)) {
+                                continue;
+                            }
+
+                            const sortable = hit.closest('[data-sortable-id]');
+
+                            if (!(sortable instanceof HTMLElement)) {
+                                continue;
+                            }
+
+                            const id = Number(
+                                sortable.getAttribute('data-sortable-id'),
+                            );
+
+                            if (
+                                Number.isFinite(id) &&
+                                id !== activeFieldIdNumber &&
+                                id !== nestGroupId
+                            ) {
+                                remappedId = id;
+                                break;
+                            }
                         }
 
-                        const id = Number(
-                            sortable.getAttribute('data-sortable-id'),
-                        );
-
-                        if (
-                            Number.isFinite(id) &&
-                            id !== activeFieldIdNumber
-                        ) {
-                            remappedId = id;
-                            break;
+                        if (!Number.isFinite(remappedId)) {
+                            // Pointer on empty pad / own header — keep nest sticky.
+                            previewNestIntoGroup(activeFieldRow, groupField);
+                            return;
                         }
-                    }
 
-                    if (!Number.isFinite(remappedId)) {
-                        return;
-                    }
+                        overFieldId = remappedId;
+                        overField = ordered.find((f) => f.id === overFieldId);
 
-                    overFieldId = remappedId;
-                    overField = ordered.find((f) => f.id === overFieldId);
-
-                    if (!overField) {
-                        return;
+                        if (!overField) {
+                            previewNestIntoGroup(activeFieldRow, groupField);
+                            return;
+                        }
                     }
                 } else {
-                    previewNestIntoGroup(activeFieldRow, groupField);
-                    return;
+                    const nestPointer =
+                        getWindowDragPointer() ?? latestCollisionPointer;
+
+                    // Inner sibling seam beats sticky nest / deep-body into-group.
+                    const innerSeamId =
+                        nestPointer !== null
+                            ? siblingIdInTreeGap(
+                                  nestPointer,
+                                  activeFieldIdNumber,
+                              )
+                            : null;
+
+                    if (innerSeamId !== null) {
+                        if (dropLayoutIntentRef.current === 'into-group') {
+                            dropLayoutIntentRef.current = null;
+                            setDropLayoutIntent(null);
+                        }
+
+                        overFieldId = innerSeamId;
+                        overField = ordered.find((f) => f.id === overFieldId);
+
+                        if (!overField) {
+                            return;
+                        }
+                    } else {
+                        // Sticky nest (Directus): once into-group for this chrome,
+                        // stay until the pointer leaves the whole group container.
+                        if (
+                            nestPointer !== null &&
+                            dropLayoutIntentRef.current === 'into-group' &&
+                            dropTargetFieldIdRef.current === nestGroupId &&
+                            pointerInsideGroupChrome(nestPointer, nestGroupId)
+                        ) {
+                            previewNestIntoGroup(activeFieldRow, groupField);
+                            return;
+                        }
+
+                        const headerEl = document.querySelector(
+                            `[data-sortable-id="${nestGroupId}"]`,
+                        );
+                        const onHeader =
+                            nestPointer !== null &&
+                            headerEl instanceof HTMLElement &&
+                            (() => {
+                                const r = headerEl.getBoundingClientRect();
+
+                                return (
+                                    nestPointer.x >= r.left &&
+                                    nestPointer.x <= r.right &&
+                                    nestPointer.y >= r.top &&
+                                    nestPointer.y <= r.bottom
+                                );
+                            })();
+                        // Header (sibling of group) only — nest when in body mid.
+                        // Deep nest zone: ignore outer 20% of body so gaps between
+                        // groups don't flicker into into-group.
+                        const onDeepNest =
+                            nestPointer !== null &&
+                            (() => {
+                                const body = document.querySelector(
+                                    `[data-group-drop="${nestGroupId}"]`,
+                                );
+
+                                if (!(body instanceof HTMLElement)) {
+                                    return false;
+                                }
+
+                                const rect = body.getBoundingClientRect();
+                                const margin = Math.min(
+                                    28,
+                                    Math.max(16, rect.height * 0.2),
+                                );
+
+                                return (
+                                    nestPointer.x >= rect.left &&
+                                    nestPointer.x <= rect.right &&
+                                    nestPointer.y >= rect.top + margin &&
+                                    nestPointer.y <= rect.bottom - margin
+                                );
+                            })();
+
+                        // Header or shallow edge → sibling before/after this group.
+                        // Deep body → nest-into preview (pending only, no live-append).
+                        if (
+                            !onHeader &&
+                            onDeepNest &&
+                            previewNestIntoGroup(activeFieldRow, groupField)
+                        ) {
+                            return;
+                        }
+
+                        overFieldId = nestGroupId;
+                        overField = groupField;
+                    }
                 }
             } else {
                 return;
@@ -2519,7 +3216,11 @@ function SortableFieldsList({
 
         // Open-partner beside must run before nest-permission early returns —
         // a stale below-new-row otherwise sticks when canNest aborts the frame.
-        const liveOverRectEarly = liveSortableRect(overFieldId);
+        const intentPointer = getWindowDragPointer() ?? latestCollisionPointer;
+        const liveOverRectEarly = liveDropIntentRect(
+            overFieldId,
+            intentPointer,
+        );
         const emptyPartnerEarly = document.querySelector(
             `[data-sortable-id="${overFieldId}"] [data-empty-partner-slot]`,
         );
@@ -2758,41 +3459,12 @@ function SortableFieldsList({
             if (hasGroups) {
                 pendingBeforeSiblingRef.current = beforeSiblingId;
 
-                const currentParent =
-                    fieldGroupsRef.current.get(activeFieldIdNumber) ??
-                    getFieldGroupName(activeFieldRow);
-
-                // ponytail: live-move only within the current parent. Cross-parent
-                // nest/unnest is drop-time only — live nest while dragging a group
-                // past other groups' children oscillates and hits max update depth.
-                // Active half: no live-move except paired stack-below. Half→full
-                // live-move was yanking the partner away under a stale aim point
-                // (pointer still on the old half cell → wrong full-row target).
-                const activeIsHalf =
-                    getFieldLayoutWidth(activeFieldRow.settings) === 'half';
-                const overIsHalf =
-                    getFieldLayoutWidth(overField.settings) === 'half';
-                const overLayoutIndex = layoutFields.findIndex(
-                    (field) => field.id === intentResult.overFieldId,
-                );
-                const overHasOpenPartner =
-                    overLayoutIndex !== -1 &&
-                    halfFieldHasOpenPartnerSlot(
-                        layoutFields,
-                        layoutColSpans,
-                        overLayoutIndex,
-                    );
-                const halfHalfStack =
-                    activeIsHalf &&
-                    overIsHalf &&
-                    intentResult.layoutIntent === 'below-new-row' &&
-                    !overHasOpenPartner;
-
-                if (
-                    parentForActive === currentParent &&
-                    (!activeIsHalf || halfHalfStack)
-                ) {
-                    applyLiveTreeMove(
+                // Live-move sibling inserts including unnest/reparent so the
+                // dashed ghost leaves the group and sits between the aim targets.
+                // Nest-into stays preview-only (oscillation / max update depth).
+                // Beside uses the empty partner column, not a list splice.
+                if (intentResult.layoutIntent !== 'beside') {
+                    applyLiveGroupMove(
                         activeFieldIdNumber,
                         parentForActive,
                         beforeSiblingId,
@@ -3076,9 +3748,9 @@ function SortableFieldsList({
     };
 
     const handleDragEnd = (event: DragEndEvent): void => {
-        // Drop the trailing RAF frame — release collisions often hit a parent
-        // group-drop / neighbor and would undo the live ghost the user saw
-        // (e.g. below-new-row → null). Last committed dragOver refs are SoT.
+        // Do not flush a trailing hover on release — the last committed dragOver
+        // is SoT. Flushing often rewrites into-group to a group under the
+        // pointer at mouseup (ghost≠drop).
         if (dragOverRafRef.current !== null) {
             cancelAnimationFrame(dragOverRafRef.current);
             dragOverRafRef.current = null;
@@ -3093,11 +3765,19 @@ function SortableFieldsList({
         const ordered = orderedFieldsRef.current;
 
         // Only synthesize a drop target when dragOver never established one
-        // (e.g. quick flick). Never clobber a live sibling preview.
+        // (e.g. quick flick). Never clobber a live sibling preview — and never
+        // invent into-group from release `over` after a live reorder (that
+        // nested the field while the ghost still sat between roots).
+        const liveOrderChanged =
+            activeId !== null &&
+            orderedFieldsRef.current.map((field) => field.id).join(',') !==
+                orderAtDragStartRef.current.join(',');
+
         if (
             activeId !== null &&
             over !== null &&
-            pendingGroup === undefined
+            pendingGroup === undefined &&
+            !liveOrderChanged
         ) {
             const nestGroupId = parseGroupDropId(over.id);
 
@@ -3196,6 +3876,8 @@ function SortableFieldsList({
         (window as ExternaFieldDndWindow).__externaFieldDndActiveId = null;
         latestCollisionPointer = null;
         setGhostWidth(undefined);
+        setGhostHeight(undefined);
+        setGroupGhostHtml(null);
         dropTargetFieldIdRef.current = null;
         setDropTargetFieldId(null);
         setDropIntent(null);
@@ -3210,43 +3892,8 @@ function SortableFieldsList({
         pendingActiveGroupRef.current = undefined;
         pendingBeforeSiblingRef.current = null;
 
-        // below-new-row / beside: recompute insert-after over from release target
-        // (pending beforeSibling may still be from a mid-drag `before` frame).
-        // Beside must land immediately after `over` so packing pairs the halves.
-        if (
-            hasGroups &&
-            activeId !== null &&
-            over !== null &&
-            !parseGroupDropId(over.id) &&
-            (finalLayoutIntent === 'below-new-row' ||
-                finalLayoutIntent === 'beside')
-        ) {
-            const overField = ordered.find(
-                (field) => field.id === Number(over.id),
-            );
-            const dropParent =
-                pendingGroup !== undefined
-                    ? pendingGroup
-                    : overField
-                      ? (fieldGroupsRef.current.get(overField.id) ??
-                          getFieldGroupName(overField))
-                      : undefined;
-
-            if (overField && dropParent !== undefined) {
-                pendingGroup = dropParent;
-                const siblings = getFieldsWithOverrides().filter(
-                    (field) =>
-                        (fieldGroupsRef.current.get(field.id) ??
-                            getFieldGroupName(field)) === dropParent &&
-                        field.id !== activeId,
-                );
-                const overSiblingIndex = siblings.findIndex(
-                    (field) => field.id === overField.id,
-                );
-                beforeSiblingId =
-                    siblings[overSiblingIndex + 1]?.id ?? null;
-            }
-        }
+        // pending* from last hover are SoT — do not recompute from release `over`
+        // (that made the dashed ghost disagree with the landed order).
 
         // Ensure half-row break from last dragOver is applied even if setState lagged.
         if (activeId !== null && finalLayoutIntent === 'beside') {
@@ -3419,6 +4066,8 @@ function SortableFieldsList({
         pendingBeforeSiblingRef.current = null;
         dropIntentRef.current = null;
         setGhostWidth(undefined);
+        setGhostHeight(undefined);
+        setGroupGhostHtml(null);
         dropTargetFieldIdRef.current = null;
         setDropTargetFieldId(null);
         setDropIntent(null);
@@ -3450,16 +4099,6 @@ function SortableFieldsList({
     };
 
     const listDragging = activeFieldId !== null;
-
-    const dropTargetForPlaceholder =
-        dropTargetFieldId === null
-            ? null
-            : (fieldsForLayout.find(
-                  (field) => field.id === dropTargetFieldId,
-              ) ?? null);
-    const dropTargetWidthForPlaceholder = dropTargetForPlaceholder
-        ? getFieldLayoutWidth(dropTargetForPlaceholder.settings)
-        : null;
 
     return (
         <DndContext
@@ -3503,9 +4142,9 @@ function SortableFieldsList({
                     strategy={noDisplacementSortingStrategy}
                 >
                     {/* Single grid like Directus .field-grid — siblings shift around the live ghost. */}
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className={cn('grid grid-cols-1 md:grid-cols-2', FIELD_LIST_GAP_CLASS)}>
                         {fieldsForLayout.map((field, fieldIndex) => {
-                            const startsNewRow =
+                            const forceNewRow =
                                 fieldStartsNewLayoutRow(field.settings) &&
                                 fieldIndex > 0;
                             const colSpan = colSpans[fieldIndex] ?? 2;
@@ -3517,58 +4156,41 @@ function SortableFieldsList({
                                     fieldIndex,
                                     activeFieldId,
                                 );
-                            const forceFullRowPlaceholder =
-                                activeFieldId === field.id &&
-                                dropLayoutIntent === null &&
-                                getFieldLayoutWidth(field.settings) ===
-                                    'half' &&
-                                (dropTargetWidthForPlaceholder === 'full' ||
-                                    dropTargetWidthForPlaceholder === 'fill');
 
                             return (
-                                <Fragment key={field.id}>
-                                    {startsNewRow ? (
-                                        <div
-                                            className="col-span-1 h-0 overflow-hidden md:col-span-2"
-                                            aria-hidden
-                                            data-row-break
-                                        />
-                                    ) : null}
-                                    <SortableCollectionFieldRow
-                                        field={field}
-                                        colSpan={colSpan}
-                                        dropIntent={
-                                            dropTargetFieldId === field.id
-                                                ? dropIntent
-                                                : null
-                                        }
-                                        dropLayoutIntent={
-                                            dropTargetFieldId === field.id
-                                                ? dropLayoutIntent
-                                                : null
-                                        }
-                                        isDropTarget={
-                                            dropTargetFieldId === field.id
-                                        }
-                                        collectionId={collectionId}
-                                        onEdit={onEdit}
-                                        allFields={
-                                            listDragging ? fields : orderedFields
-                                        }
-                                        reorderEnabled
-                                        openPartnerSlot={openPartnerSlot}
-                                        forceFullRowPlaceholder={
-                                            forceFullRowPlaceholder
-                                        }
-                                        listDragging={listDragging}
-                                        suppressGhostSlot={
-                                            activeFieldId === field.id &&
-                                            (dropLayoutIntent ===
-                                                'into-group' ||
-                                                dropLayoutIntent === 'beside')
-                                        }
-                                    />
-                                </Fragment>
+                                <SortableCollectionFieldRow
+                                    key={field.id}
+                                    field={field}
+                                    colSpan={colSpan}
+                                    dropIntent={
+                                        dropTargetFieldId === field.id
+                                            ? dropIntent
+                                            : null
+                                    }
+                                    dropLayoutIntent={
+                                        dropTargetFieldId === field.id
+                                            ? dropLayoutIntent
+                                            : null
+                                    }
+                                    isDropTarget={
+                                        dropTargetFieldId === field.id
+                                    }
+                                    collectionId={collectionId}
+                                    onEdit={onEdit}
+                                    allFields={
+                                        listDragging ? fields : orderedFields
+                                    }
+                                    reorderEnabled
+                                    openPartnerSlot={openPartnerSlot}
+                                    listDragging={listDragging}
+                                    suppressGhostSlot={
+                                        activeFieldId === field.id &&
+                                        (dropLayoutIntent === 'beside' ||
+                                            dropLayoutIntent ===
+                                                'into-group')
+                                    }
+                                    forceNewRow={forceNewRow}
+                                />
                             );
                         })}
                     </div>
@@ -3577,25 +4199,50 @@ function SortableFieldsList({
 
             <DragOverlay dropAnimation={fieldDragOverlayAnimation}>
                 {activeField !== null ? (
-                    <div
-                        data-dnd-field-overlay
-                        style={{
-                            width: ghostWidth && ghostWidth > 0 ? ghostWidth : undefined,
-                            // Directus .sortable-fallback opacity
-                            opacity: 0.85,
-                            cursor: 'grabbing',
-                        }}
-                    >
-                        <CollectionFieldRow
-                            field={activeField}
-                            collectionId={collectionId}
-                            onEdit={onEdit}
-                            allFields={fields}
-                            reorderEnabled
-                            isGhost
-                            fillHeight={false}
+                    groupGhostHtml !== null ? (
+                        // ponytail: DOM snapshot of full group chrome (header + body);
+                        // ceiling = static mid-drag (Directus fallback is a clone too).
+                        <div
+                            data-dnd-field-overlay
+                            className="pointer-events-none overflow-hidden"
+                            style={{
+                                width:
+                                    ghostWidth && ghostWidth > 0
+                                        ? ghostWidth
+                                        : undefined,
+                                height:
+                                    ghostHeight && ghostHeight > 0
+                                        ? ghostHeight
+                                        : undefined,
+                                opacity: 0.85,
+                                cursor: 'grabbing',
+                            }}
+                            dangerouslySetInnerHTML={{ __html: groupGhostHtml }}
                         />
-                    </div>
+                    ) : (
+                        <div
+                            data-dnd-field-overlay
+                            style={{
+                                width:
+                                    ghostWidth && ghostWidth > 0
+                                        ? ghostWidth
+                                        : undefined,
+                                // Directus .sortable-fallback opacity
+                                opacity: 0.85,
+                                cursor: 'grabbing',
+                            }}
+                        >
+                            <CollectionFieldRow
+                                field={activeField}
+                                collectionId={collectionId}
+                                onEdit={onEdit}
+                                allFields={fields}
+                                reorderEnabled
+                                isGhost
+                                fillHeight={false}
+                            />
+                        </div>
+                    )
                 ) : null}
             </DragOverlay>
             </div>
