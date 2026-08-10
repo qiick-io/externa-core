@@ -2,7 +2,6 @@
 
 use App\Enums\CollectionPermissionAction;
 use App\Enums\FieldTypeEnum;
-use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionPermission;

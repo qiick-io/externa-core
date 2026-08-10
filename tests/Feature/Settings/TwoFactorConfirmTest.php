@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use Laravel\Fortify\Features;
+use Laravel\Fortify\Fortify;
 use PragmaRX\Google2FA\Google2FA;
 
 test('confirm accepts valid totp from encrypted secret', function () {
@@ -25,7 +26,7 @@ test('confirm accepts valid totp from encrypted secret', function () {
     expect($user->two_factor_secret)->not->toBeNull();
     expect($user->two_factor_confirmed_at)->toBeNull();
 
-    $secret = \Laravel\Fortify\Fortify::currentEncrypter()->decrypt($user->two_factor_secret);
+    $secret = Fortify::currentEncrypter()->decrypt($user->two_factor_secret);
     $code = (new Google2FA)->getCurrentOtp($secret);
 
     $this->actingAs($user)
@@ -96,7 +97,7 @@ test('security edit revisits keep unconfirmed secret so scanned qr stays valid',
 
     expect($user->refresh()->two_factor_secret)->toBe($secret);
 
-    $plain = \Laravel\Fortify\Fortify::currentEncrypter()->decrypt($secret);
+    $plain = Fortify::currentEncrypter()->decrypt($secret);
     $code = (new Google2FA)->getCurrentOtp($plain);
 
     $this->actingAs($user)

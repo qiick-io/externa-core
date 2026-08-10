@@ -9,6 +9,7 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Testing\AssertableInertia;
+use Spatie\Permission\Models\Permission;
 
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
@@ -149,7 +150,7 @@ test('super-admin sees all observability links', function () {
     ]);
     $admin->syncRoles([$role]);
 
-    $jobsPermission = \Spatie\Permission\Models\Permission::query()->firstOrCreate([
+    $jobsPermission = Permission::query()->firstOrCreate([
         'name' => PermissionEnum::CanShowJobs->value,
         'guard_name' => config('auth.defaults.guard', 'web'),
     ]);

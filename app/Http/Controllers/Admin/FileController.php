@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Enums\FileTypeEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateFileMetadataRequest;
@@ -9,8 +10,8 @@ use App\Http\Resources\Admin\FileResource;
 use App\Jobs\DuplicateFilesJob;
 use App\Jobs\PrepareFilesZipJob;
 use App\Models\File;
-use App\Services\FileService;
 use App\Services\Files\FileWhereUsedScanner;
+use App\Services\FileService;
 use App\Services\FileTransformService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -292,7 +294,7 @@ class FileController extends Controller
 
         $url = trim($validated['url']);
 
-        if ($ssrfError = \App\Ai\Support\SafeRemoteUrlValidator::validate($url)) {
+        if ($ssrfError = SafeRemoteUrlValidator::validate($url)) {
             throw ValidationException::withMessages([
                 'url' => [preg_replace('/^Error:\s*/', '', $ssrfError) ?: $ssrfError],
             ]);
@@ -301,7 +303,7 @@ class FileController extends Controller
         $maxBytes = 25 * 1024 * 1024;
 
         try {
-            $response = \Illuminate\Support\Facades\Http::timeout(30)
+            $response = Http::timeout(30)
                 ->connectTimeout(10)
                 ->withOptions([
                     // ponytail: no redirects — avoids SSRF via Location to private IPs; upgrade: re-validate each hop

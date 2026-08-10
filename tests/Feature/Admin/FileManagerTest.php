@@ -13,6 +13,7 @@ use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Spatie\Tags\Tag;
@@ -253,8 +254,8 @@ test('authorized users can import a file from a mocked remote url', function () 
     ]);
     $this->actingAs($user);
 
-    \Illuminate\Support\Facades\Http::fake([
-        'https://example.com/photo.png' => \Illuminate\Support\Facades\Http::response(
+    Http::fake([
+        'https://example.com/photo.png' => Http::response(
             'fake-png-bytes',
             200,
             ['Content-Type' => 'image/png'],
