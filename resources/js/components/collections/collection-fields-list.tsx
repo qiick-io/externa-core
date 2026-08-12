@@ -66,12 +66,19 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+    halfOccupiedInsertDropIntent,
     halfOpenSlotDropIntent,
     halfPairedDropIntent,
     intentForLayoutDrop,
     openPartnerBesideFromPointer,
+    openPartnerFieldIdFromEmptyRects,
+    pointerExitsStickyBesideForStack,
+    rowBreakIdsForDropFrame,
     shouldForceHalfRowBreakForVerticalDrop,
+    shouldKeepStickyBeside,
     targetIndexForFieldDrop,
+    type OccupiedHalfInsert,
+    type StickyBesideState,
 } from '@/lib/collection-field-drop';
 import {
     fieldLayoutWidthLabel,
@@ -201,6 +208,11 @@ function fieldItemRect(sortable: HTMLElement): DOMRect {
 function isPointerOnGroupInsertEdge(
     pointer: { x: number; y: number },
     groupFieldId: number,
+    /**
+     * Same-parent sibling reorder (Category past Section3 under Tab1): widen
+     * bottom/top bands so nest-into does not eat the exit toward after-group.
+     */
+    wideForSiblingReorder = false,
 ): boolean {
     // Thin bands only — Directus treats most of the nested field-grid as nest
     // (min-height ~54px + padding). Wide edges made nest feel pixel-precise.
@@ -217,9 +229,36 @@ function isPointerOnGroupInsertEdge(
 
     const rect = container.getBoundingClientRect();
 
-    if (rect.height < 48) {
-        // Short / empty body: no edge — whole zone is nest.
-        return false;
+    // Empty / short nest bodies (tab/accordion sections): most of the pad used
+    // to be 100% nest-into, so a seam between sibling sections was impossible.
+    // Top/bottom bands → sibling insert; only the middle stays nest-into.
+    // Empty short pads need a real mid nest zone — oversized bands made
+    // empty-det nest flaky (55% aim landed in the insert edge).
+    if (rect.height < 80) {
+        const empty =
+            body instanceof HTMLElement &&
+            body.querySelector('[data-sortable-id]') === null;
+        const topBand = empty
+            ? Math.max(10, rect.height * 0.22)
+            : Math.max(22, rect.height * 0.42);
+        const bottomBand = empty
+            ? Math.max(8, rect.height * 0.18)
+            : Math.max(14, rect.height * 0.22);
+
+        return (
+            pointer.y < rect.top + topBand ||
+            pointer.y > rect.bottom - bottomBand
+        );
+    }
+
+    if (wideForSiblingReorder) {
+        const topBand = Math.min(36, rect.height * 0.28);
+        const bottomBand = Math.min(72, Math.max(36, rect.height * 0.38));
+
+        return (
+            pointer.y < rect.top + topBand ||
+            pointer.y > rect.bottom - bottomBand
+        );
     }
 
     const band = Math.min(20, rect.height * 0.1);
@@ -250,6 +289,149 @@ function pointerInsideGroupChrome(
 }
 
 /**
+ * Direct child cells of a group's nest body tree grid (not nested descendants).
+ */
+function directChildCellsInGroupBody(
+    groupFieldId: number,
+    activeId: number,
+): Array<{
+    id: number;
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+}> {
+    const body = document.querySelector(`[data-group-drop="${groupFieldId}"]`);
+
+    if (!(body instanceof HTMLElement)) {
+        return [];
+    }
+
+    const grid =
+        [...body.querySelectorAll('[data-tree-depth]')].find((node) => {
+            if (!(node instanceof HTMLElement)) {
+                return false;
+            }
+
+            // Innermost grid whose parent chain hits this body first.
+            return node.closest('[data-group-drop]') === body;
+        }) ?? null;
+
+    if (!(grid instanceof HTMLElement)) {
+        return [];
+    }
+
+    const cells: Array<{
+        id: number;
+        top: number;
+        bottom: number;
+        left: number;
+        right: number;
+    }> = [];
+
+    for (const child of grid.children) {
+        if (
+            !(child instanceof HTMLElement) ||
+            child.hasAttribute('data-row-break')
+        ) {
+            continue;
+        }
+
+        const container =
+            child.querySelector(':scope > [data-group-container]') ??
+            child.querySelector(':scope > * > [data-group-container]');
+        const sortable = child.matches('[data-sortable-id]')
+            ? child
+            : child.querySelector(':scope > [data-sortable-id]');
+
+        let id = NaN;
+
+        if (container instanceof HTMLElement) {
+            id = Number(container.getAttribute('data-group-field-id'));
+        } else if (sortable instanceof HTMLElement) {
+            id = Number(sortable.getAttribute('data-sortable-id'));
+        }
+
+        if (!Number.isFinite(id) || id === activeId) {
+            continue;
+        }
+
+        const rect = child.getBoundingClientRect();
+        cells.push({
+            id,
+            top: rect.top,
+            bottom: rect.bottom,
+            left: rect.left,
+            right: rect.right,
+        });
+    }
+
+    return cells;
+}
+
+/**
+ * Pointer on/after the last direct child inside a parent group (incl. short
+ * nest pad + slight overshoot) → append after that child. Keeps Tab1→after
+ * Section3 from flipping into nested Notes or out to the next root sibling.
+ */
+function lastDirectChildIdForInsideParentPad(
+    pointer: { x: number; y: number },
+    groupFieldId: number,
+    activeId: number,
+): number | null {
+    const cells = directChildCellsInGroupBody(groupFieldId, activeId);
+
+    if (cells.length === 0) {
+        return null;
+    }
+
+    const last = cells[cells.length - 1];
+    const group = document.querySelector(
+        `[data-group-field-id="${groupFieldId}"]`,
+    );
+
+    if (!(group instanceof HTMLElement)) {
+        return null;
+    }
+
+    const groupRect = group.getBoundingClientRect();
+    // Sticky past the chrome so a short nest pad stays hittable; stop before
+    // the midpoint to the next sibling of this group. Keep overshoot small so
+    // nested Section3 does not claim Tab1's pad below it as after-Notes.
+    let padBottom = groupRect.bottom + 14;
+    const groupCell = group.closest('[data-tree-depth] > *');
+    const nextCell = groupCell?.nextElementSibling;
+
+    if (nextCell instanceof HTMLElement) {
+        const nextRect = nextCell.getBoundingClientRect();
+        const mid = (groupRect.bottom + nextRect.top) / 2;
+        padBottom = Math.min(padBottom, mid);
+    }
+
+    // Still inside group chrome counts even when last child ends higher.
+    const inGroupChrome =
+        pointer.y >= groupRect.top &&
+        pointer.y <= groupRect.bottom &&
+        pointer.x >= groupRect.left - 8 &&
+        pointer.x <= groupRect.right + 8;
+
+    if (
+        pointer.x < groupRect.left - 8 ||
+        pointer.x > groupRect.right + 8 ||
+        pointer.y <= last.bottom - 10 ||
+        (!inGroupChrome && pointer.y > padBottom)
+    ) {
+        return null;
+    }
+
+    if (!inGroupChrome && pointer.y > groupRect.bottom + 14) {
+        return null;
+    }
+
+    return last.id;
+}
+
+/**
  * Pointer in the vertical seam between two consecutive sibling cells in any
  * tree grid (root or nested under tabs/accordion/raw) → sibling insert.
  * Prefer this over nest-into-parent so the ghost follows the opened slot
@@ -269,8 +451,12 @@ function siblingIdInTreeGap(
         right: number;
     };
 
-    let bestId: number | null = null;
-    let bestDepth = -1;
+    let bestGapId: number | null = null;
+    let bestGapDepth = -1;
+    // After-last prefers the shallowest grid: Tab1 pad below Section3 must aim
+    // Section3, not the last half packed inside Section3's deeper grid.
+    let bestAfterId: number | null = null;
+    let bestAfterDepth = Number.POSITIVE_INFINITY;
 
     for (const grid of document.querySelectorAll('[data-tree-depth]')) {
         if (!(grid instanceof HTMLElement)) {
@@ -279,7 +465,7 @@ function siblingIdInTreeGap(
 
         const depth = Number(grid.getAttribute('data-tree-depth') ?? -1);
 
-        if (!Number.isFinite(depth) || depth < bestDepth) {
+        if (!Number.isFinite(depth)) {
             continue;
         }
 
@@ -338,9 +524,9 @@ function siblingIdInTreeGap(
             });
         }
 
-        const band = depth > 0 ? 28 : 18;
-        const slop = depth > 0 ? 22 : 14;
-        let hitId: number | null = null;
+        const band = depth > 0 ? 36 : 18;
+        const slop = depth > 0 ? 28 : 14;
+        let gapHitId: number | null = null;
 
         for (let index = 0; index < cells.length - 1; index += 1) {
             const above = cells[index];
@@ -358,7 +544,7 @@ function siblingIdInTreeGap(
                 const seam = (gapTop + gapBottom) / 2;
 
                 if (pointer.y >= seam - band && pointer.y <= seam + band) {
-                    hitId = pointer.y >= seam ? below.id : above.id;
+                    gapHitId = pointer.y >= seam ? below.id : above.id;
                     break;
                 }
 
@@ -370,18 +556,51 @@ function siblingIdInTreeGap(
                 pointer.y <= gapBottom + slop
             ) {
                 const mid = (gapTop + gapBottom) / 2;
-                hitId = pointer.y >= mid ? below.id : above.id;
+                gapHitId = pointer.y >= mid ? below.id : above.id;
                 break;
             }
         }
 
-        if (hitId !== null) {
-            bestId = hitId;
-            bestDepth = depth;
+        if (gapHitId !== null && depth >= bestGapDepth) {
+            bestGapId = gapHitId;
+            bestGapDepth = depth;
+        }
+
+        // Past last sibling, still inside this grid/pad → after-last sibling
+        // insert (Tab1 body below Section 3). Beats nest-into parent flicker.
+        if (cells.length > 0 && depth < bestAfterDepth) {
+            const last = cells[cells.length - 1];
+            const padBottom = Math.max(
+                gridRect.bottom + approach,
+                last.bottom + (depth > 0 ? 48 : 28),
+            );
+            const xMin = Math.min(last.left, gridRect.left);
+            const xMax = Math.max(last.right, gridRect.right);
+
+            if (
+                pointer.x >= xMin - 8 &&
+                pointer.x <= xMax + 8 &&
+                pointer.y > last.bottom - 4 &&
+                pointer.y <= padBottom
+            ) {
+                bestAfterId = last.id;
+                bestAfterDepth = depth;
+            }
         }
     }
 
-    return bestId;
+    if (bestGapId !== null && bestAfterId !== null) {
+        // Nested after-last (Tab1 pad below Section3, depth 1) must beat an
+        // outer root gap (Tab1↔Section2, depth 0) — otherwise the pad always
+        // unnests to the next root sibling.
+        if (bestAfterDepth > bestGapDepth) {
+            return bestAfterId;
+        }
+
+        return bestGapId;
+    }
+
+    return bestGapId ?? bestAfterId;
 }
 
 /** Nearest overflow scroll ancestor (PageLayout scrollContent), not window. */
@@ -524,6 +743,89 @@ function halfFieldIdInPointerRow(
     }
 
     return nearestId;
+}
+
+/**
+ * Which open half owns the empty-partner column under the pointer.
+ * DOM hit first (skip overlay); geometry fallback when overlay occludes slots.
+ */
+function openPartnerFieldIdUnderPointer(
+    pointer: { x: number; y: number },
+    activeId: number,
+): number | null {
+    for (const hit of document.elementsFromPoint(pointer.x, pointer.y)) {
+        if (!(hit instanceof Element)) {
+            continue;
+        }
+
+        if (hit.closest('[data-dnd-field-overlay]')) {
+            continue;
+        }
+
+        const slot = hit.closest('[data-empty-partner-slot]');
+
+        if (!(slot instanceof HTMLElement)) {
+            continue;
+        }
+
+        const sortable = slot.closest('[data-sortable-id]');
+
+        if (!(sortable instanceof HTMLElement)) {
+            continue;
+        }
+
+        if (sortable.getAttribute('data-open-partner-slot') !== '1') {
+            continue;
+        }
+
+        const overId = Number(sortable.getAttribute('data-sortable-id'));
+
+        if (Number.isFinite(overId) && overId !== activeId) {
+            return overId;
+        }
+    }
+
+    const slots: { overId: number; rect: {
+        left: number;
+        right: number;
+        top: number;
+        bottom: number;
+    } }[] = [];
+
+    for (const slot of document.querySelectorAll('[data-empty-partner-slot]')) {
+        if (!(slot instanceof HTMLElement)) {
+            continue;
+        }
+
+        const sortable = slot.closest('[data-sortable-id]');
+
+        if (!(sortable instanceof HTMLElement)) {
+            continue;
+        }
+
+        if (sortable.getAttribute('data-open-partner-slot') !== '1') {
+            continue;
+        }
+
+        const overId = Number(sortable.getAttribute('data-sortable-id'));
+
+        if (!Number.isFinite(overId) || overId === activeId) {
+            continue;
+        }
+
+        const r = slot.getBoundingClientRect();
+        slots.push({
+            overId,
+            rect: {
+                left: r.left,
+                right: r.right,
+                top: r.top,
+                bottom: r.bottom,
+            },
+        });
+    }
+
+    return openPartnerFieldIdFromEmptyRects(pointer, slots, activeId);
 }
 
 function fieldIsInsideGroup(
@@ -1031,53 +1333,17 @@ function fieldsWithRowBreakOverrides(
     });
 }
 
-function halfFieldHasOpenPartnerSlot(
+/**
+ * 2-col half packing cursor after processing `throughIndex` inclusive.
+ * `true` ⇒ that index opened a half-row still awaiting a partner.
+ */
+function halfPackingAwaitingPartnerThrough(
     fields: CollectionFieldRow[],
-    colSpans: (1 | 2)[],
-    fieldIndex: number,
-    /**
-     * While dragging a half, ignore it in packing so its former partner shows
-     * an empty column (Directus). Without this, active still "fills" the slot
-     * and beside never mounts an empty partner target.
-     */
-    ignoreFieldId: number | null = null,
+    throughIndex: number,
 ): boolean {
-    if (ignoreFieldId !== null) {
-        const target = fields[fieldIndex];
-
-        if (target === undefined || target.id === ignoreFieldId) {
-            return false;
-        }
-
-        const withoutActive = fields.filter(
-            (field) => field.id !== ignoreFieldId,
-        );
-        const mappedIndex = withoutActive.findIndex(
-            (field) => field.id === target.id,
-        );
-
-        if (mappedIndex === -1) {
-            return false;
-        }
-
-        return halfFieldHasOpenPartnerSlot(
-            withoutActive,
-            getFieldGridColSpans(withoutActive),
-            mappedIndex,
-            null,
-        );
-    }
-
-    const layoutWidth = getFieldLayoutWidth(fields[fieldIndex]?.settings);
-
-    if (layoutWidth !== 'half' || (colSpans[fieldIndex] ?? 2) !== 1) {
-        return false;
-    }
-
-    // Leading half only (opened a row). Trailing partner of a pair → false.
     let awaitingHalfPartner = false;
 
-    for (let index = 0; index <= fieldIndex; index++) {
+    for (let index = 0; index <= throughIndex; index++) {
         const field = fields[index];
 
         if (field === undefined) {
@@ -1103,7 +1369,115 @@ function halfFieldHasOpenPartnerSlot(
         awaitingHalfPartner = false;
     }
 
-    if (!awaitingHalfPartner) {
+    return awaitingHalfPartner;
+}
+
+function halfFieldHasOpenPartnerSlot(
+    fields: CollectionFieldRow[],
+    colSpans: (1 | 2)[],
+    fieldIndex: number,
+    /**
+     * While dragging a half, ignore it in packing so its former partner shows
+     * an empty column (Directus). Without this, active still "fills" the slot
+     * and beside never mounts an empty partner target.
+     */
+    ignoreFieldId: number | null = null,
+): boolean {
+    if (ignoreFieldId !== null) {
+        const target = fields[fieldIndex];
+
+        if (target === undefined || target.id === ignoreFieldId) {
+            return false;
+        }
+
+        const activeIndex = fields.findIndex(
+            (field) => field.id === ignoreFieldId,
+        );
+
+        // True packed pair (packing SoT) → swap, not empty-column beside.
+        if (activeIndex !== -1) {
+            const occupiedActive = occupiedHalfPairPartner(fields, activeIndex);
+
+            if (
+                occupiedActive !== null &&
+                occupiedActive.partnerIndex === fieldIndex
+            ) {
+                return false;
+            }
+        }
+
+        // Dragging the next half away: keep this field's empty partner when it
+        // already had an open slot (stacked via starts_new_row). Filtering
+        // active out would let the following sibling pack into the column.
+        if (
+            activeIndex === fieldIndex + 1 &&
+            halfFieldHasOpenPartnerSlot(fields, colSpans, fieldIndex, null)
+        ) {
+            return true;
+        }
+
+        let withoutActive = fields.filter(
+            (field) => field.id !== ignoreFieldId,
+        );
+
+        // Dragging one seat of a packed pair opens that row — do not let the
+        // next lone half (e.g. Notes under abvl|Priority) absorb into abvl.
+        if (activeIndex !== -1) {
+            const occupiedActive = occupiedHalfPairPartner(fields, activeIndex);
+
+            if (occupiedActive !== null) {
+                const pairEnd = Math.max(
+                    activeIndex,
+                    occupiedActive.partnerIndex,
+                );
+                const nextAfterPair = fields[pairEnd + 1];
+
+                if (nextAfterPair !== undefined) {
+                    withoutActive = withoutActive.map((field) => {
+                        if (field.id !== nextAfterPair.id) {
+                            return field;
+                        }
+
+                        if (fieldStartsNewLayoutRow(field.settings)) {
+                            return field;
+                        }
+
+                        return {
+                            ...field,
+                            settings: {
+                                ...field.settings,
+                                layout_starts_new_row: true,
+                            },
+                        };
+                    });
+                }
+            }
+        }
+
+        const mappedIndex = withoutActive.findIndex(
+            (field) => field.id === target.id,
+        );
+
+        if (mappedIndex === -1) {
+            return false;
+        }
+
+        return halfFieldHasOpenPartnerSlot(
+            withoutActive,
+            getFieldGridColSpans(withoutActive),
+            mappedIndex,
+            null,
+        );
+    }
+
+    const layoutWidth = getFieldLayoutWidth(fields[fieldIndex]?.settings);
+
+    if (layoutWidth !== 'half' || (colSpans[fieldIndex] ?? 2) !== 1) {
+        return false;
+    }
+
+    // Leading half only (opened a row). Trailing partner of a pair → false.
+    if (!halfPackingAwaitingPartnerThrough(fields, fieldIndex)) {
         return false;
     }
 
@@ -1119,6 +1493,104 @@ function halfFieldHasOpenPartnerSlot(
 
     // Next half would fill this row — not an open slot.
     return getFieldLayoutWidth(nextField.settings) !== 'half';
+}
+
+/**
+ * Partner of an occupied half pair (no empty column), or null when open/lone.
+ *
+ * Packing SoT — adjacency alone is not enough: after abvl|Priority the next
+ * half (Notes) starts a new visual row without layout_starts_new_row, and must
+ * not be treated as Priority's trailing mate (that forced Priority↔Notes swap).
+ */
+function occupiedHalfPairPartner(
+    fields: CollectionFieldRow[],
+    fieldIndex: number,
+): { partnerIndex: number; role: 'leading' | 'trailing' } | null {
+    const field = fields[fieldIndex];
+
+    if (
+        field === undefined ||
+        getFieldLayoutWidth(field.settings) !== 'half'
+    ) {
+        return null;
+    }
+
+    const prev = fields[fieldIndex - 1];
+    const next = fields[fieldIndex + 1];
+
+    // Trailing: packing before this index is awaiting a partner (prev opened row).
+    if (
+        prev !== undefined &&
+        getFieldLayoutWidth(prev.settings) === 'half' &&
+        !fieldStartsNewLayoutRow(field.settings) &&
+        halfPackingAwaitingPartnerThrough(fields, fieldIndex - 1)
+    ) {
+        return { partnerIndex: fieldIndex - 1, role: 'trailing' };
+    }
+
+    // Leading: this index opened a row and next half fills it.
+    if (
+        next !== undefined &&
+        getFieldLayoutWidth(next.settings) === 'half' &&
+        !fieldStartsNewLayoutRow(next.settings) &&
+        halfPackingAwaitingPartnerThrough(fields, fieldIndex)
+    ) {
+        return { partnerIndex: fieldIndex + 1, role: 'leading' };
+    }
+
+    return null;
+}
+
+/**
+ * Directus: aiming at the right edge of the *left* half must keep that half as
+ * over. Collision / nearest-half often reports the trailing partner instead,
+ * which makes relativeX negative and forces stack-below.
+ */
+function remapOccupiedPairOverFromPointer(
+    fields: CollectionFieldRow[],
+    overFieldId: number,
+    pointer: { x: number; y: number },
+    activeId: number,
+): number | null {
+    const overIndex = fields.findIndex((field) => field.id === overFieldId);
+
+    if (overIndex === -1) {
+        return null;
+    }
+
+    const occupied = occupiedHalfPairPartner(fields, overIndex);
+
+    if (occupied === null || occupied.role !== 'trailing') {
+        return null;
+    }
+
+    const leading = fields[occupied.partnerIndex];
+
+    if (leading === undefined || leading.id === activeId) {
+        return null;
+    }
+
+    const leadingEl = document.querySelector(
+        `[data-sortable-id="${leading.id}"]`,
+    );
+
+    if (!(leadingEl instanceof HTMLElement)) {
+        return null;
+    }
+
+    const rect = leadingEl.getBoundingClientRect();
+
+    // Pointer still on the leading card (incl. its right edge) → aim at leading.
+    if (
+        pointer.x >= rect.left - 4 &&
+        pointer.x <= rect.right + 12 &&
+        pointer.y >= rect.top - 8 &&
+        pointer.y <= rect.bottom + 8
+    ) {
+        return leading.id;
+    }
+
+    return null;
 }
 
 /**
@@ -1172,6 +1644,8 @@ function computeFieldDropIntent(
             height: number;
         } | null;
     } | null,
+    /** Flat field ids at drag start — paired half invert-swap stick. */
+    orderAtDragStart?: number[],
 ): {
     overFieldId: number;
     intent: DropIntent;
@@ -1260,8 +1734,21 @@ function computeFieldDropIntent(
 
     // SortableJS invert-swap: once the ghost is above, require a deep bottom
     // band to flip back (sensor Y lags under scroll; mid-target must not undo).
+    // Exception: still at drag-start order — past mid means "insert after"
+    // (section↔section / stack) or we'd never reorder the leading sibling.
+    const startIds = orderAtDragStart ?? [];
+    const startActive = startIds.indexOf(Number(active.id));
+    const startOver = startIds.indexOf(overFieldId);
+    const startedBeforeOver =
+        startActive !== -1 && startOver !== -1
+            ? startActive < startOver
+            : null;
     const verticalIntent = (y: number): DropIntent => {
         if (ghostAlreadyBefore) {
+            if (startedBeforeOver === true) {
+                return y > 0.5 ? 'after' : 'before';
+            }
+
             return y > 0.9 ? 'after' : 'before';
         }
 
@@ -1325,23 +1812,38 @@ function computeFieldDropIntent(
         };
     }
 
-    // Half↔half already paired: bottom band stacks below; otherwise vertical reorder.
+    // Half↔half already paired: same-row swap, or deep-bottom unwrap.
+    // External half onto an occupied pair → Directus insert (displace partner).
     if (overLayoutWidth === 'half' && activeLayoutWidth === 'half') {
-        // Overlay can sit deeper than a lagging pointer — use the lower of the
-        // two so stack-below still wins when the ghost is on the bottom band.
-        if (translatedRect) {
-            const overlayBandY =
-                (translatedRect.top +
-                    translatedRect.height * 0.75 -
-                    overRect.top) /
-                Math.max(overRect.height, 1);
-            relativeY = Math.max(relativeY, overlayBandY);
+        const occupied = occupiedHalfPairPartner(layoutFields, overIndex);
+        // Active is the other seat of this occupied pair → L↔R swap / unpair.
+        const activeIsPairMate =
+            occupied !== null &&
+            activeIndex !== -1 &&
+            activeIndex === occupied.partnerIndex;
+
+        if (occupied !== null && !activeIsPairMate) {
+            const insert = halfOccupiedInsertDropIntent(
+                relativeX,
+                relativeY,
+                occupied.role === 'leading',
+            );
+
+            return {
+                overFieldId,
+                intent: insert.intent,
+                layoutIntent: insert.layoutIntent,
+            };
         }
 
+        // Do not inflate Y with overlay-bottom — that pushed mid-card into the
+        // unwrap band and blocked left↔right swap. Stack-below uses pointer Y.
         const paired = halfPairedDropIntent(
             relativeX,
             relativeY,
             verticalIntent(relativeY),
+            activeIndex !== -1 ? activeIndex < overIndex : null,
+            startedBeforeOver,
         );
 
         return {
@@ -1359,22 +1861,28 @@ function computeFieldDropIntent(
 }
 
 /**
- * Animate layout only around drop — not on every live slot change.
- * Continuous FLIP + 100+ useSortable rect reads was the main drag jank source;
- * DragOverlay still tracks the pointer at 60fps like Directus' ghost.
+ * Animate sibling slides while sorting (Directus SortableJS ~150ms).
+ *
+ * defaultAnimateLayoutChanges gates on `wasDragging`, which skips FLIP for
+ * siblings during an active drag — so live DOM reorders jumped with no slide.
+ * While sorting we always animate; on settle keep the default path.
  */
 const fieldAnimateLayoutChanges: AnimateLayoutChanges = (args) => {
-    const { isSorting, wasDragging } = args;
+    const { isSorting, wasDragging, transition } = args;
+
+    if (!transition) {
+        return false;
+    }
 
     if (isSorting) {
-        return false;
+        return true;
     }
 
-    if (!wasDragging) {
-        return false;
+    if (wasDragging) {
+        return defaultAnimateLayoutChanges(args);
     }
 
-    return defaultAnimateLayoutChanges(args);
+    return false;
 };
 
 const fieldsDndMeasuring = {
@@ -1764,11 +2272,11 @@ function SortableCollectionFieldRow({
     } = useSortable({
         id: field.id,
         disabled: !reorderEnabled,
-        // Directus SortableJS animation: 150ms — FLIP siblings as the ghost slot moves.
+        // Directus SortableJS animation: 150ms + sharp ease (items settle under pointer).
         animateLayoutChanges: fieldAnimateLayoutChanges,
         transition: {
             duration: 150,
-            easing: 'ease',
+            easing: 'cubic-bezier(0.2, 0, 0, 1)',
         },
     });
 
@@ -1783,7 +2291,9 @@ function SortableCollectionFieldRow({
     // (isDragging) so layout FLIP still has a real box to animate around.
     const style = {
         transform: CSS.Transform.toString(clampedTransform),
-        transition: transition ?? 'transform 150ms ease',
+        transition:
+            transition ?? 'transform 150ms cubic-bezier(0.2, 0, 0, 1)',
+        ...(listDragging ? { willChange: 'transform' as const } : null),
     };
 
     const showEmptyPartnerGhost =
@@ -2504,6 +3014,8 @@ function SortableFieldsList({
     const dropIntentRef = useRef<DropIntent | null>(null);
     const dropLayoutIntentRef = useRef<DropLayoutIntent>(null);
     const dropTargetFieldIdRef = useRef<number | null>(null);
+    /** Sticky open-partner beside — packing clears empty DOM; don't thrash. */
+    const stickyBesideRef = useRef<StickyBesideState | null>(null);
     const activeFieldIdRef = useRef<number | null>(null);
     const latestDragOverRef = useRef<DragOverEvent | null>(null);
     const dragOverRafRef = useRef<number | null>(null);
@@ -2709,6 +3221,7 @@ function SortableFieldsList({
         pendingBeforeSiblingRef.current = null;
         dropIntentRef.current = null;
         dropLayoutIntentRef.current = null;
+        stickyBesideRef.current = null;
         orderAtDragStartRef.current = orderedFields.map((field) => field.id);
         rowBreakAtDragStartRef.current = Array.from(
             rowBreakFieldIdsRef.current,
@@ -2867,6 +3380,217 @@ function SortableFieldsList({
         setRowBreakFieldIds(next);
     };
 
+    /** Measure over card + empty partner (empty may be gone after beside packing). */
+    const measureHalfPartnerGeometry = (
+        overFieldId: number,
+    ): {
+        overRect: {
+            left: number;
+            right: number;
+            top: number;
+            bottom: number;
+            width: number;
+        } | null;
+        emptyRect: {
+            left: number;
+            right: number;
+            top: number;
+            bottom: number;
+        } | null;
+    } => {
+        const overEl = document.querySelector(
+            `[data-sortable-id="${overFieldId}"]`,
+        );
+        const emptyEl = overEl?.querySelector('[data-empty-partner-slot]');
+        const overRect =
+            overEl instanceof HTMLElement
+                ? (() => {
+                      const r = overEl.getBoundingClientRect();
+
+                      return {
+                          left: r.left,
+                          right: r.right,
+                          top: r.top,
+                          bottom: r.bottom,
+                          width: r.width,
+                      };
+                  })()
+                : null;
+        const emptyRect =
+            emptyEl instanceof HTMLElement
+                ? (() => {
+                      const r = emptyEl.getBoundingClientRect();
+
+                      return {
+                          left: r.left,
+                          right: r.right,
+                          top: r.top,
+                          bottom: r.bottom,
+                      };
+                  })()
+                : null;
+
+        return { overRect, emptyRect };
+    };
+
+    /** Keep stack-below while pointer stays in the bottom band of the stack target. */
+    const isHoldingStackBelowBand = (
+        pointer: { x: number; y: number } | null,
+    ): boolean => {
+        if (
+            dropLayoutIntentRef.current !== 'below-new-row' ||
+            pointer === null
+        ) {
+            return false;
+        }
+
+        const stackOverId = dropTargetFieldIdRef.current;
+
+        if (stackOverId === null) {
+            return false;
+        }
+
+        const { overRect: stackRect } =
+            measureHalfPartnerGeometry(stackOverId);
+
+        if (stackRect === null) {
+            return false;
+        }
+
+        const stackHeight = stackRect.bottom - stackRect.top;
+        const holding =
+            stackHeight > 0 &&
+            pointer.y >= stackRect.top + stackHeight * 0.75;
+
+        return holding;
+    };
+
+    /** Commit empty-partner / sticky beside; live-place active after over. */
+    const commitBesideAfter = (
+        activeId: number,
+        overFieldId: number,
+        overField: CollectionFieldRow,
+    ): void => {
+        // Hold stack-below: a one-frame unpair opens the partner column under a
+        // past-bottom pointer; refusing beside here keeps drop SoT on stack.
+        if (
+            isHoldingStackBelowBand(
+                getWindowDragPointer() ?? latestCollisionPointer,
+            )
+        ) {
+            return;
+        }
+
+        stickyBesideRef.current = { activeId, overId: overFieldId };
+
+        // Place active after over so row-break packing pairs the aimed partner.
+        // Clearing the break alone packs with the previous neighbor (stacked
+        // halves: beside-top wrongly filled mid|active). Kitchen-sink has
+        // groups → use sibling live-move even for root null-parent fields.
+        const parentForOver =
+            fieldGroupsRef.current.get(overFieldId) ??
+            getFieldGroupName(overField);
+
+        if (hasGroups) {
+            const siblings = getFieldsWithOverrides().filter(
+                (field) =>
+                    (fieldGroupsRef.current.get(field.id) ??
+                        getFieldGroupName(field)) === parentForOver &&
+                    field.id !== activeId,
+            );
+            const overSiblingIndex = siblings.findIndex(
+                (field) => field.id === overFieldId,
+            );
+            applyLiveGroupMove(
+                activeId,
+                parentForOver,
+                siblings[overSiblingIndex + 1]?.id ?? null,
+            );
+        } else {
+            const current = orderedFieldsRef.current;
+            const oldIndex = current.findIndex(
+                (field) => field.id === activeId,
+            );
+            const overIndex = current.findIndex(
+                (field) => field.id === overFieldId,
+            );
+
+            if (oldIndex !== -1 && overIndex !== -1) {
+                const targetIndex = targetIndexForFieldDrop(
+                    oldIndex,
+                    overIndex,
+                    'after',
+                );
+
+                if (targetIndex !== null) {
+                    const nextFields = arrayMove(
+                        current,
+                        oldIndex,
+                        targetIndex,
+                    );
+                    orderedFieldsRef.current = nextFields;
+                    overridesCacheRef.current = null;
+                    setOrderedFields(nextFields);
+                }
+            }
+        }
+
+        if (
+            dropLayoutIntentRef.current === 'beside' &&
+            dropTargetFieldIdRef.current === overFieldId &&
+            dropIntentRef.current === 'after'
+        ) {
+            // Still refresh row-breaks from drag-start (idempotent).
+            commitRowBreakFieldIds(
+                rowBreakIdsForDropFrame(
+                    rowBreakAtDragStartRef.current,
+                    activeId,
+                    overFieldId,
+                    'beside',
+                    'after',
+                    false,
+                    false,
+                ),
+            );
+
+            return;
+        }
+
+        dropTargetFieldIdRef.current = overFieldId;
+        setDropTargetFieldId(overFieldId);
+        setDropIntent('after');
+        dropIntentRef.current = 'after';
+        setDropLayoutIntent('beside');
+        dropLayoutIntentRef.current = 'beside';
+
+        commitRowBreakFieldIds(
+            rowBreakIdsForDropFrame(
+                rowBreakAtDragStartRef.current,
+                activeId,
+                overFieldId,
+                'beside',
+                'after',
+                false,
+                false,
+            ),
+        );
+
+        pendingActiveGroupRef.current = parentForOver;
+
+        const siblings = getFieldsWithOverrides().filter(
+            (field) =>
+                (fieldGroupsRef.current.get(field.id) ??
+                    getFieldGroupName(field)) ===
+                    pendingActiveGroupRef.current &&
+                field.id !== activeId,
+        );
+        const overSiblingIndex = siblings.findIndex(
+            (field) => field.id === overFieldId,
+        );
+        pendingBeforeSiblingRef.current =
+            siblings[overSiblingIndex + 1]?.id ?? null;
+    };
+
     const processDragOver = (event: DragOverEvent): void => {
         const { active, over } = event;
         const ordered = orderedFieldsRef.current;
@@ -2884,6 +3608,70 @@ function SortableFieldsList({
 
         if (!activeFieldRow) {
             return;
+        }
+
+        // Sticky open-partner beside: packing clears empty DOM + looks "paired".
+        // Hold beside until the pointer clearly leaves the partner zone — but
+        // never across a different field's empty-partner column (retarget).
+        const stickyBeside = stickyBesideRef.current;
+        const stickyPointer =
+            getWindowDragPointer() ?? latestCollisionPointer;
+        const partnerUnderPointer =
+            stickyPointer !== null &&
+            getFieldLayoutWidth(activeFieldRow.settings) === 'half'
+                ? openPartnerFieldIdUnderPointer(
+                      stickyPointer,
+                      activeFieldIdNumber,
+                  )
+                : null;
+
+        if (
+            stickyBeside !== null &&
+            stickyBeside.activeId === activeFieldIdNumber &&
+            getFieldLayoutWidth(activeFieldRow.settings) === 'half'
+        ) {
+            const stickyOver = ordered.find(
+                (field) => field.id === stickyBeside.overId,
+            );
+            const { overRect: stickyOverRect, emptyRect: stickyEmpty } =
+                measureHalfPartnerGeometry(stickyBeside.overId);
+
+            if (
+                stickyOver &&
+                getFieldLayoutWidth(stickyOver.settings) === 'half' &&
+                shouldKeepStickyBeside(
+                    stickyBeside,
+                    activeFieldIdNumber,
+                    stickyPointer,
+                    stickyOverRect,
+                    stickyEmpty,
+                    partnerUnderPointer,
+                )
+            ) {
+                commitBesideAfter(
+                    activeFieldIdNumber,
+                    stickyBeside.overId,
+                    stickyOver,
+                );
+
+                return;
+            }
+
+            // Entering another open partner → drop sticky so the frame retargets.
+            if (
+                partnerUnderPointer !== null &&
+                partnerUnderPointer !== stickyBeside.overId
+            ) {
+                stickyBesideRef.current = null;
+            } else if (
+                pointerExitsStickyBesideForStack(
+                    stickyPointer,
+                    stickyOverRect,
+                    stickyEmpty,
+                )
+            ) {
+                stickyBesideRef.current = null;
+            }
         }
 
         const nestGroupIdFromOver = parseGroupDropId(over.id);
@@ -2908,20 +3696,219 @@ function SortableFieldsList({
             // Gap between sibling cells (root or nested under tabs/raw/…) →
             // sibling insert. Beats nest-into so the ghost tracks the opened
             // slot instead of the parent’s bottom nest pad.
-            const gapSiblingId = siblingIdInTreeGap(
+            let gapSiblingId = siblingIdInTreeGap(
                 pointerForOver,
                 activeFieldIdNumber,
             );
+            const activeParentNameEarly =
+                fieldGroupsRef.current.get(activeFieldIdNumber) ??
+                getFieldGroupName(activeFieldRow);
+
+            // Deep nest body owns the pointer — clear outer sibling/after-last
+            // seams (empty-det nest was stolen by the root gap to the next field
+            // after the approach-from-below path).
+            {
+                const nestBodyHit = document
+                    .elementsFromPoint(pointerForOver.x, pointerForOver.y)
+                    .find(
+                        (el) =>
+                            el instanceof Element &&
+                            el.closest('[data-group-drop]') !== null &&
+                            el.closest('[data-dnd-field-overlay]') === null,
+                    );
+                const nestBody = nestBodyHit?.closest('[data-group-drop]');
+                const nestBodyId =
+                    nestBody instanceof HTMLElement
+                        ? Number(
+                              nestBody.getAttribute('data-group-drop') ??
+                                  NaN,
+                          )
+                        : NaN;
+
+                if (
+                    Number.isFinite(nestBodyId) &&
+                    nestBodyId !== activeFieldIdNumber
+                ) {
+                    const nestGroupField = ordered.find(
+                        (field) => field.id === nestBodyId,
+                    );
+                    const nestParentName = nestGroupField
+                        ? (fieldGroupsRef.current.get(nestBodyId) ??
+                          getFieldGroupName(nestGroupField))
+                        : null;
+                    const sameParentNest =
+                        activeParentNameEarly !== null &&
+                        nestParentName !== null &&
+                        activeParentNameEarly === nestParentName;
+
+                    if (
+                        !isPointerOnGroupInsertEdge(
+                            pointerForOver,
+                            nestBodyId,
+                            sameParentNest,
+                        )
+                    ) {
+                        const bodyRect =
+                            nestBody instanceof HTMLElement
+                                ? nestBody.getBoundingClientRect()
+                                : null;
+                        // Strict center only — edge/seam aims must stay sibling
+                        // (between-groups). Empty-det nest aims mid-body.
+                        const margin =
+                            bodyRect !== null
+                                ? bodyRect.height < 80 &&
+                                  nestBody instanceof HTMLElement &&
+                                  nestBody.querySelector(
+                                      '[data-sortable-id]',
+                                  ) === null
+                                    ? Math.min(
+                                          12,
+                                          Math.max(6, bodyRect.height * 0.18),
+                                      )
+                                    : Math.min(
+                                          22,
+                                          Math.max(10, bodyRect.height * 0.28),
+                                      )
+                                : 0;
+                        const inDeep =
+                            bodyRect !== null &&
+                            pointerForOver.x >= bodyRect.left &&
+                            pointerForOver.x <= bodyRect.right &&
+                            pointerForOver.y >= bodyRect.top + margin &&
+                            pointerForOver.y <= bodyRect.bottom - margin;
+
+                        if (inDeep) {
+                            const nestEmpty =
+                                directChildCellsInGroupBody(
+                                    nestBodyId,
+                                    activeFieldIdNumber,
+                                ).length === 0;
+
+                            // Only reclaim empty nest pads from leaf gap steals
+                            // (empty-det). Non-empty / between-group seams keep
+                            // sibling SoT.
+                            if (nestEmpty) {
+                                if (gapSiblingId !== null) {
+                                    const gapField = ordered.find(
+                                        (field) => field.id === gapSiblingId,
+                                    );
+                                    const gapParent = gapField
+                                        ? (fieldGroupsRef.current.get(
+                                              gapSiblingId,
+                                          ) ?? getFieldGroupName(gapField))
+                                        : null;
+                                    const gapIsGroupSiblingSeam =
+                                        gapSiblingId === nestBodyId ||
+                                        (gapField !== undefined &&
+                                            isLayoutGroupType(gapField.type) &&
+                                            gapParent === nestParentName);
+
+                                    if (!gapIsGroupSiblingSeam) {
+                                        gapSiblingId = null;
+                                        underId = groupDropId(nestBodyId);
+                                    }
+                                } else {
+                                    underId = groupDropId(nestBodyId);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Already inside a parent: when the outer seam miss leaves gap null,
+            // claim after-last on that parent's pad (short nest pad / overshoot).
+            // Do NOT override an existing gap aim — that stole Tab1→after Section3
+            // into Section3→after Notes once the drag had crossed Section3.
+            if (gapSiblingId === null && activeParentNameEarly !== null) {
+                const parentGroupField = ordered.find(
+                    (field) =>
+                        field.name === activeParentNameEarly &&
+                        isLayoutGroupType(field.type),
+                );
+                const keepInsideLast =
+                    parentGroupField !== undefined
+                        ? lastDirectChildIdForInsideParentPad(
+                              pointerForOver,
+                              parentGroupField.id,
+                              activeFieldIdNumber,
+                          )
+                        : null;
+
+                if (keepInsideLast !== null) {
+                    gapSiblingId = keepInsideLast;
+                }
+            }
+
+            // Pointer in ancestor pad below a nested group (outside that group's
+            // chrome): unnest to after the nested group in the ancestor — not
+            // after-last inside the nested group (Notes under Section3).
+            if (pointerForOver !== null && activeParentNameEarly !== null) {
+                const nestedParentField = ordered.find(
+                    (field) =>
+                        field.name === activeParentNameEarly &&
+                        isLayoutGroupType(field.type),
+                );
+                if (nestedParentField !== undefined) {
+                    const nestedChrome = document.querySelector(
+                        `[data-group-field-id="${nestedParentField.id}"]`,
+                    );
+                    const nestedRect =
+                        nestedChrome instanceof HTMLElement
+                            ? nestedChrome.getBoundingClientRect()
+                            : null;
+                    const ancestorName =
+                        nestedParentField !== undefined
+                            ? (fieldGroupsRef.current.get(
+                                  nestedParentField.id,
+                              ) ?? getFieldGroupName(nestedParentField))
+                            : null;
+                    const ancestorField =
+                        ancestorName !== null
+                            ? ordered.find(
+                                  (field) =>
+                                      field.name === ancestorName &&
+                                      isLayoutGroupType(field.type),
+                              )
+                            : undefined;
+
+                    if (
+                        nestedRect !== null &&
+                        ancestorField !== undefined &&
+                        pointerForOver.y > nestedRect.bottom - 2 &&
+                        pointerInsideGroupChrome(
+                            pointerForOver,
+                            ancestorField.id,
+                        )
+                    ) {
+                        const ancestorAfter =
+                            lastDirectChildIdForInsideParentPad(
+                                pointerForOver,
+                                ancestorField.id,
+                                activeFieldIdNumber,
+                            );
+
+                        if (ancestorAfter !== null) {
+                            gapSiblingId = ancestorAfter;
+                        }
+                    }
+                }
+            }
 
             if (gapSiblingId !== null) {
                 underId = gapSiblingId;
-                // Gap = sibling insert. Clear sticky nest + stale pending nest
-                // so dragEnd cannot commit into-group from a prior pad / SoT lag.
+                // Gap = sibling insert. Clear sticky nest + set pending to the
+                // aimed sibling's parent so dragEnd cannot commit into-group
+                // (or unnest via pending=null) from a prior pad / SoT lag.
                 if (dropLayoutIntentRef.current === 'into-group') {
                     dropLayoutIntentRef.current = null;
                     setDropLayoutIntent(null);
                 }
-                pendingActiveGroupRef.current = null;
+                const gapField = ordered.find((f) => f.id === gapSiblingId);
+                pendingActiveGroupRef.current = gapField
+                    ? (fieldGroupsRef.current.get(gapField.id) ??
+                      getFieldGroupName(gapField))
+                    : null;
                 // Provisional: insert before the gap-aim sibling; path below
                 // refines before/after from pointer geometry.
                 pendingBeforeSiblingRef.current = gapSiblingId;
@@ -3013,12 +4000,22 @@ function SortableFieldsList({
                 if (alreadyInside) {
                     const pointer =
                         getWindowDragPointer() ?? latestCollisionPointer;
+                    // After last direct child (short nest pad / slight overshoot)
+                    // beats nested Notes hits and outer unnest seams.
+                    const afterLastId =
+                        pointer !== null
+                            ? lastDirectChildIdForInsideParentPad(
+                                  pointer,
+                                  nestGroupId,
+                                  activeFieldIdNumber,
+                              )
+                            : null;
                     // Between two sibling cells inside this parent → sibling aim,
                     // not the bottom nest pad (live gap vs ghost SoT mismatch).
                     const innerSeamId =
-                        pointer !== null
+                        afterLastId === null && pointer !== null
                             ? siblingIdInTreeGap(pointer, activeFieldIdNumber)
-                            : null;
+                            : afterLastId;
 
                     if (innerSeamId !== null) {
                         if (dropLayoutIntentRef.current === 'into-group') {
@@ -3033,6 +4030,12 @@ function SortableFieldsList({
                             return;
                         }
                     } else {
+                        const directIds = new Set(
+                            directChildCellsInGroupBody(
+                                nestGroupId,
+                                activeFieldIdNumber,
+                            ).map((cell) => cell.id),
+                        );
                         const hits =
                             pointer !== null
                                 ? document.elementsFromPoint(
@@ -3044,6 +4047,10 @@ function SortableFieldsList({
 
                         for (const hit of hits) {
                             if (!(hit instanceof Element)) {
+                                continue;
+                            }
+
+                            if (hit.closest('[data-dnd-field-overlay]')) {
                                 continue;
                             }
 
@@ -3060,7 +4067,8 @@ function SortableFieldsList({
                             if (
                                 Number.isFinite(id) &&
                                 id !== activeFieldIdNumber &&
-                                id !== nestGroupId
+                                id !== nestGroupId &&
+                                directIds.has(id)
                             ) {
                                 remappedId = id;
                                 break;
@@ -3068,16 +4076,53 @@ function SortableFieldsList({
                         }
 
                         if (!Number.isFinite(remappedId)) {
-                            // Pointer on empty pad / own header — keep nest sticky.
-                            previewNestIntoGroup(activeFieldRow, groupField);
+                            // Already inside this group: empty nest pad is NOT
+                            // nest-into-self (that parked the ghost at the parent
+                            // bottom). Prefer nearest *direct* sibling.
+                            if (pointer !== null) {
+                                let nearest: {
+                                    id: number;
+                                    dist: number;
+                                } | null = null;
+
+                                for (const cell of directChildCellsInGroupBody(
+                                    nestGroupId,
+                                    activeFieldIdNumber,
+                                )) {
+                                    const dist = Math.hypot(
+                                        pointer.x -
+                                            (cell.left +
+                                                (cell.right - cell.left) / 2),
+                                        pointer.y -
+                                            (cell.top +
+                                                (cell.bottom - cell.top) / 2),
+                                    );
+
+                                    if (
+                                        nearest === null ||
+                                        dist < nearest.dist
+                                    ) {
+                                        nearest = { id: cell.id, dist };
+                                    }
+                                }
+
+                                remappedId = nearest?.id ?? NaN;
+                            }
+                        }
+
+                        if (!Number.isFinite(remappedId)) {
                             return;
+                        }
+
+                        if (dropLayoutIntentRef.current === 'into-group') {
+                            dropLayoutIntentRef.current = null;
+                            setDropLayoutIntent(null);
                         }
 
                         overFieldId = remappedId;
                         overField = ordered.find((f) => f.id === overFieldId);
 
                         if (!overField) {
-                            previewNestIntoGroup(activeFieldRow, groupField);
                             return;
                         }
                     }
@@ -3109,11 +4154,28 @@ function SortableFieldsList({
                     } else {
                         // Sticky nest (Directus): once into-group for this chrome,
                         // stay until the pointer leaves the whole group container.
+                        // Same-parent sibling reorder: exit sticky nest on the
+                        // wide insert edge so Category can leave Section3.
+                        const nestGroupParent =
+                            fieldGroupsRef.current.get(nestGroupId) ??
+                            getFieldGroupName(groupField);
+                        const sameParentAsNest =
+                            activeParent !== null &&
+                            nestGroupParent !== null &&
+                            activeParent === nestGroupParent;
                         if (
                             nestPointer !== null &&
                             dropLayoutIntentRef.current === 'into-group' &&
                             dropTargetFieldIdRef.current === nestGroupId &&
-                            pointerInsideGroupChrome(nestPointer, nestGroupId)
+                            pointerInsideGroupChrome(nestPointer, nestGroupId) &&
+                            !(
+                                sameParentAsNest &&
+                                isPointerOnGroupInsertEdge(
+                                    nestPointer,
+                                    nestGroupId,
+                                    true,
+                                )
+                            )
                         ) {
                             previewNestIntoGroup(activeFieldRow, groupField);
                             return;
@@ -3136,10 +4198,25 @@ function SortableFieldsList({
                                 );
                             })();
                         // Header (sibling of group) only — nest when in body mid.
-                        // Deep nest zone: ignore outer 20% of body so gaps between
+                        // Shallow edges stay sibling-of-group so seams between
                         // groups don't flicker into into-group.
+                        const groupParentName =
+                            fieldGroupsRef.current.get(nestGroupId) ??
+                            getFieldGroupName(groupField);
+                        const sameParentSiblingReorder =
+                            activeParent !== null &&
+                            groupParentName !== null &&
+                            activeParent === groupParentName;
+                        const onInsertEdge =
+                            nestPointer !== null &&
+                            isPointerOnGroupInsertEdge(
+                                nestPointer,
+                                nestGroupId,
+                                sameParentSiblingReorder,
+                            );
                         const onDeepNest =
                             nestPointer !== null &&
+                            !onInsertEdge &&
                             (() => {
                                 const body = document.querySelector(
                                     `[data-group-drop="${nestGroupId}"]`,
@@ -3150,10 +4227,19 @@ function SortableFieldsList({
                                 }
 
                                 const rect = body.getBoundingClientRect();
-                                const margin = Math.min(
-                                    28,
-                                    Math.max(16, rect.height * 0.2),
-                                );
+                                // Short bodies (empty / one child): keep a real
+                                // deep zone — large % margins ate the whole pad.
+                                // Same-parent sibling reorder: tighter deep zone
+                                // so Category past Section3 stays after/before.
+                                const margin = sameParentSiblingReorder
+                                    ? Math.min(
+                                          48,
+                                          Math.max(28, rect.height * 0.32),
+                                      )
+                                    : Math.min(
+                                          16,
+                                          Math.max(8, rect.height * 0.12),
+                                      );
 
                                 return (
                                     nestPointer.x >= rect.left &&
@@ -3190,26 +4276,146 @@ function SortableFieldsList({
         // the full-width neighbor collision often returns.
         const zonePointer = getWindowDragPointer() ?? latestCollisionPointer;
 
+        // Occupied-insert sticky: after live splice the pair FLIPs under the
+        // pointer; collision often jumps to the displaced trailing half and
+        // clears beside. Hold the insert target while the pointer stays on the
+        // new pair row.
+        const occupiedSticky = stickyBesideRef.current;
+
+        if (
+            zonePointer !== null &&
+            occupiedSticky !== null &&
+            occupiedSticky.activeId === activeFieldIdNumber &&
+            occupiedSticky.occupiedInsert != null &&
+            occupiedSticky.intent === 'before'
+        ) {
+            const stickyOverEl = document.querySelector(
+                `[data-sortable-id="${occupiedSticky.overId}"]`,
+            );
+            const stickyActiveEl = document.querySelector(
+                `[data-sortable-id="${occupiedSticky.activeId}"]`,
+            );
+
+            if (
+                stickyOverEl instanceof HTMLElement &&
+                stickyActiveEl instanceof HTMLElement
+            ) {
+                const overR = stickyOverEl.getBoundingClientRect();
+                const activeR = stickyActiveEl.getBoundingClientRect();
+                const rowTop = Math.min(overR.top, activeR.top);
+                const rowBottom = Math.max(overR.bottom, activeR.bottom);
+                const rowLeft = Math.min(overR.left, activeR.left);
+                const rowRight = Math.max(overR.right, activeR.right);
+                const inPairRow =
+                    zonePointer.x >= rowLeft - 12 &&
+                    zonePointer.x <= rowRight + 12 &&
+                    zonePointer.y >= rowTop - 10 &&
+                    zonePointer.y <= rowBottom + 10;
+
+                if (inPairRow && !isHoldingStackBelowBand(zonePointer)) {
+                    const stickyOverField = ordered.find(
+                        (field) => field.id === occupiedSticky.overId,
+                    );
+
+                    if (stickyOverField) {
+                        overFieldId = occupiedSticky.overId;
+                        overField = stickyOverField;
+                        dropTargetFieldIdRef.current = occupiedSticky.overId;
+                        setDropTargetFieldId(occupiedSticky.overId);
+                        setDropIntent('before');
+                        dropIntentRef.current = 'before';
+                        setDropLayoutIntent('beside');
+                        dropLayoutIntentRef.current = 'beside';
+                        commitRowBreakFieldIds(
+                            rowBreakIdsForDropFrame(
+                                rowBreakAtDragStartRef.current,
+                                activeFieldIdNumber,
+                                occupiedSticky.overId,
+                                'beside',
+                                'before',
+                                false,
+                                false,
+                                occupiedSticky.occupiedInsert,
+                            ),
+                        );
+
+                        return;
+                    }
+                }
+            }
+        }
+
         if (
             zonePointer !== null &&
             getFieldLayoutWidth(activeFieldRow.settings) === 'half'
         ) {
-            const halfUnderPointer = halfFieldIdInPointerRow(
+            // Empty-partner column under pointer wins over collision overId
+            // (stacked halves: aiming middle partner must not stick to top).
+            const partnerId =
+                partnerUnderPointer ??
+                openPartnerFieldIdUnderPointer(
+                    zonePointer,
+                    activeFieldIdNumber,
+                );
+
+            if (partnerId !== null && partnerId !== overFieldId) {
+                const partnerField = ordered.find(
+                    (field) => field.id === partnerId,
+                );
+
+                if (partnerField) {
+                    overFieldId = partnerId;
+                    overField = partnerField;
+                }
+            } else {
+                const halfUnderPointer = halfFieldIdInPointerRow(
+                    zonePointer,
+                    activeFieldIdNumber,
+                );
+
+                if (
+                    halfUnderPointer !== null &&
+                    halfUnderPointer !== overFieldId
+                ) {
+                    const halfField = ordered.find(
+                        (field) => field.id === halfUnderPointer,
+                    );
+
+                    if (halfField) {
+                        overFieldId = halfUnderPointer;
+                        overField = halfField;
+                    }
+                }
+            }
+
+            // Occupied pair: prefer the half card under the pointer (leading
+            // right-edge must not remap to the trailing partner).
+            const layoutForRemap = hasGroups
+                ? siblingFieldsForLayout(
+                      getFieldsWithOverrides(),
+                      fieldGroupsRef.current.get(overFieldId) ??
+                          getFieldGroupName(overField),
+                      rowBreakFieldIdsRef.current,
+                  )
+                : fieldsWithRowBreakOverrides(
+                      ordered,
+                      rowBreakFieldIdsRef.current,
+                  );
+            const remappedLeading = remapOccupiedPairOverFromPointer(
+                layoutForRemap,
+                overFieldId,
                 zonePointer,
                 activeFieldIdNumber,
             );
 
-            if (
-                halfUnderPointer !== null &&
-                halfUnderPointer !== overFieldId
-            ) {
-                const halfField = ordered.find(
-                    (field) => field.id === halfUnderPointer,
+            if (remappedLeading !== null && remappedLeading !== overFieldId) {
+                const leadingField = ordered.find(
+                    (field) => field.id === remappedLeading,
                 );
 
-                if (halfField) {
-                    overFieldId = halfUnderPointer;
-                    overField = halfField;
+                if (leadingField) {
+                    overFieldId = remappedLeading;
+                    overField = leadingField;
                 }
             }
         }
@@ -3242,39 +4448,119 @@ function SortableFieldsList({
                 ) !== null,
             );
 
-        if (openBesideEarly) {
-            const besideIntent = {
-                overFieldId,
-                intent: 'after' as const,
-                layoutIntent: 'beside' as const,
-            };
-            dropTargetFieldIdRef.current = besideIntent.overFieldId;
-            setDropTargetFieldId(besideIntent.overFieldId);
-            setDropIntent(besideIntent.intent);
-            dropIntentRef.current = besideIntent.intent;
-            setDropLayoutIntent(besideIntent.layoutIntent);
-            dropLayoutIntentRef.current = besideIntent.layoutIntent;
-            const nextRowBreakFieldIds = new Set(rowBreakFieldIdsRef.current);
-            nextRowBreakFieldIds.delete(activeFieldIdNumber);
-            nextRowBreakFieldIds.delete(besideIntent.overFieldId);
-            commitRowBreakFieldIds(nextRowBreakFieldIds);
-            pendingActiveGroupRef.current =
-                fieldGroupsRef.current.get(overFieldId) ??
-                getFieldGroupName(overField);
-            const siblings = getFieldsWithOverrides().filter(
-                (field) =>
-                    (fieldGroupsRef.current.get(field.id) ??
-                        getFieldGroupName(field)) ===
-                        pendingActiveGroupRef.current &&
-                    field.id !== activeFieldIdNumber,
-            );
-            const overSiblingIndex = siblings.findIndex(
+        // Adjacent live partners → swap/stack, never empty-column beside.
+        const layoutFieldsEarly = hasGroups
+            ? siblingFieldsForLayout(
+                  getFieldsWithOverrides(),
+                  fieldGroupsRef.current.get(overFieldId) ??
+                      getFieldGroupName(overField),
+                  rowBreakFieldIdsRef.current,
+              )
+            : fieldsWithRowBreakOverrides(
+                  ordered,
+                  rowBreakFieldIdsRef.current,
+              );
+        const earlyActiveIdx = layoutFieldsEarly.findIndex(
+            (field) => field.id === activeFieldIdNumber,
+        );
+        const earlyOverIdx = layoutFieldsEarly.findIndex(
+            (field) => field.id === overFieldId,
+        );
+        // Packing SoT — adjacent halves after a completed pair (Priority|Notes)
+        // are NOT live partners; only occupiedHalfPairPartner counts.
+        const earlyOccupiedOver =
+            earlyOverIdx !== -1
+                ? occupiedHalfPairPartner(layoutFieldsEarly, earlyOverIdx)
+                : null;
+        const livePairedHalves =
+            earlyActiveIdx !== -1 &&
+            earlyOccupiedOver !== null &&
+            earlyOccupiedOver.partnerIndex === earlyActiveIdx;
+
+        if (openBesideEarly && !livePairedHalves) {
+            const besideOver = ordered.find((field) => field.id === overFieldId);
+
+            if (
+                besideOver &&
+                getFieldLayoutWidth(besideOver.settings) === 'half' &&
+                !isHoldingStackBelowBand(earlyPtr)
+            ) {
+                commitBesideAfter(activeFieldIdNumber, overFieldId, besideOver);
+
+                return;
+            }
+        }
+
+        // Sticky beside surviving packing: treat live pair of sticky target as
+        // still-beside, not invert-swap (empty column already filled by active).
+        if (
+            livePairedHalves &&
+            stickyBesideRef.current?.activeId === activeFieldIdNumber &&
+            stickyBesideRef.current.overId === overFieldId
+        ) {
+            const stickyOverField = ordered.find(
                 (field) => field.id === overFieldId,
             );
-            pendingBeforeSiblingRef.current =
-                siblings[overSiblingIndex + 1]?.id ?? null;
 
-            return;
+            if (stickyOverField) {
+                const { overRect: keepRect, emptyRect: keepEmpty } =
+                    measureHalfPartnerGeometry(overFieldId);
+
+                if (
+                    shouldKeepStickyBeside(
+                        stickyBesideRef.current,
+                        activeFieldIdNumber,
+                        earlyPtr,
+                        keepRect,
+                        keepEmpty,
+                        partnerUnderPointer ??
+                            (earlyPtr !== null
+                                ? openPartnerFieldIdUnderPointer(
+                                      earlyPtr,
+                                      activeFieldIdNumber,
+                                  )
+                                : null),
+                    )
+                ) {
+                    const sticky = stickyBesideRef.current;
+
+                    // Occupied insert-before: do not commitBesideAfter (would
+                    // flip active to the right seat and drop the leading break).
+                    if (
+                        sticky.intent === 'before' &&
+                        sticky.occupiedInsert != null
+                    ) {
+                        dropTargetFieldIdRef.current = overFieldId;
+                        setDropTargetFieldId(overFieldId);
+                        setDropIntent('before');
+                        dropIntentRef.current = 'before';
+                        setDropLayoutIntent('beside');
+                        dropLayoutIntentRef.current = 'beside';
+                        commitRowBreakFieldIds(
+                            rowBreakIdsForDropFrame(
+                                rowBreakAtDragStartRef.current,
+                                activeFieldIdNumber,
+                                overFieldId,
+                                'beside',
+                                'before',
+                                false,
+                                false,
+                                sticky.occupiedInsert,
+                            ),
+                        );
+
+                        return;
+                    }
+
+                    commitBesideAfter(
+                        activeFieldIdNumber,
+                        overFieldId,
+                        stickyOverField,
+                    );
+
+                    return;
+                }
+            }
         }
 
         const fieldsWithOverrides = getFieldsWithOverrides();
@@ -3322,9 +4608,11 @@ function SortableFieldsList({
             activeFieldRow,
             getWindowDragPointer() ?? latestCollisionPointer,
             { id: overFieldId, rect: liveOverRect },
+            orderAtDragStartRef.current,
         );
 
         // DOM SoT for paired stack-below (open-partner beside handled above).
+        // Keep this band deep — mid-card must remain left↔right swap (Directus).
         const overHasOpenPartnerDom =
             document.querySelector(
                 `[data-sortable-id="${overFieldId}"][data-open-partner-slot]`,
@@ -3338,18 +4626,21 @@ function SortableFieldsList({
 
         if (
             intentResult !== null &&
+            intentResult.layoutIntent !== 'beside' &&
             getFieldLayoutWidth(activeFieldRow.settings) === 'half' &&
             getFieldLayoutWidth(overField.settings) === 'half' &&
             liveOverRect !== null &&
             !overHasOpenPartnerDom
         ) {
-            const bandY = liveOverRect.top + liveOverRect.height * 0.45;
-            const overlayBottom = translated
-                ? translated.top + translated.height * 0.7
-                : null;
-            const stackY = Math.max(hitY ?? 0, overlayBottom ?? 0);
+            const bandY = liveOverRect.top + liveOverRect.height * 0.82;
+            const hitX = earlyPtr?.x ?? null;
+            const inHorizontalBand =
+                hitX === null ||
+                (hitX >= liveOverRect.left + liveOverRect.width * 0.12 &&
+                    hitX <= liveOverRect.left + liveOverRect.width * 0.88);
 
-            if (stackY >= bandY) {
+            // Pointer only — overlay-bottom inflation stole the swap surface.
+            if (inHorizontalBand && hitY !== null && hitY >= bandY) {
                 intentResult = {
                     ...intentResult,
                     intent: 'after',
@@ -3359,6 +4650,82 @@ function SortableFieldsList({
         }
 
         if (intentResult !== null) {
+            // Stack-below an occupied leading half must land *after the trailing
+            // partner* — inserting after the leading half splits the pair
+            // (C|D + stack B → C, B, D all alone).
+            if (
+                intentResult.layoutIntent === 'below-new-row' &&
+                getFieldLayoutWidth(activeFieldRow.settings) === 'half' &&
+                getFieldLayoutWidth(overField.settings) === 'half'
+            ) {
+                const overIdxStack = layoutFields.findIndex(
+                    (field) => field.id === intentResult.overFieldId,
+                );
+                const occupiedStack =
+                    overIdxStack !== -1
+                        ? occupiedHalfPairPartner(layoutFields, overIdxStack)
+                        : null;
+
+                if (occupiedStack?.role === 'leading') {
+                    const trailing = layoutFields[occupiedStack.partnerIndex];
+
+                    if (trailing !== undefined) {
+                        intentResult = {
+                            ...intentResult,
+                            overFieldId: trailing.id,
+                            intent: 'after',
+                        };
+                        overFieldId = trailing.id;
+                        overField = trailing;
+                    }
+                }
+            }
+
+            // Adjacent half partners must never stick as beside (empty-column)
+            // unless sticky open-partner preview already packed active into the seat.
+            const stickyPairedPreview =
+                stickyBesideRef.current?.activeId === activeFieldIdNumber &&
+                stickyBesideRef.current.overId === intentResult.overFieldId;
+
+            if (
+                livePairedHalves &&
+                intentResult.layoutIntent === 'beside' &&
+                !stickyPairedPreview
+            ) {
+                intentResult = {
+                    ...intentResult,
+                    layoutIntent: null,
+                    intent:
+                        earlyActiveIdx < earlyOverIdx ? 'after' : 'before',
+                };
+            }
+
+            // Stack-below hold: don't let open-slot geometry flip back to beside.
+            if (
+                intentResult.layoutIntent === 'beside' &&
+                isHoldingStackBelowBand(earlyPtr)
+            ) {
+                intentResult = {
+                    ...intentResult,
+                    intent: 'after',
+                    layoutIntent: 'below-new-row',
+                };
+            }
+
+            if (intentResult.layoutIntent === 'beside') {
+                // Placeholder — refreshed below once occupiedInsert is known.
+                stickyBesideRef.current = {
+                    activeId: activeFieldIdNumber,
+                    overId: intentResult.overFieldId,
+                    intent: intentResult.intent,
+                };
+            } else if (
+                stickyBesideRef.current?.activeId === activeFieldIdNumber &&
+                intentResult.layoutIntent === 'below-new-row'
+            ) {
+                stickyBesideRef.current = null;
+            }
+
             // beside / below-new-row: always after over so a break on active
             // lands on the trailing half (leading-half breaks are packing no-ops).
             const resolvedIntent = intentForLayoutDrop(
@@ -3420,41 +4787,66 @@ function SortableFieldsList({
                 intentResult.layoutIntent,
             );
 
-            if (intentResult.layoutIntent === 'beside') {
-                const nextRowBreakFieldIds = new Set(
-                    rowBreakFieldIdsRef.current,
-                );
-                nextRowBreakFieldIds.delete(activeFieldIdNumber);
-                // Partner no longer needs a forced break either.
-                nextRowBreakFieldIds.delete(intentResult.overFieldId);
-                commitRowBreakFieldIds(nextRowBreakFieldIds);
-            } else if (
-                intentResult.layoutIntent === 'below-new-row' ||
-                forceHalfRowBreak
+            // Occupied-pair insert: new leading must keep a row-break so a prior
+            // open half above cannot absorb the dragged field.
+            let occupiedInsert: OccupiedHalfInsert | null = null;
+
+            if (
+                intentResult.layoutIntent === 'beside' &&
+                activeLayoutWidth === 'half' &&
+                overLayoutWidth === 'half'
             ) {
-                const nextRowBreakFieldIds = new Set(
-                    rowBreakFieldIdsRef.current,
+                const overIdxForOcc = layoutFields.findIndex(
+                    (field) => field.id === intentResult.overFieldId,
                 );
-                // Half above/below full (or stack below): own row so live grid
-                // never packs half|full side-by-side.
-                nextRowBreakFieldIds.add(activeFieldIdNumber);
-                commitRowBreakFieldIds(nextRowBreakFieldIds);
-            } else {
-                // Restore this field's break to drag-start (clear transient half↔full force).
-                const nextRowBreakFieldIds = new Set(
-                    rowBreakFieldIdsRef.current,
+                const occupied =
+                    overIdxForOcc !== -1
+                        ? occupiedHalfPairPartner(layoutFields, overIdxForOcc)
+                        : null;
+                const activeIdxForOcc = layoutFields.findIndex(
+                    (field) => field.id === activeFieldIdNumber,
                 );
-                const startedWithBreak =
-                    rowBreakAtDragStartRef.current.includes(activeFieldIdNumber);
+                const activeIsPairMate =
+                    occupied !== null &&
+                    activeIdxForOcc !== -1 &&
+                    activeIdxForOcc === occupied.partnerIndex;
 
-                if (startedWithBreak) {
-                    nextRowBreakFieldIds.add(activeFieldIdNumber);
-                } else {
-                    nextRowBreakFieldIds.delete(activeFieldIdNumber);
+                if (occupied !== null && !activeIsPairMate) {
+                    occupiedInsert = {
+                        newLeadingId:
+                            occupied.role === 'leading' &&
+                            resolvedIntent === 'before'
+                                ? activeFieldIdNumber
+                                : occupied.role === 'trailing'
+                                  ? layoutFields[occupied.partnerIndex]!.id
+                                  : activeFieldIdNumber,
+                    };
                 }
-
-                commitRowBreakFieldIds(nextRowBreakFieldIds);
             }
+
+            if (intentResult.layoutIntent === 'beside') {
+                stickyBesideRef.current = {
+                    activeId: activeFieldIdNumber,
+                    overId: intentResult.overFieldId,
+                    intent: resolvedIntent,
+                    occupiedInsert,
+                };
+            }
+
+            // Always re-derive from drag-start so a prior beside hover cannot
+            // leave cleared breaks on unrelated stacked halves.
+            commitRowBreakFieldIds(
+                rowBreakIdsForDropFrame(
+                    rowBreakAtDragStartRef.current,
+                    activeFieldIdNumber,
+                    intentResult.overFieldId,
+                    intentResult.layoutIntent,
+                    resolvedIntent,
+                    forceHalfRowBreak,
+                    livePairedHalves,
+                    occupiedInsert,
+                ),
+            );
 
             if (hasGroups) {
                 pendingBeforeSiblingRef.current = beforeSiblingId;
@@ -3462,8 +4854,12 @@ function SortableFieldsList({
                 // Live-move sibling inserts including unnest/reparent so the
                 // dashed ghost leaves the group and sits between the aim targets.
                 // Nest-into stays preview-only (oscillation / max update depth).
-                // Beside uses the empty partner column, not a list splice.
-                if (intentResult.layoutIntent !== 'beside') {
+                // Open-partner beside uses empty column + commitBesideAfter.
+                // Occupied-pair beside must splice so the displaced partner wraps.
+                if (
+                    intentResult.layoutIntent !== 'beside' ||
+                    occupiedInsert !== null
+                ) {
                     applyLiveGroupMove(
                         activeFieldIdNumber,
                         parentForActive,
@@ -3488,7 +4884,10 @@ function SortableFieldsList({
             return;
         }
 
-        // Flat half↔half: partner ghost only, except paired stack-below live-move.
+        // Flat half↔half open-partner: keep ghost in empty column (no live move)
+        // until stack-below or same-row swap intent. Swap/stack need live reorder
+        // so siblings FLIP like Directus. Occupied-pair beside also live-moves
+        // (insert displaces the trailing partner onto a new row).
         if (
             getFieldLayoutWidth(activeFieldRow.settings) === 'half' &&
             getFieldLayoutWidth(overField.settings) === 'half'
@@ -3496,16 +4895,20 @@ function SortableFieldsList({
             const overIdx = layoutFields.findIndex(
                 (field) => field.id === overFieldId,
             );
-            const pairedStack =
-                dropLayoutIntentRef.current === 'below-new-row' &&
+            const openPartner =
                 overIdx !== -1 &&
-                !halfFieldHasOpenPartnerSlot(
+                halfFieldHasOpenPartnerSlot(
                     layoutFields,
                     layoutColSpans,
                     overIdx,
                 );
+            const layout = dropLayoutIntentRef.current;
+            const allowLive =
+                layout === 'below-new-row' ||
+                (layout === 'beside' && !openPartner) ||
+                (layout === null && !openPartner);
 
-            if (!pairedStack) {
+            if (!allowLive) {
                 return;
             }
         }
@@ -3565,100 +4968,79 @@ function SortableFieldsList({
             return false;
         }
 
-        // Prefer DOM hit-test (skip overlay). Fall back to geometry — empty
-        // slots are often under the DragOverlay so elementsFromPoint misses them.
-        let empty: HTMLElement | null = null;
-        let parent: HTMLElement | null = null;
-
-        for (const hit of document.elementsFromPoint(pointer.x, pointer.y)) {
-            if (!(hit instanceof Element)) {
-                continue;
-            }
-
-            if (hit.closest('[data-dnd-field-overlay]')) {
-                continue;
-            }
-
-            const slot = hit.closest('[data-empty-partner-slot]');
-
-            if (!(slot instanceof HTMLElement)) {
-                continue;
-            }
-
-            const sortable = slot.closest('[data-sortable-id]');
-
-            if (!(sortable instanceof HTMLElement)) {
-                continue;
-            }
-
-            if (sortable.getAttribute('data-open-partner-slot') !== '1') {
-                continue;
-            }
-
-            empty = slot;
-            parent = sortable;
-            break;
-        }
-
-        if (empty === null || parent === null) {
-            let bestDist = Number.POSITIVE_INFINITY;
-
-            for (const slot of document.querySelectorAll(
-                '[data-empty-partner-slot]',
-            )) {
-                if (!(slot instanceof HTMLElement)) {
-                    continue;
-                }
-
-                const sortable = slot.closest('[data-sortable-id]');
-
-                if (!(sortable instanceof HTMLElement)) {
-                    continue;
-                }
-
-                if (sortable.getAttribute('data-open-partner-slot') !== '1') {
-                    continue;
-                }
-
-                const overId = Number(
-                    sortable.getAttribute('data-sortable-id'),
-                );
-
-                if (!Number.isFinite(overId) || overId === activeId) {
-                    continue;
-                }
-
-                const rect = slot.getBoundingClientRect();
-
-                if (
-                    pointer.x < rect.left - 8 ||
-                    pointer.x > rect.right + 8 ||
-                    pointer.y < rect.top - 8 ||
-                    pointer.y > rect.bottom + 8
-                ) {
-                    continue;
-                }
-
-                const dist = Math.hypot(
-                    pointer.x - (rect.left + rect.width / 2),
-                    pointer.y - (rect.top + rect.height / 2),
-                );
-
-                if (dist < bestDist) {
-                    bestDist = dist;
-                    empty = slot;
-                    parent = sortable;
-                }
-            }
-        }
-
-        if (empty === null || parent === null) {
+        // Hold stack-below against open-partner re-grab: unpairing opens the
+        // empty column under a past-bottom pointer, and beside would undo it.
+        if (isHoldingStackBelowBand(pointer)) {
             return false;
         }
 
-        const overFieldId = Number(parent.getAttribute('data-sortable-id'));
+        // Pointer/DOM SoT first — retarget before sticky hysteresis can hold a
+        // previous stacked half's partner while the ghost already shows another.
+        const partnerUnderPointer = openPartnerFieldIdUnderPointer(
+            pointer,
+            activeId,
+        );
 
-        if (!Number.isFinite(overFieldId) || overFieldId === activeId) {
+        // Sticky only when still in the *same* partner zone (packing cleared
+        // empty DOM). Different partner under pointer → fall through to commit.
+        const sticky = stickyBesideRef.current;
+
+        if (
+            sticky !== null &&
+            sticky.activeId === activeId &&
+            (partnerUnderPointer === null ||
+                partnerUnderPointer === sticky.overId)
+        ) {
+            const stickyOver = orderedFieldsRef.current.find(
+                (field) => field.id === sticky.overId,
+            );
+            const { overRect, emptyRect } = measureHalfPartnerGeometry(
+                sticky.overId,
+            );
+
+            if (
+                stickyOver &&
+                getFieldLayoutWidth(stickyOver.settings) === 'half' &&
+                shouldKeepStickyBeside(
+                    sticky,
+                    activeId,
+                    pointer,
+                    overRect,
+                    emptyRect,
+                    partnerUnderPointer,
+                )
+            ) {
+                commitBesideAfter(activeId, sticky.overId, stickyOver);
+
+                return true;
+            }
+
+            if (
+                pointerExitsStickyBesideForStack(pointer, overRect, emptyRect)
+            ) {
+                stickyBesideRef.current = null;
+            }
+        } else if (
+            sticky !== null &&
+            sticky.activeId === activeId &&
+            partnerUnderPointer !== null &&
+            partnerUnderPointer !== sticky.overId
+        ) {
+            stickyBesideRef.current = null;
+        }
+
+        const overFieldId = partnerUnderPointer;
+
+        if (overFieldId === null) {
+            return false;
+        }
+
+        // Past this partner's row bottom → stack-below owns the pointer.
+        // Otherwise a one-frame unpair opens the empty column and beside
+        // immediately re-grabs (stackBelow thrash).
+        const { overRect, emptyRect } = measureHalfPartnerGeometry(overFieldId);
+
+        if (pointerExitsStickyBesideForStack(pointer, overRect, emptyRect)) {
             return false;
         }
 
@@ -3673,43 +5055,46 @@ function SortableFieldsList({
             return false;
         }
 
-        // Geometry already matched in the slot search above — apply beside.
-        if (
-            dropLayoutIntentRef.current === 'beside' &&
-            dropTargetFieldIdRef.current === overFieldId &&
-            dropIntentRef.current === 'after'
-        ) {
-            return true;
-        }
-
-        dropTargetFieldIdRef.current = overFieldId;
-        setDropTargetFieldId(overFieldId);
-        setDropIntent('after');
-        dropIntentRef.current = 'after';
-        setDropLayoutIntent('beside');
-        dropLayoutIntentRef.current = 'beside';
-
-        const nextRowBreakFieldIds = new Set(rowBreakFieldIdsRef.current);
-        nextRowBreakFieldIds.delete(activeId);
-        nextRowBreakFieldIds.delete(overFieldId);
-        commitRowBreakFieldIds(nextRowBreakFieldIds);
-
-        pendingActiveGroupRef.current =
+        // Still packing as this half's partner → swap, not beside — unless
+        // sticky already chose this over (preview packing filled the seat).
+        const parentGroup =
             fieldGroupsRef.current.get(overFieldId) ??
             getFieldGroupName(overField);
-
-        const siblings = getFieldsWithOverrides().filter(
-            (field) =>
-                (fieldGroupsRef.current.get(field.id) ??
-                    getFieldGroupName(field)) ===
-                    pendingActiveGroupRef.current &&
-                field.id !== activeId,
+        const layoutSiblings = hasGroups
+            ? siblingFieldsForLayout(
+                  getFieldsWithOverrides(),
+                  parentGroup,
+                  rowBreakFieldIdsRef.current,
+              )
+            : fieldsWithRowBreakOverrides(
+                  orderedFieldsRef.current,
+                  rowBreakFieldIdsRef.current,
+              );
+        const activeIdx = layoutSiblings.findIndex(
+            (field) => field.id === activeId,
         );
-        const overSiblingIndex = siblings.findIndex(
+        const overIdx = layoutSiblings.findIndex(
             (field) => field.id === overFieldId,
         );
-        pendingBeforeSiblingRef.current =
-            siblings[overSiblingIndex + 1]?.id ?? null;
+        const stickyMatches =
+            stickyBesideRef.current?.activeId === activeId &&
+            stickyBesideRef.current.overId === overFieldId;
+        const occupiedOver =
+            overIdx !== -1
+                ? occupiedHalfPairPartner(layoutSiblings, overIdx)
+                : null;
+
+        // True packed pair only — adjacent after a completed pair (Notes under
+        // abvl|Priority) must still allow empty-column beside.
+        if (
+            !stickyMatches &&
+            occupiedOver !== null &&
+            occupiedOver.partnerIndex === activeIdx
+        ) {
+            return false;
+        }
+
+        commitBesideAfter(activeId, overFieldId, overField);
 
         return true;
     };
@@ -3878,17 +5263,19 @@ function SortableFieldsList({
         setGhostWidth(undefined);
         setGhostHeight(undefined);
         setGroupGhostHtml(null);
-        dropTargetFieldIdRef.current = null;
-        setDropTargetFieldId(null);
-        setDropIntent(null);
+        const releaseOverFieldId = dropTargetFieldIdRef.current;
         const finalLayoutIntent = dropLayoutIntentRef.current;
         const finalIntent = intentForLayoutDrop(
             dropIntentRef.current ?? 'after',
             finalLayoutIntent,
         );
+        dropTargetFieldIdRef.current = null;
+        setDropTargetFieldId(null);
+        setDropIntent(null);
         dropIntentRef.current = null;
         setDropLayoutIntent(null);
         dropLayoutIntentRef.current = null;
+        stickyBesideRef.current = null;
         pendingActiveGroupRef.current = undefined;
         pendingBeforeSiblingRef.current = null;
 
@@ -3897,14 +5284,22 @@ function SortableFieldsList({
 
         // Ensure half-row break from last dragOver is applied even if setState lagged.
         if (activeId !== null && finalLayoutIntent === 'beside') {
-            const nextRowBreakFieldIds = new Set(rowBreakFieldIdsRef.current);
-            nextRowBreakFieldIds.delete(activeId);
-
-            if (over !== null && !parseGroupDropId(over.id)) {
-                nextRowBreakFieldIds.delete(Number(over.id));
-            }
-
-            commitRowBreakFieldIds(nextRowBreakFieldIds);
+            const overIdForBreaks =
+                releaseOverFieldId ??
+                (over !== null && !parseGroupDropId(over.id)
+                    ? Number(over.id)
+                    : null);
+            commitRowBreakFieldIds(
+                rowBreakIdsForDropFrame(
+                    rowBreakAtDragStartRef.current,
+                    activeId,
+                    overIdForBreaks,
+                    'beside',
+                    finalIntent,
+                    false,
+                    false,
+                ),
+            );
         } else if (activeId !== null) {
             const activeRow = ordered.find((field) => field.id === activeId);
             const overRow =
@@ -3922,70 +5317,107 @@ function SortableFieldsList({
                         finalLayoutIntent,
                     ));
 
-            const nextRowBreakFieldIds = new Set(rowBreakFieldIdsRef.current);
-
             if (forceBreak) {
-                nextRowBreakFieldIds.add(activeId);
-            } else if (rowBreakAtDragStartRef.current.includes(activeId)) {
-                nextRowBreakFieldIds.add(activeId);
-            } else {
-                nextRowBreakFieldIds.delete(activeId);
+                commitRowBreakFieldIds(
+                    rowBreakIdsForDropFrame(
+                        rowBreakAtDragStartRef.current,
+                        activeId,
+                        releaseOverFieldId,
+                        finalLayoutIntent === 'below-new-row'
+                            ? 'below-new-row'
+                            : null,
+                        finalIntent,
+                        true,
+                        false,
+                    ),
+                );
             }
-
-            commitRowBreakFieldIds(nextRowBreakFieldIds);
+            // Else keep live dragOver row-break overrides (already derived from
+            // drag-start each frame). Re-applying drag-start after a paired
+            // half↔half swap would restore breaks and stack the pair.
         }
 
         let nextFields = orderedFieldsRef.current;
         let nextGroups = fieldGroupsRef.current;
 
         if (hasGroups && activeId !== null && pendingGroup !== undefined) {
-            const moved = moveFieldInGroupTree(
-                nextFields,
-                nextGroups,
-                activeId,
-                pendingGroup,
-                beforeSiblingId,
-            );
-            nextFields = moved.fields;
-            nextGroups = moved.groups;
-            fieldGroupsRef.current = nextGroups;
-            orderedFieldsRef.current = nextFields;
-            overridesCacheRef.current = null;
-            setFieldGroups(nextGroups);
-            setOrderedFields(nextFields);
+            // Live dragOver already applied sibling inserts (incl. reparent into
+            // a tabs/accordion body). Re-applying release `pending` undoes that
+            // for sibling/beside paths — trust the live tree there.
+            // into-group is preview-only during drag (never live-nested), so the
+            // ghost SoT in pending* must always commit on drop even if an earlier
+            // frame live-reparented the leaf (e.g. under a parent tab while aiming
+            // a child section body). Skipping nest when liveGroupsChanged left the
+            // field as a sibling under that live parent while the ghost still
+            // showed into-group.
+            const startGroups = groupsAtDragStartRef.current;
+            const liveGroupsChanged =
+                nextGroups.size !== startGroups.size ||
+                Array.from(nextGroups.entries()).some(
+                    ([id, group]) => startGroups.get(id) !== group,
+                );
+            const trustLive =
+                finalLayoutIntent !== 'into-group' &&
+                (liveOrderChanged || liveGroupsChanged);
 
-            const withGroups = fieldsWithGroupOverrides(nextFields, nextGroups);
-            const nextTree = buildFieldTree(withGroups);
-            fieldTreeRef.current = nextTree;
-            setFieldTree(nextTree);
-        } else if (
-            !hasGroups &&
-            activeId !== null &&
-            over !== null &&
-            !parseGroupDropId(over.id)
-        ) {
-            // Flat layout: prefer live dragOver order; if still wrong, insert
-            // by before/after intent (never arrayMove to overIndex — that
-            // replaces a full with a half in the same grid slot).
-            const overIndex = nextFields.findIndex(
-                (field) => field.id === Number(over.id),
-            );
-            const oldIndex = nextFields.findIndex(
-                (field) => field.id === activeId,
-            );
+            if (!trustLive) {
+                const moved = moveFieldInGroupTree(
+                    nextFields,
+                    nextGroups,
+                    activeId,
+                    pendingGroup,
+                    beforeSiblingId,
+                );
+                nextFields = moved.fields;
+                nextGroups = moved.groups;
+                fieldGroupsRef.current = nextGroups;
+                orderedFieldsRef.current = nextFields;
+                overridesCacheRef.current = null;
+                setFieldGroups(nextGroups);
+                setOrderedFields(nextFields);
 
-            if (oldIndex !== -1 && overIndex !== -1) {
-                const targetIndex = targetIndexForFieldDrop(
-                    oldIndex,
-                    overIndex,
-                    finalIntent,
+                const withGroups = fieldsWithGroupOverrides(
+                    nextFields,
+                    nextGroups,
+                );
+                const nextTree = buildFieldTree(withGroups);
+                fieldTreeRef.current = nextTree;
+                setFieldTree(nextTree);
+            }
+        } else if (!hasGroups && activeId !== null) {
+            // Ghost/dropTarget SoT — never clobber with release `over` (sticky
+            // retarget can leave collision on the previous stacked half).
+            const dropOverId =
+                releaseOverFieldId ??
+                (over !== null && !parseGroupDropId(over.id)
+                    ? Number(over.id)
+                    : null);
+
+            if (dropOverId !== null) {
+                const overIndex = nextFields.findIndex(
+                    (field) => field.id === dropOverId,
+                );
+                const oldIndex = nextFields.findIndex(
+                    (field) => field.id === activeId,
                 );
 
-                if (targetIndex !== null) {
-                    nextFields = arrayMove(nextFields, oldIndex, targetIndex);
-                    orderedFieldsRef.current = nextFields;
-                    overridesCacheRef.current = null;
-                    setOrderedFields(nextFields);
+                if (oldIndex !== -1 && overIndex !== -1) {
+                    const targetIndex = targetIndexForFieldDrop(
+                        oldIndex,
+                        overIndex,
+                        finalIntent,
+                    );
+
+                    if (targetIndex !== null) {
+                        nextFields = arrayMove(
+                            nextFields,
+                            oldIndex,
+                            targetIndex,
+                        );
+                        orderedFieldsRef.current = nextFields;
+                        overridesCacheRef.current = null;
+                        setOrderedFields(nextFields);
+                    }
                 }
             }
         }
@@ -4073,6 +5505,7 @@ function SortableFieldsList({
         setDropIntent(null);
         setDropLayoutIntent(null);
         dropLayoutIntentRef.current = null;
+        stickyBesideRef.current = null;
         orderedFieldsRef.current = fields;
         overridesCacheRef.current = null;
         setOrderedFields(fields);

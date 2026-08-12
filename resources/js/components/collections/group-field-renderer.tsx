@@ -66,6 +66,15 @@ function accordionModeEnabled(settings?: Record<string, unknown> | null): boolea
     return settingsFlagEnabled(settings?.accordion_mode);
 }
 
+function groupShellProps(field: FieldDef): Record<string, string | number> {
+    return {
+        'data-layout-group': field.type,
+        'data-group-name': field.name,
+        'data-field-type': field.type,
+        'data-field-id': field.id,
+    };
+}
+
 /**
  * Accordion/tab panel body (Directus kitchen_sink):
  * - Raw/detail/… group child → section header is the group label; render its children inside
@@ -77,9 +86,18 @@ function sectionBody<T extends FieldDef>(
     renderFields: (fields: T[], options?: RenderFieldsOptions) => ReactNode,
 ): ReactNode {
     if (isLayoutGroupType(child.field.type)) {
-        // group_raw: nesting only — show grandchildren with their own labels.
+        // group_raw: nesting only — keep a DOM node so fields-tree ≡ form-tree,
+        // including empty tab/accordion sections.
         if (child.field.type === 'group_raw') {
-            return renderLevel(child.children);
+            return (
+                <div
+                    {...groupShellProps(child.field)}
+                    data-group-empty={child.children.length === 0 ? '1' : '0'}
+                    className="space-y-3"
+                >
+                    {renderLevel(child.children)}
+                </div>
+            );
         }
 
         // Other group types keep their own chrome inside the panel.
@@ -109,65 +127,81 @@ function GroupTabsRenderer<T extends FieldDef>({
         visible[0]?.field.name ?? '',
     );
 
-    if (visible.length === 0) {
-        return null;
-    }
+    const groupLabel = getFieldDisplayName(
+        field.settings,
+        field.name,
+        locales,
+    );
 
     const activeExists = visible.some((child) => child.field.name === activeTab);
     const resolvedActive = activeExists
         ? activeTab
         : (visible[0]?.field.name ?? '');
 
-    // Single outer border like accordion — tabs strip + content, no nested panel.
+    // Keep empty tabs shell visible (fields builder ↔ item form parity).
     return (
         <div
             key={field.id}
+            {...groupShellProps(field)}
+            data-group-empty={visible.length === 0 ? '1' : '0'}
             className={cn(
                 'overflow-hidden rounded-lg border border-input',
                 fillWidth && 'w-full min-w-0 col-span-full',
             )}
         >
-            <div className="flex border-b border-input">
-                {visible.map((child, index) => {
-                    const label = getFieldDisplayName(
-                        child.field.settings,
-                        child.field.name,
-                        locales,
-                    );
-                    const isActive = resolvedActive === child.field.name;
+            {visible.length === 0 ? (
+                <div className="border-b border-input px-4 py-3 text-sm font-medium">
+                    {groupLabel}
+                </div>
+            ) : (
+                <div className="flex border-b border-input">
+                    {visible.map((child, index) => {
+                        const label = getFieldDisplayName(
+                            child.field.settings,
+                            child.field.name,
+                            locales,
+                        );
+                        const isActive = resolvedActive === child.field.name;
 
-                    return (
-                        <button
-                            key={child.field.id}
-                            type="button"
-                            className={cn(
-                                // py-3.5 ≈ old strip py-2 + button py-1.5 (same header height)
-                                'border-r border-input px-3 py-3.5 text-sm last:border-r-0',
-                                index === 0 && 'rounded-tl-lg',
-                                isActive
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted text-muted-foreground',
-                            )}
-                            onClick={() => setActiveTab(child.field.name)}
-                        >
-                            {label}
-                        </button>
-                    );
-                })}
-            </div>
+                        return (
+                            <button
+                                key={child.field.id}
+                                type="button"
+                                data-tab-name={child.field.name}
+                                className={cn(
+                                    // py-3.5 ≈ old strip py-2 + button py-1.5 (same header height)
+                                    'border-r border-input px-3 py-3.5 text-sm last:border-r-0',
+                                    index === 0 && 'rounded-tl-lg',
+                                    isActive
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'bg-muted text-muted-foreground',
+                                )}
+                                onClick={() => setActiveTab(child.field.name)}
+                            >
+                                {label}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
             <div className="p-4">
-                {visible.map((child) => (
-                    <div
-                        key={child.field.id}
-                        className={
-                            resolvedActive === child.field.name
-                                ? 'block space-y-3'
-                                : 'hidden'
-                        }
-                    >
-                        {sectionBody(child, renderLevel, renderFields)}
-                    </div>
-                ))}
+                {visible.length === 0 ? (
+                    <div className="min-h-4" aria-hidden />
+                ) : (
+                    visible.map((child) => (
+                        <div
+                            key={child.field.id}
+                            data-tab-panel={child.field.name}
+                            className={
+                                resolvedActive === child.field.name
+                                    ? 'block space-y-3'
+                                    : 'hidden'
+                            }
+                        >
+                            {sectionBody(child, renderLevel, renderFields)}
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     );
@@ -258,14 +292,12 @@ function GroupAccordionRenderer<T extends FieldDef>({
     );
     const fillWidth = settingsFlagEnabled(field.settings?.fill_width);
 
-    if (visible.length === 0) {
-        return null;
-    }
-
-    // Outer bordered group + divider sections (chevron left) — not per-section cards.
+    // Keep empty accordion shell visible (fields builder ↔ item form parity).
     return (
         <div
             key={field.id}
+            {...groupShellProps(field)}
+            data-group-empty={visible.length === 0 ? '1' : '0'}
             className={cn(
                 'overflow-hidden rounded-lg border border-input',
                 fillWidth && 'w-full min-w-0 col-span-full',
@@ -274,44 +306,51 @@ function GroupAccordionRenderer<T extends FieldDef>({
             <div className="border-b border-input px-4 py-3 text-sm font-medium">
                 {groupLabel}
             </div>
-            <div className="divide-y divide-border">
-                {visible.map((child) => {
-                    const label = getFieldDisplayName(
-                        child.field.settings,
-                        child.field.name,
-                        locales,
-                    );
-                    const isOpen = openItems.has(child.field.name);
+            {visible.length === 0 ? (
+                <div className="min-h-4 px-4 py-3" aria-hidden />
+            ) : (
+                <div className="divide-y divide-border">
+                    {visible.map((child) => {
+                        const label = getFieldDisplayName(
+                            child.field.settings,
+                            child.field.name,
+                            locales,
+                        );
+                        const isOpen = openItems.has(child.field.name);
 
-                    return (
-                        <Collapsible
-                            key={child.field.id}
-                            open={isOpen}
-                            onOpenChange={() => toggleItem(child.field.name)}
-                        >
-                            <CollapsibleTrigger className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium hover:bg-muted/40">
-                                <ChevronDown
-                                    className={cn(
-                                        'size-4 shrink-0 text-muted-foreground transition-transform',
-                                        isOpen && 'rotate-180',
-                                    )}
-                                />
-                                {label}
-                            </CollapsibleTrigger>
-                            {/* Keep inputs in the form DOM while collapsed so Save still posts values. */}
-                            <ForceMountedCollapsibleBody open={isOpen}>
-                                <div className="space-y-3 px-4 pb-4">
-                                    {sectionBody(
-                                        child,
-                                        renderLevel,
-                                        renderFields,
-                                    )}
-                                </div>
-                            </ForceMountedCollapsibleBody>
-                        </Collapsible>
-                    );
-                })}
-            </div>
+                        return (
+                            <Collapsible
+                                key={child.field.id}
+                                open={isOpen}
+                                onOpenChange={() => toggleItem(child.field.name)}
+                            >
+                                <CollapsibleTrigger
+                                    data-accordion-section={child.field.name}
+                                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium hover:bg-muted/40"
+                                >
+                                    <ChevronDown
+                                        className={cn(
+                                            'size-4 shrink-0 text-muted-foreground transition-transform',
+                                            isOpen && 'rotate-180',
+                                        )}
+                                    />
+                                    {label}
+                                </CollapsibleTrigger>
+                                {/* Keep inputs in the form DOM while collapsed so Save still posts values. */}
+                                <ForceMountedCollapsibleBody open={isOpen}>
+                                    <div className="space-y-3 px-4 pb-4">
+                                        {sectionBody(
+                                            child,
+                                            renderLevel,
+                                            renderFields,
+                                        )}
+                                    </div>
+                                </ForceMountedCollapsibleBody>
+                            </Collapsible>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }
@@ -319,10 +358,14 @@ function GroupAccordionRenderer<T extends FieldDef>({
 function DetailGroupCollapsible({
     label,
     defaultOpen,
+    field,
+    empty,
     children,
 }: {
     label: string;
     defaultOpen: boolean;
+    field: FieldDef;
+    empty: boolean;
     children: ReactNode;
 }) {
     const [open, setOpen] = useState(defaultOpen);
@@ -331,6 +374,8 @@ function DetailGroupCollapsible({
         <Collapsible
             open={open}
             onOpenChange={setOpen}
+            {...groupShellProps(field)}
+            data-group-empty={empty ? '1' : '0'}
             className="space-y-3 rounded-lg border bg-muted/30 p-4 dark:border-sidebar-border"
         >
             <CollapsibleTrigger className="flex w-full items-center justify-between text-left text-sm font-medium">
@@ -424,22 +469,67 @@ export function renderGroupFieldTree<T extends FieldDef>({
                 locales,
             );
             const start = (field.settings?.start as string) ?? 'open';
+            const visibleChildren = children.filter(
+                (child) => !checkHidden(child.field),
+            );
 
             return (
                 <DetailGroupCollapsible
                     key={field.id}
                     label={label}
                     defaultOpen={start !== 'closed'}
+                    field={field}
+                    empty={visibleChildren.length === 0}
                 >
-                    {renderLevel(children)}
+                    {visibleChildren.length === 0 ? (
+                        <div className="min-h-4" aria-hidden />
+                    ) : (
+                        renderLevel(children)
+                    )}
                 </DetailGroupCollapsible>
             );
         }
 
         if (field.type === 'group_raw') {
-            // Directus group-raw: nesting only — no chrome.
+            const label = getFieldDisplayName(
+                field.settings,
+                field.name,
+                locales,
+            );
+            const visibleChildren = children.filter(
+                (child) => !checkHidden(child.field),
+            );
+            const fillWidth = settingsFlagEnabled(field.settings?.fill_width);
+
+            // Directus group-raw is chrome-less when it has children; empty raw
+            // still needs a shell so fields-builder empty groups are not dropped.
+            if (visibleChildren.length === 0) {
+                return (
+                    <div
+                        key={field.id}
+                        {...groupShellProps(field)}
+                        data-group-empty="1"
+                        className={cn(
+                            'rounded-lg border border-dashed border-input px-4 py-3 text-sm text-muted-foreground',
+                            fillWidth && 'w-full min-w-0 col-span-full',
+                        )}
+                    >
+                        {label}
+                    </div>
+                );
+            }
+
             return (
-                <Fragment key={field.id}>{renderLevel(children)}</Fragment>
+                <div
+                    key={field.id}
+                    {...groupShellProps(field)}
+                    data-group-empty="0"
+                    className={cn(
+                        fillWidth && 'w-full min-w-0 col-span-full',
+                    )}
+                >
+                    {renderLevel(children)}
+                </div>
             );
         }
 
