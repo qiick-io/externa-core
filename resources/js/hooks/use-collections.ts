@@ -1,5 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
 import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
 import {
     useRegisterUnsavedChanges,
@@ -11,6 +12,10 @@ import type { CollectionRow } from '@/types/collections';
 const EMPTY_COLLECTION_FORM = {
     name: '',
     slug: '',
+    description: '',
+    status: 'active' as const,
+    icon: '',
+    color: '',
     is_singleton: false,
 };
 
@@ -21,7 +26,7 @@ const EMPTY_COLLECTION_FORM = {
  * @returns Slug with non-alphanumeric segments replaced by hyphens
  */
 export function slugify(value: string): string {
-    return toSlug(value) || 'collection';
+    return toSlug(value);
 }
 
 /**
@@ -59,6 +64,10 @@ export function useCollections(options?: { onClosed?: () => void }) {
             const payload = {
                 name: editing.name,
                 slug: editing.slug,
+                description: editing.description ?? '',
+                status: (editing.status ?? 'active') as 'active' | 'inactive',
+                icon: editing.icon ?? '',
+                color: editing.color ?? '',
                 is_singleton: Boolean(editing.is_singleton),
             };
             form.setData(payload);
@@ -77,12 +86,17 @@ export function useCollections(options?: { onClosed?: () => void }) {
     const title = editing ? 'Edit collection' : 'New collection';
 
     const closeDrawer = (): void => {
-        setOpen(false);
-        setEditing(null);
-        form.setDefaults({ ...EMPTY_COLLECTION_FORM });
-        form.reset();
-        form.clearErrors();
-        setSlugManual(false);
+        // flushSync: clear dirty + unregister before onClosed deep-link GET,
+        // otherwise the leave guard still sees the form as dirty (same as
+        // collection-field-form save success).
+        flushSync(() => {
+            setOpen(false);
+            setEditing(null);
+            form.setDefaults({ ...EMPTY_COLLECTION_FORM });
+            form.reset();
+            form.clearErrors();
+            setSlugManual(false);
+        });
         onClosed?.();
     };
 
@@ -98,6 +112,10 @@ export function useCollections(options?: { onClosed?: () => void }) {
             form.transform((data) => ({
                 name: data.name,
                 slug: data.slug,
+                description: data.description || null,
+                status: data.status,
+                icon: data.icon || null,
+                color: data.color || null,
             }));
             form.put(
                 ContentCollectionController.update.url({
@@ -111,7 +129,18 @@ export function useCollections(options?: { onClosed?: () => void }) {
                 },
             );
         } else {
-            form.post(ContentCollectionController.store.url(), opts);
+            form.transform((data) => ({
+                ...data,
+                description: data.description || null,
+                icon: data.icon || null,
+                color: data.color || null,
+            }));
+            form.post(ContentCollectionController.store.url(), {
+                ...opts,
+                onFinish: () => {
+                    form.transform((data) => data);
+                },
+            });
         }
     };
 

@@ -11,13 +11,15 @@ use Illuminate\Validation\ValidationException;
 /**
  * Nesting helpers for layout group fields (`settings.group` = parent field name).
  *
- * Directus parity: Accordion/Tabs sections are child layout groups (usually group_raw).
- * Leaf fields nest into sections — not as direct accordion/tab headers.
+ * Directus parity: any field may nest under any layout group (including leaf→
+ * Accordion/Tabs directly). Accordion/Tabs treat each direct child as a panel
+ * (group children expose nested fields; leaf children render as the panel body).
  */
 class CollectionFieldGroupService
 {
     /**
-     * Accordion and Tabs use group children as panels/sections (Directus group-accordion / group-tabs).
+     * Accordion and Tabs use direct children as panels/sections (Directus).
+     * Explicit Raw sections are still seeded for empty UX — not required on drop.
      */
     public function isPanelContainer(FieldTypeEnum $type): bool
     {
@@ -28,7 +30,6 @@ class CollectionFieldGroupService
     /**
      * Directus parity: any field type may nest under any layout group.
      * Cycle prevention stays in assertValidGroupParent / wouldCreateCycle.
-     * Leaf→Accordion/Tabs auto-wrap into Raw happens separately on reorder.
      */
     public function canNestFieldIntoGroup(FieldTypeEnum $childType, FieldTypeEnum $parentType): bool
     {
@@ -218,8 +219,8 @@ class CollectionFieldGroupService
     /**
      * Persist group nesting from a reorder payload map (field id => parent name|null).
      *
-     * Leaf fields dropped onto Accordion/Tabs are auto-wrapped in a new Raw section
-     * (Directus: create section, then nest fields). Layout groups nest as sections as-is.
+     * Directus parity: leaf→Accordion/Tabs nests directly (meta.group = panel name).
+     * No mandatory Raw auto-wrap on drop. Cycle checks via assertValidGroupParent.
      *
      * @param  array<int|string, string|null>  $groupsById
      */
@@ -238,11 +239,6 @@ class CollectionFieldGroupService
                 ->get()
                 ->keyBy('id');
 
-            $parentsByName = CollectionField::query()
-                ->where('collection_id', $collection->id)
-                ->get()
-                ->keyBy('name');
-
             foreach ($groupsById as $rawId => $groupName) {
                 $id = (int) $rawId;
                 $field = $fields->get($id);
@@ -253,28 +249,6 @@ class CollectionFieldGroupService
                 $normalizedGroup = is_string($groupName) && trim($groupName) !== ''
                     ? trim($groupName)
                     : null;
-
-                $previousGroup = $this->groupNameFromSettings($field->settings);
-
-                // Auto-wrap only when a leaf is newly nested under Accordion/Tabs.
-                // Reorders that keep an existing (legacy) leaf→panel link stay as-is
-                // until wrapLegacyPanelLeaves() migrates them.
-                if (
-                    $normalizedGroup !== null
-                    && ! $field->type->isLayoutGroup()
-                ) {
-                    $parent = $parentsByName->get($normalizedGroup);
-                    if (
-                        $parent !== null
-                        && $this->isPanelContainer($parent->type)
-                        && $previousGroup !== $normalizedGroup
-                    ) {
-                        $section = $this->createPanelSection($collection, $parent);
-                        $this->insertFieldBeforeSibling($collection, $section, $field);
-                        $parentsByName->put($section->name, $section);
-                        $normalizedGroup = $section->name;
-                    }
-                }
 
                 $settings = $field->settings ?? [];
                 if ($normalizedGroup === null) {
@@ -299,97 +273,6 @@ class CollectionFieldGroupService
                 $field->update(['settings' => $nextSettings]);
             }
         });
-    }
-
-    /**
-     * If a leaf is nested directly under Accordion/Tabs, wrap it in a new Raw section.
-     */
-    public function wrapLeafUnderPanelIfNeeded(Collection $collection, CollectionField $field): ?CollectionField
-    {
-        if ($field->type->isLayoutGroup()) {
-            return null;
-        }
-
-        $parentName = $this->groupNameFromSettings($field->settings);
-        if ($parentName === null) {
-            return null;
-        }
-
-        $parent = CollectionField::query()
-            ->where('collection_id', $collection->id)
-            ->where('name', $parentName)
-            ->first();
-
-        if ($parent === null || ! $this->isPanelContainer($parent->type)) {
-            return null;
-        }
-
-        $section = $this->createPanelSection($collection, $parent);
-        $this->insertFieldBeforeSibling($collection, $section, $field);
-
-        $settings = $field->settings ?? [];
-        $settings['group'] = $section->name;
-        $field->update(['settings' => $settings]);
-
-        return $section;
-    }
-
-    /**
-     * Wrap existing leaf children of Accordion/Tabs into Raw sections (one-time repair).
-     * All direct leaf children of a panel share one Raw section (Directus: fields inside sections).
-     *
-     * @return int Number of sections created
-     */
-    public function wrapLegacyPanelLeaves(Collection $collection): int
-    {
-        $fields = CollectionField::query()
-            ->where('collection_id', $collection->id)
-            ->orderBy('sort_order')
-            ->get();
-
-        $byName = $fields->keyBy('name');
-        /** @var array<string, list<CollectionField>> $leavesByPanel */
-        $leavesByPanel = [];
-
-        foreach ($fields as $field) {
-            if ($field->type->isLayoutGroup()) {
-                continue;
-            }
-
-            $parentName = $this->groupNameFromSettings($field->settings);
-            if ($parentName === null) {
-                continue;
-            }
-
-            $parent = $byName->get($parentName);
-            if ($parent === null || ! $this->isPanelContainer($parent->type)) {
-                continue;
-            }
-
-            $leavesByPanel[$parentName][] = $field;
-        }
-
-        $created = 0;
-
-        foreach ($leavesByPanel as $parentName => $leaves) {
-            $parent = $byName->get($parentName);
-            if ($parent === null || $leaves === []) {
-                continue;
-            }
-
-            $section = $this->createPanelSection($collection, $parent);
-            $this->insertFieldBeforeSibling($collection, $section, $leaves[0]);
-            $byName->put($section->name, $section);
-            $created++;
-
-            foreach ($leaves as $leaf) {
-                $settings = $leaf->settings ?? [];
-                $settings['group'] = $section->name;
-                $leaf->update(['settings' => $settings]);
-            }
-        }
-
-        return $created;
     }
 
     /**
@@ -442,26 +325,6 @@ class CollectionFieldGroupService
         }
 
         return $base.'_'.$suffix;
-    }
-
-    /**
-     * Place a newly created section immediately before the leaf it wraps.
-     */
-    private function insertFieldBeforeSibling(
-        Collection $collection,
-        CollectionField $section,
-        CollectionField $sibling,
-    ): void {
-        $sibling->refresh();
-        $targetSort = (int) $sibling->sort_order;
-
-        CollectionField::query()
-            ->where('collection_id', $collection->id)
-            ->where('id', '!=', $section->id)
-            ->where('sort_order', '>=', $targetSort)
-            ->increment('sort_order');
-
-        $section->update(['sort_order' => $targetSort]);
     }
 
     private function wouldCreateCycle(Collection $collection, CollectionField $field, string $newParentName): bool

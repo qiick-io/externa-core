@@ -154,6 +154,75 @@ test('collection slug is generated from name when slug is omitted', function () 
     expect($collection->slug)->toBe('my-page');
 });
 
+test('collection slug must be unique on create', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    Collection::factory()->create(['slug' => 'taken']);
+
+    $this->post(route('collections.store'), [
+        'name' => 'Other',
+        'slug' => 'taken',
+    ])->assertSessionHasErrors('slug');
+});
+
+test('collection slug must match slug format', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    // Str::slug of punctuation-only input is empty → fails required/regex.
+    $this->post(route('collections.store'), [
+        'name' => 'Bad',
+        'slug' => '!!!',
+    ])->assertSessionHasErrors('slug');
+});
+
+test('collection slug uniqueness ignores current collection on update', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create([
+        'name' => 'Mine',
+        'slug' => 'mine',
+    ]);
+    Collection::factory()->create(['slug' => 'other']);
+
+    $this->put(route('collections.update', $collection), [
+        'name' => 'Mine Renamed',
+        'slug' => 'mine',
+    ])->assertRedirect();
+
+    expect($collection->fresh()->slug)->toBe('mine')
+        ->and($collection->fresh()->name)->toBe('Mine Renamed');
+
+    $this->put(route('collections.update', $collection), [
+        'name' => 'Mine',
+        'slug' => 'other',
+    ])->assertSessionHasErrors('slug');
+});
+
+test('collection slug availability endpoint reports uniqueness', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['slug' => 'kitchen-sink']);
+
+    $this->getJson(route('collections.slug-available', ['slug' => 'kitchen-sink']))
+        ->assertOk()
+        ->assertJson(['available' => false, 'slug' => 'kitchen-sink']);
+
+    $this->getJson(route('collections.slug-available', [
+        'slug' => 'kitchen-sink',
+        'exclude' => $collection->id,
+    ]))
+        ->assertOk()
+        ->assertJson(['available' => true, 'slug' => 'kitchen-sink']);
+
+    $this->getJson(route('collections.slug-available', ['slug' => 'brand-new']))
+        ->assertOk()
+        ->assertJson(['available' => true, 'slug' => 'brand-new']);
+});
+
 test('singleton collection rejects a second item', function () {
     $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
@@ -2436,18 +2505,20 @@ test('collections index can be searched by name or slug', function () {
             ->where('collections.0.slug', 'beta-posts'));
 });
 
-test('collections index can be sorted by name slug and updated_at', function () {
+test('collections index can be sorted by name slug status and updated_at', function () {
     $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
     $zebra = Collection::factory()->create([
         'name' => 'Zebra',
         'slug' => 'zebra',
+        'status' => 'inactive',
         'updated_at' => now()->subDay(),
     ]);
     $alpha = Collection::factory()->create([
         'name' => 'Alpha',
         'slug' => 'alpha',
+        'status' => 'active',
         'updated_at' => now(),
     ]);
 
@@ -2474,6 +2545,18 @@ test('collections index can be sorted by name slug and updated_at', function () 
             ->where('collections.1.id', $alpha->id)
             ->where('filters.sort', 'slug')
             ->where('filters.direction', 'desc'));
+
+    $this->get(route('collections.index', [
+        'sort' => 'status',
+        'direction' => 'asc',
+    ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('collections/collections/index')
+            ->where('collections.0.id', $alpha->id)
+            ->where('collections.1.id', $zebra->id)
+            ->where('filters.sort', 'status')
+            ->where('filters.direction', 'asc'));
 
     $this->get(route('collections.index', [
         'sort' => 'updated_at',

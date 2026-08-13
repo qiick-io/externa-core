@@ -334,3 +334,27 @@ html.reduce-motion *::after {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
 }
+
+/* Fields DnD — Directus sortable-ghost (dashed slot; children invisible) */
+[data-fields-dnd] .sortable-ghost {
+    opacity: 1 !important;
+    background: transparent !important;
+    border: 2px dashed color-mix(in oklch, var(--primary) 55%, transparent) !important;
+    box-shadow: none !important;
+}
+
+[data-fields-dnd] .sortable-ghost > * {
+    opacity: 0 !important;
+}
+
+[data-fields-dnd] .sortable-fallback {
+    opacity: 0.95;
+    box-shadow: 0 8px 24px color-mix(in oklch, var(--foreground) 18%, transparent);
+    cursor: grabbing;
+    /* forceFallback sits under the cursor — must not steal nest/list hit-testing */
+    pointer-events: none !important;
+}
+
+[data-fields-dnd] .sortable-drag {
+    opacity: 0;
+}

@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Concerns\LogsApplicationActivity;
+use App\Enums\CollectionStatusEnum;
 use App\Services\Api\PublicApiResponseCache;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 use Database\Factories\CollectionFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -20,6 +22,10 @@ use Spatie\EloquentSortable\SortableTrait;
  * @property-read int $id
  * @property string $name
  * @property string $slug
+ * @property string|null $description
+ * @property CollectionStatusEnum $status
+ * @property string|null $icon
+ * @property string|null $color
  * @property bool $is_singleton
  * @property array<string, mixed>|null $form_layout
  * @property int $sort_order
@@ -45,10 +51,30 @@ class Collection extends Model implements Sortable
     protected $fillable = [
         'name',
         'slug',
+        'description',
+        'status',
+        'icon',
+        'color',
         'is_singleton',
         'form_layout',
         'sort_order',
     ];
+
+    /**
+     * Collections visible in nav-style lists (pickers, public API index).
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('status', CollectionStatusEnum::Active);
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === CollectionStatusEnum::Active;
+    }
 
     /**
      * Cascade soft-delete/restore to items when the collection is deleted or restored.
@@ -125,6 +151,7 @@ class Collection extends Model implements Sortable
     protected function casts(): array
     {
         return [
+            'status' => CollectionStatusEnum::class,
             'is_singleton' => 'boolean',
             'form_layout' => 'array',
         ];

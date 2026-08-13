@@ -338,6 +338,48 @@
         }
     },
     "collections": {
+        "meta": {
+            "name": "Collection-Name",
+            "slug": "Slug",
+            "slugInvalid": "Nur Kleinbuchstaben, Zahlen und Bindestriche (z. B. meine-collection).",
+            "slugTaken": "Eine Collection mit diesem Slug existiert bereits.",
+            "description": "Beschreibung",
+            "descriptionPlaceholder": "Optionale Notiz zu dieser Collection…",
+            "status": "Status",
+            "statusActive": "Aktiv",
+            "statusInactive": "Inaktiv",
+            "statusHint": "Inaktive Collections bleiben in der Admin-Liste, sind aber in Beziehungsauswahlen und im öffentlichen API-Collection-Index ausgeblendet.",
+            "icon": "Symbol",
+            "color": "Farbe",
+            "chooseIcon": "Symbol wählen…",
+            "searchIcons": "Symbole suchen…",
+            "clearIconSearch": "Suche löschen",
+            "noIconsFound": "Keine Symbole passen zur Suche.",
+            "clearIcon": "Symbol entfernen",
+            "clearColor": "Farbe entfernen",
+            "singleton": "Singleton (ein Inhaltseintrag)",
+            "singletonShort": "Singleton",
+            "singletonHint": "Für Collections mit einem festen Eintrag (z. B. Startseite oder Site-Einstellungen). Diese Wahl kann nach der Erstellung nicht geändert werden.",
+            "listCollection": "Liste",
+            "createDescription": "Collection erstellen. Der Slug wird aus dem Namen erzeugt, sofern du ihn nicht änderst.",
+            "editDescription": "Name, Beschreibung, Status, Symbol und Farbe aktualisieren. Die Singleton-Einstellung kann nach der Erstellung nicht geändert werden.",
+            "cancel": "Abbrechen",
+            "save": "Speichern",
+            "create": "Erstellen"
+        },
+        "list": {
+            "name": "Name",
+            "slug": "Slug",
+            "description": "Beschreibung",
+            "singleton": "Singleton",
+            "status": "Status",
+            "actions": "Aktionen",
+            "sortBy": "Sortieren nach",
+            "sortName": "Name",
+            "sortSlug": "Slug",
+            "sortStatus": "Status",
+            "sortUpdated": "Aktualisiert"
+        },
         "localized": {
             "applyAll": "Auf alle Locales anwenden",
             "applyEmpty": "Auf leere Locales anwenden"

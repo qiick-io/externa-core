@@ -2,12 +2,13 @@
 
 namespace App\Http\Requests\Collections;
 
+use App\Enums\CollectionStatusEnum;
 use App\Enums\PermissionEnum;
 use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Models\Collection;
-use App\Support\Collections\UniqueCollectionSlugGenerator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -32,10 +33,46 @@ class UpdateContentCollectionRequest extends FormRequest
      */
     public function rules(): array
     {
+        /** @var Collection $collection */
+        $collection = $this->route('collection');
+
         return [
             'name' => ['sometimes', 'string', 'max:255'],
-            'slug' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'slug' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:255',
+                // Str::slug style (a-z0-9 + hyphens), same shape as field keys without legacy underscores.
+                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+                Rule::unique('collections', 'slug')->ignore($collection->id),
+            ],
+            'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'status' => ['sometimes', 'string', Rule::in(CollectionStatusEnum::values())],
+            'icon' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'color' => ['sometimes', 'nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('slug')) {
+            $this->merge(['slug' => Str::slug((string) $this->input('slug'))]);
+        } elseif ($this->exists('slug') && ! $this->filled('slug') && $this->filled('name')) {
+            $this->merge(['slug' => Str::slug((string) $this->input('name'))]);
+        }
+
+        if ($this->has('icon') && $this->input('icon') === '') {
+            $this->merge(['icon' => null]);
+        }
+
+        if ($this->has('color') && $this->input('color') === '') {
+            $this->merge(['color' => null]);
+        }
+
+        if ($this->has('description') && $this->input('description') === '') {
+            $this->merge(['description' => null]);
+        }
     }
 
     protected function passedValidation(): void
@@ -48,20 +85,5 @@ class UpdateContentCollectionRequest extends FormRequest
                 'is_singleton' => __('The singleton setting cannot be changed after the collection is created.'),
             ]);
         }
-
-        if (! $this->has('name') && ! $this->has('slug')) {
-            return;
-        }
-
-        $slugInput = $this->input('slug');
-        if ($slugInput === null || $slugInput === '') {
-            $base = Str::slug((string) ($this->input('name') ?? $collection->name));
-        } else {
-            $base = (string) $slugInput;
-        }
-
-        $this->merge([
-            'slug' => app(UniqueCollectionSlugGenerator::class)->make($base, $collection->id),
-        ]);
     }
 }

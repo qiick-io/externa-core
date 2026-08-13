@@ -31,3 +31,6 @@ export function slugifyInput(value: string): string {
 
 /** Field key shape after slugify (hyphens) or legacy underscore keys. */
 export const FIELD_KEY_PATTERN = /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/;
+
+/** Collection slug shape after slugify (hyphens only, matches Laravel `Str::slug`). */
+export const COLLECTION_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

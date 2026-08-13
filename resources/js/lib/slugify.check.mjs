@@ -21,6 +21,7 @@ function slugifyInput(value) {
 }
 
 const FIELD_KEY_PATTERN = /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/;
+const COLLECTION_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const cases = [
     ['Hello World', 'hello-world'],
@@ -60,6 +61,20 @@ for (const ok of ['hello-world', 'seo_title', 'field-2', 'a']) {
 for (const bad of ['Hello', '-hello', 'hello-', 'hello--world', '']) {
     if (FIELD_KEY_PATTERN.test(bad)) {
         console.error(`pattern should reject ${bad}`);
+        process.exit(1);
+    }
+}
+
+for (const ok of ['hello-world', 'field-2', 'a']) {
+    if (!COLLECTION_SLUG_PATTERN.test(ok)) {
+        console.error(`collection pattern should accept ${ok}`);
+        process.exit(1);
+    }
+}
+
+for (const bad of ['Hello', '-hello', 'hello-', 'hello--world', 'seo_title', '']) {
+    if (COLLECTION_SLUG_PATTERN.test(bad)) {
+        console.error(`collection pattern should reject ${bad}`);
         process.exit(1);
     }
 }

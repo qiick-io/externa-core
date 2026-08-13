@@ -9,7 +9,15 @@ import type { CollectionRow } from '@/types/collections';
 
 export type CollectionEditSource = Pick<
     CollectionRow,
-    'id' | 'name' | 'slug' | 'is_singleton' | 'sort_order'
+    | 'id'
+    | 'name'
+    | 'slug'
+    | 'description'
+    | 'status'
+    | 'icon'
+    | 'color'
+    | 'is_singleton'
+    | 'sort_order'
 >;
 
 /**

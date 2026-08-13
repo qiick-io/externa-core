@@ -1,22 +1,5 @@
-import {
-    DndContext,
-    KeyboardSensor,
-    PointerSensor,
-    closestCenter,
-    useSensor,
-    useSensors,
-} from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
-import {
-    SortableContext,
-    arrayMove,
-    sortableKeyboardCoordinates,
-    useSortable,
-    verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Search, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -31,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { contentLocaleMeta } from '@/lib/content-locales-catalog';
 import type { ContentLocaleCatalogEntry } from '@/lib/content-locales-catalog';
-import { cn } from '@/lib/utils';
+import { createSortableList } from '@/lib/create-sortable-list';
 
 type Props = {
     catalog: ContentLocaleCatalogEntry[];
@@ -40,7 +23,7 @@ type Props = {
     onChange: (locales: string[], defaultLocale: string) => void;
 };
 
-function SortableLocaleRow({
+function LocaleRow({
     code,
     onRemove,
     canRemove,
@@ -50,33 +33,16 @@ function SortableLocaleRow({
     canRemove: boolean;
 }) {
     const meta = contentLocaleMeta(code);
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({ id: code });
 
     return (
         <div
-            ref={setNodeRef}
-            style={{
-                transform: CSS.Transform.toString(transform),
-                transition,
-            }}
-            className={cn(
-                'flex items-center gap-2 rounded-md border px-3 py-2',
-                isDragging && 'bg-muted opacity-80',
-            )}
+            data-id={code}
+            className="flex items-center gap-2 rounded-md border px-3 py-2"
         >
             <button
                 type="button"
-                className="cursor-grab touch-none text-muted-foreground hover:text-foreground"
+                className="drag-handle cursor-grab touch-none text-muted-foreground hover:text-foreground"
                 aria-label="Reorder"
-                {...attributes}
-                {...listeners}
             >
                 <GripVertical className="size-4" />
             </button>
@@ -111,13 +77,13 @@ export function ContentLocalesField({
 }: Props) {
     const { t } = useTranslation();
     const [query, setQuery] = useState('');
-
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        }),
-    );
+    const listRef = useRef<HTMLDivElement>(null);
+    const valueRef = useRef(value);
+    valueRef.current = value;
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
+    const defaultLocaleRef = useRef(defaultLocale);
+    defaultLocaleRef.current = defaultLocale;
 
     const selected = new Set(value);
 
@@ -163,22 +129,38 @@ export function ContentLocalesField({
         setLocales(value.filter((entry) => entry !== code));
     };
 
-    const onDragEnd = (event: DragEndEvent): void => {
-        const { active, over } = event;
+    useEffect(() => {
+        const el = listRef.current;
 
-        if (!over || active.id === over.id) {
+        if (!el || value.length === 0) {
             return;
         }
 
-        const oldIndex = value.indexOf(String(active.id));
-        const newIndex = value.indexOf(String(over.id));
+        const sortable = createSortableList(el, {
+            handle: '.drag-handle',
+            onEnd: () => {
+                const next = sortable.toArray();
+                const prev = valueRef.current;
 
-        if (oldIndex < 0 || newIndex < 0) {
-            return;
-        }
+                if (
+                    next.length === 0 ||
+                    next.join('\0') === prev.join('\0')
+                ) {
+                    return;
+                }
 
-        setLocales(arrayMove(value, oldIndex, newIndex));
-    };
+                let nextDefault = defaultLocaleRef.current;
+
+                if (!next.includes(nextDefault)) {
+                    nextDefault = next[0] ?? '';
+                }
+
+                onChangeRef.current(next, nextDefault);
+            },
+        });
+
+        return () => sortable.destroy();
+    }, [value.length, value.join('\0')]);
 
     return (
         <div className="space-y-4">
@@ -235,27 +217,16 @@ export function ContentLocalesField({
 
             <div className="grid gap-2">
                 <Label>{t('settings.project.contentLocalesSelected')}</Label>
-                <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={onDragEnd}
-                >
-                    <SortableContext
-                        items={value}
-                        strategy={verticalListSortingStrategy}
-                    >
-                        <div className="space-y-2">
-                            {value.map((code) => (
-                                <SortableLocaleRow
-                                    key={code}
-                                    code={code}
-                                    canRemove={value.length > 1}
-                                    onRemove={() => toggle(code, false)}
-                                />
-                            ))}
-                        </div>
-                    </SortableContext>
-                </DndContext>
+                <div ref={listRef} className="space-y-2">
+                    {value.map((code) => (
+                        <LocaleRow
+                            key={code}
+                            code={code}
+                            canRemove={value.length > 1}
+                            onRemove={() => toggle(code, false)}
+                        />
+                    ))}
+                </div>
             </div>
 
             <div className="grid gap-2">

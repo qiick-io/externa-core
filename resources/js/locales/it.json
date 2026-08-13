@@ -386,6 +386,48 @@
         }
     },
     "collections": {
+        "meta": {
+            "name": "Nome collection",
+            "slug": "Slug",
+            "slugInvalid": "Usa lettere minuscole, numeri e trattini (es. mia-collection).",
+            "slugTaken": "Esiste già una collection con questo slug.",
+            "description": "Descrizione",
+            "descriptionPlaceholder": "Nota opzionale su questa collection…",
+            "status": "Stato",
+            "statusActive": "Attiva",
+            "statusInactive": "Inattiva",
+            "statusHint": "Le collection inattive restano nell’elenco admin ma sono nascoste dai selettori di relazione e dall’indice collection delle API pubbliche.",
+            "icon": "Icona",
+            "color": "Colore",
+            "chooseIcon": "Scegli icona…",
+            "searchIcons": "Cerca icone…",
+            "clearIconSearch": "Cancella ricerca",
+            "noIconsFound": "Nessuna icona corrisponde alla ricerca.",
+            "clearIcon": "Rimuovi icona",
+            "clearColor": "Rimuovi colore",
+            "singleton": "Singleton (un solo contenuto)",
+            "singletonShort": "Singleton",
+            "singletonHint": "Usalo per collection con una sola voce fissa (es. homepage o impostazioni sito). Questa scelta non si può cambiare dopo la creazione.",
+            "listCollection": "Elenco",
+            "createDescription": "Crea una collection. Lo slug è generato dal nome, a meno che non lo modifichi.",
+            "editDescription": "Aggiorna nome, descrizione, stato, icona e colore. L’impostazione singleton non si può cambiare dopo la creazione.",
+            "cancel": "Annulla",
+            "save": "Salva",
+            "create": "Crea"
+        },
+        "list": {
+            "name": "Nome",
+            "slug": "Slug",
+            "description": "Descrizione",
+            "singleton": "Singleton",
+            "status": "Stato",
+            "actions": "Azioni",
+            "sortBy": "Ordina per",
+            "sortName": "Nome",
+            "sortSlug": "Slug",
+            "sortStatus": "Stato",
+            "sortUpdated": "Aggiornato"
+        },
         "localized": {
             "applyAll": "Applica a tutte le lingue",
             "applyEmpty": "Applica alle lingue vuote"

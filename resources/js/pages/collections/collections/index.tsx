@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowDownAZ,
     ArrowUpAZ,
+    Box,
     FolderOpen,
     PackagePlus,
     Pencil,
@@ -18,6 +19,10 @@ import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ApplyCollectionPackDialog } from '@/components/collections/apply-collection-pack-dialog';
 import type { CollectionPackSummary } from '@/components/collections/apply-collection-pack-dialog';
 import { CollectionFormDrawer } from '@/components/collections/collection-form-drawer';
+import {
+    LucideIconByName,
+    resolveCollectionIconName,
+} from '@/components/collections/field-settings/lucide-icon-picker';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { PageLayout, TablePanel } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
@@ -31,16 +36,26 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useCollections } from '@/hooks/use-collections';
 import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
 import AppLayout from '@/layouts/app-layout';
 import { seedCollectionPrompt, seedCollectionsBulkPrompt } from '@/lib/ai-open';
+import { cn } from '@/lib/utils';
 import collectionRoutes from '@/routes/collections';
-import type { BreadcrumbItem, CollectionRow } from '@/types';
+import {
+    resolveCollectionColor,
+    type BreadcrumbItem,
+    type CollectionRow,
+} from '@/types';
 
-type CollectionSortField = 'name' | 'slug' | 'updated_at';
+type CollectionSortField = 'name' | 'slug' | 'status' | 'updated_at';
 type CollectionSortDirection = 'asc' | 'desc';
 
 type CollectionFilters = {
@@ -49,15 +64,6 @@ type CollectionFilters = {
     sort?: CollectionSortField;
     direction?: CollectionSortDirection;
 };
-
-const COLLECTION_SORT_FIELDS: {
-    value: CollectionSortField;
-    label: string;
-}[] = [
-    { value: 'name', label: 'Name' },
-    { value: 'slug', label: 'Slug' },
-    { value: 'updated_at', label: 'Updated' },
-];
 
 /**
  * List of content collections.
@@ -94,6 +100,13 @@ export default function CollectionsIndex({
     } | null>(null);
     const [confirmingDestructive, setConfirmingDestructive] = useState(false);
     const hasSelection = selected.length > 0;
+
+    const sortFields: { value: CollectionSortField; label: string }[] = [
+        { value: 'name', label: t('collections.list.sortName') },
+        { value: 'slug', label: t('collections.list.sortSlug') },
+        { value: 'status', label: t('collections.list.sortStatus') },
+        { value: 'updated_at', label: t('collections.list.sortUpdated') },
+    ];
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Collections', href: collectionRoutes.index.url() },
@@ -341,6 +354,7 @@ export default function CollectionsIndex({
                                         if (
                                             value === 'name' ||
                                             value === 'slug' ||
+                                            value === 'status' ||
                                             value === 'updated_at'
                                         ) {
                                             setSort(value);
@@ -350,13 +364,15 @@ export default function CollectionsIndex({
                                 >
                                     <SelectTrigger
                                         size="sm"
-                                        aria-label="Sort by"
+                                        aria-label={t(
+                                            'collections.list.sortBy',
+                                        )}
                                         className="w-[7.5rem]"
                                     >
                                         <SelectValue placeholder="Sort" />
                                     </SelectTrigger>
                                     <SelectContent align="end">
-                                        {COLLECTION_SORT_FIELDS.map((field) => (
+                                        {sortFields.map((field) => (
                                             <SelectItem
                                                 key={field.value}
                                                 value={field.value}
@@ -440,11 +456,23 @@ export default function CollectionsIndex({
                                             aria-label="Select all"
                                         />
                                     </th>
-                                    <th className="p-3 font-medium">Name</th>
-                                    <th className="p-3 font-medium">Slug</th>
-                                    <th className="p-3 font-medium">Type</th>
+                                    <th className="p-3 font-medium">
+                                        {t('collections.list.name')}
+                                    </th>
+                                    <th className="p-3 font-medium">
+                                        {t('collections.list.slug')}
+                                    </th>
+                                    <th className="max-w-[16rem] p-3 font-medium">
+                                        {t('collections.list.description')}
+                                    </th>
+                                    <th className="p-3 font-medium">
+                                        {t('collections.list.singleton')}
+                                    </th>
+                                    <th className="w-16 p-3 font-medium">
+                                        {t('collections.list.status')}
+                                    </th>
                                     <th className="p-3 text-right font-medium">
-                                        Actions
+                                        {t('collections.list.actions')}
                                     </th>
                                 </tr>
                             </thead>
@@ -452,7 +480,7 @@ export default function CollectionsIndex({
                                 {collections.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={5}
+                                            colSpan={7}
                                             className="p-4 text-muted-foreground"
                                         >
                                             {search
@@ -466,6 +494,18 @@ export default function CollectionsIndex({
                                             ? collectionRoutes.show.url(c.id)
                                             : collectionRoutes.items.index.url(
                                                   c.id,
+                                              );
+                                        const accent = resolveCollectionColor(
+                                            c.color,
+                                        );
+                                        const isActive =
+                                            (c.status ?? 'active') === 'active';
+                                        const statusLabel = isActive
+                                            ? t(
+                                                  'collections.meta.statusActive',
+                                              )
+                                            : t(
+                                                  'collections.meta.statusInactive',
                                               );
 
                                         return (
@@ -524,21 +564,113 @@ export default function CollectionsIndex({
                                                     />
                                                 </td>
                                                 <td className="p-3 font-medium">
-                                                    {c.name}
+                                                    <div className="flex items-center gap-2">
+                                                        <span
+                                                            className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/40 text-muted-foreground"
+                                                            style={
+                                                                accent
+                                                                    ? {
+                                                                          color: accent,
+                                                                          borderColor: `${accent}55`,
+                                                                          backgroundColor: `${accent}18`,
+                                                                      }
+                                                                    : undefined
+                                                            }
+                                                            aria-hidden
+                                                        >
+                                                            <LucideIconByName
+                                                                name={resolveCollectionIconName(
+                                                                    c.icon,
+                                                                )}
+                                                                className="size-3.5"
+                                                                style={
+                                                                    accent
+                                                                        ? {
+                                                                              color: accent,
+                                                                          }
+                                                                        : undefined
+                                                                }
+                                                            />
+                                                        </span>
+                                                        <span>{c.name}</span>
+                                                    </div>
                                                 </td>
                                                 <td className="p-3 text-muted-foreground">
                                                     {c.slug}
                                                 </td>
-                                                <td className="p-3">
-                                                    {c.is_singleton ? (
-                                                        <span className="rounded-md bg-muted px-2 py-0.5 text-xs">
-                                                            Singleton
+                                                <td className="max-w-[16rem] p-3 text-muted-foreground">
+                                                    {c.description ? (
+                                                        <span
+                                                            className="line-clamp-2"
+                                                            title={
+                                                                c.description
+                                                            }
+                                                        >
+                                                            {c.description}
                                                         </span>
                                                     ) : (
-                                                        <span className="text-muted-foreground">
+                                                        <span className="text-muted-foreground/60">
                                                             —
                                                         </span>
                                                     )}
+                                                </td>
+                                                <td className="p-3">
+                                                    {c.is_singleton ? (
+                                                        <Tooltip>
+                                                            <TooltipTrigger
+                                                                asChild
+                                                            >
+                                                                <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs">
+                                                                    <Box
+                                                                        className="size-3.5 shrink-0"
+                                                                        aria-hidden
+                                                                    />
+                                                                    {t(
+                                                                        'collections.meta.singletonShort',
+                                                                    )}
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                {t(
+                                                                    'collections.meta.singleton',
+                                                                )}
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    ) : (
+                                                        <span
+                                                            className="text-muted-foreground"
+                                                            title={t(
+                                                                'collections.meta.listCollection',
+                                                            )}
+                                                        >
+                                                            —
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="p-3">
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <span
+                                                                className="inline-flex size-6 items-center justify-center"
+                                                                aria-label={
+                                                                    statusLabel
+                                                                }
+                                                            >
+                                                                <span
+                                                                    className={cn(
+                                                                        'size-2.5 rounded-full',
+                                                                        isActive
+                                                                            ? 'bg-emerald-500'
+                                                                            : 'bg-red-500',
+                                                                    )}
+                                                                    aria-hidden
+                                                                />
+                                                            </span>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            {statusLabel}
+                                                        </TooltipContent>
+                                                    </Tooltip>
                                                 </td>
                                                 <td className="p-3 text-right">
                                                     <div

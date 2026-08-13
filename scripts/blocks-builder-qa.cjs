@@ -206,7 +206,7 @@ async function pickFromCombobox(page, scope, optionSubstr) {
       await rich.getByRole('button', { name: 'Duplicate' }).click();
       await page.waitForTimeout(400);
       const countDup = (await topLevelTypes(page)).length;
-      if (countDup === countBefore + 1) pass(10, `dup ${countBefore}→${countDup}; DnD SortableContext + move cover reorder`);
+      if (countDup === countBefore + 1) pass(10, `dup ${countBefore}→${countDup}; SortableJS + move cover reorder`);
       else fail(10, `dup ${countBefore}→${countDup}`);
 
       // Delete second top-level rich_text

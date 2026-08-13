@@ -32,6 +32,7 @@ class FieldController extends Controller
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
 
         $relatedCollections = Collection::query()
+            ->active()
             ->whereKeyNot($collection->id)
             ->ordered()
             ->get(['id', 'name', 'slug']);
@@ -93,13 +94,9 @@ class FieldController extends Controller
 
         $groupService = app(CollectionFieldGroupService::class);
 
-        // Directus UX: Accordion/Tabs need section panels before fields can nest.
+        // Directus UX: seed empty Raw panels for new Accordion/Tabs chrome.
+        // Leaf→Accordion/Tabs may nest directly (no auto-wrap on create/reorder).
         $groupService->seedDefaultPanelSections($collection, $field);
-
-        // Creating a leaf with settings.group = accordion|tabs → wrap in a Raw section.
-        if (! $type->isLayoutGroup()) {
-            $groupService->wrapLeafUnderPanelIfNeeded($collection, $field);
-        }
 
         return redirect()->route('collections.fields.index', $collection)
             ->with('success', __('Field created.'));

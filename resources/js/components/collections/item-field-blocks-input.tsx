@@ -1,19 +1,4 @@
 import {
-    closestCenter,
-    DndContext,
-    PointerSensor,
-    useSensor,
-    useSensors,
-} from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
-import {
-    arrayMove,
-    SortableContext,
-    useSortable,
-    verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import {
     ArrowDown,
     ArrowUp,
     ChevronDown,
@@ -22,7 +7,7 @@ import {
     GripVertical,
     Trash2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { LocalizedField } from '@/components/collections/localized-field';
@@ -40,6 +25,7 @@ import type {
     BlocksTypeDefinition,
     RelatedCollectionOption,
 } from '@/lib/collection-field-types';
+import { createSortableList } from '@/lib/create-sortable-list';
 import { evaluateFieldFlags } from '@/lib/field-conditions';
 import { cn } from '@/lib/utils';
 
@@ -188,29 +174,17 @@ function blockSummary(
     return text.length > 80 ? `${text.slice(0, 77)}…` : text;
 }
 
-function SortableBlocksItem({
-    block,
-    children,
-}: {
-    block: BlocksFieldBlock;
-    children: (dragHandleProps: Record<string, unknown>) => ReactNode;
-}) {
-    const { attributes, listeners, setNodeRef, transform, transition } =
-        useSortable({
-            id: block.id,
-        });
+function moveItem<T>(items: T[], from: number, to: number): T[] {
+    const next = items.slice();
+    const [item] = next.splice(from, 1);
 
-    return (
-        <div
-            ref={setNodeRef}
-            style={{
-                transform: CSS.Transform.toString(transform),
-                transition,
-            }}
-        >
-            {children({ ...attributes, ...listeners })}
-        </div>
-    );
+    if (item === undefined) {
+        return items;
+    }
+
+    next.splice(to, 0, item);
+
+    return next;
 }
 
 export function BlocksFieldInput({
@@ -265,7 +239,9 @@ export function BlocksFieldInput({
 
         return new Set();
     });
-    const sensors = useSensors(useSensor(PointerSensor));
+    const listRef = useRef<HTMLDivElement>(null);
+    const blocksRef = useRef(blocks);
+    blocksRef.current = blocks;
     const nestingBlocked = depth > maxBlocksDepth;
 
     const addBlock = (type?: string) => {
@@ -358,7 +334,7 @@ export function BlocksFieldInput({
                 return current;
             }
 
-            return arrayMove(current, index, nextIndex);
+            return moveItem(current, index, nextIndex);
         });
     };
 
@@ -376,24 +352,39 @@ export function BlocksFieldInput({
         });
     };
 
-    const onDragEnd = ({ active, over }: DragEndEvent) => {
-        if (!over || active.id === over.id) {
+    const blocksKey = blocks.map((block) => block.id).join('\0');
+
+    useEffect(() => {
+        const el = listRef.current;
+
+        if (!el || readonly || blocks.length === 0) {
             return;
         }
 
-        setBlocks((current) => {
-            const oldIndex = current.findIndex(
-                (block) => block.id === active.id,
-            );
-            const newIndex = current.findIndex((block) => block.id === over.id);
+        const sortable = createSortableList(el, {
+            handle: '.drag-handle',
+            onEnd: () => {
+                const order = sortable.toArray();
+                const prev = blocksRef.current.map((block) => block.id);
 
-            if (oldIndex === -1 || newIndex === -1) {
-                return current;
-            }
+                if (order.length === 0 || order.join('\0') === prev.join('\0')) {
+                    return;
+                }
 
-            return arrayMove(current, oldIndex, newIndex);
+                setBlocks((current) => {
+                    const byId = new Map(
+                        current.map((block) => [block.id, block]),
+                    );
+
+                    return order
+                        .map((id) => byId.get(id))
+                        .filter((block): block is BlocksFieldBlock => !!block);
+                });
+            },
         });
-    };
+
+        return () => sortable.destroy();
+    }, [blocksKey, readonly]);
 
     if (nestingBlocked) {
         return (
@@ -414,16 +405,7 @@ export function BlocksFieldInput({
                 <p className="text-sm text-muted-foreground">No blocks yet.</p>
             ) : null}
 
-            <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={onDragEnd}
-            >
-                <SortableContext
-                    items={blocks.map((block) => block.id)}
-                    strategy={verticalListSortingStrategy}
-                >
-                    <div className="space-y-3">
+            <div ref={listRef} className="space-y-3">
                         {blocks.map((block, index) => {
                             const schema = blockTypes.find(
                                 (entry) => entry.key === block.type,
@@ -440,12 +422,11 @@ export function BlocksFieldInput({
                             );
 
                             return (
-                                <SortableBlocksItem
-                                    key={block.id}
-                                    block={block}
-                                >
-                                    {(dragHandleProps) => (
-                                        <div className="rounded-lg border p-4">
+                                        <div
+                                            key={block.id}
+                                            data-id={block.id}
+                                            className="rounded-lg border p-4"
+                                        >
                                             <div className="mb-0 flex flex-wrap items-center gap-2">
                                                 <button
                                                     type="button"
@@ -471,9 +452,8 @@ export function BlocksFieldInput({
                                                 {!readonly ? (
                                                     <button
                                                         type="button"
-                                                        className="text-muted-foreground"
+                                                        className="drag-handle text-muted-foreground"
                                                         aria-label="Drag to reorder"
-                                                        {...dragHandleProps}
                                                     >
                                                         <GripVertical className="size-4" />
                                                     </button>
@@ -864,13 +844,9 @@ export function BlocksFieldInput({
                                                 )}
                                             </div>
                                         </div>
-                                    )}
-                                </SortableBlocksItem>
                             );
                         })}
-                    </div>
-                </SortableContext>
-            </DndContext>
+            </div>
 
             {!readonly ? (
                 <div className="flex flex-wrap gap-2">

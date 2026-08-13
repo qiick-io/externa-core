@@ -229,6 +229,7 @@ class CollectionItemOptionsService
     public function collectionsForSelect(): array
     {
         return Collection::query()
+            ->active()
             ->ordered()
             ->get(['id', 'name', 'slug'])
             ->map(fn (Collection $collection): array => [

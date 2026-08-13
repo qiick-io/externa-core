@@ -18,6 +18,7 @@ final class CollectionsQuery
         $matrix = app(CollectionPermissionGuard::class)->matrixForRole($access->roleId());
 
         return Collection::query()
+            ->active()
             ->ordered()
             ->get(['id', 'name', 'slug', 'is_singleton'])
             ->filter(fn (Collection $c): bool => (bool) ($matrix[(int) $c->id][CollectionPermissionAction::Read->value] ?? false))

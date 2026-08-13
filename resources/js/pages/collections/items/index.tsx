@@ -1,18 +1,3 @@
-import {
-    closestCenter,
-    DndContext,
-    PointerSensor,
-    useSensor,
-    useSensors,
-} from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
-import {
-    arrayMove,
-    horizontalListSortingStrategy,
-    SortableContext,
-    useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { Head, Link, router } from '@inertiajs/react';
 import {
     Download,
@@ -24,7 +9,7 @@ import {
     Rows3,
     Trash2,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
@@ -61,6 +46,7 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import { seedItemPrompt, seedItemsBulkPrompt } from '@/lib/ai-open';
+import { createSortableList } from '@/lib/create-sortable-list';
 import {
     emptyFilterRule,
     FILTER_META_KEYS,
@@ -72,7 +58,6 @@ import {
     currentPathWithQuery,
     withReturnParam,
 } from '@/lib/safe-return-url';
-import { cn } from '@/lib/utils';
 import collections from '@/routes/collections';
 import type {
     BreadcrumbItem,
@@ -220,34 +205,17 @@ function SortableHeader({
     onAlign,
     onHide,
 }: SortableHeaderProps) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({ id });
-
     return (
         <TableHead
-            ref={setNodeRef}
-            style={{
-                transform: CSS.Transform.toString(transform),
-                transition,
-            }}
-            className={cn(
-                alignClass(align),
-                isDragging && 'bg-muted opacity-80',
-            )}
+            data-id={id}
+            data-sortable-column=""
+            className={alignClass(align)}
         >
             <div className="flex items-center gap-1">
                 <button
                     type="button"
-                    className="cursor-grab touch-none text-muted-foreground hover:text-foreground"
+                    className="drag-handle cursor-grab touch-none text-muted-foreground hover:text-foreground"
                     aria-label={`Reorder ${label}`}
-                    {...attributes}
-                    {...listeners}
                 >
                     <GripVertical className="size-3.5" />
                 </button>
@@ -457,26 +425,40 @@ export default function ItemsIndex({
         setFilterTitle(titleContains?.value ?? '');
         visit({ rules: filterRules });
     }, [filterRules, visit]);
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    );
 
-    const onDragEnd = (event: DragEndEvent): void => {
-        const { active, over } = event;
+    const headerRowRef = useRef<HTMLTableRowElement>(null);
+    const listColumnsRef = useRef(listColumns);
+    listColumnsRef.current = listColumns;
+    const persistColumnsRef = useRef(persistColumns);
+    persistColumnsRef.current = persistColumns;
+    const listColumnsKey = listColumns.join('\0');
 
-        if (!over || active.id === over.id) {
+    useEffect(() => {
+        const el = headerRowRef.current;
+
+        if (!el || listColumns.length === 0) {
             return;
         }
 
-        const oldIndex = listColumns.indexOf(String(active.id));
-        const newIndex = listColumns.indexOf(String(over.id));
+        // ponytail: Sortable on <tr>; only [data-sortable-column] th move (checkbox/actions stay put)
+        const sortable = createSortableList(el, {
+            handle: '.drag-handle',
+            draggable: '[data-sortable-column]',
+            direction: 'horizontal',
+            onEnd: () => {
+                const next = sortable.toArray();
+                const prev = listColumnsRef.current;
 
-        if (oldIndex < 0 || newIndex < 0) {
-            return;
-        }
+                if (next.length === 0 || next.join('\0') === prev.join('\0')) {
+                    return;
+                }
 
-        persistColumns(arrayMove(listColumns, oldIndex, newIndex));
-    };
+                persistColumnsRef.current(next);
+            },
+        });
+
+        return () => sortable.destroy();
+    }, [listColumnsKey]);
 
     const collectionForm = useCollectionEditDrawer();
     const colSpan = listColumns.length + 2;
@@ -757,15 +739,9 @@ export default function ItemsIndex({
                 }
             >
                 <TablePanel>
-                    {/* ponytail: DndContext injects a11y <div>s — must stay outside <tr> or columns desync */}
-                    <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={onDragEnd}
-                    >
-                        <Table>
+                    <Table>
                             <TableHeader>
-                                <TableRow>
+                                <TableRow ref={headerRowRef}>
                                     <TableHead className="w-10">
                                         <Checkbox
                                             checked={
@@ -779,10 +755,6 @@ export default function ItemsIndex({
                                             aria-label="Select all"
                                         />
                                     </TableHead>
-                                    <SortableContext
-                                        items={listColumns}
-                                        strategy={horizontalListSortingStrategy}
-                                    >
                                         {listColumns.map((path) => (
                                             <SortableHeader
                                                 key={path}
@@ -834,7 +806,6 @@ export default function ItemsIndex({
                                                 }}
                                             />
                                         ))}
-                                    </SortableContext>
                                     <TableHead className="w-[1%] text-right whitespace-nowrap">
                                         <div className="flex items-center justify-end gap-1">
                                             {!hasSelection ? (
@@ -1053,7 +1024,6 @@ export default function ItemsIndex({
                                 )}
                             </TableBody>
                         </Table>
-                    </DndContext>
                 </TablePanel>
             </PageLayout>
 

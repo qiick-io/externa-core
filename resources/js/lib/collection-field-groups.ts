@@ -17,16 +17,15 @@ export function isLayoutGroupType(type: string): boolean {
 }
 
 /**
- * Accordion/Tabs: direct children are section/tab panels (usually group_raw).
+ * Accordion/Tabs: direct children are panels (group_raw sections or leaves).
  */
 export function isPanelContainerType(type: string): boolean {
     return type === 'group_accordion' || type === 'group_tabs';
 }
 
 /**
- * Directus data-model: any field may nest under any layout group (API + UI).
- * Cycle checks stay separate. Leaf→Accordion/Tabs still auto-wrap into Raw
- * on reorder for UX (sections), but groups nest as-is.
+ * Directus data-model: any field may nest under any layout group (API + UI),
+ * including leaf→Accordion/Tabs directly. Cycle checks stay separate.
  *
  * @param _childType - Dragged field type (unused; Directus has no type gate)
  * @param parentType - Target group type

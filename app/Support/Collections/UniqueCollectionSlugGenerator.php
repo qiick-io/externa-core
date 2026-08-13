@@ -7,6 +7,9 @@ use Illuminate\Support\Str;
 
 /**
  * Generates unique collection slugs from a name or slug candidate.
+ *
+ * Kept for pack/import helpers that still need silent uniquify; store/update
+ * FormRequests validate uniqueness instead (like field keys).
  */
 class UniqueCollectionSlugGenerator
 {
@@ -30,9 +33,23 @@ class UniqueCollectionSlugGenerator
         return $slug;
     }
 
+    /**
+     * Whether the normalized slug is free (includes soft-deleted rows).
+     */
+    public function available(string $nameOrSlug, ?int $excludeCollectionId = null): bool
+    {
+        $slug = Str::slug($nameOrSlug);
+
+        if ($slug === '') {
+            return false;
+        }
+
+        return ! $this->exists($slug, $excludeCollectionId);
+    }
+
     private function exists(string $slug, ?int $excludeCollectionId): bool
     {
-        $query = Collection::query()->where('slug', $slug);
+        $query = Collection::query()->withTrashed()->where('slug', $slug);
         if ($excludeCollectionId !== null) {
             $query->where('id', '!=', $excludeCollectionId);
         }

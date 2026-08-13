@@ -17,8 +17,11 @@ use App\Services\Collections\CollectionItemOptionsService;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
 use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
+use App\Support\Collections\UniqueCollectionSlugGenerator;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -34,6 +37,7 @@ class ContentCollectionController extends Controller
     private const SORTABLE_COLUMNS = [
         'name',
         'slug',
+        'status',
         'updated_at',
     ];
 
@@ -85,6 +89,31 @@ class ContentCollectionController extends Controller
                 'direction' => $direction,
             ],
             'collectionPacks' => CollectionPackRegistry::summaries(),
+        ]);
+    }
+
+    /**
+     * Check whether a collection slug is available (unique), optionally excluding one id.
+     */
+    public function checkSlug(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'slug' => ['required', 'string', 'max:255'],
+            'exclude' => ['nullable', 'integer'],
+        ]);
+
+        $slug = Str::slug((string) $validated['slug']);
+        $excludeId = isset($validated['exclude']) ? (int) $validated['exclude'] : null;
+        $excludeId = $excludeId !== null && $excludeId > 0 ? $excludeId : null;
+
+        $generator = app(UniqueCollectionSlugGenerator::class);
+        $available = $slug !== ''
+            && (bool) preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)
+            && $generator->available($slug, $excludeId);
+
+        return response()->json([
+            'available' => $available,
+            'slug' => $slug,
         ]);
     }
 

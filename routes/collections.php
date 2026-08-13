@@ -30,6 +30,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:'.PermissionEnum::CanCreateCollections->value)
         ->name('collections.packs.apply');
 
+    Route::get('collections/slug-available', [ContentCollectionController::class, 'checkSlug'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.slug-available');
+
     Route::get('collections/{collection}', [ContentCollectionController::class, 'show'])
         ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
         ->name('collections.show');

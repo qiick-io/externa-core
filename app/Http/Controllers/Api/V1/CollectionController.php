@@ -36,10 +36,11 @@ class CollectionController extends Controller
         }
 
         $collections = Collection::query()
+            ->active()
             ->whereIn('id', $readableIds !== [] ? $readableIds : [-1])
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get(['id', 'name', 'slug', 'is_singleton', 'sort_order']);
+            ->get(['id', 'name', 'slug', 'is_singleton', 'sort_order', 'description', 'status', 'icon', 'color']);
 
         return response()->json([
             'data' => $collections->map(fn (Collection $collection): array => [
@@ -47,6 +48,12 @@ class CollectionController extends Controller
                 'name' => $collection->name,
                 'slug' => $collection->slug,
                 'is_singleton' => (bool) $collection->is_singleton,
+                'description' => $collection->description,
+                'status' => $collection->status instanceof \BackedEnum
+                    ? $collection->status->value
+                    : $collection->status,
+                'icon' => $collection->icon,
+                'color' => $collection->color,
             ])->values()->all(),
         ]);
     }
@@ -68,6 +75,12 @@ class CollectionController extends Controller
                     'name' => $collection->name,
                     'slug' => $collection->slug,
                     'is_singleton' => (bool) $collection->is_singleton,
+                    'description' => $collection->description,
+                    'status' => $collection->status instanceof \BackedEnum
+                        ? $collection->status->value
+                        : $collection->status,
+                    'icon' => $collection->icon,
+                    'color' => $collection->color,
                     'fields' => $collection->fields
                         ->filter(function (CollectionField $field): bool {
                             $type = $field->type instanceof FieldTypeEnum

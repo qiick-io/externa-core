@@ -386,6 +386,48 @@
         }
     },
     "collections": {
+        "meta": {
+            "name": "Collection name",
+            "slug": "Slug",
+            "slugInvalid": "Use lowercase letters, numbers, and hyphens (e.g. my-collection).",
+            "slugTaken": "A collection with this slug already exists.",
+            "description": "Description",
+            "descriptionPlaceholder": "Optional note about this collection…",
+            "status": "Status",
+            "statusActive": "Active",
+            "statusInactive": "Inactive",
+            "statusHint": "Inactive collections stay in the admin list but are hidden from relation pickers and the public API collection index.",
+            "icon": "Icon",
+            "color": "Color",
+            "chooseIcon": "Choose icon…",
+            "searchIcons": "Search icons…",
+            "clearIconSearch": "Clear search",
+            "noIconsFound": "No icons match your search.",
+            "clearIcon": "Clear icon",
+            "clearColor": "Clear color",
+            "singleton": "Singleton (one content item)",
+            "singletonShort": "Singleton",
+            "singletonHint": "Use this for collections with a single fixed entry (e.g. homepage or site settings). This choice cannot be changed after the collection is created.",
+            "listCollection": "List",
+            "createDescription": "Create a collection. Slug is generated from the name unless you edit it.",
+            "editDescription": "Update collection name, description, status, icon, and color. The singleton setting cannot be changed after creation.",
+            "cancel": "Cancel",
+            "save": "Save",
+            "create": "Create"
+        },
+        "list": {
+            "name": "Name",
+            "slug": "Slug",
+            "description": "Description",
+            "singleton": "Singleton",
+            "status": "Status",
+            "actions": "Actions",
+            "sortBy": "Sort by",
+            "sortName": "Name",
+            "sortSlug": "Slug",
+            "sortStatus": "Status",
+            "sortUpdated": "Updated"
+        },
         "localized": {
             "applyAll": "Apply to all locales",
             "applyEmpty": "Apply to empty locales"

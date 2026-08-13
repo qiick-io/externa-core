@@ -1,23 +1,6 @@
-import {
-    DndContext,
-    KeyboardSensor,
-    PointerSensor,
-    closestCenter,
-    useSensor,
-    useSensors,
-} from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
-import {
-    SortableContext,
-    arrayMove,
-    sortableKeyboardCoordinates,
-    useSortable,
-    verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { Form, Head, router } from '@inertiajs/react';
 import { GripVertical, Lock } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import ProjectSettingsController from '@/actions/App/Http/Controllers/Settings/ProjectSettingsController';
@@ -43,6 +26,7 @@ import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import type { ContentLocaleCatalogEntry } from '@/lib/content-locales-catalog';
+import { createSortableList } from '@/lib/create-sortable-list';
 import { cn } from '@/lib/utils';
 import { edit as editProject } from '@/routes/project';
 import type {
@@ -185,7 +169,7 @@ function PinnedModuleRow({
     );
 }
 
-function SortableModuleRow({
+function ModuleRow({
     module,
     label,
     onToggle,
@@ -194,26 +178,10 @@ function SortableModuleRow({
     label: string;
     onToggle: (enabled: boolean) => void;
 }) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({ id: module.id });
-
     return (
         <div
-            ref={setNodeRef}
-            style={{
-                transform: CSS.Transform.toString(transform),
-                transition,
-            }}
-            className={cn(
-                'flex items-center gap-3 rounded-md border px-3 py-2',
-                isDragging && 'bg-muted opacity-80',
-            )}
+            data-id={module.id}
+            className="flex items-center gap-3 rounded-md border px-3 py-2"
         >
             <ModuleRowContent
                 module={module}
@@ -222,10 +190,8 @@ function SortableModuleRow({
                 dragHandle={
                     <button
                         type="button"
-                        className="cursor-grab touch-none text-muted-foreground hover:text-foreground"
+                        className="drag-handle cursor-grab touch-none text-muted-foreground hover:text-foreground"
                         aria-label="Reorder"
-                        {...attributes}
-                        {...listeners}
                     >
                         <GripVertical className="size-4" />
                     </button>
@@ -270,12 +236,11 @@ export default function ProjectSettingsPage({
         },
     });
 
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        }),
-    );
+    const sortableModulesRef = useRef<HTMLDivElement>(null);
+    const formRef = useRef(form);
+    formRef.current = form;
+    const setFormRef = useRef(setForm);
+    setFormRef.current = setForm;
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -283,41 +248,6 @@ export default function ProjectSettingsPage({
             href: editProject(),
         },
     ];
-
-    const onDragEnd = (event: DragEndEvent): void => {
-        const { active, over } = event;
-
-        if (!over || active.id === over.id) {
-            return;
-        }
-
-        if (
-            PINNED_SIDEBAR_MODULE_IDS.has(String(active.id)) ||
-            PINNED_SIDEBAR_MODULE_IDS.has(String(over.id))
-        ) {
-            return;
-        }
-
-        setForm((current) => {
-            const oldIndex = current.sidebar_modules.findIndex(
-                (module) => module.id === active.id,
-            );
-            const newIndex = current.sidebar_modules.findIndex(
-                (module) => module.id === over.id,
-            );
-
-            if (oldIndex < 0 || newIndex < 0) {
-                return current;
-            }
-
-            return {
-                ...current,
-                sidebar_modules: pinSidebarModules(
-                    arrayMove(current.sidebar_modules, oldIndex, newIndex),
-                ),
-            };
-        });
-    };
 
     const moduleLabel = (id: string): string => {
         const key = `settings.project.modules.${id}`;
@@ -332,6 +262,57 @@ export default function ProjectSettingsPage({
     const sortableModules = form.sidebar_modules.filter(
         (module) => !PINNED_SIDEBAR_MODULE_IDS.has(module.id),
     );
+    const sortableModuleKey = sortableModules.map((module) => module.id).join('\0');
+
+    useEffect(() => {
+        const el = sortableModulesRef.current;
+
+        if (!el || sortableModules.length === 0) {
+            return;
+        }
+
+        const sortable = createSortableList(el, {
+            handle: '.drag-handle',
+            onEnd: () => {
+                const order = sortable.toArray();
+                const prev = formRef.current.sidebar_modules
+                    .filter((module) => !PINNED_SIDEBAR_MODULE_IDS.has(module.id))
+                    .map((module) => module.id);
+
+                if (order.length === 0 || order.join('\0') === prev.join('\0')) {
+                    return;
+                }
+
+                setFormRef.current((current) => {
+                    const byId = new Map(
+                        current.sidebar_modules.map((module) => [
+                            module.id,
+                            module,
+                        ]),
+                    );
+                    const reordered = order
+                        .map((id) => byId.get(id))
+                        .filter(
+                            (module): module is SidebarModuleSetting =>
+                                !!module,
+                        );
+
+                    return {
+                        ...current,
+                        sidebar_modules: pinSidebarModules([
+                            ...current.sidebar_modules.filter((module) =>
+                                PINNED_SIDEBAR_MODULE_IDS.has(module.id),
+                            ),
+                            ...reordered,
+                        ]),
+                    };
+                });
+            },
+        });
+
+        return () => sortable.destroy();
+        // ponytail: remount when set membership changes; order sync is onEnd-only
+    }, [sortableModuleKey]);
 
     const toggleModule = (moduleId: string, enabled: boolean): void => {
         setForm((current) => ({
@@ -615,42 +596,24 @@ export default function ProjectSettingsPage({
                                             }
                                         />
                                     ))}
-                                    <DndContext
-                                        sensors={sensors}
-                                        collisionDetection={closestCenter}
-                                        onDragEnd={onDragEnd}
+                                    <div
+                                        ref={sortableModulesRef}
+                                        className="space-y-2"
                                     >
-                                        <SortableContext
-                                            items={sortableModules.map(
-                                                (module) => module.id,
-                                            )}
-                                            strategy={
-                                                verticalListSortingStrategy
-                                            }
-                                        >
-                                            <div className="space-y-2">
-                                                {sortableModules.map(
-                                                    (module) => (
-                                                        <SortableModuleRow
-                                                            key={module.id}
-                                                            module={module}
-                                                            label={moduleLabel(
-                                                                module.id,
-                                                            )}
-                                                            onToggle={(
-                                                                enabled,
-                                                            ) =>
-                                                                toggleModule(
-                                                                    module.id,
-                                                                    enabled,
-                                                                )
-                                                            }
-                                                        />
-                                                    ),
-                                                )}
-                                            </div>
-                                        </SortableContext>
-                                    </DndContext>
+                                        {sortableModules.map((module) => (
+                                            <ModuleRow
+                                                key={module.id}
+                                                module={module}
+                                                label={moduleLabel(module.id)}
+                                                onToggle={(enabled) =>
+                                                    toggleModule(
+                                                        module.id,
+                                                        enabled,
+                                                    )
+                                                }
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
                                 <InputError message={errors.sidebar_modules} />
                             </div>

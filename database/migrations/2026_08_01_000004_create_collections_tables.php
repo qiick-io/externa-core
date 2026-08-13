@@ -13,6 +13,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('slug')->unique();
+            $table->text('description')->nullable();
+            $table->string('status', 16)->default('active');
+            $table->string('icon')->nullable();
+            $table->string('color', 7)->nullable();
             $table->boolean('is_singleton')->default(false);
             if (Schema::getConnection()->getDriverName() === 'pgsql') {
                 $table->jsonb('form_layout')->nullable();
@@ -26,6 +30,11 @@ return new class extends Migration
 
         if (Schema::getConnection()->getDriverName() === 'pgsql') {
             DB::statement('CREATE INDEX collections_sort_order_index ON collections (sort_order)');
+            DB::statement('CREATE INDEX collections_status_index ON collections (status)');
+        } else {
+            Schema::table('collections', function (Blueprint $table) {
+                $table->index('status');
+            });
         }
 
         Schema::create('collections_fields', function (Blueprint $table) {
