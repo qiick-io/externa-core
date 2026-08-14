@@ -80,6 +80,7 @@ export function UnsavedChangesProvider({ children }: Props) {
             if (confirmed) {
                 // Ignore nested GET visits from onDiscard (e.g. accidental router.reload()).
                 allowNextRef.current = true;
+
                 try {
                     activeEntry.onDiscard?.();
                 } finally {

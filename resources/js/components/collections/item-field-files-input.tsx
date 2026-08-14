@@ -84,6 +84,7 @@ function UrlImportDialog({
 
             if (acceptImagesOnly && !isImageFile(file)) {
                 toast.error(t('collections.fileField.imageRequired'));
+
                 return;
             }
 

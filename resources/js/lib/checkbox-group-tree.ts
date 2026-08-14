@@ -12,6 +12,7 @@ export function collectDescendantValues(node: FieldTreeOptionRow): string[] {
         if (child.value.trim() !== '') {
             values.push(child.value);
         }
+
         values.push(...collectDescendantValues(child));
     }
 
@@ -48,6 +49,7 @@ export function collectExpandableKeys(nodes: FieldTreeOptionRow[]): string[] {
         if (node.value.trim() !== '') {
             keys.push(node.value);
         }
+
         keys.push(...collectExpandableKeys(node.children));
     }
 
@@ -65,6 +67,7 @@ function findNode(
 
         if (node.children?.length) {
             const found = findNode(node.children, value);
+
             if (found) {
                 return found;
             }
@@ -90,6 +93,7 @@ function findAncestors(
                 ...trail,
                 node,
             ]);
+
             if (found) {
                 return found;
             }
@@ -111,6 +115,7 @@ export function cascadeToggleValues(
     checked: boolean,
 ): string[] {
     const target = findNode(nodes, targetValue);
+
     if (!target) {
         return selected;
     }
@@ -130,6 +135,7 @@ export function cascadeToggleValues(
 
     // Nearest parent first so intermediate nodes are in `next` before grandparents check.
     const ancestors = [...(findAncestors(nodes, targetValue) ?? [])].reverse();
+
     for (const ancestor of ancestors) {
         const descendants = collectDescendantValues(ancestor).filter(
             (value) => value.trim() !== '',

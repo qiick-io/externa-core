@@ -74,7 +74,7 @@ export function ItemRevisionCompareModal({
         return latestData;
     }, [compareTo, previousRevision, latestData]);
 
-    const rightData = revision?.data ?? {};
+    const rightData = useMemo(() => revision?.data ?? {}, [revision]);
     const leftKey = useMemo(() => stableJson(leftData).slice(0, 64), [leftData]);
     const rightKey = useMemo(
         () => stableJson(rightData).slice(0, 64),

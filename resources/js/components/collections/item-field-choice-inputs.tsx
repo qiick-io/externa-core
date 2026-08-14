@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import {
     Fragment,
     useCallback,
@@ -7,7 +8,6 @@ import {
     useState,
 } from 'react';
 import type { ReactNode } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
 
 import { LucideIconByName } from '@/components/collections/field-settings/lucide-icon-picker';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -1228,11 +1228,13 @@ export function CheckboxGroupTreeInput({
     const toggleExpand = (optionValue: string) => {
         setExpandedKeys((current) => {
             const next = new Set(current);
+
             if (next.has(optionValue)) {
                 next.delete(optionValue);
             } else {
                 next.add(optionValue);
             }
+
             return next;
         });
     };

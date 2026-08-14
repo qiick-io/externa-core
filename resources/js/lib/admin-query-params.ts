@@ -12,6 +12,7 @@ export function locationPageUrl(): string {
 /** Read a query param from an Inertia page URL (`/path?query`). */
 export function getQueryParam(pageUrl: string, key: string): string | null {
     const qIndex = pageUrl.indexOf('?');
+
     if (qIndex === -1) {
         return null;
     }

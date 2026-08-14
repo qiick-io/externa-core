@@ -45,6 +45,7 @@ function createSetupFetcher(load) {
 
                     if (!qrPayload.svg || !keyPayload.secretKey) {
                         errors = ['Failed to load two-factor setup data'];
+
                         return;
                     }
 
@@ -88,6 +89,7 @@ let calls = 0;
 const ok = createSetupFetcher(async () => {
     calls += 1;
     await new Promise((r) => setTimeout(r, 10));
+
     return [{ svg: '<svg/>' }, { secretKey: 'ABC' }];
 });
 
@@ -105,6 +107,7 @@ assert.equal(ok.state.errors[0], 'Failed to refresh two-factor setup data');
 let failCalls = 0;
 const fail = createSetupFetcher(async () => {
     failCalls += 1;
+
     throw new Error('423');
 });
 await fail.fetchSetupData();

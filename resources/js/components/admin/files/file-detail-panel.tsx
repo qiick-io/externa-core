@@ -34,9 +34,10 @@ import {
     isPlayableVideo,
     replaceFile,
     syncFileTags,
-    updateFileMetadata,
-    type FileWhereUsedReference,
+    updateFileMetadata
+    
 } from '@/lib/files-api';
+import type {FileWhereUsedReference} from '@/lib/files-api';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { AdminFileRow, FileTag } from '@/types/files';

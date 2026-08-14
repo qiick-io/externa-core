@@ -1,7 +1,7 @@
-import { icons } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { icons } from 'lucide-react';
 import { Check, Search, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { createElement, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -116,7 +116,7 @@ export function LucideIconByName({
         return null;
     }
 
-    return <Icon className={className} style={style} />;
+    return createElement(Icon, { className, style });
 }
 
 type LucideIconPickerProps = {
@@ -178,14 +178,14 @@ export function LucideIconPicker({
                         variant="outline"
                         className="w-full justify-start gap-2"
                     >
-                        {PreviewIcon ? (
-                            <PreviewIcon
-                                className={cn(
-                                    'size-4 shrink-0',
-                                    !value && 'text-muted-foreground',
-                                )}
-                            />
-                        ) : null}
+                        {PreviewIcon
+                            ? createElement(PreviewIcon, {
+                                  className: cn(
+                                      'size-4 shrink-0',
+                                      !value && 'text-muted-foreground',
+                                  ),
+                              })
+                            : null}
                         <span
                             className={cn(
                                 'truncate',

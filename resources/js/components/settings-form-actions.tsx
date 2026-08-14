@@ -1,8 +1,8 @@
 import { Transition } from '@headlessui/react';
 import { Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { Button } from '@/components/ui/button';
+import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 
 type SettingsFormActionsProps = {
     processing: boolean;

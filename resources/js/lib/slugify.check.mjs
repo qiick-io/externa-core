@@ -3,6 +3,8 @@
  * Run: node resources/js/lib/slugify.check.mjs
  */
 
+import process from 'node:process';
+
 function slugify(value) {
     return value
         .normalize('NFD')
@@ -16,7 +18,11 @@ function slugify(value) {
 function slugifyInput(value) {
     const keepTrailing = value.length > 0 && /[^A-Za-z0-9]$/.test(value);
     const slug = slugify(value);
-    if (keepTrailing && slug !== '') return `${slug}-`;
+
+    if (keepTrailing && slug !== '') {
+        return `${slug}-`;
+    }
+
     return slug;
 }
 
@@ -35,6 +41,7 @@ const cases = [
 
 for (const [input, expected] of cases) {
     const actual = slugify(input);
+
     if (actual !== expected) {
         console.error(`slugify(${JSON.stringify(input)}) => ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
         process.exit(1);

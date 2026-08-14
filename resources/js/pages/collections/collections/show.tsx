@@ -8,11 +8,11 @@ import {
     CollectionEditDrawer,
     useCollectionEditDrawer,
 } from '@/components/collections/collection-edit-drawer';
-import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { PageLayout } from '@/components/layout/page-layout';
-import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { Button } from '@/components/ui/button';
+import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { useCollection } from '@/hooks/use-collection';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { qrCode, recoveryCodes, secretKey } from '@/routes/two-factor';
 import type { TwoFactorSecretKey, TwoFactorSetupData } from '@/types';
 
@@ -50,7 +50,10 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
     const setupSeqRef = useRef(0);
     const setupInflightRef = useRef<Promise<void> | null>(null);
     const setupDataRef = useRef({ qrCodeSvg, manualSetupKey });
-    setupDataRef.current = { qrCodeSvg, manualSetupKey };
+
+    useLayoutEffect(() => {
+        setupDataRef.current = { qrCodeSvg, manualSetupKey };
+    });
 
     const hasSetupData = qrCodeSvg !== null && manualSetupKey !== null;
 
@@ -138,6 +141,7 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
 
                 if (!qrPayload.svg || !keyPayload.secretKey) {
                     setErrors(['Failed to load two-factor setup data']);
+
                     return;
                 }
 

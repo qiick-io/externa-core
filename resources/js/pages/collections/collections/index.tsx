@@ -50,10 +50,11 @@ import { seedCollectionPrompt, seedCollectionsBulkPrompt } from '@/lib/ai-open';
 import { cn } from '@/lib/utils';
 import collectionRoutes from '@/routes/collections';
 import {
-    resolveCollectionColor,
-    type BreadcrumbItem,
-    type CollectionRow,
+    resolveCollectionColor
+    
+    
 } from '@/types';
+import type {BreadcrumbItem, CollectionRow} from '@/types';
 
 type CollectionSortField = 'name' | 'slug' | 'status' | 'updated_at';
 type CollectionSortDirection = 'asc' | 'desc';
@@ -153,7 +154,9 @@ export default function CollectionsIndex({
             setOpen(true);
         },
     });
-    syncClosedRef.current = deepLink.syncClosed;
+    useEffect(() => {
+        syncClosedRef.current = deepLink.syncClosed;
+    });
 
     const openCreate = (): void => {
         setEditing(null);

@@ -226,6 +226,7 @@ export function parseDetailGroupSettings(
     settings?: Record<string, unknown> | null,
 ): DetailGroupSettings {
     const start = settings?.start;
+
     return {
         start: start === 'closed' ? 'closed' : 'open',
     };

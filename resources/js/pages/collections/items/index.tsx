@@ -9,7 +9,7 @@ import {
     Rows3,
     Trash2,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
@@ -428,15 +428,18 @@ export default function ItemsIndex({
 
     const headerRowRef = useRef<HTMLTableRowElement>(null);
     const listColumnsRef = useRef(listColumns);
-    listColumnsRef.current = listColumns;
     const persistColumnsRef = useRef(persistColumns);
-    persistColumnsRef.current = persistColumns;
     const listColumnsKey = listColumns.join('\0');
+
+    useLayoutEffect(() => {
+        listColumnsRef.current = listColumns;
+        persistColumnsRef.current = persistColumns;
+    });
 
     useEffect(() => {
         const el = headerRowRef.current;
 
-        if (!el || listColumns.length === 0) {
+        if (!el || listColumnsKey === '') {
             return;
         }
 

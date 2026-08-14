@@ -15,9 +15,11 @@ export function serializeItemForm(form: HTMLFormElement): Record<string, string>
         if (typeof value !== 'string') {
             continue;
         }
+
         if (!key.startsWith('data')) {
             continue;
         }
+
         out[key] = value;
     }
 
@@ -30,13 +32,17 @@ export function readItemDraft(
 ): Record<string, string> | null {
     try {
         const raw = localStorage.getItem(itemDraftKey(collectionId, itemId));
+
         if (!raw) {
             return null;
         }
+
         const parsed = JSON.parse(raw) as unknown;
+
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
             return null;
         }
+
         return parsed as Record<string, string>;
     } catch {
         return null;
@@ -78,9 +84,11 @@ export function applyItemDraftToForm(
 ): void {
     for (const [name, value] of Object.entries(draft)) {
         const el = form.elements.namedItem(name);
+
         if (!el) {
             continue;
         }
+
         if (el instanceof RadioNodeList) {
             for (const node of el) {
                 if (
@@ -91,8 +99,10 @@ export function applyItemDraftToForm(
                     node.checked = true;
                 }
             }
+
             continue;
         }
+
         if (el instanceof HTMLInputElement) {
             if (el.type === 'checkbox') {
                 el.checked = value === '1' || value === 'true' || value === el.value;

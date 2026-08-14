@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
-import type { UnsavedChangesDialogCopy } from '@/lib/unsaved-changes/registry';
 import {
     getFileUploads,
     subscribeToFileUploads,
 } from '@/lib/file-upload-store';
+import type { UnsavedChangesDialogCopy } from '@/lib/unsaved-changes/registry';
 
 const UPLOAD_DIALOG_COPY: UnsavedChangesDialogCopy = {
     titleKey: 'unsavedChanges.uploadTitle',

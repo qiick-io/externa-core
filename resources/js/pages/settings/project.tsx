@@ -272,7 +272,7 @@ export default function ProjectSettingsPage({
     useEffect(() => {
         const el = sortableModulesRef.current;
 
-        if (!el || sortableModules.length === 0) {
+        if (!el || sortableModuleKey === '') {
             return;
         }
 

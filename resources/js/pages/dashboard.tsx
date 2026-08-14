@@ -206,6 +206,7 @@ export default function Dashboard({
         if (typeof window === 'undefined') {
             return 'overview';
         }
+
         return new URLSearchParams(window.location.search).get('tab') ===
             'health'
             ? 'health'
@@ -229,11 +230,13 @@ export default function Dashboard({
     const selectTab = (value: DashboardTab): void => {
         setTab(value);
         const url = new URL(window.location.href);
+
         if (value === 'health') {
             url.searchParams.set('tab', 'health');
         } else {
             url.searchParams.delete('tab');
         }
+
         window.history.replaceState({}, '', url.pathname + url.search);
     };
 

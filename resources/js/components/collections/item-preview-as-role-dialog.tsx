@@ -50,6 +50,7 @@ export function ItemPreviewAsRoleDialog({
     const [open, setOpen] = useState(false);
     const [roleKey, setRoleKey] = useState<string>(() => {
         const pub = roles.find((r) => r.is_public);
+
         return pub ? `public:${pub.id}` : roles[0] ? `role:${roles[0].id}` : '';
     });
     const [loading, setLoading] = useState(false);

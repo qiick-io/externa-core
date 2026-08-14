@@ -5,8 +5,14 @@
 import assert from 'node:assert/strict';
 
 function stringifyFieldRawValue(value) {
-    if (value === null || value === undefined) return '';
-    if (typeof value === 'string') return value;
+    if (value === null || value === undefined) {
+return '';
+}
+
+    if (typeof value === 'string') {
+return value;
+}
+
     try {
         return JSON.stringify(value, null, 2);
     } catch {
@@ -16,7 +22,11 @@ function stringifyFieldRawValue(value) {
 
 function parseFieldRawValue(text) {
     const trimmed = text.trim();
-    if (trimmed === '') return '';
+
+    if (trimmed === '') {
+return '';
+}
+
     try {
         return JSON.parse(trimmed);
     } catch {
@@ -25,10 +35,22 @@ function parseFieldRawValue(text) {
 }
 
 function clearFieldRawValue(sample) {
-    if (Array.isArray(sample)) return [];
-    if (sample !== null && typeof sample === 'object') return null;
-    if (typeof sample === 'boolean') return false;
-    if (typeof sample === 'number') return null;
+    if (Array.isArray(sample)) {
+return [];
+}
+
+    if (sample !== null && typeof sample === 'object') {
+return null;
+}
+
+    if (typeof sample === 'boolean') {
+return false;
+}
+
+    if (typeof sample === 'number') {
+return null;
+}
+
     return '';
 }
 
@@ -36,6 +58,7 @@ function localeSliceOf(value, locale) {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
         return value[locale];
     }
+
     return undefined;
 }
 
@@ -45,6 +68,7 @@ function withLocaleSlice(current, locale, slice) {
             ? { ...current }
             : {};
     base[locale] = slice;
+
     return base;
 }
 

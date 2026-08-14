@@ -216,11 +216,13 @@ export default function AdminFilesIndex({
 
     const selectionResetKey = `${parentId ?? 'root'}:${trashed}:${selectedTagIds.join(',')}`;
     const selection = useFilesSelection(files, selectionResetKey);
+    const clearSelection = selection.clearSelection;
+    const selectOnly = selection.selectOnly;
 
     const clearSelectionAndDetail = useCallback((): void => {
-        selection.clearSelection();
+        clearSelection();
         setDetailFile(null);
-    }, [selection.clearSelection]);
+    }, [clearSelection]);
 
     useEffect(() => {
         const handleEscape = (event: KeyboardEvent): void => {
@@ -457,7 +459,7 @@ export default function AdminFilesIndex({
                 setFiles(next.data);
                 setPage(next.current_page);
                 setLastPage(next.last_page);
-            } catch (error) {
+            } catch {
                 // Fallback to Inertia reload if API fetch fails
                 router.visit(window.location.href, {
                     only: ['files'],
@@ -1044,11 +1046,14 @@ export default function AdminFilesIndex({
         }
     };
 
-    const openFileDetails = (file: AdminFileRow): void => {
-        setDetailFile(file);
-        selection.selectOnly(file.id);
-        patchLocationQuery({ file: String(file.id) });
-    };
+    const openFileDetails = useCallback(
+        (file: AdminFileRow): void => {
+            setDetailFile(file);
+            selectOnly(file.id);
+            patchLocationQuery({ file: String(file.id) });
+        },
+        [selectOnly],
+    );
 
     const closeFileDetails = (): void => {
         setDetailFile(null);
@@ -1129,6 +1134,7 @@ export default function AdminFilesIndex({
                 setPendingDestructive({ action, targets: selected });
                 setDestructiveRefCount(0);
                 const fileTargets = selected.filter((f) => f.type === 'file');
+
                 if (fileTargets.length > 0 && fileTargets.length <= 10) {
                     setDestructiveRefLoading(true);
                     void Promise.all(
@@ -1145,6 +1151,7 @@ export default function AdminFilesIndex({
                         })
                         .finally(() => setDestructiveRefLoading(false));
                 }
+
                 return;
             }
 
@@ -1267,7 +1274,7 @@ export default function AdminFilesIndex({
                 );
             }
         },
-        [parentId, refreshPage, selection, trackPendingDuplication],
+        [parentId, refreshPage, selection, trackPendingDuplication, trackPendingZip, openFileDetails],
     );
 
     const executePendingDestructive = async (): Promise<void> => {

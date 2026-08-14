@@ -7,11 +7,11 @@ import {
     GripVertical,
     Trash2,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { LocalizedField } from '@/components/collections/localized-field';
 import { FieldNoteSlot } from '@/components/collections/item-field-choice-inputs';
+import { LocalizedField } from '@/components/collections/localized-field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -241,8 +241,11 @@ export function BlocksFieldInput({
     });
     const listRef = useRef<HTMLDivElement>(null);
     const blocksRef = useRef(blocks);
-    blocksRef.current = blocks;
     const nestingBlocked = depth > maxBlocksDepth;
+
+    useLayoutEffect(() => {
+        blocksRef.current = blocks;
+    });
 
     const addBlock = (type?: string) => {
         const nextType = type ?? blockTypes[0]?.key;
@@ -357,7 +360,7 @@ export function BlocksFieldInput({
     useEffect(() => {
         const el = listRef.current;
 
-        if (!el || readonly || blocks.length === 0) {
+        if (!el || readonly || blocksKey === '') {
             return;
         }
 

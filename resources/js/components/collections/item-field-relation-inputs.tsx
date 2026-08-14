@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 
 import { PaginatedMultiSelect } from '@/components/admin/paginated-multi-select';
 import { Input } from '@/components/ui/input';
@@ -305,13 +305,17 @@ export function RelationFieldInput({
     const relationSettings = parseRelationFieldSettings(field.settings);
     const optionsQuery = relationOptionsQuery(field);
     const fetchUrl = `/collections/${collectionId}/items/options?${optionsQuery}`;
-    const initialIds = multiple
-        ? Array.isArray(defaultValue)
-            ? defaultValue
-            : []
-        : typeof defaultValue === 'number'
-          ? [defaultValue]
-          : [];
+    const initialIds = useMemo(
+        () =>
+            multiple
+                ? Array.isArray(defaultValue)
+                    ? defaultValue
+                    : []
+                : typeof defaultValue === 'number'
+                  ? [defaultValue]
+                  : [],
+        [multiple, defaultValue],
+    );
 
     const [selectedIds, setSelectedIds] = useState<number[]>(initialIds);
     const [initialOptions, setInitialOptions] = useState<

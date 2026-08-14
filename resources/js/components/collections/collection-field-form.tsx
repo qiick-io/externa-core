@@ -75,7 +75,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
-import { FIELD_KEY_PATTERN, slugify, slugifyInput } from '@/lib/slugify';
 import {
     DEFAULT_BLOCKS_DEPTH,
     MAX_BLOCKS_DEPTH,
@@ -114,6 +113,7 @@ import type {
 } from '@/lib/collection-field-types';
 import type { FieldConditions } from '@/lib/field-conditions';
 import { parseFieldConditions } from '@/lib/field-conditions';
+import { FIELD_KEY_PATTERN, slugify, slugifyInput } from '@/lib/slugify';
 import { toast } from '@/lib/toast';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import type { CollectionFieldRow } from '@/types';

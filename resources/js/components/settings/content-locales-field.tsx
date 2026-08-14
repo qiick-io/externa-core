@@ -1,5 +1,5 @@
 import { GripVertical, Search, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -79,13 +79,17 @@ export function ContentLocalesField({
     const [query, setQuery] = useState('');
     const listRef = useRef<HTMLDivElement>(null);
     const valueRef = useRef(value);
-    valueRef.current = value;
     const onChangeRef = useRef(onChange);
-    onChangeRef.current = onChange;
     const defaultLocaleRef = useRef(defaultLocale);
-    defaultLocaleRef.current = defaultLocale;
+
+    useLayoutEffect(() => {
+        valueRef.current = value;
+        onChangeRef.current = onChange;
+        defaultLocaleRef.current = defaultLocale;
+    });
 
     const selected = new Set(value);
+    const valueKey = value.join('\0');
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();
@@ -160,7 +164,7 @@ export function ContentLocalesField({
         });
 
         return () => sortable.destroy();
-    }, [value.length, value.join('\0')]);
+    }, [value.length, valueKey]);
 
     return (
         <div className="space-y-4">

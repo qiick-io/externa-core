@@ -1,12 +1,12 @@
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { isLayoutGroupType } from '@/lib/collection-field-groups';
 import {
     supportsDefaultValue,
     FIELD_LAYOUT_WIDTH_OPTIONS,
 } from '@/lib/collection-field-types';
 import type { CommonFieldSettings } from '@/lib/collection-field-types';
-import { isLayoutGroupType } from '@/lib/collection-field-groups';
 
 type CommonAdvancedSettingsProps = {
     fieldType: string;

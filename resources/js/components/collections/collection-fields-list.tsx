@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import {
     useEffect,
+    useLayoutEffect,
     useMemo,
     useRef,
     useState,
@@ -25,8 +26,8 @@ import { useTranslation } from 'react-i18next';
 import Sortable from 'sortablejs';
 import type { MoveEvent, SortableEvent } from 'sortablejs';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
-import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { FIELD_TYPE_ICONS } from '@/components/collections/collection-field-form';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -40,8 +41,18 @@ import {
     intentForLayoutDrop,
     resolveHalfDropOnEnd,
     rowBreakIdsForDropFrame,
-    type OccupiedHalfInsert,
 } from '@/lib/collection-field-drop';
+import type { OccupiedHalfInsert } from '@/lib/collection-field-drop';
+import {
+    buildFieldTree,
+    canNestFieldIntoGroup,
+    fieldsWithGroupOverrides,
+    getFieldGroupName,
+    isLayoutGroupType,
+    isPanelContainerType,
+    wouldCreateGroupCycle,
+} from '@/lib/collection-field-groups';
+import type { FieldTreeNode } from '@/lib/collection-field-groups';
 import {
     fieldLayoutWidthLabel,
     fieldStartsNewLayoutRow,
@@ -54,16 +65,6 @@ import {
     isFieldRequired,
 } from '@/lib/collection-field-types';
 import type { FieldLayoutWidth } from '@/lib/collection-field-types';
-import {
-    buildFieldTree,
-    canNestFieldIntoGroup,
-    fieldsWithGroupOverrides,
-    getFieldGroupName,
-    isLayoutGroupType,
-    isPanelContainerType,
-    wouldCreateGroupCycle,
-} from '@/lib/collection-field-groups';
-import type { FieldTreeNode } from '@/lib/collection-field-groups';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { CollectionFieldRow } from '@/types';
@@ -176,6 +177,7 @@ function uniqueFieldName(used: Set<string>, base: string): string {
     }
 
     let suffix = 2;
+
     while (used.has(`${base}_${suffix}`)) {
         suffix++;
     }
@@ -1201,9 +1203,11 @@ function SortableFieldsList({
     // Bump after onEnd destroy so Sortable remounts even when group signature is unchanged.
     const [sortableEpoch, setSortableEpoch] = useState(0);
 
-    orderedFieldsRef.current = orderedFields;
-    rowBreakFieldIdsRef.current = rowBreakFieldIds;
-    fieldGroupsRef.current = fieldGroups;
+    useLayoutEffect(() => {
+        orderedFieldsRef.current = orderedFields;
+        rowBreakFieldIdsRef.current = rowBreakFieldIds;
+        fieldGroupsRef.current = fieldGroups;
+    });
 
     useEffect(() => {
         if (draggingRef.current) {
@@ -1356,12 +1360,14 @@ function SortableFieldsList({
                 for (const instance of instances) {
                     instance.destroy();
                 }
+
                 instances.length = 0;
 
                 const start = dragStartRef.current;
                 const rootList = root.querySelector<HTMLElement>(
                     ':scope > [data-field-list]',
                 );
+
                 // Sortable may already have inverted seats — put DOM back before React.
                 if (rootList) {
                     restoreFieldDomToStart(
@@ -1694,6 +1700,7 @@ function SortableFieldsList({
             for (const instance of instances) {
                 instance.destroy();
             }
+
             instances.length = 0;
             restoreFieldDomToStart(rootList, start.orderIds, start.groups);
 

@@ -80,11 +80,13 @@ export function getFieldError(
     }
 
     const dataKey = `data.${fieldName}`;
+
     if (typeof errors[dataKey] === 'string') {
         return errors[dataKey] as string;
     }
 
     const dataPattern = new RegExp(`^data\\.${fieldName.replace('.', '\\.')}(\\.|$)`);
+
     for (const [key, value] of Object.entries(errors)) {
         if (dataPattern.test(key) && typeof value === 'string') {
             return value;
@@ -108,6 +110,7 @@ export function getNonFieldErrors(
     }
 
     const messages: string[] = [];
+
     for (const [key, value] of Object.entries(errors)) {
         if (!key.startsWith('data') && !key.startsWith('data.')) {
             if (typeof value === 'string' && value.trim() !== '') {

@@ -72,6 +72,7 @@ export function withReturnParam(targetUrl: string, returnUrl: string): string {
 /** Read and validate `return` from an Inertia page URL (`/path?query`). */
 export function readReturnParam(pageUrl: string): string | null {
     const qIndex = pageUrl.indexOf('?');
+
     if (qIndex === -1) {
         return null;
     }

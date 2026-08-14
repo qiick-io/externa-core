@@ -5,9 +5,9 @@ import {
     Collapsible,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { getFieldDisplayName } from '@/lib/collection-field-types';
 import type { FieldTreeNode } from '@/lib/collection-field-groups';
 import { isLayoutGroupType } from '@/lib/collection-field-groups';
+import { getFieldDisplayName } from '@/lib/collection-field-types';
 import { cn } from '@/lib/utils';
 
 type FieldDef = {
@@ -263,9 +263,11 @@ function GroupAccordionRenderer<T extends FieldDef>({
         if (start === 'opened') {
             return new Set(visible.map((c) => c.field.name));
         }
+
         if (start === 'first' && visible[0]) {
             return new Set([visible[0].field.name]);
         }
+
         return new Set();
     });
 
@@ -275,11 +277,13 @@ function GroupAccordionRenderer<T extends FieldDef>({
         } else {
             setOpenItems((current) => {
                 const next = new Set(current);
+
                 if (next.has(name)) {
                     next.delete(name);
                 } else {
                     next.add(name);
                 }
+
                 return next;
             });
         }
@@ -410,6 +414,7 @@ export function renderGroupFieldTree<T extends FieldDef>({
             if (leafBatch.length === 0) {
                 return;
             }
+
             chunks.push(
                 <Fragment
                     key={`leaves-${leafBatch.map((f) => f.id).join('-')}`}
@@ -428,6 +433,7 @@ export function renderGroupFieldTree<T extends FieldDef>({
                 leafBatch.push(node.field);
             }
         }
+
         flushLeaves();
 
         return <>{chunks}</>;

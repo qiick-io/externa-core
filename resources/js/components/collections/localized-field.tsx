@@ -118,6 +118,7 @@ export function LocalizedField({
         } else if (namePrefix) {
             // ponytail: DOM manipulation fallback for uncontrolled forms
             const form = document.querySelector('form');
+
             if (!form) {
                 return;
             }
@@ -125,6 +126,7 @@ export function LocalizedField({
             const sourceInput = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(
                 `[name="${namePrefix}[${locale}]"]`,
             );
+
             if (!sourceInput) {
                 return;
             }
@@ -133,6 +135,7 @@ export function LocalizedField({
                 const targetInput = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(
                     `[name="${namePrefix}[${code}]"]`,
                 );
+
                 if (targetInput) {
                     targetInput.value = sourceInput.value;
                     targetInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -155,6 +158,7 @@ export function LocalizedField({
         } else if (namePrefix) {
             // ponytail: DOM manipulation fallback for uncontrolled forms
             const form = document.querySelector('form');
+
             if (!form) {
                 return;
             }
@@ -162,6 +166,7 @@ export function LocalizedField({
             const sourceInput = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(
                 `[name="${namePrefix}[${locale}]"]`,
             );
+
             if (!sourceInput) {
                 return;
             }
@@ -170,6 +175,7 @@ export function LocalizedField({
                 const targetInput = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(
                     `[name="${namePrefix}[${code}]"]`,
                 );
+
                 if (targetInput && (targetInput.value ?? '').trim() === '') {
                     targetInput.value = sourceInput.value;
                     targetInput.dispatchEvent(new Event('input', { bubbles: true }));
