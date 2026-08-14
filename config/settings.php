@@ -58,6 +58,8 @@ return [
             'report_error_url',
             'webhook_url',
             'webhook_secret',
+            'revision_retention_count',
+            'revision_retention_days',
         ],
         'defaults' => [
             'name' => null,
@@ -126,6 +128,9 @@ return [
             'webhook_url' => null,
             // Stored encrypted via Crypt; never share plaintext on Inertia shared()
             'webhook_secret' => null,
+            // Null = unlimited; collections can override per axis
+            'revision_retention_count' => null,
+            'revision_retention_days' => null,
         ],
         'sidebar_module_ids' => [
             'ai',

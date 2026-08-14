@@ -31,6 +31,11 @@ export type CollectionRow = {
     icon?: string | null;
     color?: string | null;
     is_singleton: boolean;
+    versioning?: boolean;
+    /** null = unlimited */
+    revision_retention_count?: number | null;
+    /** null = unlimited */
+    revision_retention_days?: number | null;
     sort_order: number;
     deleted_at?: string | null;
 };
@@ -55,6 +60,11 @@ export type CollectionView = {
     icon?: string | null;
     color?: string | null;
     is_singleton: boolean;
+    versioning?: boolean;
+    /** null = unlimited */
+    revision_retention_count?: number | null;
+    /** null = unlimited */
+    revision_retention_days?: number | null;
     sort_order: number;
     form_layout?: Record<string, unknown> | null;
     fields: CollectionFieldRow[];
@@ -76,6 +86,9 @@ export function collectionToFormRow(collection: CollectionView): CollectionRow {
         icon: collection.icon ?? null,
         color: collection.color ?? null,
         is_singleton: collection.is_singleton,
+        versioning: Boolean(collection.versioning),
+        revision_retention_count: collection.revision_retention_count ?? null,
+        revision_retention_days: collection.revision_retention_days ?? null,
         sort_order: collection.sort_order,
     };
 }

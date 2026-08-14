@@ -68,6 +68,8 @@ function buildProjectFormState(project: ProjectSettingsForm) {
         report_error_url: project.report_error_url ?? '',
         webhook_url: project.webhook_url ?? '',
         webhook_secret: '',
+        revision_retention_count: project.revision_retention_count ?? null,
+        revision_retention_days: project.revision_retention_days ?? null,
         sidebar_modules: pinSidebarModules(project.sidebar_modules),
         allowed_transformations: project.allowed_transformations ?? [],
         content_locales: project.content_locales ?? ['en', 'it'],
@@ -238,9 +240,12 @@ export default function ProjectSettingsPage({
 
     const sortableModulesRef = useRef<HTMLDivElement>(null);
     const formRef = useRef(form);
-    formRef.current = form;
     const setFormRef = useRef(setForm);
-    setFormRef.current = setForm;
+
+    useEffect(() => {
+        formRef.current = form;
+        setFormRef.current = setForm;
+    });
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -936,6 +941,100 @@ export default function ProjectSettingsPage({
                                         }
                                     />
                                 </div>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t(
+                                        'settings.project.revisionRetentionTitle',
+                                    )}
+                                    description={t(
+                                        'settings.project.revisionRetentionDescription',
+                                    )}
+                                />
+
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="revision_retention_count">
+                                            {t(
+                                                'settings.project.revisionRetentionCount',
+                                            )}
+                                        </Label>
+                                        <Input
+                                            id="revision_retention_count"
+                                            name="revision_retention_count"
+                                            type="number"
+                                            min={1}
+                                            max={10000}
+                                            value={
+                                                form.revision_retention_count ??
+                                                ''
+                                            }
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    revision_retention_count:
+                                                        event.target.value ===
+                                                        ''
+                                                            ? null
+                                                            : Number(
+                                                                  event.target
+                                                                      .value,
+                                                              ),
+                                                }))
+                                            }
+                                        />
+                                        <InputError
+                                            message={
+                                                errors.revision_retention_count
+                                            }
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="revision_retention_days">
+                                            {t(
+                                                'settings.project.revisionRetentionDays',
+                                            )}
+                                        </Label>
+                                        <Input
+                                            id="revision_retention_days"
+                                            name="revision_retention_days"
+                                            type="number"
+                                            min={1}
+                                            max={3650}
+                                            value={
+                                                form.revision_retention_days ??
+                                                ''
+                                            }
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    revision_retention_days:
+                                                        event.target.value ===
+                                                        ''
+                                                            ? null
+                                                            : Number(
+                                                                  event.target
+                                                                      .value,
+                                                              ),
+                                                }))
+                                            }
+                                        />
+                                        <InputError
+                                            message={
+                                                errors.revision_retention_days
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    {t(
+                                        'settings.project.revisionRetentionHint',
+                                    )}
+                                </p>
                             </div>
 
                             <Separator />

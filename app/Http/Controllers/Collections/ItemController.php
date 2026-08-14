@@ -18,6 +18,7 @@ use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemExportService;
 use App\Services\Collections\CollectionItemOptionsService;
 use App\Services\Collections\CollectionItemQueryService;
+use App\Services\Collections\CollectionItemRevisionRecorder;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\Collections\CollectionListColumnsNormalizer;
@@ -49,6 +50,7 @@ class ItemController extends Controller
         private CollectionPermissionEnforcer $permissionEnforcer,
         private CollectionItemExportService $itemExportService,
         private ItemRolePreviewService $itemRolePreviewService,
+        private CollectionItemRevisionRecorder $revisionRecorder,
     ) {}
 
     /**
@@ -281,7 +283,19 @@ class ItemController extends Controller
             'collection.fields',
         ]);
 
-        $rawData = $this->collectionItemValuesAssembler->assemble($item);
+        $rawPublished = $this->collectionItemValuesAssembler->assemble($item);
+        $version = $request->query('version', $collection->versioning ? 'draft' : 'published');
+        if (! in_array($version, ['published', 'draft'], true)) {
+            $version = 'published';
+        }
+        if (! $collection->versioning) {
+            $version = 'published';
+        }
+
+        $draftData = is_array($item->draft_data) ? $item->draft_data : null;
+        $rawData = ($version === 'draft' && $draftData !== null)
+            ? $draftData
+            : $rawPublished;
 
         $activityLogs = Activity::query()
             ->forSubject($item)
@@ -290,10 +304,16 @@ class ItemController extends Controller
             ->paginate($request->integer('per_page', 10))
             ->withQueryString();
 
+        $itemPayload = (new CollectionItemResource($item))->toArray($request);
+        $itemPayload['has_draft'] = $draftData !== null;
+        $itemPayload['draft_data'] = $draftData;
+
         return Inertia::render('collections/items/form', [
             'collection' => $collection,
-            'item' => (new CollectionItemResource($item))->toArray($request),
+            'item' => $itemPayload,
             'rawData' => $rawData,
+            'publishedData' => $rawPublished,
+            'contentVersion' => $version,
             'isNew' => false,
             'relatedCollections' => $this->relatedCollectionsForSelect(),
             'fieldGrants' => $this->permissionEnforcer->fieldGrantsForForm($request, $collection),
@@ -334,13 +354,34 @@ class ItemController extends Controller
 
     /**
      * Update a collection item while preserving readonly field values.
+     * When collection versioning is on and version=draft, writes draft_data only.
      */
     public function update(UpdateCollectionItemRequest $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
 
-        $data = $this->collectionItemValuesAssembler->assemble($item);
+        $version = (string) ($request->validated('version') ?? 'published');
+        if (! $collection->versioning) {
+            $version = 'published';
+        }
+
+        // Directus-like: published workspace is read-only when versioning is enabled.
+        if ($collection->versioning && $version === 'published') {
+            return redirect()
+                ->route('collections.items.show', [
+                    'collection' => $collection,
+                    'item' => $item,
+                    'version' => 'published',
+                ])
+                ->with('error', __('Switch to Draft to edit, then Publish.'));
+        }
+
+        $base = $version === 'draft' && is_array($item->draft_data)
+            ? $item->draft_data
+            : $this->collectionItemValuesAssembler->assemble($item);
+
+        $data = $base;
 
         $incoming = $request->validated('data') ?? [];
         if (is_array($incoming)) {
@@ -369,10 +410,59 @@ class ItemController extends Controller
 
         $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
 
+        if ($version === 'draft') {
+            $item->draft_data = $normalized;
+            $item->save();
+            $this->revisionRecorder->record($item, [
+                'source' => 'draft',
+                'version' => 'draft',
+            ], $normalized);
+
+            return redirect()->route('collections.items.show', [
+                'collection' => $collection,
+                'item' => $item,
+                'version' => 'draft',
+            ])->with('success', __('Draft saved.'));
+        }
+
         $this->collectionItemValuesWriter->sync($item->fresh(), $collection, $normalized);
 
         return redirect()->route('collections.items.show', [$collection, $item])
             ->with('success', __('Item updated.'));
+    }
+
+    /**
+     * Promote draft_data into published field values (content versioning).
+     */
+    public function publish(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
+    {
+        $this->assertItemBelongsToCollection($collection, $item);
+        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+        abort_unless($collection->versioning, 422);
+
+        $draft = is_array($item->draft_data) ? $item->draft_data : null;
+        if ($draft === null) {
+            return redirect()
+                ->route('collections.items.show', [
+                    'collection' => $collection,
+                    'item' => $item,
+                    'version' => 'draft',
+                ])
+                ->with('error', __('No draft changes to publish.'));
+        }
+
+        $normalized = $this->itemDataNormalizer->normalize($collection, $draft, false);
+        $this->collectionItemValuesWriter->sync($item->fresh(), $collection, $normalized);
+
+        // Keep draft in sync with published after promote (empty workspace again).
+        $item->draft_data = null;
+        $item->save();
+
+        return redirect()->route('collections.items.show', [
+            'collection' => $collection,
+            'item' => $item,
+            'version' => 'published',
+        ])->with('success', __('Published.'));
     }
 
     /**

@@ -27,6 +27,9 @@ use Spatie\EloquentSortable\SortableTrait;
  * @property string|null $icon
  * @property string|null $color
  * @property bool $is_singleton
+ * @property bool $versioning
+ * @property int|null $revision_retention_count
+ * @property int|null $revision_retention_days
  * @property array<string, mixed>|null $form_layout
  * @property int $sort_order
  * @property Carbon|null $deleted_at
@@ -56,6 +59,9 @@ class Collection extends Model implements Sortable
         'icon',
         'color',
         'is_singleton',
+        'versioning',
+        'revision_retention_count',
+        'revision_retention_days',
         'form_layout',
         'sort_order',
     ];
@@ -153,6 +159,9 @@ class Collection extends Model implements Sortable
         return [
             'status' => CollectionStatusEnum::class,
             'is_singleton' => 'boolean',
+            'versioning' => 'boolean',
+            'revision_retention_count' => 'integer',
+            'revision_retention_days' => 'integer',
             'form_layout' => 'array',
         ];
     }

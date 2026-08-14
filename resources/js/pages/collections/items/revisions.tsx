@@ -1,9 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
+import { jsonRequestHeaders } from '@/lib/csrf';
 import collections from '@/routes/collections';
 import type { BreadcrumbItem } from '@/types';
 
@@ -13,6 +16,15 @@ type RevisionRow = {
     created_at: string | null;
     meta: Record<string, unknown> | null;
     data: Record<string, unknown>;
+    summary?: string;
+};
+
+type RevisionsMeta = {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    has_more: boolean;
 };
 
 /**
@@ -21,14 +33,28 @@ type RevisionRow = {
 export default function ItemRevisions({
     collection,
     item,
-    revisions,
+    revisions: initialRevisions,
+    meta: initialMeta,
+    filters: initialFilters,
 }: {
     collection: { id: number; name: string; slug: string };
     item: { id: number };
     revisions: RevisionRow[];
+    meta: RevisionsMeta;
+    filters: { date_from: string; date_to: string };
 }) {
+    const [revisions, setRevisions] = useState(initialRevisions);
+    const [meta, setMeta] = useState(initialMeta);
+    const [dateFrom, setDateFrom] = useState(initialFilters.date_from ?? '');
+    const [dateTo, setDateTo] = useState(initialFilters.date_to ?? '');
+    const [appliedFrom, setAppliedFrom] = useState(
+        initialFilters.date_from ?? '',
+    );
+    const [appliedTo, setAppliedTo] = useState(initialFilters.date_to ?? '');
+    const [loading, setLoading] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [selected, setSelected] = useState<number[]>(
-        revisions.slice(0, 2).map((r) => r.id),
+        initialRevisions.slice(0, 2).map((r) => r.id),
     );
     const [restoreRevisionId, setRestoreRevisionId] = useState<number | null>(
         null,
@@ -53,6 +79,108 @@ export default function ItemRevisions({
             href: `/collections/${collection.id}/items/${item.id}/revisions`,
         },
     ];
+
+    const fetchPage = useCallback(
+        (
+            page: number,
+            filters: { date_from: string; date_to: string },
+            append: boolean,
+        ): void => {
+            if (append) {
+                setLoadingMore(true);
+            } else {
+                setLoading(true);
+            }
+
+            const params = new URLSearchParams({
+                json: '1',
+                page: String(page),
+            });
+
+            if (filters.date_from) {
+                params.set('date_from', filters.date_from);
+            }
+
+            if (filters.date_to) {
+                params.set('date_to', filters.date_to);
+            }
+
+            void fetch(
+                `/collections/${collection.id}/items/${item.id}/revisions?${params}`,
+                {
+                    headers: {
+                        ...jsonRequestHeaders(),
+                        Accept: 'application/json',
+                    },
+                    credentials: 'same-origin',
+                },
+            )
+                .then(async (response) => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const payload = (await response.json()) as {
+                        revisions?: RevisionRow[];
+                        meta?: RevisionsMeta;
+                    };
+                    const next = Array.isArray(payload.revisions)
+                        ? payload.revisions
+                        : [];
+                    setRevisions((prev) => (append ? [...prev, ...next] : next));
+                    setMeta(
+                        payload.meta ?? {
+                            current_page: page,
+                            last_page: page,
+                            per_page: 20,
+                            total: next.length,
+                            has_more: false,
+                        },
+                    );
+
+                    if (!append) {
+                        setSelected(next.slice(0, 2).map((r) => r.id));
+                    }
+                })
+                .catch(() => {
+                    if (!append) {
+                        setRevisions([]);
+                        setSelected([]);
+                    }
+                })
+                .finally(() => {
+                    setLoading(false);
+                    setLoadingMore(false);
+                });
+        },
+        [collection.id, item.id],
+    );
+
+    const applyFilter = (): void => {
+        setAppliedFrom(dateFrom);
+        setAppliedTo(dateTo);
+        fetchPage(1, { date_from: dateFrom, date_to: dateTo }, false);
+    };
+
+    const clearFilter = (): void => {
+        setDateFrom('');
+        setDateTo('');
+        setAppliedFrom('');
+        setAppliedTo('');
+        fetchPage(1, { date_from: '', date_to: '' }, false);
+    };
+
+    const loadMore = (): void => {
+        if (!meta.has_more || loading || loadingMore) {
+            return;
+        }
+
+        fetchPage(
+            meta.current_page + 1,
+            { date_from: appliedFrom, date_to: appliedTo },
+            true,
+        );
+    };
 
     const compared = useMemo(() => {
         if (selected.length < 2) {
@@ -107,11 +235,13 @@ export default function ItemRevisions({
         );
     };
 
+    const filterActive = appliedFrom !== '' || appliedTo !== '';
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`History — Item #${item.id}`} />
             <PageLayout description="Select two revisions to compare. Restore writes a snapshot as a new update.">
-                <div className="mb-4">
+                <div className="mb-4 flex flex-wrap items-end gap-3">
                     <Button variant="outline" asChild>
                         <Link
                             href={collections.items.show.url({
@@ -122,62 +252,133 @@ export default function ItemRevisions({
                             Back to item
                         </Link>
                     </Button>
+                    <div className="space-y-1">
+                        <Label htmlFor="history-date-from">From</Label>
+                        <Input
+                            id="history-date-from"
+                            type="date"
+                            value={dateFrom}
+                            onChange={(event) =>
+                                setDateFrom(event.target.value)
+                            }
+                            className="h-9 w-auto"
+                            aria-label="From date"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor="history-date-to">To</Label>
+                        <Input
+                            id="history-date-to"
+                            type="date"
+                            value={dateTo}
+                            min={dateFrom || undefined}
+                            onChange={(event) => setDateTo(event.target.value)}
+                            className="h-9 w-auto"
+                            aria-label="To date"
+                        />
+                    </div>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={applyFilter}
+                        disabled={loading}
+                    >
+                        Filter
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={clearFilter}
+                        disabled={loading || !filterActive}
+                    >
+                        Clear
+                    </Button>
                 </div>
                 <div className="grid gap-6 lg:grid-cols-2">
                     <div className="space-y-2">
                         <h2 className="text-sm font-medium">Revisions</h2>
-                        {revisions.length === 0 ? (
+                        {loading ? (
                             <p className="text-sm text-muted-foreground">
-                                No revisions yet.
+                                Loading…
+                            </p>
+                        ) : null}
+                        {!loading && revisions.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                {filterActive
+                                    ? 'No revisions for this date range.'
+                                    : 'No revisions yet.'}
                             </p>
                         ) : (
-                            <ul className="divide-y rounded-xl border border-sidebar-border/70">
-                                {revisions.map((revision) => {
-                                    const active = selected.includes(
-                                        revision.id,
-                                    );
+                            <>
+                                <ul className="divide-y rounded-xl border border-sidebar-border/70">
+                                    {revisions.map((revision) => {
+                                        const active = selected.includes(
+                                            revision.id,
+                                        );
 
-                                    return (
-                                        <li
-                                            key={revision.id}
-                                            className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
-                                        >
-                                            <button
-                                                type="button"
-                                                className="flex flex-1 flex-col items-start text-left"
-                                                onClick={() =>
-                                                    toggleSelect(revision.id)
-                                                }
+                                        return (
+                                            <li
+                                                key={revision.id}
+                                                className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
                                             >
-                                                <span className="font-medium">
-                                                    #{revision.id}
-                                                    {active
-                                                        ? ' · selected'
-                                                        : ''}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {revision.created_at ?? '—'}{' '}
-                                                    ·{' '}
-                                                    {revision.user?.name ??
-                                                        'System'}
-                                                </span>
-                                            </button>
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() =>
-                                                    setRestoreRevisionId(
-                                                        revision.id,
-                                                    )
-                                                }
-                                            >
-                                                Restore
-                                            </Button>
-                                        </li>
-                                    );
-                                })}
-                            </ul>
+                                                <button
+                                                    type="button"
+                                                    className="flex flex-1 flex-col items-start text-left"
+                                                    onClick={() =>
+                                                        toggleSelect(
+                                                            revision.id,
+                                                        )
+                                                    }
+                                                >
+                                                    <span className="font-medium">
+                                                        #{revision.id}
+                                                        {active
+                                                            ? ' · selected'
+                                                            : ''}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {revision.created_at
+                                                            ? new Date(
+                                                                  revision.created_at,
+                                                              ).toLocaleString()
+                                                            : '—'}{' '}
+                                                        ·{' '}
+                                                        {revision.user?.name ??
+                                                            'System'}
+                                                    </span>
+                                                </button>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        setRestoreRevisionId(
+                                                            revision.id,
+                                                        )
+                                                    }
+                                                >
+                                                    Restore
+                                                </Button>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                                {meta.has_more ? (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full"
+                                        disabled={loading || loadingMore}
+                                        onClick={loadMore}
+                                    >
+                                        {loadingMore
+                                            ? 'Loading…'
+                                            : 'Load more'}
+                                    </Button>
+                                ) : null}
+                            </>
                         )}
                     </div>
                     <div className="space-y-2">

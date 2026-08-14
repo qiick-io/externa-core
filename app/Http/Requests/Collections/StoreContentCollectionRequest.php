@@ -48,6 +48,9 @@ class StoreContentCollectionRequest extends FormRequest
             'icon' => ['nullable', 'string', 'max:64'],
             'color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'is_singleton' => ['sometimes', 'boolean'],
+            'versioning' => ['sometimes', 'boolean'],
+            'revision_retention_count' => ['nullable', 'integer', 'min:1', 'max:10000'],
+            'revision_retention_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
         ];
     }
 
@@ -73,6 +76,14 @@ class StoreContentCollectionRequest extends FormRequest
         if ($this->input('description') === '') {
             $this->merge(['description' => null]);
         }
+
+        if (! $this->filled('revision_retention_count')) {
+            $this->merge(['revision_retention_count' => null]);
+        }
+
+        if (! $this->filled('revision_retention_days')) {
+            $this->merge(['revision_retention_days' => null]);
+        }
     }
 
     /**
@@ -82,6 +93,7 @@ class StoreContentCollectionRequest extends FormRequest
     {
         $this->merge([
             'is_singleton' => $this->boolean('is_singleton'),
+            'versioning' => $this->boolean('versioning'),
             'status' => $this->input('status', CollectionStatusEnum::Active->value),
         ]);
     }

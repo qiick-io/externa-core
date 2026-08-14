@@ -78,6 +78,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
         ->name('collections.items.revisions.restore');
 
+    Route::post('collections/{collection}/items/{item}/publish', [ItemController::class, 'publish'])
+        ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
+        ->name('collections.items.publish');
+
     Route::get('collections/{collection}/items/{item}/preview-as-role', [ItemController::class, 'previewAsRole'])
         ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
         ->name('collections.items.preview-as-role');

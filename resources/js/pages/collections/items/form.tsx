@@ -4,18 +4,20 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
-import { ItemPreviewAsRoleDialog } from '@/components/collections/item-preview-as-role-dialog';
-import type { PreviewRoleOption } from '@/components/collections/item-preview-as-role-dialog';
-import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
+import type { PreviewRoleOption } from '@/components/collections/item-preview-as-role-dialog';
+import { ItemPreviewAsRoleDialog } from '@/components/collections/item-preview-as-role-dialog';
+import { ItemRevisionCompareModal } from '@/components/collections/item-revision-compare-modal';
+import type { RevisionSnapshot } from '@/components/collections/item-revision-compare-modal';
+import { ItemRevisionsDrawer } from '@/components/collections/item-revisions-drawer';
+import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
+import { FilterSearch } from '@/components/layout/page-header';
 import {
     PageLayout,
     TablePagination,
     TablePanel,
 } from '@/components/layout/page-layout';
-import { FilterSearch } from '@/components/layout/page-header';
-import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,6 +28,13 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
     Table,
     TableBody,
     TableCell,
@@ -34,10 +43,13 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { useCollection } from '@/hooks/use-collection';
-import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
+import {
+    useRegisterUnsavedChanges,
+    useRequestLeave,
+} from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
-import adminRoutes from '@/lib/admin-routes';
 import { getNonFieldErrors } from '@/lib/collection-data-errors';
 import { contentLocaleMeta } from '@/lib/content-locales-catalog';
 import {
@@ -68,6 +80,8 @@ type ItemPayload = {
     updated_at?: string | null;
     user_created?: { id: number; name: string; email?: string | null } | null;
     user_updated?: { id: number; name: string; email?: string | null } | null;
+    has_draft?: boolean;
+    draft_data?: Record<string, unknown> | null;
 };
 
 /**
@@ -78,6 +92,8 @@ export default function ItemsForm({
     collection,
     item,
     rawData,
+    publishedData = null,
+    contentVersion = 'published',
     isNew,
     relatedCollections = [],
     fieldGrants = null,
@@ -87,6 +103,8 @@ export default function ItemsForm({
     collection: CollectionView;
     item: ItemPayload | null;
     rawData: Record<string, unknown>;
+    publishedData?: Record<string, unknown> | null;
+    contentVersion?: 'published' | 'draft';
     isNew: boolean;
     relatedCollections?: { id: number; name: string; slug: string }[];
     /** null = unrestricted; otherwise per-field read/create/update flags */
@@ -99,11 +117,13 @@ export default function ItemsForm({
 }) {
     const { t } = useTranslation();
     const page = usePage();
+    const requestLeave = useRequestLeave();
     const activityLogs = activityLogsProp
         ? normalizePaginated(activityLogsProp)
         : null;
     const listHref = useMemo(() => {
         const fromReturn = readReturnParam(page.url);
+
         return fromReturn ?? collections.items.index.url(collection.id);
     }, [page.url, collection.id]);
 
@@ -111,7 +131,7 @@ export default function ItemsForm({
     const initialDraft = useMemo(
         () => readItemDraft(collection.id, draftItemKey),
         // one-shot on mount for this item
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
         [collection.id, draftItemKey],
     );
 
@@ -136,7 +156,21 @@ export default function ItemsForm({
     const [activeTab, setActiveTab] = useState<'fields' | 'activity'>('fields');
     const [fieldSearch, setFieldSearch] = useState('');
     const [globalLocale, setGlobalLocale] = useState(locales[0] ?? 'en');
+    const [revisionsOpen, setRevisionsOpen] = useState(false);
+    const [compareRevision, setCompareRevision] =
+        useState<RevisionSnapshot | null>(null);
+    const [allRevisions, setAllRevisions] = useState<RevisionSnapshot[]>([]);
+    const [revisionApply, setRevisionApply] = useState<{
+        nonce: number;
+        values: Record<string, unknown>;
+    } | null>(null);
+    const [publishing, setPublishing] = useState(false);
     const draftTimer = useRef<number | null>(null);
+
+    const versioningEnabled = Boolean(collection.versioning);
+    const viewingPublished = versioningEnabled && contentVersion === 'published';
+    const formReadonly = viewingPublished;
+    const latestForCompare = publishedData ?? rawData;
 
     /**
      * Apply current locale values to all locales (ponytail: DOM manipulation).
@@ -145,6 +179,7 @@ export default function ItemsForm({
         const form = document.getElementById(
             COLLECTION_ITEM_FORM_ID,
         ) as HTMLFormElement | null;
+
         if (!form) {
             return;
         }
@@ -156,17 +191,20 @@ export default function ItemsForm({
         for (const input of inputs) {
             const name = input.name;
             const match = name.match(/^data\[([^\]]+)\]\[([^\]]+)\]$/);
+
             if (!match) {
                 continue;
             }
 
             const [, fieldName, locale] = match;
+
             if (locale === globalLocale) {
                 // Apply this value to all other locales
                 for (const targetLocale of locales) {
                     if (targetLocale === globalLocale) {
                         continue;
                     }
+
                     const targetName = `data[${fieldName}][${targetLocale}]`;
                     const targetInput = form.querySelector<
                         HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -180,6 +218,7 @@ export default function ItemsForm({
                         } else {
                             targetInput.value = input.value;
                         }
+
                         targetInput.dispatchEvent(new Event('input', { bubbles: true }));
                     }
                 }
@@ -197,6 +236,7 @@ export default function ItemsForm({
         const form = document.getElementById(
             COLLECTION_ITEM_FORM_ID,
         ) as HTMLFormElement | null;
+
         if (!form) {
             return;
         }
@@ -208,17 +248,20 @@ export default function ItemsForm({
         for (const input of inputs) {
             const name = input.name;
             const match = name.match(/^data\[([^\]]+)\]\[([^\]]+)\]$/);
+
             if (!match) {
                 continue;
             }
 
             const [, fieldName, locale] = match;
+
             if (locale === globalLocale) {
                 // Apply this value only to empty locales
                 for (const targetLocale of locales) {
                     if (targetLocale === globalLocale) {
                         continue;
                     }
+
                     const targetName = `data[${fieldName}][${targetLocale}]`;
                     const targetInput = form.querySelector<
                         HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -237,6 +280,7 @@ export default function ItemsForm({
                             } else {
                                 targetInput.value = input.value;
                             }
+
                             targetInput.dispatchEvent(new Event('input', { bubbles: true }));
                         }
                     }
@@ -263,12 +307,15 @@ export default function ItemsForm({
         if (!draftBanner || !initialDraft) {
             return;
         }
+
         const form = document.getElementById(
             COLLECTION_ITEM_FORM_ID,
         ) as HTMLFormElement | null;
+
         if (!form) {
             return;
         }
+
         applyItemDraftToForm(form, initialDraft);
         setIsDirty(true);
     }, [draftBanner, initialDraft, formKey]);
@@ -277,13 +324,16 @@ export default function ItemsForm({
         if (draftTimer.current) {
             window.clearTimeout(draftTimer.current);
         }
+
         draftTimer.current = window.setTimeout(() => {
             const form = document.getElementById(
                 COLLECTION_ITEM_FORM_ID,
             ) as HTMLFormElement | null;
+
             if (!form) {
                 return;
             }
+
             writeItemDraft(
                 collection.id,
                 draftItemKey,
@@ -326,8 +376,6 @@ export default function ItemsForm({
         ? `New item — ${collection.name}`
         : `Item #${item!.id} — ${collection.name}`;
 
-    const heading = isNew ? 'New item' : `Item #${item!.id}`;
-
     const formProps = isNew
         ? wayfinderInertiaFormProps(
               ItemController.store,
@@ -356,13 +404,14 @@ export default function ItemsForm({
                         />
                     )}
                     {!isNew && item !== null && (
-                        <Button variant="outline" asChild>
-                            <Link
-                                href={`/collections/${collection.id}/items/${item.id}/revisions`}
-                            >
-                                <History className="size-4" />
-                                Revisions
-                            </Link>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            data-test="open-revisions-drawer"
+                            onClick={() => setRevisionsOpen(true)}
+                        >
+                            <History className="size-4" />
+                            Revisions
                         </Button>
                     )}
                     <Button variant="outline" asChild>
@@ -385,10 +434,15 @@ export default function ItemsForm({
                         isDirty={isDirty}
                         className="flex items-center gap-2"
                     />
-                    {hasFields && (
+                    {hasFields && !formReadonly && (
                         <Button type="submit" form={COLLECTION_ITEM_FORM_ID}>
                             <Save className="size-4" />
-                            {isNew ? 'Create' : 'Save'}
+                            {isNew
+                                ? 'Create'
+                                : versioningEnabled &&
+                                    contentVersion === 'draft'
+                                  ? 'Save draft'
+                                  : 'Save'}
                         </Button>
                     )}
                 </>
@@ -407,14 +461,86 @@ export default function ItemsForm({
                     ) : undefined
                 }
                 filtersRight={
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                        {!isNew && item !== null && versioningEnabled && (
+                            <Select
+                                value={contentVersion}
+                                onValueChange={(value) => {
+                                    if (
+                                        value !== 'published' &&
+                                        value !== 'draft'
+                                    ) {
+                                        return;
+                                    }
+
+                                    void requestLeave().then((ok) => {
+                                        if (!ok) {
+                                            return;
+                                        }
+
+                                        router.get(
+                                            collections.items.show.url({
+                                                collection: collection.id,
+                                                item: item.id,
+                                            }),
+                                            { version: value },
+                                            { preserveScroll: true },
+                                        );
+                                    });
+                                }}
+                            >
+                                <SelectTrigger
+                                    size="sm"
+                                    className="w-auto min-w-0 gap-1 px-2 text-xs"
+                                    data-test="content-version-select"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="published">
+                                        Published
+                                    </SelectItem>
+                                    <SelectItem value="draft">
+                                        Draft
+                                        {item.has_draft ? '' : ' (empty)'}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}
+                        {!isNew &&
+                            item !== null &&
+                            versioningEnabled &&
+                            contentVersion === 'draft' && (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="secondary"
+                                    className="px-2.5 text-xs"
+                                    disabled={publishing || !item.has_draft}
+                                    data-test="publish-item"
+                                    onClick={() => {
+                                        setPublishing(true);
+                                        router.post(
+                                            `/collections/${collection.id}/items/${item.id}/publish`,
+                                            {},
+                                            {
+                                                onFinish: () =>
+                                                    setPublishing(false),
+                                            },
+                                        );
+                                    }}
+                                >
+                                    Publish
+                                </Button>
+                            )}
                         {hasFields && locales.length > 1 && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        className="h-9 gap-2"
+                                        size="sm"
+                                        className="gap-1.5 px-2"
                                     >
                                         <ContentLocaleFlag
                                             region={contentLocaleMeta(globalLocale).flag}
@@ -429,6 +555,7 @@ export default function ItemsForm({
                                 <DropdownMenuContent align="end" className="min-w-48">
                                     {locales.map((code) => {
                                         const meta = contentLocaleMeta(code);
+
                                         return (
                                             <DropdownMenuItem
                                                 key={code}
@@ -543,6 +670,7 @@ export default function ItemsForm({
                                 }}
                                 onError={(errors) => {
                                     const nonFieldErrors = getNonFieldErrors(errors);
+
                                     if (nonFieldErrors.length > 0) {
                                         nonFieldErrors.forEach((msg) => {
                                             toast.error(msg);
@@ -559,20 +687,31 @@ export default function ItemsForm({
                                 }}
                             >
                                 {({ errors }) => (
-                                    <DynamicItemFields
-                                        variant="plain"
-                                        collectionId={collection.id}
-                                        fields={collection.fields}
-                                        locales={locales}
-                                        defaults={contentDefaults}
-                                        relatedCollections={relatedCollections}
-                                        formLayout={collection.form_layout}
-                                        fieldGrants={fieldGrants}
-                                        isNew={isNew}
-                                        fieldSearch={fieldSearch}
-                                        errors={errors as Record<string, unknown>}
-                                        defaultLocale={globalLocale}
-                                    />
+                                    <>
+                                        {!isNew && versioningEnabled ? (
+                                            <input
+                                                type="hidden"
+                                                name="version"
+                                                value={contentVersion}
+                                            />
+                                        ) : null}
+                                        <DynamicItemFields
+                                            variant="plain"
+                                            collectionId={collection.id}
+                                            fields={collection.fields}
+                                            locales={locales}
+                                            defaults={contentDefaults}
+                                            relatedCollections={relatedCollections}
+                                            formLayout={collection.form_layout}
+                                            fieldGrants={fieldGrants}
+                                            isNew={isNew}
+                                            fieldSearch={fieldSearch}
+                                            errors={errors as Record<string, unknown>}
+                                            defaultLocale={globalLocale}
+                                            forceReadonly={formReadonly}
+                                            revisionApply={revisionApply}
+                                        />
+                                    </>
                                 )}
                             </Form>
                         ) : (
@@ -591,6 +730,7 @@ export default function ItemsForm({
                                         }}
                                         onError={(errors) => {
                                             const nonFieldErrors = getNonFieldErrors(errors);
+
                                             if (nonFieldErrors.length > 0) {
                                                 nonFieldErrors.forEach((msg) => {
                                                     toast.error(msg);
@@ -598,29 +738,58 @@ export default function ItemsForm({
                                             }
                                         }}
                                         onInput={() => {
+                                            if (formReadonly) {
+                                                return;
+                                            }
+
                                             setIsDirty(true);
                                             scheduleDraftSave();
                                         }}
                                         onChange={() => {
+                                            if (formReadonly) {
+                                                return;
+                                            }
+
                                             setIsDirty(true);
                                             scheduleDraftSave();
                                         }}
                                     >
                                         {({ errors }) => (
-                                            <DynamicItemFields
-                                                variant="plain"
-                                                collectionId={collection.id}
-                                                fields={collection.fields}
-                                                locales={locales}
-                                                defaults={contentDefaults}
-                                                relatedCollections={relatedCollections}
-                                                formLayout={collection.form_layout}
-                                                fieldGrants={fieldGrants}
-                                                isNew={isNew}
-                                                fieldSearch={fieldSearch}
-                                                errors={errors as Record<string, unknown>}
-                                                defaultLocale={globalLocale}
-                                            />
+                                            <>
+                                                {versioningEnabled ? (
+                                                    <input
+                                                        type="hidden"
+                                                        name="version"
+                                                        value={contentVersion}
+                                                    />
+                                                ) : null}
+                                                {formReadonly ? (
+                                                    <p
+                                                        className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+                                                        data-test="published-readonly-banner"
+                                                    >
+                                                        Published is read-only.
+                                                        Switch to Draft to edit,
+                                                        then Publish.
+                                                    </p>
+                                                ) : null}
+                                                <DynamicItemFields
+                                                    variant="plain"
+                                                    collectionId={collection.id}
+                                                    fields={collection.fields}
+                                                    locales={locales}
+                                                    defaults={contentDefaults}
+                                                    relatedCollections={relatedCollections}
+                                                    formLayout={collection.form_layout}
+                                                    fieldGrants={fieldGrants}
+                                                    isNew={isNew}
+                                                    fieldSearch={fieldSearch}
+                                                    errors={errors as Record<string, unknown>}
+                                                    defaultLocale={globalLocale}
+                                                    forceReadonly={formReadonly}
+                                                    revisionApply={revisionApply}
+                                                />
+                                            </>
                                         )}
                                     </Form>
                                 )}
@@ -790,6 +959,68 @@ export default function ItemsForm({
                                 onFinish: () => setDeleting(false),
                                 onError: () => setDeleteOpen(false),
                             },
+                        );
+                    }}
+                />
+            )}
+
+            {!isNew && item !== null && (
+                <ItemRevisionsDrawer
+                    open={revisionsOpen}
+                    onOpenChange={setRevisionsOpen}
+                    collectionId={collection.id}
+                    itemId={item.id}
+                    onSelectRevision={(revision, all) => {
+                        setAllRevisions(all);
+                        setCompareRevision(revision);
+                        setRevisionsOpen(false);
+                    }}
+                />
+            )}
+
+            {!isNew && item !== null && (
+                <ItemRevisionCompareModal
+                    open={compareRevision !== null}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setCompareRevision(null);
+                        }
+                    }}
+                    collectionId={collection.id}
+                    fields={collection.fields}
+                    locales={locales}
+                    formLayout={collection.form_layout}
+                    relatedCollections={relatedCollections}
+                    latestData={
+                        contentVersion === 'draft' ? rawData : latestForCompare
+                    }
+                    revision={compareRevision}
+                    previousRevision={
+                        compareRevision
+                            ? (allRevisions[
+                                  allRevisions.findIndex(
+                                      (row) => row.id === compareRevision.id,
+                                  ) + 1
+                              ] ?? null)
+                            : null
+                    }
+                    onApply={(values) => {
+                        if (formReadonly) {
+                            toast.error(
+                                'Switch to Draft before applying a revision.',
+                            );
+
+                            return;
+                        }
+
+                        setRevisionApply({
+                            nonce: Date.now(),
+                            values,
+                        });
+                        setIsDirty(true);
+                        scheduleDraftSave();
+                        toast.success(
+                            'Revision applied to the form. Save to keep.',
                         );
                     }}
                 />

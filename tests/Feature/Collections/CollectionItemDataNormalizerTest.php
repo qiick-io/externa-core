@@ -119,3 +119,45 @@ it('normalizes translatable booleans from strings per locale', function (): void
     expect($out['visible']['en'])->toBeTrue();
     expect($out['visible']['it'])->toBeFalse();
 });
+
+it('canonicalizes date values to datetime-local minute precision', function (): void {
+    $collection = Collection::factory()->create();
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'when',
+        'type' => FieldTypeEnum::Date,
+        'translatable' => false,
+    ]);
+
+    $normalizer = app(CollectionItemDataNormalizer::class);
+
+    expect($normalizer->normalize($collection, [
+        'when' => '2024-02-01T12:00:00.000Z',
+    ])['when'])->toBe('2024-02-01T12:00');
+
+    expect($normalizer->normalize($collection, [
+        'when' => '2024-02-01T12:00',
+    ])['when'])->toBe('2024-02-01T12:00');
+});
+
+it('omits empty locale slots on translatable strings', function (): void {
+    $collection = Collection::factory()->create();
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+        'translatable' => true,
+    ]);
+
+    $normalizer = app(CollectionItemDataNormalizer::class);
+
+    $out = $normalizer->normalize($collection, [
+        'title' => [
+            'en' => 'Hello',
+            'it' => null,
+        ],
+    ]);
+
+    expect($out['title'])->toBe(['en' => 'Hello']);
+    expect($out['title'])->not->toHaveKey('it');
+});

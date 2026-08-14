@@ -18,6 +18,11 @@ return new class extends Migration
             $table->string('icon')->nullable();
             $table->string('color', 7)->nullable();
             $table->boolean('is_singleton')->default(false);
+            // Lean Directus-like content versioning (draft vs published) — no versions table.
+            $table->boolean('versioning')->default(false);
+            // Null = unlimited for that axis; when both set, prune by age first then keep newest N.
+            $table->unsignedInteger('revision_retention_count')->nullable();
+            $table->unsignedInteger('revision_retention_days')->nullable();
             if (Schema::getConnection()->getDriverName() === 'pgsql') {
                 $table->jsonb('form_layout')->nullable();
             } else {
@@ -73,6 +78,12 @@ return new class extends Migration
                 ->nullable()
                 ->constrained('users')
                 ->nullOnDelete();
+            // Draft workspace snapshot when collection.versioning is on (null = draft == published).
+            if (Schema::getConnection()->getDriverName() === 'pgsql') {
+                $table->jsonb('draft_data')->nullable();
+            } else {
+                $table->json('draft_data')->nullable();
+            }
             $table->timestamps();
             $table->softDeletes();
         });

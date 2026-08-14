@@ -288,6 +288,22 @@ class ProjectSettings
     }
 
     /**
+     * Project default max revision count (null = unlimited until a collection overrides).
+     */
+    public function revisionRetentionCount(): ?int
+    {
+        return $this->raw()['revision_retention_count'];
+    }
+
+    /**
+     * Project default revision age in days (null = unlimited until a collection overrides).
+     */
+    public function revisionRetentionDays(): ?int
+    {
+        return $this->raw()['revision_retention_days'];
+    }
+
+    /**
      * Decrypted webhook signing secret, or null when unset/unreadable.
      */
     public function webhookSecret(): ?string
@@ -376,6 +392,16 @@ class ProjectSettings
             'webhook_secret' => is_string($raw['webhook_secret'] ?? null) && $raw['webhook_secret'] !== ''
                 ? $raw['webhook_secret']
                 : null,
+            'revision_retention_count' => $this->nullablePositiveInt(
+                $raw['revision_retention_count'] ?? null,
+                1,
+                10000,
+            ),
+            'revision_retention_days' => $this->nullablePositiveInt(
+                $raw['revision_retention_days'] ?? null,
+                1,
+                3650,
+            ),
         ];
     }
 
@@ -768,5 +794,24 @@ class ProjectSettings
         }
 
         return trim($value);
+    }
+
+    private function nullablePositiveInt(mixed $value, int $min, int $max): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (! is_numeric($value)) {
+            return null;
+        }
+
+        $int = (int) $value;
+
+        if ($int < $min || $int > $max) {
+            return null;
+        }
+
+        return $int;
     }
 }

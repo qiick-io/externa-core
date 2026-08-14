@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property int $collection_id
  * @property int|null $user_created_id
  * @property int|null $user_updated_id
+ * @property array<string, mixed>|null $draft_data
  * @property Carbon|null $deleted_at
  */
 class CollectionItem extends Model
@@ -34,7 +35,18 @@ class CollectionItem extends Model
         'collection_id',
         'user_created_id',
         'user_updated_id',
+        'draft_data',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'draft_data' => 'array',
+        ];
+    }
 
     protected static function booted(): void
     {

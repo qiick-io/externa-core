@@ -3,7 +3,8 @@
 /**
  * Console commands and scheduled maintenance tasks.
  *
- * Schedules clean up activity logs, stale uploads/zips, AI attachments, and sync sources.
+ * Schedules clean up activity logs, stale uploads/zips, AI attachments, sync sources,
+ * and collection item revisions past retention limits.
  */
 
 use Illuminate\Foundation\Inspiring;
@@ -19,3 +20,4 @@ Schedule::command('files:cleanup-uploads')->hourly();
 Schedule::command('files:cleanup-zips')->hourly();
 Schedule::command('ai:cleanup-attachments')->daily();
 Schedule::command('ai:run-sync-sources')->everyMinute();
+Schedule::command('collections:prune-revisions')->daily();

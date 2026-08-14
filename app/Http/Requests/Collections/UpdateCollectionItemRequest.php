@@ -7,6 +7,7 @@ use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Models\Collection;
 use App\Services\Collections\CollectionItemDataRuleBuilder;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 /**
@@ -36,12 +37,15 @@ class UpdateCollectionItemRequest extends FormRequest
         $item = $this->route('item');
         $excludeItemId = $item?->id;
 
-        return app(CollectionItemDataRuleBuilder::class)->rules(
-            $collection,
-            false,
-            $excludeItemId,
-            is_array($this->input('data')) ? $this->input('data') : [],
-        );
+        return [
+            'version' => ['sometimes', 'string', Rule::in(['published', 'draft'])],
+            ...app(CollectionItemDataRuleBuilder::class)->rules(
+                $collection,
+                false,
+                $excludeItemId,
+                is_array($this->input('data')) ? $this->input('data') : [],
+            ),
+        ];
     }
 
     /**

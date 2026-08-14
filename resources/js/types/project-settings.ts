@@ -38,6 +38,8 @@ export type ProjectSettingsForm = {
     report_error_url: string | null;
     webhook_url: string | null;
     webhook_secret_configured: boolean;
+    revision_retention_count: number | null;
+    revision_retention_days: number | null;
 };
 
 export type SharedProjectSettings = {

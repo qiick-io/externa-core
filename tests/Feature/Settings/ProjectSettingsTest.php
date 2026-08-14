@@ -51,6 +51,8 @@ test('authorized users can view and update project settings', function () {
             ->where('project.default_language', 'en')
             ->where('project.registration_enabled', true)
             ->where('project.preset_transformations.0.key', 'thumbnail')
+            ->where('project.revision_retention_count', null)
+            ->where('project.revision_retention_days', null)
         );
 
     $modules = config('settings.project.defaults.sidebar_modules');
@@ -76,6 +78,8 @@ test('authorized users can view and update project settings', function () {
             'report_issue_url' => 'https://example.com/issues',
             'report_bug_url' => 'https://example.com/bugs',
             'report_error_url' => null,
+            'revision_retention_count' => 50,
+            'revision_retention_days' => 90,
         ]))
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.edit'));
@@ -97,12 +101,18 @@ test('authorized users can view and update project settings', function () {
         ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'preset_transformations'))
         ->toBe($presets)
         ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'public_api_allowed_origins'))
-        ->toBe(['https://www.example.com', 'https://app.example.com']);
+        ->toBe(['https://www.example.com', 'https://app.example.com'])
+        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'revision_retention_count'))
+        ->toBe(50)
+        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'revision_retention_days'))
+        ->toBe(90);
 
     $project = app(ProjectSettings::class);
     expect($project->maxTransformSize())->toBe(800)
         ->and($project->transformPreset('hero')['fit'])->toBe('cover')
-        ->and($project->passwordPolicy())->toBe('strong');
+        ->and($project->passwordPolicy())->toBe('strong')
+        ->and($project->revisionRetentionCount())->toBe(50)
+        ->and($project->revisionRetentionDays())->toBe(90);
 
     $this->actingAs($user)
         ->get(route('project.edit'))

@@ -51,6 +51,9 @@ class UpdateContentCollectionRequest extends FormRequest
             'status' => ['sometimes', 'string', Rule::in(CollectionStatusEnum::values())],
             'icon' => ['sometimes', 'nullable', 'string', 'max:64'],
             'color' => ['sometimes', 'nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'versioning' => ['sometimes', 'boolean'],
+            'revision_retention_count' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:10000'],
+            'revision_retention_days' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:3650'],
         ];
     }
 
@@ -73,6 +76,14 @@ class UpdateContentCollectionRequest extends FormRequest
         if ($this->has('description') && $this->input('description') === '') {
             $this->merge(['description' => null]);
         }
+
+        if ($this->has('revision_retention_count') && ! $this->filled('revision_retention_count')) {
+            $this->merge(['revision_retention_count' => null]);
+        }
+
+        if ($this->has('revision_retention_days') && ! $this->filled('revision_retention_days')) {
+            $this->merge(['revision_retention_days' => null]);
+        }
     }
 
     protected function passedValidation(): void
@@ -84,6 +95,10 @@ class UpdateContentCollectionRequest extends FormRequest
             throw ValidationException::withMessages([
                 'is_singleton' => __('The singleton setting cannot be changed after the collection is created.'),
             ]);
+        }
+
+        if ($this->has('versioning')) {
+            $this->merge(['versioning' => $this->boolean('versioning')]);
         }
     }
 }

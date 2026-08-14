@@ -17,6 +17,9 @@ export type CollectionEditSource = Pick<
     | 'icon'
     | 'color'
     | 'is_singleton'
+    | 'versioning'
+    | 'revision_retention_count'
+    | 'revision_retention_days'
     | 'sort_order'
 >;
 

@@ -33,9 +33,10 @@ import {
 } from '@/lib/slugify';
 import {
     COLLECTION_COLOR_PICKER_FALLBACK,
-    resolveCollectionColor,
-    type CollectionRow,
+    resolveCollectionColor
+    
 } from '@/types/collections';
+import type {CollectionRow} from '@/types/collections';
 
 export type CollectionFormDrawerProps = {
     editing: CollectionRow | null;
@@ -344,6 +345,105 @@ export function CollectionFormDrawer({
                             </p>
                         )}
                         <InputError message={form.errors.is_singleton} />
+                    </div>
+                    <div className="grid gap-3 rounded-md border p-4">
+                        <div className="grid gap-2">
+                            <div className="flex items-center gap-2">
+                                <input
+                                    id="collection_drawer_versioning"
+                                    type="checkbox"
+                                    className="size-4 rounded border"
+                                    checked={Boolean(form.data.versioning)}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'versioning',
+                                            e.target.checked,
+                                        )
+                                    }
+                                />
+                                <Label htmlFor="collection_drawer_versioning">
+                                    {t('collections.meta.versioning')}
+                                </Label>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                {t('collections.meta.versioningHint')}
+                            </p>
+                            <InputError message={form.errors.versioning} />
+                        </div>
+                        <div className="grid gap-3 border-t pt-3">
+                            <div className="grid gap-1">
+                                <p className="text-sm font-medium">
+                                    {t('collections.meta.revisionRetention')}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    {t(
+                                        'collections.meta.revisionRetentionHint',
+                                    )}
+                                </p>
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="collection_drawer_retention_count">
+                                        {t(
+                                            'collections.meta.revisionRetentionCount',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="collection_drawer_retention_count"
+                                        type="number"
+                                        min={1}
+                                        max={10000}
+                                        value={
+                                            form.data.revision_retention_count ??
+                                            ''
+                                        }
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'revision_retention_count',
+                                                e.target.value === ''
+                                                    ? null
+                                                    : Number(e.target.value),
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={
+                                            form.errors.revision_retention_count
+                                        }
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="collection_drawer_retention_days">
+                                        {t(
+                                            'collections.meta.revisionRetentionDays',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="collection_drawer_retention_days"
+                                        type="number"
+                                        min={1}
+                                        max={3650}
+                                        value={
+                                            form.data.revision_retention_days ??
+                                            ''
+                                        }
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'revision_retention_days',
+                                                e.target.value === ''
+                                                    ? null
+                                                    : Number(e.target.value),
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={
+                                            form.errors.revision_retention_days
+                                        }
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </DrawerBody>
 

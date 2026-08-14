@@ -1,15 +1,11 @@
-import { ChevronDown } from 'lucide-react';
-import { Fragment, useMemo, useState } from 'react';
+import { Asterisk, ChevronDown } from 'lucide-react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { CollectionFieldFormDrawer } from '@/components/collections/collection-field-form';
 import { useContentLocale } from '@/components/collections/content-locale-provider';
-import {
-    buildFieldTree,
-    isLayoutGroupType,
-} from '@/lib/collection-field-groups';
+import { ContentLocaleProvider } from '@/components/collections/content-locale-provider';
 import { renderGroupFieldTree } from '@/components/collections/group-field-renderer';
 
-import { ContentLocaleProvider } from '@/components/collections/content-locale-provider';
 import { BlocksFieldInput } from '@/components/collections/item-field-blocks-input';
 import {
     ApiAutocompleteInput,
@@ -62,6 +58,10 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import { getFieldError } from '@/lib/collection-data-errors';
+import {
+    buildFieldTree,
+    isLayoutGroupType,
+} from '@/lib/collection-field-groups';
 import {
     getFieldDisplayName,
     getFieldNote,
@@ -668,6 +668,21 @@ function renderFieldControl(context: FieldRenderContext) {
 }
 
 /**
+ * Subtle amber asterisk for fields that differ in revision compare.
+ */
+function DiffChangedMarker() {
+    return (
+        <span
+            className="ml-1 inline-flex text-amber-500"
+            title="Changed"
+            aria-label="Changed"
+        >
+            <Asterisk className="size-3.5" strokeWidth={2.5} aria-hidden />
+        </span>
+    );
+}
+
+/**
  * Translatable item field with per-field locale switcher (one control visible per field).
  * ponytail: uses hidden inputs for uncontrolled form submission; fill actions manipulate DOM.
  * Per-field locale state prevents switching one field from affecting others.
@@ -677,6 +692,7 @@ function TranslatableItemField({
     locales,
     displayName,
     showFieldNameHeading,
+    showDiffMarker = false,
     readonly,
     collectionId,
     relatedCollections,
@@ -695,6 +711,7 @@ function TranslatableItemField({
     locales: string[];
     displayName: string;
     showFieldNameHeading: boolean;
+    showDiffMarker?: boolean;
     readonly: boolean;
     collectionId: number;
     relatedCollections: RelatedCollectionOption[];
@@ -715,6 +732,7 @@ function TranslatableItemField({
             {required ? (
                 <span className="text-destructive"> *</span>
             ) : null}
+            {showDiffMarker ? <DiffChangedMarker /> : null}
         </>
     ) : undefined;
 
@@ -732,8 +750,10 @@ function TranslatableItemField({
         const form = document.getElementById(
             ITEM_FORM_ID,
         ) as HTMLFormElement | null;
+
         if (form) {
             const live = readFieldRawFromForm(form, field.name, fieldLocale);
+
             if (live !== undefined) {
                 return live;
             }
@@ -836,6 +856,7 @@ function NonTranslatableItemField({
     locales,
     displayName,
     showFieldNameHeading,
+    showDiffMarker = false,
     readonly,
     collectionId,
     relatedCollections,
@@ -856,6 +877,7 @@ function NonTranslatableItemField({
     locales: string[];
     displayName: string;
     showFieldNameHeading: boolean;
+    showDiffMarker?: boolean;
     readonly: boolean;
     collectionId: number;
     relatedCollections: RelatedCollectionOption[];
@@ -883,6 +905,7 @@ function NonTranslatableItemField({
             {required ? (
                 <span className="text-destructive"> *</span>
             ) : null}
+            {showDiffMarker ? <DiffChangedMarker /> : null}
         </>
     ) : undefined;
 
@@ -890,8 +913,10 @@ function NonTranslatableItemField({
         const form = document.getElementById(
             ITEM_FORM_ID,
         ) as HTMLFormElement | null;
+
         if (form) {
             const live = readFieldRawFromForm(form, field.name);
+
             if (live !== undefined) {
                 return live;
             }
@@ -997,6 +1022,11 @@ export function DynamicItemFields({
     fieldSearch = '',
     errors = {},
     defaultLocale,
+    forceReadonly = false,
+    revisionApply = null,
+    highlightFields = null,
+    selectDiffFields = null,
+    onToggleDiffField,
 }: {
     fields: FieldDef[];
     locales: string[];
@@ -1015,6 +1045,15 @@ export function DynamicItemFields({
     fieldSearch?: string;
     errors?: Record<string, unknown>;
     defaultLocale?: string;
+    /** Force all fields read-only (compare modal / published workspace). */
+    forceReadonly?: boolean;
+    /** Soft-apply revision field values into dirty form state. */
+    revisionApply?: { nonce: number; values: Record<string, unknown> } | null;
+    /** Field names to visually mark as different. */
+    highlightFields?: ReadonlySet<string> | null;
+    /** When set, differing fields show a checkbox; selection lives in this set. */
+    selectDiffFields?: ReadonlySet<string> | null;
+    onToggleDiffField?: (fieldName: string) => void;
 }) {
     const { can } = useCan();
     const canEditFieldSchema = can(PermissionEnum.CanEditCollections);
@@ -1099,6 +1138,7 @@ export function DynamicItemFields({
         if (!hasAnyLayoutGroups) {
             return null;
         }
+
         return buildFieldTree(visibleFields);
     }, [hasAnyLayoutGroups, visibleFields]);
 
@@ -1126,6 +1166,18 @@ export function DynamicItemFields({
         setDirtyFields((current) => ({ ...current, [fieldName]: true }));
         updateFormValue(fieldName, value);
     };
+
+    useEffect(() => {
+        if (!revisionApply) {
+            return;
+        }
+
+        for (const [fieldName, value] of Object.entries(revisionApply.values)) {
+            applyFieldValue(fieldName, value);
+        }
+        // nonce is the apply trigger; applyFieldValue is intentionally unstable
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [revisionApply?.nonce]);
 
     const undoFieldValue = (fieldName: string): void => {
         setValueOverrides((current) => {
@@ -1181,13 +1233,19 @@ export function DynamicItemFields({
         const aclReadonly =
             fieldGrants !== null &&
             !(isNew ? grant?.create === true : grant?.update === true);
-        const readonly = flags.readonly || aclReadonly;
+        const readonly = forceReadonly || flags.readonly || aclReadonly;
         const errorMessage = getFieldError(errors, field.name);
         const remountKey = remountKeys[field.name] ?? 0;
         const isDirty = dirtyFields[field.name] === true;
-        const openEditField = canEditFieldSchema
-            ? () => setEditField(field as CollectionFieldRow)
-            : undefined;
+        const isHighlighted = highlightFields?.has(field.name) === true;
+        const canSelectDiff =
+            selectDiffFields !== null &&
+            onToggleDiffField !== undefined &&
+            isHighlighted;
+        const openEditField =
+            !forceReadonly && canEditFieldSchema
+                ? () => setEditField(field as CollectionFieldRow)
+                : undefined;
 
         const inner = field.translatable ? (
             <TranslatableItemField
@@ -1195,6 +1253,7 @@ export function DynamicItemFields({
                 locales={locales}
                 displayName={displayName}
                 showFieldNameHeading={headingVisible}
+                showDiffMarker={isHighlighted}
                 readonly={readonly}
                 collectionId={collectionId}
                 relatedCollections={relatedCollections}
@@ -1215,6 +1274,7 @@ export function DynamicItemFields({
                 locales={locales}
                 displayName={displayName}
                 showFieldNameHeading={headingVisible}
+                showDiffMarker={isHighlighted}
                 readonly={readonly}
                 collectionId={collectionId}
                 relatedCollections={relatedCollections}
@@ -1265,7 +1325,25 @@ export function DynamicItemFields({
             );
         }
 
-        return <Fragment key={field.id}>{inner}</Fragment>;
+        return (
+            <Fragment key={field.id}>
+                <div data-diff={isHighlighted ? '1' : undefined}>
+                    {canSelectDiff ? (
+                        <label className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+                            <input
+                                type="checkbox"
+                                className="size-3.5 rounded border"
+                                checked={selectDiffFields.has(field.name)}
+                                onChange={() => onToggleDiffField(field.name)}
+                                data-test={`diff-select-${field.name}`}
+                            />
+                            Include in Apply
+                        </label>
+                    ) : null}
+                    {inner}
+                </div>
+            </Fragment>
+        );
     };
 
     const renderFieldGrid = (
@@ -1354,6 +1432,7 @@ export function DynamicItemFields({
                                   field.settings,
                                   formValues,
                               );
+
                               return flags.hidden;
                           },
                       })

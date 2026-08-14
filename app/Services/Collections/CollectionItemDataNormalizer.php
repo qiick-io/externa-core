@@ -96,6 +96,11 @@ class CollectionItemDataNormalizer
 
             $v = $value[$locale];
 
+            // Skip empty locale slots so soft-apply / empty inputs don't invent `it: null` noise.
+            if ($v === null || $v === '') {
+                continue;
+            }
+
             $out[$locale] = $this->normalizeFieldValue($field, $v);
         }
 
@@ -118,8 +123,8 @@ class CollectionItemDataNormalizer
             FieldTypeEnum::Code,
             FieldTypeEnum::Select,
             FieldTypeEnum::RadioGroup,
-            FieldTypeEnum::Date,
             FieldTypeEnum::Color => $this->normalizeStringValue($field, is_string($value) ? $value : null),
+            FieldTypeEnum::Date => $this->normalizeDateValue(is_string($value) ? $value : null),
             FieldTypeEnum::Wysiwyg => $this->normalizeWysiwygValue(is_string($value) ? $value : null),
             FieldTypeEnum::Hash => $this->normalizeHash($value),
             FieldTypeEnum::Number => is_numeric($value) ? 0 + $value : null,
@@ -208,6 +213,44 @@ class CollectionItemDataNormalizer
         }
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * Store datetime values in datetime-local minute precision (no Z / seconds).
+     * Matches browser `<input type="datetime-local">` so revision diffs stay quiet.
+     */
+    private function normalizeDateValue(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        // Date-only
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $trimmed) === 1) {
+            return $trimmed;
+        }
+
+        // Time-only
+        if (preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $trimmed) === 1) {
+            return substr($trimmed, 0, 5);
+        }
+
+        if (
+            preg_match(
+                '/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?$/',
+                $trimmed,
+                $m,
+            ) === 1
+        ) {
+            return $m[1].'T'.$m[2].':'.$m[3];
+        }
+
+        return $trimmed;
     }
 
     private function normalizeWysiwygValue(?string $value): ?string

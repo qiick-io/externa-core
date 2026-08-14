@@ -94,6 +94,8 @@ class UpdateProjectSettingsRequest extends FormRequest
             'webhook_url' => ['nullable', 'url', 'max:2048'],
             // Empty = keep existing secret; never required on every save
             'webhook_secret' => ['nullable', 'string', 'max:512'],
+            'revision_retention_count' => ['nullable', 'integer', 'min:1', 'max:10000'],
+            'revision_retention_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
         ];
     }
 
@@ -217,6 +219,12 @@ class UpdateProjectSettingsRequest extends FormRequest
             'report_bug_url' => $validated['report_bug_url'] ?? null,
             'report_error_url' => $validated['report_error_url'] ?? null,
             'webhook_url' => $validated['webhook_url'] ?? null,
+            'revision_retention_count' => isset($validated['revision_retention_count'])
+                ? (int) $validated['revision_retention_count']
+                : null,
+            'revision_retention_days' => isset($validated['revision_retention_days'])
+                ? (int) $validated['revision_retention_days']
+                : null,
             ...$this->webhookSecretValue($validated),
         ];
     }
@@ -251,6 +259,8 @@ class UpdateProjectSettingsRequest extends FormRequest
             'report_error_url',
             'webhook_url',
             'webhook_secret',
+            'revision_retention_count',
+            'revision_retention_days',
         ] as $field) {
             if ($this->has($field) && $this->input($field) === '') {
                 $merge[$field] = null;

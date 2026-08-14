@@ -29,6 +29,9 @@ class CollectionFactory extends Factory
             'icon' => null,
             'color' => null,
             'is_singleton' => false,
+            'versioning' => false,
+            'revision_retention_count' => null,
+            'revision_retention_days' => null,
             'sort_order' => 0,
         ];
     }

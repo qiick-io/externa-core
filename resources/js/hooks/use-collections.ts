@@ -17,7 +17,19 @@ const EMPTY_COLLECTION_FORM = {
     icon: '',
     color: '',
     is_singleton: false,
+    versioning: false,
+    revision_retention_count: null as number | null,
+    revision_retention_days: null as number | null,
 };
+
+/** Empty / invalid → null (unlimited). */
+function retentionOrNull(value: number | null | undefined): number | null {
+    if (value === null || value === undefined) {
+        return null;
+    }
+
+    return Number.isFinite(value) && value >= 1 ? Math.trunc(value) : null;
+}
 
 /**
  * Converts a collection display name to a URL-safe slug.
@@ -69,6 +81,11 @@ export function useCollections(options?: { onClosed?: () => void }) {
                 icon: editing.icon ?? '',
                 color: editing.color ?? '',
                 is_singleton: Boolean(editing.is_singleton),
+                versioning: Boolean(editing.versioning),
+                revision_retention_count:
+                    editing.revision_retention_count ?? null,
+                revision_retention_days:
+                    editing.revision_retention_days ?? null,
             };
             form.setData(payload);
             form.setDefaults({ ...payload });
@@ -116,6 +133,13 @@ export function useCollections(options?: { onClosed?: () => void }) {
                 status: data.status,
                 icon: data.icon || null,
                 color: data.color || null,
+                versioning: Boolean(data.versioning),
+                revision_retention_count: retentionOrNull(
+                    data.revision_retention_count,
+                ),
+                revision_retention_days: retentionOrNull(
+                    data.revision_retention_days,
+                ),
             }));
             form.put(
                 ContentCollectionController.update.url({
@@ -134,6 +158,12 @@ export function useCollections(options?: { onClosed?: () => void }) {
                 description: data.description || null,
                 icon: data.icon || null,
                 color: data.color || null,
+                revision_retention_count: retentionOrNull(
+                    data.revision_retention_count,
+                ),
+                revision_retention_days: retentionOrNull(
+                    data.revision_retention_days,
+                ),
             }));
             form.post(ContentCollectionController.store.url(), {
                 ...opts,
