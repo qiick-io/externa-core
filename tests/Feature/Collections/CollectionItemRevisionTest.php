@@ -1,10 +1,15 @@
 <?php
 
+use App\Enums\CollectionPermissionAction;
 use App\Enums\FieldTypeEnum;
+use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItemRevision;
+use App\Models\CollectionPermission;
+use App\Models\Role;
 use App\Models\User;
+use App\Services\Api\CollectionPermissionGuard;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
@@ -189,4 +194,98 @@ test('hard restore clears draft when versioning is enabled', function () {
     $item->refresh();
     expect($item->draft_data)->toBeNull();
     expect(app(CollectionItemValuesAssembler::class)->assemble($item)['title'])->toBe('v1');
+});
+
+test('show-only users can list revisions but cannot restore', function () {
+    $user = grantCollectionPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowCollections->value,
+    ]);
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    $item = $collection->items()->create([]);
+    $revision = CollectionItemRevision::query()->create([
+        'item_id' => $item->id,
+        'user_id' => $user->id,
+        'data' => ['title' => 'old'],
+        'meta' => null,
+    ]);
+
+    $this->get(route('collections.items.revisions.index', [$collection, $item]))
+        ->assertOk();
+
+    $this->post(route('collections.items.revisions.restore', [$collection, $item, $revision]))
+        ->assertForbidden();
+});
+
+test('restore is blocked when field ACL denies update', function () {
+    $collection = Collection::factory()->create();
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'secret',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    $role = Role::query()->create([
+        'name' => 'revision-acl-'.uniqid(),
+        'guard_name' => config('auth.defaults.guard', 'web'),
+    ]);
+    $role->syncPermissions(allCollectionPermissions());
+    CollectionPermission::query()->create([
+        'role_id' => $role->id,
+        'collection_id' => $collection->id,
+        'action' => CollectionPermissionAction::Update->value,
+        'allowed' => true,
+        'rules' => [
+            'fields' => [
+                'title' => ['read' => true, 'create' => true, 'update' => true],
+                'secret' => ['read' => true, 'create' => false, 'update' => false],
+            ],
+        ],
+    ]);
+    CollectionPermission::query()->create([
+        'role_id' => $role->id,
+        'collection_id' => $collection->id,
+        'action' => CollectionPermissionAction::Read->value,
+        'allowed' => true,
+        'rules' => null,
+    ]);
+    app(CollectionPermissionGuard::class)->forget($role->id);
+
+    $user = User::factory()->create();
+    $user->syncRoles([$role]);
+    $this->actingAs($user);
+
+    $item = $collection->items()->create([]);
+    $writer = app(CollectionItemValuesWriter::class);
+    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer->sync($item, $collection, $normalizer->normalize($collection, [
+        'title' => 'now',
+        'secret' => 'live',
+    ], true));
+
+    $revision = CollectionItemRevision::query()->create([
+        'item_id' => $item->id,
+        'user_id' => $user->id,
+        'data' => ['title' => 'old', 'secret' => 'leaked'],
+        'meta' => null,
+    ]);
+
+    $this->post(route('collections.items.revisions.restore', [$collection, $item, $revision]))
+        ->assertSessionHasErrors('data');
+
+    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+    expect($assembled['title'])->toBe('now')
+        ->and($assembled['secret'])->toBe('live');
 });

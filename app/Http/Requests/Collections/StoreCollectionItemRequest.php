@@ -7,6 +7,7 @@ use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Models\Collection;
 use App\Services\Collections\CollectionItemDataRuleBuilder;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 /**
@@ -36,12 +37,15 @@ class StoreCollectionItemRequest extends FormRequest
         /** @var Collection $collection */
         $collection = $this->route('collection');
 
-        return app(CollectionItemDataRuleBuilder::class)->rules(
-            $collection,
-            true,
-            null,
-            is_array($this->input('data')) ? $this->input('data') : [],
-        );
+        return [
+            'save_action' => ['sometimes', 'string', Rule::in(['stay', 'create_new', 'copy'])],
+            ...app(CollectionItemDataRuleBuilder::class)->rules(
+                $collection,
+                true,
+                null,
+                is_array($this->input('data')) ? $this->input('data') : [],
+            ),
+        ];
     }
 
     /**

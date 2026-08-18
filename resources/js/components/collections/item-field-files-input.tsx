@@ -1,4 +1,13 @@
-import { FolderOpen, Link2, Loader2, Upload, X } from 'lucide-react';
+import {
+    Download,
+    FolderOpen,
+    Link2,
+    Loader2,
+    Pencil,
+    Upload,
+    X,
+    ZoomIn,
+} from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,15 +32,47 @@ import {
 } from '@/components/ui/tooltip';
 import {
     CHUNK_SIZE_BYTES,
+    downloadFileUrl,
+    fetchFilesByIds,
+    filePublicUrl,
+    formatFileSize,
     importFileFromUrl,
     isImageFile,
     uploadFileChunked,
     uploadFileDirect,
-    fetchFilesByIds,
 } from '@/lib/files-api';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { AdminFileRow } from '@/types/files';
+
+/** Same footprint as the empty dashed dropzone so a selected image fills that slot. */
+const FILE_FIELD_SLOT_CLASS = 'min-h-[9.5rem] w-full rounded-md';
+
+const imageHoverActionClass =
+    'inline-flex size-9 items-center justify-center rounded-md bg-white/15 text-white transition-colors hover:bg-white/25 disabled:pointer-events-none disabled:opacity-50';
+
+/**
+ * Directus-style meta line: `1,320 × 1,000 • 23.3 KB • image/png`.
+ */
+function formatImageFieldMetaLine(file: AdminFileRow): string {
+    const parts: string[] = [];
+
+    if (file.width && file.height) {
+        parts.push(
+            `${file.width.toLocaleString('en-US')} \u00d7 ${file.height.toLocaleString('en-US')}`,
+        );
+    }
+
+    if (file.size !== null && file.size > 0) {
+        parts.push(formatFileSize(file.size));
+    }
+
+    if (file.mime_type) {
+        parts.push(file.mime_type);
+    }
+
+    return parts.join(' \u2022 ');
+}
 
 async function uploadToFilesRoot(
     file: File,
@@ -223,7 +264,8 @@ function FileFieldEmptyDropzone({
         <>
             <div
                 className={cn(
-                    'flex min-h-[9.5rem] w-full flex-col items-center justify-center gap-3 rounded-md border border-dashed border-input px-4 py-8 transition-colors',
+                    'flex flex-col items-center justify-center gap-3 border border-dashed border-input px-4 py-8 transition-colors',
+                    FILE_FIELD_SLOT_CLASS,
                     dragOver && 'border-primary bg-primary/5',
                     busy && 'opacity-60',
                 )}
@@ -340,6 +382,150 @@ function FileFieldEmptyDropzone({
     );
 }
 
+/**
+ * Selected single-image preview: fills the dropzone slot; hover shows meta + actions.
+ * ponytail: no Directus image-editor (sliders) — crop/focal lives in the file manager.
+ */
+function SingleImageFilledPreview({
+    file,
+    fileId,
+    readonly,
+    onReplace,
+    onClear,
+}: {
+    file: AdminFileRow | null;
+    fileId: number;
+    readonly?: boolean;
+    onReplace: () => void;
+    onClear: () => void;
+}) {
+    const { t } = useTranslation();
+    const [lightboxOpen, setLightboxOpen] = useState(false);
+    const publicUrl = file ? filePublicUrl(file) : null;
+    const imageSrc = file?.thumbnail_url ?? publicUrl;
+    const displayName = file?.title || file?.name || `File #${fileId}`;
+    const metaLine = file ? formatImageFieldMetaLine(file) : '';
+
+    return (
+        <>
+            <div
+                className={cn(
+                    'group relative overflow-hidden bg-muted',
+                    FILE_FIELD_SLOT_CLASS,
+                )}
+            >
+                {imageSrc ? (
+                    <img
+                        src={imageSrc}
+                        alt={displayName}
+                        className="absolute inset-0 size-full object-cover"
+                    />
+                ) : (
+                    <div className="absolute inset-0 bg-muted" />
+                )}
+
+                <div className="pointer-events-none absolute inset-0 flex flex-col opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+                    <div className="absolute inset-0 bg-black/50" />
+                    <div className="relative z-10 flex flex-1 items-center justify-center gap-2">
+                        {publicUrl ? (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className={imageHoverActionClass}
+                                        aria-label={t('collections.fileField.preview')}
+                                        onClick={() => setLightboxOpen(true)}
+                                    >
+                                        <ZoomIn className="size-4" />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    {t('collections.fileField.preview')}
+                                </TooltipContent>
+                            </Tooltip>
+                        ) : null}
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <a
+                                    className={imageHoverActionClass}
+                                    href={downloadFileUrl(fileId)}
+                                    aria-label={t('collections.fileField.download')}
+                                >
+                                    <Download className="size-4" />
+                                </a>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {t('collections.fileField.download')}
+                            </TooltipContent>
+                        </Tooltip>
+
+                        {!readonly ? (
+                            <>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            type="button"
+                                            className={imageHoverActionClass}
+                                            aria-label={t(
+                                                'collections.fileField.editItem',
+                                            )}
+                                            onClick={onReplace}
+                                        >
+                                            <Pencil className="size-4" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {t('collections.fileField.editItem')}
+                                    </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            type="button"
+                                            className={imageHoverActionClass}
+                                            aria-label={t(
+                                                'collections.fileField.remove',
+                                            )}
+                                            onClick={onClear}
+                                        >
+                                            <X className="size-4" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {t('collections.fileField.remove')}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </>
+                        ) : null}
+                    </div>
+                    <div className="relative z-10 bg-gradient-to-t from-black/80 to-transparent px-3 pb-3 pt-8 text-left text-xs text-white">
+                        <p className="truncate font-medium">{displayName}</p>
+                        {metaLine !== '' ? (
+                            <p className="truncate text-white/80">{metaLine}</p>
+                        ) : null}
+                    </div>
+                </div>
+            </div>
+
+            <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+                <DialogContent className="max-h-[90vh] max-w-[90vw] border-0 bg-black p-2 sm:max-w-[90vw]">
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>{displayName}</DialogTitle>
+                    </DialogHeader>
+                    {publicUrl ? (
+                        <img
+                            src={publicUrl}
+                            alt={displayName}
+                            className="max-h-[85vh] w-full object-contain"
+                        />
+                    ) : null}
+                </DialogContent>
+            </Dialog>
+        </>
+    );
+}
+
 export function FileFieldInput({
     name,
     defaultFileId,
@@ -397,40 +583,50 @@ export function FileFieldInput({
             <input type="hidden" name={name} value={fileId ?? ''} />
 
             {fileId !== null ? (
-                <div className="flex items-center gap-3 rounded-md border border-input p-3 shadow-xs">
-                    {preview ? (
-                        <FilePreview file={preview} size="sm" />
-                    ) : (
-                        <div className="size-12 shrink-0 rounded bg-muted" />
-                    )}
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                        {preview?.title ||
-                            preview?.name ||
-                            `File #${fileId}`}
-                    </span>
-                    {!readonly ? (
-                        <div className="flex shrink-0 gap-1">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setPickerOpen(true)}
-                            >
-                                {t('collections.fileField.replace')}
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-8"
-                                aria-label={t('collections.fileField.clear')}
-                                onClick={clear}
-                            >
-                                <X className="size-4" />
-                            </Button>
-                        </div>
-                    ) : null}
-                </div>
+                acceptImagesOnly ? (
+                    <SingleImageFilledPreview
+                        file={preview}
+                        fileId={fileId}
+                        readonly={readonly}
+                        onReplace={() => setPickerOpen(true)}
+                        onClear={clear}
+                    />
+                ) : (
+                    <div className="flex items-center gap-3 rounded-md border border-input p-3 shadow-xs">
+                        {preview ? (
+                            <FilePreview file={preview} size="sm" />
+                        ) : (
+                            <div className="size-12 shrink-0 rounded bg-muted" />
+                        )}
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                            {preview?.title ||
+                                preview?.name ||
+                                `File #${fileId}`}
+                        </span>
+                        {!readonly ? (
+                            <div className="flex shrink-0 gap-1">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setPickerOpen(true)}
+                                >
+                                    {t('collections.fileField.replace')}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8"
+                                    aria-label={t('collections.fileField.clear')}
+                                    onClick={clear}
+                                >
+                                    <X className="size-4" />
+                                </Button>
+                            </div>
+                        ) : null}
+                    </div>
+                )
             ) : readonly ? (
                 <p className="text-sm text-muted-foreground">
                     {t('collections.fileField.noFile')}

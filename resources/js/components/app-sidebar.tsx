@@ -5,6 +5,7 @@ import {
     Folder,
     FolderGit2,
     LayoutGrid,
+    MessageCircle,
     ScrollText,
     Settings,
     Sparkles,
@@ -30,12 +31,15 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { PermissionEnum } from '@/enums/permission-enum';
+import { formatChatUnread } from '@/lib/format-chat-unread';
 import { useCan } from '@/hooks/use-can';
+import { useChatUnread } from '@/hooks/use-chat-unread';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import adminRoutes from '@/lib/admin-routes';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import { index as aiIndex } from '@/routes/ai';
+import { index as chatIndex } from '@/routes/chat';
 import collections from '@/routes/collections';
 import { edit as editProfile } from '@/routes/profile';
 import type { NavItem, SidebarModuleSetting } from '@/types';
@@ -60,6 +64,7 @@ export function AppSidebar() {
     const { can } = useCan();
     const { isCurrentUrl } = useCurrentUrl();
     const { projectSettings, appVersion } = usePage().props;
+    const chatUnread = useChatUnread();
 
     const moduleDefs = useMemo<Record<string, ModuleDef>>(
         () => ({
@@ -90,6 +95,13 @@ export function AppSidebar() {
                 href: collections.index.url(),
                 icon: Database,
                 permission: PermissionEnum.CanShowCollections,
+            },
+            chat: {
+                id: 'chat',
+                titleKey: 'nav.chat',
+                href: chatIndex.url(),
+                icon: MessageCircle,
+                permission: PermissionEnum.CanShowChat,
             },
             activity: {
                 id: 'activity',
@@ -170,21 +182,34 @@ export function AppSidebar() {
                 )}
                 tooltip={{ children: t(item.titleKey) }}
                 className={
-                    item.accent
-                        ? cn(
-                              'sidebar-ai-nav relative overflow-hidden',
-                              'text-orange-700 hover:text-orange-700',
-                              'dark:text-orange-300 dark:hover:text-orange-300',
-                              'data-[active=true]:font-medium',
-                              'data-[active=true]:text-orange-700',
-                              'dark:data-[active=true]:text-orange-300',
-                          )
-                        : undefined
+                    item.id === 'chat'
+                        ? 'relative'
+                        : item.accent
+                          ? cn(
+                                'sidebar-ai-nav relative overflow-hidden',
+                                'text-orange-700 hover:text-orange-700',
+                                'dark:text-orange-300 dark:hover:text-orange-300',
+                                'data-[active=true]:font-medium',
+                                'data-[active=true]:text-orange-700',
+                                'dark:data-[active=true]:text-orange-300',
+                            )
+                          : undefined
                 }
             >
-                <Link href={item.href} prefetch>
+                <Link href={item.href} prefetch className="relative">
                     <item.icon />
                     <span>{t(item.titleKey)}</span>
+                    {item.id === 'chat' && chatUnread.unread_count > 0 ? (
+                        <span
+                            data-test="chat-nav-unread"
+                            className={cn(
+                                'absolute top-1.5 right-2 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground',
+                                'group-data-[collapsible=icon]:right-1',
+                            )}
+                        >
+                            {formatChatUnread(chatUnread.unread_count)}
+                        </span>
+                    ) : null}
                 </Link>
             </SidebarMenuButton>
         </SidebarMenuItem>

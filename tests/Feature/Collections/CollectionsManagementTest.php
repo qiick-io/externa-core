@@ -2,6 +2,7 @@
 
 use App\Enums\FieldTypeEnum;
 use App\Enums\FileTypeEnum;
+use App\Enums\PermissionEnum;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\Collection;
 use App\Models\CollectionField;
@@ -262,6 +263,81 @@ test('item store redirects to item edit', function () {
     expect($item)->not->toBeNull();
 
     $response->assertRedirect(route('collections.items.show', [$collection, $item]));
+});
+
+test('item store with save_action create_new redirects to new item form', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['is_singleton' => false]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    $response = $this->post(route('collections.items.store', $collection), [
+        'data' => ['title' => 'Next'],
+        'save_action' => 'create_new',
+    ]);
+
+    expect(CollectionItem::query()->where('collection_id', $collection->id)->count())->toBe(1);
+    $response->assertRedirect(route('collections.items.new', $collection));
+});
+
+test('item update with save_action copy creates a new item', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['is_singleton' => false]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    $item = CollectionItem::factory()->create([
+        'collection_id' => $collection->id,
+    ]);
+    app(CollectionItemValuesWriter::class)->sync($item, $collection, app(CollectionItemDataNormalizer::class)->normalize($collection, ['title' => 'Old']));
+
+    $response = $this->put(route('collections.items.update', [$collection, $item]), [
+        'data' => ['title' => 'Copy'],
+        'save_action' => 'copy',
+    ]);
+
+    $items = CollectionItem::query()->where('collection_id', $collection->id)->orderBy('id')->get();
+    expect($items)->toHaveCount(2);
+    expect(app(CollectionItemValuesAssembler::class)->assemble($items[0])['title'])->toBe('Old');
+    expect(app(CollectionItemValuesAssembler::class)->assemble($items[1])['title'])->toBe('Copy');
+    $response->assertRedirect(route('collections.items.show', [$collection, $items[1]]));
+});
+
+test('item update copy requires create permission', function () {
+    $user = grantCollectionPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowCollections->value,
+        PermissionEnum::CanEditCollections->value,
+    ]);
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['is_singleton' => false]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    $item = CollectionItem::factory()->create([
+        'collection_id' => $collection->id,
+    ]);
+    app(CollectionItemValuesWriter::class)->sync($item, $collection, app(CollectionItemDataNormalizer::class)->normalize($collection, ['title' => 'Old']));
+
+    $this->put(route('collections.items.update', [$collection, $item]), [
+        'data' => ['title' => 'Copy'],
+        'save_action' => 'copy',
+    ])->assertForbidden();
+
+    expect(CollectionItem::query()->where('collection_id', $collection->id)->count())->toBe(1);
 });
 
 test('item update redirects to item edit', function () {

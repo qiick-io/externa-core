@@ -142,6 +142,26 @@ test('authorized users can create update and sync roles and groups', function ()
         ->and(Hash::check('new-password', $created->password))->toBeTrue();
 });
 
+test('creating user requires role and valid email', function () {
+    $actor = grantUserPermissions(User::factory()->create(), [
+        PermissionEnum::CanCreateUsers->value,
+    ]);
+    $this->actingAs($actor);
+
+    $this->from(route('users.index'))
+        ->post(route('users.store'), [
+            'first_name' => 'New',
+            'email' => 'not-an-email',
+            'password' => 'password',
+            'role_ids' => [],
+        ])
+        ->assertRedirect(route('users.index'))
+        ->assertSessionHasErrors([
+            'email' => 'Enter a valid email address.',
+            'role_ids' => 'Select at least one role.',
+        ]);
+});
+
 test('authorized users can soft delete restore force delete and bulk manage users', function () {
     $actor = grantUserPermissions(User::factory()->create(), [
         PermissionEnum::CanDeleteUsers->value,

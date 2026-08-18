@@ -124,6 +124,38 @@ test('reader cannot access role edit page', function () {
     $this->get(route('roles.edit', $target))->assertForbidden();
 });
 
+test('roles index returns assignable JSON options for picker search', function () {
+    $actor = grantRolePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowRoles->value,
+    ]);
+    $this->actingAs($actor);
+
+    Role::query()->create([
+        'name' => 'reader-visible',
+        'guard_name' => config('auth.defaults.guard', 'web'),
+        'is_system' => false,
+        'is_assignable' => true,
+    ]);
+
+    Role::query()->create([
+        'name' => 'reader-hidden',
+        'guard_name' => config('auth.defaults.guard', 'web'),
+        'is_system' => true,
+        'is_assignable' => false,
+    ]);
+
+    $this->getJson(route('roles.index', [
+        'search' => 'reader-',
+        'per_page' => 20,
+    ]))
+        ->assertOk()
+        ->assertJsonPath('meta.current_page', 1)
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.name', 'reader-visible')
+        ->assertJsonPath('data.0.label', 'Reader Visible')
+        ->assertJsonMissing(['name' => 'reader-hidden']);
+});
+
 test('authorized users can manage permissions and sync from enum', function () {
     $actor = grantRolePermissions(User::factory()->create(), [
         PermissionEnum::CanShowPermissions->value,

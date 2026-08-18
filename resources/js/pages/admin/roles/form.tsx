@@ -107,12 +107,14 @@ export default function AdminRoleForm({
         update: false,
         delete: false,
     },
+    createDirectChatsPermission = null,
 }: {
     role?: RoleFormRole | { data: RoleFormRole } | null;
     permissionGroups: PermissionGroup[];
     collections?: CollectionRow[];
     collectionPermissions?: Record<string, CollectionActions>;
     filePermissions?: FileActions;
+    createDirectChatsPermission?: { id: number; name: string } | null;
 }) {
     // Tolerate accidental JsonResource wrapping ({ data: role })
     const role: RoleFormRole | null | undefined =
@@ -489,6 +491,27 @@ export default function AdminRoleForm({
                                         </section>
                                     );
                                 })}
+                                {createDirectChatsPermission ? (
+                                    <section className="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                                        <label className="flex items-center gap-2 text-sm font-medium">
+                                            <Checkbox
+                                                checked={form.data.permission_ids.includes(
+                                                    createDirectChatsPermission.id,
+                                                )}
+                                                onCheckedChange={(c) =>
+                                                    togglePermission(
+                                                        createDirectChatsPermission.id,
+                                                        c === true,
+                                                    )
+                                                }
+                                            />
+                                            <span>Create private chats</span>
+                                        </label>
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            {createDirectChatsPermission.name}
+                                        </p>
+                                    </section>
+                                ) : null}
                             </div>
                         )}
 

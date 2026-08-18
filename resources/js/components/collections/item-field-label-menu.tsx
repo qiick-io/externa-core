@@ -35,13 +35,16 @@ import { toast } from '@/lib/toast';
 
 export type ItemFieldLabelMenuProps = {
     /** Resolve the current live value (form / override / default). */
-    getCurrentValue: () => unknown;
-    isDirty: boolean;
+    getCurrentValue?: () => unknown;
+    isDirty?: boolean;
     readonly?: boolean;
     canEditFieldSchema?: boolean;
-    onApplyValue: (value: unknown) => void;
-    onUndo: () => void;
-    onClear: () => void;
+    /** Layout groups: only Edit field (no raw/undo/clear). */
+    schemaOnly?: boolean;
+    menuAlign?: 'start' | 'end';
+    onApplyValue?: (value: unknown) => void;
+    onUndo?: () => void;
+    onClear?: () => void;
     onEditField?: () => void;
 };
 
@@ -50,9 +53,11 @@ export type ItemFieldLabelMenuProps = {
  */
 export function ItemFieldLabelMenu({
     getCurrentValue,
-    isDirty,
+    isDirty = false,
     readonly = false,
     canEditFieldSchema = false,
+    schemaOnly = false,
+    menuAlign = 'start',
     onApplyValue,
     onUndo,
     onClear,
@@ -61,20 +66,25 @@ export function ItemFieldLabelMenu({
     const { t } = useTranslation();
     const [rawOpen, setRawOpen] = useState(false);
     const [rawText, setRawText] = useState('');
+    const showEditField = Boolean(canEditFieldSchema && onEditField);
+
+    if (schemaOnly && !showEditField) {
+        return null;
+    }
 
     const openRawEditor = (): void => {
-        setRawText(stringifyFieldRawValue(getCurrentValue()));
+        setRawText(stringifyFieldRawValue(getCurrentValue?.() ?? null));
         setRawOpen(true);
     };
 
     const applyRawEditor = (): void => {
-        onApplyValue(parseFieldRawValue(rawText));
+        onApplyValue?.(parseFieldRawValue(rawText));
         setRawOpen(false);
     };
 
     const handleCopy = async (): Promise<void> => {
         const ok = await copyTextToClipboard(
-            stringifyFieldRawValue(getCurrentValue()),
+            stringifyFieldRawValue(getCurrentValue?.() ?? null),
         );
 
         if (ok) {
@@ -93,7 +103,7 @@ export function ItemFieldLabelMenu({
             return;
         }
 
-        onApplyValue(parseFieldRawValue(text));
+        onApplyValue?.(parseFieldRawValue(text));
         toast.success(t('collections.fieldMenu.pasted'));
     };
 
@@ -111,7 +121,17 @@ export function ItemFieldLabelMenu({
                         <MoreVertical className="size-3.5" />
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="min-w-48">
+                <DropdownMenuContent align={menuAlign} className="min-w-48">
+                    {schemaOnly ? (
+                        <DropdownMenuItem
+                            onClick={onEditField}
+                            className="gap-2"
+                        >
+                            <Settings2 className="size-3.5" />
+                            {t('collections.fieldMenu.editField')}
+                        </DropdownMenuItem>
+                    ) : (
+                        <>
                     <DropdownMenuItem
                         disabled={readonly}
                         onClick={openRawEditor}
@@ -156,21 +176,24 @@ export function ItemFieldLabelMenu({
                         <Eraser className="size-3.5" />
                         {t('collections.fieldMenu.clear')}
                     </DropdownMenuItem>
-                    {canEditFieldSchema && onEditField ? (
-                        <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                                onClick={onEditField}
-                                className="gap-2"
-                            >
-                                <Settings2 className="size-3.5" />
-                                {t('collections.fieldMenu.editField')}
-                            </DropdownMenuItem>
+                    {showEditField ? (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onClick={onEditField}
+                                    className="gap-2"
+                                >
+                                    <Settings2 className="size-3.5" />
+                                    {t('collections.fieldMenu.editField')}
+                                </DropdownMenuItem>
+                            </>
+                        ) : null}
                         </>
-                    ) : null}
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
 
+            {schemaOnly ? null : (
             <Dialog open={rawOpen} onOpenChange={setRawOpen}>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
@@ -201,6 +224,7 @@ export function ItemFieldLabelMenu({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            )}
         </>
     );
 }

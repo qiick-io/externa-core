@@ -1,5 +1,6 @@
 import { Eye } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -17,6 +18,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { jsonRequestHeaders } from '@/lib/csrf';
 import { toast } from '@/lib/toast';
 
@@ -39,6 +45,17 @@ type ItemPreviewAsRoleDialogProps = {
     roles: PreviewRoleOption[];
 };
 
+function previewRoleLabel(
+    role: PreviewRoleOption,
+    t: (key: string, options?: { defaultValue: string }) => string,
+): string {
+    const fallback = role.name
+        .replace(/[-_]+/g, ' ')
+        .replace(/\b\w/g, (character) => character.toUpperCase());
+
+    return t(`roles.names.${role.name}`, { defaultValue: fallback });
+}
+
 /**
  * Admin “Preview as role / public” — read-only JSON of redacted field payload.
  */
@@ -47,6 +64,7 @@ export function ItemPreviewAsRoleDialog({
     itemId,
     roles,
 }: ItemPreviewAsRoleDialogProps) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [roleKey, setRoleKey] = useState<string>(() => {
         const pub = roles.find((r) => r.is_public);
@@ -103,18 +121,26 @@ export function ItemPreviewAsRoleDialog({
 
     return (
         <>
-            <Button
-                type="button"
-                variant="outline"
-                data-test="preview-as-role"
-                onClick={() => {
-                    setOpen(true);
-                    setResult(null);
-                }}
-            >
-                <Eye className="size-4" />
-                Preview as…
-            </Button>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        data-test="preview-as-role"
+                        aria-label={t('collections.itemToolbar.previewAs')}
+                        onClick={() => {
+                            setOpen(true);
+                            setResult(null);
+                        }}
+                    >
+                        <Eye className="size-4" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    {t('collections.itemToolbar.previewAs')}
+                </TooltipContent>
+            </Tooltip>
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent
@@ -138,10 +164,13 @@ export function ItemPreviewAsRoleDialog({
                                 value={roleKey}
                                 onValueChange={setRoleKey}
                             >
-                                <SelectTrigger id="preview-role">
+                                <SelectTrigger id="preview-role" className="w-full">
                                     <SelectValue placeholder="Choose role" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent
+                                    align="start"
+                                    className="w-[var(--radix-select-trigger-width)]"
+                                >
                                     {roles.map((role) => (
                                         <SelectItem
                                             key={role.id}
@@ -151,9 +180,7 @@ export function ItemPreviewAsRoleDialog({
                                                     : `role:${role.id}`
                                             }
                                         >
-                                            {role.is_public
-                                                ? `${role.name} (public)`
-                                                : role.name}
+                                            {previewRoleLabel(role, t)}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

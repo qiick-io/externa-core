@@ -5,6 +5,7 @@ namespace App\Http\Resources\Admin;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Str;
 
 /**
  * Serialize a role record with optional permission payloads.
@@ -23,6 +24,7 @@ class RoleResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'label' => Str::of($this->name)->replace(['-', '_'], ' ')->headline()->toString(),
             'guard_name' => $this->guard_name,
             'is_system' => (bool) $this->is_system,
             'is_assignable' => (bool) $this->is_assignable,

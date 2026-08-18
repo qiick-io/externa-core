@@ -1059,7 +1059,7 @@ export function DynamicItemFields({
     const canEditFieldSchema = can(PermissionEnum.CanEditCollections);
     const requestLeave = useRequestLeave();
     const showFieldNameHeading = variant === 'plain';
-    const gapClass = variant === 'cards' ? 'space-y-4' : 'space-y-6';
+    const gapClass = variant === 'cards' ? 'space-y-4' : 'space-y-3';
 
     // Stable loaded values for Undo (ignore later parent identity churn)
     const [initialDefaults] = useState<Record<string, unknown>>(
@@ -1357,7 +1357,7 @@ export function DynamicItemFields({
                 {rows.map((row) => (
                     <div
                         key={row.map((item) => item.field.id).join('-')}
-                        className="grid grid-cols-1 gap-4 md:grid-cols-2"
+                        className="grid grid-cols-1 gap-3 md:grid-cols-2"
                     >
                         {row.map(({ field, colSpan }) => (
                             <div
@@ -1391,7 +1391,7 @@ export function DynamicItemFields({
 
     return (
         <ContentLocaleProvider locales={locales} defaultLocale={defaultLocale}>
-            <div className="space-y-6">
+            <div className="space-y-4">
                 {tabs.length > 0 ? (
                     <div className="flex flex-wrap gap-2 border-b pb-2">
                         {tabs.map((tab) => {
@@ -1434,6 +1434,28 @@ export function DynamicItemFields({
                               );
 
                               return flags.hidden;
+                          },
+                          renderGroupMenu: (field) => {
+                              if (forceReadonly || !canEditFieldSchema) {
+                                  return null;
+                              }
+
+                              return (
+                                  <ItemFieldLabelMenu
+                                      schemaOnly
+                                      canEditFieldSchema
+                                      menuAlign={
+                                          field.type === 'group_tabs'
+                                              ? 'end'
+                                              : 'start'
+                                      }
+                                      onEditField={() =>
+                                          setEditField(
+                                              field as CollectionFieldRow,
+                                          )
+                                      }
+                                  />
+                              );
                           },
                       })
                     : visibleGroups.map((group, index) => {

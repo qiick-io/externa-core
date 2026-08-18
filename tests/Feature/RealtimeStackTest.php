@@ -4,6 +4,7 @@ use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Models\User;
 use App\Notifications\FileDuplicationCompletedNotification;
+use App\Notifications\ItemChatNotification;
 use App\Services\Dashboard\DashboardHealthMetrics;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\Request;
@@ -130,7 +131,28 @@ test('file notifications broadcast when realtime driver is configured', function
         folderId: null,
     );
 
-    expect($notification->via($user))->toBe(['database', 'broadcast']);
+    expect($notification->via($user))->toBe(['database', 'broadcast'])
+        ->and($notification->toBroadcast($user)->connection)->toBe('sync');
+});
+
+test('item chat notifications broadcast on the sync queue', function () {
+    config(['broadcasting.default' => 'reverb']);
+
+    $user = User::factory()->create();
+    $notification = new ItemChatNotification(
+        chatId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+        collectionId: 1,
+        itemId: 2,
+        messageId: 3,
+        authorName: 'Ada',
+        excerpt: 'hello',
+        mentioned: true,
+    );
+
+    expect($notification->via($user))->toBe(['database', 'broadcast'])
+        ->and($notification->toBroadcast($user)->connection)->toBe('sync')
+        ->and($notification->toArray($user)['type'] ?? null)->toBe('chat')
+        ->and($notification->toArray($user)['url'] ?? null)->toBe('/chat/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
 });
 
 test('file notifications skip broadcast on log driver', function () {

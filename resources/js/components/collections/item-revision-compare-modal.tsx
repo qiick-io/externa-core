@@ -43,6 +43,7 @@ type Props = {
     revision: RevisionSnapshot | null;
     /** Previous revision chronologically (older than selected), if any. */
     previousRevision: RevisionSnapshot | null;
+    canRestore?: boolean;
     onApply: (values: Record<string, unknown>) => void;
 };
 
@@ -60,6 +61,7 @@ export function ItemRevisionCompareModal({
     latestData,
     revision,
     previousRevision,
+    canRestore = false,
     onApply,
 }: Props) {
     const [compareTo, setCompareTo] = useState<'latest' | 'previous'>('latest');
@@ -107,7 +109,7 @@ export function ItemRevisionCompareModal({
         );
     }, [fields, showDiffOnly, diffSet]);
 
-    const canApply = compareTo === 'latest' && revision !== null;
+    const canApply = canRestore && compareTo === 'latest' && revision !== null;
 
     const leftLabel =
         compareTo === 'previous' ? 'Previous revision' : 'Latest';
@@ -318,14 +320,16 @@ export function ItemRevisionCompareModal({
                         >
                             Cancel
                         </Button>
-                        <Button
-                            type="button"
-                            disabled={!canApply || diffNames.length === 0}
-                            onClick={handleApply}
-                            data-test="revision-apply"
-                        >
-                            Apply
-                        </Button>
+                        {canRestore ? (
+                            <Button
+                                type="button"
+                                disabled={!canApply || diffNames.length === 0}
+                                onClick={handleApply}
+                                data-test="revision-apply"
+                            >
+                                Apply
+                            </Button>
+                        ) : null}
                     </div>
                 </DialogFooter>
             </DialogContent>

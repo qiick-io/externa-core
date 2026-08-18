@@ -70,7 +70,9 @@ class User extends Authenticatable implements PasskeyUser
      */
     public function groups(): BelongsToMany
     {
-        return $this->belongsToMany(UserGroup::class, 'user_group_user');
+        return $this->belongsToMany(UserGroup::class, 'user_group_user')
+            ->using(UserGroupUser::class)
+            ->withTimestamps();
     }
 
     /**

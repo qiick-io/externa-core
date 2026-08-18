@@ -21,6 +21,11 @@ declare module '@inertiajs/core' {
             notifications: {
                 unread_count: number;
             };
+            chat: {
+                unread_count: number;
+                unread_private: number;
+                unread_collection: number;
+            };
             healthBadge: {
                 status: 'ok' | 'warn' | 'fail';
                 label: string;

@@ -26,7 +26,9 @@ trait BroadcastsWithDatabase
 
     public function toBroadcast(object $notifiable): BroadcastMessage
     {
-        return new BroadcastMessage($this->toArray($notifiable));
+        // ponytail: BroadcastNotificationCreated is ShouldBroadcast (queued). HTTP notify
+        // must hit Echo without a worker. Zip jobs already have one; comments do not.
+        return (new BroadcastMessage($this->toArray($notifiable)))->onConnection('sync');
     }
 
     protected function shouldBroadcastRealtime(): bool

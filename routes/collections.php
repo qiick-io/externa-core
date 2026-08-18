@@ -10,6 +10,7 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Collections\ContentCollectionController;
 use App\Http\Controllers\Collections\FieldController;
+use App\Http\Controllers\Collections\ItemChatController;
 use App\Http\Controllers\Collections\ItemController;
 use App\Http\Controllers\Collections\ItemRevisionController;
 use Illuminate\Support\Facades\Route;
@@ -77,6 +78,62 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('collections/{collection}/items/{item}/revisions/{revision}/restore', [ItemRevisionController::class, 'restore'])
         ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
         ->name('collections.items.revisions.restore');
+
+    Route::get('collections/{collection}/items/{item}/chat/mentions', [ItemChatController::class, 'mentions'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.mentions');
+
+    Route::put('collections/{collection}/items/{item}/chat/notify', [ItemChatController::class, 'updateNotify'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.notify');
+
+    Route::post('collections/{collection}/items/{item}/chat/read', [ItemChatController::class, 'markRead'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.read');
+
+    Route::post('collections/{collection}/items/{item}/chat/attachments', [ItemChatController::class, 'storeAttachment'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.attachments.store');
+
+    Route::get('collections/{collection}/items/{item}/chat/attachments/{attachment}', [ItemChatController::class, 'showAttachment'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.attachments.show');
+
+    Route::post('collections/{collection}/items/{item}/chat/attachments/{attachment}/save-to-files', [ItemChatController::class, 'saveToFiles'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.attachments.save-to-files');
+
+    Route::post('collections/{collection}/items/{item}/chat/attachments/{attachment}/add-to-field', [ItemChatController::class, 'addToField'])
+        ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
+        ->name('collections.items.chat.attachments.add-to-field');
+
+    Route::get('collections/{collection}/items/{item}/chat', [ItemChatController::class, 'index'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.index');
+
+    Route::post('collections/{collection}/items/{item}/chat', [ItemChatController::class, 'store'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.store');
+
+    Route::patch('collections/{collection}/items/{item}/chat/{message}', [ItemChatController::class, 'update'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.update');
+
+    Route::delete('collections/{collection}/items/{item}/chat/{message}', [ItemChatController::class, 'destroy'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.destroy');
+
+    Route::put('collections/{collection}/items/{item}/chat/{message}/pin', [ItemChatController::class, 'pin'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.pin');
+
+    Route::post('collections/{collection}/items/{item}/chat/{message}/reactions', [ItemChatController::class, 'react'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.react');
+
+    Route::post('collections/{collection}/items/{item}/chat/{message}/forward', [ItemChatController::class, 'forward'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.forward');
 
     Route::post('collections/{collection}/items/{item}/publish', [ItemController::class, 'publish'])
         ->middleware('permission:'.PermissionEnum::CanEditCollections->value)

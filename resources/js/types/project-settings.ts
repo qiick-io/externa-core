@@ -47,6 +47,7 @@ export type SharedProjectSettings = {
     defaultLanguage: string;
     registrationEnabled: boolean;
     emailVerificationRequired: boolean;
+    passwordPolicy: 'weak' | 'medium' | 'strong';
     sidebarModules: SidebarModuleSetting[];
     reportIssueUrl: string | null;
     reportBugUrl: string | null;

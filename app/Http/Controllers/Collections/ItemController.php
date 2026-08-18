@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Collections;
 
+use App\Enums\PermissionEnum;
+use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Collections\BulkItemActionRequest;
 use App\Http\Requests\Collections\StoreCollectionItemRequest;
@@ -13,7 +15,9 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\Role;
+use App\Models\User;
 use App\Services\Api\CollectionPermissionEnforcer;
+use App\Services\Authorization\EffectivePermissionResolver;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemExportService;
 use App\Services\Collections\CollectionItemOptionsService;
@@ -51,6 +55,7 @@ class ItemController extends Controller
         private CollectionItemExportService $itemExportService,
         private ItemRolePreviewService $itemRolePreviewService,
         private CollectionItemRevisionRecorder $revisionRecorder,
+        private EffectivePermissionResolver $permissionResolver,
     ) {}
 
     /**
@@ -229,7 +234,7 @@ class ItemController extends Controller
             'isNew' => true,
             'relatedCollections' => $this->relatedCollectionsForSelect(),
             'fieldGrants' => $this->permissionEnforcer->fieldGrantsForForm($request, $collection),
-            'previewRoles' => $this->previewRoles(),
+            'previewRoles' => $this->previewRoles($request),
             'activityLogs' => null,
         ]);
     }
@@ -249,18 +254,14 @@ class ItemController extends Controller
         }
         $this->permissionEnforcer->assertWritableFields($request, $collection, $data, 'create');
 
-        $normalized = $this->itemDataNormalizer->normalize(
+        $item = $this->persistNewItem($collection, $data, creating: true);
+
+        return $this->redirectAfterItemSave(
             $collection,
-            $data,
-            true,
+            $item,
+            $this->itemSaveAction($request),
+            __('Item created.'),
         );
-
-        $item = $collection->items()->create([]);
-
-        $this->collectionItemValuesWriter->sync($item, $collection, $normalized);
-
-        return redirect()->route('collections.items.show', [$collection, $item])
-            ->with('success', __('Item created.'));
     }
 
     /**
@@ -317,8 +318,9 @@ class ItemController extends Controller
             'isNew' => false,
             'relatedCollections' => $this->relatedCollectionsForSelect(),
             'fieldGrants' => $this->permissionEnforcer->fieldGrantsForForm($request, $collection),
-            'previewRoles' => $this->previewRoles(),
+            'previewRoles' => $this->previewRoles($request),
             'activityLogs' => ActivityLogResource::collection($activityLogs),
+            'chat_count' => $item->chat?->messages()->count() ?? 0,
         ]);
     }
 
@@ -329,6 +331,7 @@ class ItemController extends Controller
     {
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
+        abort_unless($this->userCanPreviewAsRole($request->user()), 403);
 
         $validated = $request->validate([
             'role_id' => ['nullable', 'integer', 'exists:roles,id'],
@@ -408,6 +411,24 @@ class ItemController extends Controller
             }
         }
 
+        $action = $this->itemSaveAction($request);
+
+        if ($action === 'copy' && ! $collection->is_singleton) {
+            abort_unless(
+                $request->user()?->can(PermissionEnum::CanCreateCollections->value),
+                403,
+            );
+
+            $copy = $this->persistNewItem($collection, $data, creating: true);
+
+            return $this->redirectAfterItemSave(
+                $collection,
+                $copy,
+                'stay',
+                __('Item created.'),
+            );
+        }
+
         $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
 
         if ($version === 'draft') {
@@ -418,17 +439,23 @@ class ItemController extends Controller
                 'version' => 'draft',
             ], $normalized);
 
-            return redirect()->route('collections.items.show', [
-                'collection' => $collection,
-                'item' => $item,
-                'version' => 'draft',
-            ])->with('success', __('Draft saved.'));
+            return $this->redirectAfterItemSave(
+                $collection,
+                $item,
+                $action,
+                __('Draft saved.'),
+                draft: true,
+            );
         }
 
         $this->collectionItemValuesWriter->sync($item->fresh(), $collection, $normalized);
 
-        return redirect()->route('collections.items.show', [$collection, $item])
-            ->with('success', __('Item updated.'));
+        return $this->redirectAfterItemSave(
+            $collection,
+            $item,
+            $action,
+            __('Item updated.'),
+        );
     }
 
     /**
@@ -583,6 +610,52 @@ class ItemController extends Controller
     }
 
     /**
+     * @param  array<string, mixed>  $data
+     */
+    private function persistNewItem(Collection $collection, array $data, bool $creating): CollectionItem
+    {
+        $normalized = $this->itemDataNormalizer->normalize($collection, $data, $creating);
+        $item = $collection->items()->create([]);
+        $this->collectionItemValuesWriter->sync($item, $collection, $normalized);
+
+        return $item;
+    }
+
+    private function itemSaveAction(Request $request): string
+    {
+        $action = (string) $request->input('save_action', 'stay');
+
+        return in_array($action, ['stay', 'create_new', 'copy'], true) ? $action : 'stay';
+    }
+
+    private function redirectAfterItemSave(
+        Collection $collection,
+        CollectionItem $item,
+        string $action,
+        string $success,
+        bool $draft = false,
+    ): RedirectResponse {
+        if ($action === 'create_new' && ! $collection->is_singleton) {
+            return redirect()
+                ->route('collections.items.new', $collection)
+                ->with('success', $success);
+        }
+
+        $parameters = [
+            'collection' => $collection,
+            'item' => $item,
+        ];
+
+        if ($draft) {
+            $parameters['version'] = 'draft';
+        }
+
+        return redirect()
+            ->route('collections.items.show', $parameters)
+            ->with('success', $success);
+    }
+
+    /**
      * Abort when the item does not belong to the route collection.
      */
     private function assertItemBelongsToCollection(Collection $collection, CollectionItem $item): void
@@ -660,14 +733,23 @@ class ItemController extends Controller
 
     /**
      * Compact role list for the “Preview as…” dialog.
+     * Super-admin and admin only; omits roles the current user already holds.
      *
      * @return list<array{id: int, name: string, is_public: bool}>
      */
-    private function previewRoles(): array
+    private function previewRoles(Request $request): array
     {
+        $user = $request->user();
+        if (! $this->userCanPreviewAsRole($user)) {
+            return [];
+        }
+
+        $ownIds = array_flip($this->permissionResolver->effectiveRoleIds($user));
+
         return Role::query()
             ->orderBy('name')
             ->get(['id', 'name'])
+            ->reject(static fn (Role $role): bool => isset($ownIds[(int) $role->id]))
             ->map(static fn (Role $role): array => [
                 'id' => (int) $role->id,
                 'name' => (string) $role->name,
@@ -675,5 +757,17 @@ class ItemController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    private function userCanPreviewAsRole(mixed $user): bool
+    {
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        $names = $this->permissionResolver->roleNamesFor($user);
+
+        return in_array(RoleEnum::SuperAdmin->value, $names, true)
+            || in_array(RoleEnum::Admin->value, $names, true);
     }
 }

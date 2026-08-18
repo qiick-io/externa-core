@@ -30,12 +30,37 @@ function notificationTitle(notification: AppNotification): string {
             ? 'File duplication failed'
             : notification.data.type === 'file_zip_failed'
               ? 'Zip preparation failed'
-              : 'Notification')
+              : notification.data.type === 'item_chat' ||
+                  notification.data.type === 'item_comment'
+                ? 'New message'
+                : 'Notification')
     );
 }
 
 function notificationBody(notification: AppNotification): string {
     return notification.data.body ?? '';
+}
+
+function chatHref(notification: AppNotification): string | null {
+    if (
+        notification.data.type !== 'item_chat' &&
+        notification.data.type !== 'item_comment'
+    ) {
+        return null;
+    }
+
+    if (typeof notification.data.url === 'string') {
+        return notification.data.url;
+    }
+
+    const collectionId = notification.data.collection_id;
+    const itemId = notification.data.item_id;
+
+    if (typeof collectionId === 'number' && typeof itemId === 'number') {
+        return `/collections/${collectionId}/items/${itemId}?chat=1`;
+    }
+
+    return null;
 }
 
 function zipDownloadHref(notification: AppNotification): string | null {
@@ -151,6 +176,7 @@ export function NotificationsDrawer({
                     {notifications.map((notification) => {
                         const folderId = notification.data.folder_id;
                         const zipHref = zipDownloadHref(notification);
+                        const chatUrl = chatHref(notification);
                         const isUnread = notification.read_at === null;
 
                         return (
@@ -187,6 +213,20 @@ export function NotificationsDrawer({
                                             onClick={() => onOpenChange(false)}
                                         >
                                             Open folder
+                                        </Link>
+                                    </Button>
+                                ) : null}
+                                {chatUrl ? (
+                                    <Button
+                                        asChild
+                                        variant="link"
+                                        className="mt-1 h-auto px-0"
+                                    >
+                                        <Link
+                                            href={chatUrl}
+                                            onClick={() => onOpenChange(false)}
+                                        >
+                                            Open chat
                                         </Link>
                                     </Button>
                                 ) : null}

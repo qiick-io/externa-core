@@ -28,6 +28,7 @@ type GroupFieldRendererProps<T extends FieldDef> = {
     renderField: (field: T) => ReactNode;
     renderFields: (fields: T[], options?: RenderFieldsOptions) => ReactNode;
     checkHidden: (field: T) => boolean;
+    renderGroupMenu?: (field: T) => ReactNode;
 };
 
 function settingsFlagEnabled(value: unknown): boolean {
@@ -113,12 +114,14 @@ function GroupTabsRenderer<T extends FieldDef>({
     renderLevel,
     renderFields,
     checkHidden,
+    headerMenu,
 }: {
     node: FieldTreeNode<T>;
     locales: string[];
     renderLevel: (children: FieldTreeNode<T>[]) => ReactNode;
     renderFields: (fields: T[], options?: RenderFieldsOptions) => ReactNode;
     checkHidden: (field: T) => boolean;
+    headerMenu?: ReactNode;
 }) {
     const { field, children } = node;
     const fillWidth = settingsFlagEnabled(field.settings?.fill_width);
@@ -150,11 +153,15 @@ function GroupTabsRenderer<T extends FieldDef>({
             )}
         >
             {visible.length === 0 ? (
-                <div className="border-b border-input px-4 py-3 text-sm font-medium">
-                    {groupLabel}
+                <div className="flex items-center gap-1 border-b border-input px-4 py-3">
+                    <div className="min-w-0 flex-1 text-sm font-medium">
+                        {groupLabel}
+                    </div>
+                    {headerMenu}
                 </div>
             ) : (
-                <div className="flex border-b border-input">
+                <div className="flex items-stretch border-b border-input">
+                    <div className="flex min-w-0 flex-1 overflow-x-auto">
                     {visible.map((child, index) => {
                         const label = getFieldDisplayName(
                             child.field.settings,
@@ -182,6 +189,12 @@ function GroupTabsRenderer<T extends FieldDef>({
                             </button>
                         );
                     })}
+                    </div>
+                    {headerMenu ? (
+                        <div className="ml-auto flex shrink-0 items-center border-l border-input px-1">
+                            {headerMenu}
+                        </div>
+                    ) : null}
                 </div>
             )}
             <div className="p-4">
@@ -242,12 +255,16 @@ function GroupAccordionRenderer<T extends FieldDef>({
     renderLevel,
     renderFields,
     checkHidden,
+    headerMenu,
+    renderGroupMenu,
 }: {
     node: FieldTreeNode<T>;
     locales: string[];
     renderLevel: (children: FieldTreeNode<T>[]) => ReactNode;
     renderFields: (fields: T[], options?: RenderFieldsOptions) => ReactNode;
     checkHidden: (field: T) => boolean;
+    headerMenu?: ReactNode;
+    renderGroupMenu?: (field: T) => ReactNode;
 }) {
     const { field, children } = node;
     const maxOneOpen = accordionModeEnabled(field.settings);
@@ -307,8 +324,11 @@ function GroupAccordionRenderer<T extends FieldDef>({
                 fillWidth && 'w-full min-w-0 col-span-full',
             )}
         >
-            <div className="border-b border-input px-4 py-3 text-sm font-medium">
-                {groupLabel}
+            <div className="flex items-center gap-0.5 border-b border-input px-4 py-3">
+                <div className="min-w-0 text-sm font-medium">
+                    {groupLabel}
+                </div>
+                {headerMenu}
             </div>
             {visible.length === 0 ? (
                 <div className="min-h-4 px-4 py-3" aria-hidden />
@@ -328,18 +348,23 @@ function GroupAccordionRenderer<T extends FieldDef>({
                                 open={isOpen}
                                 onOpenChange={() => toggleItem(child.field.name)}
                             >
-                                <CollapsibleTrigger
-                                    data-accordion-section={child.field.name}
-                                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium hover:bg-muted/40"
-                                >
-                                    <ChevronDown
-                                        className={cn(
-                                            'size-4 shrink-0 text-muted-foreground transition-transform',
-                                            isOpen && 'rotate-180',
-                                        )}
-                                    />
-                                    {label}
-                                </CollapsibleTrigger>
+                                <div className="flex items-center gap-0.5 px-4 hover:bg-muted/40">
+                                    <CollapsibleTrigger
+                                        data-accordion-section={child.field.name}
+                                        className="flex min-w-0 items-center gap-2 py-3 text-left text-sm font-medium"
+                                    >
+                                        <ChevronDown
+                                            className={cn(
+                                                'size-4 shrink-0 text-muted-foreground transition-transform',
+                                                isOpen && 'rotate-180',
+                                            )}
+                                        />
+                                        {label}
+                                    </CollapsibleTrigger>
+                                    {isLayoutGroupType(child.field.type)
+                                        ? renderGroupMenu?.(child.field)
+                                        : null}
+                                </div>
                                 {/* Keep inputs in the form DOM while collapsed so Save still posts values. */}
                                 <ForceMountedCollapsibleBody open={isOpen}>
                                     <div className="space-y-3 px-4 pb-4">
@@ -364,12 +389,14 @@ function DetailGroupCollapsible({
     defaultOpen,
     field,
     empty,
+    headerMenu,
     children,
 }: {
     label: string;
     defaultOpen: boolean;
     field: FieldDef;
     empty: boolean;
+    headerMenu?: ReactNode;
     children: ReactNode;
 }) {
     const [open, setOpen] = useState(defaultOpen);
@@ -382,15 +409,28 @@ function DetailGroupCollapsible({
             data-group-empty={empty ? '1' : '0'}
             className="space-y-3 rounded-lg border bg-muted/30 p-4 dark:border-sidebar-border"
         >
-            <CollapsibleTrigger className="flex w-full items-center justify-between text-left text-sm font-medium">
-                {label}
-                <ChevronDown
-                    className={cn(
-                        'size-4 shrink-0 text-muted-foreground transition-transform',
-                        open && 'rotate-180',
-                    )}
-                />
-            </CollapsibleTrigger>
+            <div className="flex items-center gap-0.5">
+                <CollapsibleTrigger className="min-w-0 text-left text-sm font-medium">
+                    {label}
+                </CollapsibleTrigger>
+                {headerMenu ? (
+                    <div
+                        className="shrink-0"
+                        onClick={(event) => event.stopPropagation()}
+                        onPointerDown={(event) => event.stopPropagation()}
+                    >
+                        {headerMenu}
+                    </div>
+                ) : null}
+                <CollapsibleTrigger className="ml-auto shrink-0 text-muted-foreground">
+                    <ChevronDown
+                        className={cn(
+                            'size-4 shrink-0 transition-transform',
+                            open && 'rotate-180',
+                        )}
+                    />
+                </CollapsibleTrigger>
+            </div>
             <ForceMountedCollapsibleBody open={open}>
                 <div className="pt-3">{children}</div>
             </ForceMountedCollapsibleBody>
@@ -404,6 +444,7 @@ export function renderGroupFieldTree<T extends FieldDef>({
     renderField,
     renderFields,
     checkHidden,
+    renderGroupMenu,
 }: GroupFieldRendererProps<T>): ReactNode {
     const renderLevel = (nodes: FieldTreeNode<T>[]): ReactNode => {
         const visible = nodes.filter((node) => !checkHidden(node.field));
@@ -451,6 +492,7 @@ export function renderGroupFieldTree<T extends FieldDef>({
                     renderLevel={renderLevel}
                     renderFields={renderFields}
                     checkHidden={checkHidden}
+                    headerMenu={renderGroupMenu?.(field)}
                 />
             );
         }
@@ -464,6 +506,8 @@ export function renderGroupFieldTree<T extends FieldDef>({
                     renderLevel={renderLevel}
                     renderFields={renderFields}
                     checkHidden={checkHidden}
+                    headerMenu={renderGroupMenu?.(field)}
+                    renderGroupMenu={renderGroupMenu}
                 />
             );
         }
@@ -486,6 +530,7 @@ export function renderGroupFieldTree<T extends FieldDef>({
                     defaultOpen={start !== 'closed'}
                     field={field}
                     empty={visibleChildren.length === 0}
+                    headerMenu={renderGroupMenu?.(field)}
                 >
                     {visibleChildren.length === 0 ? (
                         <div className="min-h-4" aria-hidden />
@@ -516,11 +561,12 @@ export function renderGroupFieldTree<T extends FieldDef>({
                         {...groupShellProps(field)}
                         data-group-empty="1"
                         className={cn(
-                            'rounded-lg border border-dashed border-input px-4 py-3 text-sm text-muted-foreground',
+                            'flex items-center gap-0.5 rounded-lg border border-dashed border-input px-4 py-3 text-sm text-muted-foreground',
                             fillWidth && 'w-full min-w-0 col-span-full',
                         )}
                     >
                         {label}
+                        {renderGroupMenu?.(field)}
                     </div>
                 );
             }

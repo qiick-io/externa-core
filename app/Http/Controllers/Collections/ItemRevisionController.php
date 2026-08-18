@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemRevision;
+use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesWriter;
 use Illuminate\Http\JsonResponse;
@@ -26,11 +27,13 @@ class ItemRevisionController extends Controller
     public function __construct(
         private CollectionItemDataNormalizer $normalizer,
         private CollectionItemValuesWriter $writer,
+        private CollectionPermissionEnforcer $permissionEnforcer,
     ) {}
 
     public function index(Request $request, Collection $collection, CollectionItem $item): Response|JsonResponse
     {
         abort_unless((int) $item->collection_id === (int) $collection->id, 404);
+        $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
 
         $validated = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
@@ -140,9 +143,19 @@ class ItemRevisionController extends Controller
     ): RedirectResponse {
         abort_unless((int) $item->collection_id === (int) $collection->id, 404);
         abort_unless((int) $revision->item_id === (int) $item->id, 404);
+        $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
+        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+
+        $data = is_array($revision->data) ? $revision->data : [];
+        $this->permissionEnforcer->assertWritableFields(
+            $request,
+            $collection,
+            $data,
+            'update',
+        );
 
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
-        $normalized = $this->normalizer->normalize($collection, $revision->data ?? [], false);
+        $normalized = $this->normalizer->normalize($collection, $data, false);
         $this->writer->sync($item, $collection, $normalized);
 
         // Versioning: align draft workspace with restored published values (like after publish).

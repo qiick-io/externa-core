@@ -20,7 +20,8 @@ beforeEach(function (): void {
 });
 
 test('preview as role strips unreadable fields and reports readable payload', function () {
-    $admin = grantCollectionPermissions(User::factory()->create());
+    $admin = User::factory()->create();
+    $admin->assignRole(RoleEnum::SuperAdmin->value);
     $this->actingAs($admin);
 
     $collection = Collection::factory()->create();
@@ -73,7 +74,8 @@ test('preview as role strips unreadable fields and reports readable payload', fu
 });
 
 test('preview as public reports unreadable when public lacks collection read', function () {
-    $admin = grantCollectionPermissions(User::factory()->create());
+    $admin = User::factory()->create();
+    $admin->assignRole(RoleEnum::SuperAdmin->value);
     $this->actingAs($admin);
 
     $collection = Collection::factory()->create();
@@ -109,8 +111,9 @@ test('preview as public reports unreadable when public lacks collection read', f
         ->assertJsonPath('data', null);
 });
 
-test('item form includes preview roles and recent activity props', function () {
-    $admin = grantCollectionPermissions(User::factory()->create());
+test('item form includes preview roles excluding the current user role', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole(RoleEnum::SuperAdmin->value);
     $this->actingAs($admin);
 
     $collection = Collection::factory()->create();
@@ -124,6 +127,33 @@ test('item form includes preview roles and recent activity props', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('collections/items/form')
-            ->has('previewRoles')
-            ->has('recentActivity'));
+            ->has('previewRoles', 3)
+            ->where('previewRoles.0.name', RoleEnum::Admin->value)
+            ->where('previewRoles.1.name', RoleEnum::Public->value)
+            ->where('previewRoles.2.name', RoleEnum::Reader->value)
+            ->has('activityLogs'));
+});
+
+test('preview as role is forbidden without admin or super-admin', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+    CollectionField::factory()->for($collection)->create([
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+    $item = $collection->items()->create([]);
+
+    $this->get(route('collections.items.show', [$collection, $item]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('collections/items/form')
+            ->has('previewRoles', 0));
+
+    $this->getJson(route('collections.items.preview-as-role', [
+        'collection' => $collection,
+        'item' => $item,
+        'as_public' => 1,
+    ]))->assertForbidden();
 });

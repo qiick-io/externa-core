@@ -1,11 +1,27 @@
 import { Form, Head, Link, router, usePage } from '@inertiajs/react';
-import { Copy, History, Languages, Rows3, Save, ScrollText, Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+    Check,
+    CheckCheck,
+    ChevronDown,
+    Copy,
+    History,
+    Languages,
+    MessageCircle,
+    Plus,
+    RotateCcw,
+    Rows3,
+    Save,
+    ScrollText,
+    Trash2,
+} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
+import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
 import type { PreviewRoleOption } from '@/components/collections/item-preview-as-role-dialog';
 import { ItemPreviewAsRoleDialog } from '@/components/collections/item-preview-as-role-dialog';
 import { ItemRevisionCompareModal } from '@/components/collections/item-revision-compare-modal';
@@ -25,6 +41,7 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
+    DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -43,13 +60,21 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
+import { PermissionEnum } from '@/enums/permission-enum';
+import { useCan } from '@/hooks/use-can';
 import { useCollection } from '@/hooks/use-collection';
 import {
     useRegisterUnsavedChanges,
     useRequestLeave,
 } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
+import { itemChatTitle, itemLabelFromData } from '@/lib/chat-thread-identity';
 import { getNonFieldErrors } from '@/lib/collection-data-errors';
 import { contentLocaleMeta } from '@/lib/content-locales-catalog';
 import {
@@ -72,6 +97,59 @@ const COLLECTION_ITEM_FORM_ID = 'collection-item-form';
 const DRAFT_DEBOUNCE_MS = 800;
 
 type FieldGrant = { read: boolean; create: boolean; update: boolean };
+
+type ItemSaveAction = 'stay' | 'create_new' | 'copy';
+
+function itemSaveShortcut(shift: boolean): string {
+    const isMac =
+        typeof navigator !== 'undefined' &&
+        /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
+
+    if (isMac) {
+        return shift ? '⌘⇧S' : '⌘S';
+    }
+
+    return shift ? 'Ctrl+Shift+S' : 'Ctrl+S';
+}
+
+function setItemSaveAction(action: ItemSaveAction): HTMLFormElement | null {
+    const form = document.getElementById(
+        COLLECTION_ITEM_FORM_ID,
+    ) as HTMLFormElement | null;
+    const input = form?.querySelector<HTMLInputElement>(
+        'input[name="save_action"]',
+    );
+
+    if (input) {
+        input.value = action;
+    }
+
+    return form;
+}
+
+function HeaderIconButton({
+    label,
+    children,
+    variant = 'ghost',
+    size = 'icon',
+    ...props
+}: ComponentProps<typeof Button> & { label: string }) {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button
+                    variant={variant}
+                    size={size}
+                    aria-label={label}
+                    {...props}
+                >
+                    {children}
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+    );
+}
 
 type ItemPayload = {
     id: number;
@@ -99,6 +177,7 @@ export default function ItemsForm({
     fieldGrants = null,
     previewRoles = [],
     activityLogs: activityLogsProp = null,
+    chat_count: chatCountProp = 0,
 }: {
     collection: CollectionView;
     item: ItemPayload | null;
@@ -114,9 +193,11 @@ export default function ItemsForm({
         | LaravelPaginated<AdminActivityLogRow>
         | Paginated<AdminActivityLogRow>
         | null;
+    chat_count?: number;
 }) {
     const { t } = useTranslation();
     const page = usePage();
+    const { can } = useCan();
     const requestLeave = useRequestLeave();
     const activityLogs = activityLogsProp
         ? normalizePaginated(activityLogsProp)
@@ -131,7 +212,7 @@ export default function ItemsForm({
     const initialDraft = useMemo(
         () => readItemDraft(collection.id, draftItemKey),
         // one-shot on mount for this item
-         
+
         [collection.id, draftItemKey],
     );
 
@@ -157,6 +238,8 @@ export default function ItemsForm({
     const [fieldSearch, setFieldSearch] = useState('');
     const [globalLocale, setGlobalLocale] = useState(locales[0] ?? 'en');
     const [revisionsOpen, setRevisionsOpen] = useState(false);
+    const [chatOpen, setChatOpen] = useState(false);
+    const [chatCount, setChatCount] = useState(chatCountProp);
     const [compareRevision, setCompareRevision] =
         useState<RevisionSnapshot | null>(null);
     const [allRevisions, setAllRevisions] = useState<RevisionSnapshot[]>([]);
@@ -168,9 +251,44 @@ export default function ItemsForm({
     const draftTimer = useRef<number | null>(null);
 
     const versioningEnabled = Boolean(collection.versioning);
-    const viewingPublished = versioningEnabled && contentVersion === 'published';
+    const viewingPublished =
+        versioningEnabled && contentVersion === 'published';
     const formReadonly = viewingPublished;
     const latestForCompare = publishedData ?? rawData;
+    const canCreateItem = can(PermissionEnum.CanCreateCollections);
+    const canEditItem = can(PermissionEnum.CanEditCollections);
+    const showCreateNew = !collection.is_singleton;
+    const showCopy = !isNew && !collection.is_singleton && canCreateItem;
+
+    useEffect(() => {
+        setChatCount(chatCountProp);
+    }, [chatCountProp]);
+
+    useEffect(() => {
+        if (isNew || item === null) {
+            return;
+        }
+
+        const query = page.url.includes('?')
+            ? page.url.slice(page.url.indexOf('?') + 1)
+            : '';
+        const params = new URLSearchParams(query);
+
+        if (params.get('chat') === '1' || params.get('comments') === '1') {
+            setChatOpen(true);
+        }
+    }, [isNew, item, page.url]);
+
+    const discardItemChanges = useCallback(() => {
+        setIsDirty(false);
+        clearItemDraft(collection.id, draftItemKey);
+        setDraftBanner(false);
+        setFormKey((key) => key + 1);
+    }, [collection.id, draftItemKey]);
+
+    const submitSave = useCallback((action: ItemSaveAction) => {
+        setItemSaveAction(action)?.requestSubmit();
+    }, []);
 
     /**
      * Apply current locale values to all locales (ponytail: DOM manipulation).
@@ -207,11 +325,16 @@ export default function ItemsForm({
 
                     const targetName = `data[${fieldName}][${targetLocale}]`;
                     const targetInput = form.querySelector<
-                        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+                        | HTMLInputElement
+                        | HTMLTextAreaElement
+                        | HTMLSelectElement
                     >(`[name="${targetName}"]`);
 
                     if (targetInput) {
-                        if (input.type === 'checkbox' || input.type === 'radio') {
+                        if (
+                            input.type === 'checkbox' ||
+                            input.type === 'radio'
+                        ) {
                             (targetInput as HTMLInputElement).checked = (
                                 input as HTMLInputElement
                             ).checked;
@@ -219,7 +342,9 @@ export default function ItemsForm({
                             targetInput.value = input.value;
                         }
 
-                        targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        targetInput.dispatchEvent(
+                            new Event('input', { bubbles: true }),
+                        );
                     }
                 }
             }
@@ -264,16 +389,23 @@ export default function ItemsForm({
 
                     const targetName = `data[${fieldName}][${targetLocale}]`;
                     const targetInput = form.querySelector<
-                        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+                        | HTMLInputElement
+                        | HTMLTextAreaElement
+                        | HTMLSelectElement
                     >(`[name="${targetName}"]`);
 
                     if (targetInput) {
-                        const isEmpty = targetInput.type === 'checkbox' || targetInput.type === 'radio'
-                            ? !(targetInput as HTMLInputElement).checked
-                            : (targetInput.value ?? '').trim() === '';
+                        const isEmpty =
+                            targetInput.type === 'checkbox' ||
+                            targetInput.type === 'radio'
+                                ? !(targetInput as HTMLInputElement).checked
+                                : (targetInput.value ?? '').trim() === '';
 
                         if (isEmpty) {
-                            if (input.type === 'checkbox' || input.type === 'radio') {
+                            if (
+                                input.type === 'checkbox' ||
+                                input.type === 'radio'
+                            ) {
                                 (targetInput as HTMLInputElement).checked = (
                                     input as HTMLInputElement
                                 ).checked;
@@ -281,7 +413,9 @@ export default function ItemsForm({
                                 targetInput.value = input.value;
                             }
 
-                            targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                            targetInput.dispatchEvent(
+                                new Event('input', { bubbles: true }),
+                            );
                         }
                     }
                 }
@@ -295,13 +429,37 @@ export default function ItemsForm({
     useRegisterUnsavedChanges({
         scope: 'page',
         isDirty,
-        onDiscard: () => {
-            setIsDirty(false);
-            clearItemDraft(collection.id, draftItemKey);
-            setDraftBanner(false);
-            setFormKey((key) => key + 1);
-        },
+        onDiscard: discardItemChanges,
     });
+
+    useEffect(() => {
+        if (formReadonly || !hasFields) {
+            return;
+        }
+
+        const onKeyDown = (event: KeyboardEvent): void => {
+            if (event.isComposing || event.key.toLowerCase() !== 's') {
+                return;
+            }
+
+            if (!(event.metaKey || event.ctrlKey)) {
+                return;
+            }
+
+            if (
+                (event.target as HTMLElement | null)?.closest('[role="dialog"]')
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+            submitSave(event.shiftKey && showCreateNew ? 'create_new' : 'stay');
+        };
+
+        window.addEventListener('keydown', onKeyDown);
+
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [formReadonly, hasFields, showCreateNew, submitSave]);
 
     useEffect(() => {
         if (!draftBanner || !initialDraft) {
@@ -404,46 +562,128 @@ export default function ItemsForm({
                         />
                     )}
                     {!isNew && item !== null && (
-                        <Button
+                        <HeaderIconButton
                             type="button"
-                            variant="outline"
+                            label={t('collections.itemToolbar.chat')}
+                            className="relative"
+                            data-test="open-chat-drawer"
+                            onClick={() => setChatOpen(true)}
+                        >
+                            <MessageCircle className="size-4" />
+                            {chatCount > 0 ? (
+                                <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                                    {chatCount > 9 ? '9+' : chatCount}
+                                </span>
+                            ) : null}
+                        </HeaderIconButton>
+                    )}
+                    {!isNew && item !== null && (
+                        <HeaderIconButton
+                            type="button"
+                            label={t('collections.itemToolbar.revisions')}
                             data-test="open-revisions-drawer"
                             onClick={() => setRevisionsOpen(true)}
                         >
                             <History className="size-4" />
-                            Revisions
-                        </Button>
+                        </HeaderIconButton>
                     )}
-                    <Button variant="outline" asChild>
+                    <HeaderIconButton
+                        asChild
+                        label={t('collections.itemToolbar.editFields')}
+                    >
                         <Link href={FieldController.index.url(collection.id)}>
                             <Rows3 className="size-4" />
-                            Edit fields
                         </Link>
-                    </Button>
+                    </HeaderIconButton>
                     {!isNew && item !== null && (
-                        <Button
+                        <HeaderIconButton
                             type="button"
-                            variant="destructive"
+                            label={t('collections.itemToolbar.delete')}
+                            className="text-destructive hover:text-destructive"
                             onClick={() => setDeleteOpen(true)}
                         >
                             <Trash2 className="size-4" />
-                            Delete
-                        </Button>
+                        </HeaderIconButton>
                     )}
                     <UnsavedChangesToolbar
                         isDirty={isDirty}
                         className="flex items-center gap-2"
                     />
                     {hasFields && !formReadonly && (
-                        <Button type="submit" form={COLLECTION_ITEM_FORM_ID}>
-                            <Save className="size-4" />
-                            {isNew
-                                ? 'Create'
-                                : versioningEnabled &&
-                                    contentVersion === 'draft'
-                                  ? 'Save draft'
-                                  : 'Save'}
-                        </Button>
+                        <div
+                            className="flex items-stretch"
+                            data-test="item-save-split"
+                        >
+                            <Button
+                                type="submit"
+                                form={COLLECTION_ITEM_FORM_ID}
+                                className="h-9 rounded-r-none"
+                                onClick={() => setItemSaveAction('stay')}
+                            >
+                                <Save className="size-4" />
+                                {isNew
+                                    ? t('collections.itemSave.create')
+                                    : versioningEnabled &&
+                                        contentVersion === 'draft'
+                                      ? t('collections.itemSave.saveDraft')
+                                      : t('collections.itemSave.save')}
+                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        className="h-9 rounded-l-none border-l border-primary-foreground/25 px-2"
+                                        aria-label={t(
+                                            'collections.itemSave.more',
+                                        )}
+                                        data-test="item-save-menu"
+                                    >
+                                        <ChevronDown className="size-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                        onSelect={() => submitSave('stay')}
+                                    >
+                                        <Check className="size-4" />
+                                        {t('collections.itemSave.stay')}
+                                        <DropdownMenuShortcut>
+                                            {itemSaveShortcut(false)}
+                                        </DropdownMenuShortcut>
+                                    </DropdownMenuItem>
+                                    {showCreateNew ? (
+                                        <DropdownMenuItem
+                                            onSelect={() =>
+                                                submitSave('create_new')
+                                            }
+                                        >
+                                            <Plus className="size-4" />
+                                            {t(
+                                                'collections.itemSave.createNew',
+                                            )}
+                                            <DropdownMenuShortcut>
+                                                {itemSaveShortcut(true)}
+                                            </DropdownMenuShortcut>
+                                        </DropdownMenuItem>
+                                    ) : null}
+                                    {showCopy ? (
+                                        <DropdownMenuItem
+                                            onSelect={() => submitSave('copy')}
+                                        >
+                                            <CheckCheck className="size-4" />
+                                            {t('collections.itemSave.copy')}
+                                        </DropdownMenuItem>
+                                    ) : null}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        onSelect={() => discardItemChanges()}
+                                    >
+                                        <RotateCcw className="size-4" />
+                                        {t('collections.itemSave.discard')}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     )}
                 </>
             }
@@ -539,12 +779,19 @@ export default function ItemsForm({
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        size="sm"
-                                        className="gap-1.5 px-2"
+                                        size="default"
+                                        className="h-9 min-h-9 gap-1.5 px-2.5"
                                     >
                                         <ContentLocaleFlag
-                                            region={contentLocaleMeta(globalLocale).flag}
-                                            title={contentLocaleMeta(globalLocale).name}
+                                            region={
+                                                contentLocaleMeta(globalLocale)
+                                                    .flag
+                                            }
+                                            title={
+                                                contentLocaleMeta(globalLocale)
+                                                    .name
+                                            }
+                                            className="h-3.5 w-auto"
                                         />
                                         <span className="font-mono text-xs uppercase">
                                             {globalLocale}
@@ -552,18 +799,27 @@ export default function ItemsForm({
                                         <Languages className="size-3.5 opacity-60" />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="min-w-48">
+                                <DropdownMenuContent
+                                    align="end"
+                                    className="min-w-48"
+                                >
                                     {locales.map((code) => {
                                         const meta = contentLocaleMeta(code);
 
                                         return (
                                             <DropdownMenuItem
                                                 key={code}
-                                                onClick={() => setGlobalLocale(code)}
+                                                onClick={() =>
+                                                    setGlobalLocale(code)
+                                                }
                                                 className="gap-2"
                                             >
-                                                <ContentLocaleFlag region={meta.flag} />
-                                                <span className="flex-1">{meta.name}</span>
+                                                <ContentLocaleFlag
+                                                    region={meta.flag}
+                                                />
+                                                <span className="flex-1">
+                                                    {meta.name}
+                                                </span>
                                                 <span className="font-mono text-xs text-muted-foreground">
                                                     {code}
                                                 </span>
@@ -591,9 +847,15 @@ export default function ItemsForm({
                         {!isNew && item !== null && (
                             <ToggleGroup
                                 type="single"
+                                variant="outline"
+                                size="default"
                                 value={activeTab}
+                                className="h-9"
                                 onValueChange={(value) => {
-                                    if (value === 'fields' || value === 'activity') {
+                                    if (
+                                        value === 'fields' ||
+                                        value === 'activity'
+                                    ) {
                                         setActiveTab(value);
                                     }
                                 }}
@@ -601,14 +863,14 @@ export default function ItemsForm({
                                 <ToggleGroupItem
                                     value="fields"
                                     aria-label="Fields"
-                                    className="px-2.5"
+                                    className="h-9 px-2.5"
                                 >
                                     <ScrollText className="size-4" />
                                 </ToggleGroupItem>
                                 <ToggleGroupItem
                                     value="activity"
                                     aria-label="Activity"
-                                    className="px-2.5"
+                                    className="h-9 px-2.5"
                                 >
                                     <History className="size-4" />
                                 </ToggleGroupItem>
@@ -669,7 +931,8 @@ export default function ItemsForm({
                                     setDraftBanner(false);
                                 }}
                                 onError={(errors) => {
-                                    const nonFieldErrors = getNonFieldErrors(errors);
+                                    const nonFieldErrors =
+                                        getNonFieldErrors(errors);
 
                                     if (nonFieldErrors.length > 0) {
                                         nonFieldErrors.forEach((msg) => {
@@ -688,6 +951,11 @@ export default function ItemsForm({
                             >
                                 {({ errors }) => (
                                     <>
+                                        <input
+                                            type="hidden"
+                                            name="save_action"
+                                            defaultValue="stay"
+                                        />
                                         {!isNew && versioningEnabled ? (
                                             <input
                                                 type="hidden"
@@ -701,12 +969,19 @@ export default function ItemsForm({
                                             fields={collection.fields}
                                             locales={locales}
                                             defaults={contentDefaults}
-                                            relatedCollections={relatedCollections}
+                                            relatedCollections={
+                                                relatedCollections
+                                            }
                                             formLayout={collection.form_layout}
                                             fieldGrants={fieldGrants}
                                             isNew={isNew}
                                             fieldSearch={fieldSearch}
-                                            errors={errors as Record<string, unknown>}
+                                            errors={
+                                                errors as Record<
+                                                    string,
+                                                    unknown
+                                                >
+                                            }
                                             defaultLocale={globalLocale}
                                             forceReadonly={formReadonly}
                                             revisionApply={revisionApply}
@@ -725,16 +1000,22 @@ export default function ItemsForm({
                                         options={{ preserveScroll: true }}
                                         onSuccess={() => {
                                             setIsDirty(false);
-                                            clearItemDraft(collection.id, draftItemKey);
+                                            clearItemDraft(
+                                                collection.id,
+                                                draftItemKey,
+                                            );
                                             setDraftBanner(false);
                                         }}
                                         onError={(errors) => {
-                                            const nonFieldErrors = getNonFieldErrors(errors);
+                                            const nonFieldErrors =
+                                                getNonFieldErrors(errors);
 
                                             if (nonFieldErrors.length > 0) {
-                                                nonFieldErrors.forEach((msg) => {
-                                                    toast.error(msg);
-                                                });
+                                                nonFieldErrors.forEach(
+                                                    (msg) => {
+                                                        toast.error(msg);
+                                                    },
+                                                );
                                             }
                                         }}
                                         onInput={() => {
@@ -756,6 +1037,11 @@ export default function ItemsForm({
                                     >
                                         {({ errors }) => (
                                             <>
+                                                <input
+                                                    type="hidden"
+                                                    name="save_action"
+                                                    defaultValue="stay"
+                                                />
                                                 {versioningEnabled ? (
                                                     <input
                                                         type="hidden"
@@ -779,15 +1065,26 @@ export default function ItemsForm({
                                                     fields={collection.fields}
                                                     locales={locales}
                                                     defaults={contentDefaults}
-                                                    relatedCollections={relatedCollections}
-                                                    formLayout={collection.form_layout}
+                                                    relatedCollections={
+                                                        relatedCollections
+                                                    }
+                                                    formLayout={
+                                                        collection.form_layout
+                                                    }
                                                     fieldGrants={fieldGrants}
                                                     isNew={isNew}
                                                     fieldSearch={fieldSearch}
-                                                    errors={errors as Record<string, unknown>}
+                                                    errors={
+                                                        errors as Record<
+                                                            string,
+                                                            unknown
+                                                        >
+                                                    }
                                                     defaultLocale={globalLocale}
                                                     forceReadonly={formReadonly}
-                                                    revisionApply={revisionApply}
+                                                    revisionApply={
+                                                        revisionApply
+                                                    }
                                                 />
                                             </>
                                         )}
@@ -802,8 +1099,8 @@ export default function ItemsForm({
                                                         Created by
                                                     </dt>
                                                     <dd>
-                                                        {item.user_created?.name ??
-                                                            '—'}
+                                                        {item.user_created
+                                                            ?.name ?? '—'}
                                                     </dd>
                                                 </div>
                                                 <div>
@@ -811,8 +1108,8 @@ export default function ItemsForm({
                                                         Updated by
                                                     </dt>
                                                     <dd>
-                                                        {item.user_updated?.name ??
-                                                            '—'}
+                                                        {item.user_updated
+                                                            ?.name ?? '—'}
                                                     </dd>
                                                 </div>
                                                 <div>
@@ -857,9 +1154,15 @@ export default function ItemsForm({
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow>
-                                                        <TableHead>Date</TableHead>
-                                                        <TableHead>User</TableHead>
-                                                        <TableHead>Action</TableHead>
+                                                        <TableHead>
+                                                            Date
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            User
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Action
+                                                        </TableHead>
                                                         <TableHead>
                                                             Description
                                                         </TableHead>
@@ -874,61 +1177,62 @@ export default function ItemsForm({
                                                                 colSpan={4}
                                                                 className="text-muted-foreground"
                                                             >
-                                                                No activity recorded
-                                                                yet.
+                                                                No activity
+                                                                recorded yet.
                                                             </TableCell>
                                                         </TableRow>
                                                     ) : (
-                                                        (activityLogs?.data ?? []).map(
-                                                            (row) => (
-                                                                <TableRow
-                                                                    key={row.id}
-                                                                >
-                                                                    <TableCell className="whitespace-nowrap text-sm">
-                                                                        {row.created_at
-                                                                            ? new Date(
-                                                                                  row.created_at,
-                                                                              ).toLocaleString()
-                                                                            : '—'}
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        {row.causer ? (
-                                                                            <div className="text-sm">
-                                                                                <div>
-                                                                                    {
-                                                                                        row
-                                                                                            .causer
-                                                                                            .name
-                                                                                    }
-                                                                                </div>
-                                                                                <div className="text-xs text-muted-foreground">
-                                                                                    {
-                                                                                        row
-                                                                                            .causer
-                                                                                            .email
-                                                                                    }
-                                                                                </div>
+                                                        (
+                                                            activityLogs?.data ??
+                                                            []
+                                                        ).map((row) => (
+                                                            <TableRow
+                                                                key={row.id}
+                                                            >
+                                                                <TableCell className="text-sm whitespace-nowrap">
+                                                                    {row.created_at
+                                                                        ? new Date(
+                                                                              row.created_at,
+                                                                          ).toLocaleString()
+                                                                        : '—'}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {row.causer ? (
+                                                                        <div className="text-sm">
+                                                                            <div>
+                                                                                {
+                                                                                    row
+                                                                                        .causer
+                                                                                        .name
+                                                                                }
                                                                             </div>
-                                                                        ) : (
-                                                                            <span className="text-sm text-muted-foreground">
-                                                                                System
-                                                                            </span>
-                                                                        )}
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        <Badge variant="secondary">
-                                                                            {row.event ??
-                                                                                '—'}
-                                                                        </Badge>
-                                                                    </TableCell>
-                                                                    <TableCell className="max-w-xs truncate text-sm">
-                                                                        {
-                                                                            row.description
-                                                                        }
-                                                                    </TableCell>
-                                                                </TableRow>
-                                                            ),
-                                                        )
+                                                                            <div className="text-xs text-muted-foreground">
+                                                                                {
+                                                                                    row
+                                                                                        .causer
+                                                                                        .email
+                                                                                }
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <span className="text-sm text-muted-foreground">
+                                                                            System
+                                                                        </span>
+                                                                    )}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Badge variant="secondary">
+                                                                        {row.event ??
+                                                                            '—'}
+                                                                    </Badge>
+                                                                </TableCell>
+                                                                <TableCell className="max-w-xs truncate text-sm">
+                                                                    {
+                                                                        row.description
+                                                                    }
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))
                                                     )}
                                                 </TableBody>
                                             </Table>
@@ -965,11 +1269,37 @@ export default function ItemsForm({
             )}
 
             {!isNew && item !== null && (
+                <ItemChatDrawer
+                    open={chatOpen}
+                    onOpenChange={setChatOpen}
+                    collectionId={collection.id}
+                    itemId={item.id}
+                    fields={collection.fields}
+                    chatCount={chatCount}
+                    onChatCountChange={setChatCount}
+                    thread={{
+                        id: `item-${item.id}`,
+                        kind: 'item',
+                        title: itemChatTitle(
+                            collection.name,
+                            itemLabelFromData(rawData, item.id),
+                        ),
+                        collection_id: collection.id,
+                        collection_name: collection.name,
+                        collection_icon: collection.icon ?? null,
+                        collection_color: collection.color ?? null,
+                        participants: [],
+                    }}
+                />
+            )}
+
+            {!isNew && item !== null && (
                 <ItemRevisionsDrawer
                     open={revisionsOpen}
                     onOpenChange={setRevisionsOpen}
                     collectionId={collection.id}
                     itemId={item.id}
+                    canRestore={canEditItem}
                     onSelectRevision={(revision, all) => {
                         setAllRevisions(all);
                         setCompareRevision(revision);
@@ -1004,6 +1334,7 @@ export default function ItemsForm({
                               ] ?? null)
                             : null
                     }
+                    canRestore={canEditItem && !formReadonly}
                     onApply={(values) => {
                         if (formReadonly) {
                             toast.error(

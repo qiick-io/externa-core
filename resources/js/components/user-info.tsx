@@ -22,9 +22,12 @@ export function UserInfo({
     return (
         <>
             <span className="relative shrink-0">
-                <Avatar className="h-8 w-8 overflow-hidden rounded-full">
+                <Avatar
+                    userId={user.id}
+                    className="h-8 w-8 overflow-hidden rounded-full"
+                >
                     <AvatarImage src={user.avatar} alt={displayName} />
-                    <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
+                    <AvatarFallback className="rounded-lg text-xs font-medium">
                         {getInitials(user.first_name, user.last_name)}
                     </AvatarFallback>
                 </Avatar>

@@ -44,22 +44,33 @@ function DrawerOverlay({
 function DrawerContent({
     className,
     children,
+    showOverlay = true,
     ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Content>) {
+}: React.ComponentProps<typeof DrawerPrimitive.Content> & {
+    showOverlay?: boolean;
+}) {
+    const inner = (
+        <DrawerPrimitive.Content
+            data-slot="drawer-content"
+            className={cn(
+                'bg-background fixed z-50 flex h-full max-h-dvh min-h-0 flex-col overflow-hidden border shadow-lg',
+                'data-[vaul-drawer-direction=right]:inset-y-0 data-[vaul-drawer-direction=right]:right-0 data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:max-w-md data-[vaul-drawer-direction=right]:rounded-l-xl data-[vaul-drawer-direction=right]:border-l',
+                className,
+            )}
+            {...props}
+        >
+            {children}
+        </DrawerPrimitive.Content>
+    );
+
+    if (!showOverlay) {
+        return inner;
+    }
+
     return (
         <DrawerPortal data-slot="drawer-portal">
             <DrawerOverlay />
-            <DrawerPrimitive.Content
-                data-slot="drawer-content"
-                className={cn(
-                    'bg-background fixed z-50 flex h-full max-h-dvh min-h-0 flex-col overflow-hidden border shadow-lg',
-                    'data-[vaul-drawer-direction=right]:inset-y-0 data-[vaul-drawer-direction=right]:right-0 data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:max-w-md data-[vaul-drawer-direction=right]:rounded-l-xl data-[vaul-drawer-direction=right]:border-l',
-                    className,
-                )}
-                {...props}
-            >
-                {children}
-            </DrawerPrimitive.Content>
+            {inner}
         </DrawerPortal>
     );
 }

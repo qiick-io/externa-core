@@ -60,6 +60,9 @@ enum PermissionEnum: string
 
     case CanUseAi = 'can-use-ai';
 
+    case CanShowChat = 'can-show-chat';
+    case CanCreateDirectChats = 'can-create-direct-chats';
+
     case CanManageProjectSettings = 'can-manage-project-settings';
 
     case CanShowApiKeys = 'can-show-api-keys';

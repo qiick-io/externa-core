@@ -5,6 +5,8 @@ import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PermissionEnum } from '@/enums/permission-enum';
+import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import { jsonRequestHeaders } from '@/lib/csrf';
 import collections from '@/routes/collections';
@@ -60,6 +62,8 @@ export default function ItemRevisions({
         null,
     );
     const [restoring, setRestoring] = useState(false);
+    const { can } = useCan();
+    const canRestore = can(PermissionEnum.CanEditCollections);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Collections', href: collections.index.url() },
@@ -349,18 +353,20 @@ export default function ItemRevisions({
                                                             'System'}
                                                     </span>
                                                 </button>
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() =>
-                                                        setRestoreRevisionId(
-                                                            revision.id,
-                                                        )
-                                                    }
-                                                >
-                                                    Restore
-                                                </Button>
+                                                {canRestore ? (
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            setRestoreRevisionId(
+                                                                revision.id,
+                                                            )
+                                                        }
+                                                    >
+                                                        Restore
+                                                    </Button>
+                                                ) : null}
                                             </li>
                                         );
                                     })}

@@ -14,6 +14,7 @@ use App\Models\Role;
 use App\Services\Api\CollectionPermissionSync;
 use App\Services\Api\FilePermissionSync;
 use App\Support\Authorization\PermissionGrouper;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -37,11 +38,15 @@ class RoleController extends Controller
     /**
      * List roles with search and sort filters.
      */
-    public function index(Request $request): Response
+    public function index(Request $request): Response|JsonResponse
     {
         $this->authorizePermission(PermissionEnum::CanShowRoles->value);
 
         $query = Role::query()->withCount('permissions');
+
+        if ($request->expectsJson()) {
+            $query->where('is_assignable', true);
+        }
 
         if ($search = $request->string('search')->trim()->toString()) {
             $term = '%'.$search.'%';
@@ -60,6 +65,10 @@ class RoleController extends Controller
         $roles = $query
             ->paginate($request->integer('per_page', 15))
             ->withQueryString();
+
+        if ($request->expectsJson()) {
+            return RoleResource::collection($roles)->response($request);
+        }
 
         return Inertia::render('admin/roles/index', [
             'roles' => RoleResource::collection($roles),
@@ -228,6 +237,11 @@ class RoleController extends Controller
                     'id' => $permission->id,
                     'name' => $permission->name,
                 ])->values()->all(),
+            'createDirectChatsPermission' => $role?->isPublic()
+                ? null
+                : $permissions
+                    ->firstWhere('name', PermissionEnum::CanCreateDirectChats->value)
+                    ?->only(['id', 'name']),
             'collections' => $this->collectionPermissionSync->collectionsPayload(),
             'collectionPermissions' => $role
                 ? $this->collectionPermissionSync->matrixForRole($role)

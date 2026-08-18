@@ -28,6 +28,10 @@ export type AppNotification = {
         download_url?: string | null;
         expires_at?: string | null;
         zip_bytes?: number | null;
+        collection_id?: number | null;
+        item_id?: number | null;
+        comment_id?: number | null;
+        url?: string | null;
         [key: string]: unknown;
     };
     read_at: string | null;

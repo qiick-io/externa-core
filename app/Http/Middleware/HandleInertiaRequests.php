@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\PermissionEnum;
 use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Chat\ChatUnreadService;
 use App\Services\Dashboard\DashboardHealthMetrics;
 use App\Services\Settings\ProjectAppearance;
 use App\Services\Settings\ProjectSettings;
@@ -77,6 +79,13 @@ class HandleInertiaRequests extends Middleware
             'notifications' => [
                 'unread_count' => $user ? $user->unreadNotifications()->count() : 0,
             ],
+            'chat' => fn (): array => $user && $permissionResolver->hasPermission($user, PermissionEnum::CanShowChat->value)
+                ? app(ChatUnreadService::class)->shared($user)
+                : [
+                    'unread_count' => 0,
+                    'unread_private' => 0,
+                    'unread_collection' => 0,
+                ],
             'healthBadge' => $user
                 ? Cache::remember(
                     'health-badge',

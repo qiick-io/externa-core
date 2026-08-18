@@ -1,5 +1,6 @@
-import { useForm } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 import { useEffect } from 'react';
+import PasswordInput from '@/components/password-input';
 import { RoleMultiSelect } from '@/components/admin/role-multi-select';
 import { UserGroupMultiSelect } from '@/components/admin/user-group-multi-select';
 import InputError from '@/components/input-error';
@@ -51,6 +52,9 @@ export function UserFormDrawer({
     onSuccess,
 }: UserFormDrawerProps) {
     const form = useForm({ ...EMPTY_USER_FORM });
+    const { projectSettings } = usePage().props;
+    const isCreate = editing === null;
+    const roleIsRequired = isCreate;
 
     useRegisterUnsavedChanges({
         scope: 'drawer',
@@ -133,9 +137,14 @@ export function UserFormDrawer({
                 }}
             >
                 <DrawerBody className="flex flex-col gap-4">
+                    <p className="text-sm text-muted-foreground">
+                        Fields marked with * are required.
+                    </p>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="grid gap-2">
-                            <Label htmlFor="user_first_name">First name</Label>
+                            <Label htmlFor="user_first_name">
+                                First name *
+                            </Label>
                             <Input
                                 id="user_first_name"
                                 value={form.data.first_name}
@@ -162,17 +171,28 @@ export function UserFormDrawer({
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="user_email">Email</Label>
+                        <Label htmlFor="user_email">Email *</Label>
                         <Input
                             id="user_email"
                             type="email"
+                            inputMode="email"
                             value={form.data.email}
                             onChange={(e) =>
                                 form.setData('email', e.target.value)
                             }
                             required
                             disabled={readOnly}
+                            autoComplete="email"
+                            aria-describedby="user_email_hint"
                         />
+                        <p
+                            id="user_email_hint"
+                            className="text-xs text-muted-foreground"
+                        >
+                            Use a valid email address, for example
+                            {' '}
+                            <code>name@example.com</code>.
+                        </p>
                         <InputError message={form.errors.email} />
                     </div>
 
@@ -191,18 +211,26 @@ export function UserFormDrawer({
 
                     <div className="grid gap-2">
                         <Label htmlFor="user_password">
-                            {editing ? 'New password (optional)' : 'Password'}
+                            {editing ? 'New password (optional)' : 'Password *'}
                         </Label>
-                        <Input
+                        <PasswordInput
                             id="user_password"
-                            type="password"
                             value={form.data.password}
                             onChange={(e) =>
                                 form.setData('password', e.target.value)
                             }
-                            required={!editing}
+                            required={isCreate}
                             disabled={readOnly}
                             autoComplete="new-password"
+                            showGenerateButton={isCreate}
+                            generateLabel="Generate secure password"
+                            onGenerated={(password) =>
+                                form.setData('password', password)
+                            }
+                            showStrength={isCreate}
+                            strengthPolicy={projectSettings.passwordPolicy}
+                            strengthId="user_password_strength"
+                            aria-describedby="user_password_strength"
                         />
                         <InputError message={form.errors.password} />
                     </div>
@@ -222,7 +250,7 @@ export function UserFormDrawer({
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Roles</Label>
+                        <Label>Roles{roleIsRequired ? ' *' : ''}</Label>
                         <RoleMultiSelect
                             value={form.data.role_ids}
                             onChange={(role_ids) =>
@@ -230,6 +258,11 @@ export function UserFormDrawer({
                             }
                             initialRoles={editing?.roles}
                             disabled={readOnly}
+                            placeholder={
+                                roleIsRequired
+                                    ? 'Select at least one role'
+                                    : 'Select roles…'
+                            }
                         />
                         <InputError message={form.errors.role_ids} />
                     </div>

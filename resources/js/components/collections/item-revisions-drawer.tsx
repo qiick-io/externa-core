@@ -30,6 +30,7 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     collectionId: number;
     itemId: number;
+    canRestore?: boolean;
     onSelectRevision: (revision: RevisionSnapshot, all: RevisionSnapshot[]) => void;
 };
 
@@ -41,6 +42,7 @@ export function ItemRevisionsDrawer({
     onOpenChange,
     collectionId,
     itemId,
+    canRestore = false,
     onSelectRevision,
 }: Props) {
     const [revisions, setRevisions] = useState<RevisionSnapshot[]>([]);
@@ -308,19 +310,21 @@ export function ItemRevisionsDrawer({
                                             · {revision.user?.name ?? 'System'}
                                         </span>
                                     </button>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="ghost"
-                                        className="shrink-0 text-xs text-muted-foreground"
-                                        title="Hard restore (writes immediately)"
-                                        data-test={`hard-restore-${revision.id}`}
-                                        onClick={() =>
-                                            setHardRestoreId(revision.id)
-                                        }
-                                    >
-                                        Hard
-                                    </Button>
+                                    {canRestore ? (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            className="shrink-0 text-xs text-muted-foreground"
+                                            title="Hard restore (writes immediately)"
+                                            data-test={`hard-restore-${revision.id}`}
+                                            onClick={() =>
+                                                setHardRestoreId(revision.id)
+                                            }
+                                        >
+                                            Hard
+                                        </Button>
+                                    ) : null}
                                 </li>
                             ))}
                         </ul>

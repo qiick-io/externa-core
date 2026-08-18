@@ -70,3 +70,4 @@ require __DIR__.'/admin.php';
 require __DIR__.'/settings.php';
 require __DIR__.'/collections.php';
 require __DIR__.'/ai.php';
+require __DIR__.'/chat.php';

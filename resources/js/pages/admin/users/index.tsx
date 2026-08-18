@@ -10,6 +10,7 @@ import {
     TablePagination,
     TablePanel,
 } from '@/components/layout/page-layout';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -33,6 +34,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
+import { getInitialsFromParts } from '@/hooks/use-initials';
 import { useOnlineUsers } from '@/hooks/use-online-users';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
@@ -488,32 +490,50 @@ export default function AdminUsersIndex({
                                             </TableCell>
                                             <TableCell className="font-medium">
                                                 <span className="inline-flex items-center gap-2">
-                                                    <span
-                                                        className={cn(
-                                                            'size-2 shrink-0 rounded-full',
-                                                            onlineUsers.has(
-                                                                user.id,
-                                                            )
-                                                                ? 'bg-emerald-500'
-                                                                : 'bg-muted-foreground/30',
-                                                        )}
-                                                        title={
-                                                            onlineUsers.has(
-                                                                user.id,
-                                                            )
-                                                                ? 'Online'
-                                                                : 'Offline'
-                                                        }
-                                                        data-test="user-online-dot"
-                                                        data-online={
-                                                            onlineUsers.has(
-                                                                user.id,
-                                                            )
-                                                                ? '1'
-                                                                : '0'
-                                                        }
-                                                        aria-hidden
-                                                    />
+                                                    <span className="relative shrink-0">
+                                                        <Avatar
+                                                            userId={user.id}
+                                                            className="size-7"
+                                                        >
+                                                            <AvatarFallback className="text-[10px] font-medium">
+                                                                {getInitialsFromParts(
+                                                                    user.first_name,
+                                                                    user.last_name,
+                                                                ) ||
+                                                                    user.email
+                                                                        .charAt(
+                                                                            0,
+                                                                        )
+                                                                        .toUpperCase()}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <span
+                                                            className={cn(
+                                                                'absolute -right-0.5 -bottom-0.5 size-2 rounded-full ring-2 ring-background',
+                                                                onlineUsers.has(
+                                                                    user.id,
+                                                                )
+                                                                    ? 'bg-emerald-500'
+                                                                    : 'bg-muted-foreground/30',
+                                                            )}
+                                                            title={
+                                                                onlineUsers.has(
+                                                                    user.id,
+                                                                )
+                                                                    ? 'Online'
+                                                                    : 'Offline'
+                                                            }
+                                                            data-test="user-online-dot"
+                                                            data-online={
+                                                                onlineUsers.has(
+                                                                    user.id,
+                                                                )
+                                                                    ? '1'
+                                                                    : '0'
+                                                            }
+                                                            aria-hidden
+                                                        />
+                                                    </span>
                                                     {userDisplayName(user)}
                                                 </span>
                                             </TableCell>
