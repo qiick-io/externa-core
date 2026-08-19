@@ -4,7 +4,6 @@ import {
     Copy,
     Forward,
     Loader2,
-    MessageCircle,
     MoreVertical,
     Paperclip,
     Pin,
@@ -16,7 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DragEvent, ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
-import { ChatThreadAvatar } from '@/components/chat/chat-thread-avatar';
+import { ChatThreadHeader } from '@/components/chat/chat-thread-header';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -38,10 +37,7 @@ import {
     Drawer,
     DrawerBody,
     DrawerContent,
-    DrawerDescription,
     DrawerFooter,
-    DrawerHeader,
-    DrawerTitle,
 } from '@/components/ui/drawer';
 import {
     DropdownMenu,
@@ -61,6 +57,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
@@ -161,6 +158,7 @@ type Props = {
     chatCount: number;
     onChatCountChange: (count: number) => void;
     thread?: ChatThreadIdentity | null;
+    canCreateDirect?: boolean;
 };
 
 function initials(name: string): string {
@@ -260,6 +258,7 @@ export function ItemChatDrawer({
     chatCount,
     onChatCountChange,
     thread = null,
+    canCreateDirect = false,
 }: Props) {
     const { t } = useTranslation();
     const page = usePage();
@@ -335,10 +334,12 @@ export function ItemChatDrawer({
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const uploadGen = useRef(0);
+    const loadGen = useRef(0);
     const whisperAt = useRef(0);
     const typingExpiry = useRef<Map<number, number>>(new Map());
     const messagesRef = useRef(messages);
     const chatCountRef = useRef(chatCount);
+    const onChatCountChangeRef = useRef(onChatCountChange);
     const presenceRef = useRef<{
         whisper: (event: string, data: Record<string, unknown>) => void;
     } | null>(null);
@@ -348,12 +349,20 @@ export function ItemChatDrawer({
     });
 
     chatCountRef.current = chatCount;
+    onChatCountChangeRef.current = onChatCountChange;
+
+    const scopeKey =
+        scope?.mode === 'hub'
+            ? `hub:${scope.chatId}`
+            : scope
+              ? `item:${scope.collectionId}:${scope.itemId}`
+              : null;
 
     const load = useCallback(
         (beforeId?: number): void => {
             if (beforeId) {
                 setLoadingMore(true);
-            } else {
+            } else if (messagesRef.current.length === 0) {
                 setLoading(true);
             }
 
@@ -364,13 +373,18 @@ export function ItemChatDrawer({
                 return;
             }
 
+            const gen = ++loadGen.current;
             setError(null);
 
             void fetchMessages(scope, { beforeId })
                 .then((payload) => {
+                    if (gen !== loadGen.current) {
+                        return;
+                    }
+
                     setHasMore(payload.meta.has_more);
                     setNotify(payload.meta.notify);
-                    onChatCountChange(payload.meta.total);
+                    onChatCountChangeRef.current(payload.meta.total);
                     setPinned(payload.pinned ?? []);
 
                     if (payload.meta.chat_id) {
@@ -391,6 +405,10 @@ export function ItemChatDrawer({
                     }
                 })
                 .catch(() => {
+                    if (gen !== loadGen.current) {
+                        return;
+                    }
+
                     setError(t('collections.itemChat.error'));
 
                     if (!beforeId) {
@@ -398,11 +416,15 @@ export function ItemChatDrawer({
                     }
                 })
                 .finally(() => {
+                    if (gen !== loadGen.current) {
+                        return;
+                    }
+
                     setLoading(false);
                     setLoadingMore(false);
                 });
         },
-        [scope, onChatCountChange, t],
+        [scope, t],
     );
 
     useEffect(() => {
@@ -426,18 +448,25 @@ export function ItemChatDrawer({
         setReplyTo(null);
         setSelectMode(false);
         setSelectedIds([]);
+        setTypingNames([]);
+        setMessages([]);
+        setPinned([]);
+        setHasMore(false);
+        setLoading(true);
         load();
-    }, [open, load]);
+        // scopeKey covers scope identity; load is intentionally omitted.
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when thread changes
+    }, [open, scopeKey]);
 
     useEffect(() => {
-        if (!open || !scope) {
+        if (!open || !scope || variant === 'pane') {
             return;
         }
 
         void markChatRead(scope).catch(() => {
             // Missing thread (item alias before first message) is a no-op.
         });
-    }, [open, scope]);
+    }, [open, scopeKey, variant]);
 
     useEffect(() => {
         setMentionHighlight(0);
@@ -472,7 +501,7 @@ export function ItemChatDrawer({
                         return prev;
                     }
 
-                    onChatCountChange(prev.length + 1);
+                    onChatCountChangeRef.current(prev.length + 1);
 
                     return [...prev, next];
                 });
@@ -498,10 +527,13 @@ export function ItemChatDrawer({
                 );
                 setPinned((prev) => {
                     if (next.is_pinned) {
-                        const row = {
+                        const row: ChatPinned = {
                             id: next.id,
-                            body: next.body.slice(0, 80),
+                            body: next.body,
                             user: next.user,
+                            mentioned_users: next.mentioned_users,
+                            mentioned_collections:
+                                next.mentioned_collections ?? [],
                         };
 
                         if (prev.some((item) => item.id === next.id)) {
@@ -526,7 +558,7 @@ export function ItemChatDrawer({
 
             setMessages((prev) => prev.filter((row) => row.id !== id));
             setPinned((prev) => prev.filter((row) => row.id !== id));
-            onChatCountChange(Math.max(0, chatCountRef.current - 1));
+            onChatCountChangeRef.current(Math.max(0, chatCountRef.current - 1));
         });
         channel.listen(
             '.ReactionToggled',
@@ -612,7 +644,7 @@ export function ItemChatDrawer({
             presenceRef.current = null;
             echo.leave(channelName);
         };
-    }, [open, realtimeOn, liveChatId, viewerId, onChatCountChange, scope]);
+    }, [open, realtimeOn, liveChatId, viewerId, scopeKey]);
 
     const whisperTyping = useCallback((): void => {
         if (!realtimeOn) {
@@ -773,7 +805,7 @@ export function ItemChatDrawer({
                         ? prev
                         : [...prev, message],
                 );
-                onChatCountChange(chatCount + 1);
+                onChatCountChangeRef.current(chatCount + 1);
                 setDraft('');
                 setPendingAttachments([]);
                 setMentionedUsers([]);
@@ -832,7 +864,7 @@ export function ItemChatDrawer({
                 setPinned((prev) =>
                     prev.filter((row) => row.id !== comment.id),
                 );
-                onChatCountChange(Math.max(0, chatCount - 1));
+                onChatCountChangeRef.current(Math.max(0, chatCount - 1));
             })
             .catch((err: unknown) => {
                 setError(
@@ -960,7 +992,7 @@ export function ItemChatDrawer({
                 const ids = new Set(rows.map((row) => row.id));
                 setMessages((prev) => prev.filter((row) => !ids.has(row.id)));
                 setPinned((prev) => prev.filter((row) => !ids.has(row.id)));
-                onChatCountChange(Math.max(0, chatCount - rows.length));
+                onChatCountChangeRef.current(Math.max(0, chatCount - rows.length));
                 setSelectMode(false);
                 setSelectedIds([]);
             })
@@ -1086,105 +1118,38 @@ export function ItemChatDrawer({
         }
 
         if (typingNames.length === 1) {
-            return t('collections.itemChat.typing', {
+            return t('collections.itemChat.typing.one', {
                 name: typingNames[0],
             });
         }
 
-        return t('collections.itemChat.typingMany', {
-            names: typingNames.join(', '),
+        return t('collections.itemChat.typing.many', {
+            name: typingNames[0],
+            count: typingNames.length - 1,
         });
     }, [t, typingNames]);
 
-    return (
+    const threadShell = (
         <>
-            <Drawer
-                open={variant === 'pane' ? true : open}
-                onOpenChange={
-                    variant === 'pane'
-                        ? () => undefined
-                        : (onOpenChange ?? (() => undefined))
-                }
-                direction="right"
-                modal={variant !== 'pane'}
-                dismissible={variant === 'drawer'}
-            >
-                <DrawerContent
-                    showOverlay={variant !== 'pane'}
-                    data-test={
-                        variant === 'pane'
-                            ? 'chat-thread-pane'
-                            : 'item-chat-drawer'
-                    }
-                    className={
-                        variant === 'pane'
-                            ? 'static inset-auto z-0 h-full max-h-none w-full max-w-none translate-none rounded-none border-0 bg-transparent shadow-none data-[vaul-drawer-direction=right]:inset-auto data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:max-w-none data-[vaul-drawer-direction=right]:rounded-none data-[vaul-drawer-direction=right]:border-0'
-                            : 'data-[vaul-drawer-direction=right]:max-w-md'
-                    }
-                >
-                    <DrawerHeader>
-                        <DrawerTitle className="flex items-center justify-between gap-2">
-                            <span className="flex min-w-0 items-center gap-2">
-                                {thread ? (
-                                    <ChatThreadAvatar
-                                        thread={thread}
-                                        viewerId={viewerId}
-                                    />
-                                ) : (
-                                    <MessageCircle className="size-4 shrink-0" />
-                                )}
-                                <span
-                                    data-test="chat-header-title"
-                                    className="truncate"
-                                >
-                                    {thread?.title ??
-                                        t('collections.itemChat.title')}
-                                </span>
-                            </span>
-                            {variant === 'drawer' && liveChatId ? (
-                                <Link
-                                    href={`/chat/${liveChatId}`}
-                                    data-test="chat-open-in-hub"
-                                    className="shrink-0 text-xs font-normal text-primary underline-offset-2 hover:underline"
-                                >
-                                    {t('collections.itemChat.openInHub')}
-                                </Link>
-                            ) : null}
-                        </DrawerTitle>
-                        <DrawerDescription className="flex flex-col gap-2">
-                            {kind === 'item' ? (
-                                <span
-                                    data-test="chat-visibility-hint"
-                                    className="text-xs text-muted-foreground"
-                                >
-                                    {t('collections.itemChat.visibilityHint')}
-                                </span>
-                            ) : null}
-                            {kind === 'item' ? (
-                                <span className="flex items-center gap-2">
-                                    <Checkbox
-                                        id="item-chat-notify"
-                                        checked={notify}
-                                        onCheckedChange={(value) => {
-                                            const next = value === true;
-                                            setNotify(next);
-                                            void putChatNotify(
-                                                scope!,
-                                                next,
-                                            ).catch(() => setNotify(!next));
-                                        }}
-                                    />
-                                    <Label
-                                        htmlFor="item-chat-notify"
-                                        className="text-xs font-normal"
-                                    >
-                                        {t('collections.itemChat.notify')}
-                                    </Label>
-                                </span>
-                            ) : null}
-                        </DrawerDescription>
-                    </DrawerHeader>
-                    <DrawerBody className="flex flex-col gap-3">
+            <ChatThreadHeader
+                        thread={thread}
+                        kind={kind}
+                        viewerId={viewerId}
+                        variant={variant}
+                        liveChatId={liveChatId}
+                        notify={notify}
+                        onNotifyChange={(next) => {
+                            setNotify(next);
+                            if (scope) {
+                                void putChatNotify(scope, next).catch(() =>
+                                    setNotify(!next),
+                                );
+                            }
+                        }}
+                        canCreateDirect={canCreateDirect}
+                    />
+                    <div className="relative flex min-h-0 flex-1 flex-col">
+                    <DrawerBody className="flex flex-col gap-3 pb-8">
                         {hasMore ? (
                             <Button
                                 type="button"
@@ -1198,39 +1163,56 @@ export function ItemChatDrawer({
                                     : t('collections.itemChat.loadOlder')}
                             </Button>
                         ) : null}
-                        {loading ? (
-                            <p className="text-sm text-muted-foreground">
-                                {t('collections.itemChat.loading')}
-                            </p>
-                        ) : null}
                         {error ? (
                             <p className="text-sm text-destructive">{error}</p>
                         ) : null}
                         {!loading && messages.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                {t('collections.itemChat.empty')}
-                            </p>
+                            <div className="flex flex-1 items-center justify-center">
+                                <p className="text-sm text-muted-foreground">
+                                    {t('collections.itemChat.empty')}
+                                </p>
+                            </div>
                         ) : null}
                         {pinned.length > 0 ? (
                             <div className="flex flex-col gap-1 rounded-md border bg-muted/40 p-2">
-                                {pinned.map((row) => (
-                                    <button
-                                        key={row.id}
-                                        type="button"
-                                        className="flex items-center gap-2 text-left text-xs"
-                                        onClick={() => scrollToMessage(row.id)}
-                                    >
-                                        <Pin className="size-3 shrink-0 text-muted-foreground" />
-                                        <span className="min-w-0 truncate">
-                                            <span className="font-medium">
-                                                {row.user?.name ?? ''}
+                                {pinned.map((row) => {
+                                    const pinnedUserId = row.user?.id ?? 0;
+
+                                    return (
+                                        <button
+                                            key={row.id}
+                                            type="button"
+                                            className="flex items-center gap-2 text-left text-xs"
+                                            onClick={() => scrollToMessage(row.id)}
+                                        >
+                                            <Pin className="size-3 shrink-0 text-muted-foreground" />
+                                            <span className="min-w-0 truncate">
+                                                <span
+                                                    className="font-medium"
+                                                    style={{
+                                                        color: avatarColorForId(
+                                                            pinnedUserId,
+                                                        ),
+                                                    }}
+                                                >
+                                                    {row.user?.name ?? ''}
+                                                </span>
+                                                {row.body !== '' ? (
+                                                    <>
+                                                        {': '}
+                                                        {renderMessageBody(
+                                                            row.body,
+                                                            row.mentioned_users ??
+                                                                [],
+                                                            row.mentioned_collections ??
+                                                                [],
+                                                        )}
+                                                    </>
+                                                ) : null}
                                             </span>
-                                            {row.body !== ''
-                                                ? `: ${row.body}`
-                                                : ''}
-                                        </span>
-                                    </button>
-                                ))}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         ) : null}
                         {messages.map((comment, index) => {
@@ -1552,17 +1534,25 @@ export function ItemChatDrawer({
                                                                     )}
                                                                 </ul>
                                                             ) : null}
-                                                            <time
-                                                                className="self-end text-[10px] leading-none text-muted-foreground tabular-nums"
-                                                                dateTime={
-                                                                    comment.created_at ??
-                                                                    undefined
-                                                                }
-                                                            >
-                                                                {commentTime(
-                                                                    comment.created_at,
-                                                                )}
-                                                            </time>
+                                                            <div className="flex items-center gap-1 self-end">
+                                                                {comment.is_pinned ? (
+                                                                    <Pin
+                                                                        className="size-2.5 shrink-0 text-muted-foreground"
+                                                                        aria-hidden
+                                                                    />
+                                                                ) : null}
+                                                                <time
+                                                                    className="text-[10px] leading-none text-muted-foreground tabular-nums"
+                                                                    dateTime={
+                                                                        comment.created_at ??
+                                                                        undefined
+                                                                    }
+                                                                >
+                                                                    {commentTime(
+                                                                        comment.created_at,
+                                                                    )}
+                                                                </time>
+                                                            </div>
                                                             {comment.reactions
                                                                 .length > 0 ? (
                                                                 <div className="flex flex-wrap gap-1">
@@ -1608,12 +1598,26 @@ export function ItemChatDrawer({
                                 </div>
                             );
                         })}
-                        {typingLabel ? (
-                            <p className="text-xs text-muted-foreground">
-                                {typingLabel}
-                            </p>
-                        ) : null}
                     </DrawerBody>
+                        {loading || typingLabel ? (
+                            <div
+                                data-test="chat-thread-status"
+                                className="pointer-events-none absolute inset-x-0 bottom-2 z-10 flex flex-col items-center gap-1"
+                            >
+                                {loading ? (
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <Spinner className="size-4" />
+                                        {t('collections.itemChat.loading')}
+                                    </div>
+                                ) : null}
+                                {typingLabel ? (
+                                    <p className="text-xs text-muted-foreground">
+                                        {typingLabel}
+                                    </p>
+                                ) : null}
+                            </div>
+                        ) : null}
+                    </div>
                     <DrawerFooter
                         className={cn(
                             'relative',
@@ -2018,8 +2022,35 @@ export function ItemChatDrawer({
                             ) : null}
                         </div>
                     </DrawerFooter>
-                </DrawerContent>
-            </Drawer>
+        </>
+    );
+
+    return (
+        <>
+            {variant === 'pane' ? (
+                open ? (
+                    <div
+                        data-test="chat-thread-pane"
+                        className="flex h-full min-h-0 flex-col overflow-hidden"
+                    >
+                        {threadShell}
+                    </div>
+                ) : null
+            ) : (
+                <Drawer
+                    open={open}
+                    onOpenChange={onOpenChange ?? (() => undefined)}
+                    direction="right"
+                    dismissible
+                >
+                    <DrawerContent
+                        data-test="item-chat-drawer"
+                        className="data-[vaul-drawer-direction=right]:max-w-md"
+                    >
+                        {threadShell}
+                    </DrawerContent>
+                </Drawer>
+            )}
 
             <Dialog
                 open={addFieldFor !== null}

@@ -443,6 +443,48 @@ class ChatHubController extends Controller
         return response()->json($this->paginateRows($groups, $page, $perPage));
     }
 
+    public function addParticipants(Request $request, Chat $chat): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        abort_unless(
+            $this->permissionResolver->hasPermission($user, PermissionEnum::CanCreateDirectChats->value),
+            403,
+        );
+        $this->chats->assertAccessible($request, $chat);
+        abort_unless($chat->isDirect(), 422);
+
+        $validated = $request->validate([
+            'user_ids' => ['nullable', 'array'],
+            'user_ids.*' => ['integer', 'exists:users,id'],
+            'group_ids' => ['nullable', 'array'],
+            'group_ids.*' => ['integer', 'exists:user_groups,id'],
+        ]);
+
+        $chat = $this->chats->addDirectParticipants(
+            $chat,
+            $user,
+            $validated['user_ids'] ?? [],
+            $validated['group_ids'] ?? [],
+        );
+
+        return response()->json([
+            'chat' => $this->chats->serializeSummary($chat, $user),
+        ]);
+    }
+
+    public function destroy(Request $request, Chat $chat): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $this->chats->assertAccessible($request, $chat);
+        abort_unless($chat->isDirect(), 422);
+
+        $this->chats->leaveDirectChat($chat, $user);
+
+        return response()->json(['ok' => true]);
+    }
+
     /**
      * @param  list<array<string, mixed>>  $rows
      * @return array{data: list<array<string, mixed>>, meta: array{total: int, per_page: int, current_page: int, last_page: int, has_more: bool}}

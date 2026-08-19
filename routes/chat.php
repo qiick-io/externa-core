@@ -73,6 +73,13 @@ Route::middleware([
         ->whereUuid('chat')
         ->name('attachments.add-to-field');
 
+    Route::post('/{chat}/participants', [ChatHubController::class, 'addParticipants'])
+        ->whereUuid('chat')
+        ->name('participants.store');
+    Route::delete('/{chat}', [ChatHubController::class, 'destroy'])
+        ->whereUuid('chat')
+        ->name('destroy');
+
     Route::get('/{chat}', [ChatPageController::class, 'show'])
         ->whereUuid('chat')
         ->name('show');

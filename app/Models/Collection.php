@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Spatie\EloquentSortable\Sortable;
@@ -146,9 +147,18 @@ class Collection extends Model implements Sortable
      */
     public function resolveRouteBinding($value, $field = null): ?self
     {
-        return $this->withTrashed()
+        $collection = $this->withTrashed()
             ->where($field ?? $this->getRouteKeyName(), $value)
             ->firstOrFail();
+
+        if ($collection->trashed() && ! request()->routeIs(
+            'collections.restore',
+            'collections.force-delete',
+        )) {
+            throw (new ModelNotFoundException)->setModel(static::class, [$value]);
+        }
+
+        return $collection;
     }
 
     /**

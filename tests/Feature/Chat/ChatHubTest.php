@@ -492,3 +492,90 @@ test('inertia shares sidebar chat unread total', function () {
             ->where('chat.unread_private', 1)
             ->where('chat.unread_collection', 0));
 });
+
+test('add participants to direct chat', function () {
+    ['user' => $user, 'other' => $other] = hubKitchen([
+        PermissionEnum::CanCreateDirectChats->value,
+    ]);
+    $third = grantCollectionPermissions(User::factory()->create([
+        'first_name' => 'Third',
+        'last_name' => 'Person',
+    ]), [
+        PermissionEnum::CanShowChat->value,
+        PermissionEnum::CanCreateDirectChats->value,
+    ]);
+
+    $chatId = $this->actingAs($user)
+        ->postJson(route('chat.threads.store'), [
+            'kind' => Chat::KIND_DIRECT,
+            'user_ids' => [$other->id],
+        ])
+        ->json('chat.id');
+
+    $this->actingAs($user)
+        ->postJson(route('chat.participants.store', $chatId), [
+            'user_ids' => [$third->id],
+        ])
+        ->assertOk()
+        ->assertJsonPath('chat.participants.2.id', $third->id);
+
+    expect(ChatParticipant::query()
+        ->where('chat_id', $chatId)
+        ->where('user_id', $third->id)
+        ->exists())->toBeTrue();
+
+    $this->actingAs($third)
+        ->getJson(route('chat.threads.index', ['tab' => 'private']))
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $chatId);
+});
+
+test('leave direct chat removes participant and hides thread', function () {
+    ['user' => $user, 'other' => $other] = hubKitchen([
+        PermissionEnum::CanCreateDirectChats->value,
+    ]);
+
+    $chatId = $this->actingAs($user)
+        ->postJson(route('chat.threads.store'), [
+            'kind' => Chat::KIND_DIRECT,
+            'user_ids' => [$other->id],
+        ])
+        ->json('chat.id');
+
+    $this->actingAs($other)
+        ->deleteJson(route('chat.destroy', $chatId))
+        ->assertOk();
+
+    expect(ChatParticipant::query()
+        ->where('chat_id', $chatId)
+        ->where('user_id', $other->id)
+        ->exists())->toBeFalse();
+
+    $this->actingAs($other)
+        ->getJson(route('chat.threads.index', ['tab' => 'private']))
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+
+    $this->actingAs($user)
+        ->getJson(route('chat.threads.index', ['tab' => 'private']))
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $chatId);
+});
+
+test('cannot add participants to item chat', function () {
+    ['user' => $user, 'collection' => $collection, 'item' => $item] = hubKitchen([
+        PermissionEnum::CanCreateDirectChats->value,
+    ]);
+
+    $this->actingAs($user)
+        ->postJson(route('collections.items.chat.store', [$collection, $item]), [
+            'body' => 'hi',
+        ])
+        ->assertCreated();
+
+    $chatId = Chat::query()->where('collection_item_id', $item->id)->value('id');
+
+    $this->postJson(route('chat.participants.store', $chatId), [
+        'user_ids' => [999],
+    ])->assertStatus(422);
+});

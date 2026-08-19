@@ -36,6 +36,8 @@ export type ChatPinned = {
     id: number;
     body: string;
     user: ChatUser | null;
+    mentioned_users: ChatUser[];
+    mentioned_collections?: ChatCollection[];
 };
 
 export type ChatCollection = {

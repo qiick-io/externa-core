@@ -1,11 +1,12 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { Database, UsersRound } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChatThreadRow } from '@/components/chat/chat-thread-row';
 import { NewChatMenu } from '@/components/chat/new-chat-menu';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { useChatUnread } from '@/hooks/use-chat-unread';
 import AppLayout from '@/layouts/app-layout';
 import {
@@ -34,6 +35,8 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+const noopChatCountChange = (): void => undefined;
+
 export default function ChatHubPage({
     tab: tabProp,
     q: qProp,
@@ -47,11 +50,25 @@ export default function ChatHubPage({
     const unread = useChatUnread();
     const [tab, setTab] = useState<'collection' | 'private'>(tabProp);
     const [q, setQ] = useState(qProp);
+    const [debouncedQ, setDebouncedQ] = useState(qProp);
     const [threads, setThreads] = useState<ChatSummary[]>([]);
+    const [threadsLoaded, setThreadsLoaded] = useState(false);
+    const selectedChatIdRef = useRef<string | null>(selectedChat?.id ?? null);
+
+    selectedChatIdRef.current = selectedChat?.id ?? null;
+
+    useEffect(() => {
+        const timer = window.setTimeout(() => setDebouncedQ(q), 300);
+
+        return () => window.clearTimeout(timer);
+    }, [q]);
 
     const loadThreads = useCallback((): void => {
-        void fetchChatThreads({ tab, q })
-            .then((payload) => setThreads(payload.data))
+        void fetchChatThreads({ tab, q: debouncedQ })
+            .then((payload) => {
+                setThreads(payload.data);
+                setThreadsLoaded(true);
+            })
             .catch((error: unknown) => {
                 toast.error(
                     error instanceof Error
@@ -59,7 +76,7 @@ export default function ChatHubPage({
                         : 'Could not load chats.',
                 );
             });
-    }, [tab, q]);
+    }, [tab, debouncedQ]);
 
     useEffect(() => {
         loadThreads();
@@ -67,7 +84,19 @@ export default function ChatHubPage({
 
     useEffect(() => {
         const onUnread = (): void => {
-            loadThreads();
+            const activeId = selectedChatIdRef.current;
+
+            if (!activeId) {
+                return;
+            }
+
+            setThreads((current) =>
+                current.map((thread) =>
+                    thread.id === activeId
+                        ? { ...thread, unread_count: 0 }
+                        : thread,
+                ),
+            );
         };
 
         window.addEventListener(CHAT_UNREAD_UPDATED_EVENT, onUnread);
@@ -75,7 +104,7 @@ export default function ChatHubPage({
         return () => {
             window.removeEventListener(CHAT_UNREAD_UPDATED_EVENT, onUnread);
         };
-    }, [loadThreads]);
+    }, []);
 
     useEffect(() => {
         setTab(tabProp);
@@ -83,7 +112,21 @@ export default function ChatHubPage({
     }, [tabProp, qProp]);
 
     const openThread = (id: string): void => {
-        router.visit(`/chat/${id}`);
+        setThreads((current) =>
+            current.map((thread) =>
+                thread.id === id ? { ...thread, unread_count: 0 } : thread,
+            ),
+        );
+
+        router.get(
+            `/chat/${id}`,
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['selectedChat', 'fields', 'tab', 'q'],
+            },
+        );
     };
 
     const switchTab = (next: 'collection' | 'private'): void => {
@@ -164,7 +207,7 @@ export default function ChatHubPage({
                             onClick={() => switchTab('private')}
                         >
                             <UsersRound className="size-4" />
-                            {t('chatHub.private')}
+                            {t('chatHub.users')}
                             {unread.unread_private > 0 ? (
                                 <span
                                     data-test="chat-tab-private-unread"
@@ -190,9 +233,21 @@ export default function ChatHubPage({
                     </div>
                     <div
                         data-test="chat-list"
-                        className="min-h-0 flex-1 overflow-y-auto p-2"
+                        className={cn(
+                            'min-h-0 flex-1 overflow-y-auto p-2',
+                            !threadsLoaded &&
+                                'flex flex-col items-center justify-center',
+                        )}
                     >
-                        {threads.length === 0 ? (
+                        {!threadsLoaded ? (
+                            <div
+                                data-test="chat-list-loading"
+                                className="flex flex-col items-center gap-2 text-sm text-muted-foreground"
+                            >
+                                <Spinner className="size-5" />
+                                {t('chatHub.loading')}
+                            </div>
+                        ) : threads.length === 0 ? (
                             <p className="px-2 py-4 text-sm text-muted-foreground">
                                 {t('chatHub.empty')}
                             </p>
@@ -209,29 +264,30 @@ export default function ChatHubPage({
                         )}
                     </div>
                 </aside>
-                <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    {selectedChat ? (
-                        <ItemChatDrawer
-                            open
-                            variant="pane"
-                            chatId={selectedChat.id}
-                            kind={selectedKind}
-                            collectionId={
-                                selectedChat.collection_id ?? undefined
-                            }
-                            itemId={
-                                selectedChat.collection_item_id ?? undefined
-                            }
-                            fields={fieldRows}
-                            chatCount={0}
-                            onChatCountChange={() => undefined}
-                            thread={selectedChat}
-                        />
-                    ) : (
-                        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+                <section className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+                    <ItemChatDrawer
+                        key="chat-hub-pane"
+                        open={selectedChat !== null}
+                        variant="pane"
+                        chatId={selectedChat?.id ?? null}
+                        kind={selectedKind}
+                        collectionId={
+                            selectedChat?.collection_id ?? undefined
+                        }
+                        itemId={
+                            selectedChat?.collection_item_id ?? undefined
+                        }
+                        fields={fieldRows}
+                        chatCount={0}
+                        onChatCountChange={noopChatCountChange}
+                        thread={selectedChat}
+                        canCreateDirect={canCreateDirect}
+                    />
+                    {selectedChat === null ? (
+                        <div className="absolute inset-0 flex flex-1 items-center justify-center bg-card text-sm text-muted-foreground">
                             {t('chatHub.pickThread')}
                         </div>
-                    )}
+                    ) : null}
                 </section>
             </div>
         </AppLayout>

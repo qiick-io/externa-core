@@ -9,6 +9,7 @@ use App\Support\Collections\CollectionItemDataAccessor;
 use Database\Factories\CollectionItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -144,9 +145,18 @@ class CollectionItem extends Model
      */
     public function resolveRouteBinding($value, $field = null): ?self
     {
-        return $this->withTrashed()
+        $item = $this->withTrashed()
             ->where($field ?? $this->getRouteKeyName(), $value)
             ->firstOrFail();
+
+        if ($item->trashed() && ! request()->routeIs(
+            'collections.items.restore',
+            'collections.items.force-delete',
+        )) {
+            throw (new ModelNotFoundException)->setModel(static::class, [$value]);
+        }
+
+        return $item;
     }
 
     /**

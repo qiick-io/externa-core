@@ -507,8 +507,10 @@
             "addToFieldTitle": "Add attachment to field",
             "selectField": "Field",
             "noFileFields": "No image or file fields on this item.",
-            "typing": "{{name}} is typing…",
-            "typingMany": "{{names}} are typing…",
+            "typing": {
+                "one": "{{name}} is typing…",
+                "many": "{{name}} +{{count}} are typing…"
+            },
             "edit": "Edit",
             "more": "More",
             "error": "Could not load chat.",
@@ -982,7 +984,19 @@
         "selectedCount": "{{count}} selected",
         "noCreatePrivate": "You cannot start private chats.",
         "photo": "Photo",
-        "unreadCount": "{{count}} unread"
+        "unreadCount": "{{count}} unread",
+        "addPeople": "Add people",
+        "addPeopleConfirm": "Add",
+        "deleteChat": "Delete chat",
+        "deleteChatError": "Could not delete chat."
+    },
+    "errors": {
+        "notFound": {
+            "head": "Page not found",
+            "title": "Page not found",
+            "description": "The page you requested does not exist or is no longer available.",
+            "goHome": "Go to home"
+        }
     },
     "unsavedChanges": {
         "title": "Unsaved changes",

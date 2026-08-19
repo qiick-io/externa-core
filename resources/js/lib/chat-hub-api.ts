@@ -140,6 +140,34 @@ export async function createChatThread(payload: {
     return json.chat;
 }
 
+export async function addChatParticipants(
+    chatId: string,
+    payload: { user_ids?: number[]; group_ids?: number[] },
+): Promise<ChatSummary> {
+    const response = await fetch(`/chat/${chatId}/participants`, {
+        method: 'POST',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+        body: JSON.stringify(payload),
+    });
+
+    await assertOk(response, 'Could not add people.');
+
+    const json = (await response.json()) as { chat: ChatSummary };
+
+    return json.chat;
+}
+
+export async function deleteDirectChat(chatId: string): Promise<void> {
+    const response = await fetch(`/chat/${chatId}`, {
+        method: 'DELETE',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+    });
+
+    await assertOk(response, 'Could not delete chat.');
+}
+
 export type ChatListMeta = {
     total: number;
     per_page: number;

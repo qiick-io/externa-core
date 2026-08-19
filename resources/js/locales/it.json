@@ -507,8 +507,10 @@
             "addToFieldTitle": "Aggiungi allegato a un campo",
             "selectField": "Campo",
             "noFileFields": "Nessun campo immagine o file su questo item.",
-            "typing": "{{name}} sta scrivendo…",
-            "typingMany": "{{names}} stanno scrivendo…",
+            "typing": {
+                "one": "{{name}} sta scrivendo…",
+                "many": "{{name}} +{{count}} stanno scrivendo…"
+            },
             "edit": "Modifica",
             "more": "Altro",
             "error": "Impossibile caricare la chat.",
@@ -982,7 +984,19 @@
         "selectedCount": "{{count}} selezionati",
         "noCreatePrivate": "Non puoi avviare chat private.",
         "photo": "Foto",
-        "unreadCount": "{{count}} non lette"
+        "unreadCount": "{{count}} non lette",
+        "addPeople": "Aggiungi persone",
+        "addPeopleConfirm": "Aggiungi",
+        "deleteChat": "Elimina chat",
+        "deleteChatError": "Impossibile eliminare la chat."
+    },
+    "errors": {
+        "notFound": {
+            "head": "Pagina non trovata",
+            "title": "Pagina non trovata",
+            "description": "La pagina richiesta non esiste o non è più disponibile.",
+            "goHome": "Vai alla home"
+        }
     },
     "unsavedChanges": {
         "title": "Modifiche non salvate",

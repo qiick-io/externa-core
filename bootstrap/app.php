@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Exceptions\RenderNotFoundResponse;
 use App\Http\Middleware\ConfigurePublicApiCors;
 use App\Http\Middleware\EnsureCanManageFiles;
 use App\Http\Middleware\EnsureTwoFactorIsEnabled;
@@ -13,6 +14,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -57,5 +59,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->renderable(
+            fn (NotFoundHttpException $exception, Request $request) => RenderNotFoundResponse::render(
+                $exception,
+                $request,
+            ),
+        );
     })->create();

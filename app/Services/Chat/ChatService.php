@@ -429,6 +429,102 @@ class ChatService
      * @param  list<int>  $userIds
      * @param  list<int>  $groupIds
      */
+    public function addDirectParticipants(Chat $chat, User $actor, array $userIds, array $groupIds): Chat
+    {
+        abort_unless($chat->isDirect(), 422);
+        abort_unless($this->isParticipant($chat, $actor), 403);
+
+        $userIds = array_values(array_unique(array_map('intval', $userIds)));
+        $groupIds = array_values(array_unique(array_map('intval', $groupIds)));
+
+        $existingUserIds = $chat->participants()
+            ->whereNotNull('user_id')
+            ->pluck('user_id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->all();
+        $existingGroupIds = $chat->participants()
+            ->whereNotNull('user_group_id')
+            ->pluck('user_group_id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->all();
+
+        $userIds = array_values(array_diff($userIds, $existingUserIds));
+        $groupIds = array_values(array_diff($groupIds, $existingGroupIds));
+
+        if ($userIds === [] && $groupIds === []) {
+            return $chat;
+        }
+
+        $users = User::query()
+            ->whereIn('id', $userIds)
+            ->where('is_active', true)
+            ->get();
+
+        if ($users->count() !== count($userIds)) {
+            throw ValidationException::withMessages([
+                'user_ids' => 'One or more users are invalid.',
+            ]);
+        }
+
+        $groups = UserGroup::query()->whereIn('id', $groupIds)->get();
+        if ($groups->count() !== count($groupIds)) {
+            throw ValidationException::withMessages([
+                'group_ids' => 'One or more groups are invalid.',
+            ]);
+        }
+
+        foreach ($userIds as $userId) {
+            ChatParticipant::query()->create([
+                'chat_id' => $chat->id,
+                'user_id' => $userId,
+                'user_group_id' => null,
+                'source' => ChatParticipant::SOURCE_EXPLICIT,
+            ]);
+        }
+
+        foreach ($groups as $group) {
+            ChatParticipant::query()->create([
+                'chat_id' => $chat->id,
+                'user_id' => null,
+                'user_group_id' => $group->id,
+                'source' => ChatParticipant::SOURCE_EXPLICIT,
+            ]);
+            $this->participantSync->expandGroup($chat, $group);
+        }
+
+        $chat->load([
+            'participants.user:id,first_name,last_name,email',
+            'participants.group:id,name',
+        ]);
+
+        return $chat;
+    }
+
+    public function leaveDirectChat(Chat $chat, User $user): void
+    {
+        abort_unless($chat->isDirect(), 422);
+        abort_unless($this->isParticipant($chat, $user), 403);
+
+        ChatParticipant::query()
+            ->where('chat_id', $chat->id)
+            ->where('user_id', $user->id)
+            ->delete();
+
+        $remaining = ChatParticipant::query()
+            ->where('chat_id', $chat->id)
+            ->whereNotNull('user_id')
+            ->distinct()
+            ->count('user_id');
+
+        if ($remaining === 0) {
+            $chat->delete();
+        }
+    }
+
+    /**
+     * @param  list<int>  $userIds
+     * @param  list<int>  $groupIds
+     */
     private function matchingDirectChat(array $userIds, array $groupIds): ?Chat
     {
         $candidates = Chat::query()

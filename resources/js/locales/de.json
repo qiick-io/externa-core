@@ -459,8 +459,10 @@
             "addToFieldTitle": "Anhang zu einem Feld hinzufügen",
             "selectField": "Feld",
             "noFileFields": "Keine Bild- oder Dateifelder an diesem Item.",
-            "typing": "{{name}} schreibt…",
-            "typingMany": "{{names}} schreiben…",
+            "typing": {
+                "one": "{{name}} schreibt…",
+                "many": "{{name}} +{{count}} schreiben…"
+            },
             "edit": "Bearbeiten",
             "more": "Mehr",
             "error": "Chat konnte nicht geladen werden.",
@@ -934,7 +936,19 @@
         "selectedCount": "{{count}} ausgewählt",
         "noCreatePrivate": "Du kannst keine privaten Chats starten.",
         "photo": "Foto",
-        "unreadCount": "{{count}} ungelesen"
+        "unreadCount": "{{count}} ungelesen",
+        "addPeople": "Personen hinzufügen",
+        "addPeopleConfirm": "Hinzufügen",
+        "deleteChat": "Chat löschen",
+        "deleteChatError": "Chat konnte nicht gelöscht werden."
+    },
+    "errors": {
+        "notFound": {
+            "head": "Seite nicht gefunden",
+            "title": "Seite nicht gefunden",
+            "description": "Die angeforderte Seite existiert nicht oder ist nicht mehr verfügbar.",
+            "goHome": "Zur Startseite"
+        }
     },
     "unsavedChanges": {
         "title": "Ungespeicherte Änderungen",

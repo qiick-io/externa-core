@@ -12,7 +12,7 @@ import {
     fetchUnreadNotificationCount,
     NOTIFICATIONS_UPDATED_EVENT,
 } from '@/lib/notifications-api';
-import { cn } from '@/lib/utils';
+import { SidebarUnreadBadge } from '@/components/sidebar-unread-badge';
 
 const UNREAD_POLL_INTERVAL_MS = 60_000;
 
@@ -105,16 +105,7 @@ export function NotificationsBell() {
                     >
                         <Bell />
                         <span>Notifications</span>
-                        {unreadCount > 0 ? (
-                            <span
-                                className={cn(
-                                    'absolute top-1.5 right-2 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground',
-                                    'group-data-[collapsible=icon]:right-1',
-                                )}
-                            >
-                                {unreadCount > 9 ? '9+' : unreadCount}
-                            </span>
-                        ) : null}
+                        <SidebarUnreadBadge count={unreadCount} />
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>

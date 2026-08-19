@@ -920,14 +920,51 @@ class ChatMessageController extends Controller
     private function serializePinned(CollectionItemChatMessage $message): array
     {
         $author = $message->user;
+        $mentions = $this->serializeMentions($message);
 
         return [
             'id' => $message->id,
-            'body' => Str::limit(trim($message->body), 80),
+            'body' => trim($message->body),
             'user' => $author ? [
                 'id' => $author->id,
                 'name' => $this->displayName($author),
             ] : null,
+            'mentioned_users' => $mentions['mentioned_users'],
+            'mentioned_collections' => $mentions['mentioned_collections'],
+        ];
+    }
+
+    /**
+     * @return array{mentioned_users: list<array{id: int, name: string}>, mentioned_collections: list<array{id: int, name: string}>}
+     */
+    private function serializeMentions(CollectionItemChatMessage $comment): array
+    {
+        $mentionedIds = $comment->mentionedIds();
+        $mentionedUsers = $mentionedIds === []
+            ? collect()
+            : User::query()->whereIn('id', $mentionedIds)->get(['id', 'first_name', 'last_name', 'email']);
+
+        preg_match_all('/@\[collection:(\d+)\]/', $comment->body, $collectionMatches);
+        $collectionIds = array_values(array_unique(array_map('intval', $collectionMatches[1] ?? [])));
+        $mentionedCollections = $collectionIds === []
+            ? collect()
+            : Collection::query()->whereIn('id', $collectionIds)->get(['id', 'name']);
+
+        return [
+            'mentioned_users' => $mentionedUsers
+                ->map(fn (User $user): array => [
+                    'id' => $user->id,
+                    'name' => $this->displayName($user),
+                ])
+                ->values()
+                ->all(),
+            'mentioned_collections' => $mentionedCollections
+                ->map(fn (Collection $collection): array => [
+                    'id' => (int) $collection->id,
+                    'name' => $collection->name,
+                ])
+                ->values()
+                ->all(),
         ];
     }
 
@@ -981,36 +1018,16 @@ class ChatMessageController extends Controller
     {
         $author = $comment->user;
         $mentionedIds = $comment->mentionedIds();
-        $mentionedUsers = $mentionedIds === []
-            ? collect()
-            : User::query()->whereIn('id', $mentionedIds)->get(['id', 'first_name', 'last_name', 'email']);
+        $mentions = $this->serializeMentions($comment);
 
         $isAuthor = $author !== null && (int) $author->id === (int) $viewer->id;
-
-        preg_match_all('/@\[collection:(\d+)\]/', $comment->body, $collectionMatches);
-        $collectionIds = array_values(array_unique(array_map('intval', $collectionMatches[1] ?? [])));
-        $mentionedCollections = $collectionIds === []
-            ? collect()
-            : Collection::query()->whereIn('id', $collectionIds)->get(['id', 'name']);
 
         return [
             'id' => $comment->id,
             'body' => $comment->body,
             'mentioned_user_ids' => $mentionedIds,
-            'mentioned_users' => $mentionedUsers
-                ->map(fn (User $user): array => [
-                    'id' => $user->id,
-                    'name' => $this->displayName($user),
-                ])
-                ->values()
-                ->all(),
-            'mentioned_collections' => $mentionedCollections
-                ->map(fn (Collection $collection): array => [
-                    'id' => (int) $collection->id,
-                    'name' => $collection->name,
-                ])
-                ->values()
-                ->all(),
+            'mentioned_users' => $mentions['mentioned_users'],
+            'mentioned_collections' => $mentions['mentioned_collections'],
             'user' => $author ? [
                 'id' => $author->id,
                 'name' => $this->displayName($author),

@@ -31,7 +31,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { PermissionEnum } from '@/enums/permission-enum';
-import { formatChatUnread } from '@/lib/format-chat-unread';
+import { SidebarUnreadBadge } from '@/components/sidebar-unread-badge';
 import { useCan } from '@/hooks/use-can';
 import { useChatUnread } from '@/hooks/use-chat-unread';
 import { useCurrentUrl } from '@/hooks/use-current-url';
@@ -199,16 +199,11 @@ export function AppSidebar() {
                 <Link href={item.href} prefetch className="relative">
                     <item.icon />
                     <span>{t(item.titleKey)}</span>
-                    {item.id === 'chat' && chatUnread.unread_count > 0 ? (
-                        <span
+                    {item.id === 'chat' ? (
+                        <SidebarUnreadBadge
+                            count={chatUnread.unread_count}
                             data-test="chat-nav-unread"
-                            className={cn(
-                                'absolute top-1.5 right-2 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground',
-                                'group-data-[collapsible=icon]:right-1',
-                            )}
-                        >
-                            {formatChatUnread(chatUnread.unread_count)}
-                        </span>
+                        />
                     ) : null}
                 </Link>
             </SidebarMenuButton>
