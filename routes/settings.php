@@ -10,6 +10,7 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Settings\AppearanceSettingsController;
 use App\Http\Controllers\Settings\LocaleController;
+use App\Http\Controllers\Settings\NotificationPreferencesController;
 use App\Http\Controllers\Settings\PerformanceSettingsController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\ProjectSettingsController;
@@ -21,6 +22,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('settings/notification-preferences', [NotificationPreferencesController::class, 'update'])
+        ->name('notification-preferences.update');
     Route::patch('settings/locale', [LocaleController::class, 'update'])->name('locale.update');
 });
 

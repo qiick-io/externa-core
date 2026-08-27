@@ -26,8 +26,6 @@ class CollectionItemChatMessage extends Model
         'mentioned_user_ids',
         'reply_to_id',
         'pinned_at',
-        'forwarded_from_message_id',
-        'forwarded_from_author_name',
     ];
 
     /**
@@ -63,14 +61,6 @@ class CollectionItemChatMessage extends Model
     public function replyTo(): BelongsTo
     {
         return $this->belongsTo(self::class, 'reply_to_id');
-    }
-
-    /**
-     * @return BelongsTo<CollectionItemChatMessage, $this>
-     */
-    public function forwardedFrom(): BelongsTo
-    {
-        return $this->belongsTo(self::class, 'forwarded_from_message_id');
     }
 
     /**

@@ -40,6 +40,8 @@ export type ProjectSettingsForm = {
     webhook_secret_configured: boolean;
     revision_retention_count: number | null;
     revision_retention_days: number | null;
+    files_max_upload_bytes: number | null;
+    chat_max_upload_bytes: number | null;
 };
 
 export type SharedProjectSettings = {
@@ -52,6 +54,8 @@ export type SharedProjectSettings = {
     reportIssueUrl: string | null;
     reportBugUrl: string | null;
     reportErrorUrl: string | null;
+    filesMaxUploadBytes: number | null;
+    chatMaxUploadBytes: number | null;
 };
 
 export type ProjectRoleOption = {

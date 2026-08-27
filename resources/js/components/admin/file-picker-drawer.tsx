@@ -1,5 +1,6 @@
 import { FolderOpen, ImageIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { usePage } from '@inertiajs/react';
 import { FileDropzone } from '@/components/admin/file-dropzone';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,6 +43,8 @@ export function FilePickerDrawer({
     acceptImagesOnly = false,
     title = 'Choose file',
 }: FilePickerDrawerProps) {
+    const { projectSettings } = usePage().props;
+    const filesMaxUploadBytes = projectSettings?.filesMaxUploadBytes ?? null;
     const [parentId, setParentId] = useState<number | null>(null);
     const [breadcrumbs, setBreadcrumbs] = useState<FileBreadcrumb[]>([]);
     const [files, setFiles] = useState<AdminFileRow[]>([]);
@@ -154,9 +157,18 @@ export function FilePickerDrawer({
                 }
 
                 if (file.size > CHUNK_SIZE_BYTES) {
-                    await uploadFileChunked(file, parentId);
+                    await uploadFileChunked(
+                        file,
+                        parentId,
+                        undefined,
+                        filesMaxUploadBytes,
+                    );
                 } else {
-                    await uploadFileDirect(file, parentId);
+                    await uploadFileDirect(
+                        file,
+                        parentId,
+                        filesMaxUploadBytes,
+                    );
                 }
             }
 

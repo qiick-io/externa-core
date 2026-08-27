@@ -26,6 +26,7 @@ import i18n from '@/lib/i18n';
 import { logout } from '@/routes';
 import { update as updateLocale } from '@/routes/locale';
 import { edit } from '@/routes/profile';
+import { resetChatStore } from '@/stores/chat/reset';
 import type { User } from '@/types';
 
 type Props = {
@@ -50,9 +51,10 @@ export function UserMenuContent({ user }: Props) {
         toggleReduceMotion,
     } = useAccessibilityPreferences();
 
-    /** Clears mobile nav state and Inertia page cache before logout. */
+    /** Clears mobile nav state, chat session cache, and Inertia page cache before logout. */
     const handleLogout = () => {
         cleanup();
+        resetChatStore();
         router.flushAll();
     };
 

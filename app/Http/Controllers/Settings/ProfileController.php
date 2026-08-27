@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Services\Settings\UserNotificationPreferences;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,14 +18,22 @@ use Inertia\Response;
  */
 class ProfileController extends Controller
 {
+    public function __construct(
+        private readonly UserNotificationPreferences $notificationPreferences,
+    ) {}
+
     /**
      * Render the profile settings form.
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+        abort_if($user === null, 403);
+
         return Inertia::render('settings/profile', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            'notificationSounds' => $this->notificationPreferences->shared($user),
         ]);
     }
 

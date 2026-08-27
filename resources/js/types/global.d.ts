@@ -21,6 +21,10 @@ declare module '@inertiajs/core' {
             notifications: {
                 unread_count: number;
             };
+            notificationSounds: {
+                sound_chat_enabled: boolean;
+                sound_notifications_enabled: boolean;
+            };
             chat: {
                 unread_count: number;
                 unread_private: number;

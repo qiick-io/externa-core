@@ -10,6 +10,7 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Sidebar/hub unread totals for one user after a chat read or new message.
+ * Optional chat_id + chat_unread_count let the hub thread list patch per-row badges.
  */
 class ChatUnreadUpdated implements ShouldBroadcastNow
 {
@@ -20,6 +21,10 @@ class ChatUnreadUpdated implements ShouldBroadcastNow
         public int $total,
         public int $private,
         public int $collection,
+        public ?string $chatId = null,
+        public ?int $chatUnreadCount = null,
+        /** True when a new message should beep (recipients + live viewers; not mark-read). */
+        public bool $playSound = false,
     ) {}
 
     /**
@@ -38,7 +43,14 @@ class ChatUnreadUpdated implements ShouldBroadcastNow
     }
 
     /**
-     * @return array{unread_count: int, unread_private: int, unread_collection: int}
+     * @return array{
+     *     unread_count: int,
+     *     unread_private: int,
+     *     unread_collection: int,
+     *     chat_id: ?string,
+     *     chat_unread_count: ?int,
+     *     play_sound: bool
+     * }
      */
     public function broadcastWith(): array
     {
@@ -46,6 +58,9 @@ class ChatUnreadUpdated implements ShouldBroadcastNow
             'unread_count' => $this->total,
             'unread_private' => $this->private,
             'unread_collection' => $this->collection,
+            'chat_id' => $this->chatId,
+            'chat_unread_count' => $this->chatUnreadCount,
+            'play_sound' => $this->playSound,
         ];
     }
 }

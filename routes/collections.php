@@ -91,13 +91,41 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
         ->name('collections.items.chat.read');
 
+    Route::post('collections/{collection}/items/{item}/chat/stop-viewing', [ItemChatController::class, 'stopViewing'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.stop-viewing');
+
     Route::post('collections/{collection}/items/{item}/chat/attachments', [ItemChatController::class, 'storeAttachment'])
         ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
         ->name('collections.items.chat.attachments.store');
 
+    Route::post('collections/{collection}/items/{item}/chat/attachments/uploads/init', [ItemChatController::class, 'initAttachmentUpload'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.attachments.uploads.init');
+
+    Route::post('collections/{collection}/items/{item}/chat/attachments/uploads/chunk', [ItemChatController::class, 'uploadAttachmentChunk'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.attachments.uploads.chunk');
+
+    Route::post('collections/{collection}/items/{item}/chat/attachments/uploads/complete', [ItemChatController::class, 'completeAttachmentUpload'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.attachments.uploads.complete');
+
+    Route::get('collections/{collection}/items/{item}/chat/attachments/uploads/status', [ItemChatController::class, 'attachmentUploadStatus'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.attachments.uploads.status');
+
     Route::get('collections/{collection}/items/{item}/chat/attachments/{attachment}', [ItemChatController::class, 'showAttachment'])
         ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
         ->name('collections.items.chat.attachments.show');
+
+    Route::get('collections/{collection}/items/{item}/chat/attachments/{attachment}/preview', [ItemChatController::class, 'showAttachmentPreview'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.attachments.preview');
+
+    Route::delete('collections/{collection}/items/{item}/chat/attachments/{attachment}', [ItemChatController::class, 'destroyAttachment'])
+        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+        ->name('collections.items.chat.attachments.destroy');
 
     Route::post('collections/{collection}/items/{item}/chat/attachments/{attachment}/save-to-files', [ItemChatController::class, 'saveToFiles'])
         ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
@@ -130,10 +158,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('collections/{collection}/items/{item}/chat/{message}/reactions', [ItemChatController::class, 'react'])
         ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
         ->name('collections.items.chat.react');
-
-    Route::post('collections/{collection}/items/{item}/chat/{message}/forward', [ItemChatController::class, 'forward'])
-        ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
-        ->name('collections.items.chat.forward');
 
     Route::post('collections/{collection}/items/{item}/publish', [ItemController::class, 'publish'])
         ->middleware('permission:'.PermissionEnum::CanEditCollections->value)

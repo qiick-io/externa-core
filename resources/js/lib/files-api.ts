@@ -9,6 +9,26 @@ export const MAX_CHUNK_RETRIES = 3;
 /** Base delay in milliseconds between chunk retry attempts (multiplied by attempt index). */
 export const CHUNK_RETRY_BASE_DELAY_MS = 1000;
 
+/**
+ * Client-side gate against project Files upload cap (null = unlimited).
+ *
+ * @throws Error when file exceeds the configured cap
+ */
+export function assertWithinFilesUploadCap(
+    fileSize: number,
+    maxBytes: number | null | undefined,
+): void {
+    if (maxBytes == null) {
+        return;
+    }
+
+    if (fileSize > maxBytes) {
+        throw new Error(
+            `File exceeds the ${formatFileSize(maxBytes)} upload limit.`,
+        );
+    }
+}
+
 function sleep(milliseconds: number): Promise<void> {
     return new Promise((resolve) => {
         setTimeout(resolve, milliseconds);
@@ -178,7 +198,10 @@ export async function createFolder(
 export async function uploadFileDirect(
     file: File,
     parentId: number | null,
+    maxBytes?: number | null,
 ): Promise<AdminFileRow> {
+    assertWithinFilesUploadCap(file.size, maxBytes);
+
     const formData = new FormData();
     formData.append('file', file);
 
@@ -785,7 +808,10 @@ export async function uploadFileChunked(
         uploadedBytes: number,
         totalBytes: number,
     ) => void,
+    maxBytes?: number | null,
 ): Promise<AdminFileRow> {
+    assertWithinFilesUploadCap(file.size, maxBytes);
+
     const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE_BYTES));
 
     const initResponse = await request(

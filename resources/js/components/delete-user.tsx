@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Heading from '@/components/heading';
+import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
@@ -59,7 +60,11 @@ export default function DeleteUser() {
                         </DialogDescription>
 
                         <Form
-                            {...ProfileController.destroy.form()}
+                            {...wayfinderInertiaFormProps(
+                                ProfileController.destroy,
+                                undefined,
+                                'delete',
+                            )}
                             options={{
                                 preserveScroll: true,
                             }}

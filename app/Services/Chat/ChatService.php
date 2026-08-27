@@ -4,6 +4,7 @@ namespace App\Services\Chat;
 
 use App\Enums\CollectionPermissionAction;
 use App\Enums\PermissionEnum;
+use App\Events\ChatThreadUpserted;
 use App\Models\Chat;
 use App\Models\ChatParticipant;
 use App\Models\Collection;
@@ -518,6 +519,59 @@ class ChatService
 
         if ($remaining === 0) {
             $chat->delete();
+        }
+    }
+
+    /**
+     * Push a viewer-specific thread summary to each participant's private channel.
+     *
+     * @param  array<int, int>  $unreadByUserId  chat unread counts keyed by user id
+     * @param  list<int>  $exceptUserIds
+     */
+    public function broadcastThreadUpserted(
+        Chat $chat,
+        array $unreadByUserId = [],
+        array $exceptUserIds = [],
+    ): void {
+        if (! $chat->isDirect()) {
+            return;
+        }
+
+        $chat->loadMissing([
+            'participants.user:id,first_name,last_name,email',
+            'participants.group:id,name',
+            'messages' => fn ($query) => $query->latest('id')->limit(1)->with([
+                'user:id,first_name,last_name,email',
+                'attachments',
+            ]),
+        ]);
+
+        $except = array_fill_keys(array_map('intval', $exceptUserIds), true);
+        $userIds = ChatParticipant::query()
+            ->where('chat_id', $chat->id)
+            ->whereNotNull('user_id')
+            ->pluck('user_id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->unique()
+            ->reject(fn (int $id): bool => isset($except[$id]))
+            ->values()
+            ->all();
+
+        if ($userIds === []) {
+            return;
+        }
+
+        $users = User::query()
+            ->whereIn('id', $userIds)
+            ->where('is_active', true)
+            ->get();
+
+        foreach ($users as $user) {
+            $uid = (int) $user->id;
+            event(new ChatThreadUpserted(
+                $uid,
+                $this->serializeSummary($chat, $user, $unreadByUserId[$uid] ?? 0),
+            ));
         }
     }
 

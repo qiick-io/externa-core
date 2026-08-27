@@ -60,6 +60,8 @@ return [
             'webhook_secret',
             'revision_retention_count',
             'revision_retention_days',
+            'files_max_upload_bytes',
+            'chat_max_upload_bytes',
         ],
         'defaults' => [
             'name' => null,
@@ -132,6 +134,9 @@ return [
             // Null = unlimited; collections can override per axis
             'revision_retention_count' => null,
             'revision_retention_days' => null,
+            // Null = unlimited (infra PHP/nginx limits still apply to single-request uploads)
+            'files_max_upload_bytes' => null,
+            'chat_max_upload_bytes' => null,
         ],
         'sidebar_module_ids' => [
             'ai',

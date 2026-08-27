@@ -48,9 +48,6 @@ Route::middleware([
     Route::post('/{chat}/messages/{message}/reactions', [ChatMessageController::class, 'react'])
         ->whereUuid('chat')
         ->name('messages.react');
-    Route::post('/{chat}/messages/{message}/forward', [ChatMessageController::class, 'forward'])
-        ->whereUuid('chat')
-        ->name('messages.forward');
     Route::get('/{chat}/mentions', [ChatMessageController::class, 'mentions'])
         ->whereUuid('chat')
         ->name('mentions');
@@ -60,12 +57,33 @@ Route::middleware([
     Route::post('/{chat}/read', [ChatHubController::class, 'markRead'])
         ->whereUuid('chat')
         ->name('read');
+    Route::post('/{chat}/stop-viewing', [ChatHubController::class, 'stopViewing'])
+        ->whereUuid('chat')
+        ->name('stop-viewing');
     Route::post('/{chat}/attachments', [ChatMessageController::class, 'storeAttachmentOnChat'])
         ->whereUuid('chat')
         ->name('attachments.store');
+    Route::post('/{chat}/attachments/uploads/init', [ChatMessageController::class, 'initAttachmentUploadOnChat'])
+        ->whereUuid('chat')
+        ->name('attachments.uploads.init');
+    Route::post('/{chat}/attachments/uploads/chunk', [ChatMessageController::class, 'uploadAttachmentChunkOnChat'])
+        ->whereUuid('chat')
+        ->name('attachments.uploads.chunk');
+    Route::post('/{chat}/attachments/uploads/complete', [ChatMessageController::class, 'completeAttachmentUploadOnChat'])
+        ->whereUuid('chat')
+        ->name('attachments.uploads.complete');
+    Route::get('/{chat}/attachments/uploads/status', [ChatMessageController::class, 'attachmentUploadStatusOnChat'])
+        ->whereUuid('chat')
+        ->name('attachments.uploads.status');
     Route::get('/{chat}/attachments/{attachment}', [ChatMessageController::class, 'showAttachmentOnChat'])
         ->whereUuid('chat')
         ->name('attachments.show');
+    Route::get('/{chat}/attachments/{attachment}/preview', [ChatMessageController::class, 'showAttachmentPreviewOnChat'])
+        ->whereUuid('chat')
+        ->name('attachments.preview');
+    Route::delete('/{chat}/attachments/{attachment}', [ChatMessageController::class, 'destroyAttachmentOnChat'])
+        ->whereUuid('chat')
+        ->name('attachments.destroy');
     Route::post('/{chat}/attachments/{attachment}/save-to-files', [ChatMessageController::class, 'saveToFilesOnChat'])
         ->whereUuid('chat')
         ->name('attachments.save-to-files');

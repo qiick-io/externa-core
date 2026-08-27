@@ -8,6 +8,7 @@ use App\Services\Chat\ChatUnreadService;
 use App\Services\Dashboard\DashboardHealthMetrics;
 use App\Services\Settings\ProjectAppearance;
 use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\UserNotificationPreferences;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
@@ -79,6 +80,12 @@ class HandleInertiaRequests extends Middleware
             'notifications' => [
                 'unread_count' => $user ? $user->unreadNotifications()->count() : 0,
             ],
+            'notificationSounds' => fn (): array => $user
+                ? app(UserNotificationPreferences::class)->shared($user)
+                : [
+                    'sound_chat_enabled' => false,
+                    'sound_notifications_enabled' => false,
+                ],
             'chat' => fn (): array => $user && $permissionResolver->hasPermission($user, PermissionEnum::CanShowChat->value)
                 ? app(ChatUnreadService::class)->shared($user)
                 : [

@@ -2,6 +2,8 @@
 
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
+use App\Events\ChatThreadUpserted;
+use App\Events\ChatUnreadUpdated;
 use App\Models\Chat;
 use App\Models\ChatParticipant;
 use App\Models\Collection;
@@ -12,6 +14,7 @@ use App\Models\UserGroup;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesWriter;
 use Database\Seeders\PermissionSeeder;
+use Illuminate\Support\Facades\Event;
 use Inertia\Testing\AssertableInertia;
 
 beforeEach(function () {
@@ -89,6 +92,75 @@ test('create direct chat works with can-create-direct-chats', function () {
         ->getJson(route('chat.threads.index', ['tab' => 'collection']))
         ->assertOk()
         ->assertJsonCount(0, 'data');
+});
+
+test('create direct chat broadcasts ThreadUpserted to peer private channel', function () {
+    ['user' => $user, 'other' => $other] = hubKitchen([
+        PermissionEnum::CanCreateDirectChats->value,
+    ]);
+
+    Event::fake([ChatThreadUpserted::class]);
+
+    $chatId = $this->actingAs($user)
+        ->postJson(route('chat.threads.store'), [
+            'kind' => Chat::KIND_DIRECT,
+            'user_ids' => [$other->id],
+        ])
+        ->assertCreated()
+        ->json('chat.id');
+
+    Event::assertDispatched(ChatThreadUpserted::class, function (ChatThreadUpserted $event) use ($other, $chatId): bool {
+        return $event->userId === (int) $other->id
+            && $event->broadcastAs() === 'ThreadUpserted'
+            && $event->broadcastOn()[0]->name === 'private-App.Models.User.'.$other->id
+            && ($event->chat['id'] ?? null) === $chatId
+            && ($event->chat['kind'] ?? null) === 'direct';
+    });
+    Event::assertNotDispatched(ChatThreadUpserted::class, function (ChatThreadUpserted $event) use ($user): bool {
+        return $event->userId === (int) $user->id;
+    });
+
+    // Existing DM (findOrCreate) must not re-broadcast create.
+    Event::fake([ChatThreadUpserted::class]);
+
+    $this->actingAs($user)
+        ->postJson(route('chat.threads.store'), [
+            'kind' => Chat::KIND_DIRECT,
+            'user_ids' => [$other->id],
+        ])
+        ->assertCreated();
+
+    Event::assertNotDispatched(ChatThreadUpserted::class);
+});
+
+test('direct message broadcasts ThreadUpserted with last_message for peer list', function () {
+    ['user' => $user, 'other' => $other] = hubKitchen([
+        PermissionEnum::CanCreateDirectChats->value,
+    ]);
+
+    $chatId = $this->actingAs($user)
+        ->postJson(route('chat.threads.store'), [
+            'kind' => Chat::KIND_DIRECT,
+            'user_ids' => [$other->id],
+        ])
+        ->assertCreated()
+        ->json('chat.id');
+
+    Event::fake([ChatThreadUpserted::class]);
+
+    $this->actingAs($user)
+        ->postJson(route('chat.messages.store', $chatId), [
+            'body' => 'asdfasdf',
+        ])
+        ->assertCreated();
+
+    Event::assertDispatched(ChatThreadUpserted::class, function (ChatThreadUpserted $event) use ($other, $chatId): bool {
+        return $event->userId === (int) $other->id
+            && ($event->chat['id'] ?? null) === $chatId
+            && ($event->chat['last_message']['body'] ?? null) === 'asdfasdf'
+            && ($event->chat['unread_count'] ?? null) === 1
+            && $event->broadcastOn()[0]->name === 'private-App.Models.User.'.$other->id;
+    });
 });
 
 test('group member sync expands and removes via_group participants', function () {
@@ -364,6 +436,43 @@ test('collection mention increments unread', function () {
         ->assertJsonPath('unread_collection', 1);
 });
 
+test('collection notify broadcasts unread totals to subscriber', function () {
+    ['user' => $user, 'other' => $other, 'collection' => $collection, 'item' => $item] = hubKitchen();
+
+    $this->actingAs($other)
+        ->putJson(route('collections.items.chat.notify', [$collection, $item]), [
+            'notify' => true,
+        ])
+        ->assertOk();
+
+    Event::fake([ChatUnreadUpdated::class]);
+
+    $this->actingAs($user)
+        ->postJson(route('collections.items.chat.store', [$collection, $item]), [
+            'body' => 'broadcast',
+        ])
+        ->assertCreated();
+
+    Event::assertDispatched(ChatUnreadUpdated::class, function (ChatUnreadUpdated $event) use ($other, $item): bool {
+        $itemChat = Chat::query()
+            ->where('kind', Chat::KIND_ITEM)
+            ->where('collection_item_id', $item->id)
+            ->first();
+
+        return $event->userId === (int) $other->id
+            && $event->collection >= 1
+            && $itemChat !== null
+            && $event->chatId === $itemChat->id
+            && $event->chatUnreadCount >= 1
+            && $event->broadcastAs() === 'ChatUnreadUpdated'
+            && $event->broadcastOn()[0]->name === 'private-App.Models.User.'.$other->id
+            && $event->broadcastWith()['chat_id'] === $itemChat->id
+            && $event->broadcastWith()['chat_unread_count'] >= 1
+            && $event->broadcastWith()['play_sound'] === true
+            && $event->playSound === true;
+    });
+});
+
 test('collection notify increments unread', function () {
     ['user' => $user, 'other' => $other, 'collection' => $collection, 'item' => $item] = hubKitchen();
 
@@ -428,12 +537,21 @@ test('opening a chat marks it read and drops sidebar total', function () {
         'body' => 'ping',
     ])->assertCreated();
 
+    Event::fake([ChatUnreadUpdated::class]);
+
     $this->actingAs($other)
         ->get(route('chat.show', $chatId))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('chat.unread_count', 0)
             ->where('chat.unread_private', 0));
+
+    Event::assertDispatched(ChatUnreadUpdated::class, function (ChatUnreadUpdated $event) use ($other, $chatId): bool {
+        return $event->userId === (int) $other->id
+            && $event->chatId === $chatId
+            && $event->chatUnreadCount === 0
+            && $event->total === 0;
+    });
 
     $this->getJson(route('chat.unread-count'))
         ->assertOk()
@@ -456,6 +574,8 @@ test('open chat does not increment while viewer is on the thread', function () {
         ->postJson(route('chat.read', $chatId))
         ->assertOk();
 
+    Event::fake([ChatUnreadUpdated::class]);
+
     $this->actingAs($user)
         ->postJson(route('chat.messages.store', $chatId), [
             'body' => 'while you look',
@@ -466,6 +586,47 @@ test('open chat does not increment while viewer is on the thread', function () {
         ->getJson(route('chat.unread-count'))
         ->assertOk()
         ->assertJsonPath('unread_count', 0);
+
+    Event::assertDispatched(ChatUnreadUpdated::class, function (ChatUnreadUpdated $event) use ($other, $chatId): bool {
+        return $event->userId === (int) $other->id
+            && $event->chatId === $chatId
+            && $event->total === 0
+            && $event->playSound === true
+            && $event->broadcastWith()['play_sound'] === true;
+    });
+});
+
+test('stop viewing clears viewer so later messages increment unread', function () {
+    ['user' => $user, 'other' => $other] = hubKitchen([
+        PermissionEnum::CanCreateDirectChats->value,
+    ]);
+
+    $chatId = $this->actingAs($user)
+        ->postJson(route('chat.threads.store'), [
+            'kind' => Chat::KIND_DIRECT,
+            'user_ids' => [$other->id],
+        ])
+        ->json('chat.id');
+
+    $this->actingAs($other)
+        ->postJson(route('chat.read', $chatId))
+        ->assertOk();
+
+    $this->actingAs($other)
+        ->postJson(route('chat.stop-viewing', $chatId))
+        ->assertOk()
+        ->assertJsonPath('ok', true);
+
+    $this->actingAs($user)
+        ->postJson(route('chat.messages.store', $chatId), [
+            'body' => 'after you left',
+        ])
+        ->assertCreated();
+
+    $this->actingAs($other)
+        ->getJson(route('chat.unread-count'))
+        ->assertOk()
+        ->assertJsonPath('unread_count', 1);
 });
 
 test('inertia shares sidebar chat unread total', function () {

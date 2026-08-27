@@ -18,8 +18,6 @@ class CollectionItemChatAttachment extends Model
 
     public const DISK = 'local';
 
-    public const MAX_BYTES = 10 * 1024 * 1024;
-
     public const TTL_HOURS = 24;
 
     /**
@@ -30,6 +28,9 @@ class CollectionItemChatAttachment extends Model
         'image/png',
         'image/gif',
         'image/webp',
+        'video/mp4',
+        'video/webm',
+        'video/quicktime',
         'application/pdf',
         'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -49,6 +50,9 @@ class CollectionItemChatAttachment extends Model
         'png',
         'gif',
         'webp',
+        'mp4',
+        'webm',
+        'mov',
         'pdf',
         'doc',
         'docx',
@@ -68,6 +72,8 @@ class CollectionItemChatAttachment extends Model
         'mime_type',
         'disk',
         'path',
+        'preview_path',
+        'preview_mime',
         'size',
         'transferred_file_id',
         'expires_at',
@@ -124,20 +130,31 @@ class CollectionItemChatAttachment extends Model
         return $this->expires_at !== null && $this->expires_at->isPast();
     }
 
+    public function hasPreview(): bool
+    {
+        return is_string($this->preview_path) && $this->preview_path !== '';
+    }
+
     /**
      * Remove the underlying file from storage when present.
      */
     public function deleteFile(): void
     {
-        if ($this->path !== '' && Storage::disk($this->disk)->exists($this->path)) {
-            Storage::disk($this->disk)->delete($this->path);
+        $disk = Storage::disk($this->disk);
+
+        if ($this->path !== '' && $disk->exists($this->path)) {
+            $disk->delete($this->path);
+        }
+
+        if ($this->hasPreview() && $disk->exists($this->preview_path)) {
+            $disk->delete($this->preview_path);
         }
     }
 
     /**
      * JSON payload for chat APIs.
      *
-     * @return array{id: string, name: string, mime: string, size: int, transferred_file_id: int|null}
+     * @return array{id: string, name: string, mime: string, size: int, transferred_file_id: int|null, has_preview: bool}
      */
     public function toApiArray(): array
     {
@@ -149,6 +166,7 @@ class CollectionItemChatAttachment extends Model
             'transferred_file_id' => $this->transferred_file_id !== null
                 ? (int) $this->transferred_file_id
                 : null,
+            'has_preview' => $this->hasPreview(),
         ];
     }
 

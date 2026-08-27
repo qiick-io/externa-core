@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\CollectionItemChatAttachment;
+use App\Services\Chat\ChatAttachmentUploadService;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -17,8 +18,10 @@ class CleanupChatAttachmentsCommand extends Command
     /**
      * Delete expired orphan attachment records and their storage files.
      */
-    public function handle(): int
+    public function handle(ChatAttachmentUploadService $uploads): int
     {
+        $staleSessions = $uploads->cleanupStaleUploads();
+
         $expired = CollectionItemChatAttachment::query()
             ->whereNull('message_id')
             ->whereNotNull('expires_at')
@@ -32,7 +35,11 @@ class CleanupChatAttachmentsCommand extends Command
             $cleanedCount++;
         }
 
-        $this->info(sprintf('Cleaned up %d expired chat attachment(s).', $cleanedCount));
+        $this->info(sprintf(
+            'Cleaned up %d expired chat attachment(s) and %d stale upload session(s).',
+            $cleanedCount,
+            $staleSessions,
+        ));
 
         return self::SUCCESS;
     }

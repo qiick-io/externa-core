@@ -13,6 +13,8 @@ use App\Models\File;
 use App\Services\Files\FileWhereUsedScanner;
 use App\Services\FileService;
 use App\Services\FileTransformService;
+use App\Services\Settings\ProjectSettings;
+use App\Support\Uploads\UploadSizeLimiter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -269,8 +271,15 @@ class FileController extends Controller
             'name' => ['nullable', 'string', 'max:255'],
         ]);
 
+        /** @var UploadedFile $uploaded */
+        $uploaded = $validated['file'];
+        $size = (int) $uploaded->getSize();
+        $maxBytes = app(ProjectSettings::class)->filesMaxUploadBytes();
+        UploadSizeLimiter::assertWithinCap($maxBytes, $size);
+        UploadSizeLimiter::assertFitsPhpSingleUpload($size);
+
         $file = $this->fileService->uploadFile(
-            $validated['file'],
+            $uploaded,
             $validated['parent_id'] ?? null,
             $validated['disk'] ?? 'assets',
             $validated['name'] ?? null,
@@ -781,6 +790,12 @@ class FileController extends Controller
             'parent_id' => ['nullable', 'integer', 'exists:files,id'],
             'disk' => ['nullable', 'string', Rule::in(['assets'])],
         ]);
+
+        UploadSizeLimiter::assertWithinCap(
+            app(ProjectSettings::class)->filesMaxUploadBytes(),
+            (int) $validated['total_size'],
+            'total_size',
+        );
 
         $fileUpload = $this->fileService->initChunkUpload(
             $validated['file_name'],

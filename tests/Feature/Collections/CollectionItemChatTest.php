@@ -494,6 +494,8 @@ test('reaction toggle is unique per user and emoji', function () {
         ->and($added['reactions'][0]['emoji'])->toBe('👍')
         ->and($added['reactions'][0]['count'])->toBe(1)
         ->and($added['reactions'][0]['reacted'])->toBeTrue()
+        ->and($added['reactions'][0]['users'])->toHaveCount(1)
+        ->and($added['reactions'][0]['users'][0]['id'])->toBe($user->id)
         ->and(CollectionItemChatReaction::query()->where('message_id', $id)->count())->toBe(1);
 
     $removed = $this->postJson(route('collections.items.chat.react', [$collection, $item, $id]), [
@@ -507,30 +509,6 @@ test('reaction toggle is unique per user and emoji', function () {
     $this->postJson(route('collections.items.chat.react', [$collection, $item, $id]), [
         'emoji' => '🔥',
     ])->assertUnprocessable();
-});
-
-test('forward creates a text-only message on another item in the same collection', function () {
-    ['user' => $user, 'collection' => $collection, 'item' => $item] = chatKitchen();
-    $target = $collection->items()->create([]);
-    $this->actingAs($user);
-
-    $id = $this->postJson(route('collections.items.chat.store', [$collection, $item]), [
-        'body' => 'Hey @[user:'.$user->id.']',
-        'mentioned_user_ids' => [$user->id],
-    ])->assertCreated()->json('message.id');
-
-    $forwarded = $this->postJson(route('collections.items.chat.forward', [$collection, $item, $id]), [
-        'item_id' => $target->id,
-    ])->assertCreated()->json('message');
-
-    expect($forwarded['body'])->toBe('Hey @[user:'.$user->id.']')
-        ->and($forwarded['forwarded_from']['author_name'])->not->toBe('')
-        ->and($forwarded['attachments'])->toBe([])
-        ->and(Chat::forItem($target)?->messages()->count())->toBe(1);
-
-    $this->postJson(route('collections.items.chat.forward', [$collection, $item, $id]), [
-        'item_id' => $item->id,
-    ])->assertStatus(422);
 });
 
 test('old comments routes return 404', function () {

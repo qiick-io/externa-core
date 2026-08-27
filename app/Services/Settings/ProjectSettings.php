@@ -4,6 +4,7 @@ namespace App\Services\Settings;
 
 use App\Support\Api\PublicApiOrigin;
 use App\Support\Collections\ContentLocaleCatalog;
+use App\Support\Uploads\UploadSizeLimiter;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
@@ -64,7 +65,9 @@ class ProjectSettings
      *     sidebarModules: list<array{id: string, enabled: bool, locked: bool}>,
      *     reportIssueUrl: string|null,
      *     reportBugUrl: string|null,
-     *     reportErrorUrl: string|null
+     *     reportErrorUrl: string|null,
+     *     filesMaxUploadBytes: int|null,
+     *     chatMaxUploadBytes: int|null
      * }
      */
     public function shared(): array
@@ -81,6 +84,8 @@ class ProjectSettings
             'reportIssueUrl' => $raw['report_issue_url'],
             'reportBugUrl' => $raw['report_bug_url'],
             'reportErrorUrl' => $raw['report_error_url'],
+            'filesMaxUploadBytes' => $raw['files_max_upload_bytes'],
+            'chatMaxUploadBytes' => $raw['chat_max_upload_bytes'],
         ];
     }
 
@@ -306,6 +311,22 @@ class ProjectSettings
     }
 
     /**
+     * Max Files pool upload size in bytes (null = unlimited).
+     */
+    public function filesMaxUploadBytes(): ?int
+    {
+        return $this->raw()['files_max_upload_bytes'];
+    }
+
+    /**
+     * Max chat attachment upload size in bytes (null = unlimited).
+     */
+    public function chatMaxUploadBytes(): ?int
+    {
+        return $this->raw()['chat_max_upload_bytes'];
+    }
+
+    /**
      * Decrypted webhook signing secret, or null when unset/unreadable.
      */
     public function webhookSecret(): ?string
@@ -403,6 +424,16 @@ class ProjectSettings
                 $raw['revision_retention_days'] ?? null,
                 1,
                 3650,
+            ),
+            'files_max_upload_bytes' => $this->nullablePositiveInt(
+                $raw['files_max_upload_bytes'] ?? null,
+                1,
+                UploadSizeLimiter::SETTING_MAX_BYTES,
+            ),
+            'chat_max_upload_bytes' => $this->nullablePositiveInt(
+                $raw['chat_max_upload_bytes'] ?? null,
+                1,
+                UploadSizeLimiter::SETTING_MAX_BYTES,
             ),
         ];
     }

@@ -1,6 +1,6 @@
 import { usePage } from '@inertiajs/react';
 import { Bell } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { NotificationsDrawer } from '@/components/notifications/notifications-drawer';
 import {
     SidebarMenu,
@@ -12,6 +12,7 @@ import {
     fetchUnreadNotificationCount,
     NOTIFICATIONS_UPDATED_EVENT,
 } from '@/lib/notifications-api';
+import { playNotificationSound } from '@/lib/notification-sound';
 import { SidebarUnreadBadge } from '@/components/sidebar-unread-badge';
 
 const UNREAD_POLL_INTERVAL_MS = 60_000;
@@ -25,6 +26,9 @@ export function NotificationsBell() {
     const realtimeOn = isRealtimeEnabled(page.props.realtime);
     const [unreadCount, setUnreadCount] = useState(sharedUnreadCount);
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const drawerOpenRef = useRef(drawerOpen);
+
+    drawerOpenRef.current = drawerOpen;
 
     const refreshUnreadCount = useCallback(() => {
         void fetchUnreadNotificationCount()
@@ -60,11 +64,20 @@ export function NotificationsBell() {
             );
         } else {
             const echo = ensureEcho(true);
-            echo?.private(`App.Models.User.${user.id}`).notification(() => {
+            const channel = echo?.private(`App.Models.User.${user.id}`);
+            const notificationEvent =
+                '.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated';
+
+            channel?.stopListening(notificationEvent);
+            channel?.listen(notificationEvent, () => {
                 setUnreadCount((count) => count + 1);
                 window.dispatchEvent(
                     new CustomEvent(NOTIFICATIONS_UPDATED_EVENT),
                 );
+
+                if (!drawerOpenRef.current) {
+                    playNotificationSound();
+                }
             });
         }
 
@@ -79,7 +92,11 @@ export function NotificationsBell() {
             );
 
             if (realtimeOn) {
-                ensureEcho(true)?.leave(`App.Models.User.${user.id}`);
+                ensureEcho(true)
+                    ?.private(`App.Models.User.${user.id}`)
+                    .stopListening(
+                        '.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated',
+                    );
             }
         };
     }, [page.props.auth.user, realtimeOn, refreshUnreadCount]);

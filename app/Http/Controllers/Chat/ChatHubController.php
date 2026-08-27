@@ -113,9 +113,19 @@ class ChatHubController extends Controller
         abort_unless($user instanceof User, 401);
         $this->chats->assertAccessible($request, $chat);
         $this->unread->markRead($chat, $user);
-        $this->unread->broadcast($user);
+        $this->unread->broadcast($user, $chat);
 
         return response()->json($this->unread->shared($user));
+    }
+
+    public function stopViewing(Request $request, Chat $chat): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $this->chats->assertAccessible($request, $chat);
+        $this->unread->forgetViewer($chat, $user);
+
+        return response()->json(['ok' => true]);
     }
 
     public function store(Request $request): JsonResponse
@@ -148,6 +158,11 @@ class ChatHubController extends Controller
                 'participants.user:id,first_name,last_name,email',
                 'participants.group:id,name',
             ]);
+
+            // New DM only — peers on /chat need a live sidebar row (no MessageCreated yet).
+            if ($chat->wasRecentlyCreated) {
+                $this->chats->broadcastThreadUpserted($chat, exceptUserIds: [(int) $user->id]);
+            }
 
             return response()->json(['chat' => $this->chats->serializeSummary($chat, $user)], 201);
         }

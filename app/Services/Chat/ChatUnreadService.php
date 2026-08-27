@@ -27,6 +27,7 @@ class ChatUnreadService
 
     public function __construct(
         private SettingsRepository $settings,
+        private ChatService $chats,
     ) {}
 
     /**
@@ -125,28 +126,81 @@ class ChatUnreadService
         }
 
         $recipientIds = $this->recipientIds($chat, $message, $author, $mentionedIds);
+        $authorId = (int) $author->id;
+        $soundIds = array_values(array_unique(array_filter(
+            array_merge($recipientIds, $viewerIds),
+            fn (int $id): bool => $id !== $authorId,
+        )));
         $touched = array_values(array_unique(array_merge(
             $recipientIds,
             $viewerIds,
-            [(int) $author->id],
+            [$authorId],
         )));
 
         $users = User::query()->whereIn('id', $touched)->where('is_active', true)->get();
+        $unreadByUserId = [];
+
         foreach ($users as $user) {
-            $this->broadcast($user);
+            $counts = $this->countsFor(collect([$chat]), $user);
+            $chatUnread = $counts[(string) $chat->id] ?? 0;
+            $unreadByUserId[(int) $user->id] = $chatUnread;
+            $this->broadcast(
+                $user,
+                $chat,
+                playSound: in_array((int) $user->id, $soundIds, true),
+                chatUnreadCount: $chatUnread,
+            );
+        }
+
+        // Peer may never have joined presence chat.* — upsert hub row + last_message preview.
+        if ($chat->isDirect()) {
+            $this->chats->broadcastThreadUpserted($chat, $unreadByUserId);
         }
     }
 
-    public function broadcast(User $user): void
-    {
+    public function broadcast(
+        User $user,
+        ?Chat $chat = null,
+        bool $playSound = false,
+        ?int $chatUnreadCount = null,
+    ): void {
         $totals = $this->totals($user);
+        $chatId = $chat !== null ? (string) $chat->id : null;
+        $chatUnread = $chatUnreadCount;
+
+        if ($chat !== null && $chatUnread === null) {
+            $counts = $this->countsFor(collect([$chat]), $user);
+            $chatUnread = $counts[$chatId] ?? 0;
+        }
 
         event(new ChatUnreadUpdated(
             (int) $user->id,
             $totals['total'],
             $totals['private'],
             $totals['collection'],
+            $chatId,
+            $chatUnread,
+            $playSound,
         ));
+    }
+
+    public function forgetViewer(Chat $chat, User $user): void
+    {
+        $key = $this->viewerCacheKey($chat);
+        $viewers = Cache::get($key, []);
+        if (! is_array($viewers)) {
+            return;
+        }
+
+        unset($viewers[(int) $user->id]);
+
+        if ($viewers === []) {
+            Cache::forget($key);
+
+            return;
+        }
+
+        Cache::put($key, $viewers, now()->addSeconds(self::VIEWING_TTL_SECONDS));
     }
 
     /**

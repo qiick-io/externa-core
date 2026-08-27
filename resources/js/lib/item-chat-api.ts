@@ -1,5 +1,6 @@
 import { formRequestHeaders, jsonRequestHeaders } from '@/lib/csrf';
 import { applyChatUnread } from '@/lib/chat-hub-api';
+import { CHUNK_SIZE_BYTES, MAX_CHUNK_RETRIES, CHUNK_RETRY_BASE_DELAY_MS } from '@/lib/files-api';
 
 export type ChatUser = {
     id: number;
@@ -13,23 +14,20 @@ export type ChatAttachment = {
     mime: string;
     size: number;
     transferred_file_id: number | null;
+    has_preview?: boolean;
 };
 
 export type ChatReaction = {
     emoji: string;
     count: number;
     reacted: boolean;
+    users: ChatUser[];
 };
 
 export type ChatReplyTo = {
     id: number;
     body: string;
     user: ChatUser | null;
-};
-
-export type ChatForwardedFrom = {
-    message_id: number | null;
-    author_name: string;
 };
 
 export type ChatPinned = {
@@ -60,7 +58,6 @@ export type ItemChatMessage = {
     reply_to: ChatReplyTo | null;
     is_pinned: boolean;
     pinned_at: string | null;
-    forwarded_from: ChatForwardedFrom | null;
     reactions: ChatReaction[];
     created_at: string | null;
     updated_at: string | null;
@@ -266,28 +263,6 @@ export async function toggleReaction(
     };
 }
 
-export async function forwardMessage(
-    scope: ChatScope,
-    messageId: number,
-    targetItemId: number,
-): Promise<ItemChatMessage> {
-    const response = await fetch(
-        `${roots(scope).thread}/${messageId}/forward`,
-        {
-            method: 'POST',
-            headers: jsonRequestHeaders(),
-            credentials: 'same-origin',
-            body: JSON.stringify({ item_id: targetItemId }),
-        },
-    );
-
-    await assertOk(response, 'Could not forward message.');
-
-    const json = (await response.json()) as { message: ItemChatMessage };
-
-    return json.message;
-}
-
 export async function fetchMentions(
     scope: ChatScope,
     q: string,
@@ -341,6 +316,16 @@ export async function markChatRead(
     return payload;
 }
 
+export async function stopChatViewing(scope: ChatScope): Promise<void> {
+    const response = await fetch(`${roots(scope).root}/stop-viewing`, {
+        method: 'POST',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+    });
+
+    await assertOk(response, 'Could not stop viewing chat.');
+}
+
 export async function putChatNotify(
     scope: ChatScope,
     notify: boolean,
@@ -362,25 +347,187 @@ export async function putChatNotify(
 export async function uploadChatAttachment(
     scope: ChatScope,
     file: File,
+    options?: {
+        maxBytes?: number | null;
+        onProgress?: (progress: number) => void;
+        signal?: AbortSignal;
+    },
 ): Promise<ChatAttachment> {
+    assertWithinChatUploadCap(file.size, options?.maxBytes);
+
+    if (file.size > CHUNK_SIZE_BYTES) {
+        return uploadChatAttachmentChunked(scope, file, options);
+    }
+
     const body = new FormData();
     body.append('file', file);
 
-    const response = await fetch(
-        `${roots(scope).root}/attachments`,
-        {
-            method: 'POST',
-            headers: formRequestHeaders(),
-            credentials: 'same-origin',
-            body,
-        },
-    );
+    const response = await fetch(`${roots(scope).root}/attachments`, {
+        method: 'POST',
+        headers: formRequestHeaders(),
+        credentials: 'same-origin',
+        body,
+        signal: options?.signal,
+    });
 
     await assertOk(response, 'Could not upload attachment.');
+    options?.onProgress?.(100);
 
     const json = (await response.json()) as { attachment: ChatAttachment };
 
     return json.attachment;
+}
+
+async function uploadChatAttachmentChunked(
+    scope: ChatScope,
+    file: File,
+    options?: {
+        onProgress?: (progress: number) => void;
+        signal?: AbortSignal;
+    },
+): Promise<ChatAttachment> {
+    const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE_BYTES));
+    const root = roots(scope).root;
+
+    const initResponse = await fetch(`${root}/attachments/uploads/init`, {
+        method: 'POST',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            file_name: file.name,
+            total_size: file.size,
+            total_chunks: totalChunks,
+            mime_type: file.type || null,
+        }),
+        signal: options?.signal,
+    });
+
+    await assertOk(initResponse, 'Failed to initialize chat upload');
+
+    const { upload_id: uploadId } = (await initResponse.json()) as {
+        upload_id: string;
+    };
+
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
+        if (options?.signal?.aborted) {
+            throw new DOMException('Upload aborted', 'AbortError');
+        }
+
+        const start = chunkIndex * CHUNK_SIZE_BYTES;
+        const end = Math.min(start + CHUNK_SIZE_BYTES, file.size);
+        const chunkBlob = file.slice(start, end);
+
+        await uploadChatChunkWithRetry(
+            root,
+            uploadId,
+            chunkIndex,
+            chunkBlob,
+            file.name,
+            options?.signal,
+        );
+
+        options?.onProgress?.(
+            Math.round(((chunkIndex + 1) / totalChunks) * 100),
+        );
+    }
+
+    const completeResponse = await fetch(
+        `${root}/attachments/uploads/complete`,
+        {
+            method: 'POST',
+            headers: jsonRequestHeaders(),
+            credentials: 'same-origin',
+            body: JSON.stringify({ upload_id: uploadId }),
+            signal: options?.signal,
+        },
+    );
+
+    await assertOk(completeResponse, 'Failed to complete chat upload');
+
+    const json = (await completeResponse.json()) as {
+        attachment: ChatAttachment;
+    };
+
+    return json.attachment;
+}
+
+async function uploadChatChunkWithRetry(
+    root: string,
+    uploadId: string,
+    chunkIndex: number,
+    chunkBlob: Blob,
+    fileName: string,
+    signal?: AbortSignal,
+): Promise<void> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= MAX_CHUNK_RETRIES; attempt += 1) {
+        const formData = new FormData();
+        formData.append('upload_id', uploadId);
+        formData.append('chunk_index', String(chunkIndex));
+        formData.append('chunk', chunkBlob, `${fileName}.part${chunkIndex}`);
+
+        try {
+            const chunkResponse = await fetch(
+                `${root}/attachments/uploads/chunk`,
+                {
+                    method: 'POST',
+                    headers: formRequestHeaders(),
+                    credentials: 'same-origin',
+                    body: formData,
+                    signal,
+                },
+            );
+
+            if (chunkResponse.ok) {
+                return;
+            }
+
+            lastError = new Error(
+                await parseError(
+                    chunkResponse,
+                    `Failed to upload chunk ${chunkIndex + 1}`,
+                ),
+            );
+        } catch (error) {
+            if (error instanceof DOMException && error.name === 'AbortError') {
+                throw error;
+            }
+
+            lastError =
+                error instanceof Error
+                    ? error
+                    : new Error(`Failed to upload chunk ${chunkIndex + 1}`);
+        }
+
+        if (attempt < MAX_CHUNK_RETRIES) {
+            await new Promise((resolve) => {
+                setTimeout(
+                    resolve,
+                    CHUNK_RETRY_BASE_DELAY_MS * (attempt + 1),
+                );
+            });
+        }
+    }
+
+    throw (
+        lastError ??
+        new Error(`Failed to upload chunk ${chunkIndex + 1} after retries`)
+    );
+}
+
+export function assertWithinChatUploadCap(
+    fileSize: number,
+    maxBytes: number | null | undefined,
+): void {
+    if (maxBytes == null) {
+        return;
+    }
+
+    if (fileSize > maxBytes) {
+        const mb = Math.round(maxBytes / (1024 * 1024));
+        throw new Error(`File exceeds the ${mb} MB chat upload limit.`);
+    }
 }
 
 export function chatAttachmentUrl(
@@ -388,6 +535,33 @@ export function chatAttachmentUrl(
     attachmentId: string,
 ): string {
     return `${roots(scope).root}/attachments/${attachmentId}`;
+}
+
+export function chatAttachmentPreviewUrl(
+    scope: ChatScope,
+    attachment: ChatAttachment,
+): string {
+    if (attachment.has_preview) {
+        return `${roots(scope).root}/attachments/${attachment.id}/preview`;
+    }
+
+    return chatAttachmentUrl(scope, attachment.id);
+}
+
+export async function deleteChatAttachment(
+    scope: ChatScope,
+    attachmentId: string,
+): Promise<void> {
+    const response = await fetch(
+        `${roots(scope).root}/attachments/${attachmentId}`,
+        {
+            method: 'DELETE',
+            headers: jsonRequestHeaders(),
+            credentials: 'same-origin',
+        },
+    );
+
+    await assertOk(response, 'Could not delete attachment.');
 }
 
 export async function saveChatAttachmentToFiles(
@@ -427,45 +601,4 @@ export async function addChatAttachmentToField(
     );
 
     await assertOk(response, 'Could not add attachment to field.');
-}
-
-export function applyReactionToggle(
-    reactions: ChatReaction[],
-    emoji: string,
-    added: boolean,
-    isOwn: boolean,
-): ChatReaction[] {
-    const next = reactions.map((row) => ({ ...row }));
-    const index = next.findIndex((row) => row.emoji === emoji);
-
-    if (added) {
-        if (index === -1) {
-            next.push({ emoji, count: 1, reacted: isOwn });
-        } else {
-            next[index] = {
-                ...next[index]!,
-                count: next[index]!.count + 1,
-                reacted: isOwn ? true : next[index]!.reacted,
-            };
-        }
-
-        return next;
-    }
-
-    if (index === -1) {
-        return next;
-    }
-
-    const count = next[index]!.count - 1;
-    if (count <= 0) {
-        next.splice(index, 1);
-    } else {
-        next[index] = {
-            ...next[index]!,
-            count,
-            reacted: isOwn ? false : next[index]!.reacted,
-        };
-    }
-
-    return next;
 }

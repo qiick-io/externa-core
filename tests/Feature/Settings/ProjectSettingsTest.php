@@ -53,6 +53,8 @@ test('authorized users can view and update project settings', function () {
             ->where('project.preset_transformations.0.key', 'thumbnail')
             ->where('project.revision_retention_count', null)
             ->where('project.revision_retention_days', null)
+            ->where('project.files_max_upload_bytes', null)
+            ->where('project.chat_max_upload_bytes', null)
         );
 
     $modules = config('settings.project.defaults.sidebar_modules');
@@ -80,6 +82,8 @@ test('authorized users can view and update project settings', function () {
             'report_error_url' => null,
             'revision_retention_count' => 50,
             'revision_retention_days' => 90,
+            'files_max_upload_bytes' => 20 * 1024 * 1024,
+            'chat_max_upload_bytes' => 15 * 1024 * 1024,
         ]))
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.edit'));
@@ -105,14 +109,20 @@ test('authorized users can view and update project settings', function () {
         ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'revision_retention_count'))
         ->toBe(50)
         ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'revision_retention_days'))
-        ->toBe(90);
+        ->toBe(90)
+        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'files_max_upload_bytes'))
+        ->toBe(20 * 1024 * 1024)
+        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'chat_max_upload_bytes'))
+        ->toBe(15 * 1024 * 1024);
 
     $project = app(ProjectSettings::class);
     expect($project->maxTransformSize())->toBe(800)
         ->and($project->transformPreset('hero')['fit'])->toBe('cover')
         ->and($project->passwordPolicy())->toBe('strong')
         ->and($project->revisionRetentionCount())->toBe(50)
-        ->and($project->revisionRetentionDays())->toBe(90);
+        ->and($project->revisionRetentionDays())->toBe(90)
+        ->and($project->filesMaxUploadBytes())->toBe(20 * 1024 * 1024)
+        ->and($project->chatMaxUploadBytes())->toBe(15 * 1024 * 1024);
 
     $this->actingAs($user)
         ->get(route('project.edit'))

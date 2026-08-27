@@ -1,4 +1,5 @@
 import { formRequestHeaders, jsonRequestHeaders } from '@/lib/csrf';
+import { useChatStore } from '@/stores/chat/store';
 
 export type ChatSummary = {
     id: string;
@@ -26,17 +27,19 @@ export type ChatUnreadShare = {
     unread_count: number;
     unread_private: number;
     unread_collection: number;
+    /** Present on Echo ChatUnreadUpdated when a specific chat changed. */
+    chat_id?: string | null;
+    chat_unread_count?: number | null;
+    /** Server sets true on new messages for recipients + live viewers. */
+    play_sound?: boolean;
 };
 
-/** Custom event when chat unread totals change (mark-read or poll). */
+/** @deprecated Prefer applyChatUnread → Zustand; kept for any leftover listeners. */
 export const CHAT_UNREAD_UPDATED_EVENT = 'chat:unread-updated';
 
+/** Write unread totals after API OK or Echo server payload. */
 export function applyChatUnread(payload: ChatUnreadShare): void {
-    window.dispatchEvent(
-        new CustomEvent<ChatUnreadShare>(CHAT_UNREAD_UPDATED_EVENT, {
-            detail: payload,
-        }),
-    );
+    useChatStore.getState().setUnread(payload);
 }
 
 async function assertOk(response: Response, fallback: string): Promise<void> {
@@ -119,6 +122,16 @@ export async function markHubChatRead(chatId: string): Promise<ChatUnreadShare> 
     return payload;
 }
 
+export async function stopHubChatViewing(chatId: string): Promise<void> {
+    const response = await fetch(`/chat/${chatId}/stop-viewing`, {
+        method: 'POST',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+    });
+
+    await assertOk(response, 'Could not stop viewing chat.');
+}
+
 export async function createChatThread(payload: {
     kind: 'item' | 'direct';
     collection_id?: number;
@@ -166,6 +179,17 @@ export async function deleteDirectChat(chatId: string): Promise<void> {
     });
 
     await assertOk(response, 'Could not delete chat.');
+
+    const store = useChatStore.getState();
+    store.removeThread(chatId);
+    store.clearMessages(chatId);
+
+    // Refresh badge totals after delete (API OK → store).
+    void fetchChatUnread()
+        .then((payload) => store.setUnread(payload))
+        .catch(() => {
+            // Ignore; next poll/Echo will catch up.
+        });
 }
 
 export type ChatListMeta = {

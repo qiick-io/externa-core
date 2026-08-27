@@ -56,7 +56,7 @@ class ChatPageController extends Controller
         $fields = [];
         if ($selected instanceof Chat) {
             $this->unread->markRead($selected, $user);
-            $this->unread->broadcast($user);
+            $this->unread->broadcast($user, $selected);
             $selected->load([
                 'collection:id,name,icon,color',
                 'item',

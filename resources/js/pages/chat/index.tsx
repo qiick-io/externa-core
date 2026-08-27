@@ -9,14 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { useChatUnread } from '@/hooks/use-chat-unread';
 import AppLayout from '@/layouts/app-layout';
-import {
-    CHAT_UNREAD_UPDATED_EVENT,
-    fetchChatThreads,
-} from '@/lib/chat-hub-api';
+import { applyChatUnread, fetchChatThreads } from '@/lib/chat-hub-api';
 import type { ChatSummary } from '@/lib/chat-hub-api';
 import { formatChatUnread } from '@/lib/format-chat-unread';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
+import { useChatStore } from '@/stores/chat/store';
+import { threadsCacheKey } from '@/stores/chat/types';
 import type { BreadcrumbItem } from '@/types';
 import type { CollectionFieldRow } from '@/types/collections';
 
@@ -51,9 +50,18 @@ export default function ChatHubPage({
     const [tab, setTab] = useState<'collection' | 'private'>(tabProp);
     const [q, setQ] = useState(qProp);
     const [debouncedQ, setDebouncedQ] = useState(qProp);
-    const [threads, setThreads] = useState<ChatSummary[]>([]);
-    const [threadsLoaded, setThreadsLoaded] = useState(false);
     const selectedChatIdRef = useRef<string | null>(selectedChat?.id ?? null);
+
+    const cacheKey = threadsCacheKey(tab, debouncedQ);
+    const entry = useChatStore((state) => state.threadsByKey[cacheKey]);
+    const setThreads = useChatStore((state) => state.setThreads);
+    const setThreadsStatus = useChatStore((state) => state.setThreadsStatus);
+    const patchThread = useChatStore((state) => state.patchThread);
+    const setHubTab = useChatStore((state) => state.setTab);
+    const setHubQuery = useChatStore((state) => state.setQuery);
+
+    const threads = entry?.items ?? [];
+    const threadsLoaded = entry?.status === 'ready';
 
     selectedChatIdRef.current = selectedChat?.id ?? null;
 
@@ -63,60 +71,77 @@ export default function ChatHubPage({
         return () => window.clearTimeout(timer);
     }, [q]);
 
-    const loadThreads = useCallback((): void => {
-        void fetchChatThreads({ tab, q: debouncedQ })
-            .then((payload) => {
-                setThreads(payload.data);
-                setThreadsLoaded(true);
-            })
-            .catch((error: unknown) => {
-                toast.error(
-                    error instanceof Error
-                        ? error.message
-                        : 'Could not load chats.',
-                );
-            });
-    }, [tab, debouncedQ]);
+    const loadThreads = useCallback(
+        (opts?: { soft?: boolean }): void => {
+            const soft = opts?.soft === true;
+            const current = useChatStore.getState().threadsByKey[cacheKey];
 
-    useEffect(() => {
-        loadThreads();
-    }, [loadThreads]);
-
-    useEffect(() => {
-        const onUnread = (): void => {
-            const activeId = selectedChatIdRef.current;
-
-            if (!activeId) {
-                return;
+            if (!soft || current?.status !== 'ready') {
+                setThreadsStatus(cacheKey, 'loading');
             }
 
-            setThreads((current) =>
-                current.map((thread) =>
-                    thread.id === activeId
-                        ? { ...thread, unread_count: 0 }
-                        : thread,
-                ),
-            );
-        };
+            void fetchChatThreads({ tab, q: debouncedQ })
+                .then((payload) => {
+                    setThreads(cacheKey, payload.data);
+                    applyChatUnread({
+                        unread_count: payload.meta.unread_count,
+                        unread_private: payload.meta.unread_private,
+                        unread_collection: payload.meta.unread_collection,
+                    });
+                })
+                .catch((error: unknown) => {
+                    if (!soft || current?.status !== 'ready') {
+                        setThreadsStatus(cacheKey, 'error');
+                    }
 
-        window.addEventListener(CHAT_UNREAD_UPDATED_EVENT, onUnread);
+                    toast.error(
+                        error instanceof Error
+                            ? error.message
+                            : 'Could not load chats.',
+                    );
+                });
+        },
+        [tab, debouncedQ, cacheKey, setThreads, setThreadsStatus],
+    );
 
-        return () => {
-            window.removeEventListener(CHAT_UNREAD_UPDATED_EVENT, onUnread);
-        };
-    }, []);
+    useEffect(() => {
+        const cached = useChatStore.getState().threadsByKey[cacheKey];
+
+        if (cached?.status === 'ready') {
+            // Reuse short cache; soft-refresh in background.
+            loadThreads({ soft: true });
+        } else {
+            loadThreads();
+        }
+    }, [loadThreads, cacheKey]);
 
     useEffect(() => {
         setTab(tabProp);
         setQ(qProp);
-    }, [tabProp, qProp]);
+        setHubTab(tabProp);
+        setHubQuery(qProp);
+    }, [tabProp, qProp, setHubTab, setHubQuery]);
+
+    useEffect(() => {
+        const activeId = selectedChatIdRef.current;
+
+        if (!activeId) {
+            return;
+        }
+
+        // Keep open-thread row at zero unread when totals refresh from API/Echo.
+        if (unread.unread_count >= 0) {
+            patchThread(activeId, { unread_count: 0 });
+        }
+    }, [
+        unread.unread_count,
+        unread.unread_private,
+        unread.unread_collection,
+        patchThread,
+    ]);
 
     const openThread = (id: string): void => {
-        setThreads((current) =>
-            current.map((thread) =>
-                thread.id === id ? { ...thread, unread_count: 0 } : thread,
-            ),
-        );
+        patchThread(id, { unread_count: 0 });
 
         router.get(
             `/chat/${id}`,
@@ -131,6 +156,7 @@ export default function ChatHubPage({
 
     const switchTab = (next: 'collection' | 'private'): void => {
         setTab(next);
+        setHubTab(next);
         router.visit(
             `/chat${selectedChat ? `/${selectedChat.id}` : ''}?tab=${next}`,
             {
@@ -228,7 +254,10 @@ export default function ChatHubPage({
                             data-test="chat-filter-q"
                             value={q}
                             placeholder={t('chatHub.search')}
-                            onChange={(event) => setQ(event.target.value)}
+                            onChange={(event) => {
+                                setQ(event.target.value);
+                                setHubQuery(event.target.value);
+                            }}
                         />
                     </div>
                     <div

@@ -50,6 +50,11 @@ assert.equal(longerFirst.body, '@[user:2] and @[user:3]');
 assert.deepEqual(longerFirst.mentionedIds, [2, 3]);
 
 assert.deepEqual(mentionQueryAt('hello @sup', 10), { start: 6, q: 'sup' });
+assert.deepEqual(mentionQueryAt('🚀@', '🚀@'.length), { start: 2, q: '' });
+assert.deepEqual(mentionQueryAt('🚀@Test', '🚀@Test'.length), {
+    start: 2,
+    q: 'Test',
+});
 assert.equal(mentionQueryAt('@[user:2]', 9), null);
 assert.equal(mentionQueryAt('@[collection:4]', 16), null);
 

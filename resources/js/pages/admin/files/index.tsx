@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     ArrowDownAZ,
     ArrowUpAZ,
@@ -150,6 +150,8 @@ export default function AdminFilesIndex({
     filters?: FileFilters;
 }) {
     const { can } = useCan();
+    const { projectSettings } = usePage().props;
+    const filesMaxUploadBytes = projectSettings?.filesMaxUploadBytes ?? null;
     useRegisterActiveUploads();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);
@@ -800,9 +802,14 @@ export default function AdminFilesIndex({
                                 batchContext?.onFileBytesUploaded(deltaBytes);
                             }
                         },
+                        filesMaxUploadBytes,
                     );
                 } else {
-                    await uploadFileDirect(file, targetParentId);
+                    await uploadFileDirect(
+                        file,
+                        targetParentId,
+                        filesMaxUploadBytes,
+                    );
                     batchContext?.onFileBytesUploaded(file.size);
 
                     if (trackIndividually) {
@@ -847,7 +854,7 @@ export default function AdminFilesIndex({
                 return false;
             }
         },
-        [parentId],
+        [filesMaxUploadBytes, parentId],
     );
 
     const uploadFilesWithStructure = useCallback(

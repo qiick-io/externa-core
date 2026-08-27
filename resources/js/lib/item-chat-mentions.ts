@@ -82,7 +82,8 @@ export function mentionQueryAt(
         return null;
     }
 
-    const match = before.match(/(^|[\s])@([^\s@]*)$/);
+    // Allow @ after emoji/punctuation (not only whitespace), e.g. "🚀@name".
+    const match = before.match(/(^|[^A-Za-z0-9_@])@([^\s@]*)$/);
 
     if (!match) {
         return null;

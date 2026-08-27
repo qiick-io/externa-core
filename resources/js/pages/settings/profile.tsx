@@ -1,18 +1,33 @@
 import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import NotificationPreferencesController from '@/actions/App/Http/Controllers/Settings/NotificationPreferencesController';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/delete-user';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { SettingsFormActions } from '@/components/settings-form-actions';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import {
+    playTestSound,
+    setNotificationSoundPrefs,
+    unlockNotificationSound,
+} from '@/lib/notification-sound';
+import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 import type { BreadcrumbItem } from '@/types';
+
+type NotificationSounds = {
+    sound_chat_enabled: boolean;
+    sound_notifications_enabled: boolean;
+};
 
 /**
  * User profile settings page.
@@ -20,13 +35,33 @@ import type { BreadcrumbItem } from '@/types';
 export default function Profile({
     mustVerifyEmail,
     status,
+    notificationSounds,
 }: {
     mustVerifyEmail: boolean;
     status?: string;
+    notificationSounds: NotificationSounds;
 }) {
     const { t } = useTranslation();
     const { auth } = usePage().props;
     const user = auth.user;
+    const [soundChatEnabled, setSoundChatEnabled] = useState(
+        notificationSounds.sound_chat_enabled,
+    );
+    const [soundNotificationsEnabled, setSoundNotificationsEnabled] = useState(
+        notificationSounds.sound_notifications_enabled,
+    );
+
+    // Keep local toggles + module prefs in sync after Inertia save/shared props refresh.
+    useEffect(() => {
+        setSoundChatEnabled(notificationSounds.sound_chat_enabled);
+        setSoundNotificationsEnabled(
+            notificationSounds.sound_notifications_enabled,
+        );
+        setNotificationSoundPrefs(notificationSounds);
+    }, [
+        notificationSounds.sound_chat_enabled,
+        notificationSounds.sound_notifications_enabled,
+    ]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -55,7 +90,11 @@ export default function Profile({
                         />
 
                         <Form
-                            {...ProfileController.update.form()}
+                            {...wayfinderInertiaFormProps(
+                                ProfileController.update,
+                                undefined,
+                                'patch',
+                            )}
                             options={{
                                 preserveScroll: true,
                             }}
@@ -164,6 +203,153 @@ export default function Profile({
                                             recentlySuccessful
                                         }
                                         data-test="update-profile-button"
+                                    />
+                                </>
+                            )}
+                        </Form>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-6">
+                        <Heading
+                            variant="small"
+                            title={t('settings.notificationSounds.title')}
+                            description={t(
+                                'settings.notificationSounds.description',
+                            )}
+                        />
+
+                        <Form
+                            {...wayfinderInertiaFormProps(
+                                NotificationPreferencesController.update,
+                                undefined,
+                                'patch',
+                            )}
+                            options={{ preserveScroll: true }}
+                            className="space-y-6"
+                        >
+                            {({ processing, recentlySuccessful, errors }) => (
+                                <>
+                                    <input
+                                        type="hidden"
+                                        name="sound_chat_enabled"
+                                        value={soundChatEnabled ? '1' : '0'}
+                                    />
+                                    <input
+                                        type="hidden"
+                                        name="sound_notifications_enabled"
+                                        value={
+                                            soundNotificationsEnabled
+                                                ? '1'
+                                                : '0'
+                                        }
+                                    />
+
+                                    <div className="flex items-start gap-3">
+                                        <Checkbox
+                                            id="sound_chat_enabled"
+                                            checked={soundChatEnabled}
+                                            onCheckedChange={(value) => {
+                                                const enabled = value === true;
+                                                setSoundChatEnabled(enabled);
+                                                setNotificationSoundPrefs({
+                                                    sound_chat_enabled: enabled,
+                                                    sound_notifications_enabled:
+                                                        soundNotificationsEnabled,
+                                                });
+
+                                                if (enabled) {
+                                                    unlockNotificationSound();
+                                                }
+                                            }}
+                                        />
+                                        <div className="grid gap-1">
+                                            <Label
+                                                htmlFor="sound_chat_enabled"
+                                                className="font-normal"
+                                            >
+                                                {t(
+                                                    'settings.notificationSounds.chat',
+                                                )}
+                                            </Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                {t(
+                                                    'settings.notificationSounds.chatHint',
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-3">
+                                        <Checkbox
+                                            id="sound_notifications_enabled"
+                                            checked={
+                                                soundNotificationsEnabled
+                                            }
+                                            onCheckedChange={(value) => {
+                                                const enabled = value === true;
+                                                setSoundNotificationsEnabled(
+                                                    enabled,
+                                                );
+                                                setNotificationSoundPrefs({
+                                                    sound_chat_enabled:
+                                                        soundChatEnabled,
+                                                    sound_notifications_enabled:
+                                                        enabled,
+                                                });
+
+                                                if (enabled) {
+                                                    unlockNotificationSound();
+                                                }
+                                            }}
+                                        />
+                                        <div className="grid gap-1">
+                                            <Label
+                                                htmlFor="sound_notifications_enabled"
+                                                className="font-normal"
+                                            >
+                                                {t(
+                                                    'settings.notificationSounds.notifications',
+                                                )}
+                                            </Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                {t(
+                                                    'settings.notificationSounds.notificationsHint',
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <InputError
+                                        message={
+                                            errors.sound_chat_enabled ??
+                                            errors.sound_notifications_enabled
+                                        }
+                                    />
+
+                                    <div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            data-test="notification-sounds-test"
+                                            onClick={() => {
+                                                playTestSound();
+                                            }}
+                                        >
+                                            {t(
+                                                'settings.notificationSounds.test',
+                                            )}
+                                        </Button>
+                                    </div>
+
+                                    <SettingsFormActions
+                                        processing={processing}
+                                        recentlySuccessful={
+                                            recentlySuccessful
+                                        }
+                                        data-test="notification-sounds-save"
                                     />
                                 </>
                             )}

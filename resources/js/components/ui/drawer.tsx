@@ -88,9 +88,13 @@ function DrawerHeader({ className, ...props }: React.ComponentProps<'div'>) {
     );
 }
 
-function DrawerBody({ className, ...props }: React.ComponentProps<'div'>) {
+const DrawerBody = React.forwardRef<
+    HTMLDivElement,
+    React.ComponentProps<'div'>
+>(function DrawerBody({ className, ...props }, ref) {
     return (
         <div
+            ref={ref}
             data-slot="drawer-body"
             className={cn(
                 'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-6 pt-6 pb-6',
@@ -99,7 +103,7 @@ function DrawerBody({ className, ...props }: React.ComponentProps<'div'>) {
             {...props}
         />
     );
-}
+});
 
 function DrawerFooter({ className, ...props }: React.ComponentProps<'div'>) {
     return (

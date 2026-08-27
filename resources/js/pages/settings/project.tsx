@@ -70,6 +70,8 @@ function buildProjectFormState(project: ProjectSettingsForm) {
         webhook_secret: '',
         revision_retention_count: project.revision_retention_count ?? null,
         revision_retention_days: project.revision_retention_days ?? null,
+        files_max_upload_bytes: project.files_max_upload_bytes ?? null,
+        chat_max_upload_bytes: project.chat_max_upload_bytes ?? null,
         sidebar_modules: pinSidebarModules(project.sidebar_modules),
         allowed_transformations: project.allowed_transformations ?? [],
         content_locales: project.content_locales ?? ['en', 'it'],
@@ -1033,6 +1035,133 @@ export default function ProjectSettingsPage({
                                 <p className="text-sm text-muted-foreground">
                                     {t(
                                         'settings.project.revisionRetentionHint',
+                                    )}
+                                </p>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t(
+                                        'settings.project.uploadLimitsTitle',
+                                    )}
+                                    description={t(
+                                        'settings.project.uploadLimitsDescription',
+                                    )}
+                                />
+
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="files_max_upload_mb">
+                                            {t(
+                                                'settings.project.filesMaxUploadMb',
+                                            )}
+                                        </Label>
+                                        <Input
+                                            id="files_max_upload_mb"
+                                            type="number"
+                                            min={1}
+                                            value={
+                                                form.files_max_upload_bytes !=
+                                                null
+                                                    ? Math.round(
+                                                          form.files_max_upload_bytes /
+                                                              (1024 * 1024),
+                                                      )
+                                                    : ''
+                                            }
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    files_max_upload_bytes:
+                                                        event.target.value ===
+                                                        ''
+                                                            ? null
+                                                            : Math.max(
+                                                                  1,
+                                                                  Number(
+                                                                      event
+                                                                          .target
+                                                                          .value,
+                                                                  ),
+                                                              ) *
+                                                              1024 *
+                                                              1024,
+                                                }))
+                                            }
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name="files_max_upload_bytes"
+                                            value={
+                                                form.files_max_upload_bytes ??
+                                                ''
+                                            }
+                                        />
+                                        <InputError
+                                            message={
+                                                errors.files_max_upload_bytes
+                                            }
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="chat_max_upload_mb">
+                                            {t(
+                                                'settings.project.chatMaxUploadMb',
+                                            )}
+                                        </Label>
+                                        <Input
+                                            id="chat_max_upload_mb"
+                                            type="number"
+                                            min={1}
+                                            value={
+                                                form.chat_max_upload_bytes !=
+                                                null
+                                                    ? Math.round(
+                                                          form.chat_max_upload_bytes /
+                                                              (1024 * 1024),
+                                                      )
+                                                    : ''
+                                            }
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    chat_max_upload_bytes:
+                                                        event.target.value ===
+                                                        ''
+                                                            ? null
+                                                            : Math.max(
+                                                                  1,
+                                                                  Number(
+                                                                      event
+                                                                          .target
+                                                                          .value,
+                                                                  ),
+                                                              ) *
+                                                              1024 *
+                                                              1024,
+                                                }))
+                                            }
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name="chat_max_upload_bytes"
+                                            value={
+                                                form.chat_max_upload_bytes ?? ''
+                                            }
+                                        />
+                                        <InputError
+                                            message={
+                                                errors.chat_max_upload_bytes
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    {t(
+                                        'settings.project.uploadLimitsHint',
                                     )}
                                 </p>
                             </div>

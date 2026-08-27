@@ -7,6 +7,7 @@ use App\Services\Authorization\EffectivePermissionResolver;
 use App\Services\Settings\ProjectSettings;
 use App\Support\Api\PublicApiOrigin;
 use App\Support\Collections\ContentLocaleCatalog;
+use App\Support\Uploads\UploadSizeLimiter;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -96,6 +97,8 @@ class UpdateProjectSettingsRequest extends FormRequest
             'webhook_secret' => ['nullable', 'string', 'max:512'],
             'revision_retention_count' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'revision_retention_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
+            'files_max_upload_bytes' => ['nullable', 'integer', 'min:1', 'max:'.UploadSizeLimiter::SETTING_MAX_BYTES],
+            'chat_max_upload_bytes' => ['nullable', 'integer', 'min:1', 'max:'.UploadSizeLimiter::SETTING_MAX_BYTES],
         ];
     }
 
@@ -225,6 +228,12 @@ class UpdateProjectSettingsRequest extends FormRequest
             'revision_retention_days' => isset($validated['revision_retention_days'])
                 ? (int) $validated['revision_retention_days']
                 : null,
+            'files_max_upload_bytes' => isset($validated['files_max_upload_bytes'])
+                ? (int) $validated['files_max_upload_bytes']
+                : null,
+            'chat_max_upload_bytes' => isset($validated['chat_max_upload_bytes'])
+                ? (int) $validated['chat_max_upload_bytes']
+                : null,
             ...$this->webhookSecretValue($validated),
         ];
     }
@@ -261,6 +270,8 @@ class UpdateProjectSettingsRequest extends FormRequest
             'webhook_secret',
             'revision_retention_count',
             'revision_retention_days',
+            'files_max_upload_bytes',
+            'chat_max_upload_bytes',
         ] as $field) {
             if ($this->has($field) && $this->input($field) === '') {
                 $merge[$field] = null;

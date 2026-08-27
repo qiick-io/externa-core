@@ -19,6 +19,7 @@ class ItemChatReactionToggled implements ShouldBroadcastNow
         public string $chatId,
         public int $messageId,
         public int $userId,
+        public string $userName,
         public string $emoji,
         public bool $added,
     ) {}
@@ -39,13 +40,14 @@ class ItemChatReactionToggled implements ShouldBroadcastNow
     }
 
     /**
-     * @return array{message_id: int, user_id: int, emoji: string, added: bool}
+     * @return array{message_id: int, user_id: int, user_name: string, emoji: string, added: bool}
      */
     public function broadcastWith(): array
     {
         return [
             'message_id' => $this->messageId,
             'user_id' => $this->userId,
+            'user_name' => $this->userName,
             'emoji' => $this->emoji,
             'added' => $this->added,
         ];

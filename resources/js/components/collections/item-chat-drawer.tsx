@@ -1,12 +1,13 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
-    CheckSquare,
+    ChevronDown,
     Copy,
-    Forward,
+    FileText,
     Loader2,
     MoreVertical,
     Paperclip,
     Pin,
+    Play,
     Reply,
     Send,
     Smile,
@@ -15,10 +16,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DragEvent, ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
+import { ChatMediaLightbox } from '@/components/chat/chat-media-lightbox';
+import {
+    ChatOutgoingAttachPreview,
+    type PendingChatMessage,
+} from '@/components/chat/chat-outgoing-attach-preview';
+import { ChatSendAttachmentsDialog } from '@/components/chat/chat-send-attachments-dialog';
+import type { SendAttachItem } from '@/components/chat/chat-send-attachments-dialog';
 import { ChatThreadHeader } from '@/components/chat/chat-thread-header';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     ContextMenu,
     ContextMenuContent,
@@ -45,7 +52,6 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
     Message,
@@ -66,13 +72,14 @@ import type { ChatThreadIdentity } from '@/lib/chat-thread-identity';
 import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
 import {
     addChatAttachmentToField,
-    applyReactionToggle,
+    chatAttachmentPreviewUrl,
     chatAttachmentUrl,
+    deleteChatAttachment,
     deleteMessage,
     fetchMentions,
     fetchMessages,
-    forwardMessage,
     markChatRead,
+    stopChatViewing,
     patchMessage,
     pinMessage,
     postMessage,
@@ -90,6 +97,7 @@ import type {
     ChatUser,
     ItemChatMessage,
 } from '@/lib/item-chat-api';
+import { applyReactionToggle } from '@/lib/item-chat-reactions';
 import {
     collectionMentionLabel,
     composeBodyForSubmit,
@@ -97,10 +105,11 @@ import {
     mentionQueryAt,
     storedBodyToDraft,
 } from '@/lib/item-chat-mentions';
+import { pendingMatchesEchoMessage } from '@/lib/pending-chat-match';
 import { cn } from '@/lib/utils';
+import { useChatStore } from '@/stores/chat/store';
+import { mergeLatestPage } from '@/stores/chat/types';
 import type { CollectionFieldRow } from '@/types/collections';
-
-type UploadingFile = { key: string; name: string };
 
 const EMOJI_GRID = [
     '😀',
@@ -246,6 +255,8 @@ function commentTime(iso: string | null): string {
 /**
  * Chat drawer for a collection item.
  */
+const NEAR_BOTTOM_PX = 100;
+
 export function ItemChatDrawer({
     open,
     onOpenChange,
@@ -272,6 +283,8 @@ export function ItemChatDrawer({
         page.props.auth.user?.email ||
         '';
     const realtimeOn = isRealtimeEnabled(page.props.realtime);
+    const chatMaxUploadBytes =
+        page.props.projectSettings?.chatMaxUploadBytes ?? null;
     const canCreateFiles = can(PermissionEnum.CanCreateFiles);
     const fileFields = fields.filter((field) =>
         FILE_FIELD_TYPES.has(field.type),
@@ -290,23 +303,42 @@ export function ItemChatDrawer({
         return null;
     }, [liveChatId, collectionId, itemId]);
 
-    const [messages, setMessages] = useState<ItemChatMessage[]>([]);
-    const [hasMore, setHasMore] = useState(false);
+    const messagesEntry = useChatStore((state) =>
+        liveChatId ? state.messagesByChatId[liveChatId] : undefined,
+    );
+    const messages = messagesEntry?.messages ?? [];
+    const hasMore = messagesEntry?.hasMore ?? false;
+    const pinned = messagesEntry?.pinned ?? [];
+    const setMessagesCache = useChatStore((state) => state.setMessagesCache);
+    const prependOlderMessages = useChatStore(
+        (state) => state.prependOlderMessages,
+    );
+    const appendMessage = useChatStore((state) => state.appendMessage);
+    const replaceMessage = useChatStore((state) => state.replaceMessage);
+    const removeCachedMessage = useChatStore((state) => state.removeMessage);
+    const mapMessages = useChatStore((state) => state.mapMessages);
+    const mapPinned = useChatStore((state) => state.mapPinned);
+    const touchMessages = useChatStore((state) => state.touchMessages);
+    const patchThread = useChatStore((state) => state.patchThread);
+
     const [notify, setNotify] = useState(false);
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [draft, setDraft] = useState('');
-    const [pendingAttachments, setPendingAttachments] = useState<
-        ChatAttachment[]
-    >([]);
-    const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
+    const [attachDialogOpen, setAttachDialogOpen] = useState(false);
+    const [attachItems, setAttachItems] = useState<SendAttachItem[]>([]);
+    const [attachCaption, setAttachCaption] = useState('');
     const [composerDragOver, setComposerDragOver] = useState(false);
     const [mentionedUsers, setMentionedUsers] = useState<ChatUser[]>([]);
     const [mentionedCollections, setMentionedCollections] = useState<
         ChatCollection[]
     >([]);
-    const [sending, setSending] = useState(false);
+    const [pendingMessages, setPendingMessages] = useState<
+        PendingChatMessage[]
+    >([]);
+    const pendingMessagesRef = useRef(pendingMessages);
+    const pendingAbortRef = useRef<Map<string, AbortController>>(new Map());
     const [mentionOpen, setMentionOpen] = useState(false);
     const [mentionHits, setMentionHits] = useState<
         Array<
@@ -323,21 +355,26 @@ export function ItemChatDrawer({
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editingDraft, setEditingDraft] = useState('');
     const [replyTo, setReplyTo] = useState<ItemChatMessage | null>(null);
-    const [pinned, setPinned] = useState<ChatPinned[]>([]);
-    const [selectMode, setSelectMode] = useState(false);
-    const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const [forwardOpen, setForwardOpen] = useState(false);
-    const [forwardItemId, setForwardItemId] = useState('');
-    const [forwardIds, setForwardIds] = useState<number[]>([]);
-    const [forwarding, setForwarding] = useState(false);
 
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+    const captionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const messagesScrollRef = useRef<HTMLDivElement | null>(null);
+    const forceScrollBottomRef = useRef(false);
+    const scrollAnchorRef = useRef<{ height: number; top: number } | null>(
+        null,
+    );
+    const initialScrollDoneRef = useRef(false);
+    // Telegram: stick bottom unless user scrolled up on purpose.
+    const [pinnedToBottom, setPinnedToBottom] = useState(true);
+    const pinnedToBottomRef = useRef(true);
     const uploadGen = useRef(0);
-    const loadGen = useRef(0);
+    const pageLoadGen = useRef(0);
+    const olderLoadGen = useRef(0);
     const whisperAt = useRef(0);
     const typingExpiry = useRef<Map<number, number>>(new Map());
     const messagesRef = useRef(messages);
+    const liveChatIdRef = useRef(liveChatId);
     const chatCountRef = useRef(chatCount);
     const onChatCountChangeRef = useRef(onChatCountChange);
     const presenceRef = useRef<{
@@ -348,6 +385,39 @@ export function ItemChatDrawer({
         messagesRef.current = messages;
     });
 
+    useEffect(() => {
+        pendingMessagesRef.current = pendingMessages;
+    }, [pendingMessages]);
+
+    const syncPinnedToBottom = useCallback(() => {
+        const el = messagesScrollRef.current;
+
+        if (!el) {
+            return;
+        }
+
+        const near =
+            el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_PX;
+
+        pinnedToBottomRef.current = near;
+        setPinnedToBottom(near);
+    }, []);
+
+    const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
+        requestAnimationFrame(() => {
+            const el = messagesScrollRef.current;
+
+            if (!el) {
+                return;
+            }
+
+            pinnedToBottomRef.current = true;
+            setPinnedToBottom(true);
+            el.scrollTo({ top: el.scrollHeight, behavior });
+        });
+    }, []);
+
+    liveChatIdRef.current = liveChatId;
     chatCountRef.current = chatCount;
     onChatCountChangeRef.current = onChatCountChange;
 
@@ -358,11 +428,84 @@ export function ItemChatDrawer({
               ? `item:${scope.collectionId}:${scope.itemId}`
               : null;
 
+    useEffect(() => {
+        initialScrollDoneRef.current = false;
+        pinnedToBottomRef.current = true;
+        setPinnedToBottom(true);
+    }, [scopeKey]);
+
+    useEffect(() => {
+        if (!open) {
+            initialScrollDoneRef.current = false;
+            pinnedToBottomRef.current = true;
+            setPinnedToBottom(true);
+
+            return;
+        }
+
+        // Wait until load-more finishes so soft-refresh cannot steal the anchor.
+        if (scrollAnchorRef.current && !loadingMore) {
+            const anchor = scrollAnchorRef.current;
+            scrollAnchorRef.current = null;
+            requestAnimationFrame(() => {
+                const el = messagesScrollRef.current;
+
+                if (el) {
+                    el.scrollTop = el.scrollHeight - anchor.height + anchor.top;
+                    syncPinnedToBottom();
+                }
+            });
+
+            return;
+        }
+
+        // Load-older prepend in flight — never fight the anchor.
+        if (scrollAnchorRef.current || loadingMore) {
+            return;
+        }
+
+        if (forceScrollBottomRef.current) {
+            forceScrollBottomRef.current = false;
+            scrollToBottom('smooth');
+
+            return;
+        }
+
+        if (!loading && messages.length > 0 && !initialScrollDoneRef.current) {
+            initialScrollDoneRef.current = true;
+            scrollToBottom('auto');
+
+            return;
+        }
+
+        if (
+            pinnedToBottomRef.current &&
+            !loading &&
+            (messages.length > 0 || pendingMessages.length > 0)
+        ) {
+            scrollToBottom('auto');
+        }
+    }, [
+        open,
+        loading,
+        loadingMore,
+        messages,
+        pendingMessages,
+        scrollToBottom,
+        syncPinnedToBottom,
+    ]);
+
     const load = useCallback(
         (beforeId?: number): void => {
+            const cachedId = liveChatIdRef.current;
+            const cachedLen = cachedId
+                ? (useChatStore.getState().messagesByChatId[cachedId]?.messages
+                      .length ?? 0)
+                : 0;
+
             if (beforeId) {
                 setLoadingMore(true);
-            } else if (messagesRef.current.length === 0) {
+            } else if (cachedLen === 0) {
                 setLoading(true);
             }
 
@@ -373,58 +516,97 @@ export function ItemChatDrawer({
                 return;
             }
 
-            const gen = ++loadGen.current;
+            // Separate gens: soft refresh must not cancel in-flight load-older.
+            const gen = beforeId
+                ? ++olderLoadGen.current
+                : ++pageLoadGen.current;
+            const isStale = (): boolean =>
+                beforeId
+                    ? gen !== olderLoadGen.current
+                    : gen !== pageLoadGen.current;
             setError(null);
 
             void fetchMessages(scope, { beforeId })
                 .then((payload) => {
-                    if (gen !== loadGen.current) {
+                    if (isStale()) {
                         return;
                     }
 
-                    setHasMore(payload.meta.has_more);
                     setNotify(payload.meta.notify);
                     onChatCountChangeRef.current(payload.meta.total);
-                    setPinned(payload.pinned ?? []);
+
+                    const nextChatId =
+                        payload.meta.chat_id ?? liveChatIdRef.current;
 
                     if (payload.meta.chat_id) {
                         setLiveChatId(payload.meta.chat_id);
                     }
 
-                    if (beforeId) {
-                        setMessages((prev) => {
-                            const seen = new Set(prev.map((row) => row.id));
-                            const older = payload.messages.filter(
-                                (row) => !seen.has(row.id),
-                            );
+                    if (!nextChatId) {
+                        return;
+                    }
 
-                            return [...older, ...prev];
-                        });
+                    if (beforeId) {
+                        prependOlderMessages(
+                            nextChatId,
+                            payload.messages,
+                            payload.meta.has_more,
+                        );
                     } else {
-                        setMessages(payload.messages);
+                        const prev =
+                            useChatStore.getState().messagesByChatId[
+                                nextChatId
+                            ];
+                        const merged = mergeLatestPage(
+                            prev?.messages ?? [],
+                            payload.messages,
+                            prev?.hasMore ?? false,
+                            payload.meta.has_more,
+                        );
+                        setMessagesCache(nextChatId, {
+                            messages: merged.messages,
+                            hasMore: merged.hasMore,
+                            pinned: payload.pinned ?? [],
+                        });
                     }
                 })
                 .catch(() => {
-                    if (gen !== loadGen.current) {
+                    if (isStale()) {
                         return;
+                    }
+
+                    if (beforeId) {
+                        scrollAnchorRef.current = null;
                     }
 
                     setError(t('collections.itemChat.error'));
 
-                    if (!beforeId) {
-                        setMessages([]);
+                    // Only wipe on cold first-page failure (no cache yet).
+                    if (
+                        !beforeId &&
+                        liveChatIdRef.current &&
+                        cachedLen === 0
+                    ) {
+                        setMessagesCache(liveChatIdRef.current, {
+                            messages: [],
+                            hasMore: false,
+                            pinned: [],
+                        });
                     }
                 })
                 .finally(() => {
-                    if (gen !== loadGen.current) {
+                    if (isStale()) {
                         return;
                     }
 
-                    setLoading(false);
-                    setLoadingMore(false);
+                    if (beforeId) {
+                        setLoadingMore(false);
+                    } else {
+                        setLoading(false);
+                    }
                 });
         },
-        [scope, t],
+        [scope, t, prependOlderMessages, setMessagesCache],
     );
 
     useEffect(() => {
@@ -432,40 +614,67 @@ export function ItemChatDrawer({
     }, [chatId]);
 
     useEffect(() => {
+        if (!replyTo) {
+            return;
+        }
+
+        const handle = window.setTimeout(() => {
+            textareaRef.current?.focus();
+        }, 0);
+
+        return () => window.clearTimeout(handle);
+    }, [replyTo]);
+
+    useEffect(() => {
         if (!open) {
-            uploadGen.current += 1;
-            setUploadingFiles([]);
+            clearAttachBatch();
+            setPendingMessages([]);
             setComposerDragOver(false);
 
             return;
         }
 
         setDraft('');
-        setPendingAttachments([]);
-        setUploadingFiles([]);
+        clearAttachBatch();
         setMentionedUsers([]);
         setEditingId(null);
         setReplyTo(null);
-        setSelectMode(false);
-        setSelectedIds([]);
         setTypingNames([]);
-        setMessages([]);
-        setPinned([]);
-        setHasMore(false);
-        setLoading(true);
-        load();
+
+        const id = chatId ?? liveChatIdRef.current;
+        const cached = id
+            ? useChatStore.getState().messagesByChatId[id]
+            : undefined;
+
+        if (cached?.status === 'ready') {
+            touchMessages(id!);
+            setLoading(false);
+            load(); // soft refresh; keep cache visible
+        } else {
+            setLoading(true);
+            load();
+        }
         // scopeKey covers scope identity; load is intentionally omitted.
         // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when thread changes
     }, [open, scopeKey]);
 
     useEffect(() => {
-        if (!open || !scope || variant === 'pane') {
+        if (!open || !scope) {
             return;
         }
 
-        void markChatRead(scope).catch(() => {
-            // Missing thread (item alias before first message) is a no-op.
-        });
+        // Hub pane: ChatPageController already markRead + rememberViewer on show.
+        if (variant !== 'pane') {
+            void markChatRead(scope).catch(() => {
+                // Missing thread (item alias before first message) is a no-op.
+            });
+        }
+
+        return () => {
+            void stopChatViewing(scope).catch(() => {
+                // Ignore; viewer TTL will expire.
+            });
+        };
     }, [open, scopeKey, variant]);
 
     useEffect(() => {
@@ -496,15 +705,61 @@ export function ItemChatDrawer({
                     return;
                 }
 
-                setMessages((prev) => {
-                    if (prev.some((row) => row.id === next.id)) {
-                        return prev;
-                    }
+                const id = liveChatIdRef.current;
 
-                    onChatCountChangeRef.current(prev.length + 1);
+                if (!id) {
+                    return;
+                }
 
-                    return [...prev, next];
-                });
+                if (next.user?.id === viewerId) {
+                    forceScrollBottomRef.current = true;
+                    // Drop only one matching pending — wiping all non-failed
+                    // pending aborted in-flight uploads/sends (never POSTed).
+                    setPendingMessages((prev) => {
+                        const idx = prev.findIndex((row) =>
+                            pendingMatchesEchoMessage(row, next),
+                        );
+
+                        if (idx < 0) {
+                            return prev;
+                        }
+
+                        const gone = prev[idx]!;
+
+                        for (const file of gone.files) {
+                            if (file.previewUrl) {
+                                URL.revokeObjectURL(file.previewUrl);
+                            }
+                        }
+
+                        const nextPending = prev.filter((_, i) => i !== idx);
+                        pendingMessagesRef.current = nextPending;
+
+                        return nextPending;
+                    });
+                }
+
+                const before =
+                    useChatStore.getState().messagesByChatId[id]?.messages ??
+                    [];
+                appendMessage(id, next);
+
+                if (!before.some((row) => row.id === next.id)) {
+                    onChatCountChangeRef.current(before.length + 1);
+                    patchThread(id, {
+                        last_message: {
+                            id: next.id,
+                            body: next.body,
+                            user_name: next.user?.name ?? null,
+                            created_at: next.created_at,
+                            image_attachment_id:
+                                next.attachments.find((row) =>
+                                    row.mime.startsWith('image/'),
+                                )?.id ?? null,
+                        },
+                        updated_at: next.created_at,
+                    });
+                }
 
                 if (scope) {
                     void markChatRead(scope).catch(() => {
@@ -522,10 +777,14 @@ export function ItemChatDrawer({
                     return;
                 }
 
-                setMessages((prev) =>
-                    prev.map((row) => (row.id === next.id ? next : row)),
-                );
-                setPinned((prev) => {
+                const id = liveChatIdRef.current;
+
+                if (!id) {
+                    return;
+                }
+
+                replaceMessage(id, next);
+                mapPinned(id, (prev) => {
                     if (next.is_pinned) {
                         const row: ChatPinned = {
                             id: next.id,
@@ -556,8 +815,13 @@ export function ItemChatDrawer({
                 return;
             }
 
-            setMessages((prev) => prev.filter((row) => row.id !== id));
-            setPinned((prev) => prev.filter((row) => row.id !== id));
+            const chatId = liveChatIdRef.current;
+
+            if (!chatId) {
+                return;
+            }
+
+            removeCachedMessage(chatId, id);
             onChatCountChangeRef.current(Math.max(0, chatCountRef.current - 1));
         });
         channel.listen(
@@ -565,23 +829,36 @@ export function ItemChatDrawer({
             (event: {
                 message_id?: number;
                 user_id?: number;
+                user_name?: string;
                 emoji?: string;
                 added?: boolean;
             }) => {
                 const messageId = event.message_id;
                 const emoji = event.emoji;
+                const userId = event.user_id;
 
-                if (!messageId || !emoji) {
+                if (!messageId || !emoji || !userId) {
                     return;
                 }
 
-                const isOwn = event.user_id === viewerId;
+                const isOwn = userId === viewerId;
 
                 if (isOwn) {
                     return;
                 }
 
-                setMessages((prev) =>
+                const chatId = liveChatIdRef.current;
+
+                if (!chatId) {
+                    return;
+                }
+
+                const actor = {
+                    id: userId,
+                    name: event.user_name?.trim() || `User ${userId}`,
+                };
+
+                mapMessages(chatId, (prev) =>
                     prev.map((row) =>
                         row.id === messageId
                             ? {
@@ -590,7 +867,8 @@ export function ItemChatDrawer({
                                       row.reactions,
                                       emoji,
                                       event.added === true,
-                                      isOwn,
+                                      actor,
+                                      false,
                                   ),
                               }
                             : row,
@@ -644,7 +922,20 @@ export function ItemChatDrawer({
             presenceRef.current = null;
             echo.leave(channelName);
         };
-    }, [open, realtimeOn, liveChatId, viewerId, scopeKey]);
+    }, [
+        open,
+        realtimeOn,
+        liveChatId,
+        viewerId,
+        scopeKey,
+        appendMessage,
+        replaceMessage,
+        removeCachedMessage,
+        mapMessages,
+        mapPinned,
+        patchThread,
+        scope,
+    ]);
 
     const whisperTyping = useCallback((): void => {
         if (!realtimeOn) {
@@ -664,12 +955,32 @@ export function ItemChatDrawer({
         });
     }, [realtimeOn, viewerId, viewerName]);
 
+    const composerTarget = (): {
+        el: HTMLTextAreaElement | null;
+        value: string;
+        setValue: (next: string) => void;
+    } => {
+        if (attachDialogOpen) {
+            return {
+                el: captionTextareaRef.current,
+                value: attachCaption,
+                setValue: setAttachCaption,
+            };
+        }
+
+        return {
+            el: textareaRef.current,
+            value: draft,
+            setValue: setDraft,
+        };
+    };
+
     const insertAtCaret = (text: string, extraMention?: number): void => {
-        const el = textareaRef.current;
-        const start = el?.selectionStart ?? draft.length;
-        const end = el?.selectionEnd ?? draft.length;
-        const next = draft.slice(0, start) + text + draft.slice(end);
-        setDraft(next);
+        const { el, value, setValue } = composerTarget();
+        const start = el?.selectionStart ?? value.length;
+        const end = el?.selectionEnd ?? value.length;
+        const next = value.slice(0, start) + text + value.slice(end);
+        setValue(next);
 
         if (extraMention !== undefined) {
             setMentionedUsers((prev) =>
@@ -692,9 +1003,13 @@ export function ItemChatDrawer({
         }, 0);
     };
 
-    const onDraftChange = (value: string, caret: number): void => {
-        setDraft(value);
-        whisperTyping();
+    const onComposerChange = (value: string, caret: number): void => {
+        if (attachDialogOpen) {
+            setAttachCaption(value);
+        } else {
+            setDraft(value);
+            whisperTyping();
+        }
 
         const query = mentionQueryAt(value, caret);
 
@@ -740,16 +1055,16 @@ export function ItemChatDrawer({
             | { type: 'user'; id: number; name: string; email?: string }
             | { type: 'collection'; id: number; name: string },
     ): void => {
-        const el = textareaRef.current;
-        const caret = el?.selectionStart ?? draft.length;
+        const { el, value, setValue } = composerTarget();
+        const caret = el?.selectionStart ?? value.length;
         const start =
-            mentionStart ?? mentionQueryAt(draft, caret)?.start ?? caret;
+            mentionStart ?? mentionQueryAt(value, caret)?.start ?? caret;
         const label =
             hit.type === 'collection'
                 ? `${collectionMentionLabel(hit)} `
                 : `${mentionDisplayLabel(hit)} `;
-        const next = draft.slice(0, start) + label + draft.slice(caret);
-        setDraft(next);
+        const next = value.slice(0, start) + label + value.slice(caret);
+        setValue(next);
 
         if (hit.type === 'user') {
             setMentionedUsers((prev) =>
@@ -770,6 +1085,255 @@ export function ItemChatDrawer({
         }, 0);
     };
 
+    const insertMentionTrigger = (): void => {
+        const { el, value } = composerTarget();
+        const start = el?.selectionStart ?? value.length;
+        const end = el?.selectionEnd ?? value.length;
+        const next = value.slice(0, start) + '@' + value.slice(end);
+        onComposerChange(next, start + 1);
+        window.setTimeout(() => {
+            el?.focus();
+            el?.setSelectionRange(start + 1, start + 1);
+        }, 0);
+    };
+
+    const revokeAttachPreviews = (items: SendAttachItem[]): void => {
+        for (const item of items) {
+            if (item.previewUrl) {
+                URL.revokeObjectURL(item.previewUrl);
+            }
+        }
+    };
+
+    const clearAttachBatch = useCallback((): void => {
+        // Invalidate in-flight uploads so late callbacks cannot repopulate items.
+        uploadGen.current += 1;
+        setAttachItems((prev) => {
+            revokeAttachPreviews(prev);
+
+            return [];
+        });
+        setAttachCaption('');
+        setAttachDialogOpen(false);
+        setMentionOpen(false);
+        setMentionStart(null);
+        setEmojiOpen(false);
+    }, []);
+
+    const patchPending = useCallback(
+        (
+            clientId: string,
+            updater: (row: PendingChatMessage) => PendingChatMessage,
+        ): void => {
+            setPendingMessages((prev) => {
+                const next = prev.map((row) =>
+                    row.clientId === clientId ? updater(row) : row,
+                );
+                pendingMessagesRef.current = next;
+
+                return next;
+            });
+        },
+        [],
+    );
+
+    const finishPendingSuccess = useCallback(
+        (clientId: string, message: ItemChatMessage): void => {
+            const id = liveChatIdRef.current;
+            forceScrollBottomRef.current = true;
+            setPendingMessages((prev) => {
+                const gone = prev.find((row) => row.clientId === clientId);
+
+                if (gone) {
+                    for (const file of gone.files) {
+                        if (file.previewUrl) {
+                            URL.revokeObjectURL(file.previewUrl);
+                        }
+                    }
+                }
+
+                const next = prev.filter((row) => row.clientId !== clientId);
+                pendingMessagesRef.current = next;
+
+                return next;
+            });
+            pendingAbortRef.current.delete(clientId);
+
+            if (id) {
+                appendMessage(id, message);
+                patchThread(id, {
+                    last_message: {
+                        id: message.id,
+                        body: message.body,
+                        user_name: message.user?.name ?? null,
+                        created_at: message.created_at,
+                        image_attachment_id:
+                            message.attachments.find((row) =>
+                                row.mime.startsWith('image/'),
+                            )?.id ?? null,
+                    },
+                    updated_at: message.created_at,
+                    unread_count: 0,
+                });
+            }
+
+            onChatCountChangeRef.current(chatCountRef.current + 1);
+
+            if (!liveChatIdRef.current || !realtimeOn) {
+                load();
+            }
+        },
+        [load, realtimeOn],
+    );
+
+    const runPendingPipeline = useCallback(
+        async (clientId: string): Promise<void> => {
+            if (!scope) {
+                return;
+            }
+
+            const current = pendingMessagesRef.current.find(
+                (row) => row.clientId === clientId,
+            );
+
+            if (!current) {
+                return;
+            }
+
+            // Local snapshot survives Echo/UI clearing the pending row mid-flight.
+            // Previous bug: afterUpload missing → silent return → never POST.
+            let snapshot: PendingChatMessage = current;
+
+            const abort = new AbortController();
+            pendingAbortRef.current.set(clientId, abort);
+
+            const applySnapshot = (
+                updater: (row: PendingChatMessage) => PendingChatMessage,
+            ): void => {
+                snapshot = updater(snapshot);
+                patchPending(clientId, () => snapshot);
+            };
+
+            try {
+                const hasFiles = snapshot.files.length > 0;
+                applySnapshot((row) => ({
+                    ...row,
+                    status: hasFiles ? 'uploading' : 'sending',
+                    error: null,
+                    files: row.files.map((file) => ({
+                        ...file,
+                        error: null,
+                    })),
+                }));
+
+                const attachmentIds: string[] = [];
+
+                for (const file of [...snapshot.files]) {
+                    if (abort.signal.aborted) {
+                        throw new DOMException('Upload aborted', 'AbortError');
+                    }
+
+                    const live =
+                        snapshot.files.find((entry) => entry.key === file.key) ??
+                        file;
+
+                    if (live.uploadedId) {
+                        attachmentIds.push(live.uploadedId);
+                        applySnapshot((row) => ({
+                            ...row,
+                            files: row.files.map((entry) =>
+                                entry.key === file.key
+                                    ? { ...entry, progress: 100 }
+                                    : entry,
+                            ),
+                        }));
+                        continue;
+                    }
+
+                    const uploaded = await uploadChatAttachment(
+                        scope,
+                        live.file,
+                        {
+                            maxBytes: chatMaxUploadBytes,
+                            signal: abort.signal,
+                            onProgress: (progress) => {
+                                applySnapshot((row) => ({
+                                    ...row,
+                                    files: row.files.map((entry) =>
+                                        entry.key === file.key
+                                            ? { ...entry, progress }
+                                            : entry,
+                                    ),
+                                }));
+                            },
+                        },
+                    );
+
+                    attachmentIds.push(uploaded.id);
+                    applySnapshot((row) => ({
+                        ...row,
+                        files: row.files.map((entry) =>
+                            entry.key === file.key
+                                ? {
+                                      ...entry,
+                                      uploadedId: uploaded.id,
+                                      progress: 100,
+                                      error: null,
+                                  }
+                                : entry,
+                        ),
+                    }));
+                }
+
+                if (abort.signal.aborted) {
+                    throw new DOMException('Upload aborted', 'AbortError');
+                }
+
+                applySnapshot((row) => ({
+                    ...row,
+                    status: 'sending',
+                }));
+
+                const message = await postMessage(scope, {
+                    body: snapshot.body,
+                    mentioned_user_ids: snapshot.mentionedIds,
+                    attachment_ids: attachmentIds,
+                    reply_to_id: snapshot.replyTo?.id ?? null,
+                });
+
+                finishPendingSuccess(clientId, message);
+            } catch (err: unknown) {
+                if (err instanceof DOMException && err.name === 'AbortError') {
+                    return;
+                }
+
+                const message =
+                    err instanceof Error
+                        ? err.message
+                        : t('collections.itemChat.sendError');
+
+                applySnapshot((row) => ({
+                    ...row,
+                    status: 'failed',
+                    error: message,
+                }));
+
+                // Re-surface failed pending if Echo cleared the row mid-flight.
+                setPendingMessages((prev) => {
+                    if (prev.some((row) => row.clientId === clientId)) {
+                        return prev;
+                    }
+
+                    const next = [...prev, snapshot];
+                    pendingMessagesRef.current = next;
+
+                    return next;
+                });
+            }
+        },
+        [chatMaxUploadBytes, finishPendingSuccess, patchPending, scope, t],
+    );
+
     const send = (): void => {
         const trimmed = draft.trim();
         const { body, mentionedIds } = composeBodyForSubmit(
@@ -778,52 +1342,185 @@ export function ItemChatDrawer({
             mentionedCollections,
         );
 
-        if (
-            (body === '' && pendingAttachments.length === 0) ||
-            sending ||
-            uploadingFiles.length > 0
-        ) {
+        if (body === '' || attachDialogOpen) {
             return;
         }
-
-        setSending(true);
-        setError(null);
 
         if (!scope) {
             return;
         }
 
-        void postMessage(scope, {
+        const clientId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const pending: PendingChatMessage = {
+            clientId,
+            status: 'sending',
             body,
-            mentioned_user_ids: mentionedIds,
-            attachment_ids: pendingAttachments.map((row) => row.id),
-            reply_to_id: replyTo?.id ?? null,
-        })
-            .then((message) => {
-                setMessages((prev) =>
-                    prev.some((row) => row.id === message.id)
-                        ? prev
-                        : [...prev, message],
-                );
-                onChatCountChangeRef.current(chatCount + 1);
-                setDraft('');
-                setPendingAttachments([]);
-                setMentionedUsers([]);
-                setMentionedCollections([]);
-                setReplyTo(null);
+            mentionedUsers,
+            mentionedCollections,
+            mentionedIds,
+            replyTo: replyTo
+                ? {
+                      id: replyTo.id,
+                      body: replyTo.body,
+                      user: replyTo.user,
+                  }
+                : null,
+            files: [],
+            error: null,
+        };
 
-                if (!liveChatId || !realtimeOn) {
-                    load();
+        setError(null);
+        setDraft('');
+        setMentionedUsers([]);
+        setMentionedCollections([]);
+        setReplyTo(null);
+        forceScrollBottomRef.current = true;
+        // Ref first so pipeline never races setState.
+        pendingMessagesRef.current = [
+            ...pendingMessagesRef.current,
+            pending,
+        ];
+        setPendingMessages(pendingMessagesRef.current);
+        void runPendingPipeline(clientId);
+    };
+
+    const sendAttachBatch = (): void => {
+        if (!scope) {
+            return;
+        }
+
+        if (attachItems.length === 0) {
+            return;
+        }
+
+        const trimmed = attachCaption.trim();
+        const { body, mentionedIds } = composeBodyForSubmit(
+            trimmed,
+            mentionedUsers,
+            mentionedCollections,
+        );
+
+        const clientId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const pending: PendingChatMessage = {
+            clientId,
+            status: 'uploading',
+            body,
+            mentionedUsers,
+            mentionedCollections,
+            mentionedIds,
+            replyTo: replyTo
+                ? {
+                      id: replyTo.id,
+                      body: replyTo.body,
+                      user: replyTo.user,
+                  }
+                : null,
+            files: attachItems.map((item) => ({
+                key: item.key,
+                file: item.file,
+                previewUrl: item.previewUrl,
+                progress: item.uploaded ? 100 : 0,
+                uploadedId: item.uploaded?.id ?? null,
+                error: item.error,
+            })),
+            error: null,
+        };
+
+        setError(null);
+        setAttachDialogOpen(false);
+        setAttachItems([]);
+        setAttachCaption('');
+        setDraft('');
+        setMentionedUsers([]);
+        setMentionedCollections([]);
+        setReplyTo(null);
+        setMentionOpen(false);
+        setMentionStart(null);
+        setEmojiOpen(false);
+        forceScrollBottomRef.current = true;
+        pendingMessagesRef.current = [
+            ...pendingMessagesRef.current,
+            pending,
+        ];
+        setPendingMessages(pendingMessagesRef.current);
+        void runPendingPipeline(clientId);
+    };
+
+    const retryPending = (clientId: string): void => {
+        void runPendingPipeline(clientId);
+    };
+
+    const removePendingFile = (clientId: string, fileKey: string): void => {
+        if (!scope) {
+            return;
+        }
+
+        setPendingMessages((prev) => {
+            const next: PendingChatMessage[] = [];
+
+            for (const row of prev) {
+                if (row.clientId !== clientId) {
+                    next.push(row);
+                    continue;
                 }
-            })
-            .catch((err: unknown) => {
-                setError(
-                    err instanceof Error
-                        ? err.message
-                        : t('collections.itemChat.sendError'),
-                );
-            })
-            .finally(() => setSending(false));
+
+                const target = row.files.find((file) => file.key === fileKey);
+
+                if (target?.uploadedId) {
+                    void deleteChatAttachment(scope, target.uploadedId).catch(
+                        () => {
+                            /* orphan TTL cleanup */
+                        },
+                    );
+                }
+
+                if (target?.previewUrl) {
+                    URL.revokeObjectURL(target.previewUrl);
+                }
+
+                const files = row.files.filter((file) => file.key !== fileKey);
+
+                if (files.length === 0 && row.body.trim() === '') {
+                    pendingAbortRef.current.get(clientId)?.abort();
+                    pendingAbortRef.current.delete(clientId);
+                    continue;
+                }
+
+                next.push({ ...row, files });
+            }
+
+            pendingMessagesRef.current = next;
+
+            return next;
+        });
+    };
+
+    const removeAttachItem = (key: string): void => {
+        setAttachItems((prev) => {
+            const next = prev.filter((item) => {
+                if (item.key !== key) {
+                    return true;
+                }
+
+                if (item.previewUrl) {
+                    URL.revokeObjectURL(item.previewUrl);
+                }
+
+                return false;
+            });
+
+            if (next.length === 0) {
+                setAttachDialogOpen(false);
+                setAttachCaption('');
+            }
+
+            return next;
+        });
+    };
+
+    const closeAttachDialog = (): void => {
+        setDraft((prev) => (prev.trim() !== '' ? prev : attachCaption));
+        clearAttachBatch();
     };
 
     const saveEdit = (comment: ItemChatMessage): void => {
@@ -837,9 +1534,12 @@ export function ItemChatDrawer({
             mentioned_user_ids: mentionedIds,
         })
             .then((next) => {
-                setMessages((prev) =>
-                    prev.map((row) => (row.id === next.id ? next : row)),
-                );
+                const id = liveChatIdRef.current;
+
+                if (id) {
+                    replaceMessage(id, next);
+                }
+
                 setEditingId(null);
             })
             .catch((err: unknown) => {
@@ -858,12 +1558,12 @@ export function ItemChatDrawer({
 
         void deleteMessage(scope, comment.id)
             .then(() => {
-                setMessages((prev) =>
-                    prev.filter((row) => row.id !== comment.id),
-                );
-                setPinned((prev) =>
-                    prev.filter((row) => row.id !== comment.id),
-                );
+                const id = liveChatIdRef.current;
+
+                if (id) {
+                    removeCachedMessage(id, comment.id);
+                }
+
                 onChatCountChangeRef.current(Math.max(0, chatCount - 1));
             })
             .catch((err: unknown) => {
@@ -889,40 +1589,87 @@ export function ItemChatDrawer({
     const onReact = (message: ItemChatMessage, emoji: string): void => {
         const existing = message.reactions.find((row) => row.emoji === emoji);
         const added = !(existing?.reacted ?? false);
+        const id = liveChatIdRef.current;
+        const actor = { id: viewerId, name: viewerName || `User ${viewerId}` };
 
-        setMessages((prev) =>
-            prev.map((row) =>
-                row.id === message.id
-                    ? {
-                          ...row,
-                          reactions: applyReactionToggle(
-                              row.reactions,
-                              emoji,
-                              added,
-                              true,
-                          ),
-                      }
-                    : row,
-            ),
-        );
-
-        void toggleReaction(scope, message.id, emoji).catch((err: unknown) => {
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : t('collections.itemChat.error'),
+        if (id) {
+            mapMessages(id, (prev) =>
+                prev.map((row) =>
+                    row.id === message.id
+                        ? {
+                              ...row,
+                              reactions: applyReactionToggle(
+                                  row.reactions,
+                                  emoji,
+                                  added,
+                                  actor,
+                                  true,
+                              ),
+                          }
+                        : row,
+                ),
             );
-            load();
-        });
+        }
+
+        void toggleReaction(scope, message.id, emoji)
+            .then((payload) => {
+                const chatId = liveChatIdRef.current;
+
+                if (!chatId) {
+                    return;
+                }
+
+                mapMessages(chatId, (prev) =>
+                    prev.map((row) =>
+                        row.id === message.id
+                            ? { ...row, reactions: payload.reactions }
+                            : row,
+                    ),
+                );
+            })
+            .catch((err: unknown) => {
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : t('collections.itemChat.error'),
+                );
+                load();
+            });
     };
 
     const onPin = (message: ItemChatMessage): void => {
         const nextPinned = !message.is_pinned;
         void pinMessage(scope, message.id, nextPinned)
             .then((updated) => {
-                setMessages((prev) =>
-                    prev.map((row) => (row.id === updated.id ? updated : row)),
-                );
+                const id = liveChatIdRef.current;
+
+                if (!id) {
+                    return;
+                }
+
+                replaceMessage(id, updated);
+                mapPinned(id, (prev) => {
+                    if (updated.is_pinned) {
+                        const row: ChatPinned = {
+                            id: updated.id,
+                            body: updated.body,
+                            user: updated.user,
+                            mentioned_users: updated.mentioned_users,
+                            mentioned_collections:
+                                updated.mentioned_collections ?? [],
+                        };
+
+                        if (prev.some((item) => item.id === updated.id)) {
+                            return prev.map((item) =>
+                                item.id === updated.id ? row : item,
+                            );
+                        }
+
+                        return [row, ...prev];
+                    }
+
+                    return prev.filter((item) => item.id !== updated.id);
+                });
             })
             .catch((err: unknown) => {
                 setError(
@@ -932,85 +1679,9 @@ export function ItemChatDrawer({
                 );
             });
     };
-
-    const openForward = (ids: number[]): void => {
-        setForwardIds(ids);
-        setForwardItemId('');
-        setForwardOpen(true);
-    };
-
-    const confirmForward = (): void => {
-        const targetId = Number(forwardItemId);
-
-        if (!Number.isInteger(targetId) || targetId < 1) {
-            return;
-        }
-
-        setForwarding(true);
-        void Promise.all(
-            forwardIds.map((id) => forwardMessage(scope, id, targetId)),
-        )
-            .then(() => {
-                setForwardOpen(false);
-                setSelectMode(false);
-                setSelectedIds([]);
-            })
-            .catch((err: unknown) => {
-                setError(
-                    err instanceof Error
-                        ? err.message
-                        : t('collections.itemChat.forwardError'),
-                );
-            })
-            .finally(() => setForwarding(false));
-    };
-
-    const toggleSelected = (id: number): void => {
-        setSelectedIds((prev) =>
-            prev.includes(id)
-                ? prev.filter((row) => row !== id)
-                : [...prev, id],
-        );
-    };
-
-    const copySelected = (): void => {
-        const texts = messages
-            .filter((row) => selectedIds.includes(row.id))
-            .map((row) => storedBodyToDraft(row.body, row.mentioned_users));
-        void navigator.clipboard.writeText(texts.join('\n\n'));
-    };
-
-    const deleteSelected = (): void => {
-        const rows = messages.filter((row) => selectedIds.includes(row.id));
-
-        if (rows.length === 0 || rows.some((row) => !row.can_delete)) {
-            return;
-        }
-
-        void Promise.all(rows.map((row) => deleteMessage(scope, row.id)))
-            .then(() => {
-                const ids = new Set(rows.map((row) => row.id));
-                setMessages((prev) => prev.filter((row) => !ids.has(row.id)));
-                setPinned((prev) => prev.filter((row) => !ids.has(row.id)));
-                onChatCountChangeRef.current(Math.max(0, chatCount - rows.length));
-                setSelectMode(false);
-                setSelectedIds([]);
-            })
-            .catch((err: unknown) => {
-                setError(
-                    err instanceof Error
-                        ? err.message
-                        : t('collections.itemChat.error'),
-                );
-            });
-    };
-
-    const selectedRows = messages.filter((row) => selectedIds.includes(row.id));
-    const canDeleteSelected =
-        selectedRows.length > 0 && selectedRows.every((row) => row.can_delete);
 
     const onPickFiles = (fileList: FileList | File[] | null): void => {
-        if (!fileList || sending) {
+        if (!fileList || !scope) {
             return;
         }
 
@@ -1020,49 +1691,74 @@ export function ItemChatDrawer({
             return;
         }
 
-        const gen = uploadGen.current;
-        const staged = files.map((file, index) => ({
+        const gen = ++uploadGen.current;
+        const staged: SendAttachItem[] = files.map((file, index) => ({
             key: `${Date.now()}-${index}-${file.name}-${file.size}`,
-            name: file.name,
             file,
+            previewUrl:
+                file.type.startsWith('image/') ||
+                file.type.startsWith('video/')
+                    ? URL.createObjectURL(file)
+                    : null,
+            uploaded: null,
+            error: null,
         }));
 
-        setUploadingFiles((prev) => [
-            ...prev,
-            ...staged.map(({ key, name }) => ({ key, name })),
-        ]);
+        setAttachItems((prev) => {
+            if (attachDialogOpen) {
+                return [...prev, ...staged];
+            }
 
-        void Promise.all(
-            staged.map(({ file }) => uploadChatAttachment(scope, file)),
-        )
-            .then((uploaded) => {
-                if (gen !== uploadGen.current) {
-                    return;
-                }
+            revokeAttachPreviews(prev);
 
-                setPendingAttachments((prev) => [...prev, ...uploaded]);
+            return staged;
+        });
+
+        if (!attachDialogOpen) {
+            setAttachCaption(draft);
+            setDraft('');
+            setAttachDialogOpen(true);
+        }
+
+        for (const item of staged) {
+            void uploadChatAttachment(scope, item.file, {
+                maxBytes: chatMaxUploadBytes,
             })
-            .catch((err: unknown) => {
-                if (gen !== uploadGen.current) {
-                    return;
-                }
+                .then((uploaded) => {
+                    if (gen !== uploadGen.current) {
+                        return;
+                    }
 
-                setError(
-                    err instanceof Error
-                        ? err.message
-                        : t('collections.itemChat.sendError'),
-                );
-            })
-            .finally(() => {
-                if (gen !== uploadGen.current) {
-                    return;
-                }
+                    setAttachItems((prev) =>
+                        prev.map((row) =>
+                            row.key === item.key
+                                ? { ...row, uploaded, error: null }
+                                : row,
+                        ),
+                    );
+                })
+                .catch((err: unknown) => {
+                    if (gen !== uploadGen.current) {
+                        return;
+                    }
 
-                const stagedKeys = new Set(staged.map((row) => row.key));
-                setUploadingFiles((prev) =>
-                    prev.filter((row) => !stagedKeys.has(row.key)),
-                );
-            });
+                    setAttachItems((prev) =>
+                        prev.map((row) =>
+                            row.key === item.key
+                                ? {
+                                      ...row,
+                                      error:
+                                          err instanceof Error
+                                              ? err.message
+                                              : t(
+                                                    'collections.itemChat.sendError',
+                                                ),
+                                  }
+                                : row,
+                        ),
+                    );
+                });
+        }
     };
 
     const clearComposerDrag = (): void => {
@@ -1070,7 +1766,7 @@ export function ItemChatDrawer({
     };
 
     const onComposerDragEnter = (event: DragEvent<HTMLDivElement>): void => {
-        if (sending || !isExternalFileDrag(event)) {
+        if (!isExternalFileDrag(event)) {
             return;
         }
 
@@ -1079,7 +1775,7 @@ export function ItemChatDrawer({
     };
 
     const onComposerDragOver = (event: DragEvent<HTMLDivElement>): void => {
-        if (sending || !isExternalFileDrag(event)) {
+        if (!isExternalFileDrag(event)) {
             return;
         }
 
@@ -1102,7 +1798,7 @@ export function ItemChatDrawer({
     };
 
     const onComposerDrop = (event: DragEvent<HTMLDivElement>): void => {
-        if (sending || !isExternalFileDrag(event)) {
+        if (!isExternalFileDrag(event)) {
             return;
         }
 
@@ -1149,14 +1845,35 @@ export function ItemChatDrawer({
                         canCreateDirect={canCreateDirect}
                     />
                     <div className="relative flex min-h-0 flex-1 flex-col">
-                    <DrawerBody className="flex flex-col gap-3 pb-8">
+                    <DrawerBody
+                        ref={messagesScrollRef}
+                        className="flex flex-col gap-3 pb-8"
+                        onScroll={syncPinnedToBottom}
+                    >
                         {hasMore ? (
                             <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 disabled={loading || loadingMore}
-                                onClick={() => load(messages[0]?.id)}
+                                onClick={() => {
+                                    const oldestId = messages[0]?.id;
+
+                                    if (!oldestId || loadingMore) {
+                                        return;
+                                    }
+
+                                    const el = messagesScrollRef.current;
+
+                                    if (el) {
+                                        scrollAnchorRef.current = {
+                                            height: el.scrollHeight,
+                                            top: el.scrollTop,
+                                        };
+                                    }
+
+                                    load(oldestId);
+                                }}
                             >
                                 {loadingMore
                                     ? t('collections.itemChat.loading')
@@ -1236,20 +1953,6 @@ export function ItemChatDrawer({
                                         data-message-id={comment.id}
                                         className="flex items-start gap-2"
                                     >
-                                        {selectMode ? (
-                                            <Checkbox
-                                                className="mt-2"
-                                                checked={selectedIds.includes(
-                                                    comment.id,
-                                                )}
-                                                onCheckedChange={() =>
-                                                    toggleSelected(comment.id)
-                                                }
-                                                aria-label={t(
-                                                    'collections.itemChat.select',
-                                                )}
-                                            />
-                                        ) : null}
                                         <Message align={mine ? 'end' : 'start'}>
                                             {!mine ? (
                                                 <MessageAvatar
@@ -1271,26 +1974,17 @@ export function ItemChatDrawer({
                                                         comment.can_delete
                                                     }
                                                     isPinned={comment.is_pinned}
-                                                    disabled={selectMode}
                                                     onReply={() => {
                                                         setReplyTo(comment);
-                                                        textareaRef.current?.focus();
+                                                        // After ContextMenu close autofocus; run next tick.
+                                                        window.setTimeout(() => {
+                                                            textareaRef.current?.focus();
+                                                        }, 0);
                                                     }}
                                                     onCopy={() =>
                                                         copyMessageText(comment)
                                                     }
                                                     onPin={() => onPin(comment)}
-                                                    onForward={() =>
-                                                        openForward([
-                                                            comment.id,
-                                                        ])
-                                                    }
-                                                    onSelect={() => {
-                                                        setSelectMode(true);
-                                                        setSelectedIds([
-                                                            comment.id,
-                                                        ]);
-                                                    }}
                                                     onReact={(emoji) =>
                                                         onReact(comment, emoji)
                                                     }
@@ -1322,273 +2016,421 @@ export function ItemChatDrawer({
                                                                 'flex w-full min-w-0 flex-col gap-1',
                                                                 mine &&
                                                                     'text-foreground',
+                                                                comment.attachments.some(
+                                                                    isChatMediaAttachment,
+                                                                ) && 'gap-0 p-0',
                                                             )}
                                                         >
-                                                            {!mine ? (
-                                                                <div
-                                                                    className="text-xs font-bold"
-                                                                    style={{
-                                                                        color: avatarColorForId(
-                                                                            userId,
-                                                                        ),
-                                                                    }}
-                                                                >
-                                                                    {
-                                                                        comment
-                                                                            .user
-                                                                            ?.name
-                                                                    }
-                                                                </div>
-                                                            ) : null}
-                                                            {comment.forwarded_from ? (
-                                                                <div className="text-[10px] text-muted-foreground">
-                                                                    {t(
-                                                                        'collections.itemChat.forwardedFrom',
-                                                                        {
-                                                                            name: comment
-                                                                                .forwarded_from
-                                                                                .author_name,
-                                                                        },
-                                                                    )}
-                                                                </div>
-                                                            ) : null}
-                                                            {comment.reply_to ? (
-                                                                <button
-                                                                    type="button"
-                                                                    className="w-full rounded-md bg-black/5 px-2 py-1 text-left dark:bg-white/5"
-                                                                    style={{
-                                                                        borderLeftWidth: 2,
-                                                                        borderLeftColor:
-                                                                            avatarColorForId(
-                                                                                comment
-                                                                                    .reply_to
-                                                                                    .user
-                                                                                    ?.id ??
-                                                                                    0,
-                                                                            ),
-                                                                    }}
-                                                                    onClick={() =>
-                                                                        scrollToMessage(
-                                                                            comment
-                                                                                .reply_to!
-                                                                                .id,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <div
-                                                                        className="text-[11px] font-medium"
-                                                                        style={{
-                                                                            color: avatarColorForId(
-                                                                                comment
-                                                                                    .reply_to
-                                                                                    .user
-                                                                                    ?.id ??
-                                                                                    0,
-                                                                            ),
-                                                                        }}
-                                                                    >
-                                                                        {
-                                                                            comment
-                                                                                .reply_to
-                                                                                .user
-                                                                                ?.name
-                                                                        }
-                                                                    </div>
-                                                                    <div className="truncate text-[11px] text-muted-foreground">
-                                                                        {
-                                                                            comment
-                                                                                .reply_to
-                                                                                .body
-                                                                        }
-                                                                    </div>
-                                                                </button>
-                                                            ) : null}
-                                                            {editingId ===
-                                                            comment.id ? (
-                                                                <div className="flex min-w-[12rem] flex-col gap-2">
-                                                                    <Textarea
-                                                                        value={
-                                                                            editingDraft
-                                                                        }
-                                                                        onChange={(
-                                                                            event,
-                                                                        ) =>
-                                                                            setEditingDraft(
-                                                                                event
-                                                                                    .target
-                                                                                    .value,
-                                                                            )
-                                                                        }
-                                                                        rows={3}
-                                                                    />
-                                                                    <div className="flex gap-2">
-                                                                        <Button
-                                                                            type="button"
-                                                                            size="sm"
-                                                                            onClick={() =>
-                                                                                saveEdit(
-                                                                                    comment,
-                                                                                )
-                                                                            }
-                                                                        >
-                                                                            {t(
-                                                                                'common.save',
-                                                                            )}
-                                                                        </Button>
-                                                                        <Button
-                                                                            type="button"
-                                                                            size="sm"
-                                                                            variant="ghost"
-                                                                            onClick={() =>
-                                                                                setEditingId(
-                                                                                    null,
-                                                                                )
-                                                                            }
-                                                                        >
-                                                                            {t(
-                                                                                'common.cancel',
-                                                                            )}
-                                                                        </Button>
-                                                                    </div>
-                                                                </div>
-                                                            ) : comment.body !==
-                                                              '' ? (
-                                                                <div className="whitespace-pre-wrap">
-                                                                    {renderMessageBody(
-                                                                        comment.body,
-                                                                        comment.mentioned_users,
-                                                                        comment.mentioned_collections,
-                                                                    )}
-                                                                </div>
-                                                            ) : null}
-                                                            {comment.attachments
-                                                                .length > 0 ? (
-                                                                <ul className="flex max-h-36 w-full min-w-[12rem] flex-col gap-1 overflow-y-auto">
-                                                                    {comment.attachments.map(
+                                                            {(() => {
+                                                                const mediaAttachments =
+                                                                    comment.attachments.filter(
+                                                                        isChatMediaAttachment,
+                                                                    );
+                                                                const fileAttachments =
+                                                                    comment.attachments.filter(
                                                                         (
                                                                             attachment,
-                                                                        ) => (
-                                                                            <li
-                                                                                key={
-                                                                                    attachment.id
-                                                                                }
-                                                                                className="w-full min-w-0"
-                                                                            >
-                                                                                <AttachmentRow
-                                                                                    attachment={
-                                                                                        attachment
-                                                                                    }
-                                                                                    scope={
-                                                                                        scope!
-                                                                                    }
-                                                                                    canCreateFiles={
-                                                                                        canCreateFiles
-                                                                                    }
-                                                                                    hasFileFields={
-                                                                                        fileFields.length >
-                                                                                        0
-                                                                                    }
-                                                                                    onSaved={(
-                                                                                        next,
-                                                                                    ) => {
-                                                                                        setMessages(
-                                                                                            (
-                                                                                                prev,
-                                                                                            ) =>
-                                                                                                prev.map(
-                                                                                                    (
-                                                                                                        row,
-                                                                                                    ) =>
-                                                                                                        row.id ===
-                                                                                                        comment.id
-                                                                                                            ? {
-                                                                                                                  ...row,
-                                                                                                                  attachments:
-                                                                                                                      row.attachments.map(
-                                                                                                                          (
-                                                                                                                              item,
-                                                                                                                          ) =>
-                                                                                                                              item.id ===
-                                                                                                                              next.id
-                                                                                                                                  ? next
-                                                                                                                                  : item,
-                                                                                                                      ),
-                                                                                                              }
-                                                                                                            : row,
-                                                                                                ),
-                                                                                        );
-                                                                                    }}
-                                                                                    onAddToField={() => {
-                                                                                        setAddFieldFor(
-                                                                                            attachment,
-                                                                                        );
-                                                                                        setAddFieldName(
-                                                                                            fileFields[0]
-                                                                                                ?.name ??
-                                                                                                '',
-                                                                                        );
-                                                                                    }}
-                                                                                />
-                                                                            </li>
-                                                                        ),
-                                                                    )}
-                                                                </ul>
-                                                            ) : null}
-                                                            <div className="flex items-center gap-1 self-end">
-                                                                {comment.is_pinned ? (
-                                                                    <Pin
-                                                                        className="size-2.5 shrink-0 text-muted-foreground"
-                                                                        aria-hidden
-                                                                    />
-                                                                ) : null}
-                                                                <time
-                                                                    className="text-[10px] leading-none text-muted-foreground tabular-nums"
-                                                                    dateTime={
-                                                                        comment.created_at ??
-                                                                        undefined
-                                                                    }
-                                                                >
-                                                                    {commentTime(
-                                                                        comment.created_at,
-                                                                    )}
-                                                                </time>
-                                                            </div>
-                                                            {comment.reactions
-                                                                .length > 0 ? (
-                                                                <div className="flex flex-wrap gap-1">
-                                                                    {comment.reactions.map(
-                                                                        (
-                                                                            reaction,
-                                                                        ) => (
-                                                                            <button
-                                                                                key={
-                                                                                    reaction.emoji
-                                                                                }
-                                                                                type="button"
+                                                                        ) =>
+                                                                            !isChatMediaAttachment(
+                                                                                attachment,
+                                                                            ),
+                                                                    );
+                                                                const hasMedia =
+                                                                    mediaAttachments.length >
+                                                                    0;
+                                                                const pad = hasMedia
+                                                                    ? 'px-3'
+                                                                    : undefined;
+                                                                const onAttachmentSaved =
+                                                                    (
+                                                                        next: ChatAttachment,
+                                                                    ): void => {
+                                                                        const id =
+                                                                            liveChatIdRef.current;
+
+                                                                        if (!id) {
+                                                                            return;
+                                                                        }
+
+                                                                        mapMessages(
+                                                                            id,
+                                                                            (
+                                                                                prev,
+                                                                            ) =>
+                                                                                prev.map(
+                                                                                    (
+                                                                                        row,
+                                                                                    ) =>
+                                                                                        row.id ===
+                                                                                        comment.id
+                                                                                            ? {
+                                                                                                  ...row,
+                                                                                                  attachments:
+                                                                                                      row.attachments.map(
+                                                                                                          (
+                                                                                                              item,
+                                                                                                          ) =>
+                                                                                                              item.id ===
+                                                                                                              next.id
+                                                                                                                  ? next
+                                                                                                                  : item,
+                                                                                                      ),
+                                                                                              }
+                                                                                            : row,
+                                                                                ),
+                                                                        );
+                                                                    };
+
+                                                                return (
+                                                                    <>
+                                                                        {!mine ||
+                                                                        comment.reply_to ? (
+                                                                            <div
                                                                                 className={cn(
-                                                                                    'rounded-full border px-1.5 py-0.5 text-[11px] leading-none',
-                                                                                    reaction.reacted
-                                                                                        ? 'border-primary bg-primary/10'
-                                                                                        : 'border-border',
+                                                                                    'flex flex-col gap-1',
+                                                                                    pad,
+                                                                                    hasMedia &&
+                                                                                        'pt-2',
                                                                                 )}
-                                                                                onClick={() =>
-                                                                                    onReact(
-                                                                                        comment,
-                                                                                        reaction.emoji,
-                                                                                    )
-                                                                                }
                                                                             >
-                                                                                {
-                                                                                    reaction.emoji
-                                                                                }{' '}
-                                                                                {
-                                                                                    reaction.count
+                                                                                {!mine ? (
+                                                                                    <div
+                                                                                        className="text-xs font-bold"
+                                                                                        style={{
+                                                                                            color: avatarColorForId(
+                                                                                                userId,
+                                                                                            ),
+                                                                                        }}
+                                                                                    >
+                                                                                        {
+                                                                                            comment
+                                                                                                .user
+                                                                                                ?.name
+                                                                                        }
+                                                                                    </div>
+                                                                                ) : null}
+                                                                                {comment.reply_to ? (
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        className="w-full rounded-md bg-black/5 px-2 py-1 text-left dark:bg-white/5"
+                                                                                        style={{
+                                                                                            borderLeftWidth: 2,
+                                                                                            borderLeftColor:
+                                                                                                avatarColorForId(
+                                                                                                    comment
+                                                                                                        .reply_to
+                                                                                                        .user
+                                                                                                        ?.id ??
+                                                                                                        0,
+                                                                                                ),
+                                                                                        }}
+                                                                                        onClick={() =>
+                                                                                            scrollToMessage(
+                                                                                                comment
+                                                                                                    .reply_to!
+                                                                                                    .id,
+                                                                                            )
+                                                                                        }
+                                                                                    >
+                                                                                        <div
+                                                                                            className="text-[11px] font-medium"
+                                                                                            style={{
+                                                                                                color: avatarColorForId(
+                                                                                                    comment
+                                                                                                        .reply_to
+                                                                                                        .user
+                                                                                                        ?.id ??
+                                                                                                        0,
+                                                                                                ),
+                                                                                            }}
+                                                                                        >
+                                                                                            {
+                                                                                                comment
+                                                                                                    .reply_to
+                                                                                                    .user
+                                                                                                    ?.name
+                                                                                            }
+                                                                                        </div>
+                                                                                        <div className="truncate text-[11px] text-muted-foreground">
+                                                                                            {
+                                                                                                comment
+                                                                                                    .reply_to
+                                                                                                    .body
+                                                                                            }
+                                                                                        </div>
+                                                                                    </button>
+                                                                                ) : null}
+                                                                            </div>
+                                                                        ) : null}
+                                                                        {hasMedia ? (
+                                                                            <ChatMediaGallery
+                                                                                items={
+                                                                                    mediaAttachments
                                                                                 }
-                                                                            </button>
-                                                                        ),
-                                                                    )}
-                                                                </div>
-                                                            ) : null}
+                                                                                scope={
+                                                                                    scope!
+                                                                                }
+                                                                                canCreateFiles={
+                                                                                    canCreateFiles
+                                                                                }
+                                                                                hasFileFields={
+                                                                                    fileFields.length >
+                                                                                    0
+                                                                                }
+                                                                                onSaved={
+                                                                                    onAttachmentSaved
+                                                                                }
+                                                                                onAddToField={(
+                                                                                    attachment,
+                                                                                ) => {
+                                                                                    setAddFieldFor(
+                                                                                        attachment,
+                                                                                    );
+                                                                                    setAddFieldName(
+                                                                                        fileFields[0]
+                                                                                            ?.name ??
+                                                                                            '',
+                                                                                    );
+                                                                                }}
+                                                                            />
+                                                                        ) : null}
+                                                                        <div
+                                                                            className={cn(
+                                                                                'flex flex-col gap-1',
+                                                                                pad,
+                                                                                hasMedia &&
+                                                                                    'pt-1 pb-2',
+                                                                            )}
+                                                                        >
+                                                                            {editingId ===
+                                                                            comment.id ? (
+                                                                                <div className="flex min-w-[12rem] flex-col gap-2">
+                                                                                    <Textarea
+                                                                                        value={
+                                                                                            editingDraft
+                                                                                        }
+                                                                                        onChange={(
+                                                                                            event,
+                                                                                        ) =>
+                                                                                            setEditingDraft(
+                                                                                                event
+                                                                                                    .target
+                                                                                                    .value,
+                                                                                            )
+                                                                                        }
+                                                                                        rows={
+                                                                                            3
+                                                                                        }
+                                                                                    />
+                                                                                    <div className="flex gap-2">
+                                                                                        <Button
+                                                                                            type="button"
+                                                                                            size="sm"
+                                                                                            onClick={() =>
+                                                                                                saveEdit(
+                                                                                                    comment,
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            {t(
+                                                                                                'common.save',
+                                                                                            )}
+                                                                                        </Button>
+                                                                                        <Button
+                                                                                            type="button"
+                                                                                            size="sm"
+                                                                                            variant="ghost"
+                                                                                            onClick={() =>
+                                                                                                setEditingId(
+                                                                                                    null,
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            {t(
+                                                                                                'common.cancel',
+                                                                                            )}
+                                                                                        </Button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            ) : comment.body !==
+                                                                              '' ? (
+                                                                                <div className="whitespace-pre-wrap">
+                                                                                    {renderMessageBody(
+                                                                                        comment.body,
+                                                                                        comment.mentioned_users,
+                                                                                        comment.mentioned_collections,
+                                                                                    )}
+                                                                                </div>
+                                                                            ) : null}
+                                                                            {fileAttachments.length >
+                                                                            0 ? (
+                                                                                <ul className="flex max-h-36 w-full min-w-[12rem] flex-col gap-1.5 overflow-y-auto">
+                                                                                    {fileAttachments.map(
+                                                                                        (
+                                                                                            attachment,
+                                                                                        ) => (
+                                                                                            <li
+                                                                                                key={
+                                                                                                    attachment.id
+                                                                                                }
+                                                                                                className="w-full min-w-0"
+                                                                                            >
+                                                                                                <AttachmentRow
+                                                                                                    attachment={
+                                                                                                        attachment
+                                                                                                    }
+                                                                                                    scope={
+                                                                                                        scope!
+                                                                                                    }
+                                                                                                    canCreateFiles={
+                                                                                                        canCreateFiles
+                                                                                                    }
+                                                                                                    hasFileFields={
+                                                                                                        fileFields.length >
+                                                                                                        0
+                                                                                                    }
+                                                                                                    onSaved={
+                                                                                                        onAttachmentSaved
+                                                                                                    }
+                                                                                                    onAddToField={() => {
+                                                                                                        setAddFieldFor(
+                                                                                                            attachment,
+                                                                                                        );
+                                                                                                        setAddFieldName(
+                                                                                                            fileFields[0]
+                                                                                                                ?.name ??
+                                                                                                                '',
+                                                                                                        );
+                                                                                                    }}
+                                                                                                />
+                                                                                            </li>
+                                                                                        ),
+                                                                                    )}
+                                                                                </ul>
+                                                                            ) : null}
+                                                                            <div className="flex items-center gap-1 self-end">
+                                                                                {comment.is_pinned ? (
+                                                                                    <Pin
+                                                                                        className="size-2.5 shrink-0 text-muted-foreground"
+                                                                                        aria-hidden
+                                                                                    />
+                                                                                ) : null}
+                                                                                <time
+                                                                                    className="text-[10px] leading-none text-muted-foreground tabular-nums"
+                                                                                    dateTime={
+                                                                                        comment.created_at ??
+                                                                                        undefined
+                                                                                    }
+                                                                                >
+                                                                                    {commentTime(
+                                                                                        comment.created_at,
+                                                                                    )}
+                                                                                </time>
+                                                                            </div>
+                                                                            {comment
+                                                                                .reactions
+                                                                                .length >
+                                                                            0 ? (
+                                                                                <div className="flex flex-wrap gap-1">
+                                                                                    {comment.reactions.map(
+                                                                                        (
+                                                                                            reaction,
+                                                                                        ) => (
+                                                                                            <button
+                                                                                                key={
+                                                                                                    reaction.emoji
+                                                                                                }
+                                                                                                type="button"
+                                                                                                title={(
+                                                                                                    reaction.users ??
+                                                                                                    []
+                                                                                                )
+                                                                                                    .map(
+                                                                                                        (
+                                                                                                            user,
+                                                                                                        ) =>
+                                                                                                            user.name,
+                                                                                                    )
+                                                                                                    .join(
+                                                                                                        ', ',
+                                                                                                    )}
+                                                                                                className={cn(
+                                                                                                    'inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[12px] leading-none shadow-sm',
+                                                                                                    reaction.reacted
+                                                                                                        ? 'border-primary/60 bg-primary/15'
+                                                                                                        : 'border-border bg-card text-card-foreground',
+                                                                                                )}
+                                                                                                onClick={() =>
+                                                                                                    onReact(
+                                                                                                        comment,
+                                                                                                        reaction.emoji,
+                                                                                                    )
+                                                                                                }
+                                                                                            >
+                                                                                                <span>
+                                                                                                    {
+                                                                                                        reaction.emoji
+                                                                                                    }
+                                                                                                </span>
+                                                                                                <span className="flex items-center">
+                                                                                                    {(
+                                                                                                        reaction.users ??
+                                                                                                        []
+                                                                                                    )
+                                                                                                        .slice(
+                                                                                                            0,
+                                                                                                            3,
+                                                                                                        )
+                                                                                                        .map(
+                                                                                                            (
+                                                                                                                user,
+                                                                                                                index,
+                                                                                                            ) => (
+                                                                                                                <span
+                                                                                                                    key={
+                                                                                                                        user.id
+                                                                                                                    }
+                                                                                                                    className={cn(
+                                                                                                                        'flex size-4 items-center justify-center rounded-full text-[8px] font-semibold ring-1 ring-card',
+                                                                                                                        index >
+                                                                                                                            0 &&
+                                                                                                                            '-ml-1',
+                                                                                                                    )}
+                                                                                                                    style={avatarStyleForId(
+                                                                                                                        user.id,
+                                                                                                                    )}
+                                                                                                                    aria-hidden
+                                                                                                                >
+                                                                                                                    {initials(
+                                                                                                                        user.name,
+                                                                                                                    )}
+                                                                                                                </span>
+                                                                                                            ),
+                                                                                                        )}
+                                                                                                    {(reaction
+                                                                                                        .users
+                                                                                                        ?.length ??
+                                                                                                        0) >
+                                                                                                    3 ? (
+                                                                                                        <span className="-ml-1 flex size-4 items-center justify-center rounded-full bg-muted text-[8px] font-semibold text-muted-foreground ring-1 ring-card">
+                                                                                                            +
+                                                                                                            {(reaction
+                                                                                                                .users
+                                                                                                                ?.length ??
+                                                                                                                0) -
+                                                                                                                3}
+                                                                                                        </span>
+                                                                                                    ) : null}
+                                                                                                </span>
+                                                                                            </button>
+                                                                                        ),
+                                                                                    )}
+                                                                                </div>
+                                                                            ) : null}
+                                                                        </div>
+                                                                    </>
+                                                                );
+                                                            })()}
                                                         </BubbleContent>
                                                     </Bubble>
                                                 </MessageActionsMenu>
@@ -1598,22 +2440,53 @@ export function ItemChatDrawer({
                                 </div>
                             );
                         })}
+                        {pendingMessages.map((pending) => (
+                            <ChatOutgoingAttachPreview
+                                key={pending.clientId}
+                                pending={pending}
+                                renderBody={renderMessageBody}
+                                onRetry={retryPending}
+                                onRemoveFile={removePendingFile}
+                            />
+                        ))}
                     </DrawerBody>
-                        {loading || typingLabel ? (
+                        {!pinnedToBottom || loading || typingLabel ? (
                             <div
                                 data-test="chat-thread-status"
-                                className="pointer-events-none absolute inset-x-0 bottom-2 z-10 flex flex-col items-center gap-1"
+                                className="absolute inset-x-0 bottom-2 z-10 flex flex-col items-center gap-1"
                             >
-                                {loading ? (
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <Spinner className="size-4" />
-                                        {t('collections.itemChat.loading')}
-                                    </div>
+                                {!pinnedToBottom ? (
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="secondary"
+                                        className="size-9 rounded-full shadow-md"
+                                        aria-label={t(
+                                            'collections.itemChat.scrollToBottom',
+                                        )}
+                                        onClick={() =>
+                                            scrollToBottom('smooth')
+                                        }
+                                    >
+                                        <ChevronDown className="size-4" />
+                                    </Button>
                                 ) : null}
-                                {typingLabel ? (
-                                    <p className="text-xs text-muted-foreground">
-                                        {typingLabel}
-                                    </p>
+                                {loading || typingLabel ? (
+                                    <div className="pointer-events-none flex flex-col items-center gap-1">
+                                        {loading ? (
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                <Spinner className="size-4" />
+                                                {t(
+                                                    'collections.itemChat.loading',
+                                                )}
+                                            </div>
+                                        ) : null}
+                                        {typingLabel ? (
+                                            <p className="text-xs text-muted-foreground">
+                                                {typingLabel}
+                                            </p>
+                                        ) : null}
+                                    </div>
                                 ) : null}
                             </div>
                         ) : null}
@@ -1628,100 +2501,6 @@ export function ItemChatDrawer({
                         onDragLeave={onComposerDragLeave}
                         onDrop={onComposerDrop}
                     >
-                        {selectMode ? (
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={selectedIds.length === 0}
-                                    onClick={copySelected}
-                                >
-                                    {t('collections.itemChat.copyText')}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={selectedIds.length === 0}
-                                    onClick={() => openForward(selectedIds)}
-                                >
-                                    {t('collections.itemChat.forward')}
-                                </Button>
-                                {canDeleteSelected ? (
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="destructive"
-                                        onClick={deleteSelected}
-                                    >
-                                        {t('common.delete')}
-                                    </Button>
-                                ) : null}
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
-                                    className="ml-auto"
-                                    onClick={() => {
-                                        setSelectMode(false);
-                                        setSelectedIds([]);
-                                    }}
-                                >
-                                    {t('common.cancel')}
-                                </Button>
-                            </div>
-                        ) : null}
-                        <div className={selectMode ? 'hidden' : 'contents'}>
-                            {uploadingFiles.length > 0 ||
-                            pendingAttachments.length > 0 ? (
-                                <ul className="space-y-1 text-xs">
-                                    {uploadingFiles.map((file) => (
-                                        <li
-                                            key={file.key}
-                                            className="flex items-center justify-between gap-2"
-                                        >
-                                            <span className="truncate">
-                                                {file.name}
-                                            </span>
-                                            <Loader2
-                                                className="size-3.5 shrink-0 animate-spin text-muted-foreground"
-                                                aria-label={t(
-                                                    'collections.itemChat.uploading',
-                                                )}
-                                            />
-                                        </li>
-                                    ))}
-                                    {pendingAttachments.map((attachment) => (
-                                        <li
-                                            key={attachment.id}
-                                            className="flex items-center justify-between gap-2"
-                                        >
-                                            <span className="truncate">
-                                                {attachment.name}
-                                            </span>
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="ghost"
-                                                className="h-6 px-1"
-                                                onClick={() =>
-                                                    setPendingAttachments(
-                                                        (prev) =>
-                                                            prev.filter(
-                                                                (row) =>
-                                                                    row.id !==
-                                                                    attachment.id,
-                                                            ),
-                                                    )
-                                                }
-                                            >
-                                                {t('common.delete')}
-                                            </Button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : null}
                             {replyTo ? (
                                 <div className="flex items-start gap-2 rounded-md bg-muted/60 px-2 py-1.5">
                                     <div
@@ -1761,7 +2540,9 @@ export function ItemChatDrawer({
                                 </div>
                             ) : null}
                             <div className="relative">
-                                {mentionOpen && mentionHits.length > 0 ? (
+                                {mentionOpen &&
+                                mentionHits.length > 0 &&
+                                !attachDialogOpen ? (
                                     <div className="absolute inset-x-0 bottom-full z-20 mb-1 max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-md">
                                         {mentionHits.map((hit, index) => (
                                             <button
@@ -1808,7 +2589,7 @@ export function ItemChatDrawer({
                                     )}
                                     data-test="item-chat-composer"
                                     onChange={(event) =>
-                                        onDraftChange(
+                                        onComposerChange(
                                             event.target.value,
                                             event.target.selectionStart,
                                         )
@@ -1903,25 +2684,7 @@ export function ItemChatDrawer({
                                     aria-label={t(
                                         'collections.itemChat.mention',
                                     )}
-                                    onClick={() => {
-                                        const el = textareaRef.current;
-                                        const start =
-                                            el?.selectionStart ?? draft.length;
-                                        const end =
-                                            el?.selectionEnd ?? draft.length;
-                                        const next =
-                                            draft.slice(0, start) +
-                                            '@' +
-                                            draft.slice(end);
-                                        onDraftChange(next, start + 1);
-                                        window.setTimeout(() => {
-                                            el?.focus();
-                                            el?.setSelectionRange(
-                                                start + 1,
-                                                start + 1,
-                                            );
-                                        }, 0);
-                                    }}
+                                    onClick={insertMentionTrigger}
                                 >
                                     @
                                 </Button>
@@ -1966,7 +2729,6 @@ export function ItemChatDrawer({
                                     type="button"
                                     size="icon"
                                     variant="ghost"
-                                    disabled={sending}
                                     aria-label={t(
                                         'collections.itemChat.attach',
                                     )}
@@ -1990,26 +2752,17 @@ export function ItemChatDrawer({
                                     type="button"
                                     className="ml-auto"
                                     disabled={
-                                        sending || uploadingFiles.length > 0
+                                        draft.trim() === '' || attachDialogOpen
                                     }
-                                    aria-busy={sending}
-                                    aria-label={
-                                        sending
-                                            ? t('collections.itemChat.sending')
-                                            : t('collections.itemChat.send')
-                                    }
+                                    aria-label={t('collections.itemChat.send')}
                                     onClick={send}
                                     data-test="item-chat-send"
                                 >
-                                    {sending ? (
-                                        <Loader2 className="size-4 animate-spin" />
-                                    ) : (
-                                        <Send className="size-4" />
-                                    )}
+                                    <Send className="size-4" />
                                     {t('collections.itemChat.send')}
                                 </Button>
                             </div>
-                            {composerDragOver && !sending ? (
+                            {composerDragOver ? (
                                 <div
                                     className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-primary bg-primary/10"
                                     aria-hidden
@@ -2020,7 +2773,6 @@ export function ItemChatDrawer({
                                     </div>
                                 </div>
                             ) : null}
-                        </div>
                     </DrawerFooter>
         </>
     );
@@ -2051,6 +2803,38 @@ export function ItemChatDrawer({
                     </DrawerContent>
                 </Drawer>
             )}
+
+            {attachDialogOpen && attachItems.length > 0 ? (
+                <ChatSendAttachmentsDialog
+                    open
+                    items={attachItems}
+                    caption={attachCaption}
+                    sending={false}
+                    captionRef={captionTextareaRef}
+                    mentionOpen={mentionOpen}
+                    mentionHits={mentionHits}
+                    mentionHighlight={mentionHighlight}
+                    emojiOpen={emojiOpen}
+                    emojis={EMOJI_GRID}
+                    onCaptionChange={onComposerChange}
+                    onMentionHighlight={setMentionHighlight}
+                    onPickMention={pickMention}
+                    onDismissMention={() => {
+                        setMentionOpen(false);
+                        setMentionStart(null);
+                    }}
+                    onInsertMentionTrigger={insertMentionTrigger}
+                    onInsertEmoji={(emoji) => {
+                        insertAtCaret(emoji);
+                        setEmojiOpen(false);
+                    }}
+                    onEmojiOpenChange={setEmojiOpen}
+                    onAddFiles={onPickFiles}
+                    onRemove={removeAttachItem}
+                    onClose={closeAttachDialog}
+                    onSend={sendAttachBatch}
+                />
+            ) : null}
 
             <Dialog
                 open={addFieldFor !== null}
@@ -2136,49 +2920,242 @@ export function ItemChatDrawer({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+        </>
+    );
+}
 
-            <Dialog open={forwardOpen} onOpenChange={setForwardOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>
-                            {t('collections.itemChat.forwardTitle')}
-                        </DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-2">
-                        <Label htmlFor="item-chat-forward-item">
-                            {t('collections.itemChat.forwardItemId')}
-                        </Label>
-                        <Input
-                            id="item-chat-forward-item"
-                            type="number"
-                            min={1}
-                            value={forwardItemId}
-                            onChange={(event) =>
-                                setForwardItemId(event.target.value)
-                            }
-                        />
-                        <p className="text-xs text-muted-foreground">
-                            {t('collections.itemChat.forwardHint')}
-                        </p>
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setForwardOpen(false)}
-                        >
-                            {t('common.cancel')}
-                        </Button>
-                        <Button
-                            type="button"
-                            disabled={forwarding || forwardItemId === ''}
-                            onClick={confirmForward}
-                        >
-                            {t('collections.itemChat.forward')}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+function isChatMediaAttachment(attachment: ChatAttachment): boolean {
+    return (
+        attachment.mime.startsWith('image/') ||
+        attachment.mime.startsWith('video/')
+    );
+}
+
+function GalleryMediaThumb({
+    href,
+    isVideo,
+    name,
+    single,
+}: {
+    href: string;
+    isVideo: boolean;
+    name: string;
+    single: boolean;
+}) {
+    const [loaded, setLoaded] = useState(false);
+
+    return (
+        <div
+            className={cn(
+                'relative h-full w-full bg-muted/70',
+                single ? 'min-h-[10rem]' : 'min-h-[6rem]',
+            )}
+        >
+            {!loaded ? (
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <Spinner className="size-5 text-muted-foreground" />
+                </div>
+            ) : null}
+            {isVideo ? (
+                <>
+                    <video
+                        src={href}
+                        className={cn(
+                            'h-full max-h-[22rem] w-full object-cover transition-opacity',
+                            loaded ? 'opacity-100' : 'opacity-0',
+                        )}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        onLoadedData={() => setLoaded(true)}
+                    />
+                    {loaded ? (
+                        <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                            <span className="flex size-10 items-center justify-center rounded-full bg-black/55 text-white">
+                                <Play className="size-5 fill-current" />
+                            </span>
+                        </span>
+                    ) : null}
+                </>
+            ) : (
+                <img
+                    src={href}
+                    alt={name}
+                    className={cn(
+                        'h-full w-full transition-opacity',
+                        single
+                            ? 'max-h-[22rem] object-contain'
+                            : 'object-cover',
+                        loaded ? 'opacity-100' : 'opacity-0',
+                    )}
+                    onLoad={() => setLoaded(true)}
+                />
+            )}
+        </div>
+    );
+}
+
+function ChatMediaGallery({
+    items,
+    scope,
+    canCreateFiles,
+    hasFileFields,
+    onSaved,
+    onAddToField,
+}: {
+    items: ChatAttachment[];
+    scope: ChatScope;
+    canCreateFiles: boolean;
+    hasFileFields: boolean;
+    onSaved: (attachment: ChatAttachment) => void;
+    onAddToField: (attachment: ChatAttachment) => void;
+}) {
+    const { t } = useTranslation();
+    const count = items.length;
+    const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+    if (count === 0) {
+        return null;
+    }
+
+    const renderMedia = (
+        attachment: ChatAttachment,
+        className: string,
+        mediaIndex: number,
+    ): ReactNode => {
+        const href = chatAttachmentPreviewUrl(scope, attachment);
+        const originalHref = chatAttachmentUrl(scope, attachment.id);
+        const isVideo = attachment.mime.startsWith('video/');
+
+        return (
+            <div
+                key={attachment.id}
+                className={cn('group/media relative min-h-0 min-w-0', className)}
+            >
+                <button
+                    type="button"
+                    className="relative block h-full w-full cursor-zoom-in"
+                    aria-label={t('collections.itemChat.mediaPreview')}
+                    onClick={() => setLightboxIndex(mediaIndex)}
+                >
+                    <GalleryMediaThumb
+                        href={href}
+                        isVideo={isVideo}
+                        name={attachment.name}
+                        single={count === 1}
+                    />
+                </button>
+                <div className="absolute top-1 right-1 opacity-0 transition-opacity group-hover/media:opacity-100 focus-within:opacity-100">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="secondary"
+                                className="size-7 bg-background/80 shadow-sm backdrop-blur"
+                                aria-label={t('collections.itemChat.more')}
+                                onClick={(event) => event.stopPropagation()}
+                                onContextMenu={(event) =>
+                                    event.stopPropagation()
+                                }
+                            >
+                                <MoreVertical className="size-3.5" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                                <a
+                                    href={originalHref}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    {t('collections.itemChat.download')}
+                                </a>
+                            </DropdownMenuItem>
+                            {canCreateFiles ? (
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        void saveChatAttachmentToFiles(
+                                            scope,
+                                            attachment.id,
+                                        ).then((payload) =>
+                                            onSaved(payload.attachment),
+                                        );
+                                    }}
+                                >
+                                    {t('collections.itemChat.saveToFiles')}
+                                </DropdownMenuItem>
+                            ) : null}
+                            {hasFileFields ? (
+                                <DropdownMenuItem
+                                    onSelect={() => onAddToField(attachment)}
+                                >
+                                    {t('collections.itemChat.addToField')}
+                                </DropdownMenuItem>
+                            ) : null}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <>
+            {count === 1 ? (
+                <div className="w-full min-w-[14rem] max-w-sm overflow-hidden bg-black/20">
+                    {renderMedia(items[0]!, 'flex justify-center', 0)}
+                </div>
+            ) : null}
+
+            {count === 2 ? (
+                <div className="grid w-full min-w-[16rem] max-w-sm grid-cols-2 gap-0.5 overflow-hidden bg-black/20">
+                    {items.map((item, index) =>
+                        renderMedia(item, 'aspect-[3/4] max-h-64', index),
+                    )}
+                </div>
+            ) : null}
+
+            {count === 3 ? (
+                <div className="aspect-[4/5] grid w-full min-w-[16rem] max-h-80 max-w-sm grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden bg-black/20">
+                    {renderMedia(items[0]!, 'row-span-2', 0)}
+                    {renderMedia(items[1]!, '', 1)}
+                    {renderMedia(items[2]!, '', 2)}
+                </div>
+            ) : null}
+
+            {count === 4 ? (
+                <div className="grid w-full min-w-[16rem] max-w-sm grid-cols-2 gap-0.5 overflow-hidden bg-black/20">
+                    {items.map((item, index) =>
+                        renderMedia(item, 'aspect-square max-h-44', index),
+                    )}
+                </div>
+            ) : null}
+
+            {count >= 5 ? (
+                <div className="grid w-full min-w-[16rem] max-w-sm grid-cols-6 gap-0.5 overflow-hidden bg-black/20">
+                    {items.map((item, index) => {
+                        const isTopPair = index < 2;
+                        const span = isTopPair
+                            ? 'col-span-3 aspect-[4/5] max-h-52'
+                            : 'col-span-2 aspect-square max-h-36';
+
+                        return renderMedia(item, span, index);
+                    })}
+                </div>
+            ) : null}
+
+            <ChatMediaLightbox
+                open={lightboxIndex !== null}
+                items={items}
+                initialIndex={lightboxIndex ?? 0}
+                scope={scope}
+                onOpenChange={(next) => {
+                    if (!next) {
+                        setLightboxIndex(null);
+                    }
+                }}
+            />
         </>
     );
 }
@@ -2187,12 +3164,9 @@ function MessageActionsMenu({
     canEdit,
     canDelete,
     isPinned,
-    disabled,
     onReply,
     onCopy,
     onPin,
-    onForward,
-    onSelect,
     onReact,
     onEdit,
     onDelete,
@@ -2201,12 +3175,9 @@ function MessageActionsMenu({
     canEdit: boolean;
     canDelete: boolean;
     isPinned: boolean;
-    disabled: boolean;
     onReply: () => void;
     onCopy: () => void;
     onPin: () => void;
-    onForward: () => void;
-    onSelect: () => void;
     onReact: (emoji: string) => void;
     onEdit: () => void;
     onDelete: () => void;
@@ -2214,14 +3185,16 @@ function MessageActionsMenu({
 }) {
     const { t } = useTranslation();
 
-    if (disabled) {
-        return children;
-    }
-
     return (
         <ContextMenu modal={false}>
             <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-            <ContextMenuContent className="w-52">
+            <ContextMenuContent
+                className="w-52"
+                onCloseAutoFocus={(event) => {
+                    // Keep Reply→composer focus; avoid restore onto message bubble.
+                    event.preventDefault();
+                }}
+            >
                 <div className="flex items-center gap-0.5 px-1 pb-1">
                     {REACTION_EMOJIS.map((emoji) => (
                         <button
@@ -2248,14 +3221,6 @@ function MessageActionsMenu({
                     {isPinned
                         ? t('collections.itemChat.unpin')
                         : t('collections.itemChat.pin')}
-                </ContextMenuItem>
-                <ContextMenuItem onSelect={onForward}>
-                    <Forward />
-                    {t('collections.itemChat.forward')}
-                </ContextMenuItem>
-                <ContextMenuItem onSelect={onSelect}>
-                    <CheckSquare />
-                    {t('collections.itemChat.select')}
                 </ContextMenuItem>
                 {canEdit ? (
                     <ContextMenuItem onSelect={onEdit}>
@@ -2289,44 +3254,32 @@ function AttachmentRow({
 }) {
     const { t } = useTranslation();
     const href = chatAttachmentUrl(scope, attachment.id);
-    const isImage = attachment.mime.startsWith('image/');
 
     return (
-        <div className="flex w-full min-w-0 items-center gap-1">
-            {isImage ? (
-                <a
-                    href={href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="min-w-0 flex-1"
-                >
-                    <img
-                        src={href}
-                        alt={attachment.name}
-                        className="max-h-32 rounded-md border object-cover"
-                    />
-                </a>
-            ) : (
-                <a
-                    href={href}
-                    className="min-w-0 flex-1 truncate text-xs underline"
-                    target="_blank"
-                    rel="noreferrer"
-                >
-                    {attachment.name}
-                </a>
-            )}
+        <div className="flex w-full min-w-0 items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2 text-card-foreground shadow-sm">
+            <a
+                href={href}
+                className="flex min-w-0 flex-1 items-center gap-2 text-xs font-medium text-foreground no-underline hover:underline"
+                target="_blank"
+                rel="noreferrer"
+            >
+                <FileText
+                    className="size-4 shrink-0 text-muted-foreground"
+                    aria-hidden
+                />
+                <span className="truncate">{attachment.name}</span>
+            </a>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button
                         type="button"
                         size="icon"
                         variant="ghost"
-                        className="size-5 shrink-0 text-muted-foreground"
+                        className="size-6 shrink-0 text-muted-foreground"
                         aria-label={t('collections.itemChat.more')}
                         onContextMenu={(event) => event.stopPropagation()}
                     >
-                        <MoreVertical className="size-3" />
+                        <MoreVertical className="size-3.5" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
+import { usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
@@ -77,16 +78,17 @@ function formatImageFieldMetaLine(file: AdminFileRow): string {
 async function uploadToFilesRoot(
     file: File,
     acceptImagesOnly: boolean,
+    maxBytes?: number | null,
 ): Promise<AdminFileRow | null> {
     if (acceptImagesOnly && !file.type.startsWith('image/')) {
         return null;
     }
 
     if (file.size > CHUNK_SIZE_BYTES) {
-        return uploadFileChunked(file, null);
+        return uploadFileChunked(file, null, undefined, maxBytes);
     }
 
-    return uploadFileDirect(file, null);
+    return uploadFileDirect(file, null, maxBytes);
 }
 
 function UrlImportDialog({
@@ -206,6 +208,8 @@ function FileFieldEmptyDropzone({
     onPickLibrary: () => void;
 }) {
     const { t } = useTranslation();
+    const { projectSettings } = usePage().props;
+    const filesMaxUploadBytes = projectSettings?.filesMaxUploadBytes ?? null;
     const inputRef = useRef<HTMLInputElement>(null);
     const [dragOver, setDragOver] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -228,7 +232,11 @@ function FileFieldEmptyDropzone({
                 const uploaded: AdminFileRow[] = [];
 
                 for (const file of toUpload) {
-                    const row = await uploadToFilesRoot(file, acceptImagesOnly);
+                    const row = await uploadToFilesRoot(
+                        file,
+                        acceptImagesOnly,
+                        filesMaxUploadBytes,
+                    );
 
                     if (row) {
                         uploaded.push(row);
@@ -254,7 +262,7 @@ function FileFieldEmptyDropzone({
                 }
             }
         },
-        [acceptImagesOnly, busy, multiple, onUploaded, t],
+        [acceptImagesOnly, busy, filesMaxUploadBytes, multiple, onUploaded, t],
     );
 
     const actionButtonClass =

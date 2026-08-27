@@ -89,15 +89,6 @@ class ItemChatController extends Controller
         return $this->messages->react($request, $this->chatForItem($request, $collection, $item), $message);
     }
 
-    public function forward(
-        Request $request,
-        Collection $collection,
-        CollectionItem $item,
-        CollectionItemChatMessage $message,
-    ): JsonResponse {
-        return $this->messages->forward($request, $this->chatForItem($request, $collection, $item), $message);
-    }
-
     public function mentions(Request $request, Collection $collection, CollectionItem $item): JsonResponse
     {
         $this->assertItemContext($request, $collection, $item);
@@ -139,11 +130,51 @@ class ItemChatController extends Controller
         return $this->hub->markRead($request, $chat);
     }
 
+    public function stopViewing(Request $request, Collection $collection, CollectionItem $item): JsonResponse
+    {
+        $this->assertItemContext($request, $collection, $item);
+        $chat = $this->chats->findItemChat($item);
+
+        if (! $chat instanceof Chat) {
+            return response()->json(['ok' => true]);
+        }
+
+        return $this->hub->stopViewing($request, $chat);
+    }
+
     public function storeAttachment(Request $request, Collection $collection, CollectionItem $item): JsonResponse
     {
         $this->assertItemContext($request, $collection, $item);
 
         return $this->messages->storeAttachment($request);
+    }
+
+    public function initAttachmentUpload(Request $request, Collection $collection, CollectionItem $item): JsonResponse
+    {
+        $this->assertItemContext($request, $collection, $item);
+
+        return $this->messages->initAttachmentUpload($request);
+    }
+
+    public function uploadAttachmentChunk(Request $request, Collection $collection, CollectionItem $item): \Illuminate\Http\Response
+    {
+        $this->assertItemContext($request, $collection, $item);
+
+        return $this->messages->uploadAttachmentChunk($request);
+    }
+
+    public function completeAttachmentUpload(Request $request, Collection $collection, CollectionItem $item): JsonResponse
+    {
+        $this->assertItemContext($request, $collection, $item);
+
+        return $this->messages->completeAttachmentUpload($request);
+    }
+
+    public function attachmentUploadStatus(Request $request, Collection $collection, CollectionItem $item): JsonResponse
+    {
+        $this->assertItemContext($request, $collection, $item);
+
+        return $this->messages->attachmentUploadStatus($request);
     }
 
     public function showAttachment(
@@ -156,6 +187,30 @@ class ItemChatController extends Controller
         $chat = $this->chatFromAttachment($item, $attachment);
 
         return $this->messages->showAttachment($request, $chat, $attachment);
+    }
+
+    public function showAttachmentPreview(
+        Request $request,
+        Collection $collection,
+        CollectionItem $item,
+        CollectionItemChatAttachment $attachment,
+    ): StreamedResponse {
+        $this->assertItemContext($request, $collection, $item);
+        $chat = $this->chatFromAttachment($item, $attachment);
+
+        return $this->messages->showAttachmentPreview($request, $chat, $attachment);
+    }
+
+    public function destroyAttachment(
+        Request $request,
+        Collection $collection,
+        CollectionItem $item,
+        CollectionItemChatAttachment $attachment,
+    ): \Illuminate\Http\Response {
+        $this->assertItemContext($request, $collection, $item);
+        $chat = $this->chatFromAttachment($item, $attachment);
+
+        return $this->messages->destroyAttachment($request, $chat, $attachment);
     }
 
     public function saveToFiles(

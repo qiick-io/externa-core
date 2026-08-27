@@ -213,6 +213,28 @@ class FileTransformService
     }
 
     /**
+     * Encode a reduced image preview from raw bytes (chat attachments, etc.).
+     *
+     * @return array{binary: string, mime: string, extension: string}
+     */
+    public function encodePreviewFromBinary(string $contents, int $maxEdge = 1200): array
+    {
+        $edge = max(1, min($maxEdge, 4096));
+
+        return $this->transform($contents, [
+            'key' => 'chat-preview',
+            'fit' => 'inside',
+            'width' => $edge,
+            'height' => $edge,
+            'quality' => self::DEFAULT_QUALITY,
+            'without_enlargement' => true,
+            'format' => 'auto',
+            'focal_x' => null,
+            'focal_y' => null,
+        ]);
+    }
+
+    /**
      * MIME type for a cached transform path extension.
      */
     public function mimeForPath(string $path): string

@@ -3,9 +3,11 @@ import type { ComponentProps, Ref } from 'react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
+import {
+    evaluatePasswordStrength,
+    type PasswordPolicy,
+} from '@/lib/password-strength';
 import { cn } from '@/lib/utils';
-
-type PasswordPolicy = 'weak' | 'medium' | 'strong';
 
 type PasswordInputProps = Omit<ComponentProps<'input'>, 'type'> & {
     ref?: Ref<HTMLInputElement>;
@@ -15,12 +17,6 @@ type PasswordInputProps = Omit<ComponentProps<'input'>, 'type'> & {
     showStrength?: boolean;
     strengthPolicy?: PasswordPolicy;
     strengthId?: string;
-};
-
-type PasswordStrength = {
-    progress: number;
-    level: PasswordPolicy;
-    meetsPolicy: boolean;
 };
 
 function randomChar(alphabet: string): string {
@@ -63,41 +59,6 @@ function generateSecurePassword(): string {
     return shuffle(required.join(''));
 }
 
-function evaluatePasswordStrength(
-    value: string,
-    policy: PasswordPolicy,
-): PasswordStrength {
-    const hasLower = /[a-z]/.test(value);
-    const hasUpper = /[A-Z]/.test(value);
-    const hasLetter = /[A-Za-z]/.test(value);
-    const hasNumber = /\d/.test(value);
-    const hasSymbol = /[^A-Za-z0-9]/.test(value);
-    const hasMixedCase = hasLower && hasUpper;
-
-    const checksByPolicy = {
-        weak: [value.length >= 6],
-        medium: [value.length >= 8, hasMixedCase, hasNumber],
-        strong: [value.length >= 12, hasLetter, hasMixedCase, hasNumber, hasSymbol],
-    } satisfies Record<PasswordPolicy, boolean[]>;
-
-    const checks = checksByPolicy[policy];
-    const metCount = checks.filter(Boolean).length;
-    const progress =
-        value.length === 0 ? 0 : Math.round((metCount / checks.length) * 100);
-    const level: PasswordPolicy =
-        value.length >= 12 && hasLetter && hasMixedCase && hasNumber && hasSymbol
-            ? 'strong'
-            : value.length >= 8 && hasMixedCase && hasNumber
-              ? 'medium'
-              : 'weak';
-
-    return {
-        progress,
-        level,
-        meetsPolicy: checks.every(Boolean),
-    };
-}
-
 /**
  * Password input with toggle to reveal or hide the value.
  * @param {Omit<ComponentProps<'input'>, 'type'> & { ref?: Ref<HTMLInputElement> }} props - Standard input props without type.
@@ -126,11 +87,17 @@ export default function PasswordInput({
         ? evaluatePasswordStrength(value, strengthPolicy)
         : null;
     const meterColor =
-        strength?.progress === 100
+        strength?.level === 'strong'
             ? 'bg-emerald-500'
-            : strength && strength.progress >= 67
+            : strength?.level === 'medium'
               ? 'bg-amber-500'
               : 'bg-red-500';
+    const strengthLabelColor =
+        strength?.level === 'strong'
+            ? 'text-emerald-600'
+            : strength?.level === 'medium'
+              ? 'text-amber-600'
+              : 'text-muted-foreground';
 
     return (
         <div className="space-y-2">
@@ -175,14 +142,7 @@ export default function PasswordInput({
                         <span className="text-muted-foreground">
                             Password strength
                         </span>
-                        <span
-                            className={cn(
-                                'font-medium',
-                                strength.meetsPolicy
-                                    ? 'text-emerald-600'
-                                    : 'text-muted-foreground',
-                            )}
-                        >
+                        <span className={cn('font-medium', strengthLabelColor)}>
                             {t(
                                 `settings.project.passwordPolicies.${strength.level}.label`,
                             )}

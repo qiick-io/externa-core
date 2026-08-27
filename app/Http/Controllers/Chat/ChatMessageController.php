@@ -22,6 +22,7 @@ use App\Models\User;
 use App\Notifications\ItemChatNotification;
 use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Chat\ChatAttachmentUploadService;
 use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatUnreadService;
 use App\Services\Collections\CollectionItemDataNormalizer;
@@ -32,6 +33,7 @@ use App\Services\Settings\SettingsRepository;
 use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -54,6 +56,7 @@ class ChatMessageController extends Controller
     public function __construct(
         private ChatService $chats,
         private ChatUnreadService $unread,
+        private ChatAttachmentUploadService $chatUploads,
         private CollectionPermissionEnforcer $permissionEnforcer,
         private EffectivePermissionResolver $permissionResolver,
         private SettingsRepository $settings,
@@ -335,6 +338,7 @@ class ChatMessageController extends Controller
             $chat->id,
             (int) $message->id,
             (int) $user->id,
+            $this->displayName($user),
             $emoji,
             $added,
         ));
@@ -347,54 +351,6 @@ class ChatMessageController extends Controller
             'added' => $added,
             'reactions' => $this->serializeReactions($message, $user),
         ]);
-    }
-
-    public function forward(
-        Request $request,
-        Chat $chat,
-        CollectionItemChatMessage $message,
-    ): JsonResponse {
-        $this->chats->assertAccessible($request, $chat);
-        $this->assertMessageOnChat($message, $chat);
-        abort_unless($chat->isItem(), 422, 'Forward is only available on item chats.');
-
-        $user = $request->user();
-        abort_unless($user instanceof User, 401);
-        $collection = $chat->collection;
-        abort_unless($collection instanceof Collection, 404);
-
-        $validated = $request->validate([
-            'item_id' => ['required', 'integer', 'exists:collections_items,id'],
-        ]);
-
-        $target = CollectionItem::query()->find($validated['item_id']);
-        abort_unless($target instanceof CollectionItem, 404);
-        abort_unless((int) $target->collection_id === (int) $collection->id, 404);
-        abort_if((int) $target->id === (int) $chat->collection_item_id, 422, 'Forward to a different item.');
-        $this->permissionEnforcer->assertItemReadable($request, $collection, $target);
-
-        $targetChat = $this->chats->findOrCreateItemChat($user, $collection, $target);
-
-        $author = $message->user;
-        $copy = CollectionItemChatMessage::query()->create([
-            'chat_id' => $targetChat->id,
-            'user_id' => $user->id,
-            'body' => $message->body,
-            'mentioned_user_ids' => $message->mentionedIds(),
-            'forwarded_from_message_id' => $message->id,
-            'forwarded_from_author_name' => $author instanceof User
-                ? $this->displayName($author)
-                : (string) $message->forwarded_from_author_name,
-        ]);
-
-        $targetChat->touch();
-        $copy->load($this->messageRelations());
-        $payload = $this->serializeMessage($copy, $user);
-        $this->notifyRecipients($targetChat, $copy, $user, $copy->mentionedIds());
-        $this->unread->afterMessageCreated($targetChat, $copy, $user, $copy->mentionedIds());
-        event(new ItemChatMessageCreated($targetChat->id, $payload));
-
-        return response()->json(['message' => $payload], 201);
     }
 
     public function mentions(Request $request, Chat $chat): JsonResponse
@@ -451,55 +407,93 @@ class ChatMessageController extends Controller
         abort_unless($user instanceof User, 401);
 
         $validated = $request->validate([
-            'file' => ['required', 'file', 'max:'.(CollectionItemChatAttachment::MAX_BYTES / 1024)],
+            'file' => ['required', 'file'],
         ]);
 
         /** @var UploadedFile $uploaded */
         $uploaded = $validated['file'];
-
-        $extension = strtolower((string) $uploaded->getClientOriginalExtension());
-        $mimeType = strtolower((string) ($uploaded->getMimeType() ?: $uploaded->getClientMimeType() ?: ''));
-        $extensionAllowed = in_array($extension, CollectionItemChatAttachment::ALLOWED_EXTENSIONS, true);
-        $mimeAllowed = in_array($mimeType, CollectionItemChatAttachment::ALLOWED_MIME_TYPES, true)
-            || ($mimeType === 'application/octet-stream' && $extensionAllowed);
-
-        if (! $extensionAllowed || ! $mimeAllowed) {
-            throw ValidationException::withMessages([
-                'file' => 'Unsupported file type.',
-            ]);
-        }
-
-        if ($uploaded->getSize() > CollectionItemChatAttachment::MAX_BYTES) {
-            throw ValidationException::withMessages([
-                'file' => 'The file exceeds the 10 MB limit.',
-            ]);
-        }
-
-        $attachmentId = (string) Str::uuid7();
-        $safeName = Str::slug(pathinfo($uploaded->getClientOriginalName(), PATHINFO_FILENAME)) ?: 'attachment';
-        $storagePath = sprintf(
-            'chat-attachments/%d/%s.%s',
-            $user->id,
-            $attachmentId,
-            $extension,
-        );
-
-        Storage::disk(CollectionItemChatAttachment::DISK)->put($storagePath, $uploaded->getContent());
-
-        $attachment = CollectionItemChatAttachment::query()->create([
-            'id' => $attachmentId,
-            'user_id' => $user->id,
-            'original_name' => $uploaded->getClientOriginalName() !== ''
-                ? $uploaded->getClientOriginalName()
-                : "{$safeName}.{$extension}",
-            'mime_type' => $mimeType !== '' ? $mimeType : 'application/octet-stream',
-            'disk' => CollectionItemChatAttachment::DISK,
-            'path' => $storagePath,
-            'size' => (int) $uploaded->getSize(),
-            'expires_at' => now()->addHours(CollectionItemChatAttachment::TTL_HOURS),
-        ]);
+        $attachment = $this->chatUploads->storeSingle($user, $uploaded);
 
         return response()->json(['attachment' => $attachment->toApiArray()], 201);
+    }
+
+    public function initAttachmentUpload(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $validated = $request->validate([
+            'file_name' => ['required', 'string', 'max:255'],
+            'total_size' => ['required', 'integer', 'min:1'],
+            'total_chunks' => ['required', 'integer', 'min:1'],
+            'mime_type' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $upload = $this->chatUploads->init(
+            $user,
+            $validated['file_name'],
+            (int) $validated['total_size'],
+            (int) $validated['total_chunks'],
+            $validated['mime_type'] ?? null,
+        );
+
+        return response()->json([
+            'upload_id' => $upload->upload_id,
+            'expires_at' => $upload->expires_at->toIso8601String(),
+        ], 201);
+    }
+
+    public function uploadAttachmentChunk(Request $request): Response
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $validated = $request->validate([
+            'upload_id' => ['required', 'string', 'max:64'],
+            'chunk_index' => ['required', 'integer', 'min:0'],
+            'chunk' => ['required', 'file'],
+        ]);
+
+        $this->chatUploads->uploadChunk(
+            $user,
+            $validated['upload_id'],
+            (int) $validated['chunk_index'],
+            $validated['chunk'],
+        );
+
+        return response()->noContent();
+    }
+
+    public function completeAttachmentUpload(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $validated = $request->validate([
+            'upload_id' => ['required', 'string', 'max:64'],
+        ]);
+
+        $attachment = $this->chatUploads->complete($user, $validated['upload_id']);
+
+        return response()->json(['attachment' => $attachment->toApiArray()], 201);
+    }
+
+    public function attachmentUploadStatus(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $validated = $request->validate([
+            'upload_id' => ['required', 'string', 'max:64'],
+        ]);
+
+        $status = $this->chatUploads->status($user, $validated['upload_id']);
+
+        if ($status === null) {
+            return response()->json(['message' => 'Upload not found or expired'], 404);
+        }
+
+        return response()->json($status);
     }
 
     public function showAttachment(
@@ -518,6 +512,50 @@ class ChatMessageController extends Controller
                 'Content-Type' => $attachment->mime_type,
             ],
         );
+    }
+
+    public function showAttachmentPreview(
+        Request $request,
+        ?Chat $chat,
+        CollectionItemChatAttachment $attachment,
+    ): StreamedResponse {
+        $this->assertAttachmentAccessible($request, $chat, $attachment);
+        abort_if($attachment->isExpired(), 404);
+        abort_unless($attachment->hasPreview(), 404);
+        abort_unless(Storage::disk($attachment->disk)->exists($attachment->preview_path), 404);
+
+        $mime = is_string($attachment->preview_mime) && $attachment->preview_mime !== ''
+            ? $attachment->preview_mime
+            : 'image/jpeg';
+
+        return Storage::disk($attachment->disk)->response(
+            $attachment->preview_path,
+            'preview-'.$attachment->original_name,
+            [
+                'Content-Type' => $mime,
+            ],
+        );
+    }
+
+    public function destroyAttachment(
+        Request $request,
+        ?Chat $chat,
+        CollectionItemChatAttachment $attachment,
+    ): Response {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        // Orphan cancel only — claimed attachments stay with the message
+        abort_unless($attachment->message_id === null, 403);
+        abort_unless((int) $attachment->user_id === (int) $user->id, 403);
+
+        if ($chat !== null) {
+            $this->chats->assertAccessible($request, $chat);
+        }
+
+        $attachment->delete();
+
+        return response()->noContent();
     }
 
     public function saveToFiles(
@@ -605,6 +643,34 @@ class ChatMessageController extends Controller
         return $this->storeAttachment($request);
     }
 
+    public function initAttachmentUploadOnChat(Request $request, Chat $chat): JsonResponse
+    {
+        $this->chats->assertAccessible($request, $chat);
+
+        return $this->initAttachmentUpload($request);
+    }
+
+    public function uploadAttachmentChunkOnChat(Request $request, Chat $chat): Response
+    {
+        $this->chats->assertAccessible($request, $chat);
+
+        return $this->uploadAttachmentChunk($request);
+    }
+
+    public function completeAttachmentUploadOnChat(Request $request, Chat $chat): JsonResponse
+    {
+        $this->chats->assertAccessible($request, $chat);
+
+        return $this->completeAttachmentUpload($request);
+    }
+
+    public function attachmentUploadStatusOnChat(Request $request, Chat $chat): JsonResponse
+    {
+        $this->chats->assertAccessible($request, $chat);
+
+        return $this->attachmentUploadStatus($request);
+    }
+
     public function showAttachmentOnChat(
         Request $request,
         Chat $chat,
@@ -613,6 +679,24 @@ class ChatMessageController extends Controller
         $this->chats->assertAccessible($request, $chat);
 
         return $this->showAttachment($request, $chat, $attachment);
+    }
+
+    public function showAttachmentPreviewOnChat(
+        Request $request,
+        Chat $chat,
+        CollectionItemChatAttachment $attachment,
+    ): StreamedResponse {
+        $this->chats->assertAccessible($request, $chat);
+
+        return $this->showAttachmentPreview($request, $chat, $attachment);
+    }
+
+    public function destroyAttachmentOnChat(
+        Request $request,
+        Chat $chat,
+        CollectionItemChatAttachment $attachment,
+    ): Response {
+        return $this->destroyAttachment($request, $chat, $attachment);
     }
 
     public function saveToFilesOnChat(
@@ -896,7 +980,7 @@ class ChatMessageController extends Controller
         return [
             'user:id,first_name,last_name,email',
             'attachments',
-            'reactions',
+            'reactions.user:id,first_name,last_name,email',
             'replyTo.user:id,first_name,last_name,email',
         ];
     }
@@ -969,7 +1053,7 @@ class ChatMessageController extends Controller
     }
 
     /**
-     * @return list<array{emoji: string, count: int, reacted: bool}>
+     * @return list<array{emoji: string, count: int, reacted: bool, users: list<array{id: int, name: string}>}>
      */
     private function serializeReactions(CollectionItemChatMessage $message, User $viewer): array
     {
@@ -977,12 +1061,29 @@ class ChatMessageController extends Controller
         $out = [];
 
         foreach ($grouped as $emoji => $rows) {
+            $users = $rows
+                ->map(function (CollectionItemChatReaction $reaction): ?array {
+                    $author = $reaction->user;
+                    if (! $author instanceof User) {
+                        return null;
+                    }
+
+                    return [
+                        'id' => (int) $author->id,
+                        'name' => $this->displayName($author),
+                    ];
+                })
+                ->filter()
+                ->values()
+                ->all();
+
             $out[] = [
                 'emoji' => (string) $emoji,
-                'count' => $rows->count(),
+                'count' => count($users),
                 'reacted' => $rows->contains(
                     fn (CollectionItemChatReaction $reaction): bool => (int) $reaction->user_id === (int) $viewer->id,
                 ),
+                'users' => $users,
             ];
         }
 
@@ -1039,15 +1140,6 @@ class ChatMessageController extends Controller
             'reply_to' => $this->serializeReplyTo($comment),
             'is_pinned' => $comment->isPinned(),
             'pinned_at' => $comment->pinned_at?->toIso8601String(),
-            'forwarded_from' => $comment->forwarded_from_author_name !== null
-                && $comment->forwarded_from_author_name !== ''
-                ? [
-                    'message_id' => $comment->forwarded_from_message_id !== null
-                        ? (int) $comment->forwarded_from_message_id
-                        : null,
-                    'author_name' => $comment->forwarded_from_author_name,
-                ]
-                : null,
             'reactions' => $this->serializeReactions($comment, $viewer),
             'created_at' => $comment->created_at?->toIso8601String(),
             'updated_at' => $comment->updated_at?->toIso8601String(),

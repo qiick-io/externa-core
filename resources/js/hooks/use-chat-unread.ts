@@ -1,46 +1,111 @@
 import { usePage } from '@inertiajs/react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
-    CHAT_UNREAD_UPDATED_EVENT,
     fetchChatUnread,
+    type ChatSummary,
     type ChatUnreadShare,
 } from '@/lib/chat-hub-api';
 import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
+import {
+    playChatSound,
+    shouldPlayChatSoundForUnreadEvent,
+} from '@/lib/notification-sound';
+import { useChatStore } from '@/stores/chat/store';
+import { emptyUnread, isUnreadShare } from '@/stores/chat/types';
 
 const UNREAD_POLL_INTERVAL_MS = 60_000;
 
-let echoBoundUserId: number | null = null;
+let echoUserId: number | null = null;
 
-function emptyUnread(): ChatUnreadShare {
-    return {
-        unread_count: 0,
-        unread_private: 0,
-        unread_collection: 0,
-    };
-}
+const CHAT_UNREAD_EVENT = '.ChatUnreadUpdated';
+const CHAT_THREAD_UPSERTED_EVENT = '.ThreadUpserted';
 
-function isUnreadShare(value: unknown): value is ChatUnreadShare {
+function isChatSummary(value: unknown): value is ChatSummary {
     if (!value || typeof value !== 'object') {
         return false;
     }
 
-    const row = value as ChatUnreadShare;
+    const row = value as ChatSummary;
 
     return (
-        typeof row.unread_count === 'number' &&
-        typeof row.unread_private === 'number' &&
-        typeof row.unread_collection === 'number'
+        typeof row.id === 'string' &&
+        (row.kind === 'direct' || row.kind === 'item') &&
+        typeof row.title === 'string'
     );
 }
 
+function onChatUnreadUpdated(payload: ChatUnreadShare): void {
+    if (!isUnreadShare(payload)) {
+        return;
+    }
+
+    const store = useChatStore.getState();
+    const previousUnread = store.unread.unread_count;
+
+    store.setUnread(payload);
+
+    if (
+        typeof payload.chat_id === 'string' &&
+        payload.chat_id !== '' &&
+        typeof payload.chat_unread_count === 'number'
+    ) {
+        store.patchThread(payload.chat_id, {
+            unread_count: payload.chat_unread_count,
+        });
+    }
+
+    if (
+        shouldPlayChatSoundForUnreadEvent(
+            previousUnread,
+            payload.unread_count,
+            payload.play_sound,
+        )
+    ) {
+        playChatSound();
+    }
+}
+
+function onChatThreadUpserted(payload: { chat?: unknown }): void {
+    if (!isChatSummary(payload.chat)) {
+        return;
+    }
+
+    useChatStore.getState().upsertThread(payload.chat);
+}
+
+/** Re-bind listener; shared user channel also used by notifications bell. */
+function bindUnreadEcho(userId: number): void {
+    const echo = ensureEcho(true);
+
+    if (!echo) {
+        return;
+    }
+
+    if (echoUserId !== null && echoUserId !== userId) {
+        echo
+            .private(`App.Models.User.${echoUserId}`)
+            .stopListening(CHAT_UNREAD_EVENT)
+            .stopListening(CHAT_THREAD_UPSERTED_EVENT);
+    }
+
+    echo
+        .private(`App.Models.User.${userId}`)
+        .stopListening(CHAT_UNREAD_EVENT)
+        .stopListening(CHAT_THREAD_UPSERTED_EVENT)
+        .listen(CHAT_UNREAD_EVENT, onChatUnreadUpdated)
+        .listen(CHAT_THREAD_UPSERTED_EVENT, onChatThreadUpserted);
+    echoUserId = userId;
+}
+
 /**
- * Shared chat unread totals for sidebar + hub tabs.
+ * Shared chat unread totals for sidebar + hub tabs (Zustand).
  */
 export function useChatUnread(): ChatUnreadShare & { refresh: () => void } {
     const page = usePage();
     const shared = page.props.chat ?? emptyUnread();
     const realtimeOn = isRealtimeEnabled(page.props.realtime);
-    const [unread, setUnread] = useState<ChatUnreadShare>(shared);
+    const unread = useChatStore((state) => state.unread);
+    const setUnread = useChatStore((state) => state.setUnread);
 
     const refresh = useCallback((): void => {
         void fetchChatUnread()
@@ -48,7 +113,7 @@ export function useChatUnread(): ChatUnreadShare & { refresh: () => void } {
             .catch(() => {
                 // Ignore transient poll failures.
             });
-    }, []);
+    }, [setUnread]);
 
     useEffect(() => {
         setUnread(shared);
@@ -56,55 +121,27 @@ export function useChatUnread(): ChatUnreadShare & { refresh: () => void } {
         shared.unread_count,
         shared.unread_private,
         shared.unread_collection,
+        setUnread,
     ]);
 
     useEffect(() => {
-        const onUpdate = (event: Event): void => {
-            const detail = (event as CustomEvent<ChatUnreadShare>).detail;
-            if (isUnreadShare(detail)) {
-                setUnread(detail);
-            } else {
-                refresh();
-            }
-        };
-
-        window.addEventListener(CHAT_UNREAD_UPDATED_EVENT, onUpdate);
-
-        let poll: number | undefined;
         const user = page.props.auth.user;
 
         if (!user) {
-            return () => {
-                window.removeEventListener(CHAT_UNREAD_UPDATED_EVENT, onUpdate);
-            };
+            echoUserId = null;
+
+            return;
         }
 
         if (!realtimeOn) {
-            poll = window.setInterval(refresh, UNREAD_POLL_INTERVAL_MS);
-        } else if (echoBoundUserId !== user.id) {
-            const echo = ensureEcho(true);
-            echo
-                ?.private(`App.Models.User.${user.id}`)
-                .listen('.ChatUnreadUpdated', (payload: ChatUnreadShare) => {
-                    if (isUnreadShare(payload)) {
-                        setUnread(payload);
-                        window.dispatchEvent(
-                            new CustomEvent(CHAT_UNREAD_UPDATED_EVENT, {
-                                detail: payload,
-                            }),
-                        );
-                    }
-                });
-            echoBoundUserId = user.id;
+            const poll = window.setInterval(refresh, UNREAD_POLL_INTERVAL_MS);
+
+            return () => window.clearInterval(poll);
         }
 
-        return () => {
-            if (poll) {
-                window.clearInterval(poll);
-            }
+        bindUnreadEcho(user.id);
 
-            window.removeEventListener(CHAT_UNREAD_UPDATED_EVENT, onUpdate);
-        };
+        return;
     }, [page.props.auth.user, realtimeOn, refresh]);
 
     return { ...unread, refresh };

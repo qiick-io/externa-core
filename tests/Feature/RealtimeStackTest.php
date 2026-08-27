@@ -119,6 +119,39 @@ test('presence online channel returns user payload for active users', function (
         ->and($channelData['user_info']['id'] ?? null)->toBe($user->id);
 });
 
+test('presence online channel denies inactive users', function () {
+    useReverbBroadcaster();
+
+    $user = User::factory()->create(['is_active' => false]);
+
+    $request = Request::create('/broadcasting/auth', 'POST', [
+        'channel_name' => 'presence-online',
+        'socket_id' => '1234.5678',
+    ]);
+    $request->setUserResolver(fn () => $user);
+
+    expect(fn () => Broadcast::driver('reverb')->auth($request))
+        ->toThrow(AccessDeniedHttpException::class);
+});
+
+test('presence online channel authorizes any active authenticated user', function () {
+    useReverbBroadcaster();
+
+    $users = User::factory()->count(3)->create(['is_active' => true]);
+
+    foreach ($users as $user) {
+        $request = Request::create('/broadcasting/auth', 'POST', [
+            'channel_name' => 'presence-online',
+            'socket_id' => '1234.5678',
+        ]);
+        $request->setUserResolver(fn () => $user);
+
+        $payload = Broadcast::driver('reverb')->auth($request);
+
+        expect($payload)->toHaveKey('auth');
+    }
+});
+
 test('file notifications broadcast when realtime driver is configured', function () {
     config(['broadcasting.default' => 'reverb']);
 
