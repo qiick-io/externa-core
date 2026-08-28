@@ -12,7 +12,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 /**
@@ -31,12 +30,9 @@ class ChatAttachmentUploadService
 
     /**
      * Persist a single-request orphan attachment (with optional image preview).
-     *
-     * @throws ValidationException
      */
     public function storeSingle(User $user, UploadedFile $uploaded): CollectionItemChatAttachment
     {
-        $this->assertAllowedType($uploaded);
         $size = (int) $uploaded->getSize();
         UploadSizeLimiter::assertWithinCap($this->projectSettings->chatMaxUploadBytes(), $size);
         UploadSizeLimiter::assertFitsPhpSingleUpload($size);
@@ -74,7 +70,7 @@ class ChatAttachmentUploadService
     }
 
     /**
-     * @throws ValidationException
+     * Start a chunked upload session.
      */
     public function init(
         User $user,
@@ -88,9 +84,6 @@ class ChatAttachmentUploadService
             $totalSize,
             'total_size',
         );
-
-        $extension = strtolower((string) pathinfo($fileName, PATHINFO_EXTENSION));
-        $this->assertExtensionAndMime($extension, $mimeType);
 
         $uploadId = bin2hex(random_bytes(32));
 
@@ -146,7 +139,6 @@ class ChatAttachmentUploadService
 
     /**
      * @throws RuntimeException
-     * @throws ValidationException
      */
     public function complete(User $user, string $uploadId): CollectionItemChatAttachment
     {
@@ -196,8 +188,6 @@ class ChatAttachmentUploadService
         $mimeType = is_string($fileUpload->mime_type) && $fileUpload->mime_type !== ''
             ? strtolower($fileUpload->mime_type)
             : $this->mimeFromExtension($extension);
-
-        $this->assertExtensionAndMime($extension, $mimeType);
 
         $attachmentId = (string) Str::uuid7();
         $storagePath = sprintf(
@@ -267,34 +257,6 @@ class ChatAttachmentUploadService
         }
 
         return $count;
-    }
-
-    /**
-     * @throws ValidationException
-     */
-    private function assertAllowedType(UploadedFile $uploaded): void
-    {
-        $extension = strtolower((string) $uploaded->getClientOriginalExtension());
-        $mimeType = strtolower((string) ($uploaded->getMimeType() ?: $uploaded->getClientMimeType() ?: ''));
-        $this->assertExtensionAndMime($extension, $mimeType);
-    }
-
-    /**
-     * @throws ValidationException
-     */
-    private function assertExtensionAndMime(string $extension, ?string $mimeType): void
-    {
-        $mime = is_string($mimeType) ? strtolower($mimeType) : '';
-        $extensionAllowed = in_array($extension, CollectionItemChatAttachment::ALLOWED_EXTENSIONS, true);
-        $mimeAllowed = in_array($mime, CollectionItemChatAttachment::ALLOWED_MIME_TYPES, true)
-            || ($mime === 'application/octet-stream' && $extensionAllowed)
-            || ($mime === '' && $extensionAllowed);
-
-        if (! $extensionAllowed || ! $mimeAllowed) {
-            throw ValidationException::withMessages([
-                'file' => ['Unsupported file type.'],
-            ]);
-        }
     }
 
     private function resolveMime(UploadedFile $uploaded, string $extension): string

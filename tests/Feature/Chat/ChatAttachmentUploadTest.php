@@ -72,6 +72,26 @@ test('chat chunked upload init chunk complete creates orphan attachment', functi
         ->and(CollectionItemChatAttachment::query()->where('id', $complete['id'])->whereNull('message_id')->exists())->toBeTrue();
 });
 
+test('chat upload accepts any file type', function () {
+    ['user' => $user, 'collection' => $collection, 'item' => $item] = chatUploadKitchen();
+    $this->actingAs($user);
+
+    $store = $this->postJson(route('collections.items.chat.attachments.store', [$collection, $item]), [
+        'file' => UploadedFile::fake()->createWithContent('archive.zip', 'PK..payload'),
+    ])->assertCreated()->json('attachment');
+
+    expect($store['name'])->toBe('archive.zip');
+
+    $init = $this->postJson(route('collections.items.chat.attachments.uploads.init', [$collection, $item]), [
+        'file_name' => 'payload.bin',
+        'total_size' => 8,
+        'total_chunks' => 1,
+        'mime_type' => 'application/octet-stream',
+    ])->assertCreated();
+
+    expect($init->json('upload_id'))->toBeString()->not->toBeEmpty();
+});
+
 test('chat upload respects chat_max_upload_bytes setting', function () {
     ['user' => $user, 'collection' => $collection, 'item' => $item] = chatUploadKitchen();
     $this->actingAs($user);

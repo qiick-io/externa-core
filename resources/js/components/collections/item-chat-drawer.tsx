@@ -7,7 +7,6 @@ import {
     MoreVertical,
     Paperclip,
     Pin,
-    Play,
     Reply,
     Send,
     Smile,
@@ -16,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DragEvent, ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
+import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { ChatMediaLightbox } from '@/components/chat/chat-media-lightbox';
 import {
     ChatOutgoingAttachPreview,
@@ -1844,6 +1844,14 @@ export function ItemChatDrawer({
                         }}
                         canCreateDirect={canCreateDirect}
                     />
+                    <div
+                        className="relative flex min-h-0 flex-1 flex-col"
+                        data-test="chat-file-dropzone"
+                        onDragEnter={onComposerDragEnter}
+                        onDragOver={onComposerDragOver}
+                        onDragLeave={onComposerDragLeave}
+                        onDrop={onComposerDrop}
+                    >
                     <div className="relative flex min-h-0 flex-1 flex-col">
                     <DrawerBody
                         ref={messagesScrollRef}
@@ -2010,15 +2018,27 @@ export function ItemChatDrawer({
                                                                 ? 'end'
                                                                 : 'start'
                                                         }
+                                                        className={
+                                                            comment.attachments.some(
+                                                                isChatMediaAttachment,
+                                                            )
+                                                                ? 'min-w-[16rem]'
+                                                                : undefined
+                                                        }
                                                     >
                                                         <BubbleContent
                                                             className={cn(
-                                                                'flex w-full min-w-0 flex-col gap-1',
+                                                                'flex w-full flex-col gap-1',
                                                                 mine &&
                                                                     'text-foreground',
+                                                                // Media album needs definite min width:
+                                                                // Bubble is w-fit; min-w-0 + author
+                                                                // label collapses the grid for !mine.
                                                                 comment.attachments.some(
                                                                     isChatMediaAttachment,
-                                                                ) && 'gap-0 p-0',
+                                                                )
+                                                                    ? 'min-w-[16rem] gap-0 p-0'
+                                                                    : 'min-w-0',
                                                             )}
                                                         >
                                                             {(() => {
@@ -2491,16 +2511,7 @@ export function ItemChatDrawer({
                             </div>
                         ) : null}
                     </div>
-                    <DrawerFooter
-                        className={cn(
-                            'relative',
-                            composerDragOver && 'bg-primary/5',
-                        )}
-                        onDragEnter={onComposerDragEnter}
-                        onDragOver={onComposerDragOver}
-                        onDragLeave={onComposerDragLeave}
-                        onDrop={onComposerDrop}
-                    >
+                    <DrawerFooter>
                             {replyTo ? (
                                 <div className="flex items-start gap-2 rounded-md bg-muted/60 px-2 py-1.5">
                                     <div
@@ -2762,6 +2773,7 @@ export function ItemChatDrawer({
                                     {t('collections.itemChat.send')}
                                 </Button>
                             </div>
+                    </DrawerFooter>
                             {composerDragOver ? (
                                 <div
                                     className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-primary bg-primary/10"
@@ -2773,7 +2785,7 @@ export function ItemChatDrawer({
                                     </div>
                                 </div>
                             ) : null}
-                    </DrawerFooter>
+                    </div>
         </>
     );
 
@@ -2931,70 +2943,6 @@ function isChatMediaAttachment(attachment: ChatAttachment): boolean {
     );
 }
 
-function GalleryMediaThumb({
-    href,
-    isVideo,
-    name,
-    single,
-}: {
-    href: string;
-    isVideo: boolean;
-    name: string;
-    single: boolean;
-}) {
-    const [loaded, setLoaded] = useState(false);
-
-    return (
-        <div
-            className={cn(
-                'relative h-full w-full bg-muted/70',
-                single ? 'min-h-[10rem]' : 'min-h-[6rem]',
-            )}
-        >
-            {!loaded ? (
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <Spinner className="size-5 text-muted-foreground" />
-                </div>
-            ) : null}
-            {isVideo ? (
-                <>
-                    <video
-                        src={href}
-                        className={cn(
-                            'h-full max-h-[22rem] w-full object-cover transition-opacity',
-                            loaded ? 'opacity-100' : 'opacity-0',
-                        )}
-                        muted
-                        playsInline
-                        preload="metadata"
-                        onLoadedData={() => setLoaded(true)}
-                    />
-                    {loaded ? (
-                        <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                            <span className="flex size-10 items-center justify-center rounded-full bg-black/55 text-white">
-                                <Play className="size-5 fill-current" />
-                            </span>
-                        </span>
-                    ) : null}
-                </>
-            ) : (
-                <img
-                    src={href}
-                    alt={name}
-                    className={cn(
-                        'h-full w-full transition-opacity',
-                        single
-                            ? 'max-h-[22rem] object-contain'
-                            : 'object-cover',
-                        loaded ? 'opacity-100' : 'opacity-0',
-                    )}
-                    onLoad={() => setLoaded(true)}
-                />
-            )}
-        </div>
-    );
-}
-
 function ChatMediaGallery({
     items,
     scope,
@@ -3011,139 +2959,99 @@ function ChatMediaGallery({
     onAddToField: (attachment: ChatAttachment) => void;
 }) {
     const { t } = useTranslation();
-    const count = items.length;
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-    if (count === 0) {
+    if (items.length === 0) {
         return null;
     }
 
-    const renderMedia = (
-        attachment: ChatAttachment,
-        className: string,
-        mediaIndex: number,
-    ): ReactNode => {
-        const href = chatAttachmentPreviewUrl(scope, attachment);
-        const originalHref = chatAttachmentUrl(scope, attachment.id);
-        const isVideo = attachment.mime.startsWith('video/');
-
-        return (
-            <div
-                key={attachment.id}
-                className={cn('group/media relative min-h-0 min-w-0', className)}
-            >
-                <button
-                    type="button"
-                    className="relative block h-full w-full cursor-zoom-in"
-                    aria-label={t('collections.itemChat.mediaPreview')}
-                    onClick={() => setLightboxIndex(mediaIndex)}
-                >
-                    <GalleryMediaThumb
-                        href={href}
-                        isVideo={isVideo}
-                        name={attachment.name}
-                        single={count === 1}
-                    />
-                </button>
-                <div className="absolute top-1 right-1 opacity-0 transition-opacity group-hover/media:opacity-100 focus-within:opacity-100">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                type="button"
-                                size="icon"
-                                variant="secondary"
-                                className="size-7 bg-background/80 shadow-sm backdrop-blur"
-                                aria-label={t('collections.itemChat.more')}
-                                onClick={(event) => event.stopPropagation()}
-                                onContextMenu={(event) =>
-                                    event.stopPropagation()
-                                }
-                            >
-                                <MoreVertical className="size-3.5" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                                <a
-                                    href={originalHref}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                >
-                                    {t('collections.itemChat.download')}
-                                </a>
-                            </DropdownMenuItem>
-                            {canCreateFiles ? (
-                                <DropdownMenuItem
-                                    onSelect={() => {
-                                        void saveChatAttachmentToFiles(
-                                            scope,
-                                            attachment.id,
-                                        ).then((payload) =>
-                                            onSaved(payload.attachment),
-                                        );
-                                    }}
-                                >
-                                    {t('collections.itemChat.saveToFiles')}
-                                </DropdownMenuItem>
-                            ) : null}
-                            {hasFileFields ? (
-                                <DropdownMenuItem
-                                    onSelect={() => onAddToField(attachment)}
-                                >
-                                    {t('collections.itemChat.addToField')}
-                                </DropdownMenuItem>
-                            ) : null}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            </div>
-        );
-    };
-
     return (
         <>
-            {count === 1 ? (
-                <div className="w-full min-w-[14rem] max-w-sm overflow-hidden bg-black/20">
-                    {renderMedia(items[0]!, 'flex justify-center', 0)}
-                </div>
-            ) : null}
+            <ChatMediaAlbum
+                items={items.map((attachment) => ({
+                    key: attachment.id,
+                    src: chatAttachmentPreviewUrl(scope, attachment),
+                    isVideo: attachment.mime.startsWith('video/'),
+                    name: attachment.name,
+                }))}
+                mediaPreviewLabel={t('collections.itemChat.mediaPreview')}
+                onMediaClick={setLightboxIndex}
+                renderOverlay={(_, index) => {
+                    const attachment = items[index]!;
+                    const originalHref = chatAttachmentUrl(
+                        scope,
+                        attachment.id,
+                    );
 
-            {count === 2 ? (
-                <div className="grid w-full min-w-[16rem] max-w-sm grid-cols-2 gap-0.5 overflow-hidden bg-black/20">
-                    {items.map((item, index) =>
-                        renderMedia(item, 'aspect-[3/4] max-h-64', index),
-                    )}
-                </div>
-            ) : null}
-
-            {count === 3 ? (
-                <div className="aspect-[4/5] grid w-full min-w-[16rem] max-h-80 max-w-sm grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden bg-black/20">
-                    {renderMedia(items[0]!, 'row-span-2', 0)}
-                    {renderMedia(items[1]!, '', 1)}
-                    {renderMedia(items[2]!, '', 2)}
-                </div>
-            ) : null}
-
-            {count === 4 ? (
-                <div className="grid w-full min-w-[16rem] max-w-sm grid-cols-2 gap-0.5 overflow-hidden bg-black/20">
-                    {items.map((item, index) =>
-                        renderMedia(item, 'aspect-square max-h-44', index),
-                    )}
-                </div>
-            ) : null}
-
-            {count >= 5 ? (
-                <div className="grid w-full min-w-[16rem] max-w-sm grid-cols-6 gap-0.5 overflow-hidden bg-black/20">
-                    {items.map((item, index) => {
-                        const isTopPair = index < 2;
-                        const span = isTopPair
-                            ? 'col-span-3 aspect-[4/5] max-h-52'
-                            : 'col-span-2 aspect-square max-h-36';
-
-                        return renderMedia(item, span, index);
-                    })}
-                </div>
-            ) : null}
+                    return (
+                        <div className="absolute top-1 right-1 opacity-0 transition-opacity group-hover/media:opacity-100 focus-within:opacity-100">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="secondary"
+                                        className="size-7 bg-background/80 shadow-sm backdrop-blur"
+                                        aria-label={t(
+                                            'collections.itemChat.more',
+                                        )}
+                                        onClick={(event) =>
+                                            event.stopPropagation()
+                                        }
+                                        onContextMenu={(event) =>
+                                            event.stopPropagation()
+                                        }
+                                    >
+                                        <MoreVertical className="size-3.5" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem asChild>
+                                        <a
+                                            href={originalHref}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        >
+                                            {t(
+                                                'collections.itemChat.download',
+                                            )}
+                                        </a>
+                                    </DropdownMenuItem>
+                                    {canCreateFiles ? (
+                                        <DropdownMenuItem
+                                            onSelect={() => {
+                                                void saveChatAttachmentToFiles(
+                                                    scope,
+                                                    attachment.id,
+                                                ).then((payload) =>
+                                                    onSaved(
+                                                        payload.attachment,
+                                                    ),
+                                                );
+                                            }}
+                                        >
+                                            {t(
+                                                'collections.itemChat.saveToFiles',
+                                            )}
+                                        </DropdownMenuItem>
+                                    ) : null}
+                                    {hasFileFields ? (
+                                        <DropdownMenuItem
+                                            onSelect={() =>
+                                                onAddToField(attachment)
+                                            }
+                                        >
+                                            {t(
+                                                'collections.itemChat.addToField',
+                                            )}
+                                        </DropdownMenuItem>
+                                    ) : null}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    );
+                }}
+            />
 
             <ChatMediaLightbox
                 open={lightboxIndex !== null}

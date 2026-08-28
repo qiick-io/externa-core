@@ -7,7 +7,6 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
 use App\Models\User;
-use App\Services\Collections\CollectionFieldGroupService;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\MigrateFormLayoutToGroupsService;
 use Database\Seeders\PermissionSeeder;
@@ -111,7 +110,7 @@ test('accordion accepts nested raw section via field store', function () {
         ->and($section->settings['display_name']['en'] ?? null)->toBe('Section 3');
 });
 
-test('nesting via settings.group validates parent and reorder wraps leaf under accordion', function () {
+test('nesting via settings.group validates parent and reorder nests leaf under accordion directly', function () {
     $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
@@ -145,17 +144,8 @@ test('nesting via settings.group validates parent and reorder wraps leaf under a
         ],
     ])->assertRedirect()->assertSessionHasNoErrors();
 
-    $title->refresh();
-    $parentName = $title->settings['group'] ?? null;
-    expect($parentName)->not->toBeNull()->not->toBe('acc');
-
-    $section = CollectionField::query()
-        ->where('collection_id', $collection->id)
-        ->where('name', $parentName)
-        ->first();
-    expect($section)->not->toBeNull()
-        ->and($section->type)->toBe(FieldTypeEnum::GroupRaw)
-        ->and($section->settings['group'] ?? null)->toBe('acc');
+    // Directus parity: leaf→Accordion nests directly (no Raw auto-wrap).
+    expect($title->fresh()->settings['group'] ?? null)->toBe('acc');
 });
 
 test('accordion and tabs accept any layout group children (Directus parity)', function () {
@@ -278,49 +268,6 @@ test('tabs create seeds default panel sections', function () {
         ->get()
         ->filter(fn (CollectionField $f) => ($f->settings['group'] ?? null) === 'main_tabs');
     expect($panels)->toHaveCount(2);
-});
-
-test('wrapLegacyPanelLeaves migrates leaf accordion children into raw sections', function () {
-    $collection = Collection::factory()->create();
-    CollectionField::factory()->create([
-        'collection_id' => $collection->id,
-        'name' => 'acc',
-        'type' => FieldTypeEnum::GroupAccordion,
-        'settings' => ['layout_width' => 'full'],
-        'sort_order' => 1,
-    ]);
-    $summary = CollectionField::factory()->create([
-        'collection_id' => $collection->id,
-        'name' => 'summary',
-        'type' => FieldTypeEnum::String,
-        'settings' => ['group' => 'acc', 'display_name' => ['en' => 'Summary']],
-        'sort_order' => 2,
-    ]);
-    $featured = CollectionField::factory()->create([
-        'collection_id' => $collection->id,
-        'name' => 'featured',
-        'type' => FieldTypeEnum::Boolean,
-        'settings' => ['group' => 'acc', 'display_name' => ['en' => 'Featured']],
-        'sort_order' => 3,
-    ]);
-
-    $created = app(CollectionFieldGroupService::class)
-        ->wrapLegacyPanelLeaves($collection);
-
-    expect($created)->toBe(1);
-
-    $summary->refresh();
-    $featured->refresh();
-    expect($summary->settings['group'] ?? null)->not->toBe('acc')
-        ->and($featured->settings['group'] ?? null)->toBe($summary->settings['group']);
-
-    $section = CollectionField::query()
-        ->where('collection_id', $collection->id)
-        ->where('name', $summary->settings['group'])
-        ->first();
-    expect($section)->not->toBeNull()
-        ->and($section->type)->toBe(FieldTypeEnum::GroupRaw)
-        ->and($section->settings['group'] ?? null)->toBe('acc');
 });
 
 test('deleting a group ungroups children', function () {

@@ -3,6 +3,7 @@ import type { DragEvent, Ref } from 'react';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
+import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -18,7 +19,6 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import type { ChatAttachment } from '@/lib/item-chat-api';
 import { collectionMentionLabel } from '@/lib/item-chat-mentions';
-import { cn } from '@/lib/utils';
 
 export type SendAttachItem = {
     key: string;
@@ -527,6 +527,7 @@ function FileThumb({ item }: { item: SendAttachItem }) {
     );
 }
 
+/** Media preview = same ChatMediaAlbum as bubble; remove/upload are overlays only. */
 function MediaPreviewGrid({
     items,
     onRemove,
@@ -534,138 +535,47 @@ function MediaPreviewGrid({
     items: SendAttachItem[];
     onRemove: (key: string) => void;
 }) {
-    const count = items.length;
-
-    if (count === 1) {
-        return (
-            <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-lg bg-black/20">
-                <MediaCell item={items[0]!} single onRemove={onRemove} />
-            </div>
-        );
-    }
-
-    if (count === 2) {
-        return (
-            <div className="grid grid-cols-2 gap-1 overflow-hidden rounded-lg">
-                {items.map((item) => (
-                    <MediaCell
-                        key={item.key}
-                        item={item}
-                        className="aspect-[3/4] max-h-64"
-                        onRemove={onRemove}
-                    />
-                ))}
-            </div>
-        );
-    }
-
-    if (count === 3) {
-        return (
-            <div className="grid aspect-[4/5] max-h-80 grid-cols-2 grid-rows-2 gap-1 overflow-hidden rounded-lg">
-                <MediaCell
-                    item={items[0]!}
-                    className="row-span-2"
-                    onRemove={onRemove}
-                />
-                <MediaCell item={items[1]!} onRemove={onRemove} />
-                <MediaCell item={items[2]!} onRemove={onRemove} />
-            </div>
-        );
-    }
-
-    return (
-        <div
-            className={cn(
-                'grid gap-1 overflow-hidden rounded-lg',
-                count === 4 ? 'grid-cols-2' : 'grid-cols-3',
-            )}
-        >
-            {items.map((item) => (
-                <MediaCell
-                    key={item.key}
-                    item={item}
-                    className="aspect-square max-h-40"
-                    onRemove={onRemove}
-                />
-            ))}
-        </div>
-    );
-}
-
-function MediaCell({
-    item,
-    className,
-    single = false,
-    onRemove,
-}: {
-    item: SendAttachItem;
-    className?: string;
-    single?: boolean;
-    onRemove: (key: string) => void;
-}) {
     const { t } = useTranslation();
-    const isVideo = item.file.type.startsWith('video/');
 
     return (
-        <div
-            className={cn(
-                'group/preview relative min-h-0 min-w-0 bg-black/30',
-                className,
-            )}
-        >
-            {item.previewUrl ? (
-                isVideo ? (
-                    <video
-                        src={item.previewUrl}
-                        className={cn(
-                            'h-full w-full',
-                            single
-                                ? 'max-h-[22rem] object-contain'
-                                : 'object-cover',
-                        )}
-                        muted
-                        playsInline
-                        preload="metadata"
-                    />
-                ) : (
-                    <img
-                        src={item.previewUrl}
-                        alt={item.file.name}
-                        className={cn(
-                            'h-full w-full',
-                            single
-                                ? 'max-h-[22rem] object-contain'
-                                : 'object-cover',
-                        )}
-                    />
-                )
-            ) : (
-                <div className="flex h-32 items-center justify-center overflow-hidden px-2 text-center text-xs break-all text-muted-foreground">
-                    {item.file.name}
-                </div>
-            )}
-            <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
-                {item.uploaded === null && item.error === null ? (
-                    <span className="rounded-full bg-background/80 p-1.5 shadow">
-                        <Spinner className="size-3.5" />
-                    </span>
-                ) : null}
-                <Button
-                    type="button"
-                    size="icon"
-                    variant="secondary"
-                    className="size-7 bg-background/80 opacity-0 shadow backdrop-blur transition-opacity group-hover/preview:opacity-100 focus-visible:opacity-100"
-                    onClick={() => onRemove(item.key)}
-                    aria-label={t('common.delete')}
-                >
-                    <Trash2 className="size-3.5" />
-                </Button>
-            </div>
-            {item.error ? (
-                <div className="absolute inset-x-0 bottom-0 break-all bg-destructive/90 px-2 py-1 text-[10px] text-destructive-foreground">
-                    {item.error}
-                </div>
-            ) : null}
-        </div>
+        <ChatMediaAlbum
+            className="mx-auto rounded-xl"
+            items={items.map((item) => ({
+                key: item.key,
+                src: item.previewUrl,
+                isVideo: item.file.type.startsWith('video/'),
+                name: item.file.name,
+            }))}
+            renderOverlay={(_, index) => {
+                const item = items[index]!;
+
+                return (
+                    <>
+                        <div className="absolute top-1 right-1 z-10 flex items-center gap-1">
+                            {item.uploaded === null && item.error === null ? (
+                                <span className="rounded-full bg-background/80 p-1.5 shadow">
+                                    <Spinner className="size-3.5" />
+                                </span>
+                            ) : null}
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="secondary"
+                                className="size-7 bg-background/80 opacity-0 shadow backdrop-blur transition-opacity group-hover/media:opacity-100 focus-visible:opacity-100"
+                                onClick={() => onRemove(item.key)}
+                                aria-label={t('common.delete')}
+                            >
+                                <Trash2 className="size-3.5" />
+                            </Button>
+                        </div>
+                        {item.error ? (
+                            <div className="absolute inset-x-0 bottom-0 z-10 break-all bg-destructive/90 px-2 py-1 text-[10px] text-destructive-foreground">
+                                {item.error}
+                            </div>
+                        ) : null}
+                    </>
+                );
+            }}
+        />
     );
 }

@@ -15,7 +15,10 @@ use App\Http\Controllers\Collections\ItemController;
 use App\Http\Controllers\Collections\ItemRevisionController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified'])
+    // Numeric IDs only — avoids /collections/create binding as a missing collection.
+    ->whereNumber('collection')
+    ->group(function () {
     Route::get('collections', [ContentCollectionController::class, 'index'])
         ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
         ->name('collections.index');

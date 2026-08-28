@@ -8,8 +8,197 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Spinner } from '@/components/ui/spinner';
 import type { ChatAttachment, ChatScope } from '@/lib/item-chat-api';
-import { chatAttachmentUrl } from '@/lib/item-chat-api';
+import {
+    chatAttachmentPreviewUrl,
+    chatAttachmentUrl,
+} from '@/lib/item-chat-api';
+import { cn } from '@/lib/utils';
+
+async function fetchBlobWithProgress(
+    url: string,
+    onProgress: (percent: number | null) => void,
+    signal?: AbortSignal,
+): Promise<Blob> {
+    const response = await fetch(url, { credentials: 'same-origin', signal });
+
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+
+    const totalHeader = response.headers.get('Content-Length');
+    const total = totalHeader ? Number.parseInt(totalHeader, 10) : NaN;
+    const hasTotal = Number.isFinite(total) && total > 0;
+
+    if (!response.body || !hasTotal) {
+        onProgress(null);
+        const blob = await response.blob();
+        onProgress(100);
+
+        return blob;
+    }
+
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let loaded = 0;
+
+    onProgress(0);
+
+    while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+            break;
+        }
+
+        chunks.push(value);
+        loaded += value.length;
+        onProgress(Math.min(100, Math.round((loaded / total) * 100)));
+    }
+
+    onProgress(100);
+
+    return new Blob(chunks, {
+        type: response.headers.get('Content-Type') ?? undefined,
+    });
+}
+
+function ChatMediaLightboxImage({
+    attachment,
+    scope,
+}: {
+    attachment: ChatAttachment;
+    scope: ChatScope;
+}) {
+    const { t } = useTranslation();
+    const fullUrl = chatAttachmentUrl(scope, attachment.id);
+    const previewUrl = chatAttachmentPreviewUrl(scope, attachment);
+    const needsFullFetch = Boolean(attachment.has_preview);
+
+    const [displayUrl, setDisplayUrl] = useState(
+        needsFullFetch ? previewUrl : fullUrl,
+    );
+    const [loadingFullRes, setLoadingFullRes] = useState(needsFullFetch);
+    const [progress, setProgress] = useState<number | null>(
+        needsFullFetch ? 0 : null,
+    );
+    const [waitingImg, setWaitingImg] = useState(!needsFullFetch);
+    const [failed, setFailed] = useState(false);
+
+    useEffect(() => {
+        setFailed(false);
+        setWaitingImg(!needsFullFetch);
+
+        if (!needsFullFetch) {
+            setDisplayUrl(fullUrl);
+            setLoadingFullRes(false);
+            setProgress(null);
+
+            return;
+        }
+
+        const controller = new AbortController();
+        let blobUrl: string | null = null;
+
+        setDisplayUrl(previewUrl);
+        setLoadingFullRes(true);
+        setProgress(0);
+
+        void (async () => {
+            try {
+                const blob = await fetchBlobWithProgress(
+                    fullUrl,
+                    setProgress,
+                    controller.signal,
+                );
+
+                blobUrl = URL.createObjectURL(blob);
+                setDisplayUrl(blobUrl);
+                setLoadingFullRes(false);
+                setProgress(100);
+            } catch (error) {
+                if (controller.signal.aborted) {
+                    return;
+                }
+
+                setLoadingFullRes(false);
+                setProgress(null);
+                setDisplayUrl(fullUrl);
+                setFailed(true);
+            }
+        })();
+
+        return () => {
+            controller.abort();
+
+            if (blobUrl) {
+                URL.revokeObjectURL(blobUrl);
+            }
+        };
+    }, [attachment.id, fullUrl, needsFullFetch, previewUrl]);
+
+    const showOverlay =
+        loadingFullRes || (waitingImg && !failed && !needsFullFetch);
+
+    return (
+        <div className="relative flex max-h-full max-w-full items-center justify-center">
+            <img
+                key={attachment.id}
+                src={displayUrl}
+                alt={attachment.name}
+                className={cn(
+                    'max-h-full max-w-full object-contain transition-opacity',
+                    showOverlay ? 'opacity-50' : 'opacity-100',
+                )}
+                onLoad={() => setWaitingImg(false)}
+                onError={() => {
+                    setWaitingImg(false);
+                    setFailed(true);
+                }}
+            />
+
+            {showOverlay ? (
+                <div
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6"
+                    aria-live="polite"
+                >
+                    <Spinner className="size-8 text-white" />
+                    <div className="w-full max-w-xs">
+                        <div className="h-1.5 overflow-hidden rounded-full bg-white/25">
+                            <div
+                                className={cn(
+                                    'h-full bg-white transition-all',
+                                    progress == null && 'w-1/3 animate-pulse',
+                                )}
+                                style={
+                                    progress != null
+                                        ? { width: `${progress}%` }
+                                        : undefined
+                                }
+                            />
+                        </div>
+                    </div>
+                    <span className="text-xs text-white/90">
+                        {progress != null
+                            ? t('collections.itemChat.mediaLoadingFullResPercent', {
+                                  percent: progress,
+                              })
+                            : t('collections.itemChat.mediaLoadingFullRes')}
+                    </span>
+                </div>
+            ) : null}
+
+            {failed ? (
+                <div className="absolute inset-x-0 bottom-0 flex justify-center pb-4">
+                    <span className="rounded-full bg-black/70 px-3 py-1 text-xs text-white/90">
+                        {t('collections.itemChat.mediaLoadError')}
+                    </span>
+                </div>
+            ) : null}
+        </div>
+    );
+}
 
 type Props = {
     open: boolean;
@@ -34,7 +223,7 @@ export function ChatMediaLightbox({
     const [index, setIndex] = useState(initialIndex);
     const count = items.length;
     const current = items[index] ?? null;
-    const href = current ? chatAttachmentUrl(scope, current.id) : null;
+    const videoHref = current ? chatAttachmentUrl(scope, current.id) : null;
     const isVideo = current?.mime.startsWith('video/') ?? false;
     const canPrev = count > 1;
     const canNext = count > 1;
@@ -78,22 +267,21 @@ export function ChatMediaLightbox({
                 </DialogHeader>
 
                 <div className="relative flex min-h-0 flex-1 items-center justify-center px-12 py-10">
-                    {href && current ? (
-                        isVideo ? (
+                    {current ? (
+                        isVideo && videoHref ? (
                             <video
                                 key={current.id}
-                                src={href}
+                                src={videoHref}
                                 className="max-h-full max-w-full object-contain"
                                 controls
                                 autoPlay
                                 playsInline
                             />
                         ) : (
-                            <img
+                            <ChatMediaLightboxImage
                                 key={current.id}
-                                src={href}
-                                alt={current.name}
-                                className="max-h-full max-w-full object-contain"
+                                attachment={current}
+                                scope={scope}
                             />
                         )
                     ) : null}

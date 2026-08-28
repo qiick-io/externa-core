@@ -1,6 +1,7 @@
 import { Loader2, RotateCcw, Trash2 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -94,17 +95,17 @@ export function ChatOutgoingAttachPreview({
             data-client-id={pending.clientId}
             data-status={pending.status}
         >
-            <Bubble variant="muted" align="end">
+            <Bubble variant="muted" align="end" className={hasMedia ? 'min-w-[16rem]' : undefined}>
                 <BubbleContent
                     className={cn(
-                        'relative flex w-full min-w-0 flex-col gap-1 text-foreground',
-                        hasMedia && 'gap-0 p-0',
+                        'relative flex w-full flex-col gap-1 text-foreground',
+                        hasMedia ? 'min-w-[16rem] gap-0 p-0' : 'min-w-0',
                         failed &&
                             'border-destructive ring-1 ring-destructive',
                     )}
                 >
                     {hasMedia ? (
-                        <div className="relative w-full min-w-[14rem] max-w-sm overflow-hidden bg-black/20">
+                        <div className="relative w-80 max-w-full shrink-0 overflow-hidden bg-black/20">
                             <LocalMediaGrid
                                 items={media}
                                 onRemoveFile={
@@ -266,115 +267,38 @@ function LocalMediaGrid({
     items: PendingChatFile[];
     onRemoveFile?: (key: string) => void;
 }) {
-    const count = items.length;
-
-    if (count === 1) {
-        return (
-            <div className="flex min-h-[10rem] justify-center">
-                <LocalMediaCell
-                    item={items[0]!}
-                    single
-                    onRemove={
-                        onRemoveFile
-                            ? () => onRemoveFile(items[0]!.key)
-                            : undefined
-                    }
-                />
-            </div>
-        );
-    }
-
-    if (count === 2) {
-        return (
-            <div className="grid grid-cols-2 gap-0.5">
-                {items.map((item) => (
-                    <LocalMediaCell
-                        key={item.key}
-                        item={item}
-                        className="aspect-[3/4] max-h-64"
-                        onRemove={
-                            onRemoveFile
-                                ? () => onRemoveFile(item.key)
-                                : undefined
-                        }
-                    />
-                ))}
-            </div>
-        );
-    }
-
-    return (
-        <div className="grid grid-cols-2 gap-0.5">
-            {items.map((item) => (
-                <LocalMediaCell
-                    key={item.key}
-                    item={item}
-                    className="aspect-square max-h-44"
-                    onRemove={
-                        onRemoveFile ? () => onRemoveFile(item.key) : undefined
-                    }
-                />
-            ))}
-        </div>
-    );
-}
-
-function LocalMediaCell({
-    item,
-    className,
-    single = false,
-    onRemove,
-}: {
-    item: PendingChatFile;
-    className?: string;
-    single?: boolean;
-    onRemove?: () => void;
-}) {
     const { t } = useTranslation();
-    const isVideo = item.file.type.startsWith('video/');
-    const url = item.previewUrl;
 
     return (
-        <div className={cn('group/media relative min-h-0 min-w-0 bg-muted', className)}>
-            {url ? (
-                isVideo ? (
-                    <video
-                        src={url}
-                        className={cn(
-                            'h-full w-full object-cover',
-                            single && 'max-h-[22rem] object-contain',
-                        )}
-                        muted
-                        playsInline
-                        preload="metadata"
-                    />
-                ) : (
-                    <img
-                        src={url}
-                        alt={item.file.name}
-                        className={cn(
-                            'h-full w-full object-cover',
-                            single && 'max-h-[22rem] object-contain',
-                        )}
-                    />
-                )
-            ) : (
-                <div className="flex h-full min-h-[6rem] items-center justify-center text-xs text-muted-foreground">
-                    {item.file.name}
-                </div>
-            )}
-            {onRemove ? (
-                <Button
-                    type="button"
-                    size="icon"
-                    variant="secondary"
-                    className="absolute top-1 right-1 size-7 opacity-0 transition-opacity group-hover/media:opacity-100"
-                    aria-label={t('collections.itemChat.removePendingFile')}
-                    onClick={onRemove}
-                >
-                    <Trash2 className="size-3.5" />
-                </Button>
-            ) : null}
-        </div>
+        <ChatMediaAlbum
+            items={items.map((item) => ({
+                key: item.key,
+                src: item.previewUrl,
+                isVideo: item.file.type.startsWith('video/'),
+                name: item.file.name,
+            }))}
+            renderOverlay={
+                onRemoveFile
+                    ? (_, index) => {
+                          const item = items[index]!;
+
+                          return (
+                              <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="secondary"
+                                  className="absolute top-1 right-1 size-7 opacity-0 transition-opacity group-hover/media:opacity-100"
+                                  aria-label={t(
+                                      'collections.itemChat.removePendingFile',
+                                  )}
+                                  onClick={() => onRemoveFile(item.key)}
+                              >
+                                  <Trash2 className="size-3.5" />
+                              </Button>
+                          );
+                      }
+                    : undefined
+            }
+        />
     );
 }

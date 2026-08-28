@@ -23,48 +23,6 @@ class CollectionItemChatAttachment extends Model
     /**
      * @var list<string>
      */
-    public const ALLOWED_MIME_TYPES = [
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'image/webp',
-        'video/mp4',
-        'video/webm',
-        'video/quicktime',
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'text/plain',
-        'text/csv',
-        'application/csv',
-    ];
-
-    /**
-     * @var list<string>
-     */
-    public const ALLOWED_EXTENSIONS = [
-        'jpg',
-        'jpeg',
-        'png',
-        'gif',
-        'webp',
-        'mp4',
-        'webm',
-        'mov',
-        'pdf',
-        'doc',
-        'docx',
-        'xls',
-        'xlsx',
-        'txt',
-        'csv',
-    ];
-
-    /**
-     * @var list<string>
-     */
     protected $fillable = [
         'message_id',
         'user_id',
