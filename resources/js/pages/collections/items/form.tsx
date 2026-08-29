@@ -253,10 +253,13 @@ export default function ItemsForm({
     const versioningEnabled = Boolean(collection.versioning);
     const viewingPublished =
         versioningEnabled && contentVersion === 'published';
-    const formReadonly = viewingPublished;
     const latestForCompare = publishedData ?? rawData;
     const canCreateItem = can(PermissionEnum.CanCreateCollections);
     const canEditItem = can(PermissionEnum.CanEditCollections);
+    const canDeleteItem = can(PermissionEnum.CanDeleteCollections);
+    // View-only users (e.g. reader) must not see Save / editable controls — BE already 403s.
+    const formReadonly =
+        viewingPublished || (isNew ? !canCreateItem : !canEditItem);
     const showCreateNew = !collection.is_singleton;
     const showCopy = !isNew && !collection.is_singleton && canCreateItem;
 
@@ -587,15 +590,19 @@ export default function ItemsForm({
                             <History className="size-4" />
                         </HeaderIconButton>
                     )}
-                    <HeaderIconButton
-                        asChild
-                        label={t('collections.itemToolbar.editFields')}
-                    >
-                        <Link href={FieldController.index.url(collection.id)}>
-                            <Rows3 className="size-4" />
-                        </Link>
-                    </HeaderIconButton>
-                    {!isNew && item !== null && (
+                    {canEditItem && (
+                        <HeaderIconButton
+                            asChild
+                            label={t('collections.itemToolbar.editFields')}
+                        >
+                            <Link
+                                href={FieldController.index.url(collection.id)}
+                            >
+                                <Rows3 className="size-4" />
+                            </Link>
+                        </HeaderIconButton>
+                    )}
+                    {!isNew && item !== null && canDeleteItem && (
                         <HeaderIconButton
                             type="button"
                             label={t('collections.itemToolbar.delete')}
@@ -606,7 +613,7 @@ export default function ItemsForm({
                         </HeaderIconButton>
                     )}
                     <UnsavedChangesToolbar
-                        isDirty={isDirty}
+                        isDirty={isDirty && !formReadonly}
                         className="flex items-center gap-2"
                     />
                     {hasFields && !formReadonly && (

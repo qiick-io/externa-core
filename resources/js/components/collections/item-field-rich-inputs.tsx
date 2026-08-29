@@ -3,29 +3,64 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { EditorContent, useEditor } from '@tiptap/react';
 import type { Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import MDEditor, {
+    commands,
+    TextAreaCommandOrchestrator,
+    TextAreaTextApi,
+} from '@uiw/react-md-editor';
+import type { ICommand } from '@uiw/react-md-editor';
+import { usePage } from '@inertiajs/react';
 import {
     Bold,
+    ChevronDown,
+    Code2,
     Eye,
     FileText,
+    FolderOpen,
+    Heading,
     Heading2,
     Heading3,
+    ImageIcon,
     Italic,
     Link2,
     List,
     ListOrdered,
+    Loader2,
     Quote,
     Redo2,
     Strikethrough,
+    Table2,
     Undo2,
+    Upload,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
+import { FileUrlImportDialog } from '@/components/admin/file-url-import-dialog';
+import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuShortcut,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useAppearance } from '@/hooks/use-appearance';
 import {
     parseCodeFieldSettings,
     parseColorFieldSettings,
@@ -33,7 +68,17 @@ import {
     parseTextareaFieldSettings,
     resolveTranslatedText,
 } from '@/lib/collection-field-types';
+import {
+    CHUNK_SIZE_BYTES,
+    filePublicUrl,
+    uploadFileChunked,
+    uploadFileDirect,
+} from '@/lib/files-api';
+import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
+import type { AdminFileRow } from '@/types/files';
+
+import '@uiw/react-md-editor/markdown-editor.css';
 
 const inputLike =
     'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
@@ -42,32 +87,61 @@ const inputLike =
 const colorFieldChrome =
     'w-full rounded-md border border-input bg-transparent px-3 py-1.5 shadow-xs dark:border-white/25 has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-inset';
 
-function escapeHtml(value: string): string {
-    return value
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+/**
+ * Directus markdown interface uses CodeMirror 5 + custom Vue toolbar — not this
+ * package. We keep @uiw/react-md-editor for React, match Directus *actions* +
+ * Externa WYSIWYG chrome. Fixed viewport with internal scroll.
+ */
+const MARKDOWN_EDITOR_HEIGHT = 560;
+
+const markdownHeadingCommands: ICommand[] = [
+    commands.title1,
+    commands.title2,
+    commands.title3,
+    commands.title4,
+    commands.title5,
+    commands.title6,
+];
+
+function buildMarkdownTable(rows: number, columns: number): string {
+    const safeRows = Math.max(1, Math.min(20, Math.floor(rows)));
+    const safeCols = Math.max(1, Math.min(12, Math.floor(columns)));
+    const headers = Array.from({ length: safeCols }, () => 'Header');
+    const cells = Array.from({ length: safeCols }, () => 'Cell');
+    const separators = Array.from({ length: safeCols }, () => '------');
+
+    return [
+        '',
+        `| ${headers.join(' | ')} |`,
+        `| ${separators.join(' | ')} |`,
+        ...Array.from(
+            { length: safeRows },
+            () => `| ${cells.join(' | ')} |`,
+        ),
+        '',
+        '',
+    ].join('\n');
 }
 
-function renderMarkdownPreview(source: string): string {
-    let html = escapeHtml(source);
+function markdownImageSnippet(url: string, alt = 'image'): string {
+    const safeAlt = alt.replace(/[[\]]/g, '') || 'image';
 
-    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-    html = html.replace(
-        /\[([^\]]+)\]\(([^)]+)\)/g,
-        '<a href="$2" class="text-primary underline">$1</a>',
-    );
-    html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-    html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
-    html = html.replace(/\n/g, '<br />');
+    return `![${safeAlt}](${url})\n`;
+}
 
-    return html;
+async function uploadImageFile(
+    file: File,
+    maxBytes?: number | null,
+): Promise<AdminFileRow> {
+    if (!file.type.startsWith('image/')) {
+        throw new Error('Please choose an image file.');
+    }
+
+    if (file.size > CHUNK_SIZE_BYTES) {
+        return uploadFileChunked(file, null, undefined, maxBytes);
+    }
+
+    return uploadFileDirect(file, null, maxBytes);
 }
 
 function ToolbarButton({
@@ -344,8 +418,168 @@ export function MarkdownModeToggle({
 }
 
 /**
- * Markdown editor input for collection item fields.
- * @returns {JSX.Element}
+ * Directus-parity markdown actions with WYSIWYG-matching chrome.
+ * Directus stack is Vue+CodeMirror; we drive @uiw textarea via orchestrator.
+ */
+function MarkdownToolbar({
+    disabled,
+    onRun,
+    onOpenTable,
+    onImageFromComputer,
+    onImageFromLibrary,
+    onImageFromUrl,
+}: {
+    disabled: boolean;
+    onRun: (command: ICommand) => void;
+    onOpenTable: () => void;
+    onImageFromComputer: () => void;
+    onImageFromLibrary: () => void;
+    onImageFromUrl: () => void;
+}) {
+    return (
+        <div className="flex flex-wrap gap-1 border-b p-1.5">
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1.5 px-2"
+                        aria-label="Heading"
+                        title="Heading"
+                        disabled={disabled}
+                    >
+                        <Heading className="size-3.5" />
+                        <ChevronDown className="size-3.5 opacity-70" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-[11rem]">
+                    {markdownHeadingCommands.map((command, index) => {
+                        const level = index + 1;
+
+                        return (
+                            <DropdownMenuItem
+                                key={command.name ?? level}
+                                className="min-h-10 py-2.5"
+                                onSelect={() => onRun(command)}
+                            >
+                                Heading {level}
+                                <DropdownMenuShortcut>
+                                    ⌘⌥{level}
+                                </DropdownMenuShortcut>
+                            </DropdownMenuItem>
+                        );
+                    })}
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <ToolbarButton
+                label="Bold"
+                disabled={disabled}
+                onClick={() => onRun(commands.bold)}
+            >
+                <Bold className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Italic"
+                disabled={disabled}
+                onClick={() => onRun(commands.italic)}
+            >
+                <Italic className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Strikethrough"
+                disabled={disabled}
+                onClick={() => onRun(commands.strikethrough)}
+            >
+                <Strikethrough className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Bullet list"
+                disabled={disabled}
+                onClick={() => onRun(commands.unorderedListCommand)}
+            >
+                <List className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Ordered list"
+                disabled={disabled}
+                onClick={() => onRun(commands.orderedListCommand)}
+            >
+                <ListOrdered className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Blockquote"
+                disabled={disabled}
+                onClick={() => onRun(commands.quote)}
+            >
+                <Quote className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Code"
+                disabled={disabled}
+                onClick={() => onRun(commands.code)}
+            >
+                <Code2 className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Link"
+                disabled={disabled}
+                onClick={() => onRun(commands.link)}
+            >
+                <Link2 className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Table"
+                disabled={disabled}
+                onClick={onOpenTable}
+            >
+                <Table2 className="size-3.5" />
+            </ToolbarButton>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2"
+                        aria-label="Image"
+                        title="Image"
+                        disabled={disabled}
+                    >
+                        <ImageIcon className="size-3.5" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-[14rem]">
+                    <DropdownMenuItem
+                        className="min-h-10 gap-2 py-2.5"
+                        onSelect={onImageFromComputer}
+                    >
+                        <Upload className="size-4" />
+                        Upload from computer
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        className="min-h-10 gap-2 py-2.5"
+                        onSelect={onImageFromLibrary}
+                    >
+                        <FolderOpen className="size-4" />
+                        Choose from library
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        className="min-h-10 gap-2 py-2.5"
+                        onSelect={onImageFromUrl}
+                    >
+                        <Link2 className="size-4" />
+                        Import from URL
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+    );
+}
+
+/**
+ * Markdown editor for collection item fields.
+ * Feature set matches Directus `input-rich-text-md` default toolbar.
  */
 export function MarkdownFieldInput({
     id,
@@ -372,14 +606,203 @@ export function MarkdownFieldInput({
     showModeToggle?: boolean;
 }) {
     const textareaSettings = parseTextareaFieldSettings(settings);
+    const { resolvedAppearance } = useAppearance();
+    const { projectSettings } = usePage().props;
+    const filesMaxUploadBytes = projectSettings?.filesMaxUploadBytes ?? null;
     const [value, setValue] = useState(defaultValue);
     const [internalMode, setInternalMode] = useState<'edit' | 'preview'>('edit');
+    const [tableOpen, setTableOpen] = useState(false);
+    const [tableRows, setTableRows] = useState(4);
+    const [tableColumns, setTableColumns] = useState(4);
+    const [imageLibraryOpen, setImageLibraryOpen] = useState(false);
+    const [imageUrlOpen, setImageUrlOpen] = useState(false);
+    const [imageUploading, setImageUploading] = useState(false);
+    const imageInputRef = useRef<HTMLInputElement | null>(null);
+    const rootRef = useRef<HTMLDivElement | null>(null);
     const tab = modeProp ?? internalMode;
     const setTab = onModeChange ?? setInternalMode;
-    const previewHtml = useMemo(() => renderMarkdownPreview(value), [value]);
+
+    // @uiw overwrites textareaProps.ref — resolve by id after mount.
+    const getTextarea = useCallback((): HTMLTextAreaElement | null => {
+        return document.getElementById(
+            `${id}-textarea`,
+        ) as HTMLTextAreaElement | null;
+    }, [id]);
+
+    const syncFromTextarea = useCallback(() => {
+        const textarea = getTextarea();
+
+        if (!textarea || readonly) {
+            return;
+        }
+
+        setValue(textarea.value);
+    }, [getTextarea, readonly]);
+
+    const insertSnippet = useCallback(
+        (snippet: string) => {
+            const textarea = getTextarea();
+
+            if (!textarea || readonly) {
+                return;
+            }
+
+            textarea.focus();
+            new TextAreaTextApi(textarea).replaceSelection(snippet);
+            syncFromTextarea();
+        },
+        [getTextarea, readonly, syncFromTextarea],
+    );
+
+    const insertImageFromFile = useCallback(
+        (file: AdminFileRow) => {
+            const url = filePublicUrl(file);
+
+            if (!url) {
+                toast.error('Selected file has no public URL.');
+
+                return;
+            }
+
+            insertSnippet(
+                markdownImageSnippet(url, file.title || file.filename || 'image'),
+            );
+        },
+        [insertSnippet],
+    );
+
+    const runCommand = useCallback(
+        (command: ICommand) => {
+            const textarea = getTextarea();
+
+            if (!textarea || readonly) {
+                return;
+            }
+
+            textarea.focus();
+            new TextAreaCommandOrchestrator(textarea).executeCommand(command);
+            syncFromTextarea();
+        },
+        [getTextarea, readonly, syncFromTextarea],
+    );
+
+    const insertTable = useCallback(() => {
+        insertSnippet(buildMarkdownTable(tableRows, tableColumns));
+        setTableOpen(false);
+    }, [insertSnippet, tableColumns, tableRows]);
+
+    const handleLocalImage = useCallback(
+        async (fileList: FileList | null): Promise<void> => {
+            const file = fileList?.[0];
+
+            if (!file || readonly || imageUploading) {
+                return;
+            }
+
+            setImageUploading(true);
+
+            try {
+                const row = await uploadImageFile(file, filesMaxUploadBytes);
+                insertImageFromFile(row);
+            } catch (error) {
+                toast.error(
+                    error instanceof Error
+                        ? error.message
+                        : 'Image upload failed.',
+                );
+            } finally {
+                setImageUploading(false);
+
+                if (imageInputRef.current) {
+                    imageInputRef.current.value = '';
+                }
+            }
+        },
+        [
+            filesMaxUploadBytes,
+            imageUploading,
+            insertImageFromFile,
+            readonly,
+        ],
+    );
+
+    useEffect(() => {
+        const root = rootRef.current;
+
+        if (!root || readonly || tab !== 'edit') {
+            return;
+        }
+
+        const onKeyDown = (event: KeyboardEvent): void => {
+            const meta = event.metaKey || event.ctrlKey;
+
+            if (!meta) {
+                return;
+            }
+
+            const key = event.key.toLowerCase();
+
+            if (key === 'b' && !event.altKey) {
+                event.preventDefault();
+                runCommand(commands.bold);
+
+                return;
+            }
+
+            if (key === 'i' && !event.altKey) {
+                event.preventDefault();
+                runCommand(commands.italic);
+
+                return;
+            }
+
+            if (key === 'k' && !event.altKey) {
+                event.preventDefault();
+                runCommand(commands.link);
+
+                return;
+            }
+
+            if (!event.altKey) {
+                return;
+            }
+
+            if (key === 'd') {
+                event.preventDefault();
+                runCommand(commands.strikethrough);
+
+                return;
+            }
+
+            if (key === 'q') {
+                event.preventDefault();
+                runCommand(commands.quote);
+
+                return;
+            }
+
+            if (key === 'c') {
+                event.preventDefault();
+                runCommand(commands.code);
+
+                return;
+            }
+
+            const headingLevel = Number(key);
+
+            if (headingLevel >= 1 && headingLevel <= 6) {
+                event.preventDefault();
+                runCommand(markdownHeadingCommands[headingLevel - 1]!);
+            }
+        };
+
+        root.addEventListener('keydown', onKeyDown);
+
+        return () => root.removeEventListener('keydown', onKeyDown);
+    }, [readonly, runCommand, tab]);
 
     return (
-        <div className="space-y-2">
+        <div className="space-y-2" ref={rootRef}>
             {showModeToggle ? (
                 <MarkdownModeToggle
                     value={tab}
@@ -387,33 +810,167 @@ export function MarkdownFieldInput({
                     disabled={readonly}
                 />
             ) : null}
-            {tab === 'edit' ? (
-                <textarea
+            <input type="hidden" name={name} value={value} />
+            <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={readonly || imageUploading}
+                onChange={(event) => void handleLocalImage(event.target.files)}
+            />
+            <FilePickerDrawer
+                open={imageLibraryOpen}
+                onOpenChange={setImageLibraryOpen}
+                acceptImagesOnly
+                title="Choose image"
+                onSelect={(file) => {
+                    insertImageFromFile(file);
+                    setImageLibraryOpen(false);
+                }}
+            />
+            <FileUrlImportDialog
+                open={imageUrlOpen}
+                onOpenChange={setImageUrlOpen}
+                acceptImagesOnly
+                onImported={(file) => {
+                    insertImageFromFile(file);
+                }}
+            />
+            <Dialog open={tableOpen} onOpenChange={setTableOpen}>
+                <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Insert table</DialogTitle>
+                        <DialogDescription>
+                            Choose rows and columns for the markdown table.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                            <Label htmlFor={`${id}-table-rows`}>Rows</Label>
+                            <Input
+                                id={`${id}-table-rows`}
+                                type="number"
+                                min={1}
+                                max={20}
+                                value={tableRows}
+                                onChange={(event) =>
+                                    setTableRows(Number(event.target.value) || 1)
+                                }
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor={`${id}-table-cols`}>Columns</Label>
+                            <Input
+                                id={`${id}-table-cols`}
+                                type="number"
+                                min={1}
+                                max={12}
+                                value={tableColumns}
+                                onChange={(event) =>
+                                    setTableColumns(
+                                        Number(event.target.value) || 1,
+                                    )
+                                }
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setTableOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="button" onClick={insertTable}>
+                            Create
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            {tab === 'preview' ? (
+                <div
                     id={id}
-                    name={name}
-                    className={cn(
-                        inputLike,
-                        'min-h-[160px] py-2 font-mono text-sm',
+                    className="h-[560px] overflow-y-auto rounded-md border border-input bg-background p-3 shadow-xs"
+                >
+                    {value.trim() === '' ? (
+                        <p className="text-sm text-muted-foreground">
+                            Nothing to preview.
+                        </p>
+                    ) : (
+                        <AssistantMarkdown content={value} />
                     )}
-                    rows={textareaSettings.rows}
-                    value={value}
-                    readOnly={readonly}
-                    maxLength={textareaSettings.maxLength ?? undefined}
-                    placeholder={resolveTranslatedText(
-                        textareaSettings.placeholder,
-                        locales,
-                        placeholder,
-                    )}
-                    onChange={(event) => setValue(event.target.value)}
-                />
+                </div>
             ) : (
-                <>
-                    <input type="hidden" name={name} value={value} />
-                    <div
-                        className="prose prose-sm dark:prose-invert min-h-[160px] rounded-md border p-3"
-                        dangerouslySetInnerHTML={{ __html: previewHtml }}
+                <div
+                    id={id}
+                    data-color-mode={resolvedAppearance}
+                    className={cn(
+                        'overflow-hidden rounded-md border border-input bg-background shadow-xs',
+                        // Package defaults leave .w-md-editor-text ~100px when highlight is off.
+                        '[&_.w-md-editor]:border-0! [&_.w-md-editor]:bg-background! [&_.w-md-editor]:shadow-none!',
+                        '[&_.w-md-editor-content]:h-full!',
+                        '[&_.w-md-editor-text]:relative! [&_.w-md-editor-text]:h-full! [&_.w-md-editor-text]:min-h-full!',
+                        '[&_.w-md-editor-text-input]:h-full! [&_.w-md-editor-text-input]:min-h-full!',
+                        '[&_.w-md-editor-text-input]:overflow-auto! [&_.w-md-editor-text-input]:bg-transparent!',
+                        '[&_.w-md-editor-text-pre]:bg-transparent!',
+                    )}
+                >
+                    {!readonly ? (
+                        <MarkdownToolbar
+                            disabled={readonly || imageUploading}
+                            onRun={runCommand}
+                            onOpenTable={() => setTableOpen(true)}
+                            onImageFromComputer={() => {
+                                // Radix closes menu before click; defer so OS file dialog opens.
+                                window.setTimeout(() => {
+                                    imageInputRef.current?.click();
+                                }, 0);
+                            }}
+                            onImageFromLibrary={() => setImageLibraryOpen(true)}
+                            onImageFromUrl={() => setImageUrlOpen(true)}
+                        />
+                    ) : null}
+                    {imageUploading ? (
+                        <div className="flex items-center gap-2 border-b px-3 py-1.5 text-xs text-muted-foreground">
+                            <Loader2 className="size-3.5 animate-spin" />
+                            Uploading image…
+                        </div>
+                    ) : null}
+                    <MDEditor
+                        value={value}
+                        preview="edit"
+                        hideToolbar
+                        highlightEnable={false}
+                        visibleDragbar={false}
+                        height={MARKDOWN_EDITOR_HEIGHT}
+                        textareaProps={{
+                            id: `${id}-textarea`,
+                            readOnly: readonly,
+                            maxLength: textareaSettings.maxLength ?? undefined,
+                            placeholder: resolveTranslatedText(
+                                textareaSettings.placeholder,
+                                locales,
+                                placeholder,
+                            ),
+                            style: {
+                                height: '100%',
+                                minHeight: '100%',
+                                overflow: 'auto',
+                            },
+                        }}
+                        commands={[]}
+                        extraCommands={[]}
+                        onChange={(next) => {
+                            if (readonly) {
+                                return;
+                            }
+
+                            setValue(next ?? '');
+                        }}
                     />
-                </>
+                </div>
             )}
         </div>
     );

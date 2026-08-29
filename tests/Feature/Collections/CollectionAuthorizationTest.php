@@ -133,6 +133,17 @@ test('show-only permission allows reads but blocks writes', function () {
     $this->post(route('collections.items.store', $collection), [
         'data' => ['title' => 'Nope'],
     ])->assertForbidden();
+
+    $item = CollectionItem::factory()->create([
+        'collection_id' => $collection->id,
+    ]);
+
+    $this->put(route('collections.items.update', [$collection, $item]), [
+        'data' => ['title' => 'Nope'],
+    ])->assertForbidden();
+
+    $this->delete(route('collections.items.destroy', [$collection, $item]))
+        ->assertForbidden();
 });
 
 test('super admin bypasses collection permission middleware', function () {
