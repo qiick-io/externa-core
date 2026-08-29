@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
+import { ChatDirectThreadMenu } from '@/components/chat/chat-direct-thread-menu';
 import { ChatThreadAvatar } from '@/components/chat/chat-thread-avatar';
 import type { ChatSummary } from '@/lib/chat-hub-api';
 import { formatChatUnread } from '@/lib/format-chat-unread';
@@ -9,6 +10,7 @@ type Props = {
     thread: ChatSummary;
     selected: boolean;
     viewerId: number;
+    canCreateDirect: boolean;
     onOpen: (id: string) => void;
 };
 
@@ -44,9 +46,15 @@ function formatThreadTime(iso: string | null, locale: string): string {
 }
 
 /**
- * Telegram-style chat hub row: avatar, title+preview, time+unread.
+ * Telegram-style chat hub row: avatar, title+preview, time+unread+menu.
  */
-export function ChatThreadRow({ thread, selected, viewerId, onOpen }: Props) {
+export function ChatThreadRow({
+    thread,
+    selected,
+    viewerId,
+    canCreateDirect,
+    onOpen,
+}: Props) {
     const { t, i18n } = useTranslation();
     const unread = thread.unread_count ?? 0;
     const badge = formatChatUnread(unread);
@@ -56,6 +64,7 @@ export function ChatThreadRow({ thread, selected, viewerId, onOpen }: Props) {
         thread.last_message?.created_at ?? thread.updated_at,
         i18n.language,
     );
+    const isDirect = thread.kind === 'direct';
 
     return (
         <Link
@@ -89,19 +98,33 @@ export function ChatThreadRow({ thread, selected, viewerId, onOpen }: Props) {
                     </span>
                 </div>
             </div>
-            <div className="flex shrink-0 flex-col items-end gap-1 self-start pt-0.5">
-                {time ? (
-                    <span className="text-[11px] text-muted-foreground">
-                        {time}
-                    </span>
-                ) : null}
-                {badge ? (
-                    <span
-                        className="flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-medium text-primary-foreground"
-                        aria-label={t('chatHub.unreadCount', { count: unread })}
-                    >
-                        {badge}
-                    </span>
+            <div className="flex shrink-0 items-center gap-0.5 self-start pt-0.5">
+                <div className="flex flex-col items-end gap-1">
+                    {time ? (
+                        <span className="text-[11px] text-muted-foreground">
+                            {time}
+                        </span>
+                    ) : null}
+                    {badge ? (
+                        <span
+                            className="flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-medium text-primary-foreground"
+                            aria-label={t('chatHub.unreadCount', {
+                                count: unread,
+                            })}
+                        >
+                            {badge}
+                        </span>
+                    ) : null}
+                </div>
+                {isDirect ? (
+                    <ChatDirectThreadMenu
+                        chatId={thread.id}
+                        participants={thread.participants}
+                        canCreateDirect={canCreateDirect}
+                        navigateHomeOnDelete={selected}
+                        reloadSelectedOnAdd={selected}
+                        triggerClassName="size-7"
+                    />
                 ) : null}
             </div>
         </Link>

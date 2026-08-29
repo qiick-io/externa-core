@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Http\Resources\Admin\ActivityLogResource;
 use App\Models\User;
+use App\Support\Activity\FilterableActivityEvents;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,23 +21,6 @@ class ActivityLogController extends Controller
     use AuthorizesWithPermission;
 
     /**
-     * @var list<string>
-     */
-    private const FILTERABLE_EVENTS = [
-        'created',
-        'updated',
-        'deleted',
-        'restored',
-        'login',
-        'logout',
-        'failed',
-        'ai_prompt',
-        'ai_response',
-        'ai_tool',
-        'ai_mutation',
-    ];
-
-    /**
      * List activity log entries with optional filters for the admin index page.
      */
     public function index(Request $request): Response
@@ -44,7 +28,7 @@ class ActivityLogController extends Controller
         $this->authorizePermission(PermissionEnum::CanShowActivityLogs->value);
 
         $search = $request->string('search')->trim()->toString();
-        $userId = $request->integer('user_id') ?: null;
+        $userIds = $this->resolvedUserIds($request);
         $event = $request->string('event')->toString();
         $logName = $request->string('log_name')->toString();
         $dateFrom = $request->string('date_from')->toString();
@@ -56,15 +40,12 @@ class ActivityLogController extends Controller
             ->with(['causer', 'subject'])
             ->latest('id');
 
-        if ($userId !== null) {
-            $causer = User::query()->find($userId);
-
-            if ($causer !== null) {
-                $query->causedBy($causer);
-            }
+        if ($userIds !== []) {
+            $query->where('causer_type', (new User)->getMorphClass())
+                ->whereIn('causer_id', $userIds);
         }
 
-        if ($event !== '' && in_array($event, self::FILTERABLE_EVENTS, true)) {
+        if ($event !== '' && FilterableActivityEvents::isValid($event)) {
             $query->forEvent($event);
         }
 
@@ -115,11 +96,14 @@ class ActivityLogController extends Controller
         return Inertia::render('admin/activity-logs/index', [
             'activityLogs' => ActivityLogResource::collection($activityLogs),
             'users' => $users,
-            'events' => self::FILTERABLE_EVENTS,
+            'events' => FilterableActivityEvents::all(),
+            'logNames' => ['default', 'auth', 'ai', 'chat', 'settings'],
             'filters' => [
                 'search' => $search,
-                'user_id' => $userId,
-                'event' => in_array($event, self::FILTERABLE_EVENTS, true) ? $event : '',
+                'user_ids' => $userIds,
+                // Backward-compatible single id for deep links / older clients.
+                'user_id' => count($userIds) === 1 ? $userIds[0] : null,
+                'event' => FilterableActivityEvents::isValid($event) ? $event : '',
                 'log_name' => $logName,
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
@@ -127,5 +111,24 @@ class ActivityLogController extends Controller
                 'subject_id' => $subjectId,
             ],
         ]);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function resolvedUserIds(Request $request): array
+    {
+        $raw = $request->input('user_ids', $request->input('user_id'));
+
+        if ($raw === null || $raw === '' || $raw === []) {
+            return [];
+        }
+
+        $ids = is_array($raw) ? $raw : [$raw];
+
+        return array_values(array_unique(array_filter(
+            array_map('intval', $ids),
+            fn (int $id): bool => $id > 0,
+        )));
     }
 }

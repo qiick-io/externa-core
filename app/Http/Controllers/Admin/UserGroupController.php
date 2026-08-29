@@ -94,8 +94,22 @@ class UserGroupController extends Controller
             'description' => $validated['description'] ?? null,
         ]);
 
-        $group->users()->sync($request->input('user_ids', []));
-        $group->roles()->sync($request->input('role_ids', []));
+        $userIds = array_values(array_map('intval', $request->input('user_ids', [])));
+        $roleIds = array_values(array_map('intval', $request->input('role_ids', [])));
+        $group->users()->sync($userIds);
+        $group->roles()->sync($roleIds);
+
+        activity()
+            ->performedOn($group)
+            ->event('members_synced')
+            ->withProperties(['user_ids' => $userIds])
+            ->log('Group members synced');
+
+        activity()
+            ->performedOn($group)
+            ->event('roles_synced')
+            ->withProperties(['role_ids' => $roleIds])
+            ->log('Group roles synced');
 
         return redirect()->route('groups.index')
             ->with('success', __('User group created.'));
@@ -115,11 +129,25 @@ class UserGroupController extends Controller
 
         // Only sync when the key is present (empty array = intentional clear).
         if (array_key_exists('user_ids', $validated)) {
-            $group->users()->sync($validated['user_ids'] ?? []);
+            $userIds = array_values(array_map('intval', $validated['user_ids'] ?? []));
+            $group->users()->sync($userIds);
+
+            activity()
+                ->performedOn($group)
+                ->event('members_synced')
+                ->withProperties(['user_ids' => $userIds])
+                ->log('Group members synced');
         }
 
         if (array_key_exists('role_ids', $validated)) {
-            $group->roles()->sync($validated['role_ids'] ?? []);
+            $roleIds = array_values(array_map('intval', $validated['role_ids'] ?? []));
+            $group->roles()->sync($roleIds);
+
+            activity()
+                ->performedOn($group)
+                ->event('roles_synced')
+                ->withProperties(['role_ids' => $roleIds])
+                ->log('Group roles synced');
         }
 
         return redirect()->route('groups.index')

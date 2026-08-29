@@ -176,6 +176,39 @@ class ChatService
         return [];
     }
 
+    /**
+     * Mentions are for item threads and multi-party DMs — not 1:1 directs.
+     */
+    public function allowsMentions(Chat $chat): bool
+    {
+        if ($chat->isItem()) {
+            return true;
+        }
+
+        if (! $chat->isDirect()) {
+            return false;
+        }
+
+        $hasGroup = ChatParticipant::query()
+            ->where('chat_id', $chat->id)
+            ->whereNotNull('user_group_id')
+            ->exists();
+
+        if ($hasGroup) {
+            return true;
+        }
+
+        $userCount = ChatParticipant::query()
+            ->where('chat_id', $chat->id)
+            ->whereNotNull('user_id')
+            ->pluck('user_id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->unique()
+            ->count();
+
+        return $userCount > 2;
+    }
+
     public function userCanReadCollection(User $user, Collection $collection): bool
     {
         if (! $user->is_active) {

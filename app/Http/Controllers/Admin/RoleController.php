@@ -216,6 +216,15 @@ class RoleController extends Controller
         $permissions = Permission::query()->whereIn('id', $permissionIds)->get();
         $role->syncPermissions($permissions);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        activity()
+            ->performedOn($role)
+            ->event('permissions_synced')
+            ->withProperties([
+                'permission_ids' => $permissions->pluck('id')->values()->all(),
+                'permission_names' => $permissions->pluck('name')->values()->all(),
+            ])
+            ->log('Role permissions synced');
     }
 
     /**

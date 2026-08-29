@@ -287,6 +287,7 @@ export default function ChatHubPage({
                                     thread={thread}
                                     selected={selectedChat?.id === thread.id}
                                     viewerId={viewerId}
+                                    canCreateDirect={canCreateDirect}
                                     onOpen={openThread}
                                 />
                             ))

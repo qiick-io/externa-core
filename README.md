@@ -6,6 +6,8 @@ Stack: **Laravel 13**, **Inertia + React 19**, Vite, Spatie Permission / Activit
 
 Full documentation lives in the sibling **[externa-docs](../externa-docs)** site (run it locally on port 3001, or browse the Markdoc pages under `src/app/docs/`). Start with [Installation](../externa-docs/src/app/docs/installation/page.md) and [Minimal vs full stack](../externa-docs/src/app/docs/minimal-vs-full-stack/page.md).
 
+Security posture for operators: **[SECURITY.md](./SECURITY.md)** and [Threat model & hosting](../externa-docs/src/app/docs/threat-model/page.md).
+
 ## Requirements
 
 | Requirement | Notes |

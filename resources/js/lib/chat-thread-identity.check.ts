@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
     CHAT_AVATAR_MAX_VISIBLE,
     chatAvatarStackPlan,
+    chatMentionsEnabled,
     initialsFromName,
     itemChatTitle,
     itemLabelFromData,
@@ -34,6 +35,42 @@ assert.deepEqual(
     ),
     [{ type: 'user', id: 2, name: 'Ada' }],
 );
+
+assert.equal(
+    chatMentionsEnabled(
+        'direct',
+        [
+            { type: 'user', id: 1, name: 'Me' },
+            { type: 'user', id: 2, name: 'Ada' },
+        ],
+        1,
+    ),
+    false,
+);
+assert.equal(
+    chatMentionsEnabled(
+        'direct',
+        [
+            { type: 'user', id: 1, name: 'Me' },
+            { type: 'user', id: 2, name: 'Ada' },
+            { type: 'user', id: 3, name: 'Bob' },
+        ],
+        1,
+    ),
+    true,
+);
+assert.equal(
+    chatMentionsEnabled(
+        'direct',
+        [
+            { type: 'user', id: 1, name: 'Me' },
+            { type: 'group', id: 9, name: 'Ops' },
+        ],
+        1,
+    ),
+    true,
+);
+assert.equal(chatMentionsEnabled('item', [], 1), true);
 
 assert.equal(itemChatTitle('Kitchen', 'Sink'), 'Kitchen · Sink');
 assert.equal(itemChatTitle('Kitchen', ''), 'Kitchen');

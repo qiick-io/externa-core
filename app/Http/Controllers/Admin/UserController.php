@@ -205,10 +205,26 @@ class UserController extends Controller
         if (array_key_exists('role_ids', $data)) {
             $roles = Role::query()->whereIn('id', $data['role_ids'] ?? [])->get();
             $user->syncRoles($roles);
+
+            activity()
+                ->performedOn($user)
+                ->event('roles_synced')
+                ->withProperties([
+                    'role_ids' => $roles->pluck('id')->values()->all(),
+                    'role_names' => $roles->pluck('name')->values()->all(),
+                ])
+                ->log('User roles synced');
         }
 
         if (array_key_exists('group_ids', $data)) {
-            $user->groups()->sync($data['group_ids'] ?? []);
+            $groupIds = array_values(array_map('intval', $data['group_ids'] ?? []));
+            $user->groups()->sync($groupIds);
+
+            activity()
+                ->performedOn($user)
+                ->event('groups_synced')
+                ->withProperties(['group_ids' => $groupIds])
+                ->log('User groups synced');
         }
     }
 }

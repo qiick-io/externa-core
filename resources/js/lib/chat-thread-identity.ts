@@ -32,6 +32,26 @@ export function otherUserFaces(
 }
 
 /**
+ * @mentions: item chats always; direct only when not 1:1
+ * (2+ other users, or a group participant).
+ */
+export function chatMentionsEnabled(
+    kind: 'item' | 'direct',
+    participants: ChatParticipantRef[],
+    viewerId: number,
+): boolean {
+    if (kind === 'item') {
+        return true;
+    }
+
+    if (participants.some((row) => row.type === 'group')) {
+        return true;
+    }
+
+    return otherUserFaces(participants, viewerId).length > 1;
+}
+
+/**
  * How many face slots to render vs the +N overflow badge.
  * When `total > maxVisible`, last slot is reserved for +N so
  * `overflow = total - (maxVisible - 1)`.

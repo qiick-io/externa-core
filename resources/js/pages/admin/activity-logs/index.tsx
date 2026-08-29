@@ -1,6 +1,8 @@
 import { Head, router } from '@inertiajs/react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { UserMultiSelect } from '@/components/admin/user-multi-select';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import {
     FilterSearch,
@@ -26,6 +28,7 @@ import adminRoutes from '@/lib/admin-routes';
 import { seedActivityLogPrompt } from '@/lib/ai-open';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
+import { cn } from '@/lib/utils';
 import type {
     AdminActivityLogRow,
     AdminUserRow,
@@ -35,6 +38,7 @@ import type {
 
 type Filters = {
     search?: string;
+    user_ids?: number[];
     user_id?: number | null;
     event?: string;
     log_name?: string;
@@ -42,16 +46,26 @@ type Filters = {
     date_to?: string;
 };
 
+function resolveInitialUserIds(filters: Filters): number[] {
+    if (Array.isArray(filters.user_ids) && filters.user_ids.length > 0) {
+        return filters.user_ids.map(Number).filter((id) => id > 0);
+    }
+
+    if (filters.user_id) {
+        return [Number(filters.user_id)];
+    }
+
+    return [];
+}
+
 /**
  * Searchable activity log for administrators.
- * @param {*} props.activityLogs - activityLogs.
- * @param {*} props.users - users.
- * @returns {JSX.Element}
  */
 export default function AdminActivityLogsIndex({
     activityLogs: activityLogsProp,
     users: usersProp,
     events = [],
+    logNames = ['default', 'auth', 'ai', 'chat', 'settings'],
     filters = {},
 }: {
     activityLogs:
@@ -60,13 +74,15 @@ export default function AdminActivityLogsIndex({
         Pick<AdminUserRow, 'id' | 'first_name' | 'last_name' | 'email'>
     >;
     events?: string[];
+    logNames?: string[];
     filters?: Filters;
 }) {
+    const { t } = useTranslation();
     const activityLogs = normalizePaginated(activityLogsProp);
     const users = usersProp ?? [];
     const [search, setSearch] = useState(filters.search ?? '');
-    const [userId, setUserId] = useState(
-        filters.user_id ? String(filters.user_id) : '',
+    const [userIds, setUserIds] = useState<number[]>(() =>
+        resolveInitialUserIds(filters),
     );
     const [event, setEvent] = useState(filters.event ?? '');
     const [logName, setLogName] = useState(filters.log_name ?? '');
@@ -77,32 +93,51 @@ export default function AdminActivityLogsIndex({
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [
             {
-                title: 'Activity Log',
+                title: t('activityLog.title'),
                 href: adminRoutes.activityLogs.index(),
             },
         ],
-        [],
+        [t],
     );
 
     const visit = useCallback(
         (overrides: Partial<Filters> = {}) => {
+            const nextUserIds =
+                overrides.user_ids !== undefined ? overrides.user_ids : userIds;
+            const nextSearch =
+                overrides.search !== undefined ? overrides.search : search;
+            const nextEvent =
+                overrides.event !== undefined ? overrides.event : event;
+            const nextLogName =
+                overrides.log_name !== undefined
+                    ? overrides.log_name
+                    : logName;
+            const nextDateFrom =
+                overrides.date_from !== undefined
+                    ? overrides.date_from
+                    : dateFrom;
+            const nextDateTo =
+                overrides.date_to !== undefined ? overrides.date_to : dateTo;
+
             router.get(
                 adminRoutes.activityLogs.index({
                     query: {
-                        search: search || undefined,
-                        user_id: userId ? Number(userId) : undefined,
-                        event: event || undefined,
-                        log_name: logName || undefined,
-                        date_from: dateFrom || undefined,
-                        date_to: dateTo || undefined,
-                        ...overrides,
+                        search: nextSearch || undefined,
+                        user_ids:
+                            nextUserIds && nextUserIds.length > 0
+                                ? nextUserIds
+                                : undefined,
+                        event: nextEvent || undefined,
+                        log_name: nextLogName || undefined,
+                        date_from: nextDateFrom || undefined,
+                        date_to: nextDateTo || undefined,
                     },
                 }),
                 {},
                 { preserveState: true, preserveScroll: true },
             );
         },
-        [search, userId, event, logName, dateFrom, dateTo],
+        [search, userIds, event, logName, dateFrom, dateTo],
     );
 
     useEffect(() => {
@@ -130,48 +165,70 @@ export default function AdminActivityLogsIndex({
     const formatDate = (value: string): string =>
         new Date(value).toLocaleString();
 
-    const renderChanges = (row: AdminActivityLogRow): string => {
-        if (!row.changes || Object.keys(row.changes).length === 0) {
-            return 'No field changes recorded.';
+    const eventLabel = (eventName: string | null | undefined): string => {
+        if (!eventName) {
+            return '—';
         }
 
-        return JSON.stringify(row.changes, null, 2);
+        return t(`activityLog.events.${eventName}`, {
+            defaultValue: eventName,
+        });
     };
+
+    const logNameLabel = (name: string): string =>
+        t(`activityLog.logs.${name}`, { defaultValue: name });
+
+    const renderChanges = (row: AdminActivityLogRow): string => {
+        const hasChanges =
+            row.changes && Object.keys(row.changes).length > 0;
+        const meta = row.properties?.meta ?? {};
+        const hasMeta = Object.keys(meta).length > 0;
+
+        if (!hasChanges && !hasMeta) {
+            return t('activityLog.noChanges');
+        }
+
+        if (hasChanges && hasMeta) {
+            return JSON.stringify({ changes: row.changes, meta }, null, 2);
+        }
+
+        return JSON.stringify(hasChanges ? row.changes : meta, null, 2);
+    };
+
+    const initialSelectedUsers = useMemo(() => {
+        if (userIds.length === 0) {
+            return [];
+        }
+
+        return users.filter((user) => userIds.includes(user.id));
+    }, [users, userIds]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Activity Log" />
+            <Head title={t('activityLog.title')} />
 
             <PageLayout
-                description="Read-only audit trail of model changes and authentication events."
+                description={t('activityLog.description')}
                 filters={
                     <>
                         <FilterSearch
                             value={search}
                             onChange={setSearch}
-                            placeholder="Search description or subject…"
+                            placeholder={t('activityLog.searchPlaceholder')}
                         />
-                        <select
-                            value={userId}
-                            onChange={(changeEvent) => {
-                                setUserId(changeEvent.target.value);
-                                visit({
-                                    user_id: changeEvent.target.value
-                                        ? Number(changeEvent.target.value)
-                                        : undefined,
-                                });
+                        <UserMultiSelect
+                            value={userIds}
+                            onChange={(next) => {
+                                setUserIds(next);
+                                visit({ user_ids: next });
                             }}
-                            className={filterSelectClassName}
-                            aria-label="Filter by user"
-                        >
-                            <option value="">All users</option>
-                            {users.map((user) => (
-                                <option key={user.id} value={user.id}>
-                                    {user.first_name} {user.last_name ?? ''} (
-                                    {user.email})
-                                </option>
-                            ))}
-                        </select>
+                            placeholder={t('activityLog.allUsers')}
+                            initialUsers={initialSelectedUsers}
+                            className={cn(
+                                filterSelectClassName,
+                                'h-auto min-h-9 min-w-[14rem] max-w-xs',
+                            )}
+                        />
                         <select
                             value={event}
                             onChange={(changeEvent) => {
@@ -182,12 +239,12 @@ export default function AdminActivityLogsIndex({
                                 });
                             }}
                             className={filterSelectClassName}
-                            aria-label="Filter by action"
+                            aria-label={t('activityLog.filterByAction')}
                         >
-                            <option value="">All actions</option>
+                            <option value="">{t('activityLog.allActions')}</option>
                             {events.map((eventName) => (
                                 <option key={eventName} value={eventName}>
-                                    {eventName}
+                                    {eventLabel(eventName)}
                                 </option>
                             ))}
                         </select>
@@ -201,12 +258,14 @@ export default function AdminActivityLogsIndex({
                                 });
                             }}
                             className={filterSelectClassName}
-                            aria-label="Filter by log name"
+                            aria-label={t('activityLog.filterByLog')}
                         >
-                            <option value="">All logs</option>
-                            <option value="default">default</option>
-                            <option value="auth">auth</option>
-                            <option value="ai">ai</option>
+                            <option value="">{t('activityLog.allLogs')}</option>
+                            {logNames.map((name) => (
+                                <option key={name} value={name}>
+                                    {logNameLabel(name)}
+                                </option>
+                            ))}
                         </select>
                         <Input
                             type="date"
@@ -219,7 +278,7 @@ export default function AdminActivityLogsIndex({
                                 });
                             }}
                             className="h-9 w-auto"
-                            aria-label="From date"
+                            aria-label={t('activityLog.dateFrom')}
                         />
                         <Input
                             type="date"
@@ -232,7 +291,7 @@ export default function AdminActivityLogsIndex({
                                 });
                             }}
                             className="h-9 w-auto"
-                            aria-label="To date"
+                            aria-label={t('activityLog.dateTo')}
                         />
                     </>
                 }
@@ -248,13 +307,17 @@ export default function AdminActivityLogsIndex({
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-8" />
-                                <TableHead>Date</TableHead>
-                                <TableHead>User</TableHead>
-                                <TableHead>Action</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead>Subject</TableHead>
+                                <TableHead>{t('activityLog.columns.date')}</TableHead>
+                                <TableHead>{t('activityLog.columns.user')}</TableHead>
+                                <TableHead>{t('activityLog.columns.action')}</TableHead>
+                                <TableHead>
+                                    {t('activityLog.columns.description')}
+                                </TableHead>
+                                <TableHead>
+                                    {t('activityLog.columns.subject')}
+                                </TableHead>
                                 <TableHead className="w-[1%] text-right">
-                                    Actions
+                                    {t('activityLog.columns.actions')}
                                 </TableHead>
                             </TableRow>
                         </TableHeader>
@@ -265,8 +328,7 @@ export default function AdminActivityLogsIndex({
                                         colSpan={7}
                                         className="text-muted-foreground"
                                     >
-                                        No activity found for the selected
-                                        filters.
+                                        {t('activityLog.empty')}
                                     </TableCell>
                                 </TableRow>
                             ) : (
@@ -289,8 +351,12 @@ export default function AdminActivityLogsIndex({
                                                         className="text-muted-foreground hover:text-foreground"
                                                         aria-label={
                                                             isExpanded
-                                                                ? 'Collapse changes'
-                                                                : 'Expand changes'
+                                                                ? t(
+                                                                      'activityLog.collapse',
+                                                                  )
+                                                                : t(
+                                                                      'activityLog.expand',
+                                                                  )
                                                         }
                                                     >
                                                         {isExpanded ? (
@@ -321,13 +387,15 @@ export default function AdminActivityLogsIndex({
                                                         </div>
                                                     ) : (
                                                         <span className="text-sm text-muted-foreground">
-                                                            System
+                                                            {t(
+                                                                'activityLog.system',
+                                                            )}
                                                         </span>
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge variant="secondary">
-                                                        {row.event ?? '—'}
+                                                        {eventLabel(row.event)}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="max-w-xs truncate text-sm">
@@ -365,11 +433,15 @@ export default function AdminActivityLogsIndex({
                                                             <div className="grid gap-2 text-sm sm:grid-cols-2">
                                                                 <div>
                                                                     <span className="text-muted-foreground">
-                                                                        Log
-                                                                        name:
+                                                                        {t(
+                                                                            'activityLog.logName',
+                                                                        )}
+                                                                        :
                                                                     </span>{' '}
-                                                                    {row.log_name ??
-                                                                        'default'}
+                                                                    {logNameLabel(
+                                                                        row.log_name ??
+                                                                            'default',
+                                                                    )}
                                                                 </div>
                                                                 <div>
                                                                     <span className="text-muted-foreground">

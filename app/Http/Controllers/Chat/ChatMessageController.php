@@ -214,6 +214,20 @@ class ChatMessageController extends Controller
         $this->unread->afterMessageCreated($chat, $message, $user, $mentionedIds);
         event(new ItemChatMessageCreated($chat->id, $payload));
 
+        activity()
+            ->causedBy($user)
+            ->performedOn($message)
+            ->useLog('chat')
+            ->event('chat_message')
+            ->withProperties([
+                'chat_id' => $chat->id,
+                'body_preview' => Str::limit($body, 120),
+                'attachment_count' => count($attachments),
+                'mentioned_count' => count($mentionedIds),
+                'reply_to_id' => $replyToId,
+            ])
+            ->log('Chat message sent');
+
         return response()->json(['message' => $payload], 201);
     }
 
@@ -264,8 +278,24 @@ class ChatMessageController extends Controller
         abort_unless((int) $message->user_id === (int) $user->id, 403);
 
         $messageId = (int) $message->id;
+        $chatId = (int) $chat->id;
+        $attachmentCount = $message->attachments()->count();
+        $bodyPreview = Str::limit((string) $message->body, 120);
+
         $message->delete();
         event(new ItemChatMessageDeleted($chat->id, $messageId));
+
+        activity()
+            ->causedBy($user)
+            ->useLog('chat')
+            ->event('chat_message_deleted')
+            ->withProperties([
+                'chat_id' => $chatId,
+                'message_id' => $messageId,
+                'body_preview' => $bodyPreview,
+                'attachment_count' => $attachmentCount,
+            ])
+            ->log('Chat message deleted');
 
         return response()->json(['ok' => true]);
     }
@@ -356,6 +386,13 @@ class ChatMessageController extends Controller
     public function mentions(Request $request, Chat $chat): JsonResponse
     {
         $this->chats->assertAccessible($request, $chat);
+
+        if (! $this->chats->allowsMentions($chat)) {
+            return response()->json([
+                'users' => [],
+                'collections' => [],
+            ]);
+        }
 
         $q = trim((string) $request->query('q', ''));
         $users = $this->mentionUsers($request, $chat, $q);
@@ -752,6 +789,12 @@ class ChatMessageController extends Controller
         $ids = array_values(array_unique(array_map('intval', $rawIds)));
         if ($ids === []) {
             return [];
+        }
+
+        if (! $this->chats->allowsMentions($chat)) {
+            throw ValidationException::withMessages([
+                'mentioned_user_ids' => 'Mentions are not available in one-to-one chats.',
+            ]);
         }
 
         if ($chat->isDirect()) {

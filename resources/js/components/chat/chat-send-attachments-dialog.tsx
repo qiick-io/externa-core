@@ -78,6 +78,7 @@ type Props = {
     onRemove: (key: string) => void;
     onClose: () => void;
     onSend: () => void;
+    mentionsEnabled?: boolean;
 };
 
 /**
@@ -106,6 +107,7 @@ export function ChatSendAttachmentsDialog({
     onRemove,
     onClose,
     onSend,
+    mentionsEnabled = true,
 }: Props) {
     const { t } = useTranslation();
     const addFilesInputRef = useRef<HTMLInputElement | null>(null);
@@ -117,6 +119,7 @@ export function ChatSendAttachmentsDialog({
     );
     const canSend = items.length > 0 && !sending;
     const canAddMore = !sending;
+    const showMentions = mentionsEnabled;
 
     const clearDrag = (): void => {
         setDragOver(false);
@@ -308,7 +311,7 @@ export function ChatSendAttachmentsDialog({
 
                 <div className="flex shrink-0 flex-col gap-2 border-t px-3 py-3">
                     <div className="relative">
-                        {mentionOpen && mentionHits.length > 0 ? (
+                        {showMentions && mentionOpen && mentionHits.length > 0 ? (
                             <div className="absolute inset-x-0 bottom-full z-30 mb-1 max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-md">
                                 {mentionHits.map((hit, index) => (
                                     <button
@@ -361,7 +364,11 @@ export function ChatSendAttachmentsDialog({
                                     return;
                                 }
 
-                                if (mentionOpen && mentionHits.length > 0) {
+                                if (
+                                    showMentions &&
+                                    mentionOpen &&
+                                    mentionHits.length > 0
+                                ) {
                                     if (event.key === 'ArrowDown') {
                                         event.preventDefault();
                                         onMentionHighlight(
@@ -418,18 +425,20 @@ export function ChatSendAttachmentsDialog({
                         />
                     </div>
                     <div className="flex items-center gap-1">
-                        <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="size-8"
-                            disabled={sending}
-                            aria-label={t('collections.itemChat.mention')}
-                            data-test="chat-send-caption-mention"
-                            onClick={onInsertMentionTrigger}
-                        >
-                            @
-                        </Button>
+                        {showMentions ? (
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="size-8"
+                                disabled={sending}
+                                aria-label={t('collections.itemChat.mention')}
+                                data-test="chat-send-caption-mention"
+                                onClick={onInsertMentionTrigger}
+                            >
+                                @
+                            </Button>
+                        ) : null}
                         <Popover
                             modal={false}
                             open={emojiOpen}

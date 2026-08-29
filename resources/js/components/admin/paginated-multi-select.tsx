@@ -1,5 +1,6 @@
 import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -9,6 +10,10 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+    formatUserDisplayName,
+    getInitialsFromParts,
+} from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
 import type { AdminSelectOption, Paginated } from '@/types/admin';
 
@@ -23,6 +28,8 @@ export type PaginatedMultiSelectProps = {
     initialOptions?: AdminSelectOption[];
     perPage?: number;
     className?: string;
+    /** Avatar + name / email below for user options */
+    showUserDetails?: boolean;
 };
 
 function mapResponse(data: unknown): Paginated<AdminSelectOption> {
@@ -37,16 +44,36 @@ function mapResponse(data: unknown): Paginated<AdminSelectOption> {
 
     return {
         ...payload,
-        data: payload.data.map((row) => ({
-            id: row.id,
-            label:
-                row.label ??
-                row.name ??
-                ([row.first_name, row.last_name].filter(Boolean).join(' ') ||
-                    row.email ||
-                    String(row.id)),
-        })),
+        data: payload.data.map((row) => {
+            const firstName = row.first_name ?? '';
+            const lastName = row.last_name ?? null;
+            const email = row.email;
+            const displayName =
+                formatUserDisplayName(firstName, lastName) ||
+                row.name ||
+                email ||
+                String(row.id);
+
+            return {
+                id: row.id,
+                label: row.label ?? (email ? `${displayName} (${email})` : displayName),
+                first_name: firstName || undefined,
+                last_name: lastName,
+                email,
+            };
+        }),
     };
+}
+
+function optionDisplayName(option: AdminSelectOption): string {
+    if (option.first_name) {
+        return (
+            formatUserDisplayName(option.first_name, option.last_name) ||
+            option.label
+        );
+    }
+
+    return option.label;
 }
 
 /**
@@ -64,6 +91,7 @@ export function PaginatedMultiSelect({
     initialOptions = [],
     perPage = 20,
     className,
+    showUserDetails = false,
 }: PaginatedMultiSelectProps) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -85,13 +113,17 @@ export function PaginatedMultiSelect({
     }, [search]);
 
     const selectedLabels = useMemo(() => {
-        const map = new Map(options.map((o) => [o.id, o.label]));
+        const map = new Map(options.map((o) => [o.id, o]));
 
         for (const opt of initialOptions) {
-            map.set(opt.id, opt.label);
+            map.set(opt.id, opt);
         }
 
-        return value.map((id) => map.get(id) ?? `#${id}`);
+        return value.map((id) => {
+            const option = map.get(id);
+
+            return option ? optionDisplayName(option) : `#${id}`;
+        });
     }, [value, options, initialOptions]);
 
     const fetchPage = useCallback(
@@ -246,6 +278,11 @@ export function PaginatedMultiSelect({
                     )}
                     {options.map((option) => {
                         const checked = value.includes(option.id);
+                        const name = optionDisplayName(option);
+                        const initials = getInitialsFromParts(
+                            option.first_name ?? name,
+                            option.last_name,
+                        );
 
                         return (
                             <div
@@ -274,9 +311,32 @@ export function PaginatedMultiSelect({
                                     onCheckedChange={() => toggle(option.id)}
                                     onClick={(event) => event.stopPropagation()}
                                 />
-                                <span className="flex-1 truncate text-left">
-                                    {option.label}
-                                </span>
+                                {showUserDetails ? (
+                                    <>
+                                        <Avatar
+                                            userId={option.id}
+                                            className="size-8"
+                                        >
+                                            <AvatarFallback className="text-xs font-medium">
+                                                {initials || '?'}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <span className="min-w-0 flex-1 text-left">
+                                            <span className="block truncate font-medium">
+                                                {name}
+                                            </span>
+                                            {option.email ? (
+                                                <span className="block truncate text-xs text-muted-foreground">
+                                                    {option.email}
+                                                </span>
+                                            ) : null}
+                                        </span>
+                                    </>
+                                ) : (
+                                    <span className="flex-1 truncate text-left">
+                                        {option.label}
+                                    </span>
+                                )}
                                 {checked && (
                                     <Check className="size-4 shrink-0 text-primary" />
                                 )}

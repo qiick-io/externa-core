@@ -23,6 +23,9 @@ class ActivityLogResource extends JsonResource
     public function toArray(Request $request): array
     {
         $properties = $this->properties?->toArray() ?? [];
+        $meta = collect($properties)
+            ->except(['ip', 'user_agent'])
+            ->all();
 
         return [
             'id' => $this->id,
@@ -44,6 +47,8 @@ class ActivityLogResource extends JsonResource
             'properties' => [
                 'ip' => $properties['ip'] ?? null,
                 'user_agent' => $properties['user_agent'] ?? null,
+                // Manual activity() events store payload here (e.g. body_preview), not in attribute_changes.
+                'meta' => $meta,
             ],
         ];
     }

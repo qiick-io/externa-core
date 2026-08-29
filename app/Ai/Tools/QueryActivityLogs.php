@@ -6,6 +6,7 @@ use App\Ai\Concerns\ChecksAiPermissions;
 use App\Ai\Concerns\LogsAiToolUse;
 use App\Enums\PermissionEnum;
 use App\Models\User;
+use App\Support\Activity\FilterableActivityEvents;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -19,23 +20,6 @@ class QueryActivityLogs implements Tool
 {
     use ChecksAiPermissions;
     use LogsAiToolUse;
-
-    /**
-     * @var list<string>
-     */
-    private const FILTERABLE_EVENTS = [
-        'created',
-        'updated',
-        'deleted',
-        'restored',
-        'login',
-        'logout',
-        'failed',
-        'ai_prompt',
-        'ai_response',
-        'ai_tool',
-        'ai_mutation',
-    ];
 
     /**
      * Describe what this tool does for the model.
@@ -242,7 +226,7 @@ class QueryActivityLogs implements Tool
                 default => $normalized,
             };
 
-            if (in_array($normalized, self::FILTERABLE_EVENTS, true)) {
+            if (FilterableActivityEvents::isValid($normalized)) {
                 $events[] = $normalized;
             }
         }

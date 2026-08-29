@@ -18,7 +18,7 @@ import type { ChatDirectoryRow, ChatListMeta } from '@/lib/chat-hub-api';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
-export function directoryKey(row: ChatDirectoryRow): string {
+export function directoryKey(row: { type: string; id: number }): string {
     return `${row.type}:${row.id}`;
 }
 

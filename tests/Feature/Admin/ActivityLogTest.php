@@ -147,7 +147,15 @@ test('authorized users can filter activity logs by user and date range', functio
             ->component('admin/activity-logs/index')
             ->has('activityLogs.data', 1)
             ->where('activityLogs.data.0.description', 'Actor activity')
-            ->where('filters.user_id', $actor->id));
+            ->where('filters.user_id', $actor->id)
+            ->where('filters.user_ids', [$actor->id]));
+
+    $this->get(route('activity-logs.index', ['user_ids' => [$actor->id, $otherUser->id]]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('admin/activity-logs/index')
+            ->has('activityLogs.data', 2)
+            ->where('filters.user_ids', [$actor->id, $otherUser->id]));
 
     $today = now()->toDateString();
 
@@ -183,4 +191,79 @@ test('user password is excluded from activity log properties', function () {
 
     expect($encoded)->not->toContain('new-secret-password')
         ->and($encoded)->not->toContain('password');
+});
+
+test('project settings update writes settings_updated activity', function () {
+    $actor = grantActivityLogPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowActivityLogs->value,
+        PermissionEnum::CanManageProjectSettings->value,
+    ]);
+    $this->actingAs($actor);
+
+    $this->put(route('project.update'), baseProjectPayload([
+        'name' => 'Logged HQ',
+    ]))->assertRedirect(route('project.edit'));
+
+    $activity = Activity::query()
+        ->where('event', 'settings_updated')
+        ->where('log_name', 'settings')
+        ->latest('id')
+        ->first();
+
+    expect($activity)->not->toBeNull()
+        ->and($activity->causer_id)->toBe($actor->id)
+        ->and($activity->properties['keys'] ?? null)->toContain('name');
+});
+
+test('activity log index exposes manual property meta for expanded details', function () {
+    $actor = grantActivityLogPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowActivityLogs->value,
+    ]);
+    $this->actingAs($actor);
+
+    Activity::query()->delete();
+
+    activity()
+        ->causedBy($actor)
+        ->useLog('chat')
+        ->event('chat_message')
+        ->withProperties([
+            'body_preview' => 'Hello audit',
+            'attachment_count' => 0,
+        ])
+        ->log('Chat message sent');
+
+    $this->get(route('activity-logs.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('admin/activity-logs/index')
+            ->has('activityLogs.data', 1)
+            ->where('activityLogs.data.0.properties.meta.body_preview', 'Hello audit')
+            ->where('activityLogs.data.0.properties.meta.attachment_count', 0));
+});
+
+test('role permission sync writes permissions_synced activity', function () {
+    $actor = grantActivityLogPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowActivityLogs->value,
+        PermissionEnum::CanCreateRoles->value,
+        PermissionEnum::CanEditRoles->value,
+    ]);
+    $this->actingAs($actor);
+
+    $permission = \Spatie\Permission\Models\Permission::query()
+        ->where('name', PermissionEnum::CanShowUsers->value)
+        ->firstOrFail();
+
+    $this->post(route('roles.store'), [
+        'name' => 'activity-role-'.uniqid(),
+        'permission_ids' => [$permission->id],
+    ])->assertRedirect(route('roles.index'));
+
+    $activity = Activity::query()
+        ->where('event', 'permissions_synced')
+        ->latest('id')
+        ->first();
+
+    expect($activity)->not->toBeNull()
+        ->and($activity->properties['permission_ids'] ?? [])->toContain($permission->id);
 });

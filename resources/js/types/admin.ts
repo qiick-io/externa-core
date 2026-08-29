@@ -20,6 +20,9 @@ export type PermissionGroup = {
 export type AdminSelectOption = {
     id: number;
     label: string;
+    first_name?: string;
+    last_name?: string | null;
+    email?: string;
 };
 
 export type AdminRoleRef = {
@@ -105,5 +108,6 @@ export type AdminActivityLogRow = {
     properties: {
         ip: string | null;
         user_agent: string | null;
+        meta?: Record<string, unknown>;
     };
 };

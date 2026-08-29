@@ -1033,5 +1033,60 @@
         "uploadTitle": "Upload in progress",
         "uploadDescription": "Files are still uploading. You can leave — uploads will finish in the background.",
         "uploadLeave": "Leave anyway"
+    },
+    "activityLog": {
+        "title": "Activity Log",
+        "description": "Read-only audit trail of model changes and authentication events.",
+        "searchPlaceholder": "Search description or subject…",
+        "allUsers": "All users",
+        "allActions": "All actions",
+        "allLogs": "All logs",
+        "filterByAction": "Filter by action",
+        "filterByLog": "Filter by log name",
+        "dateFrom": "From date",
+        "dateTo": "To date",
+        "empty": "No activity found for the selected filters.",
+        "system": "System",
+        "noChanges": "No field changes recorded.",
+        "expand": "Expand changes",
+        "collapse": "Collapse changes",
+        "logName": "Log name",
+        "columns": {
+            "date": "Date",
+            "user": "User",
+            "action": "Action",
+            "description": "Description",
+            "subject": "Subject",
+            "actions": "Actions"
+        },
+        "events": {
+            "created": "Created",
+            "updated": "Updated",
+            "deleted": "Deleted",
+            "restored": "Restored",
+            "login": "Login",
+            "logout": "Logout",
+            "failed": "Failed login",
+            "ai_prompt": "AI prompt",
+            "ai_response": "AI response",
+            "ai_tool": "AI tool",
+            "ai_mutation": "AI mutation",
+            "settings_updated": "Settings updated",
+            "chat_message": "Chat message",
+            "chat_message_deleted": "Chat message deleted",
+            "permissions_synced": "Permissions synced",
+            "roles_synced": "Roles synced",
+            "groups_synced": "Groups synced",
+            "members_synced": "Members synced",
+            "collection_permissions_synced": "Collection permissions synced",
+            "file_permissions_synced": "File permissions synced"
+        },
+        "logs": {
+            "default": "Application",
+            "auth": "Authentication",
+            "ai": "AI",
+            "chat": "Chat",
+            "settings": "Settings"
+        }
     }
 }

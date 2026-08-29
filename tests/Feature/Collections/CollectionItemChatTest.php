@@ -521,3 +521,36 @@ test('old comments routes return 404', function () {
         'body' => 'nope',
     ])->assertNotFound();
 });
+
+test('chat message create and delete write lean activity log entries', function () {
+    ['user' => $user, 'collection' => $collection, 'item' => $item] = chatKitchen();
+    $this->actingAs($user);
+
+    $messageId = $this->postJson(route('collections.items.chat.store', [$collection, $item]), [
+        'body' => 'Audit me please',
+    ])->assertCreated()->json('message.id');
+
+    $created = \Spatie\Activitylog\Models\Activity::query()
+        ->where('event', 'chat_message')
+        ->where('log_name', 'chat')
+        ->latest('id')
+        ->first();
+
+    expect($created)->not->toBeNull()
+        ->and($created->causer_id)->toBe($user->id)
+        ->and($created->properties['body_preview'] ?? null)->toBe('Audit me please')
+        ->and($created->properties['attachment_count'] ?? null)->toBe(0);
+
+    $this->deleteJson(route('collections.items.chat.destroy', [$collection, $item, $messageId]))
+        ->assertOk();
+
+    $deleted = \Spatie\Activitylog\Models\Activity::query()
+        ->where('event', 'chat_message_deleted')
+        ->where('log_name', 'chat')
+        ->latest('id')
+        ->first();
+
+    expect($deleted)->not->toBeNull()
+        ->and($deleted->properties['message_id'] ?? null)->toBe($messageId)
+        ->and($deleted->properties['body_preview'] ?? null)->toBe('Audit me please');
+});

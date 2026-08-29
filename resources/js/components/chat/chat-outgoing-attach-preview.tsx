@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
 import type { ChatCollection, ChatReplyTo, ChatUser } from '@/lib/item-chat-api';
 import { cn } from '@/lib/utils';
 
@@ -80,13 +79,10 @@ export function ChatOutgoingAttachPreview({
     const inFlight =
         !failed &&
         (pending.status === 'sending' || pending.status === 'uploading');
-    const overlayLabel =
-        pending.status === 'uploading'
-            ? t('collections.itemChat.uploading')
-            : t('collections.itemChat.sendingMedia');
     const retryLabel = t('collections.itemChat.retrySend');
     const errorLabel =
         pending.error ?? t('collections.itemChat.sendError');
+    const hasBody = pending.body.trim() !== '';
 
     return (
         <div
@@ -95,11 +91,16 @@ export function ChatOutgoingAttachPreview({
             data-client-id={pending.clientId}
             data-status={pending.status}
         >
-            <Bubble variant="muted" align="end" className={hasMedia ? 'min-w-[16rem]' : undefined}>
+            <Bubble
+                variant="muted"
+                align="end"
+                className={hasMedia ? 'min-w-[16rem]' : undefined}
+            >
+                {/* p-0: BubbleContent default py-2 + child padding was doubling height */}
                 <BubbleContent
                     className={cn(
-                        'relative flex w-full flex-col gap-1 text-foreground',
-                        hasMedia ? 'min-w-[16rem] gap-0 p-0' : 'min-w-0',
+                        'relative flex w-full flex-col gap-0 p-0 text-foreground',
+                        hasMedia ? 'min-w-[16rem]' : 'min-w-0',
                         failed &&
                             'border-destructive ring-1 ring-destructive',
                     )}
@@ -111,20 +112,18 @@ export function ChatOutgoingAttachPreview({
                                 onRemoveFile={
                                     failed
                                         ? (key) =>
-                                              onRemoveFile(pending.clientId, key)
+                                              onRemoveFile(
+                                                  pending.clientId,
+                                                  key,
+                                              )
                                         : undefined
                                 }
                             />
-                            {!failed ? (
-                                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/35">
-                                    <span className="flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5 text-xs text-white">
-                                        <Spinner className="size-3.5 text-white" />
-                                        {overlayLabel}
-                                    </span>
-                                </div>
-                            ) : null}
-                            {media.some((row) => row.progress > 0 && row.progress < 100) ? (
-                                <div className="absolute inset-x-0 bottom-0 h-1 bg-black/40">
+                            {media.some(
+                                (row) =>
+                                    row.progress > 0 && row.progress < 100,
+                            ) ? (
+                                <div className="absolute inset-x-0 bottom-0 h-0.5 bg-black/40">
                                     <div
                                         className="h-full bg-primary transition-[width]"
                                         style={{
@@ -146,7 +145,7 @@ export function ChatOutgoingAttachPreview({
                         <ul
                             className={cn(
                                 'flex flex-col gap-1 px-3 pt-2',
-                                !pending.body && 'pb-0',
+                                !hasBody && 'pb-0',
                             )}
                         >
                             {docs.map((file) => (
@@ -155,11 +154,11 @@ export function ChatOutgoingAttachPreview({
                                     className="group/file flex items-center gap-2 text-xs text-muted-foreground"
                                 >
                                     {file.error ? (
-                                        <span className="size-3.5 shrink-0 rounded-full bg-destructive/80" />
+                                        <span className="size-3 shrink-0 rounded-full bg-destructive/80" />
                                     ) : file.uploadedId ? (
-                                        <span className="size-3.5 shrink-0 rounded-full bg-emerald-500/80" />
+                                        <span className="size-3 shrink-0 rounded-full bg-emerald-500/80" />
                                     ) : (
-                                        <Loader2 className="size-3.5 shrink-0 animate-spin" />
+                                        <Loader2 className="size-3 shrink-0 animate-spin" />
                                     )}
                                     <span className="min-w-0 flex-1 truncate">
                                         {file.file.name}
@@ -194,7 +193,7 @@ export function ChatOutgoingAttachPreview({
                         <div
                             className={cn(
                                 'mx-3 mt-2 rounded-md border-l-2 border-primary/60 bg-muted/50 px-2 py-1',
-                                !hasMedia && 'mt-0',
+                                !hasMedia && 'mt-0 pt-2',
                             )}
                         >
                             <div className="truncate text-[11px] font-medium">
@@ -206,13 +205,13 @@ export function ChatOutgoingAttachPreview({
                         </div>
                     ) : null}
 
-                    {pending.body.trim() !== '' ? (
+                    {hasBody ? (
                         <div
                             className={cn(
                                 'whitespace-pre-wrap break-words px-3 text-sm',
                                 hasMedia || docs.length > 0
-                                    ? 'pt-1 pb-1'
-                                    : 'pt-2 pb-1',
+                                    ? 'pt-1 pb-0.5'
+                                    : 'pt-2 pb-0.5',
                             )}
                         >
                             {renderBody(
@@ -223,30 +222,39 @@ export function ChatOutgoingAttachPreview({
                         </div>
                     ) : null}
 
+                    {/* Fixed-height meta row: spinner slot always reserved so layout never jumps */}
                     <div
                         className={cn(
-                            'flex items-center gap-1 self-end',
-                            hasMedia || docs.length > 0 || pending.body.trim() !== ''
-                                ? 'px-3 pb-2'
-                                : 'px-3 py-2',
+                            'flex h-4 items-center justify-end gap-1 px-3',
+                            hasMedia || docs.length > 0 || hasBody
+                                ? 'pb-1.5'
+                                : 'py-1.5',
                         )}
                     >
-                        {failed ? (
-                            <button
-                                type="button"
-                                className="inline-flex size-3 shrink-0 items-center justify-center text-destructive hover:text-destructive/80"
-                                aria-label={retryLabel}
-                                title={errorLabel}
-                                onClick={() => onRetry(pending.clientId)}
-                            >
-                                <RotateCcw className="size-3" aria-hidden />
-                            </button>
-                        ) : inFlight ? (
-                            <Spinner
-                                className="size-3 text-muted-foreground"
-                                aria-label={t('collections.itemChat.sending')}
-                            />
-                        ) : null}
+                        <span className="inline-flex size-2.5 shrink-0 items-center justify-center">
+                            {failed ? (
+                                <button
+                                    type="button"
+                                    className="inline-flex size-2.5 items-center justify-center text-destructive hover:text-destructive/80"
+                                    aria-label={retryLabel}
+                                    title={errorLabel}
+                                    onClick={() => onRetry(pending.clientId)}
+                                >
+                                    <RotateCcw
+                                        className="size-2.5"
+                                        aria-hidden
+                                    />
+                                </button>
+                            ) : inFlight ? (
+                                <Loader2
+                                    className="size-2.5 animate-spin text-muted-foreground"
+                                    aria-label={t(
+                                        'collections.itemChat.sending',
+                                    )}
+                                    role="status"
+                                />
+                            ) : null}
+                        </span>
                         <time
                             className="text-[10px] leading-none text-muted-foreground tabular-nums"
                             dateTime={sentAt.toISOString()}

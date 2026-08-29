@@ -985,5 +985,60 @@
         "uploadTitle": "Upload läuft",
         "uploadDescription": "Dateien werden noch hochgeladen. Du kannst die Seite verlassen — Uploads laufen im Hintergrund weiter.",
         "uploadLeave": "Trotzdem verlassen"
+    },
+    "activityLog": {
+        "title": "Aktivitätsprotokoll",
+        "description": "Schreibgeschützter Audit-Trail für Modelländerungen und Authentifizierungsereignisse.",
+        "searchPlaceholder": "Beschreibung oder Subjekt suchen…",
+        "allUsers": "Alle Benutzer",
+        "allActions": "Alle Aktionen",
+        "allLogs": "Alle Protokolle",
+        "filterByAction": "Nach Aktion filtern",
+        "filterByLog": "Nach Protokollname filtern",
+        "dateFrom": "Von Datum",
+        "dateTo": "Bis Datum",
+        "empty": "Keine Aktivität für die gewählten Filter.",
+        "system": "System",
+        "noChanges": "Keine Feldänderungen erfasst.",
+        "expand": "Änderungen aufklappen",
+        "collapse": "Änderungen einklappen",
+        "logName": "Protokollname",
+        "columns": {
+            "date": "Datum",
+            "user": "Benutzer",
+            "action": "Aktion",
+            "description": "Beschreibung",
+            "subject": "Subjekt",
+            "actions": "Aktionen"
+        },
+        "events": {
+            "created": "Erstellt",
+            "updated": "Aktualisiert",
+            "deleted": "Gelöscht",
+            "restored": "Wiederhergestellt",
+            "login": "Anmeldung",
+            "logout": "Abmeldung",
+            "failed": "Fehlgeschlagene Anmeldung",
+            "ai_prompt": "KI-Prompt",
+            "ai_response": "KI-Antwort",
+            "ai_tool": "KI-Tool",
+            "ai_mutation": "KI-Mutation",
+            "settings_updated": "Einstellungen aktualisiert",
+            "chat_message": "Chat-Nachricht",
+            "chat_message_deleted": "Chat-Nachricht gelöscht",
+            "permissions_synced": "Berechtigungen synchronisiert",
+            "roles_synced": "Rollen synchronisiert",
+            "groups_synced": "Gruppen synchronisiert",
+            "members_synced": "Mitglieder synchronisiert",
+            "collection_permissions_synced": "Collection-Berechtigungen synchronisiert",
+            "file_permissions_synced": "Datei-Berechtigungen synchronisiert"
+        },
+        "logs": {
+            "default": "Anwendung",
+            "auth": "Authentifizierung",
+            "ai": "KI",
+            "chat": "Chat",
+            "settings": "Einstellungen"
+        }
     }
 }

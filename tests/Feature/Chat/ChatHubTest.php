@@ -198,7 +198,7 @@ test('group member sync expands and removes via_group participants', function ()
     expect(ChatParticipant::query()->where('chat_id', $chatId)->where('user_id', $late->id)->exists())->toBeFalse();
 });
 
-test('direct mention rejects an outsider', function () {
+test('direct one-to-one rejects mentions entirely', function () {
     ['user' => $user, 'other' => $other] = hubKitchen([
         PermissionEnum::CanCreateDirectChats->value,
     ]);
@@ -218,7 +218,35 @@ test('direct mention rejects an outsider', function () {
     $this->postJson(route('chat.messages.store', $chatId), [
         'body' => 'hi @[user:'.$other->id.']',
         'mentioned_user_ids' => [$other->id],
+    ])->assertUnprocessable();
+
+    $this->getJson(route('chat.mentions', $chatId).'?q=a')
+        ->assertOk()
+        ->assertJsonPath('users', []);
+});
+
+test('direct group chat allows mentioning a participant', function () {
+    ['user' => $user, 'other' => $other] = hubKitchen([
+        PermissionEnum::CanCreateDirectChats->value,
+    ]);
+    $third = User::factory()->create(['is_active' => true]);
+    $chatId = $this->actingAs($user)
+        ->postJson(route('chat.threads.store'), [
+            'kind' => Chat::KIND_DIRECT,
+            'user_ids' => [$other->id, $third->id],
+        ])
+        ->json('chat.id');
+
+    $this->postJson(route('chat.messages.store', $chatId), [
+        'body' => 'hi @[user:'.$other->id.']',
+        'mentioned_user_ids' => [$other->id],
     ])->assertCreated();
+
+    $outsider = User::factory()->create();
+    $this->postJson(route('chat.messages.store', $chatId), [
+        'body' => 'hi @[user:'.$outsider->id.']',
+        'mentioned_user_ids' => [$outsider->id],
+    ])->assertUnprocessable();
 });
 
 test('item chat uuid is 404 when the item is not readable', function () {

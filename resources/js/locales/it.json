@@ -1033,5 +1033,60 @@
         "uploadTitle": "Caricamento in corso",
         "uploadDescription": "I file sono ancora in caricamento. Puoi uscire: i caricamenti continueranno in background.",
         "uploadLeave": "Esci comunque"
+    },
+    "activityLog": {
+        "title": "Activity Log",
+        "description": "Audit trail in sola lettura di modifiche e eventi di autenticazione.",
+        "searchPlaceholder": "Cerca descrizione o soggetto…",
+        "allUsers": "Tutti gli utenti",
+        "allActions": "Tutte le azioni",
+        "allLogs": "Tutti i log",
+        "filterByAction": "Filtra per azione",
+        "filterByLog": "Filtra per nome log",
+        "dateFrom": "Data da",
+        "dateTo": "Data a",
+        "empty": "Nessuna attività per i filtri selezionati.",
+        "system": "Sistema",
+        "noChanges": "Nessuna modifica ai campi registrata.",
+        "expand": "Espandi modifiche",
+        "collapse": "Comprimi modifiche",
+        "logName": "Nome log",
+        "columns": {
+            "date": "Data",
+            "user": "Utente",
+            "action": "Azione",
+            "description": "Descrizione",
+            "subject": "Soggetto",
+            "actions": "Azioni"
+        },
+        "events": {
+            "created": "Creato",
+            "updated": "Aggiornato",
+            "deleted": "Eliminato",
+            "restored": "Ripristinato",
+            "login": "Accesso",
+            "logout": "Uscita",
+            "failed": "Accesso fallito",
+            "ai_prompt": "Prompt AI",
+            "ai_response": "Risposta AI",
+            "ai_tool": "Tool AI",
+            "ai_mutation": "Mutazione AI",
+            "settings_updated": "Impostazioni aggiornate",
+            "chat_message": "Messaggio chat",
+            "chat_message_deleted": "Messaggio chat eliminato",
+            "permissions_synced": "Permessi sincronizzati",
+            "roles_synced": "Ruoli sincronizzati",
+            "groups_synced": "Gruppi sincronizzati",
+            "members_synced": "Membri sincronizzati",
+            "collection_permissions_synced": "Permessi collection sincronizzati",
+            "file_permissions_synced": "Permessi file sincronizzati"
+        },
+        "logs": {
+            "default": "Applicazione",
+            "auth": "Autenticazione",
+            "ai": "AI",
+            "chat": "Chat",
+            "settings": "Impostazioni"
+        }
     }
 }

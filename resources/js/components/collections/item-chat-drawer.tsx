@@ -69,6 +69,7 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { avatarColorForId, avatarStyleForId } from '@/lib/avatar-color';
 import type { ChatThreadIdentity } from '@/lib/chat-thread-identity';
+import { chatMentionsEnabled } from '@/lib/chat-thread-identity';
 import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
 import {
     addChatAttachmentToField,
@@ -302,6 +303,16 @@ export function ItemChatDrawer({
 
         return null;
     }, [liveChatId, collectionId, itemId]);
+
+    const mentionsEnabled = useMemo(
+        () =>
+            kind === 'item'
+                ? true
+                : thread
+                  ? chatMentionsEnabled(kind, thread.participants, viewerId)
+                  : false,
+        [kind, thread, viewerId],
+    );
 
     const messagesEntry = useChatStore((state) =>
         liveChatId ? state.messagesByChatId[liveChatId] : undefined,
@@ -682,6 +693,18 @@ export function ItemChatDrawer({
     }, [mentionHits]);
 
     useEffect(() => {
+        if (mentionsEnabled) {
+            return;
+        }
+
+        setMentionOpen(false);
+        setMentionStart(null);
+        setMentionHits([]);
+        setMentionedUsers([]);
+        setMentionedCollections([]);
+    }, [mentionsEnabled]);
+
+    useEffect(() => {
         if (!open || !realtimeOn || !liveChatId) {
             return;
         }
@@ -1011,6 +1034,13 @@ export function ItemChatDrawer({
             whisperTyping();
         }
 
+        if (!mentionsEnabled) {
+            setMentionOpen(false);
+            setMentionStart(null);
+
+            return;
+        }
+
         const query = mentionQueryAt(value, caret);
 
         if (!query) {
@@ -1055,6 +1085,9 @@ export function ItemChatDrawer({
             | { type: 'user'; id: number; name: string; email?: string }
             | { type: 'collection'; id: number; name: string },
     ): void => {
+        if (!mentionsEnabled) {
+            return;
+        }
         const { el, value, setValue } = composerTarget();
         const caret = el?.selectionStart ?? value.length;
         const start =
@@ -1086,6 +1119,10 @@ export function ItemChatDrawer({
     };
 
     const insertMentionTrigger = (): void => {
+        if (!mentionsEnabled) {
+            return;
+        }
+
         const { el, value } = composerTarget();
         const start = el?.selectionStart ?? value.length;
         const end = el?.selectionEnd ?? value.length;
@@ -2551,7 +2588,8 @@ export function ItemChatDrawer({
                                 </div>
                             ) : null}
                             <div className="relative">
-                                {mentionOpen &&
+                                {mentionsEnabled &&
+                                mentionOpen &&
                                 mentionHits.length > 0 &&
                                 !attachDialogOpen ? (
                                     <div className="absolute inset-x-0 bottom-full z-20 mb-1 max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-md">
@@ -2611,6 +2649,7 @@ export function ItemChatDrawer({
                                         }
 
                                         if (
+                                            mentionsEnabled &&
                                             mentionOpen &&
                                             mentionHits.length > 0
                                         ) {
@@ -2688,17 +2727,19 @@ export function ItemChatDrawer({
                                 />
                             </div>
                             <div className="flex items-center gap-1">
-                                <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    aria-label={t(
-                                        'collections.itemChat.mention',
-                                    )}
-                                    onClick={insertMentionTrigger}
-                                >
-                                    @
-                                </Button>
+                                {mentionsEnabled ? (
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="ghost"
+                                        aria-label={t(
+                                            'collections.itemChat.mention',
+                                        )}
+                                        onClick={insertMentionTrigger}
+                                    >
+                                        @
+                                    </Button>
+                                ) : null}
                                 <Popover
                                     open={emojiOpen}
                                     onOpenChange={setEmojiOpen}
@@ -2845,6 +2886,7 @@ export function ItemChatDrawer({
                     onRemove={removeAttachItem}
                     onClose={closeAttachDialog}
                     onSend={sendAttachBatch}
+                    mentionsEnabled={mentionsEnabled}
                 />
             ) : null}
 

@@ -57,13 +57,28 @@ class ProjectSettingsController extends Controller
      */
     public function update(UpdateProjectSettingsRequest $request): RedirectResponse
     {
+        $values = $request->projectValues();
+
         $this->settings->setMany(
             SettingsRepository::SCOPE_PROJECT,
             'project',
-            $request->projectValues(),
+            $values,
         );
 
         $this->projectSettings->forgetPublicApiAllowedOriginsCache();
+
+        $keys = array_keys($values);
+        activity()
+            ->causedBy($request->user())
+            ->useLog('settings')
+            ->event('settings_updated')
+            ->withProperties([
+                'scope' => SettingsRepository::SCOPE_PROJECT,
+                'group' => 'project',
+                'keys' => $keys,
+                'secret_keys_updated' => in_array('webhook_secret', $keys, true),
+            ])
+            ->log('Project settings updated');
 
         return to_route('project.edit');
     }
