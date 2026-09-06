@@ -259,7 +259,7 @@ class RelationIncludeHydrator
             return $out;
         }
 
-        // M2O / relation / relation_tree — scalar id
+        // M2O — scalar id
         $id = $this->normalizeId($raw);
         if ($id === null) {
             return $raw;

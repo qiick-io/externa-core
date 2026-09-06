@@ -39,7 +39,7 @@ class FileFieldExpander
                 ? $field->type
                 : FieldTypeEnum::tryFrom((string) $field->type);
 
-            if (in_array($type, [FieldTypeEnum::Image, FieldTypeEnum::File, FieldTypeEnum::Files, FieldTypeEnum::Blocks], true)) {
+            if (in_array($type, [FieldTypeEnum::Image, FieldTypeEnum::Files, FieldTypeEnum::Blocks], true)) {
                 $fileFieldKeys[$field->name] = $field;
             }
         }
@@ -191,7 +191,6 @@ class FileFieldExpander
                 if (in_array($nestedType, [
                     FieldTypeEnum::ManyToMany,
                     FieldTypeEnum::OneToMany,
-                    FieldTypeEnum::RelationMany,
                 ], true)) {
                     // Nested m2m/o2m are JSON-embedded link lists — not SQL junctions.
                     $data[$name] = $this->expandNestedM2mValue($nestedValue);
@@ -308,7 +307,7 @@ class FileFieldExpander
             return $expanded;
         }
 
-        if (! in_array($type, [FieldTypeEnum::Image, FieldTypeEnum::File], true)) {
+        if (! in_array($type, [FieldTypeEnum::Image, FieldTypeEnum::Files], true)) {
             return $value;
         }
 
@@ -375,7 +374,7 @@ class FileFieldExpander
                         continue;
                     }
 
-                    if (! in_array($nestedType, [FieldTypeEnum::Image, FieldTypeEnum::File], true)) {
+                    if (! in_array($nestedType, [FieldTypeEnum::Image, FieldTypeEnum::Files], true)) {
                         continue;
                     }
 

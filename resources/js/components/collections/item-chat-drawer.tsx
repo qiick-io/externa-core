@@ -153,7 +153,7 @@ const EMOJI_GRID = [
     '💬',
 ];
 
-const FILE_FIELD_TYPES = new Set(['image', 'file', 'files']);
+const FILE_FIELD_TYPES = new Set(['image', 'files']);
 const TYPING_EXPIRE_MS = 2500;
 const WHISPER_THROTTLE_MS = 500;
 type Props = {

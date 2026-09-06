@@ -85,7 +85,7 @@ export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
     {
         value: 'files',
         label: 'Files',
-        description: 'One or more files from the file manager',
+        description: 'Single or multiple files from the file manager',
     },
     {
         value: 'blocks',
@@ -123,27 +123,6 @@ export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
         value: 'slider',
         label: 'Cursore',
         description: 'Numeric value selected with a slider control',
-    },
-    // Legacy aliases kept for existing fields / labels — hidden from picker groups below
-    {
-        value: 'file',
-        label: 'File (legacy)',
-        description: 'Legacy single file; prefer Files',
-    },
-    {
-        value: 'relation',
-        label: 'Relation (legacy)',
-        description: 'Legacy alias for Molti a Uno',
-    },
-    {
-        value: 'relation_many',
-        label: 'Relation many (legacy)',
-        description: 'Legacy multi-relation alias',
-    },
-    {
-        value: 'relation_tree',
-        label: 'Relation tree (alias)',
-        description: 'Alias of Molti a Uno — no tree UI yet',
     },
     {
         value: 'group_accordion',
@@ -210,7 +189,6 @@ export const COLLECTION_FIELD_TYPE_GROUPS: {
             'many_to_many',
             'one_to_many',
             'many_to_one',
-            // TODO: relation_tree real tree UI — hidden until then (enum alias of M2O remains)
         ],
     },
     {
@@ -266,14 +244,11 @@ export function fieldTypeNeedsOptions(type: string): boolean {
 export function fieldTypeSupportsTranslatable(type: string): boolean {
     return ![
         'hash',
-        'relation',
-        'relation_many',
         'many_to_one',
         'one_to_many',
         'many_to_many',
         'blocks',
         'm2a',
-        'relation_tree',
         'group_accordion',
         'group_detail',
         'group_raw',
@@ -298,14 +273,7 @@ export function fieldTypeNeedsTreeOptions(type: string): boolean {
  * @returns Whether the type links to another collection
  */
 export function fieldTypeNeedsRelation(type: string): boolean {
-    return [
-        'relation',
-        'relation_many',
-        'many_to_one',
-        'one_to_many',
-        'many_to_many',
-        'relation_tree',
-    ].includes(type);
+    return ['many_to_one', 'one_to_many', 'many_to_many'].includes(type);
 }
 
 /**
@@ -315,7 +283,7 @@ export function fieldTypeNeedsRelation(type: string): boolean {
  * @returns Whether the relation allows selecting many related items
  */
 export function fieldTypeIsMultipleRelation(type: string): boolean {
-    return ['relation_many', 'one_to_many', 'many_to_many'].includes(type);
+    return ['one_to_many', 'many_to_many'].includes(type);
 }
 
 /**
@@ -339,7 +307,7 @@ export function fieldTypeNeedsBlocksSettings(type: string): boolean {
  * @returns Whether the type stores file manager references
  */
 export function fieldTypeIsFilesField(type: string): boolean {
-    return type === 'files' || type === 'file';
+    return type === 'files';
 }
 
 /**
@@ -436,10 +404,8 @@ export const BLOCKS_ALLOWED_FIELD_TYPES = [
     'multiselect',
     'radio_group',
     'image',
-    'file',
     'files',
     'many_to_one',
-    'relation',
     'map',
     'tag',
     'hash',
@@ -452,7 +418,6 @@ export const BLOCKS_ALLOWED_FIELD_TYPES = [
     'm2a',
     'many_to_many',
     'one_to_many',
-    'relation_many',
     'blocks',
 ] as const;
 
@@ -500,16 +465,6 @@ export function fieldTypeGroupForType(type: string): string {
         }
     }
 
-    // Legacy aliases kept in enum but hidden from the picker.
-    if (
-        type === 'relation' ||
-        type === 'relation_many' ||
-        type === 'relation_tree' ||
-        type === 'file'
-    ) {
-        return 'Relational';
-    }
-
     return 'Altro';
 }
 
@@ -524,15 +479,11 @@ export function supportsDefaultValue(fieldType: string): boolean {
         'hash',
         'image',
         'files',
-        'file',
         'blocks',
         'm2a',
         'many_to_many',
         'one_to_many',
-        'relation_tree',
         'many_to_one',
-        'relation',
-        'relation_many',
         'group_accordion',
         'group_detail',
         'group_raw',

@@ -30,17 +30,13 @@ export const FILTER_META_KEYS = new Set(['trashed', 'sort', 'direction']);
 
 const NON_FILTERABLE_TYPES = new Set([
     'image',
-    'file',
     'files',
     'map',
     'm2a',
     'blocks',
-    'relation',
     'many_to_one',
     'one_to_many',
     'many_to_many',
-    'relation_tree',
-    'relation_many',
     'wysiwyg',
     'markdown',
     'code',

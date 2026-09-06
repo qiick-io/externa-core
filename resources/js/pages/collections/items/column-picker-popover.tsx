@@ -34,14 +34,10 @@ const SYSTEM_FIELDS: RelatedFieldEntry[] = [
 
 function isDrillable(type: string): boolean {
     return [
-        'relation',
         'many_to_one',
         'one_to_many',
         'many_to_many',
-        'relation_tree',
-        'relation_many',
         'image',
-        'file',
         'files',
     ].includes(type);
 }

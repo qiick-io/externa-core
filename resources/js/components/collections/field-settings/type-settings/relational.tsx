@@ -19,6 +19,8 @@ type RelationalSettingsProps = {
     onDisplayFieldChange: (value: string) => void;
     allowMultipleImages: boolean;
     onAllowMultipleImagesChange: (value: boolean) => void;
+    allowMultipleFiles: boolean;
+    onAllowMultipleFilesChange: (value: boolean) => void;
     allowedCollectionIds: number[];
     onAllowedCollectionIdsChange: (next: number[]) => void;
 };
@@ -37,6 +39,8 @@ export function RelationalSettings({
     onDisplayFieldChange,
     allowMultipleImages,
     onAllowMultipleImagesChange,
+    allowMultipleFiles,
+    onAllowMultipleFilesChange,
     allowedCollectionIds,
     onAllowedCollectionIdsChange,
 }: RelationalSettingsProps) {
@@ -70,16 +74,25 @@ export function RelationalSettings({
         );
     }
 
-    if (fieldType === 'files' || fieldType === 'file') {
+    if (fieldType === 'files') {
         const filesSettings = parseFilesFieldSettings(settings);
 
         return (
-            <div className="grid gap-2">
-                <Label>Allowed MIME types (comma-separated)</Label>
-                <Input
-                    name="settings[allowed_mime_types]"
-                    defaultValue={filesSettings.allowedMimeTypes.join(', ')}
+            <div className="space-y-5">
+                <SettingCheckbox
+                    id="files_allow_multiple"
+                    label="Allow multiple files"
+                    description="Let editors attach more than one file in this field."
+                    checked={allowMultipleFiles}
+                    onCheckedChange={onAllowMultipleFilesChange}
                 />
+                <div className="grid gap-2">
+                    <Label>Allowed MIME types (comma-separated)</Label>
+                    <Input
+                        name="settings[allowed_mime_types]"
+                        defaultValue={filesSettings.allowedMimeTypes.join(', ')}
+                    />
+                </div>
             </div>
         );
     }
@@ -145,10 +158,7 @@ export function RelationalSettings({
     if (
         fieldType === 'many_to_one' ||
         fieldType === 'one_to_many' ||
-        fieldType === 'many_to_many' ||
-        fieldType === 'relation_tree' ||
-        fieldType === 'relation' ||
-        fieldType === 'relation_many'
+        fieldType === 'many_to_many'
     ) {
         const relationSettings = parseRelationFieldSettings(settings);
 

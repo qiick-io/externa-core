@@ -363,7 +363,6 @@ class CollectionItemQueryService
 
         return ! in_array($type, [
             FieldTypeEnum::Image,
-            FieldTypeEnum::File,
             FieldTypeEnum::Files,
             FieldTypeEnum::Map,
             FieldTypeEnum::M2a,

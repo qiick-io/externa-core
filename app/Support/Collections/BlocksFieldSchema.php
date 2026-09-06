@@ -37,10 +37,8 @@ class BlocksFieldSchema
         'multiselect',
         'radio_group',
         'image',
-        'file',
         'files',
         'many_to_one',
-        'relation',
         'map',
         'tag',
         'hash',
@@ -53,7 +51,6 @@ class BlocksFieldSchema
         'm2a',
         'many_to_many',
         'one_to_many',
-        'relation_many',
         'blocks',
     ];
 

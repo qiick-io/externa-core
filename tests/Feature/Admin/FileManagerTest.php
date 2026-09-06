@@ -428,7 +428,7 @@ test('collection items options endpoint returns related items', function () {
 
     $relationField = CollectionField::factory()->for($books)->create([
         'name' => 'author',
-        'type' => FieldTypeEnum::Relation,
+        'type' => FieldTypeEnum::ManyToOne,
         'settings' => [
             'related_collection_id' => $authors->id,
             'display_field' => 'name',

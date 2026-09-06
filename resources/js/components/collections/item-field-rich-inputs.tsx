@@ -3,6 +3,18 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { EditorContent, useEditor } from '@tiptap/react';
 import type { Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { css } from '@codemirror/lang-css';
+import { html } from '@codemirror/lang-html';
+import { javascript } from '@codemirror/lang-javascript';
+import { json } from '@codemirror/lang-json';
+import { markdown as codeMarkdown } from '@codemirror/lang-markdown';
+import { sql } from '@codemirror/lang-sql';
+import { xml } from '@codemirror/lang-xml';
+import { bracketMatching } from '@codemirror/language';
+import type { Extension } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
+import CodeMirror from '@uiw/react-codemirror';
+import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
 import MDEditor, {
     commands,
     TextAreaCommandOrchestrator,
@@ -33,7 +45,7 @@ import {
     Undo2,
     Upload,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
@@ -654,19 +666,31 @@ export function MarkdownFieldInput({
         [getTextarea, readonly, syncFromTextarea],
     );
 
-    const insertImageFromFile = useCallback(
-        (file: AdminFileRow) => {
-            const url = filePublicUrl(file);
+    const insertImagesFromFiles = useCallback(
+        (files: AdminFileRow[]) => {
+            const snippets: string[] = [];
 
-            if (!url) {
-                toast.error('Selected file has no public URL.');
+            for (const file of files) {
+                const url = filePublicUrl(file);
 
+                if (!url) {
+                    toast.error(
+                        `"${file.title || file.name}" has no public URL.`,
+                    );
+
+                    continue;
+                }
+
+                snippets.push(
+                    markdownImageSnippet(url, file.title || file.name || 'image'),
+                );
+            }
+
+            if (snippets.length === 0) {
                 return;
             }
 
-            insertSnippet(
-                markdownImageSnippet(url, file.title || file.filename || 'image'),
-            );
+            insertSnippet(snippets.join(''));
         },
         [insertSnippet],
     );
@@ -693,17 +717,22 @@ export function MarkdownFieldInput({
 
     const handleLocalImage = useCallback(
         async (fileList: FileList | null): Promise<void> => {
-            const file = fileList?.[0];
-
-            if (!file || readonly || imageUploading) {
+            if (!fileList || fileList.length === 0 || readonly || imageUploading) {
                 return;
             }
 
             setImageUploading(true);
 
             try {
-                const row = await uploadImageFile(file, filesMaxUploadBytes);
-                insertImageFromFile(row);
+                const uploaded: AdminFileRow[] = [];
+
+                for (const file of Array.from(fileList)) {
+                    uploaded.push(
+                        await uploadImageFile(file, filesMaxUploadBytes),
+                    );
+                }
+
+                insertImagesFromFiles(uploaded);
             } catch (error) {
                 toast.error(
                     error instanceof Error
@@ -721,7 +750,7 @@ export function MarkdownFieldInput({
         [
             filesMaxUploadBytes,
             imageUploading,
-            insertImageFromFile,
+            insertImagesFromFiles,
             readonly,
         ],
     );
@@ -815,6 +844,7 @@ export function MarkdownFieldInput({
                 ref={imageInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 className="hidden"
                 disabled={readonly || imageUploading}
                 onChange={(event) => void handleLocalImage(event.target.files)}
@@ -823,10 +853,10 @@ export function MarkdownFieldInput({
                 open={imageLibraryOpen}
                 onOpenChange={setImageLibraryOpen}
                 acceptImagesOnly
-                title="Choose image"
-                onSelect={(file) => {
-                    insertImageFromFile(file);
-                    setImageLibraryOpen(false);
+                multiple
+                title="Choose images"
+                onSelect={(files) => {
+                    insertImagesFromFiles(files);
                 }}
             />
             <FileUrlImportDialog
@@ -834,7 +864,7 @@ export function MarkdownFieldInput({
                 onOpenChange={setImageUrlOpen}
                 acceptImagesOnly
                 onImported={(file) => {
-                    insertImageFromFile(file);
+                    insertImagesFromFiles([file]);
                 }}
             />
             <Dialog open={tableOpen} onOpenChange={setTableOpen}>
@@ -977,8 +1007,59 @@ export function MarkdownFieldInput({
 }
 
 /**
- * Code editor input for collection item fields.
- * @returns {JSX.Element}
+ * Pretty-print valid JSON; leave invalid / empty text unchanged.
+ */
+function prettyPrintJson(raw: string): string {
+    const trimmed = raw.trim();
+
+    if (trimmed === '') {
+        return raw;
+    }
+
+    try {
+        return JSON.stringify(JSON.parse(trimmed), null, 2);
+    } catch {
+        return raw;
+    }
+}
+
+/**
+ * Map Directus/Externa code field language setting → CodeMirror lang extension.
+ */
+function codeLanguageExtension(language: string): Extension {
+    const normalized = language.trim().toLowerCase();
+
+    switch (normalized) {
+        case 'json':
+            return json();
+        case 'html':
+            return html();
+        case 'css':
+            return css();
+        case 'xml':
+            return xml();
+        case 'sql':
+            return sql();
+        case 'markdown':
+        case 'md':
+            return codeMarkdown();
+        case 'typescript':
+        case 'ts':
+            return javascript({ typescript: true });
+        case 'tsx':
+            return javascript({ typescript: true, jsx: true });
+        case 'jsx':
+            return javascript({ jsx: true });
+        case 'javascript':
+        case 'js':
+        default:
+            return javascript();
+    }
+}
+
+/**
+ * Code editor input for collection item fields (Directus `input-code` parity).
+ * CodeMirror: syntax highlight, line numbers, JSON pretty-print.
  */
 export function CodeFieldInput({
     id,
@@ -994,43 +1075,71 @@ export function CodeFieldInput({
     readonly: boolean;
 }) {
     const codeSettings = parseCodeFieldSettings(settings);
-    const [value, setValue] = useState(
-        defaultValue || codeSettings.template || '',
-    );
-    const lines = value.split('\n');
+    const { resolvedAppearance } = useAppearance();
+    const isJson = codeSettings.language.trim().toLowerCase() === 'json';
+    const [value, setValue] = useState(() => {
+        const initial = defaultValue || codeSettings.template || '';
+
+        return isJson ? prettyPrintJson(initial) : initial;
+    });
+
+    const extensions = useMemo((): Extension[] => {
+        const next: Extension[] = [
+            codeLanguageExtension(codeSettings.language),
+            bracketMatching(),
+        ];
+
+        if (codeSettings.lineWrapping) {
+            next.push(EditorView.lineWrapping);
+        }
+
+        if (readonly) {
+            next.push(
+                EditorView.editable.of(false),
+                EditorView.theme({
+                    '&': { cursor: 'default' },
+                }),
+            );
+        }
+
+        return next;
+    }, [codeSettings.language, codeSettings.lineWrapping, readonly]);
+
+    const formatJsonOnBlur = useCallback((): void => {
+        if (!isJson || readonly) {
+            return;
+        }
+
+        setValue((current) => prettyPrintJson(current));
+    }, [isJson, readonly]);
 
     return (
         <div
-            className={cn(
-                'grid overflow-hidden rounded-md border',
-                codeSettings.lineNumbers
-                    ? 'grid-cols-[auto_1fr]'
-                    : 'grid-cols-1',
-            )}
+            id={id}
+            className="overflow-hidden rounded-md border border-input shadow-xs [&_.cm-editor]:outline-none [&_.cm-focused]:outline-none"
         >
-            {codeSettings.lineNumbers ? (
-                <pre
-                    aria-hidden
-                    className="border-r bg-muted/40 px-3 py-2 text-right font-mono text-xs leading-6 text-muted-foreground select-none"
-                >
-                    {lines.map((_, index) => (
-                        <div key={index}>{index + 1}</div>
-                    ))}
-                </pre>
-            ) : null}
-            <textarea
-                id={id}
-                name={name}
-                className={cn(
-                    'min-h-[160px] resize-y bg-background px-3 py-2 font-mono text-sm leading-6 focus-visible:outline-none',
-                    codeSettings.lineWrapping
-                        ? 'whitespace-pre-wrap'
-                        : 'whitespace-pre',
-                )}
+            <input type="hidden" name={name} value={value} />
+            <CodeMirror
                 value={value}
-                readOnly={readonly}
-                spellCheck={false}
-                onChange={(event) => setValue(event.target.value)}
+                height="200px"
+                theme={
+                    resolvedAppearance === 'dark' ? vscodeDark : vscodeLight
+                }
+                editable={!readonly}
+                basicSetup={{
+                    lineNumbers: codeSettings.lineNumbers,
+                    foldGutter: true,
+                    highlightActiveLine: !readonly,
+                    highlightActiveLineGutter: !readonly,
+                    bracketMatching: true,
+                }}
+                extensions={extensions}
+                onChange={(next) => {
+                    if (!readonly) {
+                        setValue(next);
+                    }
+                }}
+                onBlur={formatJsonOnBlur}
             />
         </div>
     );

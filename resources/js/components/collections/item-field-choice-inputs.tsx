@@ -12,6 +12,13 @@ import type { ReactNode } from 'react';
 import { LucideIconByName } from '@/components/collections/field-settings/lucide-icon-picker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import {
     cascadeToggleValues,
@@ -36,6 +43,10 @@ import { cn } from '@/lib/utils';
 
 const inputLike =
     'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
+
+/** Radix Select forbids empty string values — map allowNone ↔ sentinel. */
+const SELECT_NONE_VALUE = '__none__';
+const SELECT_OTHER_VALUE = '__other__';
 
 /** Shared border/ring chrome for naked choice controls (boolean, checkbox group, radio, tree, slider). */
 const choiceFieldChromeBase =
@@ -265,53 +276,45 @@ export function BooleanToggleInput({
 }) {
     const booleanSettings = parseBooleanFieldSettings(settings);
     const [checked, setChecked] = useState(defaultChecked);
+    // Directus boolean: checkbox + fixed affirmative label (not a Yes/No flip).
     const onLabel = resolveTranslatedText(
         booleanSettings.labelOn,
         locales,
         'Yes',
     );
-    const offLabel = resolveTranslatedText(
-        booleanSettings.labelOff,
-        locales,
-        'No',
-    );
 
     return (
-        <div className={cn(choiceFieldChromeSingle, 'gap-3')}>
-            <button
+        <label
+            htmlFor={id}
+            className={cn(
+                choiceFieldChromeSingle,
+                'cursor-pointer gap-3',
+                readonly && 'cursor-not-allowed opacity-50',
+            )}
+        >
+            <Checkbox
                 id={id}
-                type="button"
-                role="switch"
-                aria-checked={checked}
+                checked={checked}
                 disabled={readonly}
-                onClick={() => {
-                    if (!readonly) {
-                        setChecked((current) => {
-                            const next = !current;
-                            onCheckedChange?.(next);
-
-                            return next;
-                        });
+                onCheckedChange={(next) => {
+                    if (readonly || next === 'indeterminate') {
+                        return;
                     }
+
+                    setChecked(next);
+                    onCheckedChange?.(next);
                 }}
+            />
+            <span
                 className={cn(
-                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none',
-                    checked ? 'bg-primary' : 'bg-muted',
-                    readonly && 'cursor-not-allowed opacity-50',
+                    'truncate text-sm leading-none',
+                    checked && 'text-primary',
                 )}
             >
-                <span
-                    className={cn(
-                        'pointer-events-none block size-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
-                        checked ? 'translate-x-5' : 'translate-x-0',
-                    )}
-                />
-            </button>
-            <span className="truncate text-sm leading-none">
-                {checked ? onLabel : offLabel}
+                {onLabel}
             </span>
             <input type="hidden" name={name} value={checked ? '1' : '0'} />
-        </div>
+        </label>
     );
 }
 
@@ -809,44 +812,82 @@ export function SelectWithOtherInput({
     const [otherValue, setOtherValue] = useState(
         initialIsOther ? defaultValue : '',
     );
+    const hiddenRef = useRef<HTMLInputElement>(null);
 
     const submitted = mode === 'other' ? otherValue : optionValue;
 
+    // Sync hidden input + bubble `input` so blocks sibling conditions still re-eval
+    // without a native <select> change event.
+    const syncHidden = (next: string): void => {
+        if (!hiddenRef.current) {
+            return;
+        }
+
+        hiddenRef.current.value = next;
+        hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+
+    const selectValue =
+        mode === 'other'
+            ? SELECT_OTHER_VALUE
+            : optionValue === ''
+              ? allowNone
+                  ? SELECT_NONE_VALUE
+                  : undefined
+              : optionValue;
+
     return (
         <div className="space-y-2">
-            <select
-                id={id}
-                className={inputLike}
-                value={mode === 'other' ? '__other__' : optionValue}
+            <Select
+                value={selectValue}
                 disabled={readonly}
-                onChange={(event) => {
-                    if (event.target.value === '__other__') {
+                onValueChange={(value) => {
+                    if (value === SELECT_OTHER_VALUE) {
                         setMode('other');
 
                         return;
                     }
 
+                    const next = value === SELECT_NONE_VALUE ? '' : value;
                     setMode('option');
-                    setOptionValue(event.target.value);
+                    setOptionValue(next);
+                    syncHidden(next);
                 }}
             >
-                {allowNone ? <option value="">—</option> : null}
-                {options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                        {option.label || option.value}
-                    </option>
-                ))}
-                {allowOther ? <option value="__other__">Other…</option> : null}
-            </select>
+                <SelectTrigger id={id} className="w-full">
+                    <SelectValue
+                        placeholder={allowNone ? '—' : 'Select…'}
+                    />
+                </SelectTrigger>
+                <SelectContent>
+                    {allowNone ? (
+                        <SelectItem value={SELECT_NONE_VALUE}>—</SelectItem>
+                    ) : null}
+                    {options.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                            {option.label || option.value}
+                        </SelectItem>
+                    ))}
+                    {allowOther ? (
+                        <SelectItem value={SELECT_OTHER_VALUE}>
+                            Other…
+                        </SelectItem>
+                    ) : null}
+                </SelectContent>
+            </Select>
             {mode === 'other' ? (
                 <Input
                     value={otherValue}
                     readOnly={readonly}
                     placeholder="Custom value"
-                    onChange={(event) => setOtherValue(event.target.value)}
+                    onChange={(event) => {
+                        const next = event.target.value;
+                        setOtherValue(next);
+                        syncHidden(next);
+                    }}
                 />
             ) : null}
-            <input type="hidden" name={name} value={submitted} />
+            <input ref={hiddenRef} type="hidden" name={name} value={submitted} />
         </div>
     );
 }

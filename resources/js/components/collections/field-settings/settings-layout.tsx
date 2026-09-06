@@ -1,6 +1,11 @@
 import type { ReactNode } from 'react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 type SettingsPanelProps = {
@@ -48,6 +53,8 @@ type SettingCheckboxControlledProps = {
     description: string;
     checked: boolean;
     onCheckedChange: (checked: boolean) => void;
+    disabled?: boolean;
+    disabledReason?: string;
     name?: never;
     value?: never;
     defaultChecked?: never;
@@ -60,6 +67,8 @@ type SettingCheckboxUncontrolledProps = {
     name: string;
     value?: string;
     defaultChecked?: boolean;
+    disabled?: boolean;
+    disabledReason?: string;
     checked?: never;
     onCheckedChange?: never;
 };
@@ -72,34 +81,62 @@ type SettingCheckboxProps =
  * @returns {JSX.Element}
  */
 export function SettingCheckbox(props: SettingCheckboxProps) {
-    const { id, label, description } = props;
+    const { id, label, description, disabled = false, disabledReason } = props;
+
+    const input =
+        'checked' in props && props.onCheckedChange ? (
+            <input
+                id={id}
+                type="checkbox"
+                checked={props.checked}
+                disabled={disabled}
+                onChange={(event) =>
+                    props.onCheckedChange(event.target.checked)
+                }
+                className="mt-1 size-4 shrink-0 rounded border disabled:cursor-not-allowed disabled:opacity-50"
+            />
+        ) : (
+            <input
+                id={id}
+                type="checkbox"
+                name={props.name}
+                value={props.value ?? '1'}
+                defaultChecked={props.defaultChecked}
+                disabled={disabled}
+                className="mt-1 size-4 shrink-0 rounded border disabled:cursor-not-allowed disabled:opacity-50"
+            />
+        );
 
     return (
-        <div className="flex items-start gap-4">
-            {'checked' in props && props.onCheckedChange ? (
-                <input
-                    id={id}
-                    type="checkbox"
-                    checked={props.checked}
-                    onChange={(event) =>
-                        props.onCheckedChange(event.target.checked)
-                    }
-                    className="mt-1 size-4 shrink-0 rounded border"
-                />
+        <div
+            className={cn(
+                'flex items-start gap-4',
+                disabled && 'opacity-80',
+            )}
+        >
+            {disabled && disabledReason ? (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span className="inline-flex">{input}</span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                        {disabledReason}
+                    </TooltipContent>
+                </Tooltip>
             ) : (
-                <input
-                    id={id}
-                    type="checkbox"
-                    name={props.name}
-                    value={props.value ?? '1'}
-                    defaultChecked={props.defaultChecked}
-                    className="mt-1 size-4 shrink-0 rounded border"
-                />
+                input
             )}
             <div className="grid gap-2">
-                <Label htmlFor={id}>{label}</Label>
+                <Label
+                    htmlFor={id}
+                    className={disabled ? 'cursor-not-allowed' : undefined}
+                >
+                    {label}
+                </Label>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                    {description}
+                    {disabled && disabledReason
+                        ? disabledReason
+                        : description}
                 </p>
             </div>
         </div>

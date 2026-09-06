@@ -57,6 +57,22 @@ export function isImageFieldMultiple(
 }
 
 /**
+ * Whether a files field stores multiple file ids.
+ * Default true when unset (legacy Files fields are multi).
+ */
+export function isFilesFieldMultiple(
+    settings?: Record<string, unknown> | null,
+): boolean {
+    const value = settings?.allow_multiple;
+
+    if (value === undefined || value === null) {
+        return true;
+    }
+
+    return value === true || value === 1 || value === '1';
+}
+
+/**
  * Parse allowed related collection IDs from field settings.
  *
  * @param settings - Raw M2A field settings
@@ -599,17 +615,19 @@ export function parseImageFieldSettings(
 /** Generic files field mime constraints. */
 export type FilesFieldSettings = {
     allowedMimeTypes: string[];
+    allowMultiple: boolean;
 };
 
 /**
  * @param settings - Raw field settings
- * @returns Allowed mime types for files fields
+ * @returns Allowed mime types and multi flag for files fields
  */
 export function parseFilesFieldSettings(
     settings?: Record<string, unknown> | null,
 ): FilesFieldSettings {
     return {
         allowedMimeTypes: parseStringArraySetting(settings?.allowed_mime_types),
+        allowMultiple: isFilesFieldMultiple(settings),
     };
 }
 

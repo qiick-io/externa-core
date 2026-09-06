@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/react';
 import {
     Download,
     FolderOpen,
@@ -10,13 +11,13 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
-import { usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
 import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
-import { FilePreview } from '@/components/admin/files/file-preview';
 import { FileUrlImportDialog } from '@/components/admin/file-url-import-dialog';
+import { FileDetailDrawer } from '@/components/admin/files/file-detail-drawer';
+import { FilePreview } from '@/components/admin/files/file-preview';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -29,19 +30,22 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { PermissionEnum } from '@/enums/permission-enum';
+import { useCan } from '@/hooks/use-can';
+import { fileFieldImageSources } from '@/lib/file-field-image';
 import {
     CHUNK_SIZE_BYTES,
     downloadFileUrl,
     fetchFilesByIds,
     filePublicUrl,
     formatFileSize,
-    isImageFile,
+    listFileTagsCatalog,
     uploadFileChunked,
     uploadFileDirect,
 } from '@/lib/files-api';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
-import type { AdminFileRow } from '@/types/files';
+import type { AdminFileRow, FileTag } from '@/types/files';
 
 /** Same footprint as the empty dashed dropzone so a selected image fills that slot. */
 const FILE_FIELD_SLOT_CLASS = 'min-h-[9.5rem] w-full rounded-md';
@@ -292,19 +296,19 @@ function SingleImageFilledPreview({
     file,
     fileId,
     readonly,
-    onReplace,
+    onEdit,
     onClear,
 }: {
     file: AdminFileRow | null;
     fileId: number;
     readonly?: boolean;
-    onReplace: () => void;
+    onEdit: () => void;
     onClear: () => void;
 }) {
     const { t } = useTranslation();
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const publicUrl = file ? filePublicUrl(file) : null;
-    const imageSrc = file?.thumbnail_url ?? publicUrl;
+    const imageSources = file ? fileFieldImageSources(file) : null;
     const displayName = file?.title || file?.name || `File #${fileId}`;
     const metaLine = file ? formatImageFieldMetaLine(file) : '';
 
@@ -316,9 +320,11 @@ function SingleImageFilledPreview({
                     FILE_FIELD_SLOT_CLASS,
                 )}
             >
-                {imageSrc ? (
+                {imageSources ? (
                     <img
-                        src={imageSrc}
+                        src={imageSources.src}
+                        srcSet={imageSources.srcSet}
+                        sizes={imageSources.sizes}
                         alt={displayName}
                         className="absolute inset-0 size-full object-cover"
                     />
@@ -326,9 +332,9 @@ function SingleImageFilledPreview({
                     <div className="absolute inset-0 bg-muted" />
                 )}
 
-                <div className="pointer-events-none absolute inset-0 flex flex-col opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
                     <div className="absolute inset-0 bg-black/50" />
-                    <div className="relative z-10 flex flex-1 items-center justify-center gap-2">
+                    <div className="absolute inset-0 z-10 flex items-center justify-center gap-2">
                         {publicUrl ? (
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -372,7 +378,7 @@ function SingleImageFilledPreview({
                                             aria-label={t(
                                                 'collections.fileField.editItem',
                                             )}
-                                            onClick={onReplace}
+                                            onClick={onEdit}
                                         >
                                             <Pencil className="size-4" />
                                         </button>
@@ -401,7 +407,7 @@ function SingleImageFilledPreview({
                             </>
                         ) : null}
                     </div>
-                    <div className="relative z-10 bg-gradient-to-t from-black/80 to-transparent px-3 pb-3 pt-8 text-left text-xs text-white">
+                    <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/80 to-transparent px-3 pt-8 pb-3 text-left text-xs text-white">
                         <p className="truncate font-medium">{displayName}</p>
                         {metaLine !== '' ? (
                             <p className="truncate text-white/80">{metaLine}</p>
@@ -440,9 +446,16 @@ export function FileFieldInput({
     readonly?: boolean;
 }) {
     const { t } = useTranslation();
+    const { can } = useCan();
     const [fileId, setFileId] = useState<number | null>(defaultFileId);
     const [preview, setPreview] = useState<AdminFileRow | null>(null);
     const [pickerOpen, setPickerOpen] = useState(false);
+    const [detailOpen, setDetailOpen] = useState(false);
+    const [tagCatalog, setTagCatalog] = useState<FileTag[]>([]);
+
+    const canUpdateMetadata = can(PermissionEnum.CanUpdateFileMetadata);
+    const canTag = can(PermissionEnum.CanTagFiles);
+    const canReplaceFile = can(PermissionEnum.CanReplaceFiles);
 
     useEffect(() => {
         if (fileId === null) {
@@ -470,9 +483,32 @@ export function FileFieldInput({
         };
     }, [fileId]);
 
+    useEffect(() => {
+        if (!detailOpen) {
+            return;
+        }
+
+        let cancelled = false;
+
+        void listFileTagsCatalog()
+            .then((tags) => {
+                if (!cancelled) {
+                    setTagCatalog(tags);
+                }
+            })
+            .catch(() => {
+                // Best-effort; panel still works without catalog.
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [detailOpen]);
+
     const clear = (): void => {
         setFileId(null);
         setPreview(null);
+        setDetailOpen(false);
     };
 
     const selectFile = (file: AdminFileRow): void => {
@@ -490,7 +526,11 @@ export function FileFieldInput({
                         file={preview}
                         fileId={fileId}
                         readonly={readonly}
-                        onReplace={() => setPickerOpen(true)}
+                        onEdit={() => {
+                            if (preview) {
+                                setDetailOpen(true);
+                            }
+                        }}
                         onClear={clear}
                     />
                 ) : (
@@ -507,6 +547,15 @@ export function FileFieldInput({
                         </span>
                         {!readonly ? (
                             <div className="flex shrink-0 gap-1">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={!preview}
+                                    onClick={() => setDetailOpen(true)}
+                                >
+                                    {t('collections.fileField.editItem')}
+                                </Button>
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -556,7 +605,30 @@ export function FileFieldInput({
                         ? t('collections.fileField.chooseImage')
                         : t('collections.fileField.chooseFile')
                 }
-                onSelect={selectFile}
+                onSelect={(files) => {
+                    const first = files[0];
+
+                    if (first) {
+                        selectFile(first);
+                    }
+                }}
+            />
+
+            <FileDetailDrawer
+                file={preview}
+                open={detailOpen && preview !== null}
+                onOpenChange={setDetailOpen}
+                canUpdateMetadata={canUpdateMetadata}
+                canTag={canTag}
+                canReplace={canReplaceFile}
+                tagCatalog={tagCatalog}
+                onUpdated={(updated) => {
+                    setPreview(updated);
+                    setFileId(updated.id);
+                    void listFileTagsCatalog()
+                        .then(setTagCatalog)
+                        .catch(() => {});
+                }}
             />
         </div>
     );
@@ -708,12 +780,15 @@ export function MultipleFilesFieldInput({
                 open={pickerOpen}
                 onOpenChange={setPickerOpen}
                 acceptImagesOnly={acceptImagesOnly}
+                multiple
                 title={
                     acceptImagesOnly
                         ? t('collections.fileField.chooseImage')
-                        : t('collections.fileField.chooseFile')
+                        : t('collections.fileField.chooseFiles', {
+                              defaultValue: 'Choose files',
+                          })
                 }
-                onSelect={(file) => addFiles([file])}
+                onSelect={(files) => addFiles(files)}
             />
         </div>
     );

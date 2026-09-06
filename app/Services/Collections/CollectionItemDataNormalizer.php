@@ -138,14 +138,12 @@ class CollectionItemDataNormalizer
             FieldTypeEnum::Image => $field->usesArrayStorage()
                 ? $this->normalizeIntegerArray($value)
                 : $this->normalizeFileId($value),
-            FieldTypeEnum::File => $this->normalizeFileId($value),
-            FieldTypeEnum::Files => $this->normalizeIntegerArray($value),
+            FieldTypeEnum::Files => $field->usesArrayStorage()
+                ? $this->normalizeIntegerArray($value)
+                : $this->normalizeFileId($value),
             FieldTypeEnum::M2a => $this->normalizeM2aBlocks($value),
             FieldTypeEnum::Blocks => $this->normalizeBlocksValue($field, $value),
-            FieldTypeEnum::Relation,
-            FieldTypeEnum::ManyToOne,
-            FieldTypeEnum::RelationTree => $this->normalizeRelationId($value),
-            FieldTypeEnum::RelationMany,
+            FieldTypeEnum::ManyToOne => $this->normalizeRelationId($value),
             FieldTypeEnum::OneToMany,
             FieldTypeEnum::ManyToMany => $this->normalizeM2mLinks($value),
             FieldTypeEnum::GroupAccordion,

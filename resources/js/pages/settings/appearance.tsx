@@ -516,7 +516,13 @@ export default function Appearance({
                         pickerField === 'project_logo_dark'
                     }
                     title={t('settings.appearance.chooseFile')}
-                    onSelect={selectFile}
+                    onSelect={(files) => {
+                        const first = files[0];
+
+                        if (first) {
+                            selectFile(first);
+                        }
+                    }}
                 />
             </SettingsLayout>
         </AppLayout>

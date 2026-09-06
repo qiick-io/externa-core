@@ -644,7 +644,7 @@ class ChatMessageController extends Controller
         );
         abort_unless($field instanceof CollectionField, 404);
 
-        $allowedTypes = [FieldTypeEnum::Image, FieldTypeEnum::File, FieldTypeEnum::Files];
+        $allowedTypes = [FieldTypeEnum::Image, FieldTypeEnum::Files];
         abort_unless(in_array($field->type, $allowedTypes, true), 422);
 
         $file = $this->transferToFilePool($attachment);
@@ -1295,7 +1295,7 @@ class ChatMessageController extends Controller
 
     private function mergeScalarOrList(CollectionField $field, mixed $current, int $fileId): mixed
     {
-        if ($field->type !== FieldTypeEnum::Files && ! $field->usesArrayStorage()) {
+        if (! $field->usesArrayStorage()) {
             return $fileId;
         }
 

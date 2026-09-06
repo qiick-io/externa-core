@@ -342,7 +342,7 @@ test('relation options are listed and collection reads enforce permission', func
     $relationField = CollectionField::factory()->create([
         'collection_id' => $owner->id,
         'name' => 'related_item',
-        'type' => FieldTypeEnum::Relation,
+        'type' => FieldTypeEnum::ManyToOne,
         'translatable' => false,
         'settings' => [
             'related_collection_id' => $related->id,

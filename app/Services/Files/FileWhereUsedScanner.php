@@ -69,7 +69,6 @@ class FileWhereUsedScanner
         $fieldIds = CollectionField::query()
             ->whereIn('type', [
                 FieldTypeEnum::Image->value,
-                FieldTypeEnum::File->value,
                 FieldTypeEnum::Files->value,
                 FieldTypeEnum::Blocks->value,
             ])
@@ -150,7 +149,8 @@ class FileWhereUsedScanner
         }
 
         // Array-storage fields (files / multi-image) store one id per value row.
-        if ($type === FieldTypeEnum::Files || ($type === FieldTypeEnum::Image && $field->usesArrayStorage())) {
+        if ($field->usesArrayStorage()
+            && in_array($type, [FieldTypeEnum::Files, FieldTypeEnum::Image], true)) {
             if (is_array($value)) {
                 foreach ($value as $entry) {
                     if ($this->normalizeId($entry) === $fileId) {
@@ -164,7 +164,7 @@ class FileWhereUsedScanner
             return $this->normalizeId($value) === $fileId;
         }
 
-        if (in_array($type, [FieldTypeEnum::Image, FieldTypeEnum::File], true)) {
+        if (in_array($type, [FieldTypeEnum::Image, FieldTypeEnum::Files], true)) {
             return $this->normalizeId($value) === $fileId;
         }
 
@@ -229,7 +229,7 @@ class FileWhereUsedScanner
                         continue;
                     }
 
-                    if (! in_array($nestedType, [FieldTypeEnum::Image, FieldTypeEnum::File], true)) {
+                    if (! in_array($nestedType, [FieldTypeEnum::Image, FieldTypeEnum::Files], true)) {
                         continue;
                     }
 

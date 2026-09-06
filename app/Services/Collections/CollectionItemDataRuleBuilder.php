@@ -136,8 +136,8 @@ class CollectionItemDataRuleBuilder
             $rules[$prefix][] = $this->manyToManyArrayRule($field);
         }
 
-        if ($field->type === FieldTypeEnum::Files
-            || ($field->type === FieldTypeEnum::Image && $field->usesArrayStorage())) {
+        if ($field->usesArrayStorage()
+            && in_array($field->type, [FieldTypeEnum::Files, FieldTypeEnum::Image], true)) {
             $rules[$prefix.'.*'] = ['integer', Rule::exists('files', 'id')];
         }
 
@@ -216,13 +216,9 @@ class CollectionItemDataRuleBuilder
             FieldTypeEnum::Image => $field->usesArrayStorage()
                 ? [$prefix => [$presence, 'array'], $prefix.'.*' => ['integer', Rule::exists('files', 'id')]]
                 : [$prefix => [$presence, 'integer', Rule::exists('files', 'id')]],
-            FieldTypeEnum::File => [
-                $prefix => [$presence, 'integer', Rule::exists('files', 'id')],
-            ],
-            FieldTypeEnum::Files => [
-                $prefix => [$presence, 'array'],
-                $prefix.'.*' => ['integer', Rule::exists('files', 'id')],
-            ],
+            FieldTypeEnum::Files => $field->usesArrayStorage()
+                ? [$prefix => [$presence, 'array'], $prefix.'.*' => ['integer', Rule::exists('files', 'id')]]
+                : [$prefix => [$presence, 'integer', Rule::exists('files', 'id')]],
             FieldTypeEnum::M2a => [
                 $prefix => [$presence, 'array'],
                 $prefix.'.*' => ['array'],
@@ -242,12 +238,9 @@ class CollectionItemDataRuleBuilder
                 $prefix.'.*.type' => ['required', 'string'],
                 $prefix.'.*.data' => ['required', 'array'],
             ],
-            FieldTypeEnum::Relation,
-            FieldTypeEnum::ManyToOne,
-            FieldTypeEnum::RelationTree => [
+            FieldTypeEnum::ManyToOne => [
                 $prefix => [$presence, 'integer', $this->relatedItemExistsRule($field)],
             ],
-            FieldTypeEnum::RelationMany,
             FieldTypeEnum::OneToMany,
             FieldTypeEnum::ManyToMany => [
                 $prefix => [$presence, 'array', $this->manyToManyArrayRule($field)],
@@ -295,8 +288,9 @@ class CollectionItemDataRuleBuilder
             FieldTypeEnum::Image => $field->usesArrayStorage()
                 ? [$presence, 'array']
                 : [$presence, 'integer', Rule::exists('files', 'id')],
-            FieldTypeEnum::File => [$presence, 'integer', Rule::exists('files', 'id')],
-            FieldTypeEnum::Files => [$presence, 'array'],
+            FieldTypeEnum::Files => $field->usesArrayStorage()
+                ? [$presence, 'array']
+                : [$presence, 'integer', Rule::exists('files', 'id')],
             FieldTypeEnum::M2a => [$presence, 'array'],
             FieldTypeEnum::Blocks => [
                 $presence,
@@ -305,10 +299,7 @@ class CollectionItemDataRuleBuilder
                     $this->validateBlocksPayload($field, $attribute, $value, $fail);
                 },
             ],
-            FieldTypeEnum::Relation,
-            FieldTypeEnum::ManyToOne,
-            FieldTypeEnum::RelationTree => [$presence, 'integer', $this->relatedItemExistsRule($field)],
-            FieldTypeEnum::RelationMany,
+            FieldTypeEnum::ManyToOne => [$presence, 'integer', $this->relatedItemExistsRule($field)],
             FieldTypeEnum::OneToMany => [$presence, 'array'],
             FieldTypeEnum::ManyToMany => [$presence, 'array', $this->manyToManyArrayRule($field)],
         };

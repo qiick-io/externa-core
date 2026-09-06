@@ -26,16 +26,12 @@ enum FieldTypeEnum: string
     case Color = 'color';
     case Tag = 'tag';
     case Image = 'image';
-    case File = 'file';
     case Files = 'files';
-    case Relation = 'relation';
     case ManyToOne = 'many_to_one';
     case OneToMany = 'one_to_many';
     case ManyToMany = 'many_to_many';
     case M2a = 'm2a';
     case Blocks = 'blocks';
-    case RelationTree = 'relation_tree';
-    case RelationMany = 'relation_many';
     case Hash = 'hash';
     case Slider = 'slider';
     case GroupAccordion = 'group_accordion';
@@ -87,8 +83,7 @@ enum FieldTypeEnum: string
             self::OneToMany,
             self::ManyToMany,
             self::M2a,
-            self::Blocks,
-            self::RelationMany => true,
+            self::Blocks => true,
             default => false,
         };
     }
@@ -99,12 +94,9 @@ enum FieldTypeEnum: string
     public function isRelationType(): bool
     {
         return match ($this) {
-            self::Relation,
             self::ManyToOne,
             self::OneToMany,
-            self::ManyToMany,
-            self::RelationTree,
-            self::RelationMany => true,
+            self::ManyToMany => true,
             default => false,
         };
     }
@@ -116,8 +108,7 @@ enum FieldTypeEnum: string
     {
         return match ($this) {
             self::OneToMany,
-            self::ManyToMany,
-            self::RelationMany => true,
+            self::ManyToMany => true,
             default => false,
         };
     }
@@ -132,14 +123,11 @@ enum FieldTypeEnum: string
     {
         return match ($this) {
             self::Hash,
-            self::Relation,
             self::ManyToOne,
             self::OneToMany,
             self::ManyToMany,
             self::M2a,
             self::Blocks,
-            self::RelationTree,
-            self::RelationMany,
             self::GroupAccordion,
             self::GroupDetail,
             self::GroupRaw,

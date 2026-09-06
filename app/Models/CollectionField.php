@@ -204,6 +204,11 @@ class CollectionField extends Model implements Sortable
             return self::settingsFlagIsEnabled(data_get($this->settings, 'allow_multiple', false));
         }
 
+        if ($this->type === FieldTypeEnum::Files) {
+            // Absent setting → multiple (legacy Files fields).
+            return self::settingsFlagIsEnabled(data_get($this->settings, 'allow_multiple', true));
+        }
+
         return $this->type->isArrayStorage();
     }
 

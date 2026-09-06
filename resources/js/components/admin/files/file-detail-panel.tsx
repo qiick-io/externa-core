@@ -68,6 +68,8 @@ type FileDetailPanelProps = {
     tagCatalog: FileTag[];
     onClose: () => void;
     onUpdated: (file: AdminFileRow) => void;
+    /** `aside` = file manager column; `sheet` = overlay drawer from fields. */
+    presentation?: 'aside' | 'sheet';
 };
 
 function SectionHeading({
@@ -155,6 +157,7 @@ export function FileDetailPanel({
     tagCatalog,
     onClose,
     onUpdated,
+    presentation = 'aside',
 }: FileDetailPanelProps) {
     const replaceInputRef = useRef<HTMLInputElement>(null);
     const [title, setTitle] = useState(file.title ?? '');
@@ -338,7 +341,14 @@ export function FileDetailPanel({
     const numberInputClassName = cn('tabular-nums');
 
     return (
-        <aside className="flex w-[380px] shrink-0 flex-col border-l border-sidebar-border/70 bg-card">
+        <aside
+            className={cn(
+                'flex flex-col bg-card',
+                presentation === 'aside' &&
+                    'w-[380px] shrink-0 border-l border-sidebar-border/70',
+                presentation === 'sheet' && 'h-full min-h-0 w-full',
+            )}
+        >
             <div className="flex items-center justify-between border-b px-4 py-3">
                 <h2 className="text-sm font-semibold">Details</h2>
                 <Button

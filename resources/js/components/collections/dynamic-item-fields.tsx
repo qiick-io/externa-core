@@ -21,10 +21,8 @@ import {
     SliderFieldInput,
     StaticAutocompleteInput,
     defaultBooleanChecked,
-    toDateInputValue,
-    toDatetimeLocalValue,
-    toTimeInputValue,
 } from '@/components/collections/item-field-choice-inputs';
+import { DateFieldInput } from '@/components/collections/item-field-date-input';
 import {
     FileFieldInput,
     MultipleFilesFieldInput,
@@ -68,6 +66,7 @@ import {
     getFieldPlaceholder,
     groupFieldsIntoLayoutRows,
     isImageFieldMultiple,
+    isFilesFieldMultiple,
     parseDateFieldSettings,
     parseFieldOptions,
     parseNumberFieldSettings,
@@ -432,40 +431,16 @@ function renderFieldControl(context: FieldRenderContext) {
         }
         case 'date': {
             const dateSettings = parseDateFieldSettings(field.settings);
-            const inputType =
-                dateSettings.mode === 'date'
-                    ? 'date'
-                    : dateSettings.mode === 'time'
-                      ? 'time'
-                      : 'datetime-local';
-            const value =
-                dateSettings.mode === 'date'
-                    ? toDateInputValue(defaultValue)
-                    : dateSettings.mode === 'time'
-                      ? toTimeInputValue(
-                            defaultValue,
-                            dateSettings.includeSeconds,
-                        )
-                      : toDatetimeLocalValue(
-                            defaultValue,
-                            dateSettings.includeSeconds,
-                        );
 
             return (
-                <Input
+                <DateFieldInput
                     id={id}
-                    type={inputType}
                     name={name}
-                    step={
-                        dateSettings.mode === 'date'
-                            ? undefined
-                            : dateSettings.includeSeconds
-                              ? 1
-                              : 60
-                    }
-                    defaultValue={value}
-                    readOnly={readonly}
-                    aria-invalid={hasError}
+                    mode={dateSettings.mode}
+                    includeSeconds={dateSettings.includeSeconds}
+                    defaultValue={defaultValue}
+                    readonly={readonly}
+                    hasError={hasError}
                 />
             );
         }
@@ -577,14 +552,16 @@ function renderFieldControl(context: FieldRenderContext) {
                 />
             );
         case 'files':
-            return (
-                <MultipleFilesFieldInput
-                    name={name}
-                    defaultFileIds={toNumberArray(defaultValue)}
-                    readonly={readonly}
-                />
-            );
-        case 'file':
+            if (isFilesFieldMultiple(field.settings)) {
+                return (
+                    <MultipleFilesFieldInput
+                        name={name}
+                        defaultFileIds={toNumberArray(defaultValue)}
+                        readonly={readonly}
+                    />
+                );
+            }
+
             return (
                 <FileFieldInput
                     name={name}
@@ -592,9 +569,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     readonly={readonly}
                 />
             );
-        case 'relation':
         case 'many_to_one':
-        case 'relation_tree':
             return (
                 <RelationFieldInput
                     collectionId={collectionId}
@@ -614,7 +589,6 @@ function renderFieldControl(context: FieldRenderContext) {
                     readonly={readonly}
                 />
             );
-        case 'relation_many':
         case 'one_to_many':
             return (
                 <RelationFieldInput

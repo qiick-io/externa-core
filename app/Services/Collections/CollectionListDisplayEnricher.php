@@ -328,6 +328,6 @@ class CollectionListDisplayEnricher
 
     private function isFileType(FieldTypeEnum $type): bool
     {
-        return in_array($type, [FieldTypeEnum::Image, FieldTypeEnum::File, FieldTypeEnum::Files], true);
+        return in_array($type, [FieldTypeEnum::Image, FieldTypeEnum::Files], true);
     }
 }

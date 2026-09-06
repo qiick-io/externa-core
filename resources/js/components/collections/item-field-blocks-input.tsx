@@ -758,7 +758,7 @@ export function BlocksFieldInput({
                                                                         return;
                                                                     }
 
-                                                                    // SelectWithOtherInput: visible <select> has no name; value is in a hidden input updated next render.
+                                                                    // Legacy native <select> without name (pre-shadcn SelectWithOtherInput).
                                                                     if (
                                                                         target.tagName ===
                                                                             'SELECT' &&
@@ -786,6 +786,7 @@ export function BlocksFieldInput({
                                                                         return;
                                                                     }
 
+                                                                    // SelectWithOtherInput (shadcn): dispatches `input` on named hidden input.
                                                                     if (
                                                                         !target.name
                                                                     ) {

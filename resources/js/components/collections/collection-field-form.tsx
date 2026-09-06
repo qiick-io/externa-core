@@ -89,6 +89,7 @@ import {
     fieldTypeSupportsTranslatable,
     flattenSettingsForForm,
     isImageFieldMultiple,
+    isFilesFieldMultiple,
     parseAllowedCollectionIds,
     parseApiAutocompleteFieldSettings,
     parseBlocksFieldSettings,
@@ -142,15 +143,11 @@ const FIELD_TYPE_ICONS: Record<
     tag: Tags,
     image: Image,
     files: Files,
-    file: FileText,
     blocks: LayoutTemplate,
     m2a: LayoutTemplate,
     many_to_many: Network,
     one_to_many: Link2,
-    relation_tree: ListTree,
     many_to_one: Link2,
-    relation: Link2,
-    relation_many: Link2,
     hash: Fingerprint,
     slider: SlidersHorizontal,
     group_accordion: Rows3,
@@ -1056,8 +1053,7 @@ function BlocksSettingsEditor({
                                         ) : null}
 
                                         {field.type === 'many_to_many' ||
-                                        field.type === 'one_to_many' ||
-                                        field.type === 'relation_many' ? (
+                                        field.type === 'one_to_many' ? (
                                             <NestedRelationSettings
                                                 settings={field.settings}
                                                 relatedCollections={
@@ -1257,6 +1253,8 @@ type FieldConfigPanelProps = {
     onDisplayFieldChange: (value: string) => void;
     allowMultipleImages: boolean;
     onAllowMultipleImagesChange: (value: boolean) => void;
+    allowMultipleFiles: boolean;
+    onAllowMultipleFilesChange: (value: boolean) => void;
     allowedCollectionIds: number[];
     onAllowedCollectionIdsChange: (next: number[]) => void;
     blockTypes: BlocksTypeDefinition[];
@@ -1310,6 +1308,8 @@ function FieldConfigPanel({
     onDisplayFieldChange,
     allowMultipleImages,
     onAllowMultipleImagesChange,
+    allowMultipleFiles,
+    onAllowMultipleFilesChange,
     allowedCollectionIds,
     onAllowedCollectionIdsChange,
     blockTypes,
@@ -1446,6 +1446,8 @@ function FieldConfigPanel({
                     onDisplayFieldChange={onDisplayFieldChange}
                     allowMultipleImages={allowMultipleImages}
                     onAllowMultipleImagesChange={onAllowMultipleImagesChange}
+                    allowMultipleFiles={allowMultipleFiles}
+                    onAllowMultipleFilesChange={onAllowMultipleFilesChange}
                     allowedCollectionIds={allowedCollectionIds}
                     onAllowedCollectionIdsChange={onAllowedCollectionIdsChange}
                 />
@@ -1734,6 +1736,9 @@ export function CollectionFieldFormDrawer({
     const [allowMultipleImages, setAllowMultipleImages] = useState(() =>
         isImageFieldMultiple(field?.settings),
     );
+    const [allowMultipleFiles, setAllowMultipleFiles] = useState(() =>
+        isFilesFieldMultiple(field?.settings),
+    );
     const [allowedCollectionIds, setAllowedCollectionIds] = useState<number[]>(
         () => parseAllowedCollectionIds(field?.settings),
     );
@@ -1787,6 +1792,10 @@ export function CollectionFieldFormDrawer({
                 typeSettings.allow_multiple = allowMultipleImages ? '1' : '0';
             }
 
+            if (fieldType === 'files') {
+                typeSettings.allow_multiple = allowMultipleFiles ? '1' : '0';
+            }
+
             if (fieldType === 'm2a') {
                 typeSettings.allowed_collection_ids = allowedCollectionIds;
             }
@@ -1836,6 +1845,7 @@ export function CollectionFieldFormDrawer({
         return payload;
     }, [
         allowMultipleImages,
+        allowMultipleFiles,
         allowedCollectionIds,
         apiAutocompleteSettings,
         accordionSettings,
@@ -1964,6 +1974,10 @@ export function CollectionFieldFormDrawer({
                                 allowMultipleImages={allowMultipleImages}
                                 onAllowMultipleImagesChange={
                                     setAllowMultipleImages
+                                }
+                                allowMultipleFiles={allowMultipleFiles}
+                                onAllowMultipleFilesChange={
+                                    setAllowMultipleFiles
                                 }
                                 allowedCollectionIds={allowedCollectionIds}
                                 onAllowedCollectionIdsChange={
