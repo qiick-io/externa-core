@@ -16,6 +16,7 @@ use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemOptionsService;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Collections\FieldConditionEvaluator;
 use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
 use App\Support\Collections\UniqueCollectionSlugGenerator;
 use Illuminate\Http\JsonResponse;
@@ -47,6 +48,7 @@ class ContentCollectionController extends Controller
         private CollectionItemValuesAssembler $collectionItemValuesAssembler,
         private CollectionItemOptionsService $collectionItemOptionsService,
         private CollectionPermissionEnforcer $permissionEnforcer,
+        private FieldConditionEvaluator $fieldConditionEvaluator,
     ) {}
 
     /**
@@ -282,11 +284,11 @@ class ContentCollectionController extends Controller
 
         $data = $this->collectionItemValuesAssembler->assemble($item);
         $collection->loadMissing('fields');
-        foreach ($collection->fields as $field) {
-            if ($field->isReadonly()) {
-                unset($incoming[$field->name]);
-            }
-        }
+        $incoming = $this->fieldConditionEvaluator->withoutReadonlyFields(
+            $collection->fields,
+            array_replace($data, $incoming),
+            $incoming,
+        );
 
         foreach ($incoming as $key => $value) {
             // ponytail: array_merge appends list fields (blocks/m2a/files); only merge associative maps (locales).

@@ -46,10 +46,54 @@ class CollectionItemDataRuleBuilder
                 continue;
             }
 
+            // Parent group conditionally/statically hidden → children skip validation (FE hides whole subtree).
+            if ($this->isHiddenByAncestorGroup($field, $collection, $data)) {
+                continue;
+            }
+
             $rules = array_merge($rules, $this->rulesForField($field, $creating, $excludeItemId, $data));
         }
 
         return $rules;
+    }
+
+    /**
+     * When a layout-group ancestor is effectively hidden, skip child validation
+     * (matches FE group-field-renderer: hidden group drops whole subtree).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function isHiddenByAncestorGroup(CollectionField $field, Collection $collection, array $data): bool
+    {
+        $groupName = data_get($field->settings, 'group');
+        if (! is_string($groupName) || trim($groupName) === '') {
+            return false;
+        }
+
+        $byName = $collection->fields->keyBy('name');
+        $seen = [];
+
+        while (is_string($groupName) && trim($groupName) !== '') {
+            $groupName = trim($groupName);
+            if (isset($seen[$groupName])) {
+                break;
+            }
+            $seen[$groupName] = true;
+
+            $parent = $byName->get($groupName);
+            if (! $parent instanceof CollectionField) {
+                break;
+            }
+
+            if ($this->conditionEvaluator->effectiveFlags($parent, $data)['hidden']) {
+                return true;
+            }
+
+            $next = data_get($parent->settings, 'group');
+            $groupName = is_string($next) ? $next : '';
+        }
+
+        return false;
     }
 
     /**
@@ -124,7 +168,7 @@ class CollectionItemDataRuleBuilder
             FieldTypeEnum::CheckboxGroupTree,
         ], true)) {
             $itemRules = ['string', 'max:1024'];
-            $itemRules = array_merge($itemRules, $this->optionInRules($field));
+            $itemRules = array_merge($itemRules, $this->optionInRules($field), $this->tagPresetInRules($field));
             $rules[$prefix.'.*'] = $itemRules;
         }
 
@@ -143,8 +187,27 @@ class CollectionItemDataRuleBuilder
 
         if ($field->type === FieldTypeEnum::M2a) {
             $rules[$prefix.'.*'] = ['array'];
-            $rules[$prefix.'.*.related_collection_id'] = ['required', 'integer', Rule::exists('collections', 'id')];
+            $rules[$prefix.'.*.related_collection_id'] = array_merge(
+                ['required', 'integer', Rule::exists('collections', 'id')],
+                $this->m2aAllowedCollectionRules($field),
+            );
             $rules[$prefix.'.*.related_item_id'] = ['required', 'integer', Rule::exists('collections_items', 'id')];
+            if ($dup = $this->rejectDuplicateEntriesRule($field, 'm2a')) {
+                $rules[$prefix][] = $dup;
+            }
+        }
+
+        if ($field->type === FieldTypeEnum::OneToMany) {
+            if ($dup = $this->rejectDuplicateEntriesRule($field, 'ids')) {
+                $rules[$prefix][] = $dup;
+            }
+        }
+
+        if ($field->type === FieldTypeEnum::ManyToMany) {
+            // manyToManyArrayRule already attached; append uniqueness when needed.
+            if ($dup = $this->rejectDuplicateEntriesRule($field, 'm2m')) {
+                $rules[$prefix][] = $dup;
+            }
         }
 
         if ($field->type === FieldTypeEnum::Blocks) {
@@ -222,7 +285,10 @@ class CollectionItemDataRuleBuilder
             FieldTypeEnum::M2a => [
                 $prefix => [$presence, 'array'],
                 $prefix.'.*' => ['array'],
-                $prefix.'.*.related_collection_id' => ['required', 'integer', Rule::exists('collections', 'id')],
+                $prefix.'.*.related_collection_id' => array_merge(
+                    ['required', 'integer', Rule::exists('collections', 'id')],
+                    $this->m2aAllowedCollectionRules($field),
+                ),
                 $prefix.'.*.related_item_id' => ['required', 'integer', Rule::exists('collections_items', 'id')],
             ],
             FieldTypeEnum::Blocks => [
@@ -442,6 +508,112 @@ class CollectionItemDataRuleBuilder
         }
 
         return $rules;
+    }
+
+    /**
+     * When tag allow_other is explicitly off, values must be in presets.
+     *
+     * @return list<In>
+     */
+    private function tagPresetInRules(CollectionField $field): array
+    {
+        if ($field->type !== FieldTypeEnum::Tag) {
+            return [];
+        }
+
+        // Default allow_other=true (FE parseTagFieldSettings); only gate when explicitly false.
+        if (! array_key_exists('allow_other', $field->settings ?? [])
+            || CollectionField::settingsFlagIsEnabled(data_get($field->settings, 'allow_other'))) {
+            return [];
+        }
+
+        $presetsRaw = data_get($field->settings, 'presets', []);
+        $presets = [];
+        if (is_array($presetsRaw)) {
+            foreach ($presetsRaw as $entry) {
+                $value = trim((string) $entry);
+                if ($value !== '') {
+                    $presets[] = $value;
+                }
+            }
+        } elseif (is_string($presetsRaw)) {
+            foreach (explode(',', $presetsRaw) as $entry) {
+                $value = trim($entry);
+                if ($value !== '') {
+                    $presets[] = $value;
+                }
+            }
+        }
+
+        if ($presets === []) {
+            return [];
+        }
+
+        return [Rule::in($presets)];
+    }
+
+    /**
+     * @return list<\Illuminate\Validation\Rules\In>
+     */
+    private function m2aAllowedCollectionRules(CollectionField $field): array
+    {
+        $allowed = data_get($field->settings, 'allowed_collection_ids', []);
+        if (! is_array($allowed) || $allowed === []) {
+            return [];
+        }
+
+        $ids = array_values(array_filter(array_map('intval', $allowed), fn (int $id): bool => $id > 0));
+        if ($ids === []) {
+            return [];
+        }
+
+        return [Rule::in($ids)];
+    }
+
+    /**
+     * When allow_duplicates is off, reject repeated relation/m2a entries.
+     *
+     * @param  'ids'|'m2m'|'m2a'  $shape
+     */
+    private function rejectDuplicateEntriesRule(CollectionField $field, string $shape): ?\Closure
+    {
+        if (CollectionField::settingsFlagIsEnabled(data_get($field->settings, 'allow_duplicates'))) {
+            return null;
+        }
+
+        return function (string $attribute, mixed $value, \Closure $fail) use ($shape): void {
+            if (! is_array($value)) {
+                return;
+            }
+
+            $keys = [];
+            foreach ($value as $entry) {
+                $key = match ($shape) {
+                    'ids' => is_numeric($entry) ? (string) (int) $entry : null,
+                    'm2m' => is_numeric($entry)
+                        ? (string) (int) $entry
+                        : (is_array($entry) && isset($entry['related_item_id'])
+                            ? (string) (int) $entry['related_item_id']
+                            : null),
+                    'm2a' => is_array($entry) && isset($entry['related_collection_id'], $entry['related_item_id'])
+                        ? ((int) $entry['related_collection_id']).':'.((int) $entry['related_item_id'])
+                        : null,
+                    default => null,
+                };
+
+                if ($key === null) {
+                    continue;
+                }
+
+                if (isset($keys[$key])) {
+                    $fail(__('The :attribute field may not contain duplicates.', ['attribute' => $attribute]));
+
+                    return;
+                }
+
+                $keys[$key] = true;
+            }
+        };
     }
 
     /**

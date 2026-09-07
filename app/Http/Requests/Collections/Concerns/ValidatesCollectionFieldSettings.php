@@ -63,9 +63,9 @@ trait ValidatesCollectionFieldSettings
                 ]),
             ],
             'settings.validation_rules.*.value' => ['nullable'],
+            // Tree options (checkbox_group_tree) nest `children`; keep as opaque array and
+            // sanitize in normalizeSettingsArray so validated() does not strip descendants.
             'settings.options' => ['sometimes', 'array'],
-            'settings.options.*.value' => ['sometimes', 'string', 'max:255'],
-            'settings.options.*.label' => ['sometimes', 'string', 'max:255'],
             'settings.related_collection_id' => ['sometimes', 'nullable', 'integer', 'exists:collections,id'],
             'settings.display_field' => ['sometimes', 'string', 'max:64'],
             'settings.display_template' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -227,6 +227,15 @@ trait ValidatesCollectionFieldSettings
         $settings = app(BlocksFieldSchema::class)->normalizeSettings($settings);
         $settings = $this->pruneEmptyTranslatedSettings($settings);
 
+        if (array_key_exists('options', $settings)) {
+            $normalizedOptions = $this->normalizeOptionsTree($settings['options']);
+            if ($normalizedOptions === []) {
+                unset($settings['options']);
+            } else {
+                $settings['options'] = $normalizedOptions;
+            }
+        }
+
         if (array_key_exists('group', $settings)) {
             $group = $settings['group'];
             if (! is_string($group) || trim($group) === '') {
@@ -374,6 +383,48 @@ trait ValidatesCollectionFieldSettings
         }
 
         return $settings;
+    }
+
+    /**
+     * Keep value/label/children trees for select-like + checkbox_group_tree options.
+     *
+     * @param  mixed  $options
+     * @return list<array{value: string, label: string, children?: list<array<string, mixed>>}>
+     */
+    protected function normalizeOptionsTree(mixed $options): array
+    {
+        if (! is_array($options)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($options as $option) {
+            if (! is_array($option)) {
+                continue;
+            }
+
+            $value = isset($option['value']) ? trim((string) $option['value']) : '';
+            $label = isset($option['label']) ? trim((string) $option['label']) : '';
+            if ($value === '' && $label === '') {
+                continue;
+            }
+
+            $row = [
+                'value' => $value !== '' ? mb_substr($value, 0, 255) : $label,
+                'label' => $label !== '' ? mb_substr($label, 0, 255) : $value,
+            ];
+
+            if (array_key_exists('children', $option)) {
+                $children = $this->normalizeOptionsTree($option['children']);
+                if ($children !== []) {
+                    $row['children'] = $children;
+                }
+            }
+
+            $normalized[] = $row;
+        }
+
+        return $normalized;
     }
 
     /**

@@ -27,6 +27,7 @@ use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\Collections\CollectionListColumnsNormalizer;
 use App\Services\Collections\CollectionListDisplayEnricher;
+use App\Services\Collections\FieldConditionEvaluator;
 use App\Services\Collections\ItemRolePreviewService;
 use App\Services\Settings\SettingsRepository;
 use Illuminate\Http\JsonResponse;
@@ -56,6 +57,7 @@ class ItemController extends Controller
         private ItemRolePreviewService $itemRolePreviewService,
         private CollectionItemRevisionRecorder $revisionRecorder,
         private EffectivePermissionResolver $permissionResolver,
+        private FieldConditionEvaluator $fieldConditionEvaluator,
     ) {}
 
     /**
@@ -390,11 +392,13 @@ class ItemController extends Controller
         if (is_array($incoming)) {
             $this->permissionEnforcer->assertWritableFields($request, $collection, $incoming, 'update');
             $collection->loadMissing('fields');
-            foreach ($collection->fields as $field) {
-                if ($field->isReadonly()) {
-                    unset($incoming[$field->name]);
-                }
-            }
+            // Preview = base + attempted write so conditional readonly sees sibling values.
+            $preview = array_replace($base, $incoming);
+            $incoming = $this->fieldConditionEvaluator->withoutReadonlyFields(
+                $collection->fields,
+                $preview,
+                $incoming,
+            );
 
             foreach ($incoming as $key => $value) {
                 // ponytail: array_merge appends list fields (blocks/m2a/files); only merge associative maps (locales).

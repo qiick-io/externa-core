@@ -484,6 +484,8 @@ export function supportsDefaultValue(fieldType: string): boolean {
         'many_to_many',
         'one_to_many',
         'many_to_one',
+        // Slider owns numeric default in type settings; common text default was dead.
+        'slider',
         'group_accordion',
         'group_detail',
         'group_raw',

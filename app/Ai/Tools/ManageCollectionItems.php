@@ -14,6 +14,7 @@ use App\Services\Collections\CollectionItemOptionsService;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Collections\FieldConditionEvaluator;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Laravel\Ai\Contracts\Tool;
@@ -440,11 +441,11 @@ class ManageCollectionItems implements Tool
         $assembler = app(CollectionItemValuesAssembler::class);
         $data = $assembler->assemble($item);
 
-        foreach ($collection->fields as $field) {
-            if (method_exists($field, 'isReadonly') && $field->isReadonly()) {
-                unset($incoming[$field->name]);
-            }
-        }
+        $incoming = app(FieldConditionEvaluator::class)->withoutReadonlyFields(
+            $collection->fields,
+            array_replace($data, $incoming),
+            $incoming,
+        );
 
         foreach ($incoming as $key => $value) {
             // ponytail: array_merge appends list fields (blocks/m2a/files); only merge associative maps (locales).

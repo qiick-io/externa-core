@@ -144,6 +144,25 @@ class FieldConditionEvaluator
     }
 
     /**
+     * Drop incoming keys that are effectively readonly (static settings + conditions).
+     *
+     * @param  iterable<\App\Models\CollectionField>  $fields
+     * @param  array<string, mixed>  $previewData  Assembled base merged with attempted write
+     * @param  array<string, mixed>  $incoming
+     * @return array<string, mixed>
+     */
+    public function withoutReadonlyFields(iterable $fields, array $previewData, array $incoming): array
+    {
+        foreach ($fields as $field) {
+            if ($this->effectiveFlags($field, $previewData)['readonly']) {
+                unset($incoming[$field->name]);
+            }
+        }
+
+        return $incoming;
+    }
+
+    /**
      * @param  array<string, mixed>|null  $conditions
      * @return array{logic: string, rules: list<array{field: string, operator: string, value?: mixed}>, hidden?: bool, readonly?: bool, required?: bool}|null
      */

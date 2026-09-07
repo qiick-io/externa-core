@@ -1215,6 +1215,70 @@ test('string field trim and slugify are applied when saving item content', funct
     expect($assembled['slug'])->toBe('hello-world');
 });
 
+test('number code and tag type settings persist on update', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create();
+    $number = CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'qty',
+        'type' => FieldTypeEnum::Number,
+        'settings' => ['min' => 0],
+    ]);
+    $code = CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'payload',
+        'type' => FieldTypeEnum::Code,
+        'settings' => ['language' => 'json'],
+    ]);
+    $tag = CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'labels',
+        'type' => FieldTypeEnum::Tag,
+        'settings' => [],
+    ]);
+
+    $this->patch(route('collections.fields.update', [$collection, $number]), [
+        'settings' => [
+            'min' => 1,
+            'max' => 99,
+            'step' => 2,
+            'required' => '0',
+        ],
+    ])->assertRedirect();
+
+    $this->patch(route('collections.fields.update', [$collection, $code]), [
+        'settings' => [
+            'language' => 'javascript',
+            'template' => '// hi',
+            'line_numbers' => '1',
+            'line_wrapping' => '1',
+            'required' => '0',
+        ],
+    ])->assertRedirect();
+
+    $this->patch(route('collections.fields.update', [$collection, $tag]), [
+        'settings' => [
+            'presets' => 'a, b, c',
+            'separator' => '|',
+            'allow_other' => '1',
+            'lowercase' => '1',
+            'alphabetize' => '1',
+            'required' => '0',
+        ],
+    ])->assertRedirect();
+
+    expect($number->fresh()->settings['min'])->toBe(1)
+        ->and($number->fresh()->settings['max'])->toBe(99)
+        ->and($number->fresh()->settings['step'])->toBe(2)
+        ->and($code->fresh()->settings['language'])->toBe('javascript')
+        ->and($code->fresh()->settings['template'])->toBe('// hi')
+        ->and($code->fresh()->settings['line_numbers'] ?? null)->not->toBeNull()
+        ->and($tag->fresh()->settings['separator'])->toBe('|')
+        ->and($tag->fresh()->settings['allow_other'] ?? null)->not->toBeNull();
+});
+
 test('string field max length validation rule is enforced', function () {
     $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
