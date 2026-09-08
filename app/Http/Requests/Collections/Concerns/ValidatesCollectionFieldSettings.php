@@ -388,7 +388,6 @@ trait ValidatesCollectionFieldSettings
     /**
      * Keep value/label/children trees for select-like + checkbox_group_tree options.
      *
-     * @param  mixed  $options
      * @return list<array{value: string, label: string, children?: list<array<string, mixed>>}>
      */
     protected function normalizeOptionsTree(mixed $options): array

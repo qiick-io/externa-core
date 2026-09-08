@@ -8,6 +8,7 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
 use App\Support\Collections\CollectionLocaleResolver;
+use App\Support\Validation\FilterQueryLimits;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -51,6 +52,8 @@ class CollectionItemQueryService
      */
     public function applyFilters(Builder $query, Collection $collection, array $filters, ?string $locale = null): Builder
     {
+        $filters = FilterQueryLimits::assertValid($filters);
+
         $collection->loadMissing('fields');
         $fieldsByName = $collection->fields->keyBy('name');
         $locale ??= $this->localeResolver->resolve();

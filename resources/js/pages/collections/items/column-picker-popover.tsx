@@ -8,6 +8,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { getFieldDisplayName } from '@/lib/collection-field-types';
+import { STRING_LIMITS } from '@/lib/string-limits';
 import { cn } from '@/lib/utils';
 import type { CollectionFieldRow } from '@/types';
 
@@ -164,6 +165,7 @@ export function ColumnPickerPopover({
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="Search fields"
+                            maxLength={STRING_LIMITS.SEARCH}
                             className="h-8 pl-7 text-sm"
                         />
                     </div>

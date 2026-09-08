@@ -12,6 +12,7 @@ import AppLayout from '@/layouts/app-layout';
 import { applyChatUnread, fetchChatThreads } from '@/lib/chat-hub-api';
 import type { ChatSummary } from '@/lib/chat-hub-api';
 import { formatChatUnread } from '@/lib/format-chat-unread';
+import { STRING_LIMITS } from '@/lib/string-limits';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { useChatStore } from '@/stores/chat/store';
@@ -254,6 +255,7 @@ export default function ChatHubPage({
                             data-test="chat-filter-q"
                             value={q}
                             placeholder={t('chatHub.search')}
+                            maxLength={STRING_LIMITS.SEARCH_CHAT_HUB}
                             onChange={(event) => {
                                 setQ(event.target.value);
                                 setHubQuery(event.target.value);

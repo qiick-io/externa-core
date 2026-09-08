@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import adminRoutes from '@/lib/admin-routes';
+import { STRING_LIMITS } from '@/lib/string-limits';
 import type { AdminUserRow } from '@/types/admin';
 
 const EMPTY_USER_FORM = {
@@ -152,6 +153,7 @@ export function UserFormDrawer({
                                     form.setData('first_name', e.target.value)
                                 }
                                 required
+                                maxLength={STRING_LIMITS.NAME}
                                 disabled={readOnly}
                             />
                             <InputError message={form.errors.first_name} />
@@ -164,6 +166,7 @@ export function UserFormDrawer({
                                 onChange={(e) =>
                                     form.setData('last_name', e.target.value)
                                 }
+                                maxLength={STRING_LIMITS.NAME}
                                 disabled={readOnly}
                             />
                             <InputError message={form.errors.last_name} />
@@ -181,6 +184,7 @@ export function UserFormDrawer({
                                 form.setData('email', e.target.value)
                             }
                             required
+                            maxLength={STRING_LIMITS.EMAIL}
                             disabled={readOnly}
                             autoComplete="email"
                             aria-describedby="user_email_hint"
@@ -204,6 +208,7 @@ export function UserFormDrawer({
                             onChange={(e) =>
                                 form.setData('username', e.target.value)
                             }
+                            maxLength={STRING_LIMITS.USERNAME}
                             disabled={readOnly}
                         />
                         <InputError message={form.errors.username} />

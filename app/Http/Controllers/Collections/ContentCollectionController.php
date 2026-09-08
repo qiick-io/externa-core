@@ -19,6 +19,7 @@ use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\Collections\FieldConditionEvaluator;
 use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
 use App\Support\Collections\UniqueCollectionSlugGenerator;
+use App\Support\Validation\SearchQueryRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -58,7 +59,7 @@ class ContentCollectionController extends Controller
     {
         $validated = $request->validate([
             'trashed' => ['sometimes', 'boolean'],
-            'search' => ['nullable', 'string', 'max:255'],
+            'search' => SearchQueryRules::search(),
             'sort' => ['nullable', 'string', Rule::in(self::SORTABLE_COLUMNS)],
             'direction' => ['nullable', 'string', Rule::in(['asc', 'desc'])],
         ]);

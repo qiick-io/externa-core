@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import adminRoutes from '@/lib/admin-routes';
+import { STRING_LIMITS } from '@/lib/string-limits';
 import type { AdminGroupRow } from '@/types/admin';
 
 const EMPTY_GROUP_FORM = {
@@ -132,6 +133,7 @@ export function GroupFormDrawer({
                                 form.setData('name', e.target.value)
                             }
                             required
+                            maxLength={STRING_LIMITS.NAME}
                             disabled={readOnly}
                         />
                         <InputError message={form.errors.name} />
@@ -145,6 +147,7 @@ export function GroupFormDrawer({
                             onChange={(e) =>
                                 form.setData('description', e.target.value)
                             }
+                            maxLength={STRING_LIMITS.DESCRIPTION}
                             disabled={readOnly}
                         />
                         <InputError message={form.errors.description} />

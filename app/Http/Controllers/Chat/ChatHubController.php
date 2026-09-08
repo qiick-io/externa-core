@@ -14,6 +14,8 @@ use App\Services\Authorization\EffectivePermissionResolver;
 use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatUnreadService;
 use App\Services\Collections\CollectionItemOptionsService;
+use App\Support\Validation\SearchQueryRules;
+use App\Support\Validation\StringLimits;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -38,7 +40,7 @@ class ChatHubController extends Controller
 
         $validated = $request->validate([
             'tab' => ['nullable', Rule::in(['collection', 'private'])],
-            'q' => ['nullable', 'string', 'max:120'],
+            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
             'collection_id' => ['nullable', 'integer', 'exists:collections,id'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
@@ -272,7 +274,7 @@ class ChatHubController extends Controller
 
         $validated = $request->validate([
             'collection_id' => ['required', 'integer', 'exists:collections,id'],
-            'q' => ['nullable', 'string', 'max:120'],
+            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
         ]);
 
         $collection = Collection::query()->findOrFail($validated['collection_id']);
@@ -315,7 +317,7 @@ class ChatHubController extends Controller
         );
 
         $validated = $request->validate([
-            'q' => ['nullable', 'string', 'max:120'],
+            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
@@ -382,7 +384,7 @@ class ChatHubController extends Controller
         abort_unless($user instanceof User, 401);
 
         $validated = $request->validate([
-            'q' => ['nullable', 'string', 'max:120'],
+            'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);

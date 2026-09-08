@@ -8,6 +8,7 @@ use App\Models\CollectionField;
 use App\Support\Collections\BlocksFieldSchema;
 use App\Support\Collections\CollectionLocaleResolver;
 use App\Support\Collections\MapGeometry;
+use App\Support\Validation\StringLimits;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -484,10 +485,21 @@ class CollectionItemDataRuleBuilder
         if (is_numeric($maxLength) && (int) $maxLength > 0) {
             $rules[] = 'max:'.(int) $maxLength;
         } elseif (in_array('string', $rules, true)) {
-            $rules[] = 'max:65535';
+            $rules[] = 'max:'.$this->defaultStringMax($field);
         }
 
         return $rules;
+    }
+
+    private function defaultStringMax(CollectionField $field): int
+    {
+        return match ($field->type) {
+            FieldTypeEnum::Textarea => StringLimits::CMS_TEXTAREA,
+            FieldTypeEnum::Markdown => StringLimits::CMS_MARKDOWN,
+            FieldTypeEnum::Code => StringLimits::CMS_CODE,
+            FieldTypeEnum::Wysiwyg => StringLimits::CMS_WYSIWYG,
+            default => StringLimits::CMS_STRING,
+        };
     }
 
     /**
@@ -553,7 +565,7 @@ class CollectionItemDataRuleBuilder
     }
 
     /**
-     * @return list<\Illuminate\Validation\Rules\In>
+     * @return list<In>
      */
     private function m2aAllowedCollectionRules(CollectionField $field): array
     {

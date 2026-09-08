@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\BulkUserGroupActionRequest;
 use App\Http\Requests\Admin\StoreUserGroupRequest;
 use App\Http\Requests\Admin\UpdateUserGroupRequest;
 use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\ValidatesSearchQuery;
 use App\Http\Resources\UserGroupResource;
 use App\Models\Role;
 use App\Models\UserGroup;
@@ -22,6 +23,7 @@ use Inertia\Response;
 class UserGroupController extends Controller
 {
     use AuthorizesWithPermission;
+    use ValidatesSearchQuery;
 
     /**
      * @var list<string>
@@ -33,7 +35,9 @@ class UserGroupController extends Controller
      */
     public function index(Request $request): Response
     {
-        $search = $request->string('search')->trim()->toString();
+        $this->authorizePermission(PermissionEnum::CanShowGroups->value);
+
+        $search = $this->validatedSearch($request);
         $sort = $request->string('sort')->toString();
         $direction = strtolower($request->string('direction')->toString()) === 'desc' ? 'desc' : 'asc';
 

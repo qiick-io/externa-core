@@ -2,11 +2,11 @@
 
 namespace App\Services\Collections;
 
+use Symfony\Component\HtmlSanitizer\HtmlSanitizer;
+use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
+
 /**
- * Allowlist HTML sanitizer for TipTap wysiwyg field values.
- *
- * ponytail: strip_tags + attribute scrub — upgrade to Symfony HtmlSanitizer if
- * we need CSS/style or data-uri policy nuance.
+ * Allowlist HTML sanitizer for TipTap wysiwyg field values (Symfony HtmlSanitizer).
  */
 class WysiwygHtmlSanitizer
 {
@@ -17,6 +17,8 @@ class WysiwygHtmlSanitizer
         'ul', 'ol', 'li',
         'a', 'code', 'pre', 'hr',
     ];
+
+    private ?HtmlSanitizer $sanitizer = null;
 
     public function sanitize(?string $html): ?string
     {
@@ -29,47 +31,30 @@ class WysiwygHtmlSanitizer
             return null;
         }
 
-        // Remove whole dangerous elements (strip_tags leaves their text content).
-        $trimmed = preg_replace(
-            '#<(script|style|iframe|object|embed|link|meta|form)[^>]*>.*?</\1>#is',
-            '',
-            $trimmed,
-        ) ?? $trimmed;
-        $trimmed = preg_replace(
-            '#<(script|style|iframe|object|embed|link|meta|form)[^>]*/?>#is',
-            '',
-            $trimmed,
-        ) ?? $trimmed;
-
-        $allowed = '<'.implode('><', self::ALLOWED_TAGS).'>';
-        $clean = strip_tags($trimmed, $allowed);
-
-        // Drop event handlers / javascript: URLs on remaining tags
-        $clean = preg_replace_callback(
-            '/<([a-z0-9]+)(\s[^>]*)?>/i',
-            function (array $matches): string {
-                $tag = strtolower($matches[1]);
-                $attrs = $matches[2] ?? '';
-
-                if ($tag !== 'a' || $attrs === '') {
-                    return '<'.$tag.'>';
-                }
-
-                $href = null;
-                if (preg_match('/\shref\s*=\s*(["\'])(.*?)\1/i', $attrs, $m) === 1) {
-                    $candidate = trim(html_entity_decode($m[2], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
-                    if ($candidate !== '' && ! preg_match('/^\s*javascript:/i', $candidate)) {
-                        $href = htmlspecialchars($candidate, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                    }
-                }
-
-                return $href === null ? '<a>' : '<a href="'.$href.'" rel="noopener noreferrer" target="_blank">';
-            },
-            $clean,
-        ) ?? $clean;
-
-        $clean = trim($clean);
+        $clean = trim($this->sanitizer()->sanitize($trimmed));
 
         return $clean === '' || $clean === '<p></p>' ? null : $clean;
+    }
+
+    private function sanitizer(): HtmlSanitizer
+    {
+        return $this->sanitizer ??= new HtmlSanitizer($this->config());
+    }
+
+    private function config(): HtmlSanitizerConfig
+    {
+        $config = (new HtmlSanitizerConfig)
+            ->allowLinkSchemes(['http', 'https', 'mailto'])
+            ->allowRelativeLinks(true)
+            ->forceAttribute('a', 'rel', 'noopener noreferrer')
+            ->forceAttribute('a', 'target', '_blank');
+
+        foreach (self::ALLOWED_TAGS as $tag) {
+            $config = $tag === 'a'
+                ? $config->allowElement('a', ['href'])
+                : $config->allowElement($tag);
+        }
+
+        return $config;
     }
 }

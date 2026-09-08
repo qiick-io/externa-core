@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Enums\PermissionEnum;
 use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Support\Validation\StringLimits;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -29,8 +30,8 @@ class StoreUserGroupRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255', 'unique:user_groups,name'],
-            'description' => ['nullable', 'string'],
+            'name' => ['required', 'string', 'max:'.StringLimits::NAME, 'unique:user_groups,name'],
+            'description' => ['nullable', 'string', 'max:'.StringLimits::DESCRIPTION],
             'user_ids' => ['sometimes', 'array'],
             'user_ids.*' => ['integer', 'exists:users,id'],
             'role_ids' => ['sometimes', 'array'],

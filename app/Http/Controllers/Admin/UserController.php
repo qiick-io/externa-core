@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\BulkUserActionRequest;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\ValidatesSearchQuery;
 use App\Http\Resources\Admin\UserResource;
 use App\Models\Role;
 use App\Models\User;
@@ -22,6 +23,7 @@ use Inertia\Response;
 class UserController extends Controller
 {
     use AuthorizesWithPermission;
+    use ValidatesSearchQuery;
 
     /**
      * @var list<string>
@@ -43,13 +45,15 @@ class UserController extends Controller
     {
         $this->authorizePermission(PermissionEnum::CanShowUsers->value);
 
+        $search = $this->validatedSearch($request);
+
         $query = User::query()->with(['roles', 'groups']);
 
         if ($request->boolean('trashed')) {
             $query->onlyTrashed();
         }
 
-        if ($search = $request->string('search')->trim()->toString()) {
+        if ($search !== '') {
             $term = '%'.$search.'%';
             $query->where(function ($inner) use ($term): void {
                 $inner->where('first_name', 'like', $term)
@@ -75,7 +79,7 @@ class UserController extends Controller
         return Inertia::render('admin/users/index', [
             'users' => UserResource::collection($users),
             'filters' => [
-                'search' => $search ?? '',
+                'search' => $search,
                 'trashed' => $request->boolean('trashed'),
                 'sort' => in_array($sortColumn, self::SORTABLE_COLUMNS, true) ? $sortColumn : 'created_at',
                 'direction' => $sortDirection,

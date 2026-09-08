@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\ValidatesSearchQuery;
 use App\Http\Resources\Admin\ActivityLogResource;
 use App\Models\User;
 use App\Support\Activity\FilterableActivityEvents;
@@ -19,6 +20,7 @@ use Spatie\Activitylog\Models\Activity;
 class ActivityLogController extends Controller
 {
     use AuthorizesWithPermission;
+    use ValidatesSearchQuery;
 
     /**
      * List activity log entries with optional filters for the admin index page.
@@ -27,7 +29,7 @@ class ActivityLogController extends Controller
     {
         $this->authorizePermission(PermissionEnum::CanShowActivityLogs->value);
 
-        $search = $request->string('search')->trim()->toString();
+        $search = $this->validatedSearch($request);
         $userIds = $this->resolvedUserIds($request);
         $event = $request->string('event')->toString();
         $logName = $request->string('log_name')->toString();

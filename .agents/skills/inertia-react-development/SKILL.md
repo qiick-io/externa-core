@@ -8,6 +8,16 @@ metadata:
 
 # Inertia React Development
 
+## When to Apply
+
+Activate this skill when:
+
+- Creating or modifying React page components for Inertia
+- Working with forms in React (using `<Form>` or `useForm`)
+- Implementing client-side navigation with `<Link>` or `router`
+- Using v2 features: deferred props, prefetching, WhenVisible, InfiniteScroll, once props, flash data, or polling
+- Building React-specific features with the Inertia protocol
+
 ## Documentation
 
 Use `search-docs` for detailed Inertia v2 React patterns and documentation.
@@ -335,32 +345,53 @@ export default function Dashboard({ stats }) {
 - `autoStart` (default `true`) — set to `false` to start polling manually via the returned `start()` function
 - `keepAlive` (default `false`) — set to `true` to prevent throttling when the browser tab is inactive
 
-### WhenVisible (Infinite Scroll)
+### WhenVisible
 
-Load more data when user scrolls to a specific element:
+Lazy-load a prop when an element scrolls into view. Useful for deferring expensive data that sits below the fold:
 
-<!-- Infinite Scroll with WhenVisible -->
+<!-- WhenVisible Example -->
 ```react
 import { WhenVisible } from '@inertiajs/react'
 
-export default function UsersList({ users }) {
+export default function Dashboard({ stats }) {
     return (
         <div>
-            {users.data.map(user => (
-                <div key={user.id}>{user.name}</div>
-            ))}
+            <h1>Dashboard</h1>
 
-            {users.next_page_url && (
-                <WhenVisible
-                    data="users"
-                    params={{ page: users.current_page + 1 }}
-                    fallback={<div>Loading more...</div>}
-                />
-            )}
+            <WhenVisible data="stats" buffer={200} fallback={<div className="animate-pulse">Loading stats...</div>}>
+                {({ fetching }) => (
+                    <div>
+                        <p>Total Users: {stats.total_users}</p>
+                        <p>Revenue: {stats.revenue}</p>
+                        {fetching && <span>Refreshing...</span>}
+                    </div>
+                )}
+            </WhenVisible>
         </div>
     )
 }
 ```
+
+### InfiniteScroll
+
+Automatically load additional pages of paginated data as users scroll:
+
+<!-- InfiniteScroll Example -->
+```react
+import { InfiniteScroll } from '@inertiajs/react'
+
+export default function Users({ users }) {
+    return (
+        <InfiniteScroll data="users">
+            {users.data.map(user => (
+                <div key={user.id}>{user.name}</div>
+            ))}
+        </InfiniteScroll>
+    )
+}
+```
+
+The server must use `Inertia::scroll()` to configure the paginated data. Use the `search-docs` tool with a query of `infinite scroll` for detailed guidance on buffers, manual loading, reverse mode, and custom trigger elements.
 
 ## Common Pitfalls
 

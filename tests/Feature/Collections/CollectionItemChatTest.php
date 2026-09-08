@@ -6,7 +6,6 @@ use App\Enums\RoleEnum;
 use App\Events\ItemChatMessageCreated;
 use App\Events\ItemChatMessageDeleted;
 use App\Events\ItemChatMessageUpdated;
-use App\Models\Chat;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItemChatAttachment;
@@ -24,6 +23,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
@@ -530,7 +530,7 @@ test('chat message create and delete write lean activity log entries', function 
         'body' => 'Audit me please',
     ])->assertCreated()->json('message.id');
 
-    $created = \Spatie\Activitylog\Models\Activity::query()
+    $created = Activity::query()
         ->where('event', 'chat_message')
         ->where('log_name', 'chat')
         ->latest('id')
@@ -544,7 +544,7 @@ test('chat message create and delete write lean activity log entries', function 
     $this->deleteJson(route('collections.items.chat.destroy', [$collection, $item, $messageId]))
         ->assertOk();
 
-    $deleted = \Spatie\Activitylog\Models\Activity::query()
+    $deleted = Activity::query()
         ->where('event', 'chat_message_deleted')
         ->where('log_name', 'chat')
         ->latest('id')

@@ -30,6 +30,7 @@ use App\Services\Collections\CollectionListDisplayEnricher;
 use App\Services\Collections\FieldConditionEvaluator;
 use App\Services\Collections\ItemRolePreviewService;
 use App\Services\Settings\SettingsRepository;
+use App\Support\Validation\SearchQueryRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -588,7 +589,7 @@ class ItemController extends Controller
             'field_id' => ['required', 'integer'],
             'related_collection_id' => ['nullable', 'integer', 'exists:collections,id'],
             'display_field' => ['nullable', 'string', 'max:64'],
-            'search' => ['nullable', 'string', 'max:255'],
+            'search' => SearchQueryRules::search(),
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);

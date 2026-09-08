@@ -146,7 +146,7 @@ class FieldConditionEvaluator
     /**
      * Drop incoming keys that are effectively readonly (static settings + conditions).
      *
-     * @param  iterable<\App\Models\CollectionField>  $fields
+     * @param  iterable<CollectionField>  $fields
      * @param  array<string, mixed>  $previewData  Assembled base merged with attempted write
      * @param  array<string, mixed>  $incoming
      * @return array<string, mixed>

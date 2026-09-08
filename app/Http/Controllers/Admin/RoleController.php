@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\BulkRoleActionRequest;
 use App\Http\Requests\Admin\StoreRoleRequest;
 use App\Http\Requests\Admin\UpdateRoleRequest;
 use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\ValidatesSearchQuery;
 use App\Http\Resources\Admin\RoleResource;
 use App\Models\Role;
 use App\Services\Api\CollectionPermissionSync;
@@ -28,6 +29,7 @@ use Spatie\Permission\PermissionRegistrar;
 class RoleController extends Controller
 {
     use AuthorizesWithPermission;
+    use ValidatesSearchQuery;
 
     public function __construct(
         private readonly PermissionGrouper $permissionGrouper,
@@ -42,13 +44,15 @@ class RoleController extends Controller
     {
         $this->authorizePermission(PermissionEnum::CanShowRoles->value);
 
+        $search = $this->validatedSearch($request);
+
         $query = Role::query()->withCount('permissions');
 
         if ($request->expectsJson()) {
             $query->where('is_assignable', true);
         }
 
-        if ($search = $request->string('search')->trim()->toString()) {
+        if ($search !== '') {
             $term = '%'.$search.'%';
             $query->where('name', 'like', $term);
         }
@@ -73,7 +77,7 @@ class RoleController extends Controller
         return Inertia::render('admin/roles/index', [
             'roles' => RoleResource::collection($roles),
             'filters' => [
-                'search' => $search ?? '',
+                'search' => $search,
                 'sort' => in_array($sortColumn, ['name', 'created_at', 'updated_at'], true) ? $sortColumn : 'name',
                 'direction' => $sortDirection,
             ],

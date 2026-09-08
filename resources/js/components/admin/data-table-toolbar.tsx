@@ -2,12 +2,14 @@ import { Search, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { STRING_LIMITS } from '@/lib/string-limits';
 import { cn } from '@/lib/utils';
 
 export type DataTableToolbarProps = {
     search: string;
     onSearchChange: (value: string) => void;
     searchPlaceholder?: string;
+    searchMaxLength?: number;
     selectedCount?: number;
     onClearSelection?: () => void;
     bulkActions?: ReactNode;
@@ -24,6 +26,7 @@ export function DataTableToolbar({
     search,
     onSearchChange,
     searchPlaceholder = 'Search…',
+    searchMaxLength = STRING_LIMITS.SEARCH,
     selectedCount = 0,
     onClearSelection,
     bulkActions,
@@ -59,6 +62,7 @@ export function DataTableToolbar({
                         value={search}
                         onChange={(e) => onSearchChange(e.target.value)}
                         placeholder={searchPlaceholder}
+                        maxLength={searchMaxLength}
                         className="h-9 pl-8"
                     />
                 </div>

@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\FieldTypeEnum;
-use App\Models\CollectionItem;
 use App\Support\Collections\MapGeometry;
 use Database\Seeders\PermissionSeeder;
 use Tests\Support\FieldSettingsTestHelpers as H;

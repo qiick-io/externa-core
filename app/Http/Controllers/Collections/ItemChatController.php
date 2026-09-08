@@ -16,6 +16,7 @@ use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatUnreadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -156,7 +157,7 @@ class ItemChatController extends Controller
         return $this->messages->initAttachmentUpload($request);
     }
 
-    public function uploadAttachmentChunk(Request $request, Collection $collection, CollectionItem $item): \Illuminate\Http\Response
+    public function uploadAttachmentChunk(Request $request, Collection $collection, CollectionItem $item): Response
     {
         $this->assertItemContext($request, $collection, $item);
 
@@ -206,7 +207,7 @@ class ItemChatController extends Controller
         Collection $collection,
         CollectionItem $item,
         CollectionItemChatAttachment $attachment,
-    ): \Illuminate\Http\Response {
+    ): Response {
         $this->assertItemContext($request, $collection, $item);
         $chat = $this->chatFromAttachment($item, $attachment);
 

@@ -14,6 +14,7 @@ import {
     DrawerTitle,
 } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
+import { STRING_LIMITS } from '@/lib/string-limits';
 import {
     CHUNK_SIZE_BYTES,
     filePublicUrl,
@@ -255,6 +256,7 @@ export function FilePickerDrawer({
                     <Input
                         placeholder="Search files…"
                         value={search}
+                        maxLength={STRING_LIMITS.SEARCH}
                         onChange={(event) => setSearch(event.target.value)}
                     />
 

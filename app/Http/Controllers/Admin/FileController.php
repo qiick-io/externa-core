@@ -15,6 +15,7 @@ use App\Services\FileService;
 use App\Services\FileTransformService;
 use App\Services\Settings\ProjectSettings;
 use App\Support\Uploads\UploadSizeLimiter;
+use App\Support\Validation\SearchQueryRules;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -151,7 +152,7 @@ class FileController extends Controller
     {
         $validated = $request->validate([
             'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'search' => ['nullable', 'string', 'max:255'],
+            'search' => SearchQueryRules::search(),
             'trashed' => ['nullable', 'string', Rule::in(['only', 'with'])],
             'page' => ['nullable', 'integer', 'min:1'],
             'sort' => ['nullable', 'string', Rule::in(self::SORTABLE_COLUMNS)],

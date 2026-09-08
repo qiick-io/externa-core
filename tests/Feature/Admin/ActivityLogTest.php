@@ -7,6 +7,7 @@ use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia;
 use Spatie\Activitylog\Models\Activity;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 function grantActivityLogPermissions(User $user, array $permissions): User
@@ -250,7 +251,7 @@ test('role permission sync writes permissions_synced activity', function () {
     ]);
     $this->actingAs($actor);
 
-    $permission = \Spatie\Permission\Models\Permission::query()
+    $permission = Permission::query()
         ->where('name', PermissionEnum::CanShowUsers->value)
         ->firstOrFail();
 

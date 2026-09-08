@@ -4,6 +4,7 @@ use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
+use App\Models\CollectionItem;
 use App\Models\CollectionItemChatAttachment;
 use App\Models\User;
 use App\Services\Settings\ProjectSettings;
@@ -20,7 +21,7 @@ beforeEach(function () {
 });
 
 /**
- * @return array{user: User, collection: Collection, item: \App\Models\CollectionItem}
+ * @return array{user: User, collection: Collection, item: CollectionItem}
  */
 function chatUploadKitchen(): array
 {

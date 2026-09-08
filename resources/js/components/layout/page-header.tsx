@@ -1,6 +1,7 @@
 import { Search } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Input } from '@/components/ui/input';
+import { STRING_LIMITS } from '@/lib/string-limits';
 import { cn } from '@/lib/utils';
 
 /** Shared Tailwind classes for filter select elements in page headers. */
@@ -59,6 +60,7 @@ export type FilterSearchProps = {
     placeholder?: string;
     className?: string;
     id?: string;
+    maxLength?: number;
 };
 
 /**
@@ -72,6 +74,7 @@ export function FilterSearch({
     placeholder = 'Search…',
     className,
     id,
+    maxLength = STRING_LIMITS.SEARCH,
 }: FilterSearchProps) {
     return (
         <div
@@ -86,6 +89,7 @@ export function FilterSearch({
                 value={value}
                 onChange={(changeEvent) => onChange(changeEvent.target.value)}
                 placeholder={placeholder}
+                maxLength={maxLength}
                 className="h-9 pl-8"
             />
         </div>
