@@ -569,7 +569,12 @@
         "translatable": "Übersetzbar",
         "translatableSuffix": " · Übersetzbar",
         "newCollection": "Neue Collection",
-        "createField": "Feld erstellen",
+        "createField": "Feld hinzufügen",
+        "addFieldFor": "Feld für {{name}} hinzufügen",
+        "saveField": "Feld speichern",
+        "chooseFieldType": "Wähle einen Feldtyp und konfiguriere anschließend die Einstellungen.",
+        "searchFieldTypes": "Feldtypen suchen…",
+        "noMatchingFieldTypes": "Keine Feldtypen passen zur Suche.",
         "groups": {
             "addLayout": "Layout hinzufügen",
             "accordion": "Akkordeon",
@@ -597,7 +602,7 @@
         "typeSettingsDescription": "Typspezifische Optionen für dieses Feld.",
         "general": "Allgemein",
         "generalDescription": "Schlüssel, Anzeigename und Hilfetext für dieses Feld.",
-        "noFieldsYet": "Noch keine Felder. Erstelle ein Feld oder wende ein Feldpack an, um den Inhalt dieser Collection zu definieren.",
+        "noFieldsYet": "Noch keine Felder. Füge ein Feld hinzu oder wende ein Feldpack an, um den Inhalt dieser Collection zu definieren.",
         "clearSearchToReorder": "Suche leeren, um Felder per Drag-and-Drop neu zu ordnen.",
         "map": {
             "hintPoint": "Klicke auf die Karte, um den Punkt zu setzen, oder ziehe den Marker.",
@@ -633,7 +638,140 @@
             "importFailed": "Import von URL fehlgeschlagen"
         },
         "requiredSuffix": " · Pflichtfeld",
-        "hiddenInFormSuffix": " · Im Formular ausgeblendet"
+        "hiddenInFormSuffix": " · Im Formular ausgeblendet",
+        "fieldTypes": {
+            "string": {
+                "label": "Texteingabe",
+                "description": "Einzeiliger Text"
+            },
+            "autocomplete": {
+                "label": "Combobox (statisch)",
+                "description": "Texteingabe mit vordefinierten Vorschlägen"
+            },
+            "api_autocomplete": {
+                "label": "Autocomplete (API)",
+                "description": "Texteingabe mit Vorschlägen von einer Remote-URL"
+            },
+            "code": {
+                "label": "Code",
+                "description": "Code-Snippet mit Syntaxhervorhebung"
+            },
+            "textarea": {
+                "label": "TextArea",
+                "description": "Mehrzeiliger Klartext"
+            },
+            "wysiwyg": {
+                "label": "WYSIWYG",
+                "description": "Rich-Text als HTML gespeichert"
+            },
+            "markdown": {
+                "label": "Markdown",
+                "description": "Formatierter Text mit Markdown-Syntax"
+            },
+            "tag": {
+                "label": "Tag",
+                "description": "Kommagetrennte Tags"
+            },
+            "number": {
+                "label": "Zahl",
+                "description": "Numerischer Wert"
+            },
+            "boolean": {
+                "label": "Schalter",
+                "description": "Ein-/Ausschalter"
+            },
+            "date": {
+                "label": "Datum / Zeit",
+                "description": "Datum, Zeit oder Datum-Zeit (Modus in den Einstellungen)"
+            },
+            "map": {
+                "label": "Karte",
+                "description": "Geografischer Punkt auf OpenStreetMap (Breiten- / Längengrad)"
+            },
+            "color": {
+                "label": "Farbwähler",
+                "description": "Farbauswahl"
+            },
+            "select": {
+                "label": "Auswahl",
+                "description": "Eine Option aus einer Liste wählen"
+            },
+            "multiselect": {
+                "label": "Mehrfachauswahl",
+                "description": "Mehrere Optionen aus einem Dropdown wählen"
+            },
+            "checkbox_group": {
+                "label": "Checkbox-Gruppe",
+                "description": "Mehrere Optionen mit sichtbaren Checkboxen wählen"
+            },
+            "checkbox_group_tree": {
+                "label": "Checkbox-Baum",
+                "description": "Mehrere Optionen aus einem verschachtelten Baum wählen"
+            },
+            "radio_group": {
+                "label": "Radio-Gruppe",
+                "description": "Eine Option mit Radiobuttons wählen"
+            },
+            "image": {
+                "label": "Bild",
+                "description": "Ein oder mehrere Bilder aus dem Dateimanager"
+            },
+            "files": {
+                "label": "Dateien",
+                "description": "Eine oder mehrere Dateien aus dem Dateimanager"
+            },
+            "blocks": {
+                "label": "Blöcke",
+                "description": "Flexible Seitenabschnitte aus Inline-Blockschemata"
+            },
+            "m2a": {
+                "label": "Builder (M2A)",
+                "description": "Flexibler Inhalt aus mehreren verknüpften Collections"
+            },
+            "many_to_many": {
+                "label": "Viele zu Viele",
+                "description": "Dieses Element mit vielen verwandten Elementen verknüpfen (M2M)"
+            },
+            "one_to_many": {
+                "label": "Eins zu Viele",
+                "description": "Dieses Element mit vielen Kindern in einer anderen Collection verknüpfen (O2M)"
+            },
+            "many_to_one": {
+                "label": "Viele zu Eins",
+                "description": "Dieses Element mit einem verwandten Element verknüpfen (M2O)"
+            },
+            "hash": {
+                "label": "Fingerprint-ID",
+                "description": "Automatisch generierte eindeutige Kennung (sha256), kein Passwort-Hash"
+            },
+            "slider": {
+                "label": "Schieberegler",
+                "description": "Numerischer Wert über einen Schieberegler"
+            },
+            "group_accordion": {
+                "label": "Akkordeon",
+                "description": "Einklappbare Abschnitte — einer pro direktes Kind"
+            },
+            "group_detail": {
+                "label": "Detailgruppe",
+                "description": "Einzelnes einklappbares Panel für verschachtelte Felder"
+            },
+            "group_raw": {
+                "label": "Rohgruppe",
+                "description": "Logische Verschachtelung ohne visuelle Darstellung"
+            },
+            "group_tabs": {
+                "label": "Tabs",
+                "description": "Kinder als Tabs dargestellt"
+            }
+        },
+        "fieldTypeGroups": {
+            "text_numbers": "Text & Zahlen",
+            "selection": "Auswahl",
+            "relational": "Relational",
+            "other": "Sonstiges",
+            "groups": "Gruppen"
+        }
     },
     "ai": {
         "drawer": {

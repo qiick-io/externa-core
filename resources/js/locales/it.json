@@ -617,7 +617,12 @@
         "translatable": "Traducibile",
         "translatableSuffix": " · Traducibile",
         "newCollection": "Nuova collection",
-        "createField": "Crea campo",
+        "createField": "Aggiungi campo",
+        "addFieldFor": "Aggiungi campo per {{name}}",
+        "saveField": "Salva campo",
+        "chooseFieldType": "Scegli un tipo di campo, poi configura le impostazioni.",
+        "searchFieldTypes": "Cerca tipi di campo…",
+        "noMatchingFieldTypes": "Nessun tipo di campo corrisponde alla ricerca.",
         "groups": {
             "addLayout": "Aggiungi layout",
             "accordion": "Fisarmonica",
@@ -645,7 +650,7 @@
         "typeSettingsDescription": "Opzioni specifiche per questo tipo di campo.",
         "general": "Generale",
         "generalDescription": "Chiave, nome visualizzato e testo di aiuto per questo campo.",
-        "noFieldsYet": "Nessun campo ancora. Crea un campo o applica un pack per definire il contenuto di questa collection.",
+        "noFieldsYet": "Nessun campo ancora. Aggiungi un campo o applica un pack per definire il contenuto di questa collection.",
         "clearSearchToReorder": "Cancella la ricerca per riordinare i campi con drag and drop.",
         "map": {
             "hintPoint": "Clicca sulla mappa per impostare il punto, oppure trascina il marker.",
@@ -681,7 +686,140 @@
             "importFailed": "Importazione da URL non riuscita"
         },
         "requiredSuffix": " · Obbligatorio",
-        "hiddenInFormSuffix": " · Nascosto nel form"
+        "hiddenInFormSuffix": " · Nascosto nel form",
+        "fieldTypes": {
+            "string": {
+                "label": "Campo di testo",
+                "description": "Testo su una riga"
+            },
+            "autocomplete": {
+                "label": "Combobox (statica)",
+                "description": "Campo di testo con suggerimenti predefiniti"
+            },
+            "api_autocomplete": {
+                "label": "Autocomplete (API)",
+                "description": "Campo di testo con suggerimenti da un URL remoto"
+            },
+            "code": {
+                "label": "Codice",
+                "description": "Snippet di codice con evidenziazione della sintassi"
+            },
+            "textarea": {
+                "label": "Area di testo",
+                "description": "Testo semplice su più righe"
+            },
+            "wysiwyg": {
+                "label": "WYSIWYG",
+                "description": "Testo formattato salvato come HTML"
+            },
+            "markdown": {
+                "label": "Markdown",
+                "description": "Testo formattato con sintassi Markdown"
+            },
+            "tag": {
+                "label": "Tag",
+                "description": "Tag separati da virgola"
+            },
+            "number": {
+                "label": "Numero",
+                "description": "Valore numerico"
+            },
+            "boolean": {
+                "label": "Interruttore",
+                "description": "Interruttore on / off"
+            },
+            "date": {
+                "label": "Data / Ora",
+                "description": "Data, ora o data-ora (modalità nelle impostazioni)"
+            },
+            "map": {
+                "label": "Mappa",
+                "description": "Punto geografico su OpenStreetMap (latitudine / longitudine)"
+            },
+            "color": {
+                "label": "Selettore colore",
+                "description": "Selezione colore"
+            },
+            "select": {
+                "label": "Selezione",
+                "description": "Scegli un’opzione da un elenco"
+            },
+            "multiselect": {
+                "label": "Selezione multipla",
+                "description": "Scegli più opzioni da un menu a tendina"
+            },
+            "checkbox_group": {
+                "label": "Gruppo checkbox",
+                "description": "Scegli più opzioni con checkbox visibili"
+            },
+            "checkbox_group_tree": {
+                "label": "Albero checkbox",
+                "description": "Scegli più opzioni da un albero annidato"
+            },
+            "radio_group": {
+                "label": "Gruppo radio",
+                "description": "Scegli un’opzione con pulsanti radio"
+            },
+            "image": {
+                "label": "Immagine",
+                "description": "Una o più immagini dal file manager"
+            },
+            "files": {
+                "label": "File",
+                "description": "Uno o più file dal file manager"
+            },
+            "blocks": {
+                "label": "Blocchi",
+                "description": "Sezioni di pagina flessibili da schemi di blocco inline"
+            },
+            "m2a": {
+                "label": "Costruttore (M2A)",
+                "description": "Contenuto flessibile da più collection correlate"
+            },
+            "many_to_many": {
+                "label": "Molti a molti",
+                "description": "Collega questo elemento a molti elementi correlati (M2M)"
+            },
+            "one_to_many": {
+                "label": "Uno a molti",
+                "description": "Collega questo elemento a molti figli in un’altra collection (O2M)"
+            },
+            "many_to_one": {
+                "label": "Molti a uno",
+                "description": "Collega questo elemento a un elemento correlato (M2O)"
+            },
+            "hash": {
+                "label": "ID fingerprint",
+                "description": "Identificatore univoco generato automaticamente (sha256), non un hash password"
+            },
+            "slider": {
+                "label": "Cursore",
+                "description": "Valore numerico selezionato con un cursore"
+            },
+            "group_accordion": {
+                "label": "Fisarmonica",
+                "description": "Sezioni pieghevoli — una per figlio diretto"
+            },
+            "group_detail": {
+                "label": "Gruppo dettaglio",
+                "description": "Pannello pieghevole singolo per campi annidati"
+            },
+            "group_raw": {
+                "label": "Gruppo grezzo",
+                "description": "Annidamento logico senza chrome visuale"
+            },
+            "group_tabs": {
+                "label": "Schede",
+                "description": "Figli visualizzati come schede"
+            }
+        },
+        "fieldTypeGroups": {
+            "text_numbers": "Testo e numeri",
+            "selection": "Selezione",
+            "relational": "Relazionali",
+            "other": "Altro",
+            "groups": "Gruppi"
+        }
     },
     "ai": {
         "drawer": {

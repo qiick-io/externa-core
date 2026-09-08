@@ -187,7 +187,7 @@ export function ApplyCollectionPackDialog({
                                                     {field.name}
                                                 </span>
                                                 <span className="text-muted-foreground">
-                                                    {fieldTypeLabel(field.type)}
+                                                    {fieldTypeLabel(field.type, t)}
                                                     {field.translatable
                                                         ? t(
                                                               'collections.translatableSuffix',
@@ -207,6 +207,7 @@ export function ApplyCollectionPackDialog({
                                                 <span className="text-muted-foreground">
                                                     {fieldTypeLabel(
                                                         relation.type,
+                                                        t,
                                                     )}
                                                     {relation.related_pack
                                                         ? ` → ${relation.related_pack}`

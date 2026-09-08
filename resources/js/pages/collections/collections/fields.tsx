@@ -26,6 +26,7 @@ import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import { fieldTypeLabel } from '@/lib/collection-field-types';
 import type { RelatedCollectionOption } from '@/lib/collection-field-types';
+import { STRING_LIMITS } from '@/lib/string-limits';
 import collections from '@/routes/collections';
 import type { BreadcrumbItem, CollectionFieldRow } from '@/types';
 import { collectionToFormRow } from '@/types';
@@ -113,9 +114,9 @@ export default function CollectionsFields({
             (field) =>
                 field.name.toLowerCase().includes(query) ||
                 field.type.toLowerCase().includes(query) ||
-                fieldTypeLabel(field.type).toLowerCase().includes(query),
+                fieldTypeLabel(field.type, t).toLowerCase().includes(query),
         );
-    }, [fields, searchQuery]);
+    }, [fields, searchQuery, t]);
 
     const searchQueryActive = searchQuery.trim() !== '';
 
@@ -223,6 +224,7 @@ export default function CollectionsFields({
                                 setSearchQuery(event.target.value)
                             }
                             placeholder={t('collections.searchFields')}
+                            maxLength={STRING_LIMITS.SEARCH}
                             className="pl-9"
                         />
                     </div>
@@ -292,6 +294,9 @@ export default function CollectionsFields({
             >
                 <DrawerContent className="data-[vaul-drawer-direction=right]:max-w-3xl">
                     <CollectionFieldTypeDrawer
+                        collectionName={collection.name}
+                        collectionIcon={collection.icon}
+                        collectionColor={collection.color}
                         onSelectType={(type) => {
                             setAddFieldType(type);
                             setAddFormOpen(true);

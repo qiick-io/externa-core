@@ -617,7 +617,12 @@
         "translatable": "Translatable",
         "translatableSuffix": " · Translatable",
         "newCollection": "New collection",
-        "createField": "Create field",
+        "createField": "Add field",
+        "addFieldFor": "Add field for {{name}}",
+        "saveField": "Save field",
+        "chooseFieldType": "Choose a field type, then configure its settings.",
+        "searchFieldTypes": "Search field types…",
+        "noMatchingFieldTypes": "No field types match your search.",
         "groups": {
             "addLayout": "Add layout",
             "accordion": "Accordion",
@@ -645,7 +650,7 @@
         "typeSettingsDescription": "Type-specific options for this field.",
         "general": "General",
         "generalDescription": "Key, display name, and helper text for this field.",
-        "noFieldsYet": "No fields yet. Create a field or apply a field pack to define what content this collection stores.",
+        "noFieldsYet": "No fields yet. Add a field or apply a field pack to define what content this collection stores.",
         "clearSearchToReorder": "Clear search to reorder fields by drag and drop.",
         "map": {
             "hintPoint": "Click the map to set the point, or drag the marker.",
@@ -681,7 +686,140 @@
             "importFailed": "Import from URL failed"
         },
         "requiredSuffix": " · Required",
-        "hiddenInFormSuffix": " · Hidden in form"
+        "hiddenInFormSuffix": " · Hidden in form",
+        "fieldTypes": {
+            "string": {
+                "label": "Text Input",
+                "description": "Single line text"
+            },
+            "autocomplete": {
+                "label": "Combobox (static)",
+                "description": "Text input with predefined suggestion options"
+            },
+            "api_autocomplete": {
+                "label": "Autocomplete (API)",
+                "description": "Text input with suggestions fetched from a remote URL"
+            },
+            "code": {
+                "label": "Code",
+                "description": "Code snippet with syntax highlighting"
+            },
+            "textarea": {
+                "label": "TextArea",
+                "description": "Multi-line plain text"
+            },
+            "wysiwyg": {
+                "label": "WYSIWYG",
+                "description": "Rich text stored as HTML"
+            },
+            "markdown": {
+                "label": "Markdown",
+                "description": "Formatted text with Markdown syntax"
+            },
+            "tag": {
+                "label": "Tag",
+                "description": "Comma-separated tags"
+            },
+            "number": {
+                "label": "Number",
+                "description": "Numeric value"
+            },
+            "boolean": {
+                "label": "Toggle",
+                "description": "On / off switch"
+            },
+            "date": {
+                "label": "Date / Time",
+                "description": "Date, time, or datetime (mode in settings)"
+            },
+            "map": {
+                "label": "Map",
+                "description": "Geographic point on OpenStreetMap (latitude / longitude)"
+            },
+            "color": {
+                "label": "Color Picker",
+                "description": "Color selection"
+            },
+            "select": {
+                "label": "Select",
+                "description": "Pick one option from a list"
+            },
+            "multiselect": {
+                "label": "Multi Select",
+                "description": "Pick multiple options from a dropdown"
+            },
+            "checkbox_group": {
+                "label": "Checkbox Group",
+                "description": "Pick multiple options with visible checkboxes"
+            },
+            "checkbox_group_tree": {
+                "label": "Checkbox Group Tree",
+                "description": "Pick multiple options from a nested tree"
+            },
+            "radio_group": {
+                "label": "Radio Group",
+                "description": "Pick one option with radio buttons"
+            },
+            "image": {
+                "label": "Image",
+                "description": "Single or multiple images from the file manager"
+            },
+            "files": {
+                "label": "Files",
+                "description": "Single or multiple files from the file manager"
+            },
+            "blocks": {
+                "label": "Blocks",
+                "description": "Build flexible page sections from inline block schemas"
+            },
+            "m2a": {
+                "label": "Builder (M2A)",
+                "description": "Build flexible content from multiple related collections"
+            },
+            "many_to_many": {
+                "label": "Many to Many",
+                "description": "Link this item to many related items (M2M)"
+            },
+            "one_to_many": {
+                "label": "One to Many",
+                "description": "Link this item to many children in another collection (O2M)"
+            },
+            "many_to_one": {
+                "label": "Many to One",
+                "description": "Link this item to one related item (M2O)"
+            },
+            "hash": {
+                "label": "Fingerprint ID",
+                "description": "Auto-generated unique identifier (sha256), not a password hash"
+            },
+            "slider": {
+                "label": "Slider",
+                "description": "Numeric value selected with a slider control"
+            },
+            "group_accordion": {
+                "label": "Accordion",
+                "description": "Collapsible sections — one per direct child"
+            },
+            "group_detail": {
+                "label": "Detail group",
+                "description": "Single collapsible panel for nested fields"
+            },
+            "group_raw": {
+                "label": "Raw group",
+                "description": "Logical nesting without visual chrome"
+            },
+            "group_tabs": {
+                "label": "Tabs",
+                "description": "Children rendered as tabs"
+            }
+        },
+        "fieldTypeGroups": {
+            "text_numbers": "Text & numbers",
+            "selection": "Selection",
+            "relational": "Relational",
+            "other": "Other",
+            "groups": "Groups"
+        }
     },
     "ai": {
         "drawer": {

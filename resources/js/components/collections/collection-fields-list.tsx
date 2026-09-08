@@ -774,7 +774,7 @@ function CollectionFieldRow({
                         {getFieldDisplayName(field.settings, field.name)}
                     </p>
                     <p className="truncate text-sm text-muted-foreground">
-                        {fieldTypeLabel(field.type)}
+                        {fieldTypeLabel(field.type, t)}
                         {field.translatable
                             ? t('collections.translatableSuffix')
                             : ''}

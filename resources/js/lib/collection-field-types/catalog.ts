@@ -1,158 +1,55 @@
 /** Select option describing one collection field type in the admin UI. */
 export type CollectionFieldTypeOption = {
     value: string;
-    label: string;
-    description?: string;
 };
 
-/** Catalog of supported collection field types with UI labels. */
+type TranslateFn = (
+    key: string,
+    options?: { defaultValue?: string },
+) => string;
+
+/** Catalog of supported collection field types (UI copy lives in i18n). */
 export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
-    { value: 'string', label: 'Text Input', description: 'Single line text' },
-    {
-        value: 'autocomplete',
-        label: 'Combobox (static)',
-        description: 'Text input with predefined suggestion options',
-    },
-    {
-        value: 'api_autocomplete',
-        label: 'Autocomplete (API)',
-        description: 'Text input with suggestions fetched from a remote URL',
-    },
-    {
-        value: 'code',
-        label: 'Codice',
-        description: 'Code snippet with syntax highlighting',
-    },
-    {
-        value: 'textarea',
-        label: 'TextArea',
-        description: 'Multi-line plain text',
-    },
-    {
-        value: 'wysiwyg',
-        label: 'WYSIWYG',
-        description: 'Rich text stored as HTML',
-    },
-    {
-        value: 'markdown',
-        label: 'Markdown',
-        description: 'Formatted text with Markdown syntax',
-    },
-    { value: 'tag', label: 'Tag', description: 'Comma-separated tags' },
-    { value: 'number', label: 'Number', description: 'Numeric value' },
-    { value: 'boolean', label: 'Toggle', description: 'On / off switch' },
-    {
-        value: 'date',
-        label: 'Date / Time',
-        description: 'Date, time, or datetime (mode in settings)',
-    },
-    {
-        value: 'map',
-        label: 'Map',
-        description: 'Geographic point on OpenStreetMap (latitude / longitude)',
-    },
-    { value: 'color', label: 'Color Picker', description: 'Color selection' },
-    {
-        value: 'select',
-        label: 'Select',
-        description: 'Pick one option from a list',
-    },
-    {
-        value: 'multiselect',
-        label: 'Multi Select',
-        description: 'Pick multiple options from a dropdown',
-    },
-    {
-        value: 'checkbox_group',
-        label: 'Checkbox Group',
-        description: 'Pick multiple options with visible checkboxes',
-    },
-    {
-        value: 'checkbox_group_tree',
-        label: 'Checkbox Group Tree',
-        description: 'Pick multiple options from a nested tree',
-    },
-    {
-        value: 'radio_group',
-        label: 'Radio Group',
-        description: 'Pick one option with radio buttons',
-    },
-    {
-        value: 'image',
-        label: 'Image',
-        description: 'Single or multiple images from the file manager',
-    },
-    {
-        value: 'files',
-        label: 'Files',
-        description: 'Single or multiple files from the file manager',
-    },
-    {
-        value: 'blocks',
-        label: 'Blocks',
-        description: 'Build flexible page sections from inline block schemas',
-    },
-    {
-        value: 'm2a',
-        label: 'Costruttore (M2A)',
-        description: 'Build flexible content from multiple related collections',
-    },
-    {
-        value: 'many_to_many',
-        label: 'Molti a Molti',
-        description: 'Link this item to many related items (M2M)',
-    },
-    {
-        value: 'one_to_many',
-        label: 'Uno a Molti',
-        description:
-            'Link this item to many children in another collection (O2M)',
-    },
-    {
-        value: 'many_to_one',
-        label: 'Molti a Uno',
-        description: 'Link this item to one related item (M2O)',
-    },
-    {
-        value: 'hash',
-        label: 'Fingerprint ID',
-        description:
-            'Auto-generated unique identifier (sha256), not a password hash',
-    },
-    {
-        value: 'slider',
-        label: 'Cursore',
-        description: 'Numeric value selected with a slider control',
-    },
-    {
-        value: 'group_accordion',
-        label: 'Accordion',
-        description: 'Collapsible sections — one per direct child',
-    },
-    {
-        value: 'group_detail',
-        label: 'Detail group',
-        description: 'Single collapsible panel for nested fields',
-    },
-    {
-        value: 'group_raw',
-        label: 'Raw group',
-        description: 'Logical nesting without visual chrome',
-    },
-    {
-        value: 'group_tabs',
-        label: 'Tabs',
-        description: 'Children rendered as tabs',
-    },
+    { value: 'string' },
+    { value: 'autocomplete' },
+    { value: 'api_autocomplete' },
+    { value: 'code' },
+    { value: 'textarea' },
+    { value: 'wysiwyg' },
+    { value: 'markdown' },
+    { value: 'tag' },
+    { value: 'number' },
+    { value: 'boolean' },
+    { value: 'date' },
+    { value: 'map' },
+    { value: 'color' },
+    { value: 'select' },
+    { value: 'multiselect' },
+    { value: 'checkbox_group' },
+    { value: 'checkbox_group_tree' },
+    { value: 'radio_group' },
+    { value: 'image' },
+    { value: 'files' },
+    { value: 'blocks' },
+    { value: 'm2a' },
+    { value: 'many_to_many' },
+    { value: 'one_to_many' },
+    { value: 'many_to_one' },
+    { value: 'hash' },
+    { value: 'slider' },
+    { value: 'group_accordion' },
+    { value: 'group_detail' },
+    { value: 'group_raw' },
+    { value: 'group_tabs' },
 ];
 
-/** Field type groupings used in the field type picker UI. */
+/** Stable group keys used in the field type picker UI (labels via i18n). */
 export const COLLECTION_FIELD_TYPE_GROUPS: {
-    label: string;
+    key: string;
     types: string[];
 }[] = [
     {
-        label: 'Text & numbers',
+        key: 'text_numbers',
         types: [
             'string',
             'autocomplete',
@@ -166,7 +63,7 @@ export const COLLECTION_FIELD_TYPE_GROUPS: {
         ],
     },
     {
-        label: 'Selection',
+        key: 'selection',
         types: [
             'boolean',
             'date',
@@ -180,7 +77,7 @@ export const COLLECTION_FIELD_TYPE_GROUPS: {
         ],
     },
     {
-        label: 'Relational',
+        key: 'relational',
         types: [
             'image',
             'files',
@@ -192,11 +89,11 @@ export const COLLECTION_FIELD_TYPE_GROUPS: {
         ],
     },
     {
-        label: 'Altro',
+        key: 'other',
         types: ['hash', 'slider'],
     },
     {
-        label: 'Groups',
+        key: 'groups',
         types: [
             'group_accordion',
             'group_detail',
@@ -206,15 +103,37 @@ export const COLLECTION_FIELD_TYPE_GROUPS: {
     },
 ];
 
+/** i18n key for a field type display label. */
+export function fieldTypeLabelKey(type: string): string {
+    return `collections.fieldTypes.${type}.label`;
+}
+
+/** i18n key for a field type description. */
+export function fieldTypeDescriptionKey(type: string): string {
+    return `collections.fieldTypes.${type}.description`;
+}
+
+/** i18n key for a field type group label. */
+export function fieldTypeGroupLabelKey(groupKey: string): string {
+    return `collections.fieldTypeGroups.${groupKey}`;
+}
+
 /**
  * @param type - Field type key
- * @returns Human-readable label, or the raw type when unknown
+ * @param t - i18n translate function
+ * @returns Localized label, or the raw type when unknown
  */
-export function fieldTypeLabel(type: string): string {
-    return (
-        COLLECTION_FIELD_TYPES.find((option) => option.value === type)?.label ??
-        type
-    );
+export function fieldTypeLabel(type: string, t: TranslateFn): string {
+    return t(fieldTypeLabelKey(type), { defaultValue: type });
+}
+
+/**
+ * @param type - Field type key
+ * @param t - i18n translate function
+ * @returns Localized description, or empty string when unknown
+ */
+export function fieldTypeDescription(type: string, t: TranslateFn): string {
+    return t(fieldTypeDescriptionKey(type), { defaultValue: '' });
 }
 
 /**
@@ -456,16 +375,16 @@ export function blocksAllowedFieldTypesForDepth(
  * Field Type Group For Type.
  *
  * @param type - Field type key
- * @returns UI group label for the type picker
+ * @returns Stable group key for the type picker (e.g. selection, other)
  */
 export function fieldTypeGroupForType(type: string): string {
     for (const group of COLLECTION_FIELD_TYPE_GROUPS) {
         if (group.types.includes(type)) {
-            return group.label;
+            return group.key;
         }
     }
 
-    return 'Altro';
+    return 'other';
 }
 
 /**

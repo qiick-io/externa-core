@@ -35,6 +35,10 @@ import FieldController from '@/actions/App/Http/Controllers/Collections/FieldCon
 import { CommonAdvancedSettings } from '@/components/collections/field-settings/common-advanced-settings';
 import { FieldConditionsSettings } from '@/components/collections/field-settings/field-conditions-settings';
 import {
+    LucideIconByName,
+    resolveCollectionIconName,
+} from '@/components/collections/field-settings/lucide-icon-picker';
+import {
     SettingsDivider,
     SettingsPanel,
 } from '@/components/collections/field-settings/settings-layout';
@@ -81,9 +85,11 @@ import {
     blocksAllowedFieldTypesForDepth,
     buildFieldSettingsPayload,
     COLLECTION_FIELD_TYPE_GROUPS,
-    COLLECTION_FIELD_TYPES,
-    fieldTypeNeedsBlocksSettings,
+    fieldTypeDescription,
     fieldTypeGroupForType,
+    fieldTypeGroupLabelKey,
+    fieldTypeLabel,
+    fieldTypeNeedsBlocksSettings,
     fieldTypeNeedsOptions,
     fieldTypeNeedsTreeOptions,
     fieldTypeSupportsTranslatable,
@@ -105,7 +111,6 @@ import type {
     ApiAutocompleteFieldSettings,
     BlocksTypeDefinition,
     CommonFieldSettings,
-    CollectionFieldTypeOption,
     FieldOptionRow,
     FieldTreeOptionRow,
     RelatedCollectionOption,
@@ -115,9 +120,11 @@ import type {
 import type { FieldConditions } from '@/lib/field-conditions';
 import { parseFieldConditions } from '@/lib/field-conditions';
 import { FIELD_KEY_PATTERN, slugify, slugifyInput } from '@/lib/slugify';
+import { STRING_LIMITS } from '@/lib/string-limits';
 import { toast } from '@/lib/toast';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import type { CollectionFieldRow } from '@/types';
+import { resolveCollectionColor } from '@/types';
 
 const FIELD_TYPE_ICONS: Record<
     string,
@@ -158,70 +165,118 @@ const FIELD_TYPE_ICONS: Record<
 
 const TYPES_PER_ROW = 4;
 
-function FieldTypePicker({ onSelect }: { onSelect: (type: string) => void }) {
-    return (
-        <div className="space-y-10">
-            {COLLECTION_FIELD_TYPE_GROUPS.map((group) => {
-                const rows: string[][] = [];
+function fieldTypeMatchesQuery(
+    type: string,
+    query: string,
+    t: (key: string, options?: { defaultValue?: string }) => string,
+): boolean {
+    const haystack = [
+        type,
+        fieldTypeLabel(type, t),
+        fieldTypeDescription(type, t),
+    ]
+        .join(' ')
+        .toLowerCase();
 
-                for (
-                    let index = 0;
-                    index < group.types.length;
-                    index += TYPES_PER_ROW
-                ) {
-                    rows.push(group.types.slice(index, index + TYPES_PER_ROW));
-                }
-
-                return (
-                    <div key={group.label}>
-                        <p className="mb-5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                            {group.label}
-                        </p>
-                        <div className="flex flex-col gap-4">
-                            {rows.map((rowTypes, rowIndex) => (
-                                <div
-                                    key={rowIndex}
-                                    className="grid grid-cols-2 gap-3 sm:grid-cols-4"
-                                >
-                                    {rowTypes.map((type) => {
-                                        const Icon =
-                                            FIELD_TYPE_ICONS[type] ?? Type;
-                                        const option =
-                                            COLLECTION_FIELD_TYPES.find(
-                                                (fieldType) =>
-                                                    fieldType.value === type,
-                                            );
-
-                                        return (
-                                            <button
-                                                key={type}
-                                                type="button"
-                                                onClick={() => onSelect(type)}
-                                                className="flex flex-col items-center gap-2.5 rounded-lg border border-border px-3 py-5 text-center transition-colors hover:border-primary/40 hover:bg-muted/50"
-                                            >
-                                                <Icon className="size-6 text-muted-foreground" />
-                                                <span className="text-xs leading-tight font-medium">
-                                                    {option?.label ?? type}
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
+    return haystack.includes(query);
 }
 
-function fieldTypeMeta(fieldType: string): CollectionFieldTypeOption {
-    return (
-        COLLECTION_FIELD_TYPES.find((option) => option.value === fieldType) ?? {
-            value: fieldType,
-            label: fieldType,
+function FieldTypePicker({ onSelect }: { onSelect: (type: string) => void }) {
+    const { t } = useTranslation();
+    const [query, setQuery] = useState('');
+
+    const filteredGroups = useMemo(() => {
+        const normalized = query.trim().toLowerCase();
+
+        if (normalized === '') {
+            return COLLECTION_FIELD_TYPE_GROUPS;
         }
+
+        return COLLECTION_FIELD_TYPE_GROUPS.map((group) => ({
+            ...group,
+            types: group.types.filter((type) =>
+                fieldTypeMatchesQuery(type, normalized, t),
+            ),
+        })).filter((group) => group.types.length > 0);
+    }, [query, t]);
+
+    return (
+        <div className="space-y-8">
+            <div className="relative">
+                <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={t('collections.searchFieldTypes')}
+                    maxLength={STRING_LIMITS.SEARCH}
+                    className="pl-9"
+                    autoFocus
+                />
+            </div>
+
+            {filteredGroups.length === 0 ? (
+                <p className="py-10 text-center text-sm text-muted-foreground">
+                    {t('collections.noMatchingFieldTypes')}
+                </p>
+            ) : (
+                <div className="space-y-10">
+                    {filteredGroups.map((group) => {
+                        const rows: string[][] = [];
+
+                        for (
+                            let index = 0;
+                            index < group.types.length;
+                            index += TYPES_PER_ROW
+                        ) {
+                            rows.push(
+                                group.types.slice(index, index + TYPES_PER_ROW),
+                            );
+                        }
+
+                        return (
+                            <div key={group.key}>
+                                <p className="mb-5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                    {t(fieldTypeGroupLabelKey(group.key))}
+                                </p>
+                                <div className="flex flex-col gap-4">
+                                    {rows.map((rowTypes, rowIndex) => (
+                                        <div
+                                            key={rowIndex}
+                                            className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+                                        >
+                                            {rowTypes.map((type) => {
+                                                const Icon =
+                                                    FIELD_TYPE_ICONS[type] ??
+                                                    Type;
+
+                                                return (
+                                                    <button
+                                                        key={type}
+                                                        type="button"
+                                                        onClick={() =>
+                                                            onSelect(type)
+                                                        }
+                                                        className="flex flex-col items-center gap-2.5 rounded-lg border border-border px-3 py-5 text-center transition-colors hover:border-primary/40 hover:bg-muted/50"
+                                                    >
+                                                        <Icon className="size-6 text-muted-foreground" />
+                                                        <span className="text-xs leading-tight font-medium">
+                                                            {fieldTypeLabel(
+                                                                type,
+                                                                t,
+                                                            )}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -232,8 +287,12 @@ function FieldTypeHeader({
     fieldType: string;
     subtitle?: string;
 }) {
+    const { t } = useTranslation();
     const Icon = FIELD_TYPE_ICONS[fieldType] ?? Type;
-    const option = fieldTypeMeta(fieldType);
+    const description =
+        subtitle ??
+        (fieldTypeDescription(fieldType, t) ||
+            t('collections.typeSettingsDescription'));
 
     return (
         <DrawerHeader>
@@ -242,12 +301,8 @@ function FieldTypeHeader({
                     <Icon className="size-6 text-muted-foreground" />
                 </div>
                 <div className="min-w-0 flex-1">
-                    <DrawerTitle>{option.label}</DrawerTitle>
-                    <DrawerDescription>
-                        {subtitle ??
-                            option.description ??
-                            'Configure this field.'}
-                    </DrawerDescription>
+                    <DrawerTitle>{fieldTypeLabel(fieldType, t)}</DrawerTitle>
+                    <DrawerDescription>{description}</DrawerDescription>
                 </div>
             </div>
         </DrawerHeader>
@@ -689,6 +744,7 @@ function BlocksSettingsEditor({
     onMaxDepthChange?: (next: number) => void;
     relatedCollections?: RelatedCollectionOption[];
 }) {
+    const { t } = useTranslation();
     const cappedMax = Math.max(
         1,
         Math.min(MAX_BLOCKS_DEPTH, Math.trunc(maxDepth)),
@@ -925,10 +981,10 @@ function BlocksSettingsEditor({
                                                         key={type}
                                                         value={type}
                                                     >
-                                                        {
-                                                            fieldTypeMeta(type)
-                                                                .label
-                                                        }
+                                                        {fieldTypeLabel(
+                                                            type,
+                                                            t,
+                                                        )}
                                                     </option>
                                                 ))}
                                             </select>
@@ -1332,7 +1388,6 @@ function FieldConfigPanel({
 }: FieldConfigPanelProps) {
     const { t } = useTranslation();
     const typeGroup = fieldTypeGroupForType(fieldType);
-    const typeMeta = fieldTypeMeta(fieldType);
     const [fieldKey, setFieldKey] = useState(field?.name ?? '');
     const [debouncedKeyError, setDebouncedKeyError] = useState<
         string | undefined
@@ -1413,7 +1468,7 @@ function FieldConfigPanel({
                 />
             ) : null}
 
-            {typeGroup === 'Text & numbers' ? (
+            {typeGroup === 'text_numbers' ? (
                 <TextNumbersSettings
                     fieldType={fieldType}
                     settings={field?.settings}
@@ -1426,7 +1481,7 @@ function FieldConfigPanel({
                 />
             ) : null}
 
-            {typeGroup === 'Selection' ? (
+            {typeGroup === 'selection' ? (
                 <SelectionSettings
                     fieldType={fieldType}
                     settings={field?.settings}
@@ -1435,7 +1490,7 @@ function FieldConfigPanel({
                 />
             ) : null}
 
-            {typeGroup === 'Relational' ? (
+            {typeGroup === 'relational' ? (
                 <RelationalSettings
                     fieldType={fieldType}
                     settings={field?.settings}
@@ -1453,7 +1508,7 @@ function FieldConfigPanel({
                 />
             ) : null}
 
-            {typeGroup === 'Altro' ? (
+            {typeGroup === 'other' ? (
                 <AltroSettings
                     fieldType={fieldType}
                     settings={field?.settings}
@@ -1464,7 +1519,7 @@ function FieldConfigPanel({
                 />
             ) : null}
 
-            {typeGroup === 'Groups' ? (
+            {typeGroup === 'groups' ? (
                 <GroupsSettings
                     fieldType={fieldType}
                     accordionSettings={accordionSettings}
@@ -1483,11 +1538,11 @@ function FieldConfigPanel({
             !fieldTypeNeedsTreeOptions(fieldType)) ||
         fieldTypeNeedsTreeOptions(fieldType) ||
         fieldTypeNeedsBlocksSettings(fieldType) ||
-        typeGroup === 'Text & numbers' ||
-        typeGroup === 'Selection' ||
-        typeGroup === 'Relational' ||
-        typeGroup === 'Altro' ||
-        typeGroup === 'Groups';
+        typeGroup === 'text_numbers' ||
+        typeGroup === 'selection' ||
+        typeGroup === 'relational' ||
+        typeGroup === 'other' ||
+        typeGroup === 'groups';
 
     return (
         <div className="space-y-6">
@@ -1563,7 +1618,7 @@ function FieldConfigPanel({
             {hasTypeSpecificSettings ? (
                 <SettingsPanel
                     title={t('collections.typeSettings', {
-                        type: typeMeta.label,
+                        type: fieldTypeLabel(fieldType, t),
                     })}
                     description={t('collections.typeSettingsDescription')}
                 >
@@ -1655,6 +1710,9 @@ function TranslatableField({
 
 export type CollectionFieldTypeDrawerProps = {
     onSelectType: (type: string) => void;
+    collectionName: string;
+    collectionIcon?: string | null;
+    collectionColor?: string | null;
 };
 
 /**
@@ -1664,14 +1722,45 @@ export type CollectionFieldTypeDrawerProps = {
  */
 export function CollectionFieldTypeDrawer({
     onSelectType,
+    collectionName,
+    collectionIcon,
+    collectionColor,
 }: CollectionFieldTypeDrawerProps) {
+    const { t } = useTranslation();
+    const accent = resolveCollectionColor(collectionColor);
+
     return (
         <>
             <DrawerHeader>
-                <DrawerTitle>Create field</DrawerTitle>
-                <DrawerDescription>
-                    Choose a field type, then configure its settings.
-                </DrawerDescription>
+                <div className="flex items-start gap-4">
+                    <span
+                        className="inline-flex size-12 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-muted-foreground"
+                        style={
+                            accent
+                                ? {
+                                      color: accent,
+                                      borderColor: `${accent}55`,
+                                      backgroundColor: `${accent}18`,
+                                  }
+                                : undefined
+                        }
+                        aria-hidden
+                    >
+                        <LucideIconByName
+                            name={resolveCollectionIconName(collectionIcon)}
+                            className="size-6"
+                            style={accent ? { color: accent } : undefined}
+                        />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                        <DrawerTitle>
+                            {t('collections.addFieldFor', { name: collectionName })}
+                        </DrawerTitle>
+                        <DrawerDescription>
+                            {t('collections.chooseFieldType')}
+                        </DrawerDescription>
+                    </div>
+                </div>
             </DrawerHeader>
 
             <DrawerBody>
@@ -1708,6 +1797,7 @@ export function CollectionFieldFormDrawer({
     onCancel,
     onSuccess,
 }: CollectionFieldFormDrawerProps) {
+    const { t } = useTranslation();
     const [options, setOptions] = useState<FieldOptionRow[]>(() =>
         parseFieldOptions(field?.settings),
     );
@@ -1779,7 +1869,7 @@ export function CollectionFieldFormDrawer({
             ...serializeBooleanFieldSettings(booleanLabels),
         };
 
-        if (fieldTypeGroupForType(fieldType) === 'Relational') {
+        if (fieldTypeGroupForType(fieldType) === 'relational') {
             if (relatedCollectionId) {
                 typeSettings.related_collection_id = relatedCollectionId;
             }
@@ -2015,8 +2105,8 @@ export function CollectionFieldFormDrawer({
                             </Button>
                             <Button type="submit" disabled={processing}>
                                 {mode === 'create'
-                                    ? 'Create field'
-                                    : 'Save field'}
+                                    ? t('collections.createField')
+                                    : t('collections.saveField')}
                             </Button>
                         </DrawerFooter>
                     </>
