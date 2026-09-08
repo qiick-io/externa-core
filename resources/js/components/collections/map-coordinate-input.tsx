@@ -1,15 +1,33 @@
 import type { Map as LeafletMap, Marker as LeafletMarker } from 'leaflet';
 import type * as LeafletNS from 'leaflet';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+    LocateFixed,
+    MapPinPlus,
+    Maximize2,
+    Minus,
+    Plus,
+    Trash2,
+} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 // Tailwind v4 @import of leaflet.css in app.css is dropped from the Vite CSS
 // pipeline — load styles with the map component so tiles/panes position correctly.
 import 'leaflet/dist/leaflet.css';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { parseMapFieldSettings } from '@/lib/collection-field-types/parsers';
 import type { MapFieldSettings } from '@/lib/collection-field-types/parsers';
+import {
+    normalizeLatLng,
+    parseMapPositions,
+    type MapLatLng,
+} from '@/lib/map-geometry';
+import { cn } from '@/lib/utils';
 
 export type GeoJsonPoint = {
     type: 'Point';
@@ -23,60 +41,25 @@ export type GeoJsonMultiPoint = {
 
 export type MapGeoJsonValue = GeoJsonPoint | GeoJsonMultiPoint;
 
-type LatLng = { lat: number; lng: number };
+export { normalizeLatLng, parseMapPositions };
+export type { MapLatLng };
 
-/**
- * Parse stored map values (GeoJSON or legacy {lat,lng}) into positions.
- */
-export function parseMapPositions(value: unknown): LatLng[] {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-        return [];
-    }
+type LatLng = MapLatLng;
 
-    const record = value as Record<string, unknown>;
+type MapTool = 'add' | 'delete';
 
-    if ('lat' in record || 'lng' in record) {
-        const lat = Number(record.lat);
-        const lng = Number(record.lng);
-
-        if (Number.isFinite(lat) && Number.isFinite(lng)) {
-            return [{ lat, lng }];
-        }
-
-        return [];
-    }
-
-    if (record.type === 'Point' && Array.isArray(record.coordinates)) {
-        const lng = Number(record.coordinates[0]);
-        const lat = Number(record.coordinates[1]);
-
-        if (Number.isFinite(lat) && Number.isFinite(lng)) {
-            return [{ lat, lng }];
-        }
-
-        return [];
-    }
-
-    if (record.type === 'MultiPoint' && Array.isArray(record.coordinates)) {
-        const out: LatLng[] = [];
-
-        for (const pair of record.coordinates) {
-            if (!Array.isArray(pair) || pair.length < 2) {
-                continue;
-            }
-
-            const lng = Number(pair[0]);
-            const lat = Number(pair[1]);
-
-            if (Number.isFinite(lat) && Number.isFinite(lng)) {
-                out.push({ lat, lng });
-            }
-        }
-
-        return out;
-    }
-
-    return [];
+/** Directus-like filled circle — no PNG icon URLs (Vite breaks Leaflet defaults). */
+function pointDivIcon(L: typeof LeafletNS) {
+    return L.divIcon({
+        className: 'externa-map-point',
+        html: `<span style="
+            display:block;width:14px;height:14px;border-radius:9999px;
+            background:#6644ff;border:2px solid #fff;
+            box-shadow:0 1px 4px rgba(0,0,0,.35);
+        "></span>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+    });
 }
 
 type MapCoordinateInputProps = {
@@ -89,6 +72,8 @@ type MapCoordinateInputProps = {
 
 /**
  * Leaflet OSM picker for map fields (Point or MultiPoint GeoJSON).
+ * Directus-like: left toolbar, click-to-add, no lat/lng inputs.
+ * LineString/Polygon draw deferred — no leaflet-geoman/draw dep yet.
  */
 export function MapCoordinateInput({
     idPrefix,
@@ -109,6 +94,8 @@ export function MapCoordinateInput({
         [defaultValue],
     );
     const [positions, setPositions] = useState<LatLng[]>(initialPositions);
+    const [tool, setTool] = useState<MapTool>('add');
+    const [locating, setLocating] = useState(false);
 
     const mapContainerRef = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<LeafletMap | null>(null);
@@ -116,7 +103,11 @@ export function MapCoordinateInput({
     const leafletRef = useRef<typeof LeafletNS | null>(null);
     const [mapReady, setMapReady] = useState(false);
     const isMultiRef = useRef(isMulti);
+    const toolRef = useRef<MapTool>(tool);
+    const readonlyRef = useRef(readonly);
     isMultiRef.current = isMulti;
+    toolRef.current = tool;
+    readonlyRef.current = readonly;
 
     const centerLat = positions[0]?.lat ?? mapSettings.defaultLat ?? 45.4642;
     const centerLng = positions[0]?.lng ?? mapSettings.defaultLng ?? 9.19;
@@ -133,21 +124,10 @@ export function MapCoordinateInput({
                 return;
             }
 
-            // Vite breaks Leaflet default icon URLs — use CDN icons.
-            // ponytail: ceiling = offline/CDN; upgrade = local asset imports.
-            L.Icon.Default.mergeOptions({
-                iconRetinaUrl:
-                    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-                iconUrl:
-                    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-                shadowUrl:
-                    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-            });
-
             leafletRef.current = L;
 
             const map = L.map(mapContainerRef.current, {
-                zoomControl: true,
+                zoomControl: false,
                 attributionControl: true,
             }).setView([centerLat, centerLng], mapSettings.defaultZoom);
 
@@ -157,32 +137,52 @@ export function MapCoordinateInput({
                 maxZoom: 19,
             }).addTo(map);
 
-            if (!readonly) {
-                map.on(
-                    'click',
-                    (event: { latlng: { lat: number; lng: number } }) => {
-                        const next = {
-                            lat: event.latlng.lat,
-                            lng: event.latlng.lng,
-                        };
-                        setPositions((prev) =>
-                            isMultiRef.current ? [...prev, next] : [next],
-                        );
-                    },
-                );
-            }
+            map.on(
+                'click',
+                (event: { latlng: { lat: number; lng: number } }) => {
+                    if (readonlyRef.current || toolRef.current !== 'add') {
+                        return;
+                    }
+
+                    const next = normalizeLatLng(
+                        event.latlng.lat,
+                        event.latlng.lng,
+                    );
+                    if (!next) {
+                        return;
+                    }
+
+                    setPositions((prev) =>
+                        isMultiRef.current ? [...prev, next] : [next],
+                    );
+                },
+            );
 
             mapRef.current = map;
             setMapReady(true);
-            // Force size after layout (drawer/collapsible).
-            requestAnimationFrame(() => map.invalidateSize());
+
+            const invalidate = () => map.invalidateSize({ animate: false });
+            requestAnimationFrame(() => {
+                invalidate();
+                requestAnimationFrame(invalidate);
+            });
+            // Layout shifts (tabs/collapsibles) leave Leaflet with a stale size → wild lat/lng.
+            const ro = new ResizeObserver(() => invalidate());
+            ro.observe(mapContainerRef.current);
+
+            // Stash for cleanup.
+            (map as unknown as { __externaRo?: ResizeObserver }).__externaRo = ro;
         })();
 
         return () => {
             cancelled = true;
             markersRef.current.forEach((marker) => marker.remove());
             markersRef.current = [];
-            mapRef.current?.remove();
+            const map = mapRef.current as
+                | (LeafletMap & { __externaRo?: ResizeObserver })
+                | null;
+            map?.__externaRo?.disconnect();
+            map?.remove();
             mapRef.current = null;
             leafletRef.current = null;
             setMapReady(false);
@@ -202,17 +202,37 @@ export function MapCoordinateInput({
         markersRef.current.forEach((marker) => marker.remove());
         markersRef.current = [];
 
+        const icon = pointDivIcon(L);
+
         positions.forEach((position, index) => {
             const marker = L.marker([position.lat, position.lng], {
-                draggable: !readonly,
+                icon,
+                draggable: !readonly && tool !== 'delete',
+                keyboard: false,
+                title: '',
             }).addTo(map);
 
             if (!readonly) {
+                marker.on('click', (event: { originalEvent?: Event }) => {
+                    event.originalEvent?.stopPropagation?.();
+
+                    if (toolRef.current === 'delete') {
+                        setPositions((prev) =>
+                            prev.filter((_, i) => i !== index),
+                        );
+                    }
+                });
+
                 marker.on('dragend', () => {
                     const latLng = marker.getLatLng();
+                    const normalized = normalizeLatLng(latLng.lat, latLng.lng);
+                    if (!normalized) {
+                        return;
+                    }
+
                     setPositions((prev) => {
                         const next = [...prev];
-                        next[index] = { lat: latLng.lat, lng: latLng.lng };
+                        next[index] = normalized;
 
                         return next;
                     });
@@ -222,39 +242,120 @@ export function MapCoordinateInput({
             markersRef.current.push(marker);
         });
 
+        const cursor =
+            readonly || tool !== 'add'
+                ? ''
+                : 'crosshair';
+        map.getContainer().style.cursor = cursor;
+    }, [mapReady, positions, readonly, tool]);
+
+    // Fit once when markers first load / change count meaningfully — avoid fighting user pan.
+    const fittedKeyRef = useRef<string>('');
+    useEffect(() => {
+        const map = mapRef.current;
+        const L = leafletRef.current;
+
+        if (!mapReady || !map || !L || positions.length === 0) {
+            return;
+        }
+
+        const key = positions
+            .map((p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`)
+            .join('|');
+
+        if (key === fittedKeyRef.current) {
+            return;
+        }
+
+        // Only auto-fit on initial hydrate (empty → has points), not every click-add.
+        if (fittedKeyRef.current === '' && positions.length > 0) {
+            if (positions.length === 1) {
+                map.setView(
+                    [positions[0].lat, positions[0].lng],
+                    map.getZoom() || mapSettings.defaultZoom,
+                );
+            } else {
+                const bounds = L.latLngBounds(
+                    positions.map((p) => [p.lat, p.lng] as [number, number]),
+                );
+                map.fitBounds(bounds.pad(0.2));
+            }
+        }
+
+        fittedKeyRef.current = key;
+    }, [mapReady, positions, mapSettings.defaultZoom]);
+
+    const zoomBy = (delta: number) => {
+        mapRef.current?.setZoom((mapRef.current.getZoom() ?? 0) + delta);
+    };
+
+    const fitToPoints = () => {
+        const map = mapRef.current;
+        const L = leafletRef.current;
+
+        if (!map || !L) {
+            return;
+        }
+
+        if (positions.length === 0) {
+            map.setView(
+                [
+                    mapSettings.defaultLat ?? 45.4642,
+                    mapSettings.defaultLng ?? 9.19,
+                ],
+                mapSettings.defaultZoom,
+            );
+
+            return;
+        }
+
         if (positions.length === 1) {
             map.setView(
                 [positions[0].lat, positions[0].lng],
-                map.getZoom() || mapSettings.defaultZoom,
+                Math.max(map.getZoom(), 14),
             );
-        } else if (positions.length > 1) {
-            const bounds = L.latLngBounds(
-                positions.map((p) => [p.lat, p.lng] as [number, number]),
-            );
-            map.fitBounds(bounds.pad(0.2));
+
+            return;
         }
-    }, [mapReady, positions, readonly, mapSettings.defaultZoom]);
 
-    const updatePosition = (index: number, key: 'lat' | 'lng', raw: string) => {
-        const num = raw === '' ? Number.NaN : Number(raw);
-        setPositions((prev) => {
-            const next = [...prev];
-            const current = next[index] ?? { lat: centerLat, lng: centerLng };
-            next[index] = {
-                ...current,
-                [key]: Number.isFinite(num) ? num : current[key],
-            };
-
-            return next;
-        });
+        const bounds = L.latLngBounds(
+            positions.map((p) => [p.lat, p.lng] as [number, number]),
+        );
+        map.fitBounds(bounds.pad(0.2));
     };
 
-    const removePosition = (index: number) => {
-        setPositions((prev) => prev.filter((_, i) => i !== index));
-    };
+    const geolocate = () => {
+        if (!navigator.geolocation || locating) {
+            return;
+        }
 
-    const addPosition = () => {
-        setPositions((prev) => [...prev, { lat: centerLat, lng: centerLng }]);
+        setLocating(true);
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                setLocating(false);
+                const next = normalizeLatLng(
+                    pos.coords.latitude,
+                    pos.coords.longitude,
+                );
+                if (!next) {
+                    return;
+                }
+
+                mapRef.current?.setView([next.lat, next.lng], 16);
+
+                if (readonly) {
+                    return;
+                }
+
+                if (tool === 'add') {
+                    setPositions((prev) =>
+                        isMulti ? [...prev, next] : [next],
+                    );
+                }
+            },
+            () => setLocating(false),
+            { enableHighAccuracy: true, timeout: 10_000 },
+        );
     };
 
     const clearAll = () => setPositions([]);
@@ -262,198 +363,86 @@ export function MapCoordinateInput({
     const geoType = isMulti ? 'MultiPoint' : 'Point';
 
     return (
-        <div className="space-y-4">
-            <div
-                ref={mapContainerRef}
-                className="z-0 h-56 w-full overflow-hidden rounded-lg border"
-            />
+        <div className="space-y-2">
+            <div className="relative z-0 w-full overflow-hidden rounded-lg border">
+                <div
+                    ref={mapContainerRef}
+                    className="h-[min(70vh,500px)] min-h-[400px] w-full"
+                    data-map-field={idPrefix}
+                />
+
+                {!readonly && (
+                    <TooltipProvider delayDuration={200}>
+                        <div
+                            className="absolute top-3 left-3 z-[1000] flex flex-col gap-1 rounded-md border bg-background/95 p-1 shadow-sm backdrop-blur-sm"
+                            role="toolbar"
+                            aria-label={t('collections.map.toolbar')}
+                        >
+                            <ToolbarButton
+                                label={t('collections.map.zoomIn')}
+                                onClick={() => zoomBy(1)}
+                            >
+                                <Plus className="size-4" />
+                            </ToolbarButton>
+                            <ToolbarButton
+                                label={t('collections.map.zoomOut')}
+                                onClick={() => zoomBy(-1)}
+                            >
+                                <Minus className="size-4" />
+                            </ToolbarButton>
+                            <ToolbarSep />
+                            <ToolbarButton
+                                label={t('collections.map.locate')}
+                                onClick={geolocate}
+                                disabled={locating}
+                            >
+                                <LocateFixed className="size-4" />
+                            </ToolbarButton>
+                            <ToolbarButton
+                                label={t('collections.map.fit')}
+                                onClick={fitToPoints}
+                            >
+                                <Maximize2 className="size-4" />
+                            </ToolbarButton>
+                            <ToolbarSep />
+                            <ToolbarButton
+                                label={t('collections.map.addPoint')}
+                                pressed={tool === 'add'}
+                                onClick={() => setTool('add')}
+                            >
+                                <MapPinPlus className="size-4" />
+                            </ToolbarButton>
+                            {/* LineString / Polygon: hide until leaflet-geoman (or draw) is a dep. */}
+                            <ToolbarButton
+                                label={t('collections.map.delete')}
+                                pressed={tool === 'delete'}
+                                onClick={() => {
+                                    if (tool === 'delete' && positions.length > 0) {
+                                        clearAll();
+
+                                        return;
+                                    }
+
+                                    setTool('delete');
+                                }}
+                                disabled={positions.length === 0 && tool !== 'delete'}
+                            >
+                                <Trash2 className="size-4" />
+                            </ToolbarButton>
+                            {/* Second click on trash while active clears all points. */}
+                        </div>
+                    </TooltipProvider>
+                )}
+            </div>
 
             {!readonly && (
                 <p className="text-xs text-muted-foreground">
-                    {isMulti
-                        ? t('collections.map.hintMulti')
-                        : t('collections.map.hintPoint')}
+                    {tool === 'delete'
+                        ? t('collections.map.hintDelete')
+                        : isMulti
+                          ? t('collections.map.hintMulti')
+                          : t('collections.map.hintPoint')}
                 </p>
-            )}
-
-            {isMulti ? (
-                <div className="space-y-3">
-                    {positions.map((position, index) => (
-                        <div
-                            key={`${idPrefix}-pt-${index}`}
-                            className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
-                        >
-                            <div className="grid gap-2">
-                                <Label htmlFor={`${idPrefix}_lat_${index}`}>
-                                    {t('collections.map.latitudeN', {
-                                        n: index + 1,
-                                    })}
-                                </Label>
-                                <Input
-                                    id={`${idPrefix}_lat_${index}`}
-                                    type="number"
-                                    step="any"
-                                    min={-90}
-                                    max={90}
-                                    value={
-                                        Number.isFinite(position.lat)
-                                            ? position.lat
-                                            : ''
-                                    }
-                                    readOnly={readonly}
-                                    onChange={(event) =>
-                                        updatePosition(
-                                            index,
-                                            'lat',
-                                            event.target.value,
-                                        )
-                                    }
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor={`${idPrefix}_lng_${index}`}>
-                                    {t('collections.map.longitudeN', {
-                                        n: index + 1,
-                                    })}
-                                </Label>
-                                <Input
-                                    id={`${idPrefix}_lng_${index}`}
-                                    type="number"
-                                    step="any"
-                                    min={-180}
-                                    max={180}
-                                    value={
-                                        Number.isFinite(position.lng)
-                                            ? position.lng
-                                            : ''
-                                    }
-                                    readOnly={readonly}
-                                    onChange={(event) =>
-                                        updatePosition(
-                                            index,
-                                            'lng',
-                                            event.target.value,
-                                        )
-                                    }
-                                />
-                            </div>
-                            {!readonly && (
-                                <div className="flex items-end">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => removePosition(index)}
-                                    >
-                                        {t('collections.map.remove')}
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                    {!readonly && (
-                        <div className="flex gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={addPosition}
-                            >
-                                {t('collections.map.addPoint')}
-                            </Button>
-                            {positions.length > 0 && (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={clearAll}
-                                >
-                                    {t('collections.map.clear')}
-                                </Button>
-                            )}
-                        </div>
-                    )}
-                </div>
-            ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="grid gap-2">
-                        <Label htmlFor={`${idPrefix}_lat`}>
-                            {t('collections.map.latitude')}
-                        </Label>
-                        <Input
-                            id={`${idPrefix}_lat`}
-                            type="number"
-                            step="any"
-                            min={-90}
-                            max={90}
-                            value={
-                                positions[0] &&
-                                Number.isFinite(positions[0].lat)
-                                    ? positions[0].lat
-                                    : ''
-                            }
-                            readOnly={readonly}
-                            onChange={(event) => {
-                                const raw = event.target.value;
-
-                                if (raw === '') {
-                                    setPositions([]);
-
-                                    return;
-                                }
-
-                                const lat = Number(raw);
-                                setPositions((prev) => [
-                                    {
-                                        lat: Number.isFinite(lat)
-                                            ? lat
-                                            : centerLat,
-                                        lng: prev[0]?.lng ?? centerLng,
-                                    },
-                                ]);
-                            }}
-                            placeholder={String(
-                                mapSettings.defaultLat ?? 45.4642,
-                            )}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor={`${idPrefix}_lng`}>
-                            {t('collections.map.longitude')}
-                        </Label>
-                        <Input
-                            id={`${idPrefix}_lng`}
-                            type="number"
-                            step="any"
-                            min={-180}
-                            max={180}
-                            value={
-                                positions[0] &&
-                                Number.isFinite(positions[0].lng)
-                                    ? positions[0].lng
-                                    : ''
-                            }
-                            readOnly={readonly}
-                            onChange={(event) => {
-                                const raw = event.target.value;
-
-                                if (raw === '') {
-                                    setPositions([]);
-
-                                    return;
-                                }
-
-                                const lng = Number(raw);
-                                setPositions((prev) => [
-                                    {
-                                        lat: prev[0]?.lat ?? centerLat,
-                                        lng: Number.isFinite(lng)
-                                            ? lng
-                                            : centerLng,
-                                    },
-                                ]);
-                            }}
-                            placeholder={String(mapSettings.defaultLng ?? 9.19)}
-                        />
-                    </div>
-                </div>
             )}
 
             {/* Hidden GeoJSON form fields for traditional POST / Inertia forms.
@@ -484,6 +473,44 @@ export function MapCoordinateInput({
                 </>
             ) : null}
         </div>
+    );
+}
+
+function ToolbarSep() {
+    return <div className="mx-1 my-0.5 h-px bg-border" aria-hidden />;
+}
+
+function ToolbarButton({
+    label,
+    onClick,
+    children,
+    pressed,
+    disabled,
+}: {
+    label: string;
+    onClick: () => void;
+    children: ReactNode;
+    pressed?: boolean;
+    disabled?: boolean;
+}) {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button
+                    type="button"
+                    size="icon"
+                    variant={pressed ? 'default' : 'ghost'}
+                    className={cn('size-8 shrink-0', pressed && 'shadow-xs')}
+                    aria-label={label}
+                    aria-pressed={pressed}
+                    disabled={disabled}
+                    onClick={onClick}
+                >
+                    {children}
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{label}</TooltipContent>
+        </Tooltip>
     );
 }
 

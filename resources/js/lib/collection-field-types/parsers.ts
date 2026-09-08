@@ -556,14 +556,17 @@ export type MapFieldSettings = {
 export function parseMapFieldSettings(
     settings?: Record<string, unknown> | null,
 ): MapFieldSettings {
-    const zoom = Number(settings?.default_zoom ?? 12);
+    const zoomRaw = Number(settings?.default_zoom ?? 12);
+    const zoom = Number.isFinite(zoomRaw) ? zoomRaw : 12;
+    // Zoom 0 is a whole-world view; treat as unset (field forms often store 0).
+    const defaultZoom = zoom >= 1 && zoom <= 22 ? zoom : 12;
     const mode =
         settings?.geometry_mode === 'multipoint' ? 'multipoint' : 'point';
 
     return {
         defaultLat: parseOptionalNumber(settings?.default_lat),
         defaultLng: parseOptionalNumber(settings?.default_lng),
-        defaultZoom: Number.isFinite(zoom) ? zoom : 12,
+        defaultZoom,
         geometryMode: mode,
     };
 }
