@@ -30,7 +30,8 @@ function notificationTitle(notification: AppNotification): string {
             ? 'File duplication failed'
             : notification.data.type === 'file_zip_failed'
               ? 'Zip preparation failed'
-              : notification.data.type === 'item_chat' ||
+              : notification.data.type === 'chat' ||
+                  notification.data.type === 'item_chat' ||
                   notification.data.type === 'item_comment'
                 ? 'New message'
                 : 'Notification')
@@ -43,6 +44,7 @@ function notificationBody(notification: AppNotification): string {
 
 function chatHref(notification: AppNotification): string | null {
     if (
+        notification.data.type !== 'chat' &&
         notification.data.type !== 'item_chat' &&
         notification.data.type !== 'item_comment'
     ) {

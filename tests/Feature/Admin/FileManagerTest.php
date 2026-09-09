@@ -18,18 +18,6 @@ use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Spatie\Tags\Tag;
 
-function grantFilePermissions(User $user, array $permissions): User
-{
-    $role = Role::query()->firstOrCreate([
-        'name' => 'test-file-manager-'.uniqid(),
-        'guard_name' => config('auth.defaults.guard', 'web'),
-    ]);
-    $role->syncPermissions($permissions);
-    $user->syncRoles([$role]);
-
-    return $user;
-}
-
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->withoutVite();

@@ -40,10 +40,18 @@ function mapResponse(data: unknown): Paginated<AdminSelectOption> {
         first_name?: string;
         last_name?: string | null;
         email?: string;
-    }>;
+    }> & {
+        meta?: { current_page?: number; last_page?: number };
+    };
+
+    const currentPage =
+        payload.current_page ?? payload.meta?.current_page ?? 1;
+    const lastPage = payload.last_page ?? payload.meta?.last_page ?? 1;
 
     return {
         ...payload,
+        current_page: currentPage,
+        last_page: lastPage,
         data: payload.data.map((row) => {
             const firstName = row.first_name ?? '';
             const lastName = row.last_name ?? null;
@@ -161,13 +169,16 @@ export function PaginatedMultiSelect({
                     return;
                 }
 
-                const json = mapResponse(await response.json());
+                const raw: unknown = await response.json();
+                const json = mapResponse(raw);
 
                 setOptions((prev) =>
                     reset ? json.data : [...prev, ...json.data],
                 );
                 setHasMore(json.current_page < json.last_page);
                 setPage(json.current_page);
+            } catch {
+                // leave options as-is; loading cleared in finally
             } finally {
                 fetchingRef.current = false;
                 setLoading(false);

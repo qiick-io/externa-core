@@ -216,3 +216,21 @@ test('super admin can manage users without explicit permissions', function () {
         'password' => 'password',
     ])->assertRedirect(route('users.index'));
 });
+
+test('users index returns json for multi-select pickers', function () {
+    $actor = grantUserPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowUsers->value,
+    ]);
+    $this->actingAs($actor);
+
+    $target = User::factory()->create([
+        'first_name' => 'Picker',
+        'email' => 'picker.user@example.com',
+    ]);
+
+    $this->getJson(route('users.index', ['search' => 'picker.user', 'per_page' => 20]))
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $target->id)
+        ->assertJsonPath('data.0.email', 'picker.user@example.com')
+        ->assertJsonStructure(['data', 'links', 'meta']);
+});

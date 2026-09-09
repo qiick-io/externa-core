@@ -46,15 +46,18 @@ class RoleController extends Controller
 
         $search = $this->validatedSearch($request);
 
-        $query = Role::query()->withCount('permissions');
+        $query = Role::query();
 
         if ($request->expectsJson()) {
             $query->where('is_assignable', true);
+        } else {
+            $query->withCount('permissions');
         }
 
         if ($search !== '') {
             $term = '%'.$search.'%';
-            $query->where('name', 'like', $term);
+            $like = $query->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->where('name', $like, $term);
         }
 
         $sortColumn = $request->string('sort')->toString();

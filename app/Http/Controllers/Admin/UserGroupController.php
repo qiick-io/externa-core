@@ -12,6 +12,7 @@ use App\Http\Requests\Concerns\ValidatesSearchQuery;
 use App\Http\Resources\UserGroupResource;
 use App\Models\Role;
 use App\Models\UserGroup;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -32,34 +33,39 @@ class UserGroupController extends Controller
 
     /**
      * List user groups with search, trash, sort, and role assignment context.
+     * JSON Accept returns a paginated resource for multi-select pickers.
      */
-    public function index(Request $request): Response
+    public function index(Request $request): Response|JsonResponse
     {
         $this->authorizePermission(PermissionEnum::CanShowGroups->value);
 
         $search = $this->validatedSearch($request);
         $sort = $request->string('sort')->toString();
         $direction = strtolower($request->string('direction')->toString()) === 'desc' ? 'desc' : 'asc';
+        $wantsJson = $request->expectsJson();
 
         if (! in_array($sort, self::SORTABLE_COLUMNS, true)) {
             $sort = 'name';
         }
 
-        $query = UserGroup::query()
-            ->with([
+        $query = UserGroup::query()->withCount(['users', 'roles']);
+
+        if (! $wantsJson) {
+            $query->with([
                 'roles:id,name',
                 'users:id,first_name,last_name,email',
-            ])
-            ->withCount(['users', 'roles']);
+            ]);
+        }
 
         if ($request->boolean('trashed')) {
             $query->onlyTrashed();
         }
 
         if ($search !== '') {
-            $query->where(function ($builder) use ($search): void {
-                $builder->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
+            $like = $query->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->where(function ($builder) use ($search, $like): void {
+                $builder->where('name', $like, "%{$search}%")
+                    ->orWhere('description', $like, "%{$search}%");
             });
         }
 
@@ -67,6 +73,10 @@ class UserGroupController extends Controller
             ->orderBy($sort, $direction)
             ->paginate($request->integer('per_page', 15))
             ->withQueryString();
+
+        if ($wantsJson) {
+            return UserGroupResource::collection($paginator)->response($request);
+        }
 
         $paginator->setCollection(
             $paginator->getCollection()->map(

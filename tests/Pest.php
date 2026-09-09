@@ -197,6 +197,23 @@ function grantProjectSettingsPermissions(User $user, array $permissions): User
 }
 
 /**
+ * Assign file-manager permissions via a disposable test role.
+ *
+ * @param  list<string>  $permissions
+ */
+function grantFilePermissions(User $user, array $permissions): User
+{
+    $role = Role::query()->firstOrCreate([
+        'name' => 'test-file-manager-'.uniqid(),
+        'guard_name' => config('auth.defaults.guard', 'web'),
+    ]);
+    $role->syncPermissions($permissions);
+    $user->syncRoles([$role]);
+
+    return $user;
+}
+
+/**
  * @return list<array<string, mixed>>
  */
 function sampleTransformPresets(): array

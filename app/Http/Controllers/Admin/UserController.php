@@ -12,6 +12,7 @@ use App\Http\Requests\Concerns\ValidatesSearchQuery;
 use App\Http\Resources\Admin\UserResource;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -40,14 +41,20 @@ class UserController extends Controller
 
     /**
      * List users with search, trash, and sort filters for the admin index page.
+     * JSON Accept returns a paginated resource for multi-select pickers.
      */
-    public function index(Request $request): Response
+    public function index(Request $request): Response|JsonResponse
     {
         $this->authorizePermission(PermissionEnum::CanShowUsers->value);
 
         $search = $this->validatedSearch($request);
+        $wantsJson = $request->expectsJson();
 
-        $query = User::query()->with(['roles', 'groups']);
+        $query = User::query();
+
+        if (! $wantsJson) {
+            $query->with(['roles', 'groups']);
+        }
 
         if ($request->boolean('trashed')) {
             $query->onlyTrashed();
@@ -55,11 +62,12 @@ class UserController extends Controller
 
         if ($search !== '') {
             $term = '%'.$search.'%';
-            $query->where(function ($inner) use ($term): void {
-                $inner->where('first_name', 'like', $term)
-                    ->orWhere('last_name', 'like', $term)
-                    ->orWhere('email', 'like', $term)
-                    ->orWhere('username', 'like', $term);
+            $like = $query->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->where(function ($inner) use ($term, $like): void {
+                $inner->where('first_name', $like, $term)
+                    ->orWhere('last_name', $like, $term)
+                    ->orWhere('email', $like, $term)
+                    ->orWhere('username', $like, $term);
             });
         }
 
@@ -75,6 +83,10 @@ class UserController extends Controller
         $users = $query
             ->paginate($request->integer('per_page', 15))
             ->withQueryString();
+
+        if ($wantsJson) {
+            return UserResource::collection($users)->response($request);
+        }
 
         return Inertia::render('admin/users/index', [
             'users' => UserResource::collection($users),

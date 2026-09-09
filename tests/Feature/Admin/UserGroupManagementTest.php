@@ -371,3 +371,17 @@ test('collection permission rules use group-inherited roles', function () {
     $outsider = User::factory()->create();
     expect(app(CollectionPermissionGuard::class)->rulesForUser($outsider, $collection->id))->toBeNull();
 });
+
+test('groups index returns json for multi-select pickers', function () {
+    $user = User::factory()->create();
+    grantGroupPermissions($user, [PermissionEnum::CanShowGroups]);
+    $this->actingAs($user);
+
+    $group = UserGroup::factory()->create(['name' => 'Picker Group']);
+
+    $this->getJson(route('groups.index', ['search' => 'Picker Group', 'per_page' => 20]))
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $group->id)
+        ->assertJsonPath('data.0.name', 'Picker Group')
+        ->assertJsonStructure(['data', 'links', 'meta']);
+});

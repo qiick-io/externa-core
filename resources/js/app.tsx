@@ -73,7 +73,8 @@ createInertiaApp({
                         <UnsavedChangesProvider>
                             <App {...props} />
                         </UnsavedChangesProvider>
-                        <Toaster position="top-right" duration={5000} />
+                        {/* bottom-right: top-right toast was intercepting header Save/Create clicks */}
+                        <Toaster position="bottom-right" duration={5000} closeButton />
                     </TooltipProvider>
                 </AppErrorBoundary>
             </StrictMode>,
