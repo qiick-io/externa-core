@@ -154,6 +154,15 @@ test('roles index returns assignable JSON options for picker search', function (
         ->assertJsonPath('data.0.name', 'reader-visible')
         ->assertJsonPath('data.0.label', 'Reader Visible')
         ->assertJsonMissing(['name' => 'reader-hidden']);
+
+    // pgsql LIKE is case-sensitive; picker labels are Title Case
+    $this->getJson(route('roles.index', [
+        'search' => 'Reader-Visible',
+        'per_page' => 20,
+    ]))
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.name', 'reader-visible');
 });
 
 test('authorized users can manage permissions and sync from enum', function () {
