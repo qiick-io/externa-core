@@ -60,3 +60,7 @@ Thumbs.db
 
 # Ephemeral Playwright QA screenshots
 tests/Browser/*.png
+
+# Local-only Kitchen Sink QA seed (not for OSS)
+/database/data/kitchen-sink.json
+/database/seeders/KitchenSinkSeeder.php
