@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import { TruncatedText } from '@/components/admin/truncated-text';
 import { PageLayout, TablePanel } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
@@ -81,8 +82,10 @@ export default function JobsIndex({
                                                 <td className="p-2">
                                                     {job.id}
                                                 </td>
-                                                <td className="p-2 font-mono text-xs">
-                                                    {job.display_name}
+                                                <td className="max-w-[14rem] p-2 font-mono text-xs">
+                                                    <TruncatedText
+                                                        text={job.display_name}
+                                                    />
                                                 </td>
                                                 <td className="p-2">
                                                     {job.queue}
@@ -129,8 +132,10 @@ export default function JobsIndex({
                                                 key={job.uuid}
                                                 className="border-b align-top last:border-0"
                                             >
-                                                <td className="p-2 font-mono text-xs">
-                                                    {job.display_name}
+                                                <td className="max-w-[14rem] p-2 font-mono text-xs">
+                                                    <TruncatedText
+                                                        text={job.display_name}
+                                                    />
                                                 </td>
                                                 <td className="p-2">
                                                     {job.queue}
@@ -139,7 +144,9 @@ export default function JobsIndex({
                                                     {job.failed_at}
                                                 </td>
                                                 <td className="max-w-md p-2 font-mono text-xs text-muted-foreground">
-                                                    {job.exception}
+                                                    <TruncatedText
+                                                        text={job.exception}
+                                                    />
                                                 </td>
                                                 <td className="space-x-2 p-2 text-right whitespace-nowrap">
                                                     {can_manage ? (

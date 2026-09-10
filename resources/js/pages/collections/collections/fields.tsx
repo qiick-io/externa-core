@@ -3,6 +3,7 @@ import { PackagePlus, Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { ApplyFieldPackDialog } from '@/components/collections/apply-field-pack-dialog';
 import type { FieldPackSummary } from '@/components/collections/apply-field-pack-dialog';
 import {
@@ -191,15 +192,17 @@ export default function CollectionsFields({
                     />
                     {canEditSchema ? (
                         <>
-                            <Button
+                            <HeaderIconButton
                                 type="button"
                                 variant="outline"
+                                label={t(
+                                    'collections.packs.addFieldPackEllipsis',
+                                )}
                                 onClick={() => setPackDialogOpen(true)}
                                 disabled={fieldPacks.length === 0}
                             >
                                 <PackagePlus className="size-4" />
-                                {t('collections.packs.addFieldPackEllipsis')}
-                            </Button>
+                            </HeaderIconButton>
                             <Button type="button" onClick={openAdd}>
                                 <Plus className="size-4" />
                                 {t('collections.createField')}

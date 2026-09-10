@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { ArrowDownAZ, ArrowUpAZ, Plus, Trash2, UsersRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
+import { TruncatedText } from '@/components/admin/truncated-text';
 import { GroupFormDrawer } from '@/components/admin/group-form-drawer';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
@@ -485,8 +486,10 @@ export default function AdminGroupsIndex({
                                                     }
                                                 />
                                             </TableCell>
-                                            <TableCell className="font-medium">
-                                                {group.name}
+                                            <TableCell className="max-w-[14rem] font-medium">
+                                                <TruncatedText
+                                                    text={group.name}
+                                                />
                                             </TableCell>
                                             <TableCell className="text-muted-foreground">
                                                 {group.slug}

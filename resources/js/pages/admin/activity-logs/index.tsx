@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UserMultiSelect } from '@/components/admin/user-multi-select';
+import { TruncatedText } from '@/components/admin/truncated-text';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import {
     FilterSearch,
@@ -209,12 +210,13 @@ export default function AdminActivityLogsIndex({
 
             <PageLayout
                 description={t('activityLog.description')}
-                filters={
+                    filters={
                     <>
                         <FilterSearch
                             value={search}
                             onChange={setSearch}
                             placeholder={t('activityLog.searchPlaceholder')}
+                            className="min-w-[8rem] max-w-[12rem] flex-none"
                         />
                         <UserMultiSelect
                             value={userIds}
@@ -226,7 +228,7 @@ export default function AdminActivityLogsIndex({
                             initialUsers={initialSelectedUsers}
                             className={cn(
                                 filterSelectClassName,
-                                'h-auto min-h-9 min-w-[14rem] max-w-xs',
+                                'h-auto min-h-9 min-w-[8rem] max-w-[12rem] shrink-0',
                             )}
                         />
                         <select
@@ -238,8 +240,16 @@ export default function AdminActivityLogsIndex({
                                         changeEvent.target.value || undefined,
                                 });
                             }}
-                            className={filterSelectClassName}
+                            className={cn(
+                                filterSelectClassName,
+                                'min-w-[7rem] max-w-[10rem] shrink-0',
+                            )}
                             aria-label={t('activityLog.filterByAction')}
+                            title={
+                                event
+                                    ? eventLabel(event)
+                                    : t('activityLog.allActions')
+                            }
                         >
                             <option value="">{t('activityLog.allActions')}</option>
                             {events.map((eventName) => (
@@ -257,8 +267,16 @@ export default function AdminActivityLogsIndex({
                                         changeEvent.target.value || undefined,
                                 });
                             }}
-                            className={filterSelectClassName}
+                            className={cn(
+                                filterSelectClassName,
+                                'min-w-[7rem] max-w-[10rem] shrink-0',
+                            )}
                             aria-label={t('activityLog.filterByLog')}
+                            title={
+                                logName
+                                    ? logNameLabel(logName)
+                                    : t('activityLog.allLogs')
+                            }
                         >
                             <option value="">{t('activityLog.allLogs')}</option>
                             {logNames.map((name) => (
@@ -277,7 +295,8 @@ export default function AdminActivityLogsIndex({
                                         changeEvent.target.value || undefined,
                                 });
                             }}
-                            className="h-9 w-auto"
+                            className="h-9 w-auto shrink-0"
+                            title={dateFrom || undefined}
                             aria-label={t('activityLog.dateFrom')}
                         />
                         <Input
@@ -290,7 +309,7 @@ export default function AdminActivityLogsIndex({
                                         changeEvent.target.value || undefined,
                                 });
                             }}
-                            className="h-9 w-auto"
+                            className="h-9 w-auto shrink-0"
                             aria-label={t('activityLog.dateTo')}
                         />
                     </>
@@ -398,8 +417,13 @@ export default function AdminActivityLogsIndex({
                                                         {eventLabel(row.event)}
                                                     </Badge>
                                                 </TableCell>
-                                                <TableCell className="max-w-xs truncate text-sm">
-                                                    {row.description}
+                                                <TableCell className="max-w-xs text-sm">
+                                                    <TruncatedText
+                                                        text={
+                                                            row.description ||
+                                                            '—'
+                                                        }
+                                                    />
                                                 </TableCell>
                                                 <TableCell className="text-sm">
                                                     {row.subject ? (

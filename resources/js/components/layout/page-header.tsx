@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 /** Shared Tailwind classes for filter select elements in page headers. */
 export const filterSelectClassName =
-    'border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 min-w-[10rem] rounded-md border px-3 py-1 text-sm focus-visible:ring-2 focus-visible:outline-none';
+    'border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 min-w-[8rem] rounded-md border px-3 py-1 text-sm focus-visible:ring-2 focus-visible:outline-none';
 
 export type PageHeaderProps = {
     description?: ReactNode;
@@ -37,14 +37,14 @@ export function PageHeader({
             ) : null}
             {subheader}
             {showFilterRow ? (
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex min-w-0 flex-nowrap items-center gap-3 overflow-x-auto">
                     {filters ? (
-                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                        <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-2">
                             {filters}
                         </div>
                     ) : null}
                     {filtersRight ? (
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex shrink-0 flex-nowrap items-center gap-2">
                             {filtersRight}
                         </div>
                     ) : null}
@@ -79,7 +79,7 @@ export function FilterSearch({
     return (
         <div
             className={cn(
-                'relative min-w-[12rem] flex-1 sm:max-w-xs',
+                'relative min-w-[8rem] flex-1 sm:max-w-xs',
                 className,
             )}
         >

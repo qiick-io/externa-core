@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { Fragment } from 'react';
+import { TruncatedText } from '@/components/admin/truncated-text';
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -24,22 +25,32 @@ export function Breadcrumbs({
     return (
         <>
             {breadcrumbs.length > 0 && (
-                <Breadcrumb>
-                    <BreadcrumbList>
+                <Breadcrumb className="min-w-0">
+                    <BreadcrumbList className="flex-nowrap overflow-hidden">
                         {breadcrumbs.map((item, index) => {
                             const isLast = index === breadcrumbs.length - 1;
 
                             return (
                                 <Fragment key={index}>
-                                    <BreadcrumbItem>
+                                    <BreadcrumbItem className="min-w-0 max-w-[9rem] shrink md:max-w-[12rem]">
                                         {isLast ? (
-                                            <BreadcrumbPage>
-                                                {item.title}
+                                            <BreadcrumbPage className="block min-w-0 max-w-full">
+                                                <TruncatedText
+                                                    text={item.title}
+                                                />
                                             </BreadcrumbPage>
                                         ) : (
-                                            <BreadcrumbLink asChild>
-                                                <Link href={item.href}>
-                                                    {item.title}
+                                            <BreadcrumbLink
+                                                asChild
+                                                className="block min-w-0 max-w-full"
+                                            >
+                                                <Link
+                                                    href={item.href}
+                                                    className="block min-w-0 max-w-full"
+                                                >
+                                                    <TruncatedText
+                                                        text={item.title}
+                                                    />
                                                 </Link>
                                             </BreadcrumbLink>
                                         )}

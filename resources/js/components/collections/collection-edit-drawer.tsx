@@ -1,6 +1,6 @@
 import { Pencil } from 'lucide-react';
+import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { CollectionFormDrawer } from '@/components/collections/collection-form-drawer';
-import { Button } from '@/components/ui/button';
 import { Drawer } from '@/components/ui/drawer';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
@@ -82,16 +82,16 @@ export function CollectionEditButton({
     }
 
     return (
-        <Button
+        <HeaderIconButton
             type="button"
             variant={variant}
+            label="Edit collection"
             onClick={() => {
                 collectionForm.setEditing(collection);
                 collectionForm.setOpen(true);
             }}
         >
             <Pencil className="size-4" />
-            Edit collection
-        </Button>
+        </HeaderIconButton>
     );
 }

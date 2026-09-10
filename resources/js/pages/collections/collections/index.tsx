@@ -15,6 +15,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
+import { TruncatedText } from '@/components/admin/truncated-text';
+import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ApplyCollectionPackDialog } from '@/components/collections/apply-collection-pack-dialog';
 import type { CollectionPackSummary } from '@/components/collections/apply-collection-pack-dialog';
@@ -248,17 +250,17 @@ export default function CollectionsIndex({
             breadcrumbs={breadcrumbs}
             headerActions={
                 !isTrashed && can(PermissionEnum.CanCreateCollections) ? (
-                    <div className="flex items-center gap-2">
-                        <Button
+                    <div className="flex items-center gap-1.5">
+                        <HeaderIconButton
                             type="button"
                             variant="outline"
+                            label={t('collections.packs.createFromPackEllipsis')}
                             onClick={() => setPackDialogOpen(true)}
                         >
-                            <PackagePlus className="mr-1 size-4" />
-                            {t('collections.packs.createFromPackEllipsis')}
-                        </Button>
+                            <PackagePlus className="size-4" />
+                        </HeaderIconButton>
                         <Button type="button" onClick={openCreate}>
-                            <Plus className="mr-1 size-4" />
+                            <Plus className="size-4" />
                             {t('collections.newCollection')}
                         </Button>
                     </div>
@@ -567,7 +569,7 @@ export default function CollectionsIndex({
                                                     />
                                                 </td>
                                                 <td className="p-3 font-medium">
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex min-w-0 items-center gap-2">
                                                         <span
                                                             className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/40 text-muted-foreground"
                                                             style={
@@ -595,7 +597,10 @@ export default function CollectionsIndex({
                                                                 }
                                                             />
                                                         </span>
-                                                        <span>{c.name}</span>
+                                                        <TruncatedText
+                                                            text={c.name}
+                                                            className="font-medium"
+                                                        />
                                                     </div>
                                                 </td>
                                                 <td className="p-3 text-muted-foreground">
@@ -677,7 +682,7 @@ export default function CollectionsIndex({
                                                 </td>
                                                 <td className="p-3 text-right">
                                                     <div
-                                                        className="flex flex-wrap justify-end gap-2"
+                                                        className="flex flex-nowrap items-center justify-end gap-1"
                                                         onClick={(event) =>
                                                             event.stopPropagation()
                                                         }
@@ -696,10 +701,12 @@ export default function CollectionsIndex({
                                                                 {can(
                                                                     PermissionEnum.CanRestoreCollections,
                                                                 ) && (
-                                                                    <Button
+                                                                    <HeaderIconButton
                                                                         type="button"
                                                                         variant="outline"
-                                                                        size="sm"
+                                                                        size="icon"
+                                                                        className="size-8"
+                                                                        label="Restore"
                                                                         onClick={() =>
                                                                             router.post(
                                                                                 collectionRoutes.restore.url(
@@ -709,16 +716,17 @@ export default function CollectionsIndex({
                                                                         }
                                                                     >
                                                                         <RotateCcw className="size-3.5" />
-                                                                        Restore
-                                                                    </Button>
+                                                                    </HeaderIconButton>
                                                                 )}
                                                                 {can(
                                                                     PermissionEnum.CanForceDeleteCollections,
                                                                 ) && (
-                                                                    <Button
+                                                                    <HeaderIconButton
                                                                         type="button"
                                                                         variant="destructive"
-                                                                        size="sm"
+                                                                        size="icon"
+                                                                        className="size-8"
+                                                                        label="Delete permanently"
                                                                         onClick={() =>
                                                                             setPendingRowDelete(
                                                                                 {
@@ -730,16 +738,16 @@ export default function CollectionsIndex({
                                                                         }
                                                                     >
                                                                         <Trash2 className="size-3.5" />
-                                                                        Delete
-                                                                        permanently
-                                                                    </Button>
+                                                                    </HeaderIconButton>
                                                                 )}
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <Button
+                                                                <HeaderIconButton
                                                                     variant="outline"
-                                                                    size="sm"
+                                                                    size="icon"
+                                                                    className="size-8"
+                                                                    label="Edit fields"
                                                                     asChild
                                                                 >
                                                                     <Link
@@ -748,14 +756,14 @@ export default function CollectionsIndex({
                                                                         )}
                                                                     >
                                                                         <Rows3 className="size-3.5" />
-                                                                        Edit
-                                                                        fields
                                                                     </Link>
-                                                                </Button>
-                                                                <Button
+                                                                </HeaderIconButton>
+                                                                <HeaderIconButton
                                                                     type="button"
                                                                     variant="outline"
-                                                                    size="sm"
+                                                                    size="icon"
+                                                                    className="size-8"
+                                                                    label="Edit"
                                                                     onClick={() =>
                                                                         openEdit(
                                                                             c,
@@ -763,15 +771,16 @@ export default function CollectionsIndex({
                                                                     }
                                                                 >
                                                                     <Pencil className="size-3.5" />
-                                                                    Edit
-                                                                </Button>
+                                                                </HeaderIconButton>
                                                                 {can(
                                                                     PermissionEnum.CanDeleteCollections,
                                                                 ) && (
-                                                                    <Button
+                                                                    <HeaderIconButton
                                                                         type="button"
                                                                         variant="destructive"
-                                                                        size="sm"
+                                                                        size="icon"
+                                                                        className="size-8"
+                                                                        label="Delete"
                                                                         onClick={() =>
                                                                             setPendingRowDelete(
                                                                                 {
@@ -783,8 +792,7 @@ export default function CollectionsIndex({
                                                                         }
                                                                     >
                                                                         <Trash2 className="size-3.5" />
-                                                                        Delete
-                                                                    </Button>
+                                                                    </HeaderIconButton>
                                                                 )}
                                                             </>
                                                         )}

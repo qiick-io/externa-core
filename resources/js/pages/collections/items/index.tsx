@@ -13,6 +13,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
+import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import {
     CollectionEditButton,
@@ -33,6 +34,11 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
     Table,
     TableBody,
@@ -583,12 +589,21 @@ export default function ItemsIndex({
                     />
                     {can(PermissionEnum.CanShowCollections) ? (
                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline">
-                                    <Download className="size-4" />
-                                    Export
-                                </Button>
-                            </DropdownMenuTrigger>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            aria-label="Export"
+                                        >
+                                            <Download className="size-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent>Export</TooltipContent>
+                            </Tooltip>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
                                     <a href={exportUrl('csv')}>Export CSV</a>
@@ -600,14 +615,13 @@ export default function ItemsIndex({
                         </DropdownMenu>
                     ) : null}
                     {can(PermissionEnum.CanEditCollections) ? (
-                        <Button variant="outline" asChild>
+                        <HeaderIconButton asChild variant="outline" label="Edit fields">
                             <Link
                                 href={FieldController.index.url(collection.id)}
                             >
                                 <Rows3 className="size-4" />
-                                Edit fields
                             </Link>
-                        </Button>
+                        </HeaderIconButton>
                     ) : null}
                     {can(PermissionEnum.CanCreateCollections) ? (
                         <Button asChild>
@@ -940,10 +954,12 @@ export default function ItemsIndex({
                                                                 {can(
                                                                     PermissionEnum.CanRestoreCollections,
                                                                 ) && (
-                                                                    <Button
+                                                                    <HeaderIconButton
                                                                         type="button"
                                                                         variant="outline"
-                                                                        size="sm"
+                                                                        size="icon"
+                                                                        className="size-8"
+                                                                        label="Restore"
                                                                         onClick={() =>
                                                                             router.post(
                                                                                 ItemController.restore.url(
@@ -957,16 +973,17 @@ export default function ItemsIndex({
                                                                         }
                                                                     >
                                                                         <RotateCcw className="size-3.5" />
-                                                                        Restore
-                                                                    </Button>
+                                                                    </HeaderIconButton>
                                                                 )}
                                                                 {can(
                                                                     PermissionEnum.CanForceDeleteCollections,
                                                                 ) && (
-                                                                    <Button
+                                                                    <HeaderIconButton
                                                                         type="button"
                                                                         variant="destructive"
-                                                                        size="sm"
+                                                                        size="icon"
+                                                                        className="size-8"
+                                                                        label="Delete permanently"
                                                                         onClick={() =>
                                                                             setPendingForceDeleteItemId(
                                                                                 row.id,
@@ -974,16 +991,16 @@ export default function ItemsIndex({
                                                                         }
                                                                     >
                                                                         <Trash2 className="size-3.5" />
-                                                                        Delete
-                                                                        permanently
-                                                                    </Button>
+                                                                    </HeaderIconButton>
                                                                 )}
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <Button
+                                                                <HeaderIconButton
                                                                     variant="outline"
-                                                                    size="sm"
+                                                                    size="icon"
+                                                                    className="size-8"
+                                                                    label="Edit"
                                                                     asChild
                                                                 >
                                                                     <Link
@@ -997,14 +1014,14 @@ export default function ItemsIndex({
                                                                         }
                                                                     >
                                                                         <Pencil className="size-3.5" />
-                                                                        Edit
                                                                     </Link>
-                                                                </Button>
-                                                                <Button
+                                                                </HeaderIconButton>
+                                                                <HeaderIconButton
                                                                     type="button"
                                                                     variant="outline"
-                                                                    size="sm"
-                                                                    className="text-destructive hover:text-destructive"
+                                                                    size="icon"
+                                                                    className="size-8 text-destructive hover:text-destructive"
+                                                                    label="Delete"
                                                                     onClick={(
                                                                         event,
                                                                     ) => {
@@ -1015,8 +1032,7 @@ export default function ItemsIndex({
                                                                     }}
                                                                 >
                                                                     <Trash2 className="size-3.5" />
-                                                                    Delete
-                                                                </Button>
+                                                                </HeaderIconButton>
                                                             </>
                                                         )}
                                                     </div>

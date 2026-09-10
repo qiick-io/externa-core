@@ -2,12 +2,12 @@ import { Head, router } from '@inertiajs/react';
 import { RefreshCw } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import {
     PageLayout,
     TablePagination,
     TablePanel,
 } from '@/components/layout/page-layout';
-import { Button } from '@/components/ui/button';
 import {
     Table,
     TableBody,
@@ -68,10 +68,14 @@ export default function AdminPermissionsIndex({
             breadcrumbs={breadcrumbs}
             headerActions={
                 can(PermissionEnum.CanEditPermissions) ? (
-                    <Button type="button" onClick={sync}>
-                        <RefreshCw className="mr-1 size-4" />
-                        Sync from enum
-                    </Button>
+                    <HeaderIconButton
+                        type="button"
+                        variant="outline"
+                        label="Sync from enum"
+                        onClick={sync}
+                    >
+                        <RefreshCw className="size-4" />
+                    </HeaderIconButton>
                 ) : undefined
             }
         >

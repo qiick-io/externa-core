@@ -38,12 +38,12 @@ export function DataTableToolbar({
     return (
         <div
             className={cn(
-                'flex flex-wrap items-center justify-between gap-3',
+                'flex min-w-0 flex-nowrap items-center justify-between gap-2',
                 className,
             )}
         >
             {hasSelection ? (
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto">
                     <Button
                         type="button"
                         variant="ghost"
@@ -56,7 +56,7 @@ export function DataTableToolbar({
                     {bulkActions}
                 </div>
             ) : (
-                <div className="relative min-w-[12rem] flex-1 sm:max-w-xs">
+                <div className="relative min-w-[8rem] flex-1 sm:max-w-xs">
                     <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                         value={search}
@@ -68,7 +68,7 @@ export function DataTableToolbar({
                 </div>
             )}
             {!hasSelection && trailing && (
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex shrink-0 flex-nowrap items-center gap-2">
                     {trailing}
                 </div>
             )}

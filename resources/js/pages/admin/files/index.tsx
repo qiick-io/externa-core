@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
+import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { FileDropzone } from '@/components/admin/file-dropzone';
 import { FileNameDialog } from '@/components/admin/file-name-dialog';
 import { FileUploadIndicator } from '@/components/admin/file-upload-indicator';
@@ -1386,13 +1387,14 @@ export default function AdminFilesIndex({
             headerActions={
                 <>
                     {canCreate && !isTrashed && (
-                        <Button
+                        <HeaderIconButton
                             type="button"
+                            variant="outline"
+                            label="New folder"
                             onClick={() => setFolderDialogOpen(true)}
                         >
-                            <FolderPlus className="mr-1 size-4" />
-                            New folder
-                        </Button>
+                            <FolderPlus className="size-4" />
+                        </HeaderIconButton>
                     )}
                     {uploadsEnabled && (
                         <>

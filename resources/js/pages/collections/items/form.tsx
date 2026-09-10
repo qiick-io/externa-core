@@ -15,10 +15,10 @@ import {
     Trash2,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
+import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
@@ -60,11 +60,6 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
@@ -125,30 +120,6 @@ function setItemSaveAction(action: ItemSaveAction): HTMLFormElement | null {
     }
 
     return form;
-}
-
-function HeaderIconButton({
-    label,
-    children,
-    variant = 'ghost',
-    size = 'icon',
-    ...props
-}: ComponentProps<typeof Button> & { label: string }) {
-    return (
-        <Tooltip>
-            <TooltipTrigger asChild>
-                <Button
-                    variant={variant}
-                    size={size}
-                    aria-label={label}
-                    {...props}
-                >
-                    {children}
-                </Button>
-            </TooltipTrigger>
-            <TooltipContent>{label}</TooltipContent>
-        </Tooltip>
-    );
 }
 
 type ItemPayload = {
@@ -787,7 +758,7 @@ export default function ItemsForm({
                                         type="button"
                                         variant="outline"
                                         size="default"
-                                        className="h-9 min-h-9 gap-1.5 px-2.5"
+                                        className="h-9 min-h-9 gap-1.5 px-2"
                                     >
                                         <ContentLocaleFlag
                                             region={
@@ -800,7 +771,7 @@ export default function ItemsForm({
                                             }
                                             className="h-3.5 w-auto"
                                         />
-                                        <span className="font-mono text-xs uppercase">
+                                        <span className="hidden font-mono text-xs uppercase lg:inline">
                                             {globalLocale}
                                         </span>
                                         <Languages className="size-3.5 opacity-60" />

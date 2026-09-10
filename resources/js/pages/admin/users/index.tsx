@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { ArrowDownAZ, ArrowUpAZ, Trash2, UserPlus, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
+import { TruncatedText } from '@/components/admin/truncated-text';
 import { UserFormDrawer } from '@/components/admin/user-form-drawer';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
@@ -488,8 +489,8 @@ export default function AdminUsersIndex({
                                                     }
                                                 />
                                             </TableCell>
-                                            <TableCell className="font-medium">
-                                                <span className="inline-flex items-center gap-2">
+                                            <TableCell className="max-w-[12rem] font-medium">
+                                                <span className="inline-flex min-w-0 items-center gap-2">
                                                     <span className="relative shrink-0">
                                                         <Avatar
                                                             userId={user.id}
@@ -534,11 +535,17 @@ export default function AdminUsersIndex({
                                                             aria-hidden
                                                         />
                                                     </span>
-                                                    {userDisplayName(user)}
+                                                    <TruncatedText
+                                                        text={userDisplayName(
+                                                            user,
+                                                        )}
+                                                    />
                                                 </span>
                                             </TableCell>
-                                            <TableCell className="text-muted-foreground">
-                                                {user.email}
+                                            <TableCell className="max-w-[12rem] text-muted-foreground">
+                                                <TruncatedText
+                                                    text={user.email}
+                                                />
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-wrap gap-1">
