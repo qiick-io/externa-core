@@ -1498,3 +1498,246 @@ test('file upload auto-refreshes page without requiring full reload', function (
     $fileNames = collect($listResponse->json('data'))->pluck('name')->all();
     expect($fileNames)->toContain('auto-refresh-test.pdf');
 });
+
+test('upload rejects forbidden extensions', function (string $fileName) {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanCreateFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $before = File::query()->count();
+
+    $this->postJson(route('files.upload'), [
+        'file' => UploadedFile::fake()->create($fileName, 10, 'application/octet-stream'),
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['file']);
+
+    expect(File::query()->count())->toBe($before);
+})->with([
+    'evil.php',
+    'run.exe',
+    'img.jpg.php',
+]);
+
+test('upload still accepts safe png', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanCreateFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $this->postJson(route('files.upload'), [
+        'file' => UploadedFile::fake()->image('safe.png', 40, 30),
+    ])->assertCreated()
+        ->assertJsonPath('name', 'safe.png');
+
+    expect(File::query()->where('name', 'safe.png')->exists())->toBeTrue();
+});
+
+test('upload name override rejects forbidden extension and strips html', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanCreateFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $this->postJson(route('files.upload'), [
+        'file' => UploadedFile::fake()->image('photo.png', 20, 20),
+        'name' => 'evil.php',
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['name']);
+
+    $this->postJson(route('files.upload'), [
+        'file' => UploadedFile::fake()->image('photo.png', 20, 20),
+        'name' => '<b>clean.png</b>',
+    ])->assertCreated()
+        ->assertJsonPath('name', 'clean.png');
+
+    expect(File::query()->where('name', 'clean.png')->exists())->toBeTrue();
+    expect(File::query()->where('name', 'like', '%<%')->exists())->toBeFalse();
+});
+
+test('chunk init rejects forbidden file names', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanCreateFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $this->postJson(route('files.uploads.init'), [
+        'file_name' => 'evil.php',
+        'total_size' => 1024,
+        'total_chunks' => 1,
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['file_name']);
+
+    expect(FileUpload::query()->count())->toBe(0);
+});
+
+test('chunk complete rejects forbidden file names left in session', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanCreateFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $upload = FileUpload::query()->create([
+        'upload_id' => bin2hex(random_bytes(16)),
+        'file_name' => 'evil.php',
+        'mime_type' => 'application/x-php',
+        'total_size' => 4,
+        'total_chunks' => 1,
+        'uploaded_chunks' => 1,
+        'disk' => 'assets',
+        'parent_id' => null,
+        'chunks_info' => [0 => ['uploaded_at' => now()->toIso8601String()]],
+        'expires_at' => now()->addHour(),
+    ]);
+
+    Storage::disk('assets')->put("chunks/{$upload->upload_id}/chunk_0", '<?php');
+
+    $this->postJson(route('files.uploads.complete'), [
+        'upload_id' => $upload->upload_id,
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['file_name']);
+
+    expect(File::query()->where('name', 'evil.php')->exists())->toBeFalse();
+});
+
+test('rename rejects forbidden extensions and leaves name unchanged', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $file = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'notes.txt',
+        'path' => '/notes.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/notes.txt',
+        'extension' => 'txt',
+    ]);
+
+    $this->patchJson(route('files.rename', $file), [
+        'name' => 'notes.php',
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['name']);
+
+    expect($file->fresh()->name)->toBe('notes.txt');
+});
+
+test('rename strips html from file names', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $file = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'notes.txt',
+        'path' => '/notes.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/notes.txt',
+        'extension' => 'txt',
+    ]);
+
+    $this->patchJson(route('files.rename', $file), [
+        'name' => '<em>notes.txt</em>',
+    ])->assertOk()
+        ->assertJsonPath('name', 'notes.txt');
+
+    expect($file->fresh()->name)->toBe('notes.txt');
+});
+
+test('replace rejects upload with forbidden extension', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanReplaceFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    Storage::disk('assets')->put('2026/07/legacy.php', '<?php echo 1;');
+
+    $file = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'legacy.php',
+        'path' => '/legacy.php',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/legacy.php',
+        'size' => 12,
+        'mime_type' => 'application/x-php',
+        'extension' => 'php',
+        'hash' => hash('sha256', '<?php echo 1;'),
+    ]);
+
+    $originalHash = $file->hash;
+
+    $this->postJson(route('files.replace', $file), [
+        'file' => UploadedFile::fake()->createWithContent('legacy.php', '<?php echo 2;'),
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['file']);
+
+    expect($file->fresh()->hash)->toBe($originalHash);
+});
+
+test('metadata update strips html from text fields', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanUpdateFileMetadata->value,
+    ]);
+    $this->actingAs($user);
+
+    $file = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'photo.jpg',
+        'path' => '/photo.jpg',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/photo.jpg',
+    ]);
+
+    $this->patchJson(route('files.update', $file), [
+        'title' => '<script>alert(1)</script>Hero',
+        'description' => 'Hello <b>world</b>',
+        'location' => '<img src=x onerror=alert(1)>Milan',
+        'download_name' => '<i>hero.jpg</i>',
+    ])->assertOk()
+        ->assertJsonPath('title', 'alert(1)Hero')
+        ->assertJsonPath('description', 'Hello world')
+        ->assertJsonPath('location', 'Milan')
+        ->assertJsonPath('download_name', 'hero.jpg');
+
+    $file->refresh();
+    expect($file->title)->toBe('alert(1)Hero');
+    expect($file->description)->toBe('Hello world');
+    expect($file->location)->toBe('Milan');
+    expect($file->download_name)->toBe('hero.jpg');
+});
+
+test('tag sync strips html from tag names', function () {
+    $user = grantFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanTagFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $file = File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => 'tagged.txt',
+        'path' => '/tagged.txt',
+        'disk' => 'assets',
+        'storage_path' => '2026/07/tagged.txt',
+    ]);
+
+    $this->putJson(route('files.tags', $file), [
+        'tags' => ['<b>brand</b>', 'campaign'],
+    ])->assertOk();
+
+    $names = $file->fresh()->tags->pluck('name')->all();
+    expect($names)->toContain('brand');
+    expect($names)->toContain('campaign');
+    expect($names)->not->toContain('<b>brand</b>');
+});

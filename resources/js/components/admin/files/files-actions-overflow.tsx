@@ -1,5 +1,6 @@
 import { MoreHorizontal } from 'lucide-react';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -28,6 +29,7 @@ export function FilesActionsOverflow({
     onAction,
     className,
 }: FilesActionsOverflowProps) {
+    const { t } = useTranslation();
     const containerRef = useRef<HTMLDivElement>(null);
     const overflowButtonRef = useRef<HTMLButtonElement>(null);
     const actionButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -194,7 +196,7 @@ export function FilesActionsOverflow({
                         size="sm"
                         variant="outline"
                         className={cn(overflowActions.length === 0 && 'hidden')}
-                        aria-label="More actions"
+                        aria-label={t('files.actions.moreActions')}
                     >
                         <MoreHorizontal className="size-4" />
                     </Button>

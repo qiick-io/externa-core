@@ -1,5 +1,6 @@
 import { FolderOpen, FolderPlus, Upload } from 'lucide-react';
 import type { MouseEvent, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { isInternalFileDrag } from '@/components/admin/file-dropzone';
 import { FileCard } from '@/components/admin/files/file-card';
 import { Button } from '@/components/ui/button';
@@ -75,6 +76,8 @@ function EmptyAreaContextMenu({
     onUploadFolder: () => void;
     children: ReactNode;
 }) {
+    const { t } = useTranslation();
+
     if (!enabled) {
         return children;
     }
@@ -85,16 +88,16 @@ function EmptyAreaContextMenu({
             <ContextMenuContent data-testid="files-empty-area-context-menu">
                 <ContextMenuItem onSelect={onNewFolder}>
                     <FolderPlus className="size-4" />
-                    New Folder
+                    {t('files.empty.contextNewFolder')}
                 </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuItem onSelect={onUploadFile}>
                     <Upload className="size-4" />
-                    Upload File
+                    {t('files.empty.contextUploadFile')}
                 </ContextMenuItem>
                 <ContextMenuItem onSelect={onUploadFolder}>
                     <FolderOpen className="size-4" />
-                    Upload Folder
+                    {t('files.empty.contextUploadFolder')}
                 </ContextMenuItem>
             </ContextMenuContent>
         </ContextMenu>
@@ -134,6 +137,8 @@ export function FileGrid({
     onUploadFolder,
     cardActionsFor,
 }: FileGridProps) {
+    const { t } = useTranslation();
+
     const handleBackgroundClick = (event: MouseEvent<HTMLDivElement>): void => {
         if (isInteractiveGridClickTarget(event.target)) {
             return;
@@ -158,15 +163,13 @@ export function FileGrid({
                     <Upload className="size-8 opacity-60" />
                     <p className="text-sm font-medium">
                         {isTrashed
-                            ? 'Trash is empty'
+                            ? t('files.empty.trash')
                             : uploadsEnabled
-                              ? 'Drop files anywhere to upload'
-                              : 'This folder is empty'}
+                              ? t('files.empty.dropToUpload')
+                              : t('files.empty.folderEmpty')}
                     </p>
                     {uploadsEnabled && !isTrashed && (
-                        <p className="text-xs">
-                            Or use the Upload button above
-                        </p>
+                        <p className="text-xs">{t('files.empty.orUseUpload')}</p>
                     )}
                 </div>
             </EmptyAreaContextMenu>
@@ -241,7 +244,9 @@ export function FileGrid({
                             disabled={loadingMore}
                             onClick={onLoadMore}
                         >
-                            {loadingMore ? 'Loading…' : 'Load more'}
+                            {loadingMore
+                                ? t('files.loading')
+                                : t('files.loadMore')}
                         </Button>
                     </div>
                 )}

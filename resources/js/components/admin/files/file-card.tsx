@@ -1,5 +1,6 @@
 import { Star } from 'lucide-react';
 import { Fragment, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     INTERNAL_FILE_DRAG_TYPE,
     isInternalFileDrag,
@@ -78,6 +79,7 @@ export function FileCard({
     onDragLeaveFolder,
     onDropOnFolder,
 }: FileCardProps) {
+    const { t } = useTranslation();
     const [hovered, setHovered] = useState(false);
     const isFolder = file.type === 'folder';
     const useCoverLayout = hasCoverMedia(file);
@@ -145,7 +147,9 @@ export function FileCard({
                                             ? 'bg-background/80 text-foreground'
                                             : 'bg-muted text-muted-foreground',
                                     )}
-                                    aria-label={`${file.tags.length - 1} more tags`}
+                                    aria-label={t('files.tags.moreTags', {
+                                        count: file.tags.length - 1,
+                                    })}
                                 >
                                     +{file.tags.length - 1}
                                 </span>
@@ -258,7 +262,9 @@ export function FileCard({
                             onCheckedChange={() =>
                                 onSelect(file.id, { metaKey: true })
                             }
-                            aria-label={`Select ${file.name}`}
+                            aria-label={t('files.card.select', {
+                                name: file.name,
+                            })}
                         />
                     </div>
 
@@ -269,9 +275,9 @@ export function FileCard({
                     {file.effective_access === 'private' && (
                         <span
                             className="absolute bottom-2 left-2 z-20 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase shadow-sm"
-                            title="Private — requires Read private on API roles"
+                            title={t('files.card.privateTitle')}
                         >
-                            Private
+                            {t('files.card.privateBadge')}
                         </span>
                     )}
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -32,12 +33,14 @@ export function FileNameDialog({
     title,
     description,
     initialName = '',
-    confirmLabel = 'Save',
+    confirmLabel,
     onConfirm,
 }: FileNameDialogProps) {
+    const { t } = useTranslation();
     const [name, setName] = useState(initialName);
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const resolvedConfirmLabel = confirmLabel ?? t('common.save');
 
     useEffect(() => {
         if (open) {
@@ -50,7 +53,7 @@ export function FileNameDialog({
         const trimmedName = name.trim();
 
         if (trimmedName === '') {
-            setError('Name is required.');
+            setError(t('files.nameDialog.nameRequired'));
 
             return;
         }
@@ -65,7 +68,7 @@ export function FileNameDialog({
             setError(
                 submitError instanceof Error
                     ? submitError.message
-                    : 'Something went wrong.',
+                    : t('files.nameDialog.somethingWentWrong'),
             );
         } finally {
             setSubmitting(false);
@@ -83,7 +86,9 @@ export function FileNameDialog({
                 </DialogHeader>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="file-name-input">Name</Label>
+                    <Label htmlFor="file-name-input">
+                        {t('files.nameDialog.name')}
+                    </Label>
                     <Input
                         id="file-name-input"
                         value={name}
@@ -109,14 +114,14 @@ export function FileNameDialog({
                         disabled={submitting}
                         onClick={() => onOpenChange(false)}
                     >
-                        Cancel
+                        {t('common.cancel')}
                     </Button>
                     <Button
                         type="button"
                         disabled={submitting || name.trim() === ''}
                         onClick={() => void submit()}
                     >
-                        {submitting ? 'Saving…' : confirmLabel}
+                        {submitting ? t('files.saving') : resolvedConfirmLabel}
                     </Button>
                 </DialogFooter>
             </DialogContent>

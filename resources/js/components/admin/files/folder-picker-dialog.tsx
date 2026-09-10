@@ -1,5 +1,6 @@
 import { ChevronRight, FolderOpen } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -53,12 +54,13 @@ function isBlockedFolder(
 export function FolderPickerDialog({
     open,
     onOpenChange,
-    title = 'Move to folder',
-    description = 'Choose a destination folder for the selected items.',
-    confirmLabel = 'Move here',
+    title,
+    description,
+    confirmLabel,
     blockedFolders = [],
     onConfirm,
 }: FolderPickerDialogProps) {
+    const { t } = useTranslation();
     const [browseParentId, setBrowseParentId] = useState<number | null>(null);
     const [breadcrumbs, setBreadcrumbs] = useState<FileBreadcrumb[]>([]);
     const [folders, setFolders] = useState<AdminFileRow[]>([]);
@@ -68,6 +70,11 @@ export function FolderPickerDialog({
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const resolvedTitle = title ?? t('files.dialogs.moveTitle');
+    const resolvedDescription =
+        description ?? t('files.dialogs.moveDescription');
+    const resolvedConfirmLabel = confirmLabel ?? t('files.dialogs.moveHere');
 
     const blockedFolderIds = useMemo(
         () => new Set(blockedFolders.map((folder) => folder.id)),
@@ -104,13 +111,13 @@ export function FolderPickerDialog({
                 setError(
                     loadError instanceof Error
                         ? loadError.message
-                        : 'Failed to load folders',
+                        : t('files.folderPicker.failedLoad'),
                 );
             } finally {
                 setLoading(false);
             }
         },
-        [blockedFolders, browseParentId, search],
+        [blockedFolders, browseParentId, search, t],
     );
 
     useEffect(() => {
@@ -171,7 +178,7 @@ export function FolderPickerDialog({
 
     const submit = async (): Promise<void> => {
         if (locationIsBlocked) {
-            setError('Cannot move into a selected folder or its descendants.');
+            setError(t('files.folderPicker.cannotMoveIntoSelected'));
 
             return;
         }
@@ -186,7 +193,7 @@ export function FolderPickerDialog({
             setError(
                 submitError instanceof Error
                     ? submitError.message
-                    : 'Failed to move items',
+                    : t('files.folderPicker.failedMove'),
             );
         } finally {
             setSubmitting(false);
@@ -195,8 +202,8 @@ export function FolderPickerDialog({
 
     const destinationLabel =
         browseParentId === null
-            ? 'Root'
-            : (breadcrumbs[breadcrumbs.length - 1]?.name ?? 'Folder');
+            ? t('files.root')
+            : (breadcrumbs[breadcrumbs.length - 1]?.name ?? t('files.folder'));
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -205,13 +212,13 @@ export function FolderPickerDialog({
                 data-testid="folder-picker-dialog"
             >
                 <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
-                    <DialogDescription>{description}</DialogDescription>
+                    <DialogTitle>{resolvedTitle}</DialogTitle>
+                    <DialogDescription>{resolvedDescription}</DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-3">
                     <Input
-                        placeholder="Search folders…"
+                        placeholder={t('files.folderPicker.search')}
                         value={search}
                         disabled={submitting}
                         onChange={(event) => setSearch(event.target.value)}
@@ -220,7 +227,7 @@ export function FolderPickerDialog({
 
                     <nav
                         className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground"
-                        aria-label="Folder breadcrumbs"
+                        aria-label={t('files.folderPicker.breadcrumbs')}
                     >
                         <button
                             type="button"
@@ -228,7 +235,7 @@ export function FolderPickerDialog({
                             disabled={submitting}
                             onClick={() => navigateTo(-1)}
                         >
-                            Root
+                            {t('files.root')}
                         </button>
                         {breadcrumbs.map((crumb, index) => (
                             <span
@@ -251,12 +258,12 @@ export function FolderPickerDialog({
                     <div className="max-h-72 min-h-40 overflow-y-auto rounded-lg border border-sidebar-border/70">
                         {loading && folders.length === 0 ? (
                             <p className="p-3 text-sm text-muted-foreground">
-                                Loading…
+                                {t('files.loading')}
                             </p>
                         ) : null}
                         {!loading && folders.length === 0 ? (
                             <p className="p-3 text-sm text-muted-foreground">
-                                No folders here
+                                {t('files.folderPicker.empty')}
                             </p>
                         ) : null}
                         <ul className="divide-y divide-sidebar-border/70">
@@ -295,14 +302,16 @@ export function FolderPickerDialog({
                                         })
                                     }
                                 >
-                                    {loading ? 'Loading…' : 'Load more'}
+                                    {loading
+                                        ? t('files.loading')
+                                        : t('files.loadMore')}
                                 </Button>
                             </div>
                         ) : null}
                     </div>
 
                     <p className="text-sm text-muted-foreground">
-                        Destination:{' '}
+                        {t('files.folderPicker.destination')}{' '}
                         <span className="font-medium text-foreground">
                             {destinationLabel}
                         </span>
@@ -320,7 +329,7 @@ export function FolderPickerDialog({
                         disabled={submitting}
                         onClick={() => onOpenChange(false)}
                     >
-                        Cancel
+                        {t('common.cancel')}
                     </Button>
                     <Button
                         type="button"
@@ -328,7 +337,9 @@ export function FolderPickerDialog({
                         onClick={() => void submit()}
                         data-testid="folder-picker-confirm"
                     >
-                        {submitting ? 'Moving…' : confirmLabel}
+                        {submitting
+                            ? t('files.dialogs.moving')
+                            : resolvedConfirmLabel}
                     </Button>
                 </DialogFooter>
             </DialogContent>

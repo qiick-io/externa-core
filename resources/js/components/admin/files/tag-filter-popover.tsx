@@ -1,4 +1,5 @@
 import { Tags, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
     Popover,
@@ -24,6 +25,7 @@ export function TagFilterPopover({
     selectedTagIds,
     onChange,
 }: TagFilterPopoverProps) {
+    const { t } = useTranslation();
     const selectedCount = selectedTagIds.length;
 
     const toggleTagId = (tagId: number): void => {
@@ -44,10 +46,10 @@ export function TagFilterPopover({
                     variant="outline"
                     size="sm"
                     className="h-9 gap-1.5"
-                    aria-label="Filter by tags"
+                    aria-label={t('files.tags.filterBy')}
                 >
                     <Tags className="size-4" />
-                    Tags
+                    {t('files.tags.label')}
                     {selectedCount > 0 && (
                         <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-medium text-primary-foreground">
                             {selectedCount}
@@ -57,7 +59,9 @@ export function TagFilterPopover({
             </PopoverTrigger>
             <PopoverContent className="w-72 p-3" align="start">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">Filter by tags</p>
+                    <p className="text-sm font-medium">
+                        {t('files.tags.filterBy')}
+                    </p>
                     {selectedCount > 0 && (
                         <Button
                             type="button"
@@ -67,16 +71,16 @@ export function TagFilterPopover({
                             onClick={() => onChange([])}
                         >
                             <X className="mr-1 size-3" />
-                            Clear
+                            {t('files.tags.clear')}
                         </Button>
                     )}
                 </div>
                 <p className="mb-2 text-xs text-muted-foreground">
-                    Show files that have any of the selected tags.
+                    {t('files.tags.filterHint')}
                 </p>
                 {catalog.length === 0 ? (
                     <p className="text-xs text-muted-foreground">
-                        No tags yet. Tag a file to create one.
+                        {t('files.tags.empty')}
                     </p>
                 ) : (
                     <div className="flex max-h-56 flex-wrap gap-1 overflow-y-auto">

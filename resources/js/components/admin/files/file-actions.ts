@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import {
     Copy,
     Download,
@@ -53,12 +54,14 @@ const ACTION_ICONS: Record<FileActionKey, FileActionDefinition['icon']> = {
  * @param {AdminFileRow[]} selected - Currently selected file rows.
  * @param {FileActionPermissions} permissions - Capability flags for the current user.
  * @param {boolean} isTrashed - Whether the view shows trashed items.
+ * @param {TFunction} t - i18n translate function.
  * @returns {FileActionDefinition[]} Ordered actions available for the selection.
  */
 export function resolveFileActions(
     selected: AdminFileRow[],
     permissions: FileActionPermissions,
     isTrashed: boolean,
+    t: TFunction,
 ): FileActionDefinition[] {
     if (selected.length === 0) {
         return [];
@@ -72,82 +75,84 @@ export function resolveFileActions(
     const candidates: Array<FileActionDefinition & { available: boolean }> = [
         {
             key: 'details',
-            label: 'Details',
+            label: t('files.actions.details'),
             icon: ACTION_ICONS.details,
             available: exactlyOne && !isTrashed,
         },
         {
             key: 'download',
             label:
-                selected.length > 1 || !onlyFiles ? 'Download zip' : 'Download',
+                selected.length > 1 || !onlyFiles
+                    ? t('files.actions.downloadZip')
+                    : t('files.actions.download'),
             icon: ACTION_ICONS.download,
             available: permissions.canDownload && !isTrashed,
         },
         {
             key: 'move',
-            label: 'Move',
+            label: t('files.actions.move'),
             icon: ACTION_ICONS.move,
             available: permissions.canEdit && !isTrashed,
         },
         {
             key: 'rename',
-            label: 'Rename',
+            label: t('files.actions.rename'),
             icon: ACTION_ICONS.rename,
             available: exactlyOne && permissions.canEdit && !isTrashed,
         },
         {
             key: 'duplicate',
-            label: 'Duplicate',
+            label: t('files.actions.duplicate'),
             icon: ACTION_ICONS.duplicate,
             available: permissions.canCopy && !isTrashed,
         },
         {
             key: 'favorite',
-            label: 'Favorite',
+            label: t('files.actions.favorite'),
             icon: ACTION_ICONS.favorite,
             available: permissions.canFavorite && !isTrashed && anyUnfavorited,
         },
         {
             key: 'unfavorite',
-            label: 'Unfavorite',
+            label: t('files.actions.unfavorite'),
             icon: ACTION_ICONS.unfavorite,
             available: permissions.canFavorite && !isTrashed && anyFavorited,
         },
         {
             key: 'replace',
-            label: 'Replace',
+            label: t('files.actions.replace'),
             icon: ACTION_ICONS.replace,
             available:
                 exactlyOne && onlyFiles && permissions.canReplace && !isTrashed,
         },
         {
             key: 'tag',
-            label: 'Tag',
+            label: t('files.actions.tag'),
             icon: ACTION_ICONS.tag,
             available: permissions.canTag && !isTrashed,
         },
         {
             key: 'ask_ai',
-            label: 'Ask AI',
+            label: t('files.actions.askAi'),
             icon: ACTION_ICONS.ask_ai,
             available: Boolean(permissions.canUseAi),
         },
         {
             key: 'delete',
-            label: 'Delete',
+            label: t('common.delete'),
             icon: ACTION_ICONS.delete,
             destructive: true,
             available: permissions.canDelete && !isTrashed,
         },
         {
             key: 'restore',
-            label: 'Restore',
+            label: t('files.actions.restore'),
             icon: ACTION_ICONS.restore,
             available: permissions.canRestore && isTrashed,
         },
         {
             key: 'force_delete',
-            label: 'Delete forever',
+            label: t('files.actions.forceDelete'),
             icon: ACTION_ICONS.force_delete,
             destructive: true,
             available: permissions.canForceDelete && isTrashed,
