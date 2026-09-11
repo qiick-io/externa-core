@@ -70,7 +70,7 @@ export async function fetchChatThreads(options: {
     collectionId?: number;
 }): Promise<{
     data: ChatSummary[];
-    meta: { can_create_direct: boolean };
+    meta: { can_create_direct: boolean } & ChatUnreadShare;
 }> {
     const params = new URLSearchParams();
     params.set('tab', options.tab);
@@ -107,7 +107,9 @@ export async function fetchChatUnread(): Promise<ChatUnreadShare> {
     return (await response.json()) as ChatUnreadShare;
 }
 
-export async function markHubChatRead(chatId: string): Promise<ChatUnreadShare> {
+export async function markHubChatRead(
+    chatId: string,
+): Promise<ChatUnreadShare> {
     const response = await fetch(`/chat/${chatId}/read`, {
         method: 'POST',
         headers: jsonRequestHeaders(),

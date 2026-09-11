@@ -3,7 +3,6 @@ import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Heading from '@/components/heading';
-import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
@@ -17,6 +16,7 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 
 /**
  * Account deletion confirmation flow in settings.

@@ -13,10 +13,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-    addChatParticipants,
-    deleteDirectChat,
-} from '@/lib/chat-hub-api';
+import { addChatParticipants, deleteDirectChat } from '@/lib/chat-hub-api';
 import type { ChatDirectoryRow, ChatSummary } from '@/lib/chat-hub-api';
 import type { ChatParticipantRef } from '@/lib/chat-thread-identity';
 import { toast } from '@/lib/toast';

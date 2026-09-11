@@ -292,7 +292,7 @@ export default function PerformanceSettingsPage({
                                     )}
                                 />
 
-                                <div className="flex gap-3 flex-wrap">
+                                <div className="flex flex-wrap gap-3">
                                     {links.jobs && (
                                         <Button
                                             variant="outline"
@@ -341,7 +341,6 @@ export default function PerformanceSettingsPage({
                             <Separator />
                         </>
                     )}
-
 
                     <div className="space-y-6">
                         <Heading

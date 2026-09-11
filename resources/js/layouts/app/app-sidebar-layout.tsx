@@ -3,8 +3,8 @@ import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
-import { OnlinePresenceTracker } from '@/components/realtime/online-presence-tracker';
 import { NotificationSoundTracker } from '@/components/realtime/notification-sound-tracker';
+import { OnlinePresenceTracker } from '@/components/realtime/online-presence-tracker';
 import { SkipToContent } from '@/components/skip-to-content';
 import type { AppLayoutProps } from '@/types';
 

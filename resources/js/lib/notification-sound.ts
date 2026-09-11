@@ -17,9 +17,7 @@ function browserWindow(): (Window & typeof globalThis) | null {
     return typeof window === 'undefined' ? null : window;
 }
 
-export function setNotificationSoundPrefs(
-    next: NotificationSoundPrefs,
-): void {
+export function setNotificationSoundPrefs(next: NotificationSoundPrefs): void {
     prefs = { ...next };
 }
 
@@ -210,8 +208,14 @@ function playPopNow(
         harmonic.type = 'triangle';
         harmonic.frequency.setValueAtTime(frequency * 2, startTime);
         harmonicGain.gain.setValueAtTime(0, startTime);
-        harmonicGain.gain.linearRampToValueAtTime(volume * 0.18, startTime + 0.004);
-        harmonicGain.gain.exponentialRampToValueAtTime(0.001, startTime + durationSec * 0.75);
+        harmonicGain.gain.linearRampToValueAtTime(
+            volume * 0.18,
+            startTime + 0.004,
+        );
+        harmonicGain.gain.exponentialRampToValueAtTime(
+            0.001,
+            startTime + durationSec * 0.75,
+        );
 
         harmonic.connect(harmonicGain);
         harmonicGain.connect(filter);

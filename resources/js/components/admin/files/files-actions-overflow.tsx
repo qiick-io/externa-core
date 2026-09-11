@@ -1,7 +1,5 @@
-import {
-    ActionsOverflow,
-    type OverflowActionDefinition,
-} from '@/components/admin/actions-overflow';
+import { ActionsOverflow } from '@/components/admin/actions-overflow';
+import type { OverflowActionDefinition } from '@/components/admin/actions-overflow';
 import type { FileActionDefinition, FileActionKey } from '@/types/files';
 
 type FilesActionsOverflowProps = {

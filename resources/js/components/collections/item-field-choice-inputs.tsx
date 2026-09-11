@@ -53,12 +53,13 @@ const choiceFieldChromeBase =
     'w-full rounded-md border border-input bg-transparent shadow-xs has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-inset';
 
 /** Single-line choice chrome — matches Input h-9 (36px). */
-const choiceFieldChromeSingle =
-    cn(choiceFieldChromeBase, 'flex h-9 min-h-9 items-center px-3');
+const choiceFieldChromeSingle = cn(
+    choiceFieldChromeBase,
+    'flex h-9 min-h-9 items-center px-3',
+);
 
 /** Multi-option / growing chrome — tight padding, height follows content. */
-const choiceFieldChrome =
-    cn(choiceFieldChromeBase, 'px-3 py-1.5');
+const choiceFieldChrome = cn(choiceFieldChromeBase, 'px-3 py-1.5');
 
 type DefaultValue =
     | string
@@ -237,9 +238,9 @@ export function InputWithIcons({
                     'min-w-0 flex-1',
                     // strip input corners where they meet the addon
                     iconLeft &&
-                        '[&_[data-slot=input]]:rounded-l-none [&_input]:rounded-l-none [&_select]:rounded-l-none [&_textarea]:rounded-l-none [&_button]:rounded-l-none',
+                        '[&_[data-slot=input]]:rounded-l-none [&_button]:rounded-l-none [&_input]:rounded-l-none [&_select]:rounded-l-none [&_textarea]:rounded-l-none',
                     iconRight &&
-                        '[&_[data-slot=input]]:rounded-r-none [&_input]:rounded-r-none [&_select]:rounded-r-none [&_textarea]:rounded-r-none [&_button]:rounded-r-none',
+                        '[&_[data-slot=input]]:rounded-r-none [&_button]:rounded-r-none [&_input]:rounded-r-none [&_select]:rounded-r-none [&_textarea]:rounded-r-none',
                 )}
             >
                 {children}
@@ -452,9 +453,7 @@ export function ApiAutocompleteInput({
 
                 const next = rows
                     .map((row) => {
-                        const text = String(
-                            getPathValue(row, textPath) ?? '',
-                        );
+                        const text = String(getPathValue(row, textPath) ?? '');
                         const value = String(
                             getPathValue(row, valuePath) ?? text,
                         );
@@ -568,7 +567,10 @@ export function ApiAutocompleteInput({
                     className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-input bg-popover p-1 text-sm shadow-md"
                 >
                     {suggestions.map((suggestion) => (
-                        <li key={`${suggestion.value}-${suggestion.text}`} role="option">
+                        <li
+                            key={`${suggestion.value}-${suggestion.text}`}
+                            role="option"
+                        >
                             <button
                                 type="button"
                                 className="flex w-full cursor-pointer rounded-sm px-2 py-1.5 text-left hover:bg-accent hover:text-accent-foreground"
@@ -855,9 +857,7 @@ export function SelectWithOtherInput({
                 }}
             >
                 <SelectTrigger id={id} className="w-full">
-                    <SelectValue
-                        placeholder={allowNone ? '—' : 'Select…'}
-                    />
+                    <SelectValue placeholder={allowNone ? '—' : 'Select…'} />
                 </SelectTrigger>
                 <SelectContent>
                     {allowNone ? (
@@ -887,7 +887,12 @@ export function SelectWithOtherInput({
                     }}
                 />
             ) : null}
-            <input ref={hiddenRef} type="hidden" name={name} value={submitted} />
+            <input
+                ref={hiddenRef}
+                type="hidden"
+                name={name}
+                value={submitted}
+            />
         </div>
     );
 }
@@ -1076,7 +1081,7 @@ export function MultiselectWithOtherInput({
                     </svg>
                 </button>
                 {open && !readonly && (
-                    <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-md border bg-popover p-1 shadow-md">
+                    <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-md border bg-popover p-1 shadow-md">
                         {options.length === 0 ? (
                             <p className="p-3 text-sm text-muted-foreground">
                                 No options available.
@@ -1166,12 +1171,8 @@ function CheckboxGroupTreeNodes({
                 }
 
                 const hasChildren = Boolean(node.children?.length);
-                const expanded =
-                    hasChildren && expandedKeys.has(node.value);
-                const checkState = getTreeNodeCheckState(
-                    node,
-                    selectedValues,
-                );
+                const expanded = hasChildren && expandedKeys.has(node.value);
+                const checkState = getTreeNodeCheckState(node, selectedValues);
 
                 return (
                     <Fragment key={`${depth}-${node.value}`}>
@@ -1182,16 +1183,12 @@ function CheckboxGroupTreeNodes({
                             {hasChildren ? (
                                 <button
                                     type="button"
-                                    className="text-muted-foreground flex size-5 shrink-0 items-center justify-center"
+                                    className="flex size-5 shrink-0 items-center justify-center text-muted-foreground"
                                     aria-expanded={expanded}
                                     aria-label={
-                                        expanded
-                                            ? 'Collapse'
-                                            : 'Expand'
+                                        expanded ? 'Collapse' : 'Expand'
                                     }
-                                    onClick={() =>
-                                        onToggleExpand(node.value)
-                                    }
+                                    onClick={() => onToggleExpand(node.value)}
                                 >
                                     {expanded ? (
                                         <ChevronDown className="size-3.5" />
@@ -1207,10 +1204,7 @@ function CheckboxGroupTreeNodes({
                                     checked={checkState}
                                     disabled={readonly}
                                     onCheckedChange={(next) =>
-                                        onToggle(
-                                            node.value,
-                                            next === true,
-                                        )
+                                        onToggle(node.value, next === true)
                                     }
                                 />
                                 <span className="truncate">
@@ -1257,12 +1251,7 @@ export function CheckboxGroupTreeInput({
 
     const toggleValue = (optionValue: string, checked: boolean) => {
         setSelectedValues((current) =>
-            cascadeToggleValues(
-                treeOptions,
-                current,
-                optionValue,
-                checked,
-            ),
+            cascadeToggleValues(treeOptions, current, optionValue, checked),
         );
     };
 

@@ -219,14 +219,15 @@ export default function ProjectSettingsPage({
     transformFormats,
 }: Props) {
     const { t } = useTranslation();
-    const initialForm = useMemo(() => buildProjectFormState(project), [project]);
+    const initialForm = useMemo(
+        () => buildProjectFormState(project),
+        [project],
+    );
     const [form, setFormState] = useState(initialForm);
     const [isDirty, setIsDirty] = useState(false);
     const [sendingTestWebhook, setSendingTestWebhook] = useState(false);
 
-    const setForm: Dispatch<SetStateAction<typeof initialForm>> = (
-        action,
-    ) => {
+    const setForm: Dispatch<SetStateAction<typeof initialForm>> = (action) => {
         setIsDirty(true);
         setFormState(action);
     };
@@ -269,7 +270,9 @@ export default function ProjectSettingsPage({
     const sortableModules = form.sidebar_modules.filter(
         (module) => !PINNED_SIDEBAR_MODULE_IDS.has(module.id),
     );
-    const sortableModuleKey = sortableModules.map((module) => module.id).join('\0');
+    const sortableModuleKey = sortableModules
+        .map((module) => module.id)
+        .join('\0');
 
     useEffect(() => {
         const el = sortableModulesRef.current;
@@ -283,10 +286,15 @@ export default function ProjectSettingsPage({
             onEnd: () => {
                 const order = sortable.toArray();
                 const prev = formRef.current.sidebar_modules
-                    .filter((module) => !PINNED_SIDEBAR_MODULE_IDS.has(module.id))
+                    .filter(
+                        (module) => !PINNED_SIDEBAR_MODULE_IDS.has(module.id),
+                    )
                     .map((module) => module.id);
 
-                if (order.length === 0 || order.join('\0') === prev.join('\0')) {
+                if (
+                    order.length === 0 ||
+                    order.join('\0') === prev.join('\0')
+                ) {
                     return;
                 }
 
@@ -1160,9 +1168,7 @@ export default function ProjectSettingsPage({
                                     </div>
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                    {t(
-                                        'settings.project.uploadLimitsHint',
-                                    )}
+                                    {t('settings.project.uploadLimitsHint')}
                                 </p>
                             </div>
 

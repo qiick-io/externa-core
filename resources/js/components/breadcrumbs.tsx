@@ -32,9 +32,9 @@ export function Breadcrumbs({
 
                             return (
                                 <Fragment key={index}>
-                                    <BreadcrumbItem className="min-w-0 max-w-[9rem] shrink md:max-w-[12rem]">
+                                    <BreadcrumbItem className="max-w-[9rem] min-w-0 shrink md:max-w-[12rem]">
                                         {isLast ? (
-                                            <BreadcrumbPage className="block min-w-0 max-w-full">
+                                            <BreadcrumbPage className="block max-w-full min-w-0">
                                                 <TruncatedText
                                                     text={item.title}
                                                 />
@@ -42,11 +42,11 @@ export function Breadcrumbs({
                                         ) : (
                                             <BreadcrumbLink
                                                 asChild
-                                                className="block min-w-0 max-w-full"
+                                                className="block max-w-full min-w-0"
                                             >
                                                 <Link
                                                     href={item.href}
-                                                    className="block min-w-0 max-w-full"
+                                                    className="block max-w-full min-w-0"
                                                 >
                                                     <TruncatedText
                                                         text={item.title}

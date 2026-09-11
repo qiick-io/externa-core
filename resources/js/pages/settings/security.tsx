@@ -195,9 +195,7 @@ export default function Security({
 
                                     <div className="grid gap-2">
                                         <Label htmlFor="password">
-                                            {t(
-                                                'settings.security.newPassword',
-                                            )}
+                                            {t('settings.security.newPassword')}
                                         </Label>
 
                                         <PasswordInput
@@ -282,9 +280,7 @@ export default function Security({
                                 {twoFactorEnabled ? (
                                     <div className="flex flex-col items-start justify-start space-y-4">
                                         <p className="text-sm text-muted-foreground">
-                                            {t(
-                                                'settings.security.enabledHint',
-                                            )}
+                                            {t('settings.security.enabledHint')}
                                         </p>
 
                                         <div className="relative inline">
@@ -361,9 +357,7 @@ export default function Security({
                                 <TwoFactorSetupModal
                                     isOpen={showSetupModal}
                                     onClose={() => setShowSetupModal(false)}
-                                    requiresConfirmation={
-                                        requiresConfirmation
-                                    }
+                                    requiresConfirmation={requiresConfirmation}
                                     twoFactorEnabled={twoFactorEnabled}
                                     qrCodeSvg={qrCodeSvg}
                                     manualSetupKey={manualSetupKey}
@@ -379,12 +373,13 @@ export default function Security({
                         <>
                             <Separator />
 
-                            <div className="space-y-6" data-test="passkeys-section">
+                            <div
+                                className="space-y-6"
+                                data-test="passkeys-section"
+                            >
                                 <Heading
                                     variant="small"
-                                    title={t(
-                                        'settings.security.passkeysTitle',
-                                    )}
+                                    title={t('settings.security.passkeysTitle')}
                                     description={t(
                                         'settings.security.passkeysDescription',
                                     )}
@@ -433,8 +428,7 @@ export default function Security({
                                                                 passkey.id,
                                                             ),
                                                             {
-                                                                preserveScroll:
-                                                                    true,
+                                                                preserveScroll: true,
                                                                 onFinish: () =>
                                                                     setDeletingPasskeyId(
                                                                         null,
@@ -456,18 +450,14 @@ export default function Security({
                                     </ul>
                                 ) : (
                                     <p className="text-sm text-muted-foreground">
-                                        {t(
-                                            'settings.security.passkeysEmpty',
-                                        )}
+                                        {t('settings.security.passkeysEmpty')}
                                     </p>
                                 )}
 
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                                     <div className="grid flex-1 gap-2">
                                         <Label htmlFor="passkey_name">
-                                            {t(
-                                                'settings.security.passkeyName',
-                                            )}
+                                            {t('settings.security.passkeyName')}
                                         </Label>
                                         <Input
                                             id="passkey_name"

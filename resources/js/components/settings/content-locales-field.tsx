@@ -146,10 +146,7 @@ export function ContentLocalesField({
                 const next = sortable.toArray();
                 const prev = valueRef.current;
 
-                if (
-                    next.length === 0 ||
-                    next.join('\0') === prev.join('\0')
-                ) {
+                if (next.length === 0 || next.join('\0') === prev.join('\0')) {
                     return;
                 }
 

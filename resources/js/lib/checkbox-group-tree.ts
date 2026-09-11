@@ -89,10 +89,7 @@ function findAncestors(
         }
 
         if (node.children?.length) {
-            const found = findAncestors(node.children, value, [
-                ...trail,
-                node,
-            ]);
+            const found = findAncestors(node.children, value, [...trail, node]);
 
             if (found) {
                 return found;
@@ -161,8 +158,7 @@ export function getTreeNodeCheckState(
     node: FieldTreeOptionRow,
     selected: ReadonlySet<string> | readonly string[],
 ): TreeCheckState {
-    const selectedSet =
-        selected instanceof Set ? selected : new Set(selected);
+    const selectedSet = selected instanceof Set ? selected : new Set(selected);
     const descendants = collectDescendantValues(node).filter(
         (value) => value.trim() !== '',
     );

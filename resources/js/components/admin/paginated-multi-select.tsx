@@ -44,8 +44,7 @@ function mapResponse(data: unknown): Paginated<AdminSelectOption> {
         meta?: { current_page?: number; last_page?: number };
     };
 
-    const currentPage =
-        payload.current_page ?? payload.meta?.current_page ?? 1;
+    const currentPage = payload.current_page ?? payload.meta?.current_page ?? 1;
     const lastPage = payload.last_page ?? payload.meta?.last_page ?? 1;
 
     return {
@@ -64,7 +63,9 @@ function mapResponse(data: unknown): Paginated<AdminSelectOption> {
 
             return {
                 id: row.id,
-                label: row.label ?? (email ? `${displayName} (${email})` : displayName),
+                label:
+                    row.label ??
+                    (email ? `${displayName} (${email})` : displayName),
                 first_name: firstName || undefined,
                 last_name: lastName,
                 email,

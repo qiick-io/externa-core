@@ -3,10 +3,7 @@ export type CollectionFieldTypeOption = {
     value: string;
 };
 
-type TranslateFn = (
-    key: string,
-    options?: { defaultValue?: string },
-) => string;
+type TranslateFn = (key: string, options?: { defaultValue?: string }) => string;
 
 /** Catalog of supported collection field types (UI copy lives in i18n). */
 export const COLLECTION_FIELD_TYPES: CollectionFieldTypeOption[] = [
@@ -94,12 +91,7 @@ export const COLLECTION_FIELD_TYPE_GROUPS: {
     },
     {
         key: 'groups',
-        types: [
-            'group_accordion',
-            'group_detail',
-            'group_raw',
-            'group_tabs',
-        ],
+        types: ['group_accordion', 'group_detail', 'group_raw', 'group_tabs'],
     },
 ];
 

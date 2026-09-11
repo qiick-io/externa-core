@@ -19,6 +19,7 @@ import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavUser } from '@/components/nav-user';
 import { NotificationsBell } from '@/components/notifications/notifications-bell';
+import { SidebarUnreadBadge } from '@/components/sidebar-unread-badge';
 import {
     Sidebar,
     SidebarContent,
@@ -31,7 +32,6 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { PermissionEnum } from '@/enums/permission-enum';
-import { SidebarUnreadBadge } from '@/components/sidebar-unread-badge';
 import { useCan } from '@/hooks/use-can';
 import { useChatUnread } from '@/hooks/use-chat-unread';
 import { useCurrentUrl } from '@/hooks/use-current-url';

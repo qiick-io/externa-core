@@ -1,9 +1,9 @@
 import { useForm, usePage } from '@inertiajs/react';
 import { useEffect } from 'react';
-import PasswordInput from '@/components/password-input';
 import { RoleMultiSelect } from '@/components/admin/role-multi-select';
 import { UserGroupMultiSelect } from '@/components/admin/user-group-multi-select';
 import InputError from '@/components/input-error';
+import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import {
     DrawerBody,
@@ -193,8 +193,7 @@ export function UserFormDrawer({
                             id="user_email_hint"
                             className="text-xs text-muted-foreground"
                         >
-                            Use a valid email address, for example
-                            {' '}
+                            Use a valid email address, for example{' '}
                             <code>name@example.com</code>.
                         </p>
                         <InputError message={form.errors.email} />

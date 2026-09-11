@@ -64,7 +64,9 @@ export default function ChatHubPage({
     const threads = entry?.items ?? [];
     const threadsLoaded = entry?.status === 'ready';
 
-    selectedChatIdRef.current = selectedChat?.id ?? null;
+    useEffect(() => {
+        selectedChatIdRef.current = selectedChat?.id ?? null;
+    }, [selectedChat?.id]);
 
     useEffect(() => {
         const timer = window.setTimeout(() => setDebouncedQ(q), 300);
@@ -184,9 +186,7 @@ export default function ChatHubPage({
     return (
         <AppLayout
             breadcrumbs={breadcrumbs}
-            headerActions={
-                <NewChatMenu canCreateDirect={canCreateDirect} />
-            }
+            headerActions={<NewChatMenu canCreateDirect={canCreateDirect} />}
         >
             <Head title={t('chatHub.title')} />
             <div
@@ -303,12 +303,8 @@ export default function ChatHubPage({
                         variant="pane"
                         chatId={selectedChat?.id ?? null}
                         kind={selectedKind}
-                        collectionId={
-                            selectedChat?.collection_id ?? undefined
-                        }
-                        itemId={
-                            selectedChat?.collection_item_id ?? undefined
-                        }
+                        collectionId={selectedChat?.collection_id ?? undefined}
+                        itemId={selectedChat?.collection_item_id ?? undefined}
                         fields={fieldRows}
                         chatCount={0}
                         onChatCountChange={noopChatCountChange}

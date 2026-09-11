@@ -175,9 +175,7 @@ export default function Appearance({
         setDefaultAppearanceState(value);
     };
     const setFiles = (
-        action: SetStateAction<
-            Record<FileFieldKey, AppearanceFileMeta | null>
-        >,
+        action: SetStateAction<Record<FileFieldKey, AppearanceFileMeta | null>>,
     ): void => {
         setIsDirty(true);
         setFilesState(action);
@@ -284,11 +282,11 @@ export default function Appearance({
                                     <Label htmlFor="project_color">
                                         {t('settings.appearance.projectColor')}
                                     </Label>
-                                    <div className="flex h-9 max-w-[220px] items-center gap-2 rounded-md border border-input bg-transparent px-3 shadow-xs dark:border-white/25 has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-inset">
+                                    <div className="flex h-9 max-w-[220px] items-center gap-2 rounded-md border border-input bg-transparent px-3 shadow-xs has-[:focus-visible]:border-ring has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-inset dark:border-white/25">
                                         <Input
                                             id="project_color"
                                             type="color"
-                                            className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0"
+                                            className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
                                             value={projectColor}
                                             onChange={(event) =>
                                                 setProjectColor(
@@ -319,11 +317,11 @@ export default function Appearance({
                                             'settings.appearance.projectColorDark',
                                         )}
                                     </Label>
-                                    <div className="flex h-9 max-w-[220px] items-center gap-2 rounded-md border border-input bg-transparent px-3 shadow-xs dark:border-white/25 has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-inset">
+                                    <div className="flex h-9 max-w-[220px] items-center gap-2 rounded-md border border-input bg-transparent px-3 shadow-xs has-[:focus-visible]:border-ring has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-inset dark:border-white/25">
                                         <Input
                                             id="project_color_dark"
                                             type="color"
-                                            className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0"
+                                            className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
                                             value={projectColorDark}
                                             onChange={(event) =>
                                                 setProjectColorDark(

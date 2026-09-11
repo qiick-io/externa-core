@@ -77,11 +77,7 @@ function parseWireDate(wire: string, mode: DateMode): Date | undefined {
     return Number.isNaN(next.getTime()) ? undefined : next;
 }
 
-function toWire(
-    date: Date,
-    mode: DateMode,
-    includeSeconds: boolean,
-): string {
+function toWire(date: Date, mode: DateMode, includeSeconds: boolean): string {
     const ymd = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
     const hm = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
     const hms = includeSeconds ? `${hm}:${pad(date.getSeconds())}` : hm;
@@ -210,12 +206,7 @@ export function DateFieldInput({
                     onChange={(event) => syncHidden(event.target.value)}
                 />
                 <ClockIcon className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                    ref={hiddenRef}
-                    type="hidden"
-                    name={name}
-                    value={wire}
-                />
+                <input ref={hiddenRef} type="hidden" name={name} value={wire} />
             </div>
         );
     }
@@ -237,11 +228,7 @@ export function DateFieldInput({
                     >
                         <span className="truncate">
                             {selected
-                                ? formatDisplay(
-                                      selected,
-                                      mode,
-                                      includeSeconds,
-                                  )
+                                ? formatDisplay(selected, mode, includeSeconds)
                                 : mode === 'date'
                                   ? 'Pick a date'
                                   : 'Pick date & time'}
@@ -249,7 +236,10 @@ export function DateFieldInput({
                         <CalendarIcon className="size-4 shrink-0 opacity-50" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                <PopoverContent
+                    className="w-auto overflow-hidden p-0"
+                    align="start"
+                >
                     <Calendar
                         mode="single"
                         selected={selected}
@@ -295,7 +285,10 @@ export function DateFieldInput({
                                           : '00:00'
                                 }
                                 disabled={readonly || !selected}
-                                className={cn('bg-background', hideNativePicker)}
+                                className={cn(
+                                    'bg-background',
+                                    hideNativePicker,
+                                )}
                                 onChange={(event) => {
                                     if (!selected) {
                                         return;

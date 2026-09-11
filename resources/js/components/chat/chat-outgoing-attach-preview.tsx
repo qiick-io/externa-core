@@ -1,10 +1,15 @@
 import { Loader2, RotateCcw, Trash2 } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
-import type { ChatCollection, ChatReplyTo, ChatUser } from '@/lib/item-chat-api';
+import type {
+    ChatCollection,
+    ChatReplyTo,
+    ChatUser,
+} from '@/lib/item-chat-api';
 import { cn } from '@/lib/utils';
 
 export type PendingChatFile = {
@@ -80,8 +85,7 @@ export function ChatOutgoingAttachPreview({
         !failed &&
         (pending.status === 'sending' || pending.status === 'uploading');
     const retryLabel = t('collections.itemChat.retrySend');
-    const errorLabel =
-        pending.error ?? t('collections.itemChat.sendError');
+    const errorLabel = pending.error ?? t('collections.itemChat.sendError');
     const hasBody = pending.body.trim() !== '';
 
     return (
@@ -101,8 +105,7 @@ export function ChatOutgoingAttachPreview({
                     className={cn(
                         'relative flex w-full flex-col gap-0 p-0 text-foreground',
                         hasMedia ? 'min-w-[16rem]' : 'min-w-0',
-                        failed &&
-                            'border-destructive ring-1 ring-destructive',
+                        failed && 'border-destructive ring-1 ring-destructive',
                     )}
                 >
                     {hasMedia ? (
@@ -120,8 +123,7 @@ export function ChatOutgoingAttachPreview({
                                 }
                             />
                             {media.some(
-                                (row) =>
-                                    row.progress > 0 && row.progress < 100,
+                                (row) => row.progress > 0 && row.progress < 100,
                             ) ? (
                                 <div className="absolute inset-x-0 bottom-0 h-0.5 bg-black/40">
                                     <div
@@ -208,7 +210,7 @@ export function ChatOutgoingAttachPreview({
                     {hasBody ? (
                         <div
                             className={cn(
-                                'whitespace-pre-wrap break-words px-3 text-sm',
+                                'px-3 text-sm break-words whitespace-pre-wrap',
                                 hasMedia || docs.length > 0
                                     ? 'pt-1 pb-0.5'
                                     : 'pt-2 pb-0.5',

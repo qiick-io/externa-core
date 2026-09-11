@@ -2,17 +2,8 @@ import { router } from '@inertiajs/react';
 import { Database, Plus, UsersRound } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-    ChatUsersDrawer,
-} from '@/components/chat/chat-users-drawer';
+import { ChatUsersDrawer } from '@/components/chat/chat-users-drawer';
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import {
     Drawer,
     DrawerBody,
@@ -21,9 +12,13 @@ import {
     DrawerTitle,
 } from '@/components/ui/drawer';
 import {
-    createChatThread,
-    fetchChatItemPicker,
-} from '@/lib/chat-hub-api';
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { createChatThread, fetchChatItemPicker } from '@/lib/chat-hub-api';
 import type { ChatItemPickerGroup, ChatListMeta } from '@/lib/chat-hub-api';
 import { toast } from '@/lib/toast';
 
@@ -179,11 +174,7 @@ function ItemsDrawer({
     };
 
     return (
-        <Drawer
-            open={open}
-            onOpenChange={onOpenChange}
-            direction="right"
-        >
+        <Drawer open={open} onOpenChange={onOpenChange} direction="right">
             <DrawerContent data-test="chat-new-items-drawer">
                 <DrawerHeader>
                     <DrawerTitle>{t('chatHub.collections')}</DrawerTitle>
@@ -236,11 +227,7 @@ function ItemsDrawer({
                             className="mt-3 w-full"
                             disabled={loading || loadingMore}
                             onClick={() =>
-                                loadPage(
-                                    (meta.current_page ?? 1) + 1,
-                                    true,
-                                    q,
-                                )
+                                loadPage((meta.current_page ?? 1) + 1, true, q)
                             }
                         >
                             {loadingMore

@@ -131,7 +131,9 @@ export default function ItemRevisions({
                     const next = Array.isArray(payload.revisions)
                         ? payload.revisions
                         : [];
-                    setRevisions((prev) => (append ? [...prev, ...next] : next));
+                    setRevisions((prev) =>
+                        append ? [...prev, ...next] : next,
+                    );
                     setMeta(
                         payload.meta ?? {
                             current_page: page,
@@ -379,9 +381,7 @@ export default function ItemRevisions({
                                         disabled={loading || loadingMore}
                                         onClick={loadMore}
                                     >
-                                        {loadingMore
-                                            ? 'Loading…'
-                                            : 'Load more'}
+                                        {loadingMore ? 'Loading…' : 'Load more'}
                                     </Button>
                                 ) : null}
                             </>

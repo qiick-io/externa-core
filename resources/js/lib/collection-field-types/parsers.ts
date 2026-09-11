@@ -112,9 +112,9 @@ export function parseFieldOptions(
 
         // ponytail: translatable labels are objects like {en: "Label"}, extract first value
         if (label && typeof label === 'object' && !Array.isArray(label)) {
-            const firstValue = Object.values(label as Record<string, unknown>).find(
-                (v) => typeof v === 'string' && v.trim() !== '',
-            );
+            const firstValue = Object.values(
+                label as Record<string, unknown>,
+            ).find((v) => typeof v === 'string' && v.trim() !== '');
             label = firstValue ?? value;
         }
 
@@ -151,9 +151,9 @@ export function parseFieldTreeOptions(
 
         // ponytail: translatable labels are objects like {en: "Label"}, extract first value
         if (label && typeof label === 'object' && !Array.isArray(label)) {
-            const firstValue = Object.values(label as Record<string, unknown>).find(
-                (v) => typeof v === 'string' && v.trim() !== '',
-            );
+            const firstValue = Object.values(
+                label as Record<string, unknown>,
+            ).find((v) => typeof v === 'string' && v.trim() !== '');
             label = firstValue ?? value;
         }
 

@@ -28,7 +28,10 @@ export function storedBodyToDraft(
     }
 
     for (const user of users) {
-        draft = draft.replaceAll(`@[user:${user.id}]`, mentionDisplayLabel(user));
+        draft = draft.replaceAll(
+            `@[user:${user.id}]`,
+            mentionDisplayLabel(user),
+        );
     }
 
     return draft;

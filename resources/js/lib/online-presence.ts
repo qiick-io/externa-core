@@ -57,11 +57,7 @@ export function joinOnlinePresence(echo: EchoInstance): void {
 
     joined = true;
 
-    echo
-        .join('online')
-        .here(syncFromHere)
-        .joining(addUser)
-        .leaving(removeUser);
+    echo.join('online').here(syncFromHere).joining(addUser).leaving(removeUser);
 }
 
 /**

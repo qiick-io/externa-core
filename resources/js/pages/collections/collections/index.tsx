@@ -15,8 +15,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
-import { TruncatedText } from '@/components/admin/truncated-text';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
+import { TruncatedText } from '@/components/admin/truncated-text';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ApplyCollectionPackDialog } from '@/components/collections/apply-collection-pack-dialog';
 import type { CollectionPackSummary } from '@/components/collections/apply-collection-pack-dialog';
@@ -51,12 +51,8 @@ import AppLayout from '@/layouts/app-layout';
 import { seedCollectionPrompt, seedCollectionsBulkPrompt } from '@/lib/ai-open';
 import { cn } from '@/lib/utils';
 import collectionRoutes from '@/routes/collections';
-import {
-    resolveCollectionColor
-    
-    
-} from '@/types';
-import type {BreadcrumbItem, CollectionRow} from '@/types';
+import { resolveCollectionColor } from '@/types';
+import type { BreadcrumbItem, CollectionRow } from '@/types';
 
 type CollectionSortField = 'name' | 'slug' | 'status' | 'updated_at';
 type CollectionSortDirection = 'asc' | 'desc';
@@ -254,7 +250,9 @@ export default function CollectionsIndex({
                         <HeaderIconButton
                             type="button"
                             variant="outline"
-                            label={t('collections.packs.createFromPackEllipsis')}
+                            label={t(
+                                'collections.packs.createFromPackEllipsis',
+                            )}
                             onClick={() => setPackDialogOpen(true)}
                         >
                             <PackagePlus className="size-4" />
@@ -506,9 +504,7 @@ export default function CollectionsIndex({
                                         const isActive =
                                             (c.status ?? 'active') === 'active';
                                         const statusLabel = isActive
-                                            ? t(
-                                                  'collections.meta.statusActive',
-                                              )
+                                            ? t('collections.meta.statusActive')
                                             : t(
                                                   'collections.meta.statusInactive',
                                               );

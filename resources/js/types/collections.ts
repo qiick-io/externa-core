@@ -10,9 +10,7 @@ const COLLECTION_COLOR_HEX = /^#[0-9A-Fa-f]{6}$/;
  * Returns a valid `#RRGGBB` collection accent, or null when unset/invalid
  * (list UI falls back to muted theme tokens).
  */
-export function resolveCollectionColor(
-    color?: string | null,
-): string | null {
+export function resolveCollectionColor(color?: string | null): string | null {
     const trimmed = color?.trim();
 
     if (!trimmed || !COLLECTION_COLOR_HEX.test(trimmed)) {

@@ -199,9 +199,7 @@ export default function Profile({
 
                                     <SettingsFormActions
                                         processing={processing}
-                                        recentlySuccessful={
-                                            recentlySuccessful
-                                        }
+                                        recentlySuccessful={recentlySuccessful}
                                         data-test="update-profile-button"
                                     />
                                 </>
@@ -284,9 +282,7 @@ export default function Profile({
                                     <div className="flex items-start gap-3">
                                         <Checkbox
                                             id="sound_notifications_enabled"
-                                            checked={
-                                                soundNotificationsEnabled
-                                            }
+                                            checked={soundNotificationsEnabled}
                                             onCheckedChange={(value) => {
                                                 const enabled = value === true;
                                                 setSoundNotificationsEnabled(
@@ -346,9 +342,7 @@ export default function Profile({
 
                                     <SettingsFormActions
                                         processing={processing}
-                                        recentlySuccessful={
-                                            recentlySuccessful
-                                        }
+                                        recentlySuccessful={recentlySuccessful}
                                         data-test="notification-sounds-save"
                                     />
                                 </>

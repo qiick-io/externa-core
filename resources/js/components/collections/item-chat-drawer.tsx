@@ -3,7 +3,6 @@ import {
     ChevronDown,
     Copy,
     FileText,
-    Loader2,
     MoreVertical,
     Paperclip,
     Pin,
@@ -17,10 +16,8 @@ import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { ChatMediaLightbox } from '@/components/chat/chat-media-lightbox';
-import {
-    ChatOutgoingAttachPreview,
-    type PendingChatMessage,
-} from '@/components/chat/chat-outgoing-attach-preview';
+import { ChatOutgoingAttachPreview } from '@/components/chat/chat-outgoing-attach-preview';
+import type { PendingChatMessage } from '@/components/chat/chat-outgoing-attach-preview';
 import { ChatSendAttachmentsDialog } from '@/components/chat/chat-send-attachments-dialog';
 import type { SendAttachItem } from '@/components/chat/chat-send-attachments-dialog';
 import { ChatThreadHeader } from '@/components/chat/chat-thread-header';
@@ -98,7 +95,6 @@ import type {
     ChatUser,
     ItemChatMessage,
 } from '@/lib/item-chat-api';
-import { applyReactionToggle } from '@/lib/item-chat-reactions';
 import {
     collectionMentionLabel,
     composeBodyForSubmit,
@@ -106,6 +102,7 @@ import {
     mentionQueryAt,
     storedBodyToDraft,
 } from '@/lib/item-chat-mentions';
+import { applyReactionToggle } from '@/lib/item-chat-reactions';
 import { pendingMatchesEchoMessage } from '@/lib/pending-chat-match';
 import { cn } from '@/lib/utils';
 import { useChatStore } from '@/stores/chat/store';
@@ -593,11 +590,7 @@ export function ItemChatDrawer({
                     setError(t('collections.itemChat.error'));
 
                     // Only wipe on cold first-page failure (no cache yet).
-                    if (
-                        !beforeId &&
-                        liveChatIdRef.current &&
-                        cachedLen === 0
-                    ) {
+                    if (!beforeId && liveChatIdRef.current && cachedLen === 0) {
                         setMessagesCache(liveChatIdRef.current, {
                             messages: [],
                             hasMore: false,
@@ -1088,6 +1081,7 @@ export function ItemChatDrawer({
         if (!mentionsEnabled) {
             return;
         }
+
         const { el, value, setValue } = composerTarget();
         const caret = el?.selectionStart ?? value.length;
         const start =
@@ -1271,8 +1265,9 @@ export function ItemChatDrawer({
                     }
 
                     const live =
-                        snapshot.files.find((entry) => entry.key === file.key) ??
-                        file;
+                        snapshot.files.find(
+                            (entry) => entry.key === file.key,
+                        ) ?? file;
 
                     if (live.uploadedId) {
                         attachmentIds.push(live.uploadedId);
@@ -1413,10 +1408,7 @@ export function ItemChatDrawer({
         setReplyTo(null);
         forceScrollBottomRef.current = true;
         // Ref first so pipeline never races setState.
-        pendingMessagesRef.current = [
-            ...pendingMessagesRef.current,
-            pending,
-        ];
+        pendingMessagesRef.current = [...pendingMessagesRef.current, pending];
         setPendingMessages(pendingMessagesRef.current);
         void runPendingPipeline(clientId);
     };
@@ -1475,10 +1467,7 @@ export function ItemChatDrawer({
         setMentionStart(null);
         setEmojiOpen(false);
         forceScrollBottomRef.current = true;
-        pendingMessagesRef.current = [
-            ...pendingMessagesRef.current,
-            pending,
-        ];
+        pendingMessagesRef.current = [...pendingMessagesRef.current, pending];
         setPendingMessages(pendingMessagesRef.current);
         void runPendingPipeline(clientId);
     };
@@ -1624,6 +1613,10 @@ export function ItemChatDrawer({
     };
 
     const onReact = (message: ItemChatMessage, emoji: string): void => {
+        if (!scope) {
+            return;
+        }
+
         const existing = message.reactions.find((row) => row.emoji === emoji);
         const added = !(existing?.reacted ?? false);
         const id = liveChatIdRef.current;
@@ -1675,6 +1668,10 @@ export function ItemChatDrawer({
     };
 
     const onPin = (message: ItemChatMessage): void => {
+        if (!scope) {
+            return;
+        }
+
         const nextPinned = !message.is_pinned;
         void pinMessage(scope, message.id, nextPinned)
             .then((updated) => {
@@ -1733,8 +1730,7 @@ export function ItemChatDrawer({
             key: `${Date.now()}-${index}-${file.name}-${file.size}`,
             file,
             previewUrl:
-                file.type.startsWith('image/') ||
-                file.type.startsWith('video/')
+                file.type.startsWith('image/') || file.type.startsWith('video/')
                     ? URL.createObjectURL(file)
                     : null,
             uploaded: null,
@@ -1865,31 +1861,32 @@ export function ItemChatDrawer({
     const threadShell = (
         <>
             <ChatThreadHeader
-                        thread={thread}
-                        kind={kind}
-                        viewerId={viewerId}
-                        variant={variant}
-                        liveChatId={liveChatId}
-                        notify={notify}
-                        onNotifyChange={(next) => {
-                            setNotify(next);
-                            if (scope) {
-                                void putChatNotify(scope, next).catch(() =>
-                                    setNotify(!next),
-                                );
-                            }
-                        }}
-                        canCreateDirect={canCreateDirect}
-                    />
-                    <div
-                        className="relative flex min-h-0 flex-1 flex-col"
-                        data-test="chat-file-dropzone"
-                        onDragEnter={onComposerDragEnter}
-                        onDragOver={onComposerDragOver}
-                        onDragLeave={onComposerDragLeave}
-                        onDrop={onComposerDrop}
-                    >
-                    <div className="relative flex min-h-0 flex-1 flex-col">
+                thread={thread}
+                kind={kind}
+                viewerId={viewerId}
+                variant={variant}
+                liveChatId={liveChatId}
+                notify={notify}
+                onNotifyChange={(next) => {
+                    setNotify(next);
+
+                    if (scope) {
+                        void putChatNotify(scope, next).catch(() =>
+                            setNotify(!next),
+                        );
+                    }
+                }}
+                canCreateDirect={canCreateDirect}
+            />
+            <div
+                className="relative flex min-h-0 flex-1 flex-col"
+                data-test="chat-file-dropzone"
+                onDragEnter={onComposerDragEnter}
+                onDragOver={onComposerDragOver}
+                onDragLeave={onComposerDragLeave}
+                onDrop={onComposerDrop}
+            >
+                <div className="relative flex min-h-0 flex-1 flex-col">
                     <DrawerBody
                         ref={messagesScrollRef}
                         className="flex flex-col gap-3 pb-8"
@@ -1945,7 +1942,9 @@ export function ItemChatDrawer({
                                             key={row.id}
                                             type="button"
                                             className="flex items-center gap-2 text-left text-xs"
-                                            onClick={() => scrollToMessage(row.id)}
+                                            onClick={() =>
+                                                scrollToMessage(row.id)
+                                            }
                                         >
                                             <Pin className="size-3 shrink-0 text-muted-foreground" />
                                             <span className="min-w-0 truncate">
@@ -2022,9 +2021,12 @@ export function ItemChatDrawer({
                                                     onReply={() => {
                                                         setReplyTo(comment);
                                                         // After ContextMenu close autofocus; run next tick.
-                                                        window.setTimeout(() => {
-                                                            textareaRef.current?.focus();
-                                                        }, 0);
+                                                        window.setTimeout(
+                                                            () => {
+                                                                textareaRef.current?.focus();
+                                                            },
+                                                            0,
+                                                        );
                                                     }}
                                                     onCopy={() =>
                                                         copyMessageText(comment)
@@ -2095,9 +2097,10 @@ export function ItemChatDrawer({
                                                                 const hasMedia =
                                                                     mediaAttachments.length >
                                                                     0;
-                                                                const pad = hasMedia
-                                                                    ? 'px-3'
-                                                                    : undefined;
+                                                                const pad =
+                                                                    hasMedia
+                                                                        ? 'px-3'
+                                                                        : undefined;
                                                                 const onAttachmentSaved =
                                                                     (
                                                                         next: ChatAttachment,
@@ -2105,7 +2108,9 @@ export function ItemChatDrawer({
                                                                         const id =
                                                                             liveChatIdRef.current;
 
-                                                                        if (!id) {
+                                                                        if (
+                                                                            !id
+                                                                        ) {
                                                                             return;
                                                                         }
 
@@ -2507,326 +2512,292 @@ export function ItemChatDrawer({
                             />
                         ))}
                     </DrawerBody>
-                        {!pinnedToBottom || loading || typingLabel ? (
-                            <div
-                                data-test="chat-thread-status"
-                                className="absolute inset-x-0 bottom-2 z-10 flex flex-col items-center gap-1"
-                            >
-                                {!pinnedToBottom ? (
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="secondary"
-                                        className="size-9 rounded-full shadow-md"
-                                        aria-label={t(
-                                            'collections.itemChat.scrollToBottom',
-                                        )}
-                                        onClick={() =>
-                                            scrollToBottom('smooth')
-                                        }
-                                    >
-                                        <ChevronDown className="size-4" />
-                                    </Button>
-                                ) : null}
-                                {loading || typingLabel ? (
-                                    <div className="pointer-events-none flex flex-col items-center gap-1">
-                                        {loading ? (
-                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                <Spinner className="size-4" />
-                                                {t(
-                                                    'collections.itemChat.loading',
-                                                )}
-                                            </div>
-                                        ) : null}
-                                        {typingLabel ? (
-                                            <p className="text-xs text-muted-foreground">
-                                                {typingLabel}
-                                            </p>
-                                        ) : null}
-                                    </div>
-                                ) : null}
-                            </div>
-                        ) : null}
-                    </div>
-                    <DrawerFooter>
-                            {replyTo ? (
-                                <div className="flex items-start gap-2 rounded-md bg-muted/60 px-2 py-1.5">
-                                    <div
-                                        className="min-w-0 flex-1 border-l-2 pl-2 text-xs"
-                                        style={{
-                                            borderColor: avatarColorForId(
-                                                replyTo.user?.id ?? 0,
-                                            ),
-                                        }}
-                                    >
-                                        <div
-                                            className="font-medium"
-                                            style={{
-                                                color: avatarColorForId(
-                                                    replyTo.user?.id ?? 0,
-                                                ),
-                                            }}
-                                        >
-                                            {replyTo.user?.name}
+                    {!pinnedToBottom || loading || typingLabel ? (
+                        <div
+                            data-test="chat-thread-status"
+                            className="absolute inset-x-0 bottom-2 z-10 flex flex-col items-center gap-1"
+                        >
+                            {!pinnedToBottom ? (
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="secondary"
+                                    className="size-9 rounded-full shadow-md"
+                                    aria-label={t(
+                                        'collections.itemChat.scrollToBottom',
+                                    )}
+                                    onClick={() => scrollToBottom('smooth')}
+                                >
+                                    <ChevronDown className="size-4" />
+                                </Button>
+                            ) : null}
+                            {loading || typingLabel ? (
+                                <div className="pointer-events-none flex flex-col items-center gap-1">
+                                    {loading ? (
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <Spinner className="size-4" />
+                                            {t('collections.itemChat.loading')}
                                         </div>
-                                        <div className="truncate text-muted-foreground">
-                                            {storedBodyToDraft(
-                                                replyTo.body,
-                                                replyTo.mentioned_users,
-                                            )}
-                                        </div>
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-6 px-1"
-                                        onClick={() => setReplyTo(null)}
-                                    >
-                                        {t('common.cancel')}
-                                    </Button>
+                                    ) : null}
+                                    {typingLabel ? (
+                                        <p className="text-xs text-muted-foreground">
+                                            {typingLabel}
+                                        </p>
+                                    ) : null}
                                 </div>
                             ) : null}
-                            <div className="relative">
-                                {mentionsEnabled &&
-                                mentionOpen &&
-                                mentionHits.length > 0 &&
-                                !attachDialogOpen ? (
-                                    <div className="absolute inset-x-0 bottom-full z-20 mb-1 max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-md">
-                                        {mentionHits.map((hit, index) => (
-                                            <button
-                                                key={`${hit.type}-${hit.id}`}
-                                                type="button"
-                                                className={
-                                                    index === mentionHighlight
-                                                        ? 'flex w-full flex-col items-start rounded bg-muted px-2 py-1 text-left text-sm'
-                                                        : 'flex w-full flex-col items-start rounded px-2 py-1 text-left text-sm hover:bg-muted'
-                                                }
-                                                onMouseEnter={() =>
-                                                    setMentionHighlight(index)
-                                                }
-                                                onClick={() => pickMention(hit)}
-                                            >
-                                                <span>
-                                                    {hit.type === 'collection'
-                                                        ? collectionMentionLabel(
-                                                              hit,
-                                                          )
-                                                        : hit.name}
-                                                </span>
-                                                {hit.type === 'user' &&
-                                                hit.email ? (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {hit.email}
-                                                    </span>
-                                                ) : hit.type ===
-                                                  'collection' ? (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        collection
-                                                    </span>
-                                                ) : null}
-                                            </button>
-                                        ))}
-                                    </div>
-                                ) : null}
-                                <Textarea
-                                    ref={textareaRef}
-                                    value={draft}
-                                    rows={3}
-                                    placeholder={t(
-                                        'collections.itemChat.placeholder',
-                                    )}
-                                    data-test="item-chat-composer"
-                                    onChange={(event) =>
-                                        onComposerChange(
-                                            event.target.value,
-                                            event.target.selectionStart,
-                                        )
-                                    }
-                                    onKeyDown={(event) => {
-                                        if (event.nativeEvent.isComposing) {
-                                            return;
-                                        }
-
-                                        if (
-                                            mentionsEnabled &&
-                                            mentionOpen &&
-                                            mentionHits.length > 0
-                                        ) {
-                                            if (event.key === 'ArrowDown') {
-                                                event.preventDefault();
-                                                setMentionHighlight(
-                                                    (index) =>
-                                                        (index + 1) %
-                                                        mentionHits.length,
-                                                );
-
-                                                return;
-                                            }
-
-                                            if (event.key === 'ArrowUp') {
-                                                event.preventDefault();
-                                                setMentionHighlight(
-                                                    (index) =>
-                                                        (index -
-                                                            1 +
-                                                            mentionHits.length) %
-                                                        mentionHits.length,
-                                                );
-
-                                                return;
-                                            }
-
-                                            if (
-                                                event.key === 'Enter' &&
-                                                !event.shiftKey &&
-                                                !event.metaKey &&
-                                                !event.ctrlKey
-                                            ) {
-                                                event.preventDefault();
-                                                pickMention(
-                                                    mentionHits[
-                                                        mentionHighlight
-                                                    ]!,
-                                                );
-
-                                                return;
-                                            }
-
-                                            if (event.key === 'Escape') {
-                                                event.preventDefault();
-                                                setMentionOpen(false);
-                                                setMentionStart(null);
-
-                                                return;
-                                            }
-                                        }
-
-                                        if (
-                                            event.key === 'Enter' &&
-                                            event.shiftKey
-                                        ) {
-                                            return;
-                                        }
-
-                                        if (
-                                            event.key === ' ' &&
-                                            event.shiftKey
-                                        ) {
-                                            event.preventDefault();
-                                            insertAtCaret('\n');
-
-                                            return;
-                                        }
-
-                                        if (event.key === 'Enter') {
-                                            event.preventDefault();
-                                            send();
-                                        }
+                        </div>
+                    ) : null}
+                </div>
+                <DrawerFooter>
+                    {replyTo ? (
+                        <div className="flex items-start gap-2 rounded-md bg-muted/60 px-2 py-1.5">
+                            <div
+                                className="min-w-0 flex-1 border-l-2 pl-2 text-xs"
+                                style={{
+                                    borderColor: avatarColorForId(
+                                        replyTo.user?.id ?? 0,
+                                    ),
+                                }}
+                            >
+                                <div
+                                    className="font-medium"
+                                    style={{
+                                        color: avatarColorForId(
+                                            replyTo.user?.id ?? 0,
+                                        ),
                                     }}
-                                />
-                            </div>
-                            <div className="flex items-center gap-1">
-                                {mentionsEnabled ? (
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="ghost"
-                                        aria-label={t(
-                                            'collections.itemChat.mention',
-                                        )}
-                                        onClick={insertMentionTrigger}
-                                    >
-                                        @
-                                    </Button>
-                                ) : null}
-                                <Popover
-                                    open={emojiOpen}
-                                    onOpenChange={setEmojiOpen}
                                 >
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            type="button"
-                                            size="icon"
-                                            variant="ghost"
-                                            aria-label={t(
-                                                'collections.itemChat.emoji',
-                                            )}
-                                        >
-                                            <Smile className="size-4" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent
-                                        className="w-64 p-2"
-                                        align="start"
+                                    {replyTo.user?.name}
+                                </div>
+                                <div className="truncate text-muted-foreground">
+                                    {storedBodyToDraft(
+                                        replyTo.body,
+                                        replyTo.mentioned_users,
+                                    )}
+                                </div>
+                            </div>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-1"
+                                onClick={() => setReplyTo(null)}
+                            >
+                                {t('common.cancel')}
+                            </Button>
+                        </div>
+                    ) : null}
+                    <div className="relative">
+                        {mentionsEnabled &&
+                        mentionOpen &&
+                        mentionHits.length > 0 &&
+                        !attachDialogOpen ? (
+                            <div className="absolute inset-x-0 bottom-full z-20 mb-1 max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-md">
+                                {mentionHits.map((hit, index) => (
+                                    <button
+                                        key={`${hit.type}-${hit.id}`}
+                                        type="button"
+                                        className={
+                                            index === mentionHighlight
+                                                ? 'flex w-full flex-col items-start rounded bg-muted px-2 py-1 text-left text-sm'
+                                                : 'flex w-full flex-col items-start rounded px-2 py-1 text-left text-sm hover:bg-muted'
+                                        }
+                                        onMouseEnter={() =>
+                                            setMentionHighlight(index)
+                                        }
+                                        onClick={() => pickMention(hit)}
                                     >
-                                        <div className="grid grid-cols-8 gap-1">
-                                            {EMOJI_GRID.map((emoji) => (
-                                                <button
-                                                    key={emoji}
-                                                    type="button"
-                                                    className="rounded p-1 text-lg hover:bg-muted"
-                                                    onClick={() => {
-                                                        insertAtCaret(emoji);
-                                                        setEmojiOpen(false);
-                                                    }}
-                                                >
-                                                    {emoji}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
+                                        <span>
+                                            {hit.type === 'collection'
+                                                ? collectionMentionLabel(hit)
+                                                : hit.name}
+                                        </span>
+                                        {hit.type === 'user' && hit.email ? (
+                                            <span className="text-xs text-muted-foreground">
+                                                {hit.email}
+                                            </span>
+                                        ) : hit.type === 'collection' ? (
+                                            <span className="text-xs text-muted-foreground">
+                                                collection
+                                            </span>
+                                        ) : null}
+                                    </button>
+                                ))}
+                            </div>
+                        ) : null}
+                        <Textarea
+                            ref={textareaRef}
+                            value={draft}
+                            rows={3}
+                            placeholder={t('collections.itemChat.placeholder')}
+                            data-test="item-chat-composer"
+                            onChange={(event) =>
+                                onComposerChange(
+                                    event.target.value,
+                                    event.target.selectionStart,
+                                )
+                            }
+                            onKeyDown={(event) => {
+                                if (event.nativeEvent.isComposing) {
+                                    return;
+                                }
+
+                                if (
+                                    mentionsEnabled &&
+                                    mentionOpen &&
+                                    mentionHits.length > 0
+                                ) {
+                                    if (event.key === 'ArrowDown') {
+                                        event.preventDefault();
+                                        setMentionHighlight(
+                                            (index) =>
+                                                (index + 1) %
+                                                mentionHits.length,
+                                        );
+
+                                        return;
+                                    }
+
+                                    if (event.key === 'ArrowUp') {
+                                        event.preventDefault();
+                                        setMentionHighlight(
+                                            (index) =>
+                                                (index -
+                                                    1 +
+                                                    mentionHits.length) %
+                                                mentionHits.length,
+                                        );
+
+                                        return;
+                                    }
+
+                                    if (
+                                        event.key === 'Enter' &&
+                                        !event.shiftKey &&
+                                        !event.metaKey &&
+                                        !event.ctrlKey
+                                    ) {
+                                        event.preventDefault();
+                                        pickMention(
+                                            mentionHits[mentionHighlight]!,
+                                        );
+
+                                        return;
+                                    }
+
+                                    if (event.key === 'Escape') {
+                                        event.preventDefault();
+                                        setMentionOpen(false);
+                                        setMentionStart(null);
+
+                                        return;
+                                    }
+                                }
+
+                                if (event.key === 'Enter' && event.shiftKey) {
+                                    return;
+                                }
+
+                                if (event.key === ' ' && event.shiftKey) {
+                                    event.preventDefault();
+                                    insertAtCaret('\n');
+
+                                    return;
+                                }
+
+                                if (event.key === 'Enter') {
+                                    event.preventDefault();
+                                    send();
+                                }
+                            }}
+                        />
+                    </div>
+                    <div className="flex items-center gap-1">
+                        {mentionsEnabled ? (
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                aria-label={t('collections.itemChat.mention')}
+                                onClick={insertMentionTrigger}
+                            >
+                                @
+                            </Button>
+                        ) : null}
+                        <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+                            <PopoverTrigger asChild>
                                 <Button
                                     type="button"
                                     size="icon"
                                     variant="ghost"
-                                    aria-label={t(
-                                        'collections.itemChat.attach',
-                                    )}
-                                    onClick={() =>
-                                        fileInputRef.current?.click()
-                                    }
+                                    aria-label={t('collections.itemChat.emoji')}
                                 >
-                                    <Paperclip className="size-4" />
+                                    <Smile className="size-4" />
                                 </Button>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    className="hidden"
-                                    multiple
-                                    onChange={(event) => {
-                                        onPickFiles(event.target.files);
-                                        event.target.value = '';
-                                    }}
-                                />
-                                <Button
-                                    type="button"
-                                    className="ml-auto"
-                                    disabled={
-                                        draft.trim() === '' || attachDialogOpen
-                                    }
-                                    aria-label={t('collections.itemChat.send')}
-                                    onClick={send}
-                                    data-test="item-chat-send"
-                                >
-                                    <Send className="size-4" />
-                                    {t('collections.itemChat.send')}
-                                </Button>
-                            </div>
-                    </DrawerFooter>
-                            {composerDragOver ? (
-                                <div
-                                    className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-primary bg-primary/10"
-                                    aria-hidden
-                                >
-                                    <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm font-medium shadow-lg">
-                                        <Paperclip className="size-4" />
-                                        {t('collections.itemChat.dropToAttach')}
-                                    </div>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64 p-2" align="start">
+                                <div className="grid grid-cols-8 gap-1">
+                                    {EMOJI_GRID.map((emoji) => (
+                                        <button
+                                            key={emoji}
+                                            type="button"
+                                            className="rounded p-1 text-lg hover:bg-muted"
+                                            onClick={() => {
+                                                insertAtCaret(emoji);
+                                                setEmojiOpen(false);
+                                            }}
+                                        >
+                                            {emoji}
+                                        </button>
+                                    ))}
                                 </div>
-                            ) : null}
+                            </PopoverContent>
+                        </Popover>
+                        <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            aria-label={t('collections.itemChat.attach')}
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            <Paperclip className="size-4" />
+                        </Button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            className="hidden"
+                            multiple
+                            onChange={(event) => {
+                                onPickFiles(event.target.files);
+                                event.target.value = '';
+                            }}
+                        />
+                        <Button
+                            type="button"
+                            className="ml-auto"
+                            disabled={draft.trim() === '' || attachDialogOpen}
+                            aria-label={t('collections.itemChat.send')}
+                            onClick={send}
+                            data-test="item-chat-send"
+                        >
+                            <Send className="size-4" />
+                            {t('collections.itemChat.send')}
+                        </Button>
                     </div>
+                </DrawerFooter>
+                {composerDragOver ? (
+                    <div
+                        className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-primary bg-primary/10"
+                        aria-hidden
+                    >
+                        <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm font-medium shadow-lg">
+                            <Paperclip className="size-4" />
+                            {t('collections.itemChat.dropToAttach')}
+                        </div>
+                    </div>
+                ) : null}
+            </div>
         </>
     );
 
@@ -3054,9 +3025,7 @@ function ChatMediaGallery({
                                             target="_blank"
                                             rel="noreferrer"
                                         >
-                                            {t(
-                                                'collections.itemChat.download',
-                                            )}
+                                            {t('collections.itemChat.download')}
                                         </a>
                                     </DropdownMenuItem>
                                     {canCreateFiles ? (
@@ -3066,9 +3035,7 @@ function ChatMediaGallery({
                                                     scope,
                                                     attachment.id,
                                                 ).then((payload) =>
-                                                    onSaved(
-                                                        payload.attachment,
-                                                    ),
+                                                    onSaved(payload.attachment),
                                                 );
                                             }}
                                         >

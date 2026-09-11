@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
-import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { FileDropzone } from '@/components/admin/file-dropzone';
 import { FileNameDialog } from '@/components/admin/file-name-dialog';
 import { FileUploadIndicator } from '@/components/admin/file-upload-indicator';
@@ -27,6 +26,7 @@ import { FolderPickerDialog } from '@/components/admin/files/folder-picker-dialo
 import { TagFilterPopover } from '@/components/admin/files/tag-filter-popover';
 import { TagPicker } from '@/components/admin/files/tag-picker';
 import { useFilesSelection } from '@/components/admin/files/use-files-selection';
+import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
@@ -1282,7 +1282,14 @@ export default function AdminFilesIndex({
                 );
             }
         },
-        [parentId, refreshPage, selection, trackPendingDuplication, trackPendingZip, openFileDetails],
+        [
+            parentId,
+            refreshPage,
+            selection,
+            trackPendingDuplication,
+            trackPendingZip,
+            openFileDetails,
+        ],
     );
 
     const executePendingDestructive = async (): Promise<void> => {
@@ -1329,8 +1336,7 @@ export default function AdminFilesIndex({
     };
 
     const destructiveCount = pendingDestructive?.targets.length ?? 0;
-    const destructiveIsForce =
-        pendingDestructive?.action === 'force_delete';
+    const destructiveIsForce = pendingDestructive?.action === 'force_delete';
 
     const resetBulkTagDialog = (): void => {
         setBulkTags([]);

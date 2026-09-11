@@ -26,7 +26,9 @@ function directoryInitials(row: ChatDirectoryRow): string {
     if (row.type === 'user') {
         const fromParts = getInitialsFromParts(row.first_name, row.last_name);
 
-        return fromParts !== '' ? fromParts : row.name.slice(0, 2).toUpperCase();
+        return fromParts !== ''
+            ? fromParts
+            : row.name.slice(0, 2).toUpperCase();
     }
 
     const parts = row.name.trim().split(/\s+/).filter(Boolean);
@@ -193,6 +195,7 @@ export function ChatUsersDrawer({
                                         )}
                                         onClick={(event) => {
                                             event.preventDefault();
+
                                             if (alreadyIn) {
                                                 return;
                                             }
@@ -240,11 +243,7 @@ export function ChatUsersDrawer({
                             className="mt-3 w-full"
                             disabled={loading || loadingMore}
                             onClick={() =>
-                                loadPage(
-                                    (meta.current_page ?? 1) + 1,
-                                    true,
-                                    q,
-                                )
+                                loadPage((meta.current_page ?? 1) + 1, true, q)
                             }
                         >
                             {loadingMore

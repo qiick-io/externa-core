@@ -50,11 +50,23 @@ function isEmpty(value: unknown): boolean {
 }
 
 function asLooseBoolean(value: unknown): boolean | null {
-    if (value === true || value === 1 || value === '1' || value === 'true' || value === 'on') {
+    if (
+        value === true ||
+        value === 1 ||
+        value === '1' ||
+        value === 'true' ||
+        value === 'on'
+    ) {
         return true;
     }
 
-    if (value === false || value === 0 || value === '0' || value === 'false' || value === 'off') {
+    if (
+        value === false ||
+        value === 0 ||
+        value === '0' ||
+        value === 'false' ||
+        value === 'off'
+    ) {
         return false;
     }
 

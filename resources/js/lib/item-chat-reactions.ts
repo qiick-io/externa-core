@@ -52,6 +52,7 @@ export function applyReactionToggle(
     }
 
     const users = next[index]!.users.filter((user) => user.id !== actor.id);
+
     if (users.length === 0) {
         next.splice(index, 1);
     } else {

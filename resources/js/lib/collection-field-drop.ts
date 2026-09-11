@@ -4,7 +4,8 @@
  */
 
 export type FieldDropIntent = 'before' | 'after';
-export type FieldDropLayoutIntent = 'below-new-row' | 'beside' | 'into-group' | null;
+export type FieldDropLayoutIntent =
+    'below-new-row' | 'beside' | 'into-group' | null;
 
 /**
  * @param oldIndex - Index of the dragged field

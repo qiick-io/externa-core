@@ -43,7 +43,8 @@ export function CommonAdvancedSettings({
                         onChange={(event) =>
                             onChange((current) => ({
                                 ...current,
-                                layoutWidth: event.target.value as typeof current.layoutWidth,
+                                layoutWidth: event.target
+                                    .value as typeof current.layoutWidth,
                             }))
                         }
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
@@ -57,18 +58,18 @@ export function CommonAdvancedSettings({
                 </div>
             )}
             {!isGroup && (
-            <SettingCheckbox
-                id="field_starts_new_row"
-                label="Start new row"
-                description="Force this field to begin on a new row in the form layout."
-                checked={settings.layoutStartsNewRow}
-                onCheckedChange={(checked) =>
-                    onChange((current) => ({
-                        ...current,
-                        layoutStartsNewRow: checked,
-                    }))
-                }
-            />
+                <SettingCheckbox
+                    id="field_starts_new_row"
+                    label="Start new row"
+                    description="Force this field to begin on a new row in the form layout."
+                    checked={settings.layoutStartsNewRow}
+                    onCheckedChange={(checked) =>
+                        onChange((current) => ({
+                            ...current,
+                            layoutStartsNewRow: checked,
+                        }))
+                    }
+                />
             )}
             <SettingCheckbox
                 id="field_required"

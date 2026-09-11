@@ -318,10 +318,7 @@ export function TextNumbersSettings({
         return (
             <ApiAutocompleteSettingsPanel
                 settings={apiSettings}
-                onChange={
-                    onApiAutocompleteSettingsChange ??
-                    (() => undefined)
-                }
+                onChange={onApiAutocompleteSettingsChange ?? (() => undefined)}
             />
         );
     }
@@ -438,8 +435,9 @@ function ApiAutocompleteSettingsPanel({
                     placeholder="/demo/cities?q={{value}}"
                 />
                 <p className="text-xs text-muted-foreground">
-                    Use {'{{value}}'} as the search term placeholder. Same-origin
-                    URLs avoid CORS (e.g. /demo/cities?q={'{{value}}'}).
+                    Use {'{{value}}'} as the search term placeholder.
+                    Same-origin URLs avoid CORS (e.g. /demo/cities?q=
+                    {'{{value}}'}).
                 </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">

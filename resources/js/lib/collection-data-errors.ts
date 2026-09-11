@@ -85,7 +85,9 @@ export function getFieldError(
         return errors[dataKey] as string;
     }
 
-    const dataPattern = new RegExp(`^data\\.${fieldName.replace('.', '\\.')}(\\.|$)`);
+    const dataPattern = new RegExp(
+        `^data\\.${fieldName.replace('.', '\\.')}(\\.|$)`,
+    );
 
     for (const [key, value] of Object.entries(errors)) {
         if (dataPattern.test(key) && typeof value === 'string') {

@@ -210,67 +210,63 @@ function FileFieldEmptyDropzone({
                     <Loader2 className="size-6 animate-spin text-muted-foreground" />
                 ) : (
                     <div className="flex items-center gap-3">
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        type="button"
-                                        className={actionButtonClass}
-                                        disabled={busy}
-                                        aria-label={t(
-                                            'collections.fileField.uploadFromComputer',
-                                        )}
-                                        onClick={() => inputRef.current?.click()}
-                                    >
-                                        <Upload className="size-4" />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {t(
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    type="button"
+                                    className={actionButtonClass}
+                                    disabled={busy}
+                                    aria-label={t(
                                         'collections.fileField.uploadFromComputer',
                                     )}
-                                </TooltipContent>
-                            </Tooltip>
+                                    onClick={() => inputRef.current?.click()}
+                                >
+                                    <Upload className="size-4" />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {t('collections.fileField.uploadFromComputer')}
+                            </TooltipContent>
+                        </Tooltip>
 
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        type="button"
-                                        className={actionButtonClass}
-                                        disabled={busy}
-                                        aria-label={t(
-                                            'collections.fileField.chooseFromLibrary',
-                                        )}
-                                        onClick={onPickLibrary}
-                                    >
-                                        <FolderOpen className="size-4" />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {t(
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    type="button"
+                                    className={actionButtonClass}
+                                    disabled={busy}
+                                    aria-label={t(
                                         'collections.fileField.chooseFromLibrary',
                                     )}
-                                </TooltipContent>
-                            </Tooltip>
+                                    onClick={onPickLibrary}
+                                >
+                                    <FolderOpen className="size-4" />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {t('collections.fileField.chooseFromLibrary')}
+                            </TooltipContent>
+                        </Tooltip>
 
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        type="button"
-                                        className={actionButtonClass}
-                                        disabled={busy}
-                                        aria-label={t(
-                                            'collections.fileField.importFromUrl',
-                                        )}
-                                        onClick={() => setUrlOpen(true)}
-                                    >
-                                        <Link2 className="size-4" />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {t('collections.fileField.importFromUrl')}
-                                </TooltipContent>
-                            </Tooltip>
-                        </div>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    type="button"
+                                    className={actionButtonClass}
+                                    disabled={busy}
+                                    aria-label={t(
+                                        'collections.fileField.importFromUrl',
+                                    )}
+                                    onClick={() => setUrlOpen(true)}
+                                >
+                                    <Link2 className="size-4" />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {t('collections.fileField.importFromUrl')}
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
                 )}
 
                 <p className="text-sm text-muted-foreground">
@@ -332,7 +328,7 @@ function SingleImageFilledPreview({
                     <div className="absolute inset-0 bg-muted" />
                 )}
 
-                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100">
                     <div className="absolute inset-0 bg-black/50" />
                     <div className="absolute inset-0 z-10 flex items-center justify-center gap-2">
                         {publicUrl ? (
@@ -341,7 +337,9 @@ function SingleImageFilledPreview({
                                     <button
                                         type="button"
                                         className={imageHoverActionClass}
-                                        aria-label={t('collections.fileField.preview')}
+                                        aria-label={t(
+                                            'collections.fileField.preview',
+                                        )}
                                         onClick={() => setLightboxOpen(true)}
                                     >
                                         <ZoomIn className="size-4" />
@@ -358,7 +356,9 @@ function SingleImageFilledPreview({
                                 <a
                                     className={imageHoverActionClass}
                                     href={downloadFileUrl(fileId)}
-                                    aria-label={t('collections.fileField.download')}
+                                    aria-label={t(
+                                        'collections.fileField.download',
+                                    )}
                                 >
                                     <Download className="size-4" />
                                 </a>
@@ -569,7 +569,9 @@ export function FileFieldInput({
                                     variant="ghost"
                                     size="icon"
                                     className="size-8"
-                                    aria-label={t('collections.fileField.clear')}
+                                    aria-label={t(
+                                        'collections.fileField.clear',
+                                    )}
                                     onClick={clear}
                                 >
                                     <X className="size-4" />

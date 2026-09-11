@@ -41,9 +41,9 @@ export function canNestFieldIntoGroup(
  * @param field - Field definition
  * @returns Parent field name from settings.group, or null
  */
-export function getFieldGroupName(
-    field: { settings?: Record<string, unknown> | null },
-): string | null {
+export function getFieldGroupName(field: {
+    settings?: Record<string, unknown> | null;
+}): string | null {
     const group = field.settings?.group;
 
     if (typeof group === 'string' && group.trim() !== '') {
@@ -348,7 +348,8 @@ function fieldIsUnderGroupName<
     groups: Map<number, string | null>,
     byName: Map<string, T>,
 ): boolean {
-    let cursor: string | null = groups.get(field.id) ?? getFieldGroupName(field);
+    let cursor: string | null =
+        groups.get(field.id) ?? getFieldGroupName(field);
 
     for (let depth = 0; depth < 32 && cursor !== null; depth += 1) {
         if (cursor === groupName) {
@@ -390,8 +391,7 @@ export function moveSameParentSiblingBlock<
         return fields;
     }
 
-    const parentName =
-        groups.get(activeId) ?? getFieldGroupName(activeField);
+    const parentName = groups.get(activeId) ?? getFieldGroupName(activeField);
     const byName = new Map(fields.map((field) => [field.name, field]));
     const subtreeIds = new Set<number>([activeId]);
 

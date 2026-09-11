@@ -13,7 +13,7 @@ const EMPTY_COLLECTION_FORM = {
     name: '',
     slug: '',
     description: '',
-    status: 'active' as const,
+    status: 'active' as 'active' | 'inactive',
     icon: '',
     color: '',
     is_singleton: false,

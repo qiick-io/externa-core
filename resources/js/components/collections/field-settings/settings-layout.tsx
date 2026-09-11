@@ -108,12 +108,7 @@ export function SettingCheckbox(props: SettingCheckboxProps) {
         );
 
     return (
-        <div
-            className={cn(
-                'flex items-start gap-4',
-                disabled && 'opacity-80',
-            )}
-        >
+        <div className={cn('flex items-start gap-4', disabled && 'opacity-80')}>
             {disabled && disabledReason ? (
                 <Tooltip>
                     <TooltipTrigger asChild>
@@ -134,9 +129,7 @@ export function SettingCheckbox(props: SettingCheckboxProps) {
                     {label}
                 </Label>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                    {disabled && disabledReason
-                        ? disabledReason
-                        : description}
+                    {disabled && disabledReason ? disabledReason : description}
                 </p>
             </div>
         </div>

@@ -102,10 +102,11 @@ export function GroupsSettings({
                     </select>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                    Sections are typically Raw groups nested under this accordion
-                    (two empty ones are created automatically). Use Add section on
-                    the accordion, or nest any field — including leaves — directly
-                    (Directus: leaf children become accordion panels).
+                    Sections are typically Raw groups nested under this
+                    accordion (two empty ones are created automatically). Use
+                    Add section on the accordion, or nest any field — including
+                    leaves — directly (Directus: leaf children become accordion
+                    panels).
                 </p>
             </div>
         );
@@ -153,9 +154,9 @@ export function GroupsSettings({
                 />
                 <p className="text-sm text-muted-foreground">
                     Tab panels are typically Raw groups nested under this tabs
-                    group (two empty ones are created automatically). Use Add tab,
-                    or nest any field — including leaves — directly (Directus: leaf
-                    children become tabs).
+                    group (two empty ones are created automatically). Use Add
+                    tab, or nest any field — including leaves — directly
+                    (Directus: leaf children become tabs).
                 </p>
             </div>
         );

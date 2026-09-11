@@ -23,7 +23,7 @@ export function SidebarUnreadBadge({
         <span
             data-test={dataTest}
             className={cn(
-                'absolute top-1/2 right-2 flex h-5 min-w-5 -translate-y-1/2 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-semibold leading-none text-white tabular-nums',
+                'absolute top-1/2 right-2 flex h-5 min-w-5 -translate-y-1/2 items-center justify-center rounded-full bg-red-500 px-1 text-xs leading-none font-semibold text-white tabular-nums',
                 'group-data-[collapsible=icon]:right-1',
                 className,
             )}

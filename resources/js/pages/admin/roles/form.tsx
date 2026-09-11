@@ -678,307 +678,221 @@ export default function AdminRoleForm({
                                         <tbody>
                                             {filteredCollections.map(
                                                 (collection) => {
-                                                const key = String(
-                                                    collection.id,
-                                                );
-                                                const row = form.data
-                                                    .collection_permissions[
-                                                    key
-                                                ] ?? {
-                                                    create: false,
-                                                    read: false,
-                                                    update: false,
-                                                    delete: false,
-                                                    rules: emptyRules(),
-                                                };
-                                                const anyGrant =
-                                                    row.create ||
-                                                    row.read ||
-                                                    row.update ||
-                                                    row.delete;
-                                                const rules =
-                                                    row.rules ?? emptyRules();
-                                                const filterRules =
-                                                    rules.item_filter?.rules ??
-                                                    [];
-                                                const fieldOptions =
-                                                    collection.fields ?? [];
+                                                    const key = String(
+                                                        collection.id,
+                                                    );
+                                                    const row = form.data
+                                                        .collection_permissions[
+                                                        key
+                                                    ] ?? {
+                                                        create: false,
+                                                        read: false,
+                                                        update: false,
+                                                        delete: false,
+                                                        rules: emptyRules(),
+                                                    };
+                                                    const anyGrant =
+                                                        row.create ||
+                                                        row.read ||
+                                                        row.update ||
+                                                        row.delete;
+                                                    const rules =
+                                                        row.rules ??
+                                                        emptyRules();
+                                                    const filterRules =
+                                                        rules.item_filter
+                                                            ?.rules ?? [];
+                                                    const fieldOptions =
+                                                        collection.fields ?? [];
 
-                                                return (
-                                                    <Fragment
-                                                        key={collection.id}
-                                                    >
-                                                        <tr className="border-b last:border-0">
-                                                            <td className="px-3 py-2">
-                                                                <div className="font-medium">
-                                                                    {
-                                                                        collection.name
-                                                                    }
-                                                                </div>
-                                                                <div className="text-xs text-muted-foreground">
-                                                                    {
-                                                                        collection.slug
-                                                                    }
-                                                                </div>
-                                                            </td>
-                                                            {COLLECTION_ACTIONS.map(
-                                                                (action) => {
-                                                                    const allowed =
-                                                                        row[
-                                                                            action
-                                                                                .key
-                                                                        ];
-
-                                                                    return (
-                                                                        <td
-                                                                            key={
-                                                                                action.key
-                                                                            }
-                                                                            className="px-2 py-2 text-center"
-                                                                        >
-                                                                            <button
-                                                                                type="button"
-                                                                                aria-pressed={
-                                                                                    allowed
-                                                                                }
-                                                                                aria-label={`${action.label} for ${collection.name}: ${allowed ? 'allowed' : 'denied'}`}
-                                                                                title={`${action.label}: ${allowed ? 'Allowed' : 'Denied'}`}
-                                                                                className={cn(
-                                                                                    'inline-flex size-8 items-center justify-center rounded-md border transition-colors',
-                                                                                    allowed
-                                                                                        ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                                                                        : 'border-destructive/50 bg-destructive/10 text-destructive',
-                                                                                )}
-                                                                                onClick={() =>
-                                                                                    toggleCollectionAction(
-                                                                                        collection.id,
-                                                                                        action.key,
-                                                                                        !allowed,
-                                                                                    )
-                                                                                }
-                                                                            >
-                                                                                {allowed ? (
-                                                                                    <Check
-                                                                                        className="size-4"
-                                                                                        strokeWidth={
-                                                                                            2.5
-                                                                                        }
-                                                                                        aria-hidden
-                                                                                    />
-                                                                                ) : (
-                                                                                    <X
-                                                                                        className="size-4"
-                                                                                        strokeWidth={
-                                                                                            2.5
-                                                                                        }
-                                                                                        aria-hidden
-                                                                                    />
-                                                                                )}
-                                                                            </button>
-                                                                        </td>
-                                                                    );
-                                                                },
-                                                            )}
-                                                        </tr>
-                                                        {anyGrant &&
-                                                        fieldOptions.length >
-                                                            0 ? (
-                                                            <tr
-                                                                key={`${collection.id}-rules`}
-                                                                className="border-b bg-muted/20 last:border-0"
-                                                            >
-                                                                <td
-                                                                    colSpan={5}
-                                                                    className="space-y-3 px-3 py-3"
-                                                                >
-                                                                    <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                                                        Fields &
-                                                                        item
-                                                                        filter
+                                                    return (
+                                                        <Fragment
+                                                            key={collection.id}
+                                                        >
+                                                            <tr className="border-b last:border-0">
+                                                                <td className="px-3 py-2">
+                                                                    <div className="font-medium">
+                                                                        {
+                                                                            collection.name
+                                                                        }
                                                                     </div>
-                                                                    <div className="grid gap-3 sm:grid-cols-2">
-                                                                        {fieldOptions.map(
-                                                                            (
-                                                                                field,
-                                                                            ) => {
-                                                                                const flags =
-                                                                                    rules
-                                                                                        .fields[
-                                                                                        field
-                                                                                            .name
-                                                                                    ] ??
-                                                                                    defaultFieldFlags();
+                                                                    <div className="text-xs text-muted-foreground">
+                                                                        {
+                                                                            collection.slug
+                                                                        }
+                                                                    </div>
+                                                                </td>
+                                                                {COLLECTION_ACTIONS.map(
+                                                                    (
+                                                                        action,
+                                                                    ) => {
+                                                                        const allowed =
+                                                                            row[
+                                                                                action
+                                                                                    .key
+                                                                            ];
 
-                                                                                return (
+                                                                        return (
+                                                                            <td
+                                                                                key={
+                                                                                    action.key
+                                                                                }
+                                                                                className="px-2 py-2 text-center"
+                                                                            >
+                                                                                <button
+                                                                                    type="button"
+                                                                                    aria-pressed={
+                                                                                        allowed
+                                                                                    }
+                                                                                    aria-label={`${action.label} for ${collection.name}: ${allowed ? 'allowed' : 'denied'}`}
+                                                                                    title={`${action.label}: ${allowed ? 'Allowed' : 'Denied'}`}
+                                                                                    className={cn(
+                                                                                        'inline-flex size-8 items-center justify-center rounded-md border transition-colors',
+                                                                                        allowed
+                                                                                            ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                                                                            : 'border-destructive/50 bg-destructive/10 text-destructive',
+                                                                                    )}
+                                                                                    onClick={() =>
+                                                                                        toggleCollectionAction(
+                                                                                            collection.id,
+                                                                                            action.key,
+                                                                                            !allowed,
+                                                                                        )
+                                                                                    }
+                                                                                >
+                                                                                    {allowed ? (
+                                                                                        <Check
+                                                                                            className="size-4"
+                                                                                            strokeWidth={
+                                                                                                2.5
+                                                                                            }
+                                                                                            aria-hidden
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <X
+                                                                                            className="size-4"
+                                                                                            strokeWidth={
+                                                                                                2.5
+                                                                                            }
+                                                                                            aria-hidden
+                                                                                        />
+                                                                                    )}
+                                                                                </button>
+                                                                            </td>
+                                                                        );
+                                                                    },
+                                                                )}
+                                                            </tr>
+                                                            {anyGrant &&
+                                                            fieldOptions.length >
+                                                                0 ? (
+                                                                <tr
+                                                                    key={`${collection.id}-rules`}
+                                                                    className="border-b bg-muted/20 last:border-0"
+                                                                >
+                                                                    <td
+                                                                        colSpan={
+                                                                            5
+                                                                        }
+                                                                        className="space-y-3 px-3 py-3"
+                                                                    >
+                                                                        <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                                                            Fields
+                                                                            &
+                                                                            item
+                                                                            filter
+                                                                        </div>
+                                                                        <div className="grid gap-3 sm:grid-cols-2">
+                                                                            {fieldOptions.map(
+                                                                                (
+                                                                                    field,
+                                                                                ) => {
+                                                                                    const flags =
+                                                                                        rules
+                                                                                            .fields[
+                                                                                            field
+                                                                                                .name
+                                                                                        ] ??
+                                                                                        defaultFieldFlags();
+
+                                                                                    return (
+                                                                                        <div
+                                                                                            key={
+                                                                                                field.name
+                                                                                            }
+                                                                                            className="grid grid-cols-[minmax(0,1fr)_4.5rem_5rem_5rem] items-center gap-x-3 rounded-md border border-sidebar-border/60 px-3 py-2.5 text-xs"
+                                                                                        >
+                                                                                            <span
+                                                                                                className="min-w-0 truncate font-medium"
+                                                                                                title={
+                                                                                                    field.name
+                                                                                                }
+                                                                                            >
+                                                                                                {
+                                                                                                    field.name
+                                                                                                }
+                                                                                            </span>
+                                                                                            {FIELD_ACTIONS.map(
+                                                                                                (
+                                                                                                    action,
+                                                                                                ) => (
+                                                                                                    <label
+                                                                                                        key={
+                                                                                                            action.key
+                                                                                                        }
+                                                                                                        className="flex items-center gap-1.5 whitespace-nowrap"
+                                                                                                    >
+                                                                                                        <Checkbox
+                                                                                                            checked={
+                                                                                                                flags[
+                                                                                                                    action
+                                                                                                                        .key
+                                                                                                                ]
+                                                                                                            }
+                                                                                                            onCheckedChange={(
+                                                                                                                c,
+                                                                                                            ) =>
+                                                                                                                setFieldFlag(
+                                                                                                                    collection.id,
+                                                                                                                    field.name,
+                                                                                                                    action.key,
+                                                                                                                    c ===
+                                                                                                                        true,
+                                                                                                                )
+                                                                                                            }
+                                                                                                        />
+                                                                                                        {
+                                                                                                            action.label
+                                                                                                        }
+                                                                                                    </label>
+                                                                                                ),
+                                                                                            )}
+                                                                                        </div>
+                                                                                    );
+                                                                                },
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="space-y-2">
+                                                                            <div className="text-xs font-medium text-muted-foreground">
+                                                                                Item
+                                                                                filter
+                                                                                (AND)
+                                                                            </div>
+                                                                            {filterRules.map(
+                                                                                (
+                                                                                    rule,
+                                                                                    index,
+                                                                                ) => (
                                                                                     <div
                                                                                         key={
-                                                                                            field.name
+                                                                                            index
                                                                                         }
-                                                                                        className="grid grid-cols-[minmax(0,1fr)_4.5rem_5rem_5rem] items-center gap-x-3 rounded-md border border-sidebar-border/60 px-3 py-2.5 text-xs"
+                                                                                        className="flex flex-wrap items-center gap-2"
                                                                                     >
-                                                                                        <span
-                                                                                            className="min-w-0 truncate font-medium"
-                                                                                            title={
-                                                                                                field.name
-                                                                                            }
-                                                                                        >
-                                                                                            {
-                                                                                                field.name
-                                                                                            }
-                                                                                        </span>
-                                                                                        {FIELD_ACTIONS.map(
-                                                                                            (
-                                                                                                action,
-                                                                                            ) => (
-                                                                                                <label
-                                                                                                    key={
-                                                                                                        action.key
-                                                                                                    }
-                                                                                                    className="flex items-center gap-1.5 whitespace-nowrap"
-                                                                                                >
-                                                                                                    <Checkbox
-                                                                                                        checked={
-                                                                                                            flags[
-                                                                                                                action
-                                                                                                                    .key
-                                                                                                            ]
-                                                                                                        }
-                                                                                                        onCheckedChange={(
-                                                                                                            c,
-                                                                                                        ) =>
-                                                                                                            setFieldFlag(
-                                                                                                                collection.id,
-                                                                                                                field.name,
-                                                                                                                action.key,
-                                                                                                                c ===
-                                                                                                                    true,
-                                                                                                            )
-                                                                                                        }
-                                                                                                    />
-                                                                                                    {
-                                                                                                        action.label
-                                                                                                    }
-                                                                                                </label>
-                                                                                            ),
-                                                                                        )}
-                                                                                    </div>
-                                                                                );
-                                                                            },
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="space-y-2">
-                                                                        <div className="text-xs font-medium text-muted-foreground">
-                                                                            Item
-                                                                            filter
-                                                                            (AND)
-                                                                        </div>
-                                                                        {filterRules.map(
-                                                                            (
-                                                                                rule,
-                                                                                index,
-                                                                            ) => (
-                                                                                <div
-                                                                                    key={
-                                                                                        index
-                                                                                    }
-                                                                                    className="flex flex-wrap items-center gap-2"
-                                                                                >
-                                                                                    <select
-                                                                                        className="h-8 rounded-md border bg-background px-2 text-xs"
-                                                                                        value={
-                                                                                            rule.field
-                                                                                        }
-                                                                                        onChange={(
-                                                                                            e,
-                                                                                        ) => {
-                                                                                            const next =
-                                                                                                [
-                                                                                                    ...filterRules,
-                                                                                                ];
-                                                                                            next[
-                                                                                                index
-                                                                                            ] =
-                                                                                                {
-                                                                                                    ...rule,
-                                                                                                    field: e
-                                                                                                        .target
-                                                                                                        .value,
-                                                                                                };
-                                                                                            setItemFilterRules(
-                                                                                                collection.id,
-                                                                                                next,
-                                                                                            );
-                                                                                        }}
-                                                                                    >
-                                                                                        {fieldOptions.map(
-                                                                                            (
-                                                                                                f,
-                                                                                            ) => (
-                                                                                                <option
-                                                                                                    key={
-                                                                                                        f.name
-                                                                                                    }
-                                                                                                    value={
-                                                                                                        f.name
-                                                                                                    }
-                                                                                                >
-                                                                                                    {
-                                                                                                        f.name
-                                                                                                    }
-                                                                                                </option>
-                                                                                            ),
-                                                                                        )}
-                                                                                    </select>
-                                                                                    <select
-                                                                                        className="h-8 rounded-md border bg-background px-2 text-xs"
-                                                                                        value={
-                                                                                            rule.operator
-                                                                                        }
-                                                                                        onChange={(
-                                                                                            e,
-                                                                                        ) => {
-                                                                                            const next =
-                                                                                                [
-                                                                                                    ...filterRules,
-                                                                                                ];
-                                                                                            next[
-                                                                                                index
-                                                                                            ] =
-                                                                                                {
-                                                                                                    ...rule,
-                                                                                                    operator:
-                                                                                                        e
-                                                                                                            .target
-                                                                                                            .value as ItemFilterRule['operator'],
-                                                                                                };
-                                                                                            setItemFilterRules(
-                                                                                                collection.id,
-                                                                                                next,
-                                                                                            );
-                                                                                        }}
-                                                                                    >
-                                                                                        <option value="equals">
-                                                                                            equals
-                                                                                        </option>
-                                                                                        <option value="not_equals">
-                                                                                            not_equals
-                                                                                        </option>
-                                                                                        <option value="empty">
-                                                                                            empty
-                                                                                        </option>
-                                                                                        <option value="not_empty">
-                                                                                            not_empty
-                                                                                        </option>
-                                                                                    </select>
-                                                                                    {rule.operator !==
-                                                                                        'empty' &&
-                                                                                    rule.operator !==
-                                                                                        'not_empty' ? (
-                                                                                        <Input
-                                                                                            className="h-8 max-w-40 text-xs"
+                                                                                        <select
+                                                                                            className="h-8 rounded-md border bg-background px-2 text-xs"
                                                                                             value={
-                                                                                                rule.value ??
-                                                                                                ''
+                                                                                                rule.field
                                                                                             }
                                                                                             onChange={(
                                                                                                 e,
@@ -992,7 +906,7 @@ export default function AdminRoleForm({
                                                                                                 ] =
                                                                                                     {
                                                                                                         ...rule,
-                                                                                                        value: e
+                                                                                                        field: e
                                                                                                             .target
                                                                                                             .value,
                                                                                                     };
@@ -1001,66 +915,159 @@ export default function AdminRoleForm({
                                                                                                     next,
                                                                                                 );
                                                                                             }}
-                                                                                        />
-                                                                                    ) : null}
-                                                                                    <Button
-                                                                                        type="button"
-                                                                                        variant="ghost"
-                                                                                        size="sm"
-                                                                                        className="h-8 px-2 text-xs"
-                                                                                        onClick={() =>
-                                                                                            setItemFilterRules(
-                                                                                                collection.id,
-                                                                                                filterRules.filter(
-                                                                                                    (
-                                                                                                        _,
-                                                                                                        i,
-                                                                                                    ) =>
-                                                                                                        i !==
-                                                                                                        index,
+                                                                                        >
+                                                                                            {fieldOptions.map(
+                                                                                                (
+                                                                                                    f,
+                                                                                                ) => (
+                                                                                                    <option
+                                                                                                        key={
+                                                                                                            f.name
+                                                                                                        }
+                                                                                                        value={
+                                                                                                            f.name
+                                                                                                        }
+                                                                                                    >
+                                                                                                        {
+                                                                                                            f.name
+                                                                                                        }
+                                                                                                    </option>
                                                                                                 ),
-                                                                                            )
-                                                                                        }
-                                                                                    >
-                                                                                        Remove
-                                                                                    </Button>
-                                                                                </div>
-                                                                            ),
-                                                                        )}
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            className="h-8 text-xs"
-                                                                            onClick={() =>
-                                                                                setItemFilterRules(
-                                                                                    collection.id,
-                                                                                    [
-                                                                                        ...filterRules,
-                                                                                        {
-                                                                                            field:
-                                                                                                fieldOptions[0]
-                                                                                                    ?.name ??
-                                                                                                '',
-                                                                                            operator:
-                                                                                                'equals',
-                                                                                            value: '',
-                                                                                        },
-                                                                                    ],
-                                                                                )
-                                                                            }
-                                                                        >
-                                                                            Add
-                                                                            filter
-                                                                            rule
-                                                                        </Button>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        ) : null}
-                                                    </Fragment>
-                                                );
-                                            })}
+                                                                                            )}
+                                                                                        </select>
+                                                                                        <select
+                                                                                            className="h-8 rounded-md border bg-background px-2 text-xs"
+                                                                                            value={
+                                                                                                rule.operator
+                                                                                            }
+                                                                                            onChange={(
+                                                                                                e,
+                                                                                            ) => {
+                                                                                                const next =
+                                                                                                    [
+                                                                                                        ...filterRules,
+                                                                                                    ];
+                                                                                                next[
+                                                                                                    index
+                                                                                                ] =
+                                                                                                    {
+                                                                                                        ...rule,
+                                                                                                        operator:
+                                                                                                            e
+                                                                                                                .target
+                                                                                                                .value as ItemFilterRule['operator'],
+                                                                                                    };
+                                                                                                setItemFilterRules(
+                                                                                                    collection.id,
+                                                                                                    next,
+                                                                                                );
+                                                                                            }}
+                                                                                        >
+                                                                                            <option value="equals">
+                                                                                                equals
+                                                                                            </option>
+                                                                                            <option value="not_equals">
+                                                                                                not_equals
+                                                                                            </option>
+                                                                                            <option value="empty">
+                                                                                                empty
+                                                                                            </option>
+                                                                                            <option value="not_empty">
+                                                                                                not_empty
+                                                                                            </option>
+                                                                                        </select>
+                                                                                        {rule.operator !==
+                                                                                            'empty' &&
+                                                                                        rule.operator !==
+                                                                                            'not_empty' ? (
+                                                                                            <Input
+                                                                                                className="h-8 max-w-40 text-xs"
+                                                                                                value={
+                                                                                                    rule.value ??
+                                                                                                    ''
+                                                                                                }
+                                                                                                onChange={(
+                                                                                                    e,
+                                                                                                ) => {
+                                                                                                    const next =
+                                                                                                        [
+                                                                                                            ...filterRules,
+                                                                                                        ];
+                                                                                                    next[
+                                                                                                        index
+                                                                                                    ] =
+                                                                                                        {
+                                                                                                            ...rule,
+                                                                                                            value: e
+                                                                                                                .target
+                                                                                                                .value,
+                                                                                                        };
+                                                                                                    setItemFilterRules(
+                                                                                                        collection.id,
+                                                                                                        next,
+                                                                                                    );
+                                                                                                }}
+                                                                                            />
+                                                                                        ) : null}
+                                                                                        <Button
+                                                                                            type="button"
+                                                                                            variant="ghost"
+                                                                                            size="sm"
+                                                                                            className="h-8 px-2 text-xs"
+                                                                                            onClick={() =>
+                                                                                                setItemFilterRules(
+                                                                                                    collection.id,
+                                                                                                    filterRules.filter(
+                                                                                                        (
+                                                                                                            _,
+                                                                                                            i,
+                                                                                                        ) =>
+                                                                                                            i !==
+                                                                                                            index,
+                                                                                                    ),
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            Remove
+                                                                                        </Button>
+                                                                                    </div>
+                                                                                ),
+                                                                            )}
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                className="h-8 text-xs"
+                                                                                onClick={() =>
+                                                                                    setItemFilterRules(
+                                                                                        collection.id,
+                                                                                        [
+                                                                                            ...filterRules,
+                                                                                            {
+                                                                                                field:
+                                                                                                    fieldOptions[0]
+                                                                                                        ?.name ??
+                                                                                                    '',
+                                                                                                operator:
+                                                                                                    'equals',
+                                                                                                value: '',
+                                                                                            },
+                                                                                        ],
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                Add
+                                                                                filter
+                                                                                rule
+                                                                            </Button>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            ) : null}
+                                                        </Fragment>
+                                                    );
+                                                },
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>

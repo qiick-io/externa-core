@@ -123,22 +123,24 @@ export function LocalizedField({
                 return;
             }
 
-            const sourceInput = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(
-                `[name="${namePrefix}[${locale}]"]`,
-            );
+            const sourceInput = form.querySelector<
+                HTMLInputElement | HTMLTextAreaElement
+            >(`[name="${namePrefix}[${locale}]"]`);
 
             if (!sourceInput) {
                 return;
             }
 
             for (const code of localeCodes) {
-                const targetInput = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(
-                    `[name="${namePrefix}[${code}]"]`,
-                );
+                const targetInput = form.querySelector<
+                    HTMLInputElement | HTMLTextAreaElement
+                >(`[name="${namePrefix}[${code}]"]`);
 
                 if (targetInput) {
                     targetInput.value = sourceInput.value;
-                    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    targetInput.dispatchEvent(
+                        new Event('input', { bubbles: true }),
+                    );
                 }
             }
         }
@@ -163,22 +165,24 @@ export function LocalizedField({
                 return;
             }
 
-            const sourceInput = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(
-                `[name="${namePrefix}[${locale}]"]`,
-            );
+            const sourceInput = form.querySelector<
+                HTMLInputElement | HTMLTextAreaElement
+            >(`[name="${namePrefix}[${locale}]"]`);
 
             if (!sourceInput) {
                 return;
             }
 
             for (const code of localeCodes) {
-                const targetInput = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(
-                    `[name="${namePrefix}[${code}]"]`,
-                );
+                const targetInput = form.querySelector<
+                    HTMLInputElement | HTMLTextAreaElement
+                >(`[name="${namePrefix}[${code}]"]`);
 
                 if (targetInput && (targetInput.value ?? '').trim() === '') {
                     targetInput.value = sourceInput.value;
-                    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    targetInput.dispatchEvent(
+                        new Event('input', { bubbles: true }),
+                    );
                 }
             }
         }

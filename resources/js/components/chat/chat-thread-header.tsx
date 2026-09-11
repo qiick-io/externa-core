@@ -1,4 +1,4 @@
-import { Link, router } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { MessageCircle } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -42,6 +42,7 @@ export function ChatThreadHeader({
         }
 
         const others = otherUserFaces(thread.participants, viewerId);
+
         if (others.length <= 1) {
             return null;
         }
@@ -100,7 +101,7 @@ export function ChatThreadHeader({
                         />
                         <Label
                             htmlFor="item-chat-notify"
-                            className="text-xs font-normal leading-tight whitespace-nowrap"
+                            className="text-xs leading-tight font-normal whitespace-nowrap"
                         >
                             {t('collections.itemChat.notify')}
                         </Label>

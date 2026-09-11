@@ -349,7 +349,8 @@ html.reduce-motion *::after {
 
 [data-fields-dnd] .sortable-fallback {
     opacity: 0.95;
-    box-shadow: 0 8px 24px color-mix(in oklch, var(--foreground) 18%, transparent);
+    box-shadow: 0 8px 24px
+        color-mix(in oklch, var(--foreground) 18%, transparent);
     cursor: grabbing;
     /* forceFallback sits under the cursor — must not steal nest/list hit-testing */
     pointer-events: none !important;

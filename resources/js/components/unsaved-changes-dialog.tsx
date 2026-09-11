@@ -54,7 +54,10 @@ export function UnsavedChangesDialog({
                         {t(copy?.titleKey ?? 'unsavedChanges.title')}
                     </DialogTitle>
                     <DialogDescription>
-                        {t(copy?.descriptionKey ?? 'unsavedChanges.description')}
+                        {t(
+                            copy?.descriptionKey ??
+                                'unsavedChanges.description',
+                        )}
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter className="gap-2 sm:justify-end">

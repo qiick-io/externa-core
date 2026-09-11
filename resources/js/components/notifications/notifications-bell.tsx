@@ -2,18 +2,18 @@ import { usePage } from '@inertiajs/react';
 import { Bell } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { NotificationsDrawer } from '@/components/notifications/notifications-drawer';
+import { SidebarUnreadBadge } from '@/components/sidebar-unread-badge';
 import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
+import { playNotificationSound } from '@/lib/notification-sound';
 import {
     fetchUnreadNotificationCount,
     NOTIFICATIONS_UPDATED_EVENT,
 } from '@/lib/notifications-api';
-import { playNotificationSound } from '@/lib/notification-sound';
-import { SidebarUnreadBadge } from '@/components/sidebar-unread-badge';
 
 const UNREAD_POLL_INTERVAL_MS = 60_000;
 
@@ -28,7 +28,9 @@ export function NotificationsBell() {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const drawerOpenRef = useRef(drawerOpen);
 
-    drawerOpenRef.current = drawerOpen;
+    useEffect(() => {
+        drawerOpenRef.current = drawerOpen;
+    }, [drawerOpen]);
 
     const refreshUnreadCount = useCallback(() => {
         void fetchUnreadNotificationCount()

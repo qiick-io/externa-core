@@ -20,7 +20,10 @@ export function safeReturnUrl(
                     : 'http://localhost';
             const url = new URL(candidate, origin);
 
-            if (typeof window !== 'undefined' && url.origin !== window.location.origin) {
+            if (
+                typeof window !== 'undefined' &&
+                url.origin !== window.location.origin
+            ) {
                 return null;
             }
 

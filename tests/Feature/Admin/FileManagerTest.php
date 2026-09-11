@@ -15,7 +15,6 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
-use Spatie\Permission\Models\Role;
 use Spatie\Tags\Tag;
 
 beforeEach(function () {

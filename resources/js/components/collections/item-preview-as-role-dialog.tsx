@@ -86,9 +86,7 @@ export function ItemPreviewAsRoleDialog({
             const asPublic = roleKey.startsWith('public:');
             const roleId = Number(roleKey.split(':')[1]);
             const params = new URLSearchParams(
-                asPublic
-                    ? { as_public: '1' }
-                    : { role_id: String(roleId) },
+                asPublic ? { as_public: '1' } : { role_id: String(roleId) },
             );
             const response = await fetch(
                 `/collections/${collectionId}/items/${itemId}/preview-as-role?${params}`,
@@ -100,9 +98,7 @@ export function ItemPreviewAsRoleDialog({
             );
 
             if (!response.ok) {
-                throw new Error(
-                    (await response.text()) || 'Preview failed',
-                );
+                throw new Error((await response.text()) || 'Preview failed');
             }
 
             setResult((await response.json()) as PreviewResult);
@@ -150,8 +146,8 @@ export function ItemPreviewAsRoleDialog({
                     <DialogHeader>
                         <DialogTitle>Preview as role</DialogTitle>
                         <DialogDescription>
-                            Read-only view of field data after collection ACL and
-                            file access rules (including{' '}
+                            Read-only view of field data after collection ACL
+                            and file access rules (including{' '}
                             <code className="text-xs">access: denied</code>).
                             Not a visual editor.
                         </DialogDescription>
@@ -160,11 +156,11 @@ export function ItemPreviewAsRoleDialog({
                     <div className="space-y-3">
                         <div className="space-y-1.5">
                             <Label htmlFor="preview-role">Role</Label>
-                            <Select
-                                value={roleKey}
-                                onValueChange={setRoleKey}
-                            >
-                                <SelectTrigger id="preview-role" className="w-full">
+                            <Select value={roleKey} onValueChange={setRoleKey}>
+                                <SelectTrigger
+                                    id="preview-role"
+                                    className="w-full"
+                                >
                                     <SelectValue placeholder="Choose role" />
                                 </SelectTrigger>
                                 <SelectContent

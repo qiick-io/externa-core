@@ -114,4 +114,8 @@ export function guardedOpenChange(
     });
 }
 
-export type { UnsavedChangesEntry, UnsavedChangesScope, UnsavedChangesDialogCopy };
+export type {
+    UnsavedChangesEntry,
+    UnsavedChangesScope,
+    UnsavedChangesDialogCopy,
+};

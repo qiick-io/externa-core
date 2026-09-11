@@ -1,10 +1,7 @@
 import { ChevronDown } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import type { ReactNode } from 'react';
-import {
-    Collapsible,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { FieldTreeNode } from '@/lib/collection-field-groups';
 import { isLayoutGroupType } from '@/lib/collection-field-groups';
 import { getFieldDisplayName } from '@/lib/collection-field-types';
@@ -52,7 +49,9 @@ function settingsFlagExplicitlyDisabled(value: unknown): boolean {
 }
 
 /** Directus default: accordionMode true when unset. */
-function accordionModeEnabled(settings?: Record<string, unknown> | null): boolean {
+function accordionModeEnabled(
+    settings?: Record<string, unknown> | null,
+): boolean {
     if (settingsFlagExplicitlyDisabled(settings?.accordion_mode)) {
         return false;
     }
@@ -130,13 +129,11 @@ function GroupTabsRenderer<T extends FieldDef>({
         visible[0]?.field.name ?? '',
     );
 
-    const groupLabel = getFieldDisplayName(
-        field.settings,
-        field.name,
-        locales,
-    );
+    const groupLabel = getFieldDisplayName(field.settings, field.name, locales);
 
-    const activeExists = visible.some((child) => child.field.name === activeTab);
+    const activeExists = visible.some(
+        (child) => child.field.name === activeTab,
+    );
     const resolvedActive = activeExists
         ? activeTab
         : (visible[0]?.field.name ?? '');
@@ -149,7 +146,7 @@ function GroupTabsRenderer<T extends FieldDef>({
             data-group-empty={visible.length === 0 ? '1' : '0'}
             className={cn(
                 'overflow-hidden rounded-lg border border-input',
-                fillWidth && 'w-full min-w-0 col-span-full',
+                fillWidth && 'col-span-full w-full min-w-0',
             )}
         >
             {visible.length === 0 ? (
@@ -162,33 +159,36 @@ function GroupTabsRenderer<T extends FieldDef>({
             ) : (
                 <div className="flex items-stretch border-b border-input">
                     <div className="flex min-w-0 flex-1 overflow-x-auto">
-                    {visible.map((child, index) => {
-                        const label = getFieldDisplayName(
-                            child.field.settings,
-                            child.field.name,
-                            locales,
-                        );
-                        const isActive = resolvedActive === child.field.name;
+                        {visible.map((child, index) => {
+                            const label = getFieldDisplayName(
+                                child.field.settings,
+                                child.field.name,
+                                locales,
+                            );
+                            const isActive =
+                                resolvedActive === child.field.name;
 
-                        return (
-                            <button
-                                key={child.field.id}
-                                type="button"
-                                data-tab-name={child.field.name}
-                                className={cn(
-                                    // py-3.5 ≈ old strip py-2 + button py-1.5 (same header height)
-                                    'border-r border-input px-3 py-3.5 text-sm last:border-r-0',
-                                    index === 0 && 'rounded-tl-lg',
-                                    isActive
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'bg-muted text-muted-foreground',
-                                )}
-                                onClick={() => setActiveTab(child.field.name)}
-                            >
-                                {label}
-                            </button>
-                        );
-                    })}
+                            return (
+                                <button
+                                    key={child.field.id}
+                                    type="button"
+                                    data-tab-name={child.field.name}
+                                    className={cn(
+                                        // py-3.5 ≈ old strip py-2 + button py-1.5 (same header height)
+                                        'border-r border-input px-3 py-3.5 text-sm last:border-r-0',
+                                        index === 0 && 'rounded-tl-lg',
+                                        isActive
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-muted text-muted-foreground',
+                                    )}
+                                    onClick={() =>
+                                        setActiveTab(child.field.name)
+                                    }
+                                >
+                                    {label}
+                                </button>
+                            );
+                        })}
                     </div>
                     {headerMenu ? (
                         <div className="ml-auto flex shrink-0 items-center border-l border-input px-1">
@@ -306,11 +306,7 @@ function GroupAccordionRenderer<T extends FieldDef>({
         }
     };
 
-    const groupLabel = getFieldDisplayName(
-        field.settings,
-        field.name,
-        locales,
-    );
+    const groupLabel = getFieldDisplayName(field.settings, field.name, locales);
     const fillWidth = settingsFlagEnabled(field.settings?.fill_width);
 
     // Keep empty accordion shell visible (fields builder ↔ item form parity).
@@ -321,13 +317,11 @@ function GroupAccordionRenderer<T extends FieldDef>({
             data-group-empty={visible.length === 0 ? '1' : '0'}
             className={cn(
                 'overflow-hidden rounded-lg border border-input',
-                fillWidth && 'w-full min-w-0 col-span-full',
+                fillWidth && 'col-span-full w-full min-w-0',
             )}
         >
             <div className="flex items-center gap-0.5 border-b border-input px-4 py-3">
-                <div className="min-w-0 text-sm font-medium">
-                    {groupLabel}
-                </div>
+                <div className="min-w-0 text-sm font-medium">{groupLabel}</div>
                 {headerMenu}
             </div>
             {visible.length === 0 ? (
@@ -346,11 +340,15 @@ function GroupAccordionRenderer<T extends FieldDef>({
                             <Collapsible
                                 key={child.field.id}
                                 open={isOpen}
-                                onOpenChange={() => toggleItem(child.field.name)}
+                                onOpenChange={() =>
+                                    toggleItem(child.field.name)
+                                }
                             >
                                 <div className="flex items-center gap-0.5 px-4 hover:bg-muted/40">
                                     <CollapsibleTrigger
-                                        data-accordion-section={child.field.name}
+                                        data-accordion-section={
+                                            child.field.name
+                                        }
                                         className="flex min-w-0 items-center gap-2 py-3 text-left text-sm font-medium"
                                     >
                                         <ChevronDown
@@ -562,7 +560,7 @@ export function renderGroupFieldTree<T extends FieldDef>({
                         data-group-empty="1"
                         className={cn(
                             'flex items-center gap-0.5 rounded-lg border border-dashed border-input px-4 py-3 text-sm text-muted-foreground',
-                            fillWidth && 'w-full min-w-0 col-span-full',
+                            fillWidth && 'col-span-full w-full min-w-0',
                         )}
                     >
                         {label}
@@ -576,9 +574,7 @@ export function renderGroupFieldTree<T extends FieldDef>({
                     key={field.id}
                     {...groupShellProps(field)}
                     data-group-empty="0"
-                    className={cn(
-                        fillWidth && 'w-full min-w-0 col-span-full',
-                    )}
+                    className={cn(fillWidth && 'col-span-full w-full min-w-0')}
                 >
                     {renderLevel(children)}
                 </div>

@@ -317,7 +317,12 @@ function renderFieldControl(context: FieldRenderContext) {
                 <textarea
                     id={id}
                     name={name}
-                    className={cn(inputLike, 'min-h-[120px] py-2', hasError && 'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive')}
+                    className={cn(
+                        inputLike,
+                        'min-h-[120px] py-2',
+                        hasError &&
+                            'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
+                    )}
                     defaultValue={String(defaultValue ?? '')}
                     rows={textareaSettings.rows}
                     placeholder={resolveTranslatedText(
@@ -703,9 +708,7 @@ function TranslatableItemField({
     const labelText = showFieldNameHeading ? (
         <>
             {displayName}
-            {required ? (
-                <span className="text-destructive"> *</span>
-            ) : null}
+            {required ? <span className="text-destructive"> *</span> : null}
             {showDiffMarker ? <DiffChangedMarker /> : null}
         </>
     ) : undefined;
@@ -756,7 +759,9 @@ function TranslatableItemField({
                         onApplyValue={applyLocaleSlice}
                         onUndo={onUndo}
                         onClear={() => {
-                            applyLocaleSlice(clearFieldRawValue(resolveCurrent()));
+                            applyLocaleSlice(
+                                clearFieldRawValue(resolveCurrent()),
+                            );
                         }}
                         onEditField={onEditField}
                     />
@@ -876,9 +881,7 @@ function NonTranslatableItemField({
     const labelText = showFieldNameHeading ? (
         <>
             {displayName}
-            {required ? (
-                <span className="text-destructive"> *</span>
-            ) : null}
+            {required ? <span className="text-destructive"> *</span> : null}
             {showDiffMarker ? <DiffChangedMarker /> : null}
         </>
     ) : undefined;
@@ -906,9 +909,7 @@ function NonTranslatableItemField({
             onChange={(event) => {
                 onMarkDirty();
                 const target = event.target as
-                    | HTMLInputElement
-                    | HTMLSelectElement
-                    | HTMLTextAreaElement;
+                    HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
                 if (!target.name) {
                     return;
@@ -1036,16 +1037,14 @@ export function DynamicItemFields({
     const gapClass = variant === 'cards' ? 'space-y-4' : 'space-y-3';
 
     // Stable loaded values for Undo (ignore later parent identity churn)
-    const [initialDefaults] = useState<Record<string, unknown>>(
-        () => ({ ...(defaults ?? {}) }),
-    );
+    const [initialDefaults] = useState<Record<string, unknown>>(() => ({
+        ...(defaults ?? {}),
+    }));
     const [valueOverrides, setValueOverrides] = useState<
         Record<string, unknown>
     >({});
     const [remountKeys, setRemountKeys] = useState<Record<string, number>>({});
-    const [dirtyFields, setDirtyFields] = useState<Record<string, boolean>>(
-        {},
-    );
+    const [dirtyFields, setDirtyFields] = useState<Record<string, boolean>>({});
     const [editField, setEditField] = useState<CollectionFieldRow | null>(null);
 
     const effectiveDefaults = useMemo(
@@ -1074,7 +1073,10 @@ export function DynamicItemFields({
                     return false;
                 }
 
-                if (fieldGrants !== null && fieldGrants[field.name]?.read !== true) {
+                if (
+                    fieldGrants !== null &&
+                    fieldGrants[field.name]?.read !== true
+                ) {
                     return false;
                 }
 

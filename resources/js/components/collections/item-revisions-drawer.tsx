@@ -31,7 +31,10 @@ type Props = {
     collectionId: number;
     itemId: number;
     canRestore?: boolean;
-    onSelectRevision: (revision: RevisionSnapshot, all: RevisionSnapshot[]) => void;
+    onSelectRevision: (
+        revision: RevisionSnapshot,
+        all: RevisionSnapshot[],
+    ) => void;
 };
 
 /**
@@ -111,7 +114,9 @@ export function ItemRevisionsDrawer({
                     const next = Array.isArray(payload.revisions)
                         ? payload.revisions
                         : [];
-                    setRevisions((prev) => (append ? [...prev, ...next] : next));
+                    setRevisions((prev) =>
+                        append ? [...prev, ...next] : next,
+                    );
                     setMeta(payload.meta ?? null);
                 })
                 .catch(() => {

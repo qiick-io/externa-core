@@ -4,8 +4,8 @@ import {
     attachNotificationSoundUnlockListeners,
     setNotificationSoundPrefs,
     unlockNotificationSound,
-    type NotificationSoundPrefs,
 } from '@/lib/notification-sound';
+import type { NotificationSoundPrefs } from '@/lib/notification-sound';
 
 /**
  * Sync shared prefs and unlock audio on first user gesture.

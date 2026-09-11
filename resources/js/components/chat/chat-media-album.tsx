@@ -1,5 +1,6 @@
 import { Play } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 
@@ -26,14 +27,13 @@ function ChatMediaAlbumLayout({
 
     // Explicit width (not only min/max) so Bubble w-fit gets a real
     // intrinsic size — % width + min-w-0 parent collapses album for !mine.
-    const shell =
-        'w-80 max-w-full shrink-0 overflow-hidden bg-black/20';
+    const shell = 'w-80 max-w-full shrink-0 overflow-hidden bg-black/20';
 
     if (count === 1) {
         return (
             <div
                 className={cn(
-                    'w-full min-w-[14rem] max-w-sm shrink-0 overflow-hidden bg-black/20',
+                    'w-full max-w-sm min-w-[14rem] shrink-0 overflow-hidden bg-black/20',
                     className,
                 )}
             >
@@ -44,13 +44,7 @@ function ChatMediaAlbumLayout({
 
     if (count === 2) {
         return (
-            <div
-                className={cn(
-                    'grid grid-cols-2',
-                    shell,
-                    className,
-                )}
-            >
+            <div className={cn('grid grid-cols-2', shell, className)}>
                 {Array.from({ length: count }, (_, index) =>
                     renderCell(index, 'aspect-[3/4] max-h-64'),
                 )}
@@ -62,7 +56,7 @@ function ChatMediaAlbumLayout({
         return (
             <div
                 className={cn(
-                    'aspect-[4/5] grid max-h-80 grid-cols-2 grid-rows-2',
+                    'grid aspect-[4/5] max-h-80 grid-cols-2 grid-rows-2',
                     shell,
                     className,
                 )}
@@ -76,13 +70,7 @@ function ChatMediaAlbumLayout({
 
     if (count === 4) {
         return (
-            <div
-                className={cn(
-                    'grid grid-cols-2',
-                    shell,
-                    className,
-                )}
-            >
+            <div className={cn('grid grid-cols-2', shell, className)}>
                 {Array.from({ length: count }, (_, index) =>
                     renderCell(index, 'aspect-square max-h-44'),
                 )}
@@ -99,10 +87,7 @@ function ChatMediaAlbumLayout({
             </div>
             <div className="grid grid-cols-3">
                 {Array.from({ length: count - 2 }, (_, index) =>
-                    renderCell(
-                        index + 2,
-                        'aspect-square max-h-36',
-                    ),
+                    renderCell(index + 2, 'aspect-square max-h-36'),
                 )}
             </div>
         </div>
@@ -189,10 +174,7 @@ export function ChatMediaAlbum({
     className?: string;
     mediaPreviewLabel?: string;
     onMediaClick?: (index: number) => void;
-    renderOverlay?: (
-        item: ChatMediaAlbumItem,
-        index: number,
-    ) => ReactNode;
+    renderOverlay?: (item: ChatMediaAlbumItem, index: number) => ReactNode;
 }) {
     const count = items.length;
 

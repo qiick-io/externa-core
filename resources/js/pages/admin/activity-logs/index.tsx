@@ -2,8 +2,8 @@ import { Head, router } from '@inertiajs/react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { UserMultiSelect } from '@/components/admin/user-multi-select';
 import { TruncatedText } from '@/components/admin/truncated-text';
+import { UserMultiSelect } from '@/components/admin/user-multi-select';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import {
     FilterSearch,
@@ -110,9 +110,7 @@ export default function AdminActivityLogsIndex({
             const nextEvent =
                 overrides.event !== undefined ? overrides.event : event;
             const nextLogName =
-                overrides.log_name !== undefined
-                    ? overrides.log_name
-                    : logName;
+                overrides.log_name !== undefined ? overrides.log_name : logName;
             const nextDateFrom =
                 overrides.date_from !== undefined
                     ? overrides.date_from
@@ -180,8 +178,7 @@ export default function AdminActivityLogsIndex({
         t(`activityLog.logs.${name}`, { defaultValue: name });
 
     const renderChanges = (row: AdminActivityLogRow): string => {
-        const hasChanges =
-            row.changes && Object.keys(row.changes).length > 0;
+        const hasChanges = row.changes && Object.keys(row.changes).length > 0;
         const meta = row.properties?.meta ?? {};
         const hasMeta = Object.keys(meta).length > 0;
 
@@ -210,13 +207,13 @@ export default function AdminActivityLogsIndex({
 
             <PageLayout
                 description={t('activityLog.description')}
-                    filters={
+                filters={
                     <>
                         <FilterSearch
                             value={search}
                             onChange={setSearch}
                             placeholder={t('activityLog.searchPlaceholder')}
-                            className="min-w-[8rem] max-w-[12rem] flex-none"
+                            className="max-w-[12rem] min-w-[8rem] flex-none"
                         />
                         <UserMultiSelect
                             value={userIds}
@@ -228,7 +225,7 @@ export default function AdminActivityLogsIndex({
                             initialUsers={initialSelectedUsers}
                             className={cn(
                                 filterSelectClassName,
-                                'h-auto min-h-9 min-w-[8rem] max-w-[12rem] shrink-0',
+                                'h-auto min-h-9 max-w-[12rem] min-w-[8rem] shrink-0',
                             )}
                         />
                         <select
@@ -242,7 +239,7 @@ export default function AdminActivityLogsIndex({
                             }}
                             className={cn(
                                 filterSelectClassName,
-                                'min-w-[7rem] max-w-[10rem] shrink-0',
+                                'max-w-[10rem] min-w-[7rem] shrink-0',
                             )}
                             aria-label={t('activityLog.filterByAction')}
                             title={
@@ -251,7 +248,9 @@ export default function AdminActivityLogsIndex({
                                     : t('activityLog.allActions')
                             }
                         >
-                            <option value="">{t('activityLog.allActions')}</option>
+                            <option value="">
+                                {t('activityLog.allActions')}
+                            </option>
                             {events.map((eventName) => (
                                 <option key={eventName} value={eventName}>
                                     {eventLabel(eventName)}
@@ -269,7 +268,7 @@ export default function AdminActivityLogsIndex({
                             }}
                             className={cn(
                                 filterSelectClassName,
-                                'min-w-[7rem] max-w-[10rem] shrink-0',
+                                'max-w-[10rem] min-w-[7rem] shrink-0',
                             )}
                             aria-label={t('activityLog.filterByLog')}
                             title={
@@ -326,9 +325,15 @@ export default function AdminActivityLogsIndex({
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-8" />
-                                <TableHead>{t('activityLog.columns.date')}</TableHead>
-                                <TableHead>{t('activityLog.columns.user')}</TableHead>
-                                <TableHead>{t('activityLog.columns.action')}</TableHead>
+                                <TableHead>
+                                    {t('activityLog.columns.date')}
+                                </TableHead>
+                                <TableHead>
+                                    {t('activityLog.columns.user')}
+                                </TableHead>
+                                <TableHead>
+                                    {t('activityLog.columns.action')}
+                                </TableHead>
                                 <TableHead>
                                     {t('activityLog.columns.description')}
                                 </TableHead>

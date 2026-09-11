@@ -9,7 +9,14 @@ import {
     Rows3,
     Trash2,
 } from 'lucide-react';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
@@ -35,11 +42,6 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
     Table,
     TableBody,
     TableCell,
@@ -48,6 +50,11 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
@@ -60,10 +67,7 @@ import {
     serializeFilterRules,
 } from '@/lib/item-list-filters';
 import type { FilterRule } from '@/lib/item-list-filters';
-import {
-    currentPathWithQuery,
-    withReturnParam,
-} from '@/lib/safe-return-url';
+import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
 import collections from '@/routes/collections';
 import type {
     BreadcrumbItem,
@@ -615,7 +619,11 @@ export default function ItemsIndex({
                         </DropdownMenu>
                     ) : null}
                     {can(PermissionEnum.CanEditCollections) ? (
-                        <HeaderIconButton asChild variant="outline" label="Edit fields">
+                        <HeaderIconButton
+                            asChild
+                            variant="outline"
+                            label="Edit fields"
+                        >
                             <Link
                                 href={FieldController.index.url(collection.id)}
                             >
@@ -757,292 +765,277 @@ export default function ItemsIndex({
             >
                 <TablePanel>
                     <Table>
-                            <TableHeader>
-                                <TableRow ref={headerRowRef}>
-                                    <TableHead className="w-10">
-                                        <Checkbox
-                                            checked={
-                                                items.data.length > 0 &&
-                                                selected.length ===
-                                                    items.data.length
+                        <TableHeader>
+                            <TableRow ref={headerRowRef}>
+                                <TableHead className="w-10">
+                                    <Checkbox
+                                        checked={
+                                            items.data.length > 0 &&
+                                            selected.length ===
+                                                items.data.length
+                                        }
+                                        onCheckedChange={(c) =>
+                                            toggleAll(c === true)
+                                        }
+                                        aria-label="Select all"
+                                    />
+                                </TableHead>
+                                {listColumns.map((path) => (
+                                    <SortableHeader
+                                        key={path}
+                                        id={path}
+                                        label={columnHeaderLabel(
+                                            path,
+                                            fieldsByName,
+                                            relatedFieldsCatalog,
+                                        )}
+                                        sortActive={activeSort === path}
+                                        sortDirection={
+                                            activeSort === path
+                                                ? activeDirection
+                                                : undefined
+                                        }
+                                        align={columnAligns[path] ?? 'left'}
+                                        canHide={canHideColumn && !hasSelection}
+                                        onSort={(direction) =>
+                                            visit({
+                                                sort: path,
+                                                direction,
+                                            })
+                                        }
+                                        onAlign={(align) =>
+                                            persistPrefs(listColumns, {
+                                                ...columnAligns,
+                                                [path]: align,
+                                            })
+                                        }
+                                        onHide={() => {
+                                            if (
+                                                !canHideColumn ||
+                                                hasSelection
+                                            ) {
+                                                return;
                                             }
-                                            onCheckedChange={(c) =>
-                                                toggleAll(c === true)
-                                            }
-                                            aria-label="Select all"
-                                        />
-                                    </TableHead>
-                                        {listColumns.map((path) => (
-                                            <SortableHeader
-                                                key={path}
-                                                id={path}
-                                                label={columnHeaderLabel(
-                                                    path,
-                                                    fieldsByName,
-                                                    relatedFieldsCatalog,
-                                                )}
-                                                sortActive={activeSort === path}
-                                                sortDirection={
-                                                    activeSort === path
-                                                        ? activeDirection
-                                                        : undefined
-                                                }
-                                                align={
-                                                    columnAligns[path] ?? 'left'
-                                                }
-                                                canHide={
-                                                    canHideColumn &&
-                                                    !hasSelection
-                                                }
-                                                onSort={(direction) =>
-                                                    visit({
-                                                        sort: path,
-                                                        direction,
-                                                    })
-                                                }
-                                                onAlign={(align) =>
-                                                    persistPrefs(listColumns, {
-                                                        ...columnAligns,
-                                                        [path]: align,
-                                                    })
-                                                }
-                                                onHide={() => {
-                                                    if (
-                                                        !canHideColumn ||
-                                                        hasSelection
-                                                    ) {
-                                                        return;
-                                                    }
 
-                                                    persistColumns(
-                                                        listColumns.filter(
-                                                            (column) =>
-                                                                column !== path,
-                                                        ),
-                                                    );
-                                                }}
+                                            persistColumns(
+                                                listColumns.filter(
+                                                    (column) => column !== path,
+                                                ),
+                                            );
+                                        }}
+                                    />
+                                ))}
+                                <TableHead className="w-[1%] text-right whitespace-nowrap">
+                                    <div className="flex items-center justify-end gap-1">
+                                        {!hasSelection ? (
+                                            <ColumnPickerPopover
+                                                fields={collection.fields ?? []}
+                                                listColumns={listColumns}
+                                                relatedFieldsCatalog={
+                                                    relatedFieldsCatalog
+                                                }
+                                                onChange={persistColumns}
                                             />
-                                        ))}
-                                    <TableHead className="w-[1%] text-right whitespace-nowrap">
-                                        <div className="flex items-center justify-end gap-1">
-                                            {!hasSelection ? (
-                                                <ColumnPickerPopover
-                                                    fields={
-                                                        collection.fields ?? []
-                                                    }
-                                                    listColumns={listColumns}
-                                                    relatedFieldsCatalog={
-                                                        relatedFieldsCatalog
-                                                    }
-                                                    onChange={persistColumns}
-                                                />
-                                            ) : null}
-                                            <span>Actions</span>
-                                        </div>
-                                    </TableHead>
+                                        ) : null}
+                                        <span>Actions</span>
+                                    </div>
+                                </TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {items.data.length === 0 ? (
+                                <TableRow>
+                                    <TableCell
+                                        colSpan={colSpan}
+                                        className="text-muted-foreground"
+                                    >
+                                        No items yet.
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {items.data.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={colSpan}
-                                            className="text-muted-foreground"
+                            ) : (
+                                items.data.map((row) => {
+                                    const editUrl = itemEditUrl(row.id);
+
+                                    return (
+                                        <TableRow
+                                            key={row.id}
+                                            className={
+                                                isTrashed
+                                                    ? undefined
+                                                    : 'cursor-pointer'
+                                            }
+                                            tabIndex={isTrashed ? undefined : 0}
+                                            role={
+                                                isTrashed ? undefined : 'link'
+                                            }
+                                            aria-label={
+                                                isTrashed
+                                                    ? undefined
+                                                    : `Edit item ${row.id}`
+                                            }
+                                            onClick={() => {
+                                                if (!isTrashed) {
+                                                    router.visit(editUrl);
+                                                }
+                                            }}
+                                            onKeyDown={(event) => {
+                                                if (isTrashed) {
+                                                    return;
+                                                }
+
+                                                if (
+                                                    event.key === 'Enter' ||
+                                                    event.key === ' '
+                                                ) {
+                                                    event.preventDefault();
+                                                    router.visit(editUrl);
+                                                }
+                                            }}
                                         >
-                                            No items yet.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    items.data.map((row) => {
-                                        const editUrl = itemEditUrl(row.id);
-
-                                        return (
-                                            <TableRow
-                                                key={row.id}
-                                                className={
-                                                    isTrashed
-                                                        ? undefined
-                                                        : 'cursor-pointer'
+                                            <TableCell
+                                                onClick={(event) =>
+                                                    event.stopPropagation()
                                                 }
-                                                tabIndex={
-                                                    isTrashed ? undefined : 0
-                                                }
-                                                role={
-                                                    isTrashed
-                                                        ? undefined
-                                                        : 'link'
-                                                }
-                                                aria-label={
-                                                    isTrashed
-                                                        ? undefined
-                                                        : `Edit item ${row.id}`
-                                                }
-                                                onClick={() => {
-                                                    if (!isTrashed) {
-                                                        router.visit(editUrl);
-                                                    }
-                                                }}
-                                                onKeyDown={(event) => {
-                                                    if (isTrashed) {
-                                                        return;
-                                                    }
-
-                                                    if (
-                                                        event.key === 'Enter' ||
-                                                        event.key === ' '
-                                                    ) {
-                                                        event.preventDefault();
-                                                        router.visit(editUrl);
-                                                    }
-                                                }}
                                             >
+                                                <Checkbox
+                                                    checked={selected.includes(
+                                                        row.id,
+                                                    )}
+                                                    onCheckedChange={() =>
+                                                        toggleRow(row.id)
+                                                    }
+                                                    aria-label={`Select item ${row.id}`}
+                                                />
+                                            </TableCell>
+                                            {listColumns.map((path) => (
                                                 <TableCell
+                                                    key={path}
+                                                    className={alignClass(
+                                                        columnAligns[path] ??
+                                                            'left',
+                                                    )}
+                                                >
+                                                    <ItemTableCell
+                                                        path={path}
+                                                        row={row}
+                                                        fieldsByName={
+                                                            fieldsByName
+                                                        }
+                                                    />
+                                                </TableCell>
+                                            ))}
+                                            <TableCell className="w-[1%] text-right whitespace-nowrap">
+                                                <div
+                                                    className="flex items-center justify-end gap-1"
                                                     onClick={(event) =>
                                                         event.stopPropagation()
                                                     }
                                                 >
-                                                    <Checkbox
-                                                        checked={selected.includes(
-                                                            row.id,
-                                                        )}
-                                                        onCheckedChange={() =>
-                                                            toggleRow(row.id)
-                                                        }
-                                                        aria-label={`Select item ${row.id}`}
+                                                    <AskAiButton
+                                                        stopPropagation
+                                                        prompt={seedItemPrompt({
+                                                            id: row.id,
+                                                            collection_id:
+                                                                collection.id,
+                                                            label: itemLabel(
+                                                                row,
+                                                            ),
+                                                        })}
                                                     />
-                                                </TableCell>
-                                                {listColumns.map((path) => (
-                                                    <TableCell
-                                                        key={path}
-                                                        className={alignClass(
-                                                            columnAligns[
-                                                                path
-                                                            ] ?? 'left',
-                                                        )}
-                                                    >
-                                                        <ItemTableCell
-                                                            path={path}
-                                                            row={row}
-                                                            fieldsByName={
-                                                                fieldsByName
-                                                            }
-                                                        />
-                                                    </TableCell>
-                                                ))}
-                                                <TableCell className="w-[1%] text-right whitespace-nowrap">
-                                                    <div
-                                                        className="flex items-center justify-end gap-1"
-                                                        onClick={(event) =>
-                                                            event.stopPropagation()
-                                                        }
-                                                    >
-                                                        <AskAiButton
-                                                            stopPropagation
-                                                            prompt={seedItemPrompt(
-                                                                {
-                                                                    id: row.id,
-                                                                    collection_id:
-                                                                        collection.id,
-                                                                    label: itemLabel(
-                                                                        row,
-                                                                    ),
-                                                                },
-                                                            )}
-                                                        />
-                                                        {isTrashed ? (
-                                                            <>
-                                                                {can(
-                                                                    PermissionEnum.CanRestoreCollections,
-                                                                ) && (
-                                                                    <HeaderIconButton
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                        size="icon"
-                                                                        className="size-8"
-                                                                        label="Restore"
-                                                                        onClick={() =>
-                                                                            router.post(
-                                                                                ItemController.restore.url(
-                                                                                    {
-                                                                                        collection:
-                                                                                            collection.id,
-                                                                                        item: row.id,
-                                                                                    },
-                                                                                ),
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <RotateCcw className="size-3.5" />
-                                                                    </HeaderIconButton>
-                                                                )}
-                                                                {can(
-                                                                    PermissionEnum.CanForceDeleteCollections,
-                                                                ) && (
-                                                                    <HeaderIconButton
-                                                                        type="button"
-                                                                        variant="destructive"
-                                                                        size="icon"
-                                                                        className="size-8"
-                                                                        label="Delete permanently"
-                                                                        onClick={() =>
-                                                                            setPendingForceDeleteItemId(
-                                                                                row.id,
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <Trash2 className="size-3.5" />
-                                                                    </HeaderIconButton>
-                                                                )}
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <HeaderIconButton
-                                                                    variant="outline"
-                                                                    size="icon"
-                                                                    className="size-8"
-                                                                    label="Edit"
-                                                                    asChild
-                                                                >
-                                                                    <Link
-                                                                        href={
-                                                                            editUrl
-                                                                        }
-                                                                        onClick={(
-                                                                            event,
-                                                                        ) =>
-                                                                            event.stopPropagation()
-                                                                        }
-                                                                    >
-                                                                        <Pencil className="size-3.5" />
-                                                                    </Link>
-                                                                </HeaderIconButton>
+                                                    {isTrashed ? (
+                                                        <>
+                                                            {can(
+                                                                PermissionEnum.CanRestoreCollections,
+                                                            ) && (
                                                                 <HeaderIconButton
                                                                     type="button"
                                                                     variant="outline"
                                                                     size="icon"
-                                                                    className="size-8 text-destructive hover:text-destructive"
-                                                                    label="Delete"
-                                                                    onClick={(
-                                                                        event,
-                                                                    ) => {
-                                                                        event.stopPropagation();
-                                                                        setDeleteItemId(
+                                                                    className="size-8"
+                                                                    label="Restore"
+                                                                    onClick={() =>
+                                                                        router.post(
+                                                                            ItemController.restore.url(
+                                                                                {
+                                                                                    collection:
+                                                                                        collection.id,
+                                                                                    item: row.id,
+                                                                                },
+                                                                            ),
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <RotateCcw className="size-3.5" />
+                                                                </HeaderIconButton>
+                                                            )}
+                                                            {can(
+                                                                PermissionEnum.CanForceDeleteCollections,
+                                                            ) && (
+                                                                <HeaderIconButton
+                                                                    type="button"
+                                                                    variant="destructive"
+                                                                    size="icon"
+                                                                    className="size-8"
+                                                                    label="Delete permanently"
+                                                                    onClick={() =>
+                                                                        setPendingForceDeleteItemId(
                                                                             row.id,
-                                                                        );
-                                                                    }}
+                                                                        )
+                                                                    }
                                                                 >
                                                                     <Trash2 className="size-3.5" />
                                                                 </HeaderIconButton>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })
-                                )}
-                            </TableBody>
-                        </Table>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <HeaderIconButton
+                                                                variant="outline"
+                                                                size="icon"
+                                                                className="size-8"
+                                                                label="Edit"
+                                                                asChild
+                                                            >
+                                                                <Link
+                                                                    href={
+                                                                        editUrl
+                                                                    }
+                                                                    onClick={(
+                                                                        event,
+                                                                    ) =>
+                                                                        event.stopPropagation()
+                                                                    }
+                                                                >
+                                                                    <Pencil className="size-3.5" />
+                                                                </Link>
+                                                            </HeaderIconButton>
+                                                            <HeaderIconButton
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="icon"
+                                                                className="size-8 text-destructive hover:text-destructive"
+                                                                label="Delete"
+                                                                onClick={(
+                                                                    event,
+                                                                ) => {
+                                                                    event.stopPropagation();
+                                                                    setDeleteItemId(
+                                                                        row.id,
+                                                                    );
+                                                                }}
+                                                            >
+                                                                <Trash2 className="size-3.5" />
+                                                            </HeaderIconButton>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })
+                            )}
+                        </TableBody>
+                    </Table>
                 </TablePanel>
             </PageLayout>
 

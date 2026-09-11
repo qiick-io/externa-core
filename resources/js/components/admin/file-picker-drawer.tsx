@@ -1,6 +1,6 @@
+import { usePage } from '@inertiajs/react';
 import { Check, FolderOpen, ImageIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { usePage } from '@inertiajs/react';
 import { FileDropzone } from '@/components/admin/file-dropzone';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,7 +14,6 @@ import {
     DrawerTitle,
 } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
-import { STRING_LIMITS } from '@/lib/string-limits';
 import {
     CHUNK_SIZE_BYTES,
     filePublicUrl,
@@ -23,6 +22,7 @@ import {
     uploadFileChunked,
     uploadFileDirect,
 } from '@/lib/files-api';
+import { STRING_LIMITS } from '@/lib/string-limits';
 import { cn } from '@/lib/utils';
 import type { AdminFileRow, FileBreadcrumb } from '@/types/files';
 
@@ -107,14 +107,12 @@ export function FilePickerDrawer({
                     setFiles([]);
                 }
             } finally {
-                if (seq !== loadSeq.current) {
-                    return;
-                }
-
-                if (append) {
-                    setLoadingMore(false);
-                } else {
-                    setLoading(false);
+                if (seq === loadSeq.current) {
+                    if (append) {
+                        setLoadingMore(false);
+                    } else {
+                        setLoading(false);
+                    }
                 }
             }
         },
@@ -135,13 +133,16 @@ export function FilePickerDrawer({
         }
 
         let cancelled = false;
-        const timer = setTimeout(() => {
-            if (cancelled) {
-                return;
-            }
+        const timer = setTimeout(
+            () => {
+                if (cancelled) {
+                    return;
+                }
 
-            void loadFiles(1, false);
-        }, search ? 300 : 0);
+                void loadFiles(1, false);
+            },
+            search ? 300 : 0,
+        );
 
         return () => {
             cancelled = true;
@@ -220,11 +221,7 @@ export function FilePickerDrawer({
                         filesMaxUploadBytes,
                     );
                 } else {
-                    await uploadFileDirect(
-                        file,
-                        parentId,
-                        filesMaxUploadBytes,
-                    );
+                    await uploadFileDirect(file, parentId, filesMaxUploadBytes);
                 }
             }
 

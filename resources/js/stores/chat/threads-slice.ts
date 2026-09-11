@@ -1,11 +1,11 @@
 import type { StateCreator } from 'zustand';
 import type { ChatSummary } from '@/lib/chat-hub-api';
+import type { ChatStore } from '@/stores/chat/store';
 import type { CacheStatus, ThreadsCacheEntry } from '@/stores/chat/types';
 import {
     threadMatchesPrivateQuery,
     upsertThreadInList,
 } from '@/stores/chat/types';
-import type { ChatStore } from '@/stores/chat/store';
 
 export type ThreadsSlice = {
     threadsByKey: Record<string, ThreadsCacheEntry>;
@@ -67,7 +67,9 @@ export const createThreadsSlice: StateCreator<
                 }
 
                 const q = key.slice('private|'.length);
-                const index = entry.items.findIndex((row) => row.id === thread.id);
+                const index = entry.items.findIndex(
+                    (row) => row.id === thread.id,
+                );
 
                 if (index < 0 && !threadMatchesPrivateQuery(thread, q)) {
                     continue;

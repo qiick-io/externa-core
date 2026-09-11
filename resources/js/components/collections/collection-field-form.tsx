@@ -1754,7 +1754,9 @@ export function CollectionFieldTypeDrawer({
                     </span>
                     <div className="min-w-0 flex-1">
                         <DrawerTitle>
-                            {t('collections.addFieldFor', { name: collectionName })}
+                            {t('collections.addFieldFor', {
+                                name: collectionName,
+                            })}
                         </DrawerTitle>
                         <DrawerDescription>
                             {t('collections.chooseFieldType')}

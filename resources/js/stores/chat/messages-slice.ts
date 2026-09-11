@@ -6,8 +6,8 @@ import {
     appendMessageDedupe,
     prependOlderDedupe,
     touchLruOrder,
-    type MessagesCacheEntry,
 } from '@/stores/chat/types';
+import type { MessagesCacheEntry } from '@/stores/chat/types';
 
 export type MessagesSlice = {
     messagesByChatId: Record<string, MessagesCacheEntry>;
@@ -255,11 +255,7 @@ export const createMessagesSlice: StateCreator<
                 return state;
             }
 
-            return applyLru(
-                state.messagesByChatId,
-                state.messagesLru,
-                chatId,
-            );
+            return applyLru(state.messagesByChatId, state.messagesLru, chatId);
         }),
     clearMessages: (chatId) =>
         set((state) => {

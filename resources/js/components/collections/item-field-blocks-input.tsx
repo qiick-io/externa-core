@@ -370,7 +370,10 @@ export function BlocksFieldInput({
                 const order = sortable.toArray();
                 const prev = blocksRef.current.map((block) => block.id);
 
-                if (order.length === 0 || order.join('\0') === prev.join('\0')) {
+                if (
+                    order.length === 0 ||
+                    order.join('\0') === prev.join('\0')
+                ) {
                     return;
                 }
 
@@ -409,447 +412,376 @@ export function BlocksFieldInput({
             ) : null}
 
             <div ref={listRef} className="space-y-3">
-                        {blocks.map((block, index) => {
-                            const schema = blockTypes.find(
-                                (entry) => entry.key === block.type,
-                            );
+                {blocks.map((block, index) => {
+                    const schema = blockTypes.find(
+                        (entry) => entry.key === block.type,
+                    );
 
-                            if (!schema) {
-                                return null;
-                            }
+                    if (!schema) {
+                        return null;
+                    }
 
-                            const collapsed = collapsedIds.has(block.id);
-                            const summary = blockSummary(
-                                schema,
-                                siblingValues[block.id] ?? block.data,
-                            );
+                    const collapsed = collapsedIds.has(block.id);
+                    const summary = blockSummary(
+                        schema,
+                        siblingValues[block.id] ?? block.data,
+                    );
 
-                            return (
-                                        <div
-                                            key={block.id}
-                                            data-id={block.id}
-                                            className="rounded-lg border p-4"
+                    return (
+                        <div
+                            key={block.id}
+                            data-id={block.id}
+                            className="rounded-lg border p-4"
+                        >
+                            <div className="mb-0 flex flex-wrap items-center gap-2">
+                                <button
+                                    type="button"
+                                    className="text-muted-foreground"
+                                    aria-expanded={!collapsed}
+                                    aria-label={
+                                        collapsed
+                                            ? 'Expand block'
+                                            : 'Collapse block'
+                                    }
+                                    onClick={() => toggleCollapsed(block.id)}
+                                >
+                                    {collapsed ? (
+                                        <ChevronRight className="size-4" />
+                                    ) : (
+                                        <ChevronDown className="size-4" />
+                                    )}
+                                </button>
+                                {!readonly ? (
+                                    <button
+                                        type="button"
+                                        className="drag-handle text-muted-foreground"
+                                        aria-label="Drag to reorder"
+                                    >
+                                        <GripVertical className="size-4" />
+                                    </button>
+                                ) : null}
+                                <Badge variant="secondary">
+                                    {schema.label}
+                                </Badge>
+                                {collapsed && summary ? (
+                                    <span className="max-w-md truncate text-sm text-muted-foreground">
+                                        {summary}
+                                    </span>
+                                ) : null}
+                                <select
+                                    className={cn(inputLike, 'max-w-xs')}
+                                    value={block.type}
+                                    disabled={readonly}
+                                    onChange={(event) =>
+                                        updateBlock(block.id, {
+                                            type: event.target.value,
+                                            data: {},
+                                        })
+                                    }
+                                >
+                                    {blockTypes.map((entry) => (
+                                        <option
+                                            key={entry.key}
+                                            value={entry.key}
                                         >
-                                            <div className="mb-0 flex flex-wrap items-center gap-2">
-                                                <button
-                                                    type="button"
-                                                    className="text-muted-foreground"
-                                                    aria-expanded={!collapsed}
-                                                    aria-label={
-                                                        collapsed
-                                                            ? 'Expand block'
-                                                            : 'Collapse block'
-                                                    }
-                                                    onClick={() =>
-                                                        toggleCollapsed(
-                                                            block.id,
-                                                        )
-                                                    }
-                                                >
-                                                    {collapsed ? (
-                                                        <ChevronRight className="size-4" />
-                                                    ) : (
-                                                        <ChevronDown className="size-4" />
-                                                    )}
-                                                </button>
-                                                {!readonly ? (
-                                                    <button
-                                                        type="button"
-                                                        className="drag-handle text-muted-foreground"
-                                                        aria-label="Drag to reorder"
-                                                    >
-                                                        <GripVertical className="size-4" />
-                                                    </button>
-                                                ) : null}
-                                                <Badge variant="secondary">
-                                                    {schema.label}
-                                                </Badge>
-                                                {collapsed && summary ? (
-                                                    <span className="max-w-md truncate text-sm text-muted-foreground">
-                                                        {summary}
-                                                    </span>
-                                                ) : null}
-                                                <select
-                                                    className={cn(
-                                                        inputLike,
-                                                        'max-w-xs',
-                                                    )}
-                                                    value={block.type}
-                                                    disabled={readonly}
-                                                    onChange={(event) =>
-                                                        updateBlock(block.id, {
-                                                            type: event.target
-                                                                .value,
-                                                            data: {},
-                                                        })
-                                                    }
-                                                >
-                                                    {blockTypes.map((entry) => (
-                                                        <option
-                                                            key={entry.key}
-                                                            value={entry.key}
-                                                        >
-                                                            {entry.label}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                {!readonly ? (
-                                                    <div className="ml-auto flex gap-1">
-                                                        <Button
-                                                            type="button"
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            disabled={
-                                                                index === 0
-                                                            }
-                                                            aria-label="Move block up"
-                                                            onClick={() =>
-                                                                moveBlock(
-                                                                    block.id,
-                                                                    -1,
-                                                                )
-                                                            }
-                                                        >
-                                                            <ArrowUp className="size-4" />
-                                                        </Button>
-                                                        <Button
-                                                            type="button"
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            disabled={
-                                                                index ===
-                                                                blocks.length -
-                                                                    1
-                                                            }
-                                                            aria-label="Move block down"
-                                                            onClick={() =>
-                                                                moveBlock(
-                                                                    block.id,
-                                                                    1,
-                                                                )
-                                                            }
-                                                        >
-                                                            <ArrowDown className="size-4" />
-                                                        </Button>
-                                                        <Button
-                                                            type="button"
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() =>
-                                                                duplicateBlock(
-                                                                    block.id,
-                                                                )
-                                                            }
-                                                        >
-                                                            <Copy className="mr-1 size-4" />{' '}
-                                                            Duplicate
-                                                        </Button>
-                                                        <Button
-                                                            type="button"
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() =>
-                                                                removeBlock(
-                                                                    block.id,
-                                                                )
-                                                            }
-                                                        >
-                                                            <Trash2 className="mr-1 size-4" />{' '}
-                                                            Delete
-                                                        </Button>
-                                                    </div>
-                                                ) : null}
-                                            </div>
+                                            {entry.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                {!readonly ? (
+                                    <div className="ml-auto flex gap-1">
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            disabled={index === 0}
+                                            aria-label="Move block up"
+                                            onClick={() =>
+                                                moveBlock(block.id, -1)
+                                            }
+                                        >
+                                            <ArrowUp className="size-4" />
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            disabled={
+                                                index === blocks.length - 1
+                                            }
+                                            aria-label="Move block down"
+                                            onClick={() =>
+                                                moveBlock(block.id, 1)
+                                            }
+                                        >
+                                            <ArrowDown className="size-4" />
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() =>
+                                                duplicateBlock(block.id)
+                                            }
+                                        >
+                                            <Copy className="mr-1 size-4" />{' '}
+                                            Duplicate
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() =>
+                                                removeBlock(block.id)
+                                            }
+                                        >
+                                            <Trash2 className="mr-1 size-4" />{' '}
+                                            Delete
+                                        </Button>
+                                    </div>
+                                ) : null}
+                            </div>
 
-                                            <input
-                                                type="hidden"
-                                                name={`${name}[${index}][id]`}
-                                                value={block.id}
-                                            />
-                                            <input
-                                                type="hidden"
-                                                name={`${name}[${index}][type]`}
-                                                value={block.type}
-                                            />
+                            <input
+                                type="hidden"
+                                name={`${name}[${index}][id]`}
+                                value={block.id}
+                            />
+                            <input
+                                type="hidden"
+                                name={`${name}[${index}][type]`}
+                                value={block.type}
+                            />
 
-                                            <div
-                                                className={cn(
-                                                    'mt-4 space-y-5',
-                                                    collapsed && 'hidden',
+                            <div
+                                className={cn(
+                                    'mt-4 space-y-5',
+                                    collapsed && 'hidden',
+                                )}
+                            >
+                                {schema.fields.map((nestedField) => {
+                                    const nestedFieldDef: FieldDef = {
+                                        id: field.id,
+                                        name: nestedField.name,
+                                        type: nestedField.type,
+                                        translatable: nestedField.translatable,
+                                        settings: nestedField.settings,
+                                    };
+                                    const siblingData =
+                                        siblingValues[block.id] ?? block.data;
+                                    const flags = evaluateFieldFlags(
+                                        nestedField.settings,
+                                        siblingData,
+                                    );
+
+                                    if (flags.hidden) {
+                                        return null;
+                                    }
+
+                                    const nestedLabel = getFieldDisplayName(
+                                        nestedField.settings,
+                                        nestedField.name,
+                                        locales,
+                                    );
+                                    const nestedDefault =
+                                        (block.data[nestedField.name] as
+                                            DefaultValue | undefined) ?? '';
+                                    const fieldReadonly =
+                                        readonly || flags.readonly;
+
+                                    if (nestedFieldDef.translatable) {
+                                        return (
+                                            <LocalizedField
+                                                key={`${block.id}-${nestedField.name}`}
+                                                locales={locales}
+                                                label={
+                                                    <>
+                                                        {nestedLabel}
+                                                        {flags.required ? (
+                                                            <span className="text-destructive">
+                                                                {' '}
+                                                                *
+                                                            </span>
+                                                        ) : null}
+                                                    </>
+                                                }
+                                                description={getFieldNote(
+                                                    nestedFieldDef.settings,
+                                                    locales,
                                                 )}
+                                                reserveDescriptionSpace
+                                                showCopyActions={!fieldReadonly}
+                                                namePrefix={`${name}[${index}][data][${nestedField.name}]`}
                                             >
-                                                {schema.fields.map(
-                                                    (nestedField) => {
-                                                        const nestedFieldDef: FieldDef =
-                                                            {
-                                                                id: field.id,
-                                                                name: nestedField.name,
-                                                                type: nestedField.type,
-                                                                translatable:
-                                                                    nestedField.translatable,
-                                                                settings:
-                                                                    nestedField.settings,
-                                                            };
-                                                        const siblingData =
-                                                            siblingValues[
-                                                                block.id
-                                                            ] ?? block.data;
-                                                        const flags =
-                                                            evaluateFieldFlags(
-                                                                nestedField.settings,
-                                                                siblingData,
-                                                            );
+                                                {({ locale }) => (
+                                                    <div
+                                                        className="space-y-2"
+                                                        onInput={(event) => {
+                                                            const target =
+                                                                event.target as
+                                                                    | HTMLInputElement
+                                                                    | HTMLTextAreaElement;
 
-                                                        if (flags.hidden) {
-                                                            return null;
-                                                        }
+                                                            if (
+                                                                !target.name ||
+                                                                target.type ===
+                                                                    'checkbox'
+                                                            ) {
+                                                                return;
+                                                            }
 
-                                                        const nestedLabel =
-                                                            getFieldDisplayName(
-                                                                nestedField.settings,
+                                                            // ponytail: flat string for summary/conditions (ceiling: multi-locale sibling map)
+                                                            updateSiblingValue(
+                                                                block.id,
                                                                 nestedField.name,
-                                                                locales,
+                                                                target.value,
                                                             );
-                                                        const nestedDefault =
-                                                            (block.data[
-                                                                nestedField.name
-                                                            ] as
-                                                                | DefaultValue
-                                                                | undefined) ??
-                                                            '';
-                                                        const fieldReadonly =
-                                                            readonly ||
-                                                            flags.readonly;
-
-                                                        if (
-                                                            nestedFieldDef.translatable
-                                                        ) {
-                                                            return (
-                                                                <LocalizedField
-                                                                    key={`${block.id}-${nestedField.name}`}
-                                                                    locales={
-                                                                        locales
-                                                                    }
-                                                                    label={
-                                                                        <>
-                                                                            {
-                                                                                nestedLabel
-                                                                            }
-                                                                            {flags.required ? (
-                                                                                <span className="text-destructive">
-                                                                                    {' '}
-                                                                                    *
-                                                                                </span>
-                                                                            ) : null}
-                                                                        </>
-                                                                    }
-                                                                    description={getFieldNote(
-                                                                        nestedFieldDef.settings,
-                                                                        locales,
-                                                                    )}
-                                                                    reserveDescriptionSpace
-                                                                    showCopyActions={
-                                                                        !fieldReadonly
-                                                                    }
-                                                                    namePrefix={`${name}[${index}][data][${nestedField.name}]`}
-                                                                >
-                                                                    {({
-                                                                        locale,
-                                                                    }) => (
-                                                                        <div
-                                                                            className="space-y-2"
-                                                                            onInput={(
-                                                                                event,
-                                                                            ) => {
-                                                                                const target =
-                                                                                    event.target as
-                                                                                        | HTMLInputElement
-                                                                                        | HTMLTextAreaElement;
-
-                                                                                if (
-                                                                                    !target.name ||
-                                                                                    target.type ===
-                                                                                        'checkbox'
-                                                                                ) {
-                                                                                    return;
-                                                                                }
-
-                                                                                // ponytail: flat string for summary/conditions (ceiling: multi-locale sibling map)
-                                                                                updateSiblingValue(
-                                                                                    block.id,
-                                                                                    nestedField.name,
-                                                                                    target.value,
-                                                                                );
-                                                                            }}
-                                                                        >
-                                                                            {locales.map(
-                                                                                (
-                                                                                    code,
-                                                                                ) => (
-                                                                                    <div
-                                                                                        key={
-                                                                                            code
-                                                                                        }
-                                                                                        className={
-                                                                                            code ===
-                                                                                            locale
-                                                                                                ? 'grid gap-2'
-                                                                                                : 'hidden'
-                                                                                        }
-                                                                                    >
-                                                                                        {renderNestedField(
-                                                                                            {
-                                                                                                field: nestedFieldDef,
-                                                                                                name: `${name}[${index}][data][${nestedField.name}][${code}]`,
-                                                                                                id: `${field.name}_${block.id}_${nestedField.name}_${code}`,
-                                                                                                collectionId,
-                                                                                                locales,
-                                                                                                readonly:
-                                                                                                    fieldReadonly,
-                                                                                                relatedCollections,
-                                                                                                defaultValue:
-                                                                                                    nestedDefault &&
-                                                                                                    typeof nestedDefault ===
-                                                                                                        'object' &&
-                                                                                                    !Array.isArray(
-                                                                                                        nestedDefault,
-                                                                                                    )
-                                                                                                        ? ((
-                                                                                                              nestedDefault as Record<
-                                                                                                                  string,
-                                                                                                                  unknown
-                                                                                                              >
-                                                                                                          )[
-                                                                                                              code
-                                                                                                          ] as DefaultValue)
-                                                                                                        : '',
-                                                                                                nestingDepth:
-                                                                                                    depth +
-                                                                                                    1,
-                                                                                                maxBlocksDepth,
-                                                                                            },
-                                                                                        )}
-                                                                                    </div>
-                                                                                ),
-                                                                            )}
-                                                                        </div>
-                                                                    )}
-                                                                </LocalizedField>
-                                                            );
-                                                        }
-
-                                                        return (
+                                                        }}
+                                                    >
+                                                        {locales.map((code) => (
                                                             <div
-                                                                key={`${block.id}-${nestedField.name}`}
-                                                                className="space-y-2"
-                                                                onInput={(
-                                                                    event,
-                                                                ) => {
-                                                                    const target =
-                                                                        event.target as
-                                                                            | HTMLInputElement
-                                                                            | HTMLSelectElement
-                                                                            | HTMLTextAreaElement;
-
-                                                                    if (
-                                                                        target.type ===
-                                                                        'checkbox'
-                                                                    ) {
-                                                                        return;
-                                                                    }
-
-                                                                    // Legacy native <select> without name (pre-shadcn SelectWithOtherInput).
-                                                                    if (
-                                                                        target.tagName ===
-                                                                            'SELECT' &&
-                                                                        !target.name
-                                                                    ) {
-                                                                        const selected =
-                                                                            (
-                                                                                target as HTMLSelectElement
-                                                                            )
-                                                                                .value;
-
-                                                                        if (
-                                                                            selected ===
-                                                                            '__other__'
-                                                                        ) {
-                                                                            return;
-                                                                        }
-
-                                                                        updateSiblingValue(
-                                                                            block.id,
-                                                                            nestedField.name,
-                                                                            selected,
-                                                                        );
-
-                                                                        return;
-                                                                    }
-
-                                                                    // SelectWithOtherInput (shadcn): dispatches `input` on named hidden input.
-                                                                    if (
-                                                                        !target.name
-                                                                    ) {
-                                                                        return;
-                                                                    }
-
-                                                                    // ponytail: sibling condition re-eval (ceiling: no deep controlled tree)
-                                                                    updateSiblingValue(
-                                                                        block.id,
-                                                                        nestedField.name,
-                                                                        target.value,
-                                                                    );
-                                                                }}
+                                                                key={code}
+                                                                className={
+                                                                    code ===
+                                                                    locale
+                                                                        ? 'grid gap-2'
+                                                                        : 'hidden'
+                                                                }
                                                             >
-                                                                <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
-                                                                    <div className="min-w-0 flex-1">
-                                                                        <Label
-                                                                            htmlFor={`${field.name}_${block.id}_${nestedField.name}`}
-                                                                        >
-                                                                            {
-                                                                                nestedLabel
-                                                                            }
-                                                                            {flags.required ? (
-                                                                                <span className="text-destructive">
-                                                                                    {' '}
-                                                                                    *
-                                                                                </span>
-                                                                            ) : null}
-                                                                        </Label>
-                                                                    </div>
-                                                                </div>
                                                                 {renderNestedField(
                                                                     {
                                                                         field: nestedFieldDef,
-                                                                        name: `${name}[${index}][data][${nestedField.name}]`,
-                                                                        id: `${field.name}_${block.id}_${nestedField.name}`,
+                                                                        name: `${name}[${index}][data][${nestedField.name}][${code}]`,
+                                                                        id: `${field.name}_${block.id}_${nestedField.name}_${code}`,
                                                                         collectionId,
                                                                         locales,
                                                                         readonly:
                                                                             fieldReadonly,
                                                                         relatedCollections,
                                                                         defaultValue:
-                                                                            nestedDefault,
+                                                                            nestedDefault &&
+                                                                            typeof nestedDefault ===
+                                                                                'object' &&
+                                                                            !Array.isArray(
+                                                                                nestedDefault,
+                                                                            )
+                                                                                ? ((
+                                                                                      nestedDefault as Record<
+                                                                                          string,
+                                                                                          unknown
+                                                                                      >
+                                                                                  )[
+                                                                                      code
+                                                                                  ] as DefaultValue)
+                                                                                : '',
                                                                         nestingDepth:
                                                                             depth +
                                                                             1,
                                                                         maxBlocksDepth,
                                                                     },
                                                                 )}
-                                                                <FieldNoteSlot
-                                                                    note={getFieldNote(
-                                                                        nestedFieldDef.settings,
-                                                                        locales,
-                                                                    )}
-                                                                />
                                                             </div>
-                                                        );
-                                                    },
+                                                        ))}
+                                                    </div>
                                                 )}
+                                            </LocalizedField>
+                                        );
+                                    }
+
+                                    return (
+                                        <div
+                                            key={`${block.id}-${nestedField.name}`}
+                                            className="space-y-2"
+                                            onInput={(event) => {
+                                                const target = event.target as
+                                                    | HTMLInputElement
+                                                    | HTMLSelectElement
+                                                    | HTMLTextAreaElement;
+
+                                                if (
+                                                    target.type === 'checkbox'
+                                                ) {
+                                                    return;
+                                                }
+
+                                                // Legacy native <select> without name (pre-shadcn SelectWithOtherInput).
+                                                if (
+                                                    target.tagName ===
+                                                        'SELECT' &&
+                                                    !target.name
+                                                ) {
+                                                    const selected = (
+                                                        target as HTMLSelectElement
+                                                    ).value;
+
+                                                    if (
+                                                        selected === '__other__'
+                                                    ) {
+                                                        return;
+                                                    }
+
+                                                    updateSiblingValue(
+                                                        block.id,
+                                                        nestedField.name,
+                                                        selected,
+                                                    );
+
+                                                    return;
+                                                }
+
+                                                // SelectWithOtherInput (shadcn): dispatches `input` on named hidden input.
+                                                if (!target.name) {
+                                                    return;
+                                                }
+
+                                                // ponytail: sibling condition re-eval (ceiling: no deep controlled tree)
+                                                updateSiblingValue(
+                                                    block.id,
+                                                    nestedField.name,
+                                                    target.value,
+                                                );
+                                            }}
+                                        >
+                                            <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
+                                                <div className="min-w-0 flex-1">
+                                                    <Label
+                                                        htmlFor={`${field.name}_${block.id}_${nestedField.name}`}
+                                                    >
+                                                        {nestedLabel}
+                                                        {flags.required ? (
+                                                            <span className="text-destructive">
+                                                                {' '}
+                                                                *
+                                                            </span>
+                                                        ) : null}
+                                                    </Label>
+                                                </div>
                                             </div>
+                                            {renderNestedField({
+                                                field: nestedFieldDef,
+                                                name: `${name}[${index}][data][${nestedField.name}]`,
+                                                id: `${field.name}_${block.id}_${nestedField.name}`,
+                                                collectionId,
+                                                locales,
+                                                readonly: fieldReadonly,
+                                                relatedCollections,
+                                                defaultValue: nestedDefault,
+                                                nestingDepth: depth + 1,
+                                                maxBlocksDepth,
+                                            })}
+                                            <FieldNoteSlot
+                                                note={getFieldNote(
+                                                    nestedFieldDef.settings,
+                                                    locales,
+                                                )}
+                                            />
                                         </div>
-                            );
-                        })}
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
 
             {!readonly ? (

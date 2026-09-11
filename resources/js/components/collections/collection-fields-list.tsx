@@ -14,13 +14,7 @@ import {
     Trash2,
     Type,
 } from 'lucide-react';
-import {
-    useEffect,
-    useLayoutEffect,
-    useMemo,
-    useRef,
-    useState,
-} from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import Sortable from 'sortablejs';
@@ -107,9 +101,7 @@ type FieldRowProps = {
     fillHeight?: boolean;
 };
 
-function findOverflowScrollParent(
-    start: Element | null,
-): HTMLElement | null {
+function findOverflowScrollParent(start: Element | null): HTMLElement | null {
     let node: Element | null = start;
 
     while (node instanceof HTMLElement) {
@@ -241,7 +233,11 @@ function createPanelSectionField(
 function groupTreeNodesIntoLayoutRows(
     nodes: FieldTreeNode<CollectionFieldRow>[],
     rowBreakFieldIds: Set<number> = new Set(),
-): { node: FieldTreeNode<CollectionFieldRow>; colSpan: 1 | 2; startsNewRow: boolean }[] {
+): {
+    node: FieldTreeNode<CollectionFieldRow>;
+    colSpan: 1 | 2;
+    startsNewRow: boolean;
+}[] {
     const fieldsForLayout = fieldsWithRowBreakOverrides(
         nodes.map((node) => {
             if (!isLayoutGroupType(node.field.type)) {
@@ -437,7 +433,12 @@ function clientPointFromEvent(event: Event | undefined): {
     }
 
     if ('clientX' in event && typeof event.clientX === 'number') {
-        return { clientX: event.clientX, clientY: Number(event.clientY) || 0 };
+        const clientY =
+            'clientY' in event && typeof event.clientY === 'number'
+                ? event.clientY
+                : 0;
+
+        return { clientX: event.clientX, clientY };
     }
 
     if ('changedTouches' in event) {
@@ -734,7 +735,8 @@ function CollectionFieldRow({
                 'flex items-center gap-3 rounded-xl border px-3 py-2.5',
                 fillHeight && 'h-full',
                 isGroup ? 'border-transparent bg-transparent' : 'bg-card',
-                !isGroup && 'border-sidebar-border/70 dark:border-sidebar-border',
+                !isGroup &&
+                    'border-sidebar-border/70 dark:border-sidebar-border',
                 hiddenInForm && 'opacity-80',
             )}
         >
@@ -1255,10 +1257,7 @@ function SortableFieldsList({
     const treeSignature = useMemo(
         () =>
             fieldsForTree
-                .map(
-                    (field) =>
-                        `${field.id}:${getFieldGroupName(field) ?? ''}`,
-                )
+                .map((field) => `${field.id}:${getFieldGroupName(field) ?? ''}`)
                 .join('|'),
         [fieldsForTree],
     );
@@ -1283,11 +1282,17 @@ function SortableFieldsList({
             return map;
         };
 
-        const canMove = (evt: MoveEvent): boolean | void => {
+        const canMove = (
+            evt: MoveEvent,
+            originalEvent: Event,
+        ): boolean | void => {
             const dragged = evt.dragged;
             const to = evt.to;
 
-            if (!(dragged instanceof HTMLElement) || !(to instanceof HTMLElement)) {
+            if (
+                !(dragged instanceof HTMLElement) ||
+                !(to instanceof HTMLElement)
+            ) {
                 return false;
             }
 
@@ -1300,7 +1305,7 @@ function SortableFieldsList({
 
             if (parentName === null) {
                 // Root list — always allow; record related for half packing onEnd.
-                const point = clientPointFromEvent(evt.originalEvent);
+                const point = clientPointFromEvent(originalEvent);
                 lastMoveRef.current = {
                     related:
                         evt.related instanceof HTMLElement ? evt.related : null,
@@ -1340,7 +1345,7 @@ function SortableFieldsList({
                 return false;
             }
 
-            const point = clientPointFromEvent(evt.originalEvent);
+            const point = clientPointFromEvent(originalEvent);
             lastMoveRef.current = {
                 related:
                     evt.related instanceof HTMLElement ? evt.related : null,
@@ -1440,9 +1445,7 @@ function SortableFieldsList({
 
             if (Number.isFinite(activeId) && activeItem) {
                 const original = evt.originalEvent as
-                    | MouseEvent
-                    | TouchEvent
-                    | undefined;
+                    MouseEvent | TouchEvent | undefined;
                 const endPoint = clientPointFromEvent(original);
                 const move = lastMoveRef.current;
                 const clientX = endPoint.clientX || move?.clientX || 0;
@@ -1464,9 +1467,9 @@ function SortableFieldsList({
 
                 const related = resolveDropRelated(
                     activeItem,
-                    (evt.related instanceof HTMLElement
-                        ? evt.related
-                        : null) ?? move?.related ?? null,
+                    (evt.related instanceof HTMLElement ? evt.related : null) ??
+                        move?.related ??
+                        null,
                     clientX,
                     clientY,
                 );
@@ -1488,14 +1491,14 @@ function SortableFieldsList({
                             ? (clientY - rect.top) / rect.height
                             : 0.5;
                     const verticalIntent =
-                        relativeY < 0.5 ? ('before' as const) : ('after' as const);
+                        relativeY < 0.5
+                            ? ('before' as const)
+                            : ('after' as const);
 
                     const parentName =
                         groups.get(activeId) ??
                         parentGroupFromList(
-                            evt.to instanceof HTMLElement
-                                ? evt.to
-                                : rootList,
+                            evt.to instanceof HTMLElement ? evt.to : rootList,
                         );
                     const siblings = nextFields.filter(
                         (field) =>
@@ -1590,8 +1593,7 @@ function SortableFieldsList({
                         let newLeadingId = activeId;
 
                         if (overIsLeadingInOccupiedPair === false) {
-                            const pairLeading =
-                                siblingsForPack[overIndex - 1];
+                            const pairLeading = siblingsForPack[overIndex - 1];
                             newLeadingId =
                                 pairLeading !== undefined
                                     ? pairLeading.id
@@ -1814,10 +1816,8 @@ function SortableFieldsList({
                                     bubbles: true,
                                     cancelable: true,
                                     view: window,
-                                    clientX:
-                                        lastMoveRef.current?.clientX ?? 0,
-                                    clientY:
-                                        lastMoveRef.current?.clientY ?? 0,
+                                    clientX: lastMoveRef.current?.clientX ?? 0,
+                                    clientY: lastMoveRef.current?.clientY ?? 0,
                                 }),
                             );
                         };

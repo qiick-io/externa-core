@@ -59,7 +59,7 @@ async function fetchBlobWithProgress(
 
     onProgress(100);
 
-    return new Blob(chunks, {
+    return new Blob(chunks as BlobPart[], {
         type: response.headers.get('Content-Type') ?? undefined,
     });
 }
@@ -117,7 +117,7 @@ function ChatMediaLightboxImage({
                 setDisplayUrl(blobUrl);
                 setLoadingFullRes(false);
                 setProgress(100);
-            } catch (error) {
+            } catch {
                 if (controller.signal.aborted) {
                     return;
                 }
@@ -181,9 +181,12 @@ function ChatMediaLightboxImage({
                     </div>
                     <span className="text-xs text-white/90">
                         {progress != null
-                            ? t('collections.itemChat.mediaLoadingFullResPercent', {
-                                  percent: progress,
-                              })
+                            ? t(
+                                  'collections.itemChat.mediaLoadingFullResPercent',
+                                  {
+                                      percent: progress,
+                                  },
+                              )
                             : t('collections.itemChat.mediaLoadingFullRes')}
                     </span>
                 </div>
@@ -230,7 +233,9 @@ export function ChatMediaLightbox({
 
     useEffect(() => {
         if (open) {
-            setIndex(Math.min(Math.max(initialIndex, 0), Math.max(count - 1, 0)));
+            setIndex(
+                Math.min(Math.max(initialIndex, 0), Math.max(count - 1, 0)),
+            );
         }
     }, [open, initialIndex, count]);
 
@@ -262,7 +267,8 @@ export function ChatMediaLightbox({
             >
                 <DialogHeader className="sr-only">
                     <DialogTitle>
-                        {current?.name ?? t('collections.itemChat.mediaPreview')}
+                        {current?.name ??
+                            t('collections.itemChat.mediaPreview')}
                     </DialogTitle>
                 </DialogHeader>
 

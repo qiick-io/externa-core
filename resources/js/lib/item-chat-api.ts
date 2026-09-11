@@ -1,6 +1,10 @@
-import { formRequestHeaders, jsonRequestHeaders } from '@/lib/csrf';
 import { applyChatUnread } from '@/lib/chat-hub-api';
-import { CHUNK_SIZE_BYTES, MAX_CHUNK_RETRIES, CHUNK_RETRY_BASE_DELAY_MS } from '@/lib/files-api';
+import { formRequestHeaders, jsonRequestHeaders } from '@/lib/csrf';
+import {
+    CHUNK_SIZE_BYTES,
+    MAX_CHUNK_RETRIES,
+    CHUNK_RETRY_BASE_DELAY_MS,
+} from '@/lib/files-api';
 
 export type ChatUser = {
     id: number;
@@ -75,7 +79,15 @@ export type ChatMeta = {
     visibility_hint?: boolean;
 };
 
-export const REACTION_EMOJIS = ['😍', '❤️', '👍', '🤯', '😄', '🤔', '👎'] as const;
+export const REACTION_EMOJIS = [
+    '😍',
+    '❤️',
+    '👍',
+    '🤯',
+    '😄',
+    '🤔',
+    '👎',
+] as const;
 
 function roots(scope: ChatScope): { thread: string; root: string } {
     if (scope.mode === 'hub') {
@@ -90,7 +102,10 @@ function roots(scope: ChatScope): { thread: string; root: string } {
     return { thread: base, root: base };
 }
 
-async function parseError(response: Response, fallback: string): Promise<string> {
+async function parseError(
+    response: Response,
+    fallback: string,
+): Promise<string> {
     try {
         const payload = (await response.json()) as {
             message?: string;
@@ -102,6 +117,7 @@ async function parseError(response: Response, fallback: string): Promise<string>
         }
 
         const first = Object.values(payload.errors ?? {})[0]?.[0];
+
         if (first) {
             return first;
         }
@@ -121,7 +137,11 @@ async function assertOk(response: Response, fallback: string): Promise<void> {
 export async function fetchMessages(
     scope: ChatScope,
     options?: { beforeId?: number; perPage?: number },
-): Promise<{ messages: ItemChatMessage[]; pinned: ChatPinned[]; meta: ChatMeta }> {
+): Promise<{
+    messages: ItemChatMessage[];
+    pinned: ChatPinned[];
+    meta: ChatMeta;
+}> {
     const params = new URLSearchParams();
 
     if (options?.beforeId) {
@@ -178,15 +198,12 @@ export async function patchMessage(
     messageId: number,
     payload: { body: string; mentioned_user_ids: number[] },
 ): Promise<ItemChatMessage> {
-    const response = await fetch(
-        `${roots(scope).thread}/${messageId}`,
-        {
-            method: 'PATCH',
-            headers: jsonRequestHeaders(),
-            credentials: 'same-origin',
-            body: JSON.stringify(payload),
-        },
-    );
+    const response = await fetch(`${roots(scope).thread}/${messageId}`, {
+        method: 'PATCH',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+        body: JSON.stringify(payload),
+    });
 
     await assertOk(response, 'Could not update message.');
 
@@ -199,14 +216,11 @@ export async function deleteMessage(
     scope: ChatScope,
     messageId: number,
 ): Promise<void> {
-    const response = await fetch(
-        `${roots(scope).thread}/${messageId}`,
-        {
-            method: 'DELETE',
-            headers: jsonRequestHeaders(),
-            credentials: 'same-origin',
-        },
-    );
+    const response = await fetch(`${roots(scope).thread}/${messageId}`, {
+        method: 'DELETE',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+    });
 
     await assertOk(response, 'Could not delete message.');
 }
@@ -216,15 +230,12 @@ export async function pinMessage(
     messageId: number,
     pinned: boolean,
 ): Promise<ItemChatMessage> {
-    const response = await fetch(
-        `${roots(scope).thread}/${messageId}/pin`,
-        {
-            method: 'PUT',
-            headers: jsonRequestHeaders(),
-            credentials: 'same-origin',
-            body: JSON.stringify({ pinned }),
-        },
-    );
+    const response = await fetch(`${roots(scope).thread}/${messageId}/pin`, {
+        method: 'PUT',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+        body: JSON.stringify({ pinned }),
+    });
 
     await assertOk(response, 'Could not pin message.');
 
@@ -273,13 +284,10 @@ export async function fetchMentions(
         params.set('q', q);
     }
 
-    const response = await fetch(
-        `${roots(scope).root}/mentions?${params}`,
-        {
-            headers: jsonRequestHeaders(),
-            credentials: 'same-origin',
-        },
-    );
+    const response = await fetch(`${roots(scope).root}/mentions?${params}`, {
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+    });
 
     await assertOk(response, 'Could not load mentions.');
 
@@ -291,9 +299,7 @@ export async function fetchMentions(
     return { users: json.users, collections: json.collections ?? [] };
 }
 
-export async function markChatRead(
-    scope: ChatScope,
-): Promise<{
+export async function markChatRead(scope: ChatScope): Promise<{
     unread_count: number;
     unread_private: number;
     unread_collection: number;
@@ -502,10 +508,7 @@ async function uploadChatChunkWithRetry(
 
         if (attempt < MAX_CHUNK_RETRIES) {
             await new Promise((resolve) => {
-                setTimeout(
-                    resolve,
-                    CHUNK_RETRY_BASE_DELAY_MS * (attempt + 1),
-                );
+                setTimeout(resolve, CHUNK_RETRY_BASE_DELAY_MS * (attempt + 1));
             });
         }
     }
@@ -526,6 +529,7 @@ export function assertWithinChatUploadCap(
 
     if (fileSize > maxBytes) {
         const mb = Math.round(maxBytes / (1024 * 1024));
+
         throw new Error(`File exceeds the ${mb} MB chat upload limit.`);
     }
 }

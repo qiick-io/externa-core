@@ -5,11 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { isExternalFileDrag } from '@/components/admin/file-dropzone';
 import { ChatMediaAlbum } from '@/components/chat/chat-media-album';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
     Popover,
     PopoverContent,
@@ -33,9 +29,7 @@ export type AttachCaptionMentionHit =
     | { type: 'collection'; id: number; name: string };
 
 function isMediaFile(file: File): boolean {
-    return (
-        file.type.startsWith('image/') || file.type.startsWith('video/')
-    );
+    return file.type.startsWith('image/') || file.type.startsWith('video/');
 }
 
 function formatBytes(size: number): string {
@@ -114,9 +108,6 @@ export function ChatSendAttachmentsDialog({
     const [dragOver, setDragOver] = useState(false);
     const mediaOnly =
         items.length > 0 && items.every((item) => isMediaFile(item.file));
-    const uploading = items.some(
-        (item) => item.uploaded === null && item.error === null,
-    );
     const canSend = items.length > 0 && !sending;
     const canAddMore = !sending;
     const showMentions = mentionsEnabled;
@@ -311,7 +302,9 @@ export function ChatSendAttachmentsDialog({
 
                 <div className="flex shrink-0 flex-col gap-2 border-t px-3 py-3">
                     <div className="relative">
-                        {showMentions && mentionOpen && mentionHits.length > 0 ? (
+                        {showMentions &&
+                        mentionOpen &&
+                        mentionHits.length > 0 ? (
                             <div className="absolute inset-x-0 bottom-full z-30 mb-1 max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-md">
                                 {mentionHits.map((hit, index) => (
                                     <button
@@ -451,9 +444,7 @@ export function ChatSendAttachmentsDialog({
                                     variant="ghost"
                                     className="size-8"
                                     disabled={sending}
-                                    aria-label={t(
-                                        'collections.itemChat.emoji',
-                                    )}
+                                    aria-label={t('collections.itemChat.emoji')}
                                     data-test="chat-send-caption-emoji"
                                 >
                                     <Smile className="size-4" />
@@ -528,7 +519,7 @@ function FileThumb({ item }: { item: SendAttachItem }) {
         <div className="flex size-11 shrink-0 flex-col items-center justify-center rounded-md bg-primary/15 text-primary">
             <FileText className="size-4" aria-hidden />
             {ext ? (
-                <span className="text-[9px] font-bold uppercase leading-none">
+                <span className="text-[9px] leading-none font-bold uppercase">
                     {ext.slice(0, 4)}
                 </span>
             ) : null}
@@ -578,7 +569,7 @@ function MediaPreviewGrid({
                             </Button>
                         </div>
                         {item.error ? (
-                            <div className="absolute inset-x-0 bottom-0 z-10 break-all bg-destructive/90 px-2 py-1 text-[10px] text-destructive-foreground">
+                            <div className="absolute inset-x-0 bottom-0 z-10 bg-destructive/90 px-2 py-1 text-[10px] break-all text-destructive-foreground">
                                 {item.error}
                             </div>
                         ) : null}

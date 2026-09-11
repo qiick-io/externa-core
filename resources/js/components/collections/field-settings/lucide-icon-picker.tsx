@@ -32,8 +32,7 @@ export const LUCIDE_ICON_OPTIONS: { name: string; icon: LucideIcon }[] =
         category.icons
             .map((name) => {
                 const icon = icons[name as keyof typeof icons] as
-                    | LucideIcon
-                    | undefined;
+                    LucideIcon | undefined;
 
                 return icon ? { name, icon } : null;
             })
@@ -88,7 +87,8 @@ export function resolveCollectionIconName(name?: string | null): string {
 
 function getIconComponent(name: string): LucideIcon | null {
     const resolved = toLucideIconName(name);
-    const Icon = icons[resolved as keyof typeof icons] as LucideIcon | undefined;
+    const Icon = icons[resolved as keyof typeof icons] as
+        LucideIcon | undefined;
 
     return Icon ?? null;
 }

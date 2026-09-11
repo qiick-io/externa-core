@@ -20,14 +20,24 @@ export function evaluatePasswordStrength(
     const checksByPolicy = {
         weak: [value.length >= 6],
         medium: [value.length >= 8, hasMixedCase, hasNumber],
-        strong: [value.length >= 12, hasLetter, hasMixedCase, hasNumber, hasSymbol],
+        strong: [
+            value.length >= 12,
+            hasLetter,
+            hasMixedCase,
+            hasNumber,
+            hasSymbol,
+        ],
     } satisfies Record<PasswordPolicy, boolean[]>;
 
     const policyChecks = checksByPolicy[policy];
     const meetsPolicy = policyChecks.every(Boolean);
 
     const level: PasswordPolicy =
-        value.length >= 12 && hasLetter && hasMixedCase && hasNumber && hasSymbol
+        value.length >= 12 &&
+        hasLetter &&
+        hasMixedCase &&
+        hasNumber &&
+        hasSymbol
             ? 'strong'
             : value.length >= 8 && hasMixedCase && hasNumber
               ? 'medium'

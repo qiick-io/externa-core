@@ -8,7 +8,8 @@ import {
     Plus,
     Trash2,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 // Tailwind v4 @import of leaflet.css in app.css is dropped from the Vite CSS
 // pipeline — load styles with the map component so tiles/panes position correctly.
@@ -22,11 +23,8 @@ import {
 } from '@/components/ui/tooltip';
 import { parseMapFieldSettings } from '@/lib/collection-field-types/parsers';
 import type { MapFieldSettings } from '@/lib/collection-field-types/parsers';
-import {
-    normalizeLatLng,
-    parseMapPositions,
-    type MapLatLng,
-} from '@/lib/map-geometry';
+import { normalizeLatLng, parseMapPositions } from '@/lib/map-geometry';
+import type { MapLatLng } from '@/lib/map-geometry';
 import { cn } from '@/lib/utils';
 
 export type GeoJsonPoint = {
@@ -148,6 +146,7 @@ export function MapCoordinateInput({
                         event.latlng.lat,
                         event.latlng.lng,
                     );
+
                     if (!next) {
                         return;
                     }
@@ -171,7 +170,8 @@ export function MapCoordinateInput({
             ro.observe(mapContainerRef.current);
 
             // Stash for cleanup.
-            (map as unknown as { __externaRo?: ResizeObserver }).__externaRo = ro;
+            (map as unknown as { __externaRo?: ResizeObserver }).__externaRo =
+                ro;
         })();
 
         return () => {
@@ -179,8 +179,7 @@ export function MapCoordinateInput({
             markersRef.current.forEach((marker) => marker.remove());
             markersRef.current = [];
             const map = mapRef.current as
-                | (LeafletMap & { __externaRo?: ResizeObserver })
-                | null;
+                (LeafletMap & { __externaRo?: ResizeObserver }) | null;
             map?.__externaRo?.disconnect();
             map?.remove();
             mapRef.current = null;
@@ -226,6 +225,7 @@ export function MapCoordinateInput({
                 marker.on('dragend', () => {
                     const latLng = marker.getLatLng();
                     const normalized = normalizeLatLng(latLng.lat, latLng.lng);
+
                     if (!normalized) {
                         return;
                     }
@@ -242,10 +242,7 @@ export function MapCoordinateInput({
             markersRef.current.push(marker);
         });
 
-        const cursor =
-            readonly || tool !== 'add'
-                ? ''
-                : 'crosshair';
+        const cursor = readonly || tool !== 'add' ? '' : 'crosshair';
         map.getContainer().style.cursor = cursor;
     }, [mapReady, positions, readonly, tool]);
 
@@ -337,6 +334,7 @@ export function MapCoordinateInput({
                     pos.coords.latitude,
                     pos.coords.longitude,
                 );
+
                 if (!next) {
                     return;
                 }
@@ -417,7 +415,10 @@ export function MapCoordinateInput({
                                 label={t('collections.map.delete')}
                                 pressed={tool === 'delete'}
                                 onClick={() => {
-                                    if (tool === 'delete' && positions.length > 0) {
+                                    if (
+                                        tool === 'delete' &&
+                                        positions.length > 0
+                                    ) {
                                         clearAll();
 
                                         return;
@@ -425,7 +426,9 @@ export function MapCoordinateInput({
 
                                     setTool('delete');
                                 }}
-                                disabled={positions.length === 0 && tool !== 'delete'}
+                                disabled={
+                                    positions.length === 0 && tool !== 'delete'
+                                }
                             >
                                 <Trash2 className="size-4" />
                             </ToolbarButton>

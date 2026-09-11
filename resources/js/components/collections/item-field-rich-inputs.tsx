@@ -1,8 +1,3 @@
-import Link from '@tiptap/extension-link';
-import Placeholder from '@tiptap/extension-placeholder';
-import { EditorContent, useEditor } from '@tiptap/react';
-import type { Editor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
 import { css } from '@codemirror/lang-css';
 import { html } from '@codemirror/lang-html';
 import { javascript } from '@codemirror/lang-javascript';
@@ -13,15 +8,20 @@ import { xml } from '@codemirror/lang-xml';
 import { bracketMatching } from '@codemirror/language';
 import type { Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import CodeMirror from '@uiw/react-codemirror';
+import { usePage } from '@inertiajs/react';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import type { Editor } from '@tiptap/react';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
+import CodeMirror from '@uiw/react-codemirror';
+import type { ICommand } from '@uiw/react-md-editor';
 import MDEditor, {
     commands,
     TextAreaCommandOrchestrator,
     TextAreaTextApi,
 } from '@uiw/react-md-editor';
-import type { ICommand } from '@uiw/react-md-editor';
-import { usePage } from '@inertiajs/react';
 import {
     Bold,
     ChevronDown,
@@ -92,9 +92,6 @@ import type { AdminFileRow } from '@/types/files';
 
 import '@uiw/react-md-editor/markdown-editor.css';
 
-const inputLike =
-    'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
-
 /** Outer chrome for color picker — matches choice-field bordered groups. */
 const colorFieldChrome =
     'w-full rounded-md border border-input bg-transparent px-3 py-1.5 shadow-xs dark:border-white/25 has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-inset';
@@ -126,10 +123,7 @@ function buildMarkdownTable(rows: number, columns: number): string {
         '',
         `| ${headers.join(' | ')} |`,
         `| ${separators.join(' | ')} |`,
-        ...Array.from(
-            { length: safeRows },
-            () => `| ${cells.join(' | ')} |`,
-        ),
+        ...Array.from({ length: safeRows }, () => `| ${cells.join(' | ')} |`),
         '',
         '',
     ].join('\n');
@@ -622,7 +616,9 @@ export function MarkdownFieldInput({
     const { projectSettings } = usePage().props;
     const filesMaxUploadBytes = projectSettings?.filesMaxUploadBytes ?? null;
     const [value, setValue] = useState(defaultValue);
-    const [internalMode, setInternalMode] = useState<'edit' | 'preview'>('edit');
+    const [internalMode, setInternalMode] = useState<'edit' | 'preview'>(
+        'edit',
+    );
     const [tableOpen, setTableOpen] = useState(false);
     const [tableRows, setTableRows] = useState(4);
     const [tableColumns, setTableColumns] = useState(4);
@@ -682,7 +678,10 @@ export function MarkdownFieldInput({
                 }
 
                 snippets.push(
-                    markdownImageSnippet(url, file.title || file.name || 'image'),
+                    markdownImageSnippet(
+                        url,
+                        file.title || file.name || 'image',
+                    ),
                 );
             }
 
@@ -717,7 +716,12 @@ export function MarkdownFieldInput({
 
     const handleLocalImage = useCallback(
         async (fileList: FileList | null): Promise<void> => {
-            if (!fileList || fileList.length === 0 || readonly || imageUploading) {
+            if (
+                !fileList ||
+                fileList.length === 0 ||
+                readonly ||
+                imageUploading
+            ) {
                 return;
             }
 
@@ -747,12 +751,7 @@ export function MarkdownFieldInput({
                 }
             }
         },
-        [
-            filesMaxUploadBytes,
-            imageUploading,
-            insertImagesFromFiles,
-            readonly,
-        ],
+        [filesMaxUploadBytes, imageUploading, insertImagesFromFiles, readonly],
     );
 
     useEffect(() => {
@@ -885,7 +884,9 @@ export function MarkdownFieldInput({
                                 max={20}
                                 value={tableRows}
                                 onChange={(event) =>
-                                    setTableRows(Number(event.target.value) || 1)
+                                    setTableRows(
+                                        Number(event.target.value) || 1,
+                                    )
                                 }
                             />
                         </div>
@@ -1122,9 +1123,7 @@ export function CodeFieldInput({
             <CodeMirror
                 value={value}
                 height="200px"
-                theme={
-                    resolvedAppearance === 'dark' ? vscodeDark : vscodeLight
-                }
+                theme={resolvedAppearance === 'dark' ? vscodeDark : vscodeLight}
                 editable={!readonly}
                 basicSetup={{
                     lineNumbers: codeSettings.lineNumbers,
@@ -1287,7 +1286,7 @@ export function ColorFieldInput({
                     type="color"
                     value={hex}
                     disabled={readonly}
-                    className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0"
+                    className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
                     onChange={(event) => setHex(event.target.value)}
                 />
                 <Input

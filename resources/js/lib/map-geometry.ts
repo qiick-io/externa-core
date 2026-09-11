@@ -18,6 +18,7 @@ export function normalizeLatLng(lat: number, lng: number): MapLatLng | null {
 
     // Wrap longitude into [-180, 180].
     let wrapped = ((((lng + 180) % 360) + 360) % 360) - 180;
+
     // Keep 180 as 180 (avoid -180 flip for exact antimeridian).
     if (wrapped === -180 && lng > 0) {
         wrapped = 180;
@@ -37,7 +38,10 @@ export function parseMapPositions(value: unknown): MapLatLng[] {
     const record = value as Record<string, unknown>;
 
     if ('lat' in record || 'lng' in record) {
-        const normalized = normalizeLatLng(Number(record.lat), Number(record.lng));
+        const normalized = normalizeLatLng(
+            Number(record.lat),
+            Number(record.lng),
+        );
 
         return normalized ? [normalized] : [];
     }
@@ -59,7 +63,10 @@ export function parseMapPositions(value: unknown): MapLatLng[] {
                 continue;
             }
 
-            const normalized = normalizeLatLng(Number(pair[1]), Number(pair[0]));
+            const normalized = normalizeLatLng(
+                Number(pair[1]),
+                Number(pair[0]),
+            );
 
             if (normalized) {
                 out.push(normalized);

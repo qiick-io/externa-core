@@ -77,7 +77,10 @@ export function ItemRevisionCompareModal({
     }, [compareTo, previousRevision, latestData]);
 
     const rightData = useMemo(() => revision?.data ?? {}, [revision]);
-    const leftKey = useMemo(() => stableJson(leftData).slice(0, 64), [leftData]);
+    const leftKey = useMemo(
+        () => stableJson(leftData).slice(0, 64),
+        [leftData],
+    );
     const rightKey = useMemo(
         () => stableJson(rightData).slice(0, 64),
         [rightData],
@@ -104,15 +107,13 @@ export function ItemRevisionCompareModal({
         }
 
         return fields.filter(
-            (field) =>
-                isLayoutGroupType(field.type) || diffSet.has(field.name),
+            (field) => isLayoutGroupType(field.type) || diffSet.has(field.name),
         );
     }, [fields, showDiffOnly, diffSet]);
 
     const canApply = canRestore && compareTo === 'latest' && revision !== null;
 
-    const leftLabel =
-        compareTo === 'previous' ? 'Previous revision' : 'Latest';
+    const leftLabel = compareTo === 'previous' ? 'Previous revision' : 'Latest';
 
     const toggleField = (name: string): void => {
         setSelected((prev) => {
@@ -129,8 +130,7 @@ export function ItemRevisionCompareModal({
     };
 
     const allDiffsSelected =
-        diffNames.length > 0 &&
-        diffNames.every((name) => selected.has(name));
+        diffNames.length > 0 && diffNames.every((name) => selected.has(name));
 
     const toggleSelectAllDiffs = (): void => {
         if (allDiffsSelected) {
@@ -155,8 +155,7 @@ export function ItemRevisionCompareModal({
             return;
         }
 
-        const keys =
-            selected.size > 0 ? Array.from(selected) : [...diffNames];
+        const keys = selected.size > 0 ? Array.from(selected) : [...diffNames];
         const values: Record<string, unknown> = {};
 
         for (const key of keys) {
@@ -296,7 +295,7 @@ export function ItemRevisionCompareModal({
                         >
                             <SelectTrigger
                                 size="sm"
-                                className="h-8 w-auto border-0 bg-transparent px-1.5 shadow-none dark:bg-transparent dark:hover:bg-muted/40 focus-visible:border-0 focus-visible:ring-0"
+                                className="h-8 w-auto border-0 bg-transparent px-1.5 shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent dark:hover:bg-muted/40"
                                 data-test="compare-to-select"
                             >
                                 <SelectValue />

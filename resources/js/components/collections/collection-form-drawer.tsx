@@ -33,10 +33,9 @@ import {
 } from '@/lib/slugify';
 import {
     COLLECTION_COLOR_PICKER_FALLBACK,
-    resolveCollectionColor
-    
+    resolveCollectionColor,
 } from '@/types/collections';
-import type {CollectionRow} from '@/types/collections';
+import type { CollectionRow } from '@/types/collections';
 
 export type CollectionFormDrawerProps = {
     editing: CollectionRow | null;
@@ -277,7 +276,7 @@ export function CollectionFormDrawer({
                                     onChange={(e) =>
                                         form.setData('color', e.target.value)
                                     }
-                                    className="h-9 w-12 shrink-0 cursor-pointer border-0 p-1 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0"
+                                    className="h-9 w-12 shrink-0 cursor-pointer border-0 p-1 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
                                 />
                                 <div className="relative min-w-0 flex-1">
                                     <Input
@@ -394,8 +393,8 @@ export function CollectionFormDrawer({
                                         min={1}
                                         max={10000}
                                         value={
-                                            form.data.revision_retention_count ??
-                                            ''
+                                            form.data
+                                                .revision_retention_count ?? ''
                                         }
                                         onChange={(e) =>
                                             form.setData(
@@ -448,11 +447,7 @@ export function CollectionFormDrawer({
                 </DrawerBody>
 
                 <DrawerFooter className="flex flex-row justify-end gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={onCancel}
-                    >
+                    <Button type="button" variant="outline" onClick={onCancel}>
                         {t('collections.meta.cancel')}
                     </Button>
                     <Button type="submit" disabled={form.processing}>

@@ -1,13 +1,18 @@
 const DRAFT_PREFIX = 'externa:item-draft:';
 
-export function itemDraftKey(collectionId: number, itemId: number | 'new'): string {
+export function itemDraftKey(
+    collectionId: number,
+    itemId: number | 'new',
+): string {
     return `${DRAFT_PREFIX}${collectionId}:${itemId}`;
 }
 
 /**
  * Serialize named form controls (skips files / empty unchecked checkboxes).
  */
-export function serializeItemForm(form: HTMLFormElement): Record<string, string> {
+export function serializeItemForm(
+    form: HTMLFormElement,
+): Record<string, string> {
     const data = new FormData(form);
     const out: Record<string, string> = {};
 
@@ -105,7 +110,8 @@ export function applyItemDraftToForm(
 
         if (el instanceof HTMLInputElement) {
             if (el.type === 'checkbox') {
-                el.checked = value === '1' || value === 'true' || value === el.value;
+                el.checked =
+                    value === '1' || value === 'true' || value === el.value;
             } else if (el.type !== 'file') {
                 el.value = value;
             }

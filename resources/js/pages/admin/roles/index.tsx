@@ -186,15 +186,12 @@ export default function AdminRolesIndex({
                     }
 
                     setDeleting(true);
-                    router.delete(
-                        adminRoutes.roles.destroy(pendingRoleId),
-                        {
-                            preserveScroll: true,
-                            onFinish: () => setDeleting(false),
-                            onSuccess: () => setPendingRoleId(null),
-                            onError: () => setPendingRoleId(null),
-                        },
-                    );
+                    router.delete(adminRoutes.roles.destroy(pendingRoleId), {
+                        preserveScroll: true,
+                        onFinish: () => setDeleting(false),
+                        onSuccess: () => setPendingRoleId(null),
+                        onError: () => setPendingRoleId(null),
+                    });
                 }}
             />
         </AppLayout>

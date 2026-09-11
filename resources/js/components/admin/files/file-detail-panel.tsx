@@ -34,10 +34,9 @@ import {
     isPlayableVideo,
     replaceFile,
     syncFileTags,
-    updateFileMetadata
-    
+    updateFileMetadata,
 } from '@/lib/files-api';
-import type {FileWhereUsedReference} from '@/lib/files-api';
+import type { FileWhereUsedReference } from '@/lib/files-api';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { AdminFileRow, FileTag } from '@/types/files';
@@ -497,10 +496,7 @@ export function FileDetailPanel({
 
                 {file.type === 'file' && (
                     <>
-                        <div
-                            className="space-y-3"
-                            data-test="file-where-used"
-                        >
+                        <div className="space-y-3" data-test="file-where-used">
                             <SectionHeading icon={Link2}>
                                 Where used
                             </SectionHeading>
@@ -532,21 +528,25 @@ export function FileDetailPanel({
                                                 ? ''
                                                 : 's'}
                                         </li>
-                                        {whereUsedRefs.slice(0, 20).map((ref) => (
-                                            <li key={`${ref.collection_id}-${ref.item_id}-${ref.field}`}>
-                                                <a
-                                                    className="text-primary underline-offset-2 hover:underline"
-                                                    href={`/collections/${ref.collection_id}/items/${ref.item_id}`}
+                                        {whereUsedRefs
+                                            .slice(0, 20)
+                                            .map((ref) => (
+                                                <li
+                                                    key={`${ref.collection_id}-${ref.item_id}-${ref.field}`}
                                                 >
-                                                    {ref.collection_name} #
-                                                    {ref.item_id}
-                                                </a>
-                                                <span className="text-muted-foreground">
-                                                    {' '}
-                                                    · {ref.field}
-                                                </span>
-                                            </li>
-                                        ))}
+                                                    <a
+                                                        className="text-primary underline-offset-2 hover:underline"
+                                                        href={`/collections/${ref.collection_id}/items/${ref.item_id}`}
+                                                    >
+                                                        {ref.collection_name} #
+                                                        {ref.item_id}
+                                                    </a>
+                                                    <span className="text-muted-foreground">
+                                                        {' '}
+                                                        · {ref.field}
+                                                    </span>
+                                                </li>
+                                            ))}
                                         {whereUsedRefs.length > 20 && (
                                             <li className="text-muted-foreground">
                                                 +{whereUsedRefs.length - 20}{' '}

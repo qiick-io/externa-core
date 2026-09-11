@@ -1,10 +1,7 @@
 import { usePage } from '@inertiajs/react';
 import { useCallback, useEffect } from 'react';
-import {
-    fetchChatUnread,
-    type ChatSummary,
-    type ChatUnreadShare,
-} from '@/lib/chat-hub-api';
+import { fetchChatUnread } from '@/lib/chat-hub-api';
+import type { ChatSummary, ChatUnreadShare } from '@/lib/chat-hub-api';
 import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
 import {
     playChatSound,
@@ -82,14 +79,12 @@ function bindUnreadEcho(userId: number): void {
     }
 
     if (echoUserId !== null && echoUserId !== userId) {
-        echo
-            .private(`App.Models.User.${echoUserId}`)
+        echo.private(`App.Models.User.${echoUserId}`)
             .stopListening(CHAT_UNREAD_EVENT)
             .stopListening(CHAT_THREAD_UPSERTED_EVENT);
     }
 
-    echo
-        .private(`App.Models.User.${userId}`)
+    echo.private(`App.Models.User.${userId}`)
         .stopListening(CHAT_UNREAD_EVENT)
         .stopListening(CHAT_THREAD_UPSERTED_EVENT)
         .listen(CHAT_UNREAD_EVENT, onChatUnreadUpdated)
