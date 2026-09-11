@@ -1223,9 +1223,7 @@ export default function AdminFilesIndex({
                             const result = await bulkFileAction('copy', ids, {
                                 parent_id: parentId,
                             });
-                            toast.success(
-                                t('files.toasts.duplicationStarted'),
-                            );
+                            toast.success(t('files.toasts.duplicationStarted'));
 
                             if (result.queued) {
                                 trackPendingDuplication(result.job_id);
@@ -1527,7 +1525,9 @@ export default function AdminFilesIndex({
                                     >
                                         <SelectTrigger
                                             size="sm"
-                                            aria-label={t('files.toolbar.sortBy')}
+                                            aria-label={t(
+                                                'files.toolbar.sortBy',
+                                            )}
                                             className="w-[7.5rem]"
                                         >
                                             <SelectValue
@@ -1595,7 +1595,9 @@ export default function AdminFilesIndex({
                                         </ToggleGroupItem>
                                         <ToggleGroupItem
                                             value="trashed"
-                                            aria-label={t('files.toolbar.trash')}
+                                            aria-label={t(
+                                                'files.toolbar.trash',
+                                            )}
                                             className="px-2.5"
                                         >
                                             <Trash2 className="size-4" />

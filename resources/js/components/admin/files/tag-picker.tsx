@@ -35,8 +35,7 @@ export function TagPicker({
 }: TagPickerProps) {
     const { t } = useTranslation();
     const [inputValue, setInputValue] = useState('');
-    const resolvedPlaceholder =
-        placeholder ?? t('files.tags.placeholder');
+    const resolvedPlaceholder = placeholder ?? t('files.tags.placeholder');
 
     const availableCatalogTags = useMemo(
         () => catalog.filter((tag) => !value.includes(tag.name)),

@@ -169,7 +169,9 @@ export function FileGrid({
                               : t('files.empty.folderEmpty')}
                     </p>
                     {uploadsEnabled && !isTrashed && (
-                        <p className="text-xs">{t('files.empty.orUseUpload')}</p>
+                        <p className="text-xs">
+                            {t('files.empty.orUseUpload')}
+                        </p>
                     )}
                 </div>
             </EmptyAreaContextMenu>

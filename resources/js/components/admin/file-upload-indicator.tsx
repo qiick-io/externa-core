@@ -66,7 +66,10 @@ function uploadStatusLabel(upload: FileUploadProgress, t: TFunction): string {
     return `${uploadProgressPercent(upload)}%`;
 }
 
-function buildSummaryLabel(uploads: FileUploadProgress[], t: TFunction): string {
+function buildSummaryLabel(
+    uploads: FileUploadProgress[],
+    t: TFunction,
+): string {
     const activeUploads = uploads.filter(
         (upload) =>
             upload.status === 'pending' || upload.status === 'uploading',
