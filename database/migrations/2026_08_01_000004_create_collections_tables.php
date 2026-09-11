@@ -89,7 +89,11 @@ return new class extends Migration
         });
 
         if (Schema::getConnection()->getDriverName() === 'pgsql') {
-            DB::statement('CREATE INDEX collections_items_collection_id_index ON collections_items (collection_id)');
+            DB::statement('CREATE INDEX collections_items_collection_id_id_index ON collections_items (collection_id, id DESC)');
+        } else {
+            Schema::table('collections_items', function (Blueprint $table) {
+                $table->index('collection_id');
+            });
         }
 
         Schema::create('collections_items_values', function (Blueprint $table) {
@@ -116,7 +120,12 @@ return new class extends Migration
         });
 
         if (Schema::getConnection()->getDriverName() === 'pgsql') {
-            DB::statement('CREATE INDEX collections_items_values_field_id_index ON collections_items_values (field_id)');
+            DB::statement('CREATE INDEX collections_items_values_field_position_locale_index ON collections_items_values (field_id, position, locale)');
+            DB::statement('CREATE INDEX collections_items_values_value_gin_index ON collections_items_values USING GIN (value jsonb_path_ops)');
+        } else {
+            Schema::table('collections_items_values', function (Blueprint $table) {
+                $table->index('field_id');
+            });
         }
     }
 

@@ -10,6 +10,7 @@ import {
     Upload,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { FileDropzone } from '@/components/admin/file-dropzone';
 import { FileNameDialog } from '@/components/admin/file-name-dialog';
@@ -123,11 +124,11 @@ type FileFilters = {
     direction?: FileSortDirection;
 };
 
-const FILE_SORT_FIELDS: { value: FileSortField; label: string }[] = [
-    { value: 'name', label: 'Name' },
-    { value: 'size', label: 'Size' },
-    { value: 'created_at', label: 'Created' },
-    { value: 'updated_at', label: 'Updated' },
+const FILE_SORT_FIELDS: { value: FileSortField; labelKey: string }[] = [
+    { value: 'name', labelKey: 'files.sort.name' },
+    { value: 'size', labelKey: 'files.sort.size' },
+    { value: 'created_at', labelKey: 'files.sort.created' },
+    { value: 'updated_at', labelKey: 'files.sort.updated' },
 ];
 
 // ponytail: no websockets — poll notifications while duplication jobs are pending.
@@ -150,6 +151,7 @@ export default function AdminFilesIndex({
     breadcrumbs?: FileBreadcrumb[];
     filters?: FileFilters;
 }) {
+    const { t } = useTranslation();
     const { can } = useCan();
     const { projectSettings } = usePage().props;
     const filesMaxUploadBytes = projectSettings?.filesMaxUploadBytes ?? null;
@@ -354,7 +356,7 @@ export default function AdminFilesIndex({
                     toast.error(
                         error instanceof Error
                             ? error.message
-                            : 'Failed to search files',
+                            : t('files.toasts.searchFailed'),
                     );
                 }
             })();
@@ -363,7 +365,7 @@ export default function AdminFilesIndex({
         return () => {
             window.clearTimeout(timer);
         };
-    }, [direction, isTrashed, parentId, search, selectedTagIds, sort]);
+    }, [direction, isTrashed, parentId, search, selectedTagIds, sort, t]);
 
     useEffect(() => {
         setSelectedTagIds(filters.tag_ids ?? []);
@@ -416,7 +418,7 @@ export default function AdminFilesIndex({
 
         const crumbs: BreadcrumbItem[] = [
             {
-                title: 'Files',
+                title: t('files.title'),
                 href: adminRoutes.files.index({ query: listQuery }),
             },
         ];
@@ -433,7 +435,7 @@ export default function AdminFilesIndex({
         }
 
         return crumbs;
-    }, [direction, initialBreadcrumbs, isTrashed, selectedTagIds, sort]);
+    }, [direction, initialBreadcrumbs, isTrashed, selectedTagIds, sort, t]);
 
     const refreshPage = useCallback(() => {
         // Invalidate in-flight load-more before fetching fresh data.
@@ -521,7 +523,7 @@ export default function AdminFilesIndex({
                         ) {
                             toast.success(
                                 notification.data.title ??
-                                    'File duplication completed',
+                                    t('files.toasts.duplicationCompleted'),
                             );
                             refreshPage();
                         } else if (
@@ -529,7 +531,7 @@ export default function AdminFilesIndex({
                         ) {
                             toast.error(
                                 notification.data.title ??
-                                    'File duplication failed',
+                                    t('files.toasts.duplicationFailed'),
                             );
                         }
                     }
@@ -546,10 +548,11 @@ export default function AdminFilesIndex({
                                     : downloadPreparedZipUrl(jobId);
 
                             toast.success(
-                                notification.data.title ?? 'Your zip is ready',
+                                notification.data.title ??
+                                    t('files.toasts.zipReady'),
                                 {
                                     action: {
-                                        label: 'Download',
+                                        label: t('files.actions.download'),
                                         onClick: () => {
                                             window.location.href = downloadUrl;
                                         },
@@ -561,7 +564,7 @@ export default function AdminFilesIndex({
                         ) {
                             toast.error(
                                 notification.data.title ??
-                                    'Zip preparation failed',
+                                    t('files.toasts.zipFailed'),
                             );
                         }
                     }
@@ -594,7 +597,7 @@ export default function AdminFilesIndex({
             cancelled = true;
             window.clearInterval(intervalId);
         };
-    }, [pendingDuplicationJobCount, pendingZipJobCount, refreshPage]);
+    }, [pendingDuplicationJobCount, pendingZipJobCount, refreshPage, t]);
 
     const buildFilesIndexUrl = useCallback(
         (
@@ -682,8 +685,9 @@ export default function AdminFilesIndex({
                 selection.selectedFiles,
                 actionPermissions,
                 isTrashed,
+                t,
             ),
-        [selection.selectedFiles, actionPermissions, isTrashed],
+        [selection.selectedFiles, actionPermissions, isTrashed, t],
     );
 
     const loadMore = useCallback(async (): Promise<void> => {
@@ -731,7 +735,7 @@ export default function AdminFilesIndex({
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : 'Failed to load more files',
+                    : t('files.toasts.loadMoreFailed'),
             );
         } finally {
             if (requestGeneration === listGenerationRef.current) {
@@ -748,6 +752,7 @@ export default function AdminFilesIndex({
         search,
         selectedTagIds,
         sort,
+        t,
     ]);
 
     const enqueueUpload = useCallback(
@@ -836,7 +841,9 @@ export default function AdminFilesIndex({
                 return true;
             } catch (error) {
                 const errorMessage =
-                    error instanceof Error ? error.message : 'Upload failed';
+                    error instanceof Error
+                        ? error.message
+                        : t('files.toasts.uploadFailed');
 
                 if (batchContext) {
                     updateFileUpload(batchContext.batchUploadId, (entry) => ({
@@ -855,7 +862,7 @@ export default function AdminFilesIndex({
                 return false;
             }
         },
-        [filesMaxUploadBytes, parentId],
+        [filesMaxUploadBytes, parentId, t],
     );
 
     const uploadFilesWithStructure = useCallback(
@@ -1011,12 +1018,12 @@ export default function AdminFilesIndex({
                     toast.error(
                         error instanceof Error
                             ? error.message
-                            : 'Failed to process dropped files',
+                            : t('files.toasts.dropFailed'),
                     );
                 }
             })();
         },
-        [uploadFilesWithStructure, uploadsEnabled],
+        [uploadFilesWithStructure, uploadsEnabled, t],
     );
 
     const handleUploadInputChange = (
@@ -1049,7 +1056,9 @@ export default function AdminFilesIndex({
             refreshPage();
         } catch (error) {
             toast.error(
-                error instanceof Error ? error.message : 'Failed to move file',
+                error instanceof Error
+                    ? error.message
+                    : t('files.toasts.moveFailed'),
             );
         }
     };
@@ -1181,9 +1190,7 @@ export default function AdminFilesIndex({
                             );
                         } else {
                             const result = await queueFilesZipDownload(ids);
-                            toast.success(
-                                "Preparing zip — you'll be notified when it's ready.",
-                            );
+                            toast.success(t('files.toasts.zipPreparing'));
                             trackPendingZip(result.job_id);
                             selection.clearSelection();
                         }
@@ -1205,11 +1212,11 @@ export default function AdminFilesIndex({
 
                             if (result.queued) {
                                 toast.success(
-                                    "Duplication started — you'll be notified when it finishes",
+                                    t('files.toasts.duplicationStarted'),
                                 );
                                 trackPendingDuplication(result.job_id);
                             } else {
-                                toast.success('File duplicated');
+                                toast.success(t('files.toasts.duplicated'));
                                 refreshPage();
                             }
                         } else {
@@ -1217,7 +1224,7 @@ export default function AdminFilesIndex({
                                 parent_id: parentId,
                             });
                             toast.success(
-                                "Duplication started — you'll be notified when it finishes",
+                                t('files.toasts.duplicationStarted'),
                             );
 
                             if (result.queued) {
@@ -1278,7 +1285,9 @@ export default function AdminFilesIndex({
                 }
             } catch (error) {
                 toast.error(
-                    error instanceof Error ? error.message : 'Action failed',
+                    error instanceof Error
+                        ? error.message
+                        : t('files.toasts.actionFailed'),
                 );
             }
         },
@@ -1289,6 +1298,7 @@ export default function AdminFilesIndex({
             trackPendingDuplication,
             trackPendingZip,
             openFileDetails,
+            t,
         ],
     );
 
@@ -1328,7 +1338,9 @@ export default function AdminFilesIndex({
             setPendingDestructive(null);
         } catch (error) {
             toast.error(
-                error instanceof Error ? error.message : 'Action failed',
+                error instanceof Error
+                    ? error.message
+                    : t('files.toasts.actionFailed'),
             );
         } finally {
             setConfirmingDestructive(false);
@@ -1357,7 +1369,9 @@ export default function AdminFilesIndex({
             refreshPage();
         } catch (error) {
             toast.error(
-                error instanceof Error ? error.message : 'Failed to tag files',
+                error instanceof Error
+                    ? error.message
+                    : t('files.toasts.tagFailed'),
             );
         }
     };
@@ -1396,7 +1410,7 @@ export default function AdminFilesIndex({
                         <HeaderIconButton
                             type="button"
                             variant="outline"
-                            label="New folder"
+                            label={t('files.toolbar.newFolder')}
                             onClick={() => setFolderDialogOpen(true)}
                         >
                             <FolderPlus className="size-4" />
@@ -1425,7 +1439,7 @@ export default function AdminFilesIndex({
                                 <DropdownMenuTrigger asChild>
                                     <Button type="button">
                                         <Upload className="mr-1 size-4" />
-                                        Upload
+                                        {t('files.toolbar.upload')}
                                         <ChevronDown className="ml-1 size-4" />
                                     </Button>
                                 </DropdownMenuTrigger>
@@ -1436,7 +1450,7 @@ export default function AdminFilesIndex({
                                         }
                                     >
                                         <Upload className="size-4" />
-                                        Upload file
+                                        {t('files.toolbar.uploadFile')}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         onClick={() =>
@@ -1444,7 +1458,7 @@ export default function AdminFilesIndex({
                                         }
                                     >
                                         <FolderOpen className="size-4" />
-                                        Upload folder
+                                        {t('files.toolbar.uploadFolder')}
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
@@ -1453,7 +1467,7 @@ export default function AdminFilesIndex({
                 </>
             }
         >
-            <Head title="Files" />
+            <Head title={t('files.title')} />
 
             <FileDropzone
                 disabled={!uploadsEnabled}
@@ -1482,8 +1496,8 @@ export default function AdminFilesIndex({
                                     onSearchChange={setSearch}
                                     searchPlaceholder={
                                         isTrashed
-                                            ? 'Search trash…'
-                                            : 'Search files…'
+                                            ? t('files.toolbar.searchTrash')
+                                            : t('files.toolbar.searchFiles')
                                     }
                                     trailing={
                                         <TagFilterPopover
@@ -1513,10 +1527,14 @@ export default function AdminFilesIndex({
                                     >
                                         <SelectTrigger
                                             size="sm"
-                                            aria-label="Sort by"
+                                            aria-label={t('files.toolbar.sortBy')}
                                             className="w-[7.5rem]"
                                         >
-                                            <SelectValue placeholder="Sort" />
+                                            <SelectValue
+                                                placeholder={t(
+                                                    'files.toolbar.sort',
+                                                )}
+                                            />
                                         </SelectTrigger>
                                         <SelectContent align="end">
                                             {FILE_SORT_FIELDS.map((field) => (
@@ -1524,7 +1542,7 @@ export default function AdminFilesIndex({
                                                     key={field.value}
                                                     value={field.value}
                                                 >
-                                                    {field.label}
+                                                    {t(field.labelKey)}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -1536,8 +1554,8 @@ export default function AdminFilesIndex({
                                         className="size-8"
                                         aria-label={
                                             direction === 'asc'
-                                                ? 'Sort ascending'
-                                                : 'Sort descending'
+                                                ? t('files.toolbar.sortAsc')
+                                                : t('files.toolbar.sortDesc')
                                         }
                                         onClick={() => {
                                             visitWithSort(
@@ -1568,14 +1586,16 @@ export default function AdminFilesIndex({
                                     >
                                         <ToggleGroupItem
                                             value="active"
-                                            aria-label="Active files"
+                                            aria-label={t(
+                                                'files.toolbar.activeFiles',
+                                            )}
                                             className="px-2.5"
                                         >
                                             <Files className="size-4" />
                                         </ToggleGroupItem>
                                         <ToggleGroupItem
                                             value="trashed"
-                                            aria-label="Trash"
+                                            aria-label={t('files.toolbar.trash')}
                                             className="px-2.5"
                                         >
                                             <Trash2 className="size-4" />
@@ -1666,6 +1686,7 @@ export default function AdminFilesIndex({
                                     ),
                                     actionPermissions,
                                     isTrashed,
+                                    t,
                                 )
                             }
                         />
@@ -1698,19 +1719,19 @@ export default function AdminFilesIndex({
             <FileNameDialog
                 open={folderDialogOpen}
                 onOpenChange={setFolderDialogOpen}
-                title="New folder"
-                description="Create a folder in the current location."
-                confirmLabel="Create folder"
+                title={t('files.dialogs.newFolderTitle')}
+                description={t('files.dialogs.newFolderDescription')}
+                confirmLabel={t('files.dialogs.createFolder')}
                 onConfirm={handleCreateFolder}
             />
 
             <FileNameDialog
                 open={renameDialogOpen}
                 onOpenChange={setRenameDialogOpen}
-                title="Rename"
-                description="Enter a new name for this item."
+                title={t('files.dialogs.renameTitle')}
+                description={t('files.dialogs.renameDescription')}
                 initialName={renameTargetFile?.name ?? ''}
-                confirmLabel="Rename"
+                confirmLabel={t('files.actions.rename')}
                 onConfirm={handleRenameFile}
             />
 
@@ -1726,12 +1747,13 @@ export default function AdminFilesIndex({
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Add tags</DialogTitle>
+                        <DialogTitle>
+                            {t('files.dialogs.addTagsTitle')}
+                        </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-2">
                         <p className="text-sm text-muted-foreground">
-                            Tags are shared across all files. Pick existing ones
-                            or create a new name.
+                            {t('files.dialogs.addTagsDescription')}
                         </p>
                         <TagPicker
                             value={bulkTags}
@@ -1746,7 +1768,7 @@ export default function AdminFilesIndex({
                                 void applyBulkTags();
                             }}
                         >
-                            Apply tags
+                            {t('files.dialogs.applyTags')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -1777,32 +1799,34 @@ export default function AdminFilesIndex({
                 title={
                     destructiveIsForce
                         ? destructiveCount === 1
-                            ? 'Delete this file permanently?'
-                            : `Delete ${destructiveCount} selected files permanently?`
+                            ? t('files.delete.titleForceOne')
+                            : t('files.delete.titleForceMany', {
+                                  count: destructiveCount,
+                              })
                         : destructiveCount === 1
-                          ? 'Delete this file?'
-                          : `Delete ${destructiveCount} selected files?`
+                          ? t('files.delete.titleOne')
+                          : t('files.delete.titleMany', {
+                                count: destructiveCount,
+                            })
                 }
                 description={
                     <>
                         {destructiveIsForce
                             ? destructiveCount === 1
-                                ? 'This file will be permanently removed. This cannot be undone.'
-                                : 'Selected files will be permanently removed. This cannot be undone.'
+                                ? t('files.delete.descForceOne')
+                                : t('files.delete.descForceMany')
                             : destructiveCount === 1
-                              ? 'This file will be moved to trash.'
-                              : 'Selected files will be moved to trash.'}
+                              ? t('files.delete.descOne')
+                              : t('files.delete.descMany')}
                         {destructiveRefLoading && (
-                            <> Scanning item references…</>
+                            <> {t('files.delete.scanningRefs')}</>
                         )}
                         {!destructiveRefLoading && destructiveRefCount > 0 && (
                             <>
                                 {' '}
-                                Referenced by {destructiveRefCount} collection
-                                item
-                                {destructiveRefCount === 1 ? '' : 's'} — open
-                                the detail panel for links. You can still delete
-                                anyway.
+                                {t('files.delete.referencedBy', {
+                                    count: destructiveRefCount,
+                                })}
                             </>
                         )}
                     </>
@@ -1810,11 +1834,11 @@ export default function AdminFilesIndex({
                 confirmLabel={
                     destructiveIsForce
                         ? destructiveRefCount > 0
-                            ? 'Delete permanently anyway'
-                            : 'Delete permanently'
+                            ? t('files.delete.confirmPermanentAnyway')
+                            : t('files.delete.confirmPermanent')
                         : destructiveRefCount > 0
-                          ? 'Delete anyway'
-                          : 'Delete'
+                          ? t('files.delete.confirmAnyway')
+                          : t('common.delete')
                 }
                 confirming={confirmingDestructive}
                 onConfirm={() => {

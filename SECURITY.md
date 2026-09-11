@@ -20,9 +20,11 @@ Please **do not** open a public GitHub issue for security bugs.
 | Authz (Spatie roles, collection/file ACL) | Database volume & backup encryption |
 | Activity log access (`can-show-activity-logs`) | Host OS hardening, firewall, SSH |
 | Not writing passwords / 2FA secrets / API key material into activity diffs | Protecting `APP_KEY` and `.env` on disk |
-| Wysiwyg HTML sanitization, permission middleware on admin/API | Physical access to the server |
+| Wysiwyg HTML sanitization, File Manager extension denylist + plain-text strip, permission middleware on admin/API | Physical access to the server |
 
 **Assumption:** anyone with DB access **or** `APP_KEY` + app code can read application data, including chat bodies and activity properties. Laravel `encrypted` casts use `APP_KEY` on the server — that is **not** end-to-end encryption.
+
+**Files pool:** uploads/renames reject a denylist of dangerous extensions (`ForbiddenUploadExtension`); name/metadata/tags are `strip_tags`’d (`PlainTextSanitizer`). Team chat attachments remain any-type until **Save to Files**. Details: [File manager — Upload security](../externa-docs/src/app/docs/file-manager/page.md).
 
 ## Data handling defaults
 

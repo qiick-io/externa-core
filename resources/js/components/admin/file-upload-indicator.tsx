@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import {
     CheckCircle2,
     ChevronDown,
@@ -7,6 +8,7 @@ import {
     XCircle,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
     Collapsible,
@@ -41,26 +43,30 @@ function uploadProgressPercent(upload: FileUploadProgress): number {
     return Math.round((upload.uploadedChunks / upload.totalChunks) * 100);
 }
 
-function uploadStatusLabel(upload: FileUploadProgress): string {
+function uploadStatusLabel(upload: FileUploadProgress, t: TFunction): string {
     if (upload.status === 'error') {
-        return upload.error ?? 'Upload failed';
+        return upload.error ?? t('files.uploadIndicator.failed');
     }
 
     if (upload.status === 'complete') {
-        return 'Complete';
+        return t('files.uploadIndicator.complete');
     }
 
     if (upload.kind === 'batch' && upload.totalFiles) {
         const progress = uploadProgressPercent(upload);
         const uploadedFiles = upload.uploadedFiles ?? 0;
 
-        return `${progress}% · ${uploadedFiles}/${upload.totalFiles} files`;
+        return t('files.uploadIndicator.batchProgress', {
+            percent: progress,
+            uploaded: uploadedFiles,
+            total: upload.totalFiles,
+        });
     }
 
     return `${uploadProgressPercent(upload)}%`;
 }
 
-function buildSummaryLabel(uploads: FileUploadProgress[]): string {
+function buildSummaryLabel(uploads: FileUploadProgress[], t: TFunction): string {
     const activeUploads = uploads.filter(
         (upload) =>
             upload.status === 'pending' || upload.status === 'uploading',
@@ -72,25 +78,37 @@ function buildSummaryLabel(uploads: FileUploadProgress[]): string {
 
     if (activeUploads.length > 0) {
         if (completedUploads.length > 0) {
-            return `${activeUploads.length} uploading · ${completedUploads.length} completed`;
+            return t('files.uploadIndicator.uploadingWithCompleted', {
+                active: activeUploads.length,
+                completed: completedUploads.length,
+            });
         }
 
-        return `${activeUploads.length} uploading`;
+        return t('files.uploadIndicator.uploading', {
+            count: activeUploads.length,
+        });
     }
 
     if (errorUploads.length > 0 && completedUploads.length > 0) {
-        return `${completedUploads.length} completed · ${errorUploads.length} failed`;
+        return t('files.uploadIndicator.completedWithFailed', {
+            completed: completedUploads.length,
+            failed: errorUploads.length,
+        });
     }
 
     if (errorUploads.length > 0) {
-        return `${errorUploads.length} failed`;
+        return t('files.uploadIndicator.failedCount', {
+            count: errorUploads.length,
+        });
     }
 
     if (completedUploads.length === 1) {
-        return '1 upload complete';
+        return t('files.uploadIndicator.oneComplete');
     }
 
-    return `${completedUploads.length} uploads complete`;
+    return t('files.uploadIndicator.manyComplete', {
+        count: completedUploads.length,
+    });
 }
 
 /**
@@ -104,6 +122,7 @@ export function FileUploadIndicator({
     onDismissAll,
     className,
 }: FileUploadIndicatorProps) {
+    const { t } = useTranslation();
     const [expanded, setExpanded] = useState(true);
 
     const activeCount = useMemo(
@@ -126,7 +145,7 @@ export function FileUploadIndicator({
         return null;
     }
 
-    const summaryLabel = buildSummaryLabel(uploads);
+    const summaryLabel = buildSummaryLabel(uploads, t);
     const allFinished = activeCount === 0;
 
     return (
@@ -159,8 +178,8 @@ export function FileUploadIndicator({
                                 className="size-7 shrink-0"
                                 aria-label={
                                     expanded
-                                        ? 'Minimize upload panel'
-                                        : 'Expand upload panel'
+                                        ? t('files.uploadIndicator.minimize')
+                                        : t('files.uploadIndicator.expand')
                                 }
                             >
                                 {expanded ? (
@@ -176,7 +195,7 @@ export function FileUploadIndicator({
                                 variant="ghost"
                                 size="icon"
                                 className="size-7 shrink-0"
-                                aria-label="Close upload panel"
+                                aria-label={t('files.uploadIndicator.close')}
                                 onClick={onDismissAll}
                             >
                                 <X className="size-4" />
@@ -208,7 +227,10 @@ export function FileUploadIndicator({
                                                             : 'text-muted-foreground',
                                                     )}
                                                 >
-                                                    {uploadStatusLabel(upload)}
+                                                    {uploadStatusLabel(
+                                                        upload,
+                                                        t,
+                                                    )}
                                                 </p>
                                             </div>
                                             {upload.status === 'complete' && (

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { FileTag } from '@/types/files';
@@ -29,10 +30,13 @@ export function TagPicker({
     onChange,
     catalog,
     disabled = false,
-    placeholder = 'Type a tag and press Enter',
+    placeholder,
     id,
 }: TagPickerProps) {
+    const { t } = useTranslation();
     const [inputValue, setInputValue] = useState('');
+    const resolvedPlaceholder =
+        placeholder ?? t('files.tags.placeholder');
 
     const availableCatalogTags = useMemo(
         () => catalog.filter((tag) => !value.includes(tag.name)),
@@ -98,7 +102,7 @@ export function TagPicker({
                 id={id}
                 value={inputValue}
                 disabled={disabled}
-                placeholder={placeholder}
+                placeholder={resolvedPlaceholder}
                 onChange={(event) => setInputValue(event.target.value)}
                 onKeyDown={(event) => {
                     if (event.key === 'Enter') {
@@ -110,15 +114,14 @@ export function TagPicker({
 
             {exactMatchHint && (
                 <p className="text-xs text-muted-foreground">
-                    Exact match — will reuse existing tag “{exactMatchHint.name}
-                    ”
+                    {t('files.tags.exactMatch', { name: exactMatchHint.name })}
                 </p>
             )}
 
             {availableCatalogTags.length > 0 && (
                 <div className="space-y-1.5">
                     <p className="text-xs font-medium text-muted-foreground">
-                        Existing tags
+                        {t('files.tags.existing')}
                     </p>
                     <div className="flex max-h-36 flex-wrap gap-1 overflow-y-auto">
                         {availableCatalogTags.map((tag) => (

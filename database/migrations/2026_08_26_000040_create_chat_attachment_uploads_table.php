@@ -23,19 +23,10 @@ return new class extends Migration
 
             $table->index('expires_at');
         });
-
-        Schema::table('chat_attachments', function (Blueprint $table) {
-            $table->string('preview_path')->nullable()->after('path');
-            $table->string('preview_mime', 127)->nullable()->after('preview_path');
-        });
     }
 
     public function down(): void
     {
-        Schema::table('chat_attachments', function (Blueprint $table) {
-            $table->dropColumn(['preview_path', 'preview_mime']);
-        });
-
         Schema::dropIfExists('chat_attachment_uploads');
     }
 };

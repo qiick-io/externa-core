@@ -9,6 +9,8 @@ use App\Models\FileUpload;
 use App\Models\FileVersion;
 use App\Models\User;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
+use App\Support\Security\PlainTextSanitizer;
+use App\Support\Uploads\ForbiddenUploadExtension;
 use App\Traits\HasFiles;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\UploadedFile;
@@ -55,7 +57,8 @@ class FileService
      */
     public function uploadFile(UploadedFile $uploadedFile, ?int $parentId = null, string $disk = 'assets', ?string $name = null): File
     {
-        $fileName = $name ?? $uploadedFile->getClientOriginalName();
+        $fileName = PlainTextSanitizer::sanitize($name ?? $uploadedFile->getClientOriginalName()) ?? '';
+        ForbiddenUploadExtension::assertAllowed($fileName, $name !== null ? 'name' : 'file');
         $mimeType = $uploadedFile->getMimeType();
         $size = $uploadedFile->getSize() ?: 0;
         $storagePath = $this->generateStoragePath($fileName, $disk);
@@ -204,6 +207,9 @@ class FileService
      */
     public function rename(File $file, string $newName): File
     {
+        $newName = PlainTextSanitizer::sanitize($newName) ?? '';
+        ForbiddenUploadExtension::assertAllowed($newName, 'name');
+
         $renamed = DB::transaction(function () use ($file, $newName) {
             $file->name = $newName;
             $file->path = $this->calculatePath($file);
@@ -240,6 +246,7 @@ class FileService
                 'access',
             ];
 
+            $textKeys = ['title', 'description', 'location', 'download_name'];
             $focalChanged = false;
             foreach ($allowed as $key) {
                 if (array_key_exists($key, $attributes)) {
@@ -247,7 +254,11 @@ class FileService
                         && (float) ($file->{$key} ?? 0) !== (float) ($attributes[$key] ?? 0)) {
                         $focalChanged = true;
                     }
-                    $file->{$key} = $attributes[$key];
+                    $value = $attributes[$key];
+                    if (in_array($key, $textKeys, true) && (is_string($value) || $value === null)) {
+                        $value = PlainTextSanitizer::sanitize($value);
+                    }
+                    $file->{$key} = $value;
                 }
             }
 
@@ -285,6 +296,8 @@ class FileService
         if (! $file->isFile()) {
             throw new \InvalidArgumentException('Only files can be replaced.');
         }
+
+        ForbiddenUploadExtension::assertAllowed($uploadedFile->getClientOriginalName());
 
         app(FileTransformService::class)->clearTransforms($file);
 
@@ -427,7 +440,7 @@ class FileService
     {
         return array_values(array_unique(array_filter(
             array_map(
-                static fn (mixed $tagName): string => trim((string) $tagName),
+                static fn (mixed $tagName): string => PlainTextSanitizer::sanitize((string) $tagName) ?? '',
                 $tagNames,
             ),
             static fn (string $tagName): bool => $tagName !== '',
@@ -816,6 +829,9 @@ class FileService
      */
     public function initChunkUpload(string $fileName, int $totalSize, int $totalChunks, ?string $mimeType = null, ?int $parentId = null, string $disk = 'assets'): FileUpload
     {
+        $fileName = PlainTextSanitizer::sanitize($fileName) ?? '';
+        ForbiddenUploadExtension::assertAllowed($fileName, 'file_name');
+
         $uploadId = bin2hex(random_bytes(32));
         $expiresAt = now()->addHours(24);
 
@@ -881,6 +897,8 @@ class FileService
     public function completeChunkUpload(string $uploadId): File
     {
         $fileUpload = FileUpload::query()->where('upload_id', $uploadId)->firstOrFail();
+
+        ForbiddenUploadExtension::assertAllowed((string) $fileUpload->file_name, 'file_name');
 
         if ($fileUpload->isExpired()) {
             throw new \RuntimeException('Upload session has expired.');

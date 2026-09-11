@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { FileDetailPanel } from '@/components/admin/files/file-detail-panel';
 import {
     Sheet,
@@ -31,15 +32,19 @@ export function FileDetailDrawer({
     tagCatalog,
     onUpdated,
 }: FileDetailDrawerProps) {
+    const { t } = useTranslation();
+
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent
                 side="right"
                 className="w-full gap-0 p-0 sm:max-w-[380px] [&>button]:hidden"
             >
-                <SheetTitle className="sr-only">File details</SheetTitle>
+                <SheetTitle className="sr-only">
+                    {t('files.detail.sheetTitle')}
+                </SheetTitle>
                 <SheetDescription className="sr-only">
-                    Edit file metadata, tags, and replace the file contents.
+                    {t('files.detail.sheetDescription')}
                 </SheetDescription>
                 {file ? (
                     <FileDetailPanel

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FilePreview } from '@/components/admin/files/file-preview';
 import { TagPicker } from '@/components/admin/files/tag-picker';
 
@@ -158,6 +159,7 @@ export function FileDetailPanel({
     onUpdated,
     presentation = 'aside',
 }: FileDetailPanelProps) {
+    const { t } = useTranslation();
     const replaceInputRef = useRef<HTMLInputElement>(null);
     const [title, setTitle] = useState(file.title ?? '');
     const [description, setDescription] = useState(file.description ?? '');
@@ -224,7 +226,7 @@ export function FileDetailPanel({
                     setWhereUsedError(
                         error instanceof Error
                             ? error.message
-                            : 'Failed to scan references',
+                            : t('files.detail.failedScanRefs'),
                     );
                     setWhereUsedRefs([]);
                 }
@@ -238,7 +240,7 @@ export function FileDetailPanel({
         return () => {
             cancelled = true;
         };
-    }, [file.id, file.type]);
+    }, [file.id, file.type, t]);
 
     const parseOptionalNumber = (value: string): number | null => {
         if (value.trim() === '') {
@@ -267,11 +269,27 @@ export function FileDetailPanel({
 
                 const invalidNumericField = (
                     [
-                        ['Focal X', focalX, numericFields.focal_point_x],
-                        ['Focal Y', focalY, numericFields.focal_point_y],
-                        ['Translate X', translateX, numericFields.translate_x],
-                        ['Translate Y', translateY, numericFields.translate_y],
-                        ['Scale', scale, numericFields.scale],
+                        [
+                            t('files.detail.focalX'),
+                            focalX,
+                            numericFields.focal_point_x,
+                        ],
+                        [
+                            t('files.detail.focalY'),
+                            focalY,
+                            numericFields.focal_point_y,
+                        ],
+                        [
+                            t('files.detail.translateX'),
+                            translateX,
+                            numericFields.translate_x,
+                        ],
+                        [
+                            t('files.detail.translateY'),
+                            translateY,
+                            numericFields.translate_y,
+                        ],
+                        [t('files.detail.scale'), scale, numericFields.scale],
                     ] as const
                 ).find(
                     ([, rawValue, parsedValue]) =>
@@ -279,7 +297,11 @@ export function FileDetailPanel({
                 );
 
                 if (invalidNumericField) {
-                    toast.error(`${invalidNumericField[0]} must be a number`);
+                    toast.error(
+                        t('files.detail.mustBeNumber', {
+                            field: invalidNumericField[0],
+                        }),
+                    );
 
                     return;
                 }
@@ -299,10 +321,12 @@ export function FileDetailPanel({
             }
 
             onUpdated(updated);
-            toast.success('File updated');
+            toast.success(t('files.detail.updated'));
         } catch (error) {
             toast.error(
-                error instanceof Error ? error.message : 'Failed to save file',
+                error instanceof Error
+                    ? error.message
+                    : t('files.detail.failedSave'),
             );
         } finally {
             setSaving(false);
@@ -324,12 +348,12 @@ export function FileDetailPanel({
         try {
             const updated = await replaceFile(file.id, nextFile);
             onUpdated(updated);
-            toast.success('File replaced');
+            toast.success(t('files.detail.replaced'));
         } catch (error) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : 'Failed to replace file',
+                    : t('files.detail.failedReplace'),
             );
         } finally {
             setReplacing(false);
@@ -349,13 +373,15 @@ export function FileDetailPanel({
             )}
         >
             <div className="flex items-center justify-between border-b px-4 py-3">
-                <h2 className="text-sm font-semibold">Details</h2>
+                <h2 className="text-sm font-semibold">
+                    {t('files.detail.title')}
+                </h2>
                 <Button
                     type="button"
                     size="icon"
                     variant="ghost"
                     onClick={onClose}
-                    aria-label="Close details"
+                    aria-label={t('files.detail.close')}
                 >
                     <X className="size-4" />
                 </Button>
@@ -382,7 +408,9 @@ export function FileDetailPanel({
                                 disabled={replacing}
                                 onClick={() => replaceInputRef.current?.click()}
                             >
-                                {replacing ? 'Replacing…' : 'Replace file'}
+                                {replacing
+                                    ? t('files.detail.replacing')
+                                    : t('files.detail.replaceFile')}
                             </Button>
                         </>
                     )}
@@ -395,7 +423,7 @@ export function FileDetailPanel({
                             className="flex items-center gap-1.5"
                         >
                             <Lock className="size-3.5" />
-                            Visibility
+                            {t('files.detail.visibility')}
                         </Label>
                         <Select
                             value={access}
@@ -405,24 +433,37 @@ export function FileDetailPanel({
                             }
                         >
                             <SelectTrigger id="file-access" className="w-full">
-                                <SelectValue placeholder="Visibility" />
+                                <SelectValue
+                                    placeholder={t('files.detail.visibility')}
+                                />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="inherit">
-                                    Inherit from folder
+                                    {t('files.detail.inherit')}
                                 </SelectItem>
-                                <SelectItem value="public">Public</SelectItem>
-                                <SelectItem value="private">Private</SelectItem>
+                                <SelectItem value="public">
+                                    {t('files.detail.public')}
+                                </SelectItem>
+                                <SelectItem value="private">
+                                    {t('files.detail.private')}
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                         <p className="text-xs text-muted-foreground">
                             {file.type === 'folder'
-                                ? 'Private folders make children inherit private access unless overridden.'
-                                : `Effective: ${file.effective_access}. Public CMS API hides private files without Read private.`}
+                                ? t('files.detail.folderVisibilityHint')
+                                : t('files.detail.fileVisibilityHint', {
+                                      access:
+                                          file.effective_access === 'private'
+                                              ? t('files.detail.private')
+                                              : t('files.detail.public'),
+                                  })}
                         </p>
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="file-title">Title</Label>
+                        <Label htmlFor="file-title">
+                            {t('files.detail.titleLabel')}
+                        </Label>
                         <Input
                             id="file-title"
                             value={title}
@@ -431,7 +472,9 @@ export function FileDetailPanel({
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="file-description">Description</Label>
+                        <Label htmlFor="file-description">
+                            {t('files.detail.descriptionLabel')}
+                        </Label>
                         <Textarea
                             id="file-description"
                             value={description}
@@ -443,10 +486,11 @@ export function FileDetailPanel({
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="file-tags">Tags</Label>
+                        <Label htmlFor="file-tags">
+                            {t('files.detail.tagsLabel')}
+                        </Label>
                         <p className="text-xs text-muted-foreground">
-                            Shared across all files — pick an existing tag or
-                            create a new one.
+                            {t('files.detail.tagsHint')}
                         </p>
                         <TagPicker
                             id="file-tags"
@@ -463,7 +507,7 @@ export function FileDetailPanel({
                                 className="flex items-center gap-1.5"
                             >
                                 <MapPin className="size-3.5" />
-                                Location
+                                {t('files.detail.location')}
                             </Label>
                             <Input
                                 id="file-location"
@@ -477,13 +521,13 @@ export function FileDetailPanel({
                         <div className="space-y-1.5">
                             <Label className="flex items-center gap-1.5">
                                 <HardDrive className="size-3.5" />
-                                Storage
+                                {t('files.detail.storage')}
                             </Label>
                             <Input value={file.disk} disabled />
                         </div>
                     </div>
                     <div className="space-y-1.5">
-                        <Label>Storage path</Label>
+                        <Label>{t('files.detail.storagePath')}</Label>
                         <Input
                             value={file.storage_path ?? ''}
                             disabled
@@ -498,11 +542,11 @@ export function FileDetailPanel({
                     <>
                         <div className="space-y-3" data-test="file-where-used">
                             <SectionHeading icon={Link2}>
-                                Where used
+                                {t('files.detail.whereUsed')}
                             </SectionHeading>
                             {whereUsedLoading && (
                                 <p className="text-xs text-muted-foreground">
-                                    Scanning collections…
+                                    {t('files.detail.scanningCollections')}
                                 </p>
                             )}
                             {whereUsedError && (
@@ -515,7 +559,7 @@ export function FileDetailPanel({
                                 whereUsedRefs !== null &&
                                 whereUsedRefs.length === 0 && (
                                     <p className="text-xs text-muted-foreground">
-                                        Not referenced by any collection items.
+                                        {t('files.detail.notReferenced')}
                                     </p>
                                 )}
                             {!whereUsedLoading &&
@@ -523,10 +567,19 @@ export function FileDetailPanel({
                                 whereUsedRefs.length > 0 && (
                                     <ul className="space-y-2 text-xs">
                                         <li className="text-muted-foreground">
-                                            {whereUsedRefs.length} reference
                                             {whereUsedRefs.length === 1
-                                                ? ''
-                                                : 's'}
+                                                ? t(
+                                                      'files.detail.referenceCount',
+                                                      {
+                                                          count: whereUsedRefs.length,
+                                                      },
+                                                  )
+                                                : t(
+                                                      'files.detail.referenceCountPlural',
+                                                      {
+                                                          count: whereUsedRefs.length,
+                                                      },
+                                                  )}
                                         </li>
                                         {whereUsedRefs
                                             .slice(0, 20)
@@ -549,8 +602,11 @@ export function FileDetailPanel({
                                             ))}
                                         {whereUsedRefs.length > 20 && (
                                             <li className="text-muted-foreground">
-                                                +{whereUsedRefs.length - 20}{' '}
-                                                more
+                                                {t('files.detail.moreRefs', {
+                                                    count:
+                                                        whereUsedRefs.length -
+                                                        20,
+                                                })}
                                             </li>
                                         )}
                                     </ul>
@@ -562,7 +618,7 @@ export function FileDetailPanel({
 
                 <div className="space-y-3">
                     <SectionHeading icon={ImageIcon}>
-                        Focal point
+                        {t('files.detail.focalPoint')}
                     </SectionHeading>
                     <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1.5">
@@ -605,10 +661,12 @@ export function FileDetailPanel({
                 <Separator />
 
                 <div className="space-y-3">
-                    <SectionHeading icon={FileText}>File naming</SectionHeading>
+                    <SectionHeading icon={FileText}>
+                        {t('files.detail.fileNaming')}
+                    </SectionHeading>
                     <div className="space-y-3">
                         <div className="space-y-1.5">
-                            <Label>Disk name</Label>
+                            <Label>{t('files.detail.diskName')}</Label>
                             <Input
                                 value={file.name}
                                 disabled
@@ -616,7 +674,9 @@ export function FileDetailPanel({
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="download-name">Download name</Label>
+                            <Label htmlFor="download-name">
+                                {t('files.detail.downloadName')}
+                            </Label>
                             <Input
                                 id="download-name"
                                 value={downloadName}
@@ -632,7 +692,9 @@ export function FileDetailPanel({
                 <Separator />
 
                 <div className="space-y-3">
-                    <SectionHeading icon={Scaling}>Transforms</SectionHeading>
+                    <SectionHeading icon={Scaling}>
+                        {t('files.detail.transforms')}
+                    </SectionHeading>
                     <div className="space-y-3">
                         <div className="space-y-1.5">
                             <Label
@@ -640,7 +702,7 @@ export function FileDetailPanel({
                                 className="flex items-center gap-1.5"
                             >
                                 <MoveHorizontal className="size-3.5" />
-                                Translate X
+                                {t('files.detail.translateX')}
                             </Label>
                             <Input
                                 id="translate-x"
@@ -661,7 +723,7 @@ export function FileDetailPanel({
                                 className="flex items-center gap-1.5"
                             >
                                 <MoveVertical className="size-3.5" />
-                                Translate Y
+                                {t('files.detail.translateY')}
                             </Label>
                             <Input
                                 id="translate-y"
@@ -682,7 +744,7 @@ export function FileDetailPanel({
                                 className="flex items-center gap-1.5"
                             >
                                 <Scaling className="size-3.5" />
-                                Scale
+                                {t('files.detail.scale')}
                             </Label>
                             <Input
                                 id="file-scale"
@@ -712,7 +774,7 @@ export function FileDetailPanel({
                             void handleSave();
                         }}
                     >
-                        {saving ? 'Saving…' : 'Save'}
+                        {saving ? t('files.saving') : t('common.save')}
                     </Button>
                 </div>
             )}

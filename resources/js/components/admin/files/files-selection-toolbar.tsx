@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { FilesActionsOverflow } from '@/components/admin/files/files-actions-overflow';
 import { Button } from '@/components/ui/button';
 import type { FileActionDefinition, FileActionKey } from '@/types/files';
@@ -21,16 +22,20 @@ export function FilesSelectionToolbar({
     onClear,
     onAction,
 }: FilesSelectionToolbarProps) {
+    const { t } = useTranslation();
+
     return (
         <div className="flex min-w-0 items-center gap-3">
             <div className="flex shrink-0 items-center gap-2">
-                <span className="text-sm font-medium">{count} selected</span>
+                <span className="text-sm font-medium">
+                    {t('files.toolbar.selectedCount', { count })}
+                </span>
                 <Button
                     type="button"
                     size="sm"
                     variant="ghost"
                     onClick={onClear}
-                    aria-label="Clear selection"
+                    aria-label={t('files.toolbar.clearSelection')}
                 >
                     <X className="size-4" />
                 </Button>
