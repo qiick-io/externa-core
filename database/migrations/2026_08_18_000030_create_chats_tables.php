@@ -27,6 +27,7 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained('users')->cascadeOnDelete();
             $table->foreignId('user_group_id')->nullable()->constrained('user_groups')->cascadeOnDelete();
             $table->string('source', 32);
+            $table->timestamp('archived_at')->nullable();
             $table->timestamps();
 
             $table->unique(['chat_id', 'user_id']);

@@ -42,6 +42,17 @@
         "repository": "Repository",
         "documentation": "Documentazione"
     },
+    "notifications": {
+        "title": "Notifiche",
+        "description": "Aggiornamenti dalle operazioni file in background.",
+        "loading": "Caricamento…",
+        "empty": "Nessuna notifica.",
+        "markAllRead": "Segna tutte come lette",
+        "markUnread": "Segna come non letta",
+        "openFolder": "Apri cartella",
+        "openChat": "Apri chat",
+        "downloadZip": "Scarica zip"
+    },
     "userMenu": {
         "settings": "Impostazioni",
         "language": "Lingua",
@@ -1158,6 +1169,12 @@
         "unreadCount": "{{count}} non lette",
         "addPeople": "Aggiungi persone",
         "addPeopleConfirm": "Aggiungi",
+        "archiveChat": "Archivia",
+        "archiveChatError": "Impossibile archiviare la chat.",
+        "unarchiveChat": "Ripristina",
+        "unarchiveChatError": "Impossibile ripristinare la chat.",
+        "showArchived": "Mostra archiviate",
+        "showInbox": "Mostra chat",
         "deleteChat": "Elimina chat",
         "deleteChatError": "Impossibile eliminare la chat."
     },

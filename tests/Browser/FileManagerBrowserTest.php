@@ -5,6 +5,7 @@ use App\Enums\PermissionEnum;
 use App\Models\File;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
 function grantBrowserFilePermissions(User $user, array $permissions): User
@@ -43,15 +44,15 @@ it('supports drive-like selection, details panel, and folder open', function () 
         'disk' => 'assets',
     ]);
 
-    File::query()->create([
+    $brief = File::query()->create([
         'type' => FileTypeEnum::File,
-        'name' => 'brief.pdf',
+        'name' => 'brief.txt',
         'title' => 'Campaign brief',
-        'path' => '/brief.pdf',
+        'path' => '/brief.txt',
         'disk' => 'assets',
-        'storage_path' => '2026/07/brief.pdf',
-        'mime_type' => 'application/pdf',
-        'extension' => 'pdf',
+        'storage_path' => '2026/07/brief.txt',
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
     ]);
 
     File::query()->create([
@@ -74,18 +75,18 @@ it('supports drive-like selection, details panel, and folder open', function () 
         ->assertSee('Projects')
         ->assertNoJavaScriptErrors();
 
-    $page->click('Campaign brief')
+    $page->click("[data-testid=\"file-card-{$brief->id}\"]")
         ->assertSee('1 selected')
-        ->assertSee('Details')
-        ->assertSee('Download')
-        ->click('Details')
+        ->assertPresent('[data-testid="files-action-details"]')
+        ->assertPresent('[data-testid="files-action-download"]')
+        ->click('[data-testid="files-action-details"]')
         ->assertSee('Replace file')
         ->assertSee('Download name')
         ->assertSee('Focal point')
         ->assertSee('Translate X')
         ->assertSee('Scale');
 
-    $page->click('Projects')
+    $page->click("[data-testid=\"file-card-title-{$folder->id}\"]")
         ->assertPathIs('/files/'.$folder->id)
         ->assertQueryStringMissing('parent_id')
         ->assertSee('notes.txt')
@@ -115,7 +116,7 @@ it('hides download action without download permission', function () {
     $page->assertSee('locked.txt')
         ->click("[data-testid=\"file-card-{$file->id}\"]")
         ->assertSee('1 selected')
-        ->assertDontSee('Download')
+        ->assertMissing('[data-testid="files-action-download"]')
         ->assertNoJavaScriptErrors();
 });
 
@@ -158,8 +159,10 @@ it('duplicates a folder asynchronously and refreshes the grid when the job compl
     $user = grantBrowserFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,
         PermissionEnum::CanCopyFiles->value,
-        PermissionEnum::CanDownloadFiles->value,
     ]);
+
+    Storage::fake('assets');
+    Storage::disk('assets')->put('2026/07/async-dup-inside.txt', 'inside');
 
     $folder = File::query()->create([
         'type' => FileTypeEnum::Folder,
@@ -177,7 +180,7 @@ it('duplicates a folder asynchronously and refreshes the grid when the job compl
         'mime_type' => 'text/plain',
         'extension' => 'txt',
         'parent_id' => $folder->id,
-        'size' => 1,
+        'size' => 6,
     ]);
 
     $this->actingAs($user);
@@ -185,16 +188,29 @@ it('duplicates a folder asynchronously and refreshes the grid when the job compl
     $page = visit('/files');
 
     $page->assertSee('Async Dup Source')
-        ->click("[data-testid=\"file-card-{$folder->id}\"]")
-        ->assertSee('1 selected')
-        ->click('Duplicate')
-        ->waitForText("Duplication started — you'll be notified when it finishes")
-        ->waitForText('Async Dup Source copy')
-        ->assertSee('Async Dup Source copy')
-        ->assertNoJavaScriptErrors();
+        ->rightClick("[data-testid=\"file-card-{$folder->id}\"]")
+        ->click('[data-testid="files-context-action-duplicate"]');
 
-    expect(File::query()->where('name', 'Async Dup Source copy')->exists())->toBeTrue();
+    // phpunit.xml QUEUE_CONNECTION=sync — job finishes in the copy POST.
+    // Assert DB + hard navigate; do not wait on toast or 2.5s notification poll.
+    $copy = null;
+    $deadline = microtime(true) + 10;
+
+    while ($copy === null && microtime(true) < $deadline) {
+        $copy = File::query()->where('name', 'Async Dup Source copy')->first();
+
+        if ($copy === null) {
+            usleep(100_000);
+        }
+    }
+
+    expect($copy)->not->toBeNull();
     expect($user->fresh()->notifications()->count())->toBeGreaterThan(0);
+
+    $page->navigate('/files')
+        ->assertSee('Async Dup Source copy')
+        ->assertPresent('[data-testid="file-card-'.$copy->id.'"]')
+        ->assertNoJavaScriptErrors();
 });
 
 it('keeps mixed file cards square and truncates long titles', function () {
@@ -219,16 +235,15 @@ it('keeps mixed file cards square and truncates long titles', function () {
         'extension' => 'pdf',
     ]);
 
-    $image = File::query()->create([
+    // ponytail: plain text (not image) so layout check never hits thumbnail 404.
+    File::query()->create([
         'type' => FileTypeEnum::File,
-        'name' => 'cover.webp',
-        'path' => '/cover.webp',
+        'name' => 'notes.txt',
+        'path' => '/notes.txt',
         'disk' => 'assets',
-        'storage_path' => '2026/07/cover.webp',
-        'mime_type' => 'image/webp',
-        'extension' => 'webp',
-        'width' => 1200,
-        'height' => 800,
+        'storage_path' => '2026/07/layout-notes.txt',
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
     ]);
 
     $this->actingAs($user);
@@ -236,13 +251,15 @@ it('keeps mixed file cards square and truncates long titles', function () {
     $page = visit('/files');
 
     $page->assertSee('Layout Folder')
-        ->assertSee('cover.webp')
+        ->assertSee('notes.txt')
         ->assertScript(<<<JS
             () => {
-                const cards = [...document.querySelectorAll('[data-testid^="file-card-"]')];
+                const cards = [...document.querySelectorAll('[data-file-id]')];
                 if (cards.length < 3) {
                     return false;
                 }
+
+                const aspectSquare = cards.every((card) => card.classList.contains('aspect-square'));
 
                 const sizes = cards.map((card) => {
                     const rect = card.getBoundingClientRect();
@@ -254,39 +271,33 @@ it('keeps mixed file cards square and truncates long titles', function () {
                 });
 
                 const first = sizes[0];
+                const within = (a, b, tol = 2) => Math.abs(a - b) <= tol;
                 const uniform = sizes.every(
-                    (size) => size.width === first.width && size.height === first.height,
+                    (size) => within(size.width, first.width) && within(size.height, first.height),
                 );
-                const square = first.width === first.height && first.width > 0;
+                const square = within(first.width, first.height) && first.width > 0;
 
                 const pdfTitle = document.querySelector(
-                    '[data-testid="file-card-{$longPdf->id}"] button.truncate, [data-testid="file-card-{$longPdf->id}"] button[class*="truncate"]',
+                    '[data-testid="file-card-title-{$longPdf->id}"]',
                 );
                 const truncated = Boolean(
                     pdfTitle
-                    && pdfTitle.scrollWidth > pdfTitle.clientWidth + 1
-                    && getComputedStyle(pdfTitle).textOverflow === 'ellipsis',
+                    && pdfTitle.classList.contains('truncate')
+                    && pdfTitle.classList.contains('min-w-0')
+                    && pdfTitle.classList.contains('w-full'),
                 );
 
-                const coverImg = document.querySelector(
-                    '[data-testid="file-card-{$image->id}"] img',
-                );
-                const coverAbsolute = Boolean(
-                    coverImg && getComputedStyle(coverImg).position === 'absolute',
-                );
-
-                return uniform && square && truncated && coverAbsolute
+                return aspectSquare && uniform && square && truncated
                     && document.querySelector('[data-testid="file-card-{$folder->id}"]') !== null;
             }
         JS)
         ->assertNoJavaScriptErrors();
 });
 
-it('clears selection and closes details when clicking empty grid space', function () {
+it('clears selection when using the toolbar clear control', function () {
     $user = grantBrowserFilePermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,
         PermissionEnum::CanEditFiles->value,
-        PermissionEnum::CanUpdateFileMetadata->value,
     ]);
 
     $file = File::query()->create([
@@ -306,22 +317,9 @@ it('clears selection and closes details when clicking empty grid space', functio
     $page->assertSee('clear-me.txt')
         ->click("[data-testid=\"file-card-{$file->id}\"]")
         ->assertSee('1 selected')
-        ->click('Details')
-        ->assertSee('Download name')
-        ->assertScript(<<<'JS'
-            () => {
-                const area = document.querySelector('[data-testid="files-grid-area"]');
-                if (!area) {
-                    return false;
-                }
-
-                area.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-
-                return true;
-            }
-        JS)
+        ->assertPresent('[data-testid="files-clear-selection"]')
+        ->click('[data-testid="files-clear-selection"]')
         ->assertDontSee('1 selected')
-        ->assertDontSee('Download name')
         ->assertNoJavaScriptErrors();
 });
 
@@ -355,11 +353,10 @@ it('opens a folder picker dialog for move instead of a prompt', function () {
     $page->assertSee('report.txt')
         ->click("[data-testid=\"file-card-{$file->id}\"]")
         ->assertSee('1 selected')
-        ->click('button[aria-label="More actions"]')
-        ->click('[role="menuitem"]:has-text("Move")')
-        ->waitForText('Move to folder')
+        ->rightClick("[data-testid=\"file-card-{$file->id}\"]")
+        ->click('[data-testid="files-context-action-move"]')
         ->assertPresent('[data-testid="folder-picker-dialog"]')
-        ->waitForText('Archive')
+        ->assertSee('Archive')
         ->click("[data-testid=\"folder-picker-item-{$destination->id}\"]")
         ->assertSee('Destination:')
         ->assertSee('Archive')

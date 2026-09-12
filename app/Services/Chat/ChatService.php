@@ -253,16 +253,79 @@ class ChatService
     /**
      * @return Builder<Chat>
      */
-    public function directChatsFor(User $user): Builder
+    public function directChatsFor(User $user, bool $archived = false): Builder
     {
         return Chat::query()
             ->where('kind', Chat::KIND_DIRECT)
-            ->whereHas('participants', fn (Builder $query) => $query->where('user_id', $user->id))
+            ->whereHas(
+                'participants',
+                fn (Builder $query) => $query
+                    ->where('user_id', $user->id)
+                    ->when(
+                        $archived,
+                        fn (Builder $q) => $q->whereNotNull('archived_at'),
+                        fn (Builder $q) => $q->whereNull('archived_at'),
+                    ),
+            )
             ->with([
                 'participants.user:id,first_name,last_name,email',
                 'participants.group:id,name',
             ])
             ->orderByDesc('updated_at');
+    }
+
+    public function archiveDirectChat(Chat $chat, User $user): void
+    {
+        abort_unless($chat->isDirect(), 422);
+        abort_unless($this->isParticipant($chat, $user), 403);
+
+        ChatParticipant::query()
+            ->where('chat_id', $chat->id)
+            ->where('user_id', $user->id)
+            ->whereNull('archived_at')
+            ->update(['archived_at' => now()]);
+    }
+
+    public function unarchiveDirectChat(Chat $chat, User $user): void
+    {
+        abort_unless($chat->isDirect(), 422);
+        abort_unless($this->isParticipant($chat, $user), 403);
+
+        ChatParticipant::query()
+            ->where('chat_id', $chat->id)
+            ->where('user_id', $user->id)
+            ->whereNotNull('archived_at')
+            ->update(['archived_at' => null]);
+    }
+
+    /**
+     * Inbound message on an archived DM reopens it for every other participant.
+     */
+    public function unarchiveDirectChatForRecipients(Chat $chat, User $except): void
+    {
+        if (! $chat->isDirect()) {
+            return;
+        }
+
+        ChatParticipant::query()
+            ->where('chat_id', $chat->id)
+            ->whereNotNull('user_id')
+            ->where('user_id', '!=', $except->id)
+            ->whereNotNull('archived_at')
+            ->update(['archived_at' => null]);
+    }
+
+    public function isArchivedFor(Chat $chat, User $user): bool
+    {
+        if (! $chat->isDirect()) {
+            return false;
+        }
+
+        return ChatParticipant::query()
+            ->where('chat_id', $chat->id)
+            ->where('user_id', $user->id)
+            ->whereNotNull('archived_at')
+            ->exists();
     }
 
     /**
@@ -318,6 +381,7 @@ class ChatService
                 ]
                 : null,
             'unread_count' => $unreadCount,
+            'archived' => $this->isArchivedFor($chat, $viewer),
             'updated_at' => $chat->updated_at?->toIso8601String(),
         ];
     }

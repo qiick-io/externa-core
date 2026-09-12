@@ -36,6 +36,7 @@ export function FilesSelectionToolbar({
                     variant="ghost"
                     onClick={onClear}
                     aria-label={t('files.toolbar.clearSelection')}
+                    data-testid="files-clear-selection"
                 >
                     <X className="size-4" />
                 </Button>

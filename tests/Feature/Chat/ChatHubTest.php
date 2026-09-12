@@ -751,6 +751,150 @@ test('leave direct chat removes participant and hides thread', function () {
         ->assertJsonPath('data.0.id', $chatId);
 });
 
+test('archive direct chat hides for actor only', function () {
+    ['user' => $user, 'other' => $other] = hubKitchen([
+        PermissionEnum::CanCreateDirectChats->value,
+    ]);
+
+    $chatId = $this->actingAs($user)
+        ->postJson(route('chat.threads.store'), [
+            'kind' => Chat::KIND_DIRECT,
+            'user_ids' => [$other->id],
+        ])
+        ->json('chat.id');
+
+    $this->actingAs($user)
+        ->postJson(route('chat.archive', $chatId))
+        ->assertOk();
+
+    expect(ChatParticipant::query()
+        ->where('chat_id', $chatId)
+        ->where('user_id', $user->id)
+        ->whereNotNull('archived_at')
+        ->exists())->toBeTrue();
+
+    $this->actingAs($user)
+        ->getJson(route('chat.threads.index', ['tab' => 'private']))
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+
+    $this->actingAs($user)
+        ->getJson(route('chat.threads.index', ['tab' => 'private', 'archived' => 1]))
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $chatId)
+        ->assertJsonPath('data.0.archived', true);
+
+    $this->actingAs($other)
+        ->getJson(route('chat.threads.index', ['tab' => 'private']))
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $chatId)
+        ->assertJsonPath('data.0.archived', false);
+});
+
+test('unarchive direct chat restores private list', function () {
+    ['user' => $user, 'other' => $other] = hubKitchen([
+        PermissionEnum::CanCreateDirectChats->value,
+    ]);
+
+    $chatId = $this->actingAs($user)
+        ->postJson(route('chat.threads.store'), [
+            'kind' => Chat::KIND_DIRECT,
+            'user_ids' => [$other->id],
+        ])
+        ->json('chat.id');
+
+    $this->actingAs($user)
+        ->postJson(route('chat.archive', $chatId))
+        ->assertOk();
+
+    $this->actingAs($user)
+        ->postJson(route('chat.unarchive', $chatId))
+        ->assertOk()
+        ->assertJsonPath('chat.id', $chatId)
+        ->assertJsonPath('chat.archived', false);
+
+    $this->actingAs($user)
+        ->getJson(route('chat.threads.index', ['tab' => 'private']))
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $chatId);
+});
+
+test('inbound message unarchives direct chat for recipient', function () {
+    ['user' => $user, 'other' => $other] = hubKitchen([
+        PermissionEnum::CanCreateDirectChats->value,
+    ]);
+
+    $chatId = $this->actingAs($user)
+        ->postJson(route('chat.threads.store'), [
+            'kind' => Chat::KIND_DIRECT,
+            'user_ids' => [$other->id],
+        ])
+        ->json('chat.id');
+
+    $this->actingAs($user)
+        ->postJson(route('chat.archive', $chatId))
+        ->assertOk();
+
+    $this->actingAs($other)
+        ->postJson(route('chat.messages.store', $chatId), [
+            'body' => 'ping',
+        ])
+        ->assertCreated();
+
+    expect(ChatParticipant::query()
+        ->where('chat_id', $chatId)
+        ->where('user_id', $user->id)
+        ->value('archived_at'))->toBeNull();
+
+    $this->actingAs($user)
+        ->getJson(route('chat.threads.index', ['tab' => 'private']))
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $chatId);
+});
+
+test('cannot archive item chat', function () {
+    ['user' => $user, 'collection' => $collection, 'item' => $item] = hubKitchen([
+        PermissionEnum::CanCreateDirectChats->value,
+    ]);
+
+    $this->actingAs($user)
+        ->postJson(route('collections.items.chat.store', [$collection, $item]), [
+            'body' => 'hi',
+        ])
+        ->assertCreated();
+
+    $chatId = Chat::query()->where('collection_item_id', $item->id)->value('id');
+
+    $this->postJson(route('chat.archive', $chatId))->assertStatus(422);
+    $this->postJson(route('chat.unarchive', $chatId))->assertStatus(422);
+});
+
+test('archive leave still removes participant', function () {
+    ['user' => $user, 'other' => $other] = hubKitchen([
+        PermissionEnum::CanCreateDirectChats->value,
+    ]);
+
+    $chatId = $this->actingAs($user)
+        ->postJson(route('chat.threads.store'), [
+            'kind' => Chat::KIND_DIRECT,
+            'user_ids' => [$other->id],
+        ])
+        ->json('chat.id');
+
+    $this->actingAs($user)
+        ->postJson(route('chat.archive', $chatId))
+        ->assertOk();
+
+    $this->actingAs($user)
+        ->deleteJson(route('chat.destroy', $chatId))
+        ->assertOk();
+
+    expect(ChatParticipant::query()
+        ->where('chat_id', $chatId)
+        ->where('user_id', $user->id)
+        ->exists())->toBeFalse();
+});
+
 test('cannot add participants to item chat', function () {
     ['user' => $user, 'collection' => $collection, 'item' => $item] = hubKitchen([
         PermissionEnum::CanCreateDirectChats->value,

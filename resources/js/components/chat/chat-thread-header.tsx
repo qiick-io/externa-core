@@ -111,6 +111,7 @@ export function ChatThreadHeader({
                         chatId={liveChatId}
                         participants={thread.participants}
                         canCreateDirect={canCreateDirect}
+                        archived={thread.archived === true}
                         navigateHomeOnDelete
                         reloadSelectedOnAdd={variant === 'pane'}
                     />

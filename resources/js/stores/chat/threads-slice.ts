@@ -62,14 +62,39 @@ export const createThreadsSlice: StateCreator<
             let changed = false;
 
             for (const [key, entry] of Object.entries(threadsByKey)) {
-                if (!key.startsWith('private|') || entry.status !== 'ready') {
+                const isPrivate = key.startsWith('private|');
+                const isArchivedList = key.startsWith('archived|');
+
+                if (
+                    (!isPrivate && !isArchivedList) ||
+                    entry.status !== 'ready'
+                ) {
                     continue;
                 }
 
-                const q = key.slice('private|'.length);
+                const q = isPrivate
+                    ? key.slice('private|'.length)
+                    : key.slice('archived|'.length);
                 const index = entry.items.findIndex(
                     (row) => row.id === thread.id,
                 );
+
+                // Live upserts belong in the active private list only.
+                if (isArchivedList) {
+                    if (index < 0) {
+                        continue;
+                    }
+
+                    changed = true;
+                    threadsByKey[key] = {
+                        ...entry,
+                        items: entry.items.filter(
+                            (row) => row.id !== thread.id,
+                        ),
+                    };
+
+                    continue;
+                }
 
                 if (index < 0 && !threadMatchesPrivateQuery(thread, q)) {
                     continue;
@@ -78,7 +103,10 @@ export const createThreadsSlice: StateCreator<
                 changed = true;
                 threadsByKey[key] = {
                     ...entry,
-                    items: upsertThreadInList(entry.items, thread),
+                    items: upsertThreadInList(entry.items, {
+                        ...thread,
+                        archived: false,
+                    }),
                 };
             }
 

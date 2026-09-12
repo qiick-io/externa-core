@@ -137,3 +137,24 @@ export async function markNotificationsRead(options?: {
 
     return payload.unread_count;
 }
+
+/**
+ * Marks notifications as unread by id.
+ *
+ * @param ids - Notification ids to mark unread
+ * @returns Updated unread count after the operation
+ */
+export async function markNotificationsUnread(ids: string[]): Promise<number> {
+    const response = await fetch('/notifications/unread', {
+        method: 'POST',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+        body: JSON.stringify({ ids }),
+    });
+
+    await assertOkResponse(response, 'Failed to mark notifications unread');
+
+    const payload = (await response.json()) as { unread_count: number };
+
+    return payload.unread_count;
+}

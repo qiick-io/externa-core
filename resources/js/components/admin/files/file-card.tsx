@@ -93,6 +93,7 @@ export function FileCard({
         isFolder && !isTrashed ? (
             <button
                 type="button"
+                data-testid={`file-card-title-${file.id}`}
                 className={cn(
                     'w-full min-w-0 truncate text-center text-xs leading-4 font-medium hover:underline',
                     !useCoverLayout && 'h-4',
@@ -107,6 +108,7 @@ export function FileCard({
         ) : (
             <button
                 type="button"
+                data-testid={`file-card-title-${file.id}`}
                 className={cn(
                     'w-full min-w-0 truncate text-center text-xs leading-4 font-medium',
                     !useCoverLayout && 'h-4',
@@ -315,6 +317,7 @@ export function FileCard({
                                         ? 'destructive'
                                         : 'default'
                                 }
+                                data-testid={`files-context-action-${action.key}`}
                                 onSelect={() => onAction(action.key, file)}
                             >
                                 <Icon className="size-4" />

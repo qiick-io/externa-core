@@ -42,11 +42,13 @@ class ChatHubController extends Controller
             'tab' => ['nullable', Rule::in(['collection', 'private'])],
             'q' => SearchQueryRules::search(StringLimits::SEARCH_CHAT_HUB),
             'collection_id' => ['nullable', 'integer', 'exists:collections,id'],
+            'archived' => ['nullable', 'boolean'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
 
         $tab = $validated['tab'] ?? 'collection';
         $q = trim((string) ($validated['q'] ?? ''));
+        $archived = $tab === 'private' && $request->boolean('archived');
         $perPage = min(max((int) ($validated['per_page'] ?? 25), 1), 50);
 
         $lastMessage = fn ($query) => $query->latest('id')->limit(1)->with([
@@ -55,7 +57,7 @@ class ChatHubController extends Controller
         ]);
 
         if ($tab === 'private') {
-            $chats = $this->chats->directChatsFor($user)
+            $chats = $this->chats->directChatsFor($user, $archived)
                 ->with(['messages' => $lastMessage])
                 ->get();
         } else {
@@ -500,6 +502,37 @@ class ChatHubController extends Controller
         $this->chats->leaveDirectChat($chat, $user);
 
         return response()->json(['ok' => true]);
+    }
+
+    public function archive(Request $request, Chat $chat): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $this->chats->assertAccessible($request, $chat);
+        abort_unless($chat->isDirect(), 422);
+
+        $this->chats->archiveDirectChat($chat, $user);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function unarchive(Request $request, Chat $chat): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $this->chats->assertAccessible($request, $chat);
+        abort_unless($chat->isDirect(), 422);
+
+        $this->chats->unarchiveDirectChat($chat, $user);
+
+        $chat->load([
+            'participants.user:id,first_name,last_name,email',
+            'participants.group:id,name',
+        ]);
+
+        return response()->json([
+            'chat' => $this->chats->serializeSummary($chat, $user),
+        ]);
     }
 
     /**

@@ -22,7 +22,18 @@ class ChatParticipant extends Model
         'user_id',
         'user_group_id',
         'source',
+        'archived_at',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'archived_at' => 'datetime',
+        ];
+    }
 
     /**
      * @return BelongsTo<Chat, $this>

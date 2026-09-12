@@ -13,7 +13,12 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { addChatParticipants, deleteDirectChat } from '@/lib/chat-hub-api';
+import {
+    addChatParticipants,
+    archiveDirectChat,
+    deleteDirectChat,
+    unarchiveDirectChat,
+} from '@/lib/chat-hub-api';
 import type { ChatDirectoryRow, ChatSummary } from '@/lib/chat-hub-api';
 import type { ChatParticipantRef } from '@/lib/chat-thread-identity';
 import { toast } from '@/lib/toast';
@@ -24,6 +29,7 @@ type Props = {
     chatId: string;
     participants: ChatParticipantRef[];
     canCreateDirect: boolean;
+    archived?: boolean;
     /** Leave hub thread view after delete (open chat removed). */
     navigateHomeOnDelete?: boolean;
     /** Refresh Inertia selectedChat after add-people (pane header). */
@@ -33,13 +39,14 @@ type Props = {
 };
 
 /**
- * Direct-thread overflow: Add people (if can-create) + Delete.
+ * Direct-thread overflow: Add people (if can-create) + Archive/Unarchive + Delete.
  * Shared by hub list rows and thread header.
  */
 export function ChatDirectThreadMenu({
     chatId,
     participants,
     canCreateDirect,
+    archived = false,
     navigateHomeOnDelete = false,
     reloadSelectedOnAdd = false,
     triggerClassName,
@@ -48,7 +55,7 @@ export function ChatDirectThreadMenu({
     const { t } = useTranslation();
     const upsertThread = useChatStore((state) => state.upsertThread);
     const [addPeopleOpen, setAddPeopleOpen] = useState(false);
-    const [deleting, setDeleting] = useState(false);
+    const [busy, setBusy] = useState(false);
 
     const excludeKeys = useMemo(
         () => participants.map((row) => directoryKey(row)),
@@ -72,26 +79,49 @@ export function ChatDirectThreadMenu({
         }
     };
 
-    const onDeleteChat = (): void => {
-        if (deleting) {
+    const runMuted = (action: () => Promise<void>, errorKey: string): void => {
+        if (busy) {
             return;
         }
 
-        setDeleting(true);
-        void deleteDirectChat(chatId)
-            .then(() => {
-                if (navigateHomeOnDelete) {
-                    router.visit('/chat');
-                }
-            })
+        setBusy(true);
+        void action()
             .catch((error: unknown) => {
                 toast.error(
-                    error instanceof Error
-                        ? error.message
-                        : t('chatHub.deleteChatError'),
+                    error instanceof Error ? error.message : t(errorKey),
                 );
             })
-            .finally(() => setDeleting(false));
+            .finally(() => setBusy(false));
+    };
+
+    const onArchive = (): void => {
+        runMuted(async () => {
+            await archiveDirectChat(chatId);
+
+            if (navigateHomeOnDelete) {
+                router.visit('/chat?tab=private');
+            }
+        }, 'chatHub.archiveChatError');
+    };
+
+    const onUnarchive = (): void => {
+        runMuted(async () => {
+            await unarchiveDirectChat(chatId);
+
+            if (reloadSelectedOnAdd) {
+                router.reload({ only: ['selectedChat'] });
+            }
+        }, 'chatHub.unarchiveChatError');
+    };
+
+    const onDeleteChat = (): void => {
+        runMuted(async () => {
+            await deleteDirectChat(chatId);
+
+            if (navigateHomeOnDelete) {
+                router.visit('/chat');
+            }
+        }, 'chatHub.deleteChatError');
     };
 
     return (
@@ -125,10 +155,27 @@ export function ChatDirectThreadMenu({
                             {t('chatHub.addPeople')}
                         </DropdownMenuItem>
                     ) : null}
+                    {archived ? (
+                        <DropdownMenuItem
+                            data-test="chat-unarchive"
+                            disabled={busy}
+                            onSelect={onUnarchive}
+                        >
+                            {t('chatHub.unarchiveChat')}
+                        </DropdownMenuItem>
+                    ) : (
+                        <DropdownMenuItem
+                            data-test="chat-archive"
+                            disabled={busy}
+                            onSelect={onArchive}
+                        >
+                            {t('chatHub.archiveChat')}
+                        </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem
                         data-test="chat-delete"
                         variant="destructive"
-                        disabled={deleting}
+                        disabled={busy}
                         onSelect={onDeleteChat}
                     >
                         {t('chatHub.deleteChat')}

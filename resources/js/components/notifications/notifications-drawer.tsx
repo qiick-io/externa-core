@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
     Sheet,
@@ -13,6 +14,8 @@ import { downloadPreparedZipUrl } from '@/lib/files-api';
 import {
     fetchNotifications,
     markNotificationsRead,
+    markNotificationsUnread,
+    notifyNotificationsUpdated,
 } from '@/lib/notifications-api';
 import type { AppNotification } from '@/lib/notifications-api';
 import { cn } from '@/lib/utils';
@@ -91,8 +94,14 @@ export function NotificationsDrawer({
     onOpenChange,
     onUnreadCountChange,
 }: NotificationsDrawerProps) {
+    const { t } = useTranslation();
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isMutating, setIsMutating] = useState(false);
+
+    const hasUnread = notifications.some(
+        (notification) => notification.read_at === null,
+    );
 
     useEffect(() => {
         if (!open) {
@@ -112,32 +121,6 @@ export function NotificationsDrawer({
                 }
 
                 setNotifications(payload.data);
-
-                const unreadIds = payload.data
-                    .filter((notification) => notification.read_at === null)
-                    .map((notification) => notification.id);
-
-                if (unreadIds.length > 0) {
-                    const unreadCount = await markNotificationsRead({
-                        ids: unreadIds,
-                    });
-
-                    if (!cancelled) {
-                        onUnreadCountChange(unreadCount);
-                        setNotifications((current) =>
-                            current.map((notification) =>
-                                unreadIds.includes(notification.id)
-                                    ? {
-                                          ...notification,
-                                          read_at:
-                                              notification.read_at ??
-                                              new Date().toISOString(),
-                                      }
-                                    : notification,
-                            ),
-                        );
-                    }
-                }
             } finally {
                 if (!cancelled) {
                     setIsLoading(false);
@@ -150,28 +133,89 @@ export function NotificationsDrawer({
         return () => {
             cancelled = true;
         };
-    }, [open, onUnreadCountChange]);
+    }, [open]);
+
+    const applyUnreadCount = (unreadCount: number): void => {
+        onUnreadCountChange(unreadCount);
+        notifyNotificationsUpdated();
+    };
+
+    const handleMarkAllRead = async (): Promise<void> => {
+        if (isMutating || !hasUnread) {
+            return;
+        }
+
+        setIsMutating(true);
+
+        try {
+            const unreadCount = await markNotificationsRead({ all: true });
+            setNotifications((current) =>
+                current.map((notification) => ({
+                    ...notification,
+                    read_at: notification.read_at ?? new Date().toISOString(),
+                })),
+            );
+            applyUnreadCount(unreadCount);
+        } finally {
+            setIsMutating(false);
+        }
+    };
+
+    const handleMarkUnread = async (id: string): Promise<void> => {
+        if (isMutating) {
+            return;
+        }
+
+        setIsMutating(true);
+
+        try {
+            const unreadCount = await markNotificationsUnread([id]);
+            setNotifications((current) =>
+                current.map((notification) =>
+                    notification.id === id
+                        ? { ...notification, read_at: null }
+                        : notification,
+                ),
+            );
+            applyUnreadCount(unreadCount);
+        } finally {
+            setIsMutating(false);
+        }
+    };
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent side="right" className="w-full sm:max-w-md">
                 <SheetHeader>
-                    <SheetTitle>Notifications</SheetTitle>
+                    <SheetTitle>{t('notifications.title')}</SheetTitle>
                     <SheetDescription>
-                        Updates from background file operations.
+                        {t('notifications.description')}
                     </SheetDescription>
                 </SheetHeader>
+
+                <div className="flex items-center justify-end px-4 pb-2">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={isMutating || isLoading || !hasUnread}
+                        onClick={() => void handleMarkAllRead()}
+                        data-test="notifications-mark-all-read"
+                    >
+                        {t('notifications.markAllRead')}
+                    </Button>
+                </div>
 
                 <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4">
                     {isLoading ? (
                         <p className="text-sm text-muted-foreground">
-                            Loading…
+                            {t('notifications.loading')}
                         </p>
                     ) : null}
 
                     {!isLoading && notifications.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
-                            No notifications yet.
+                            {t('notifications.empty')}
                         </p>
                     ) : null}
 
@@ -202,50 +246,74 @@ export function NotificationsDrawer({
                                         notification.created_at,
                                     ).toLocaleString()}
                                 </p>
-                                {typeof folderId === 'number' ? (
-                                    <Button
-                                        asChild
-                                        variant="link"
-                                        className="mt-1 h-auto px-0"
-                                    >
-                                        <Link
-                                            href={adminRoutes.files.index(
-                                                folderId,
-                                            )}
-                                            onClick={() => onOpenChange(false)}
+                                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                                    {typeof folderId === 'number' ? (
+                                        <Button
+                                            asChild
+                                            variant="link"
+                                            className="h-auto px-0"
                                         >
-                                            Open folder
-                                        </Link>
-                                    </Button>
-                                ) : null}
-                                {chatUrl ? (
-                                    <Button
-                                        asChild
-                                        variant="link"
-                                        className="mt-1 h-auto px-0"
-                                    >
-                                        <Link
-                                            href={chatUrl}
-                                            onClick={() => onOpenChange(false)}
+                                            <Link
+                                                href={adminRoutes.files.index(
+                                                    folderId,
+                                                )}
+                                                onClick={() =>
+                                                    onOpenChange(false)
+                                                }
+                                            >
+                                                {t('notifications.openFolder')}
+                                            </Link>
+                                        </Button>
+                                    ) : null}
+                                    {chatUrl ? (
+                                        <Button
+                                            asChild
+                                            variant="link"
+                                            className="h-auto px-0"
                                         >
-                                            Open chat
-                                        </Link>
-                                    </Button>
-                                ) : null}
-                                {zipHref ? (
-                                    <Button
-                                        asChild
-                                        variant="link"
-                                        className="mt-1 h-auto px-0"
-                                    >
-                                        <a
-                                            href={zipHref}
-                                            onClick={() => onOpenChange(false)}
+                                            <Link
+                                                href={chatUrl}
+                                                onClick={() =>
+                                                    onOpenChange(false)
+                                                }
+                                            >
+                                                {t('notifications.openChat')}
+                                            </Link>
+                                        </Button>
+                                    ) : null}
+                                    {zipHref ? (
+                                        <Button
+                                            asChild
+                                            variant="link"
+                                            className="h-auto px-0"
                                         >
-                                            Download zip
-                                        </a>
-                                    </Button>
-                                ) : null}
+                                            <a
+                                                href={zipHref}
+                                                onClick={() =>
+                                                    onOpenChange(false)
+                                                }
+                                            >
+                                                {t('notifications.downloadZip')}
+                                            </a>
+                                        </Button>
+                                    ) : null}
+                                    {!isUnread ? (
+                                        <Button
+                                            type="button"
+                                            variant="link"
+                                            className="h-auto px-0"
+                                            disabled={isMutating}
+                                            onClick={() =>
+                                                void handleMarkUnread(
+                                                    notification.id,
+                                                )
+                                            }
+                                            data-test="notifications-mark-unread"
+                                        >
+                                            {t('notifications.markUnread')}
+                                        </Button>
+                                    ) : null}
+                                </div>
                             </div>
                         );
                     })}

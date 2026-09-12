@@ -94,6 +94,12 @@ Route::middleware([
     Route::post('/{chat}/participants', [ChatHubController::class, 'addParticipants'])
         ->whereUuid('chat')
         ->name('participants.store');
+    Route::post('/{chat}/archive', [ChatHubController::class, 'archive'])
+        ->whereUuid('chat')
+        ->name('archive');
+    Route::post('/{chat}/unarchive', [ChatHubController::class, 'unarchive'])
+        ->whereUuid('chat')
+        ->name('unarchive');
     Route::delete('/{chat}', [ChatHubController::class, 'destroy'])
         ->whereUuid('chat')
         ->name('destroy');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Notifications\MarkNotificationsReadRequest;
+use App\Http\Requests\Notifications\MarkNotificationsUnreadRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
@@ -59,6 +60,23 @@ class NotificationController extends Controller
         }
 
         $query->update(['read_at' => now()]);
+
+        return response()->json([
+            'unread_count' => $user->unreadNotifications()->count(),
+        ]);
+    }
+
+    /**
+     * Mark selected notifications as unread (clear read_at on own rows only).
+     */
+    public function markUnread(MarkNotificationsUnreadRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+        $user = $request->user();
+
+        $user->notifications()
+            ->whereIn('id', $validated['ids'])
+            ->update(['read_at' => null]);
 
         return response()->json([
             'unread_count' => $user->unreadNotifications()->count(),

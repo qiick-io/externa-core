@@ -121,6 +121,7 @@ export function ChatThreadRow({
                         chatId={thread.id}
                         participants={thread.participants}
                         canCreateDirect={canCreateDirect}
+                        archived={thread.archived === true}
                         navigateHomeOnDelete={selected}
                         reloadSelectedOnAdd={selected}
                         triggerClassName="size-7"

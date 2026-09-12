@@ -31,6 +31,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('notifications.unread-count');
     Route::post('notifications/read', [NotificationController::class, 'markRead'])
         ->name('notifications.read');
+    Route::post('notifications/unread', [NotificationController::class, 'markUnread'])
+        ->name('notifications.unread');
 
     // Same-origin stub for api_autocomplete QA (kitchen-sink City search).
     Route::get('demo/cities', function (Request $request) {

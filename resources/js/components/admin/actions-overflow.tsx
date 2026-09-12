@@ -198,6 +198,7 @@ export function ActionsOverflow({
                                 }
                                 label={action.label}
                                 className="size-8 shrink-0"
+                                data-testid={`files-action-${action.key}`}
                                 onClick={() => onAction(action.key)}
                             >
                                 <Icon className="size-4" />
@@ -215,6 +216,7 @@ export function ActionsOverflow({
                             variant={
                                 action.destructive ? 'destructive' : 'outline'
                             }
+                            data-testid={`files-action-${action.key}`}
                             onClick={() => onAction(action.key)}
                         >
                             <Icon className="size-4" />
@@ -236,6 +238,7 @@ export function ActionsOverflow({
                             overflowActions.length === 0 && 'hidden',
                         )}
                         aria-label={ariaMore}
+                        data-testid="files-actions-more"
                     >
                         <MoreHorizontal className="size-4" />
                     </Button>
@@ -252,6 +255,7 @@ export function ActionsOverflow({
                                         ? 'destructive'
                                         : 'default'
                                 }
+                                data-testid={`files-action-menu-${action.key}`}
                                 onSelect={() => onAction(action.key)}
                             >
                                 <Icon className="size-4" />

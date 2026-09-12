@@ -42,6 +42,17 @@
         "repository": "Repository",
         "documentation": "Documentation"
     },
+    "notifications": {
+        "title": "Notifications",
+        "description": "Updates from background file operations.",
+        "loading": "Loading…",
+        "empty": "No notifications yet.",
+        "markAllRead": "Mark all as read",
+        "markUnread": "Mark as unread",
+        "openFolder": "Open folder",
+        "openChat": "Open chat",
+        "downloadZip": "Download zip"
+    },
     "userMenu": {
         "settings": "Settings",
         "language": "Language",
@@ -1158,6 +1169,12 @@
         "unreadCount": "{{count}} unread",
         "addPeople": "Add people",
         "addPeopleConfirm": "Add",
+        "archiveChat": "Archive",
+        "archiveChatError": "Could not archive chat.",
+        "unarchiveChat": "Unarchive",
+        "unarchiveChatError": "Could not unarchive chat.",
+        "showArchived": "Show archived",
+        "showInbox": "Show chats",
         "deleteChat": "Delete chat",
         "deleteChatError": "Could not delete chat."
     },

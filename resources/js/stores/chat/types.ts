@@ -44,7 +44,12 @@ export function isUnreadShare(value: unknown): value is ChatUnreadShare {
 export function threadsCacheKey(
     tab: 'collection' | 'private',
     q: string,
+    archived = false,
 ): string {
+    if (tab === 'private' && archived) {
+        return `archived|${q}`;
+    }
+
     return `${tab}|${q}`;
 }
 

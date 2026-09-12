@@ -42,6 +42,17 @@
         "repository": "Repository",
         "documentation": "Dokumentation"
     },
+    "notifications": {
+        "title": "Benachrichtigungen",
+        "description": "Updates aus Hintergrund-Dateioperationen.",
+        "loading": "Laden…",
+        "empty": "Noch keine Benachrichtigungen.",
+        "markAllRead": "Alle als gelesen markieren",
+        "markUnread": "Als ungelesen markieren",
+        "openFolder": "Ordner öffnen",
+        "openChat": "Chat öffnen",
+        "downloadZip": "Zip herunterladen"
+    },
     "userMenu": {
         "settings": "Einstellungen",
         "language": "Sprache",
@@ -1110,6 +1121,12 @@
         "unreadCount": "{{count}} ungelesen",
         "addPeople": "Personen hinzufügen",
         "addPeopleConfirm": "Hinzufügen",
+        "archiveChat": "Archivieren",
+        "archiveChatError": "Chat konnte nicht archiviert werden.",
+        "unarchiveChat": "Wiederherstellen",
+        "unarchiveChatError": "Chat konnte nicht wiederhergestellt werden.",
+        "showArchived": "Archivierte anzeigen",
+        "showInbox": "Chats anzeigen",
         "deleteChat": "Chat löschen",
         "deleteChatError": "Chat konnte nicht gelöscht werden."
     },

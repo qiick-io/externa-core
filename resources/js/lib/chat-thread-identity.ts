@@ -11,6 +11,7 @@ export type ChatThreadIdentity = Pick<
     | 'collection_icon'
     | 'collection_color'
     | 'participants'
+    | 'archived'
 >;
 
 /** Max faces in a stack before the last slot becomes +N. */

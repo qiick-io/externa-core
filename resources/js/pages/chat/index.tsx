@@ -1,7 +1,8 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Database, UsersRound } from 'lucide-react';
+import { Archive, Database, Inbox, UsersRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { ChatThreadRow } from '@/components/chat/chat-thread-row';
 import { NewChatMenu } from '@/components/chat/new-chat-menu';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
@@ -49,11 +50,16 @@ export default function ChatHubPage({
     const viewerId = page.props.auth.user?.id ?? 0;
     const unread = useChatUnread();
     const [tab, setTab] = useState<'collection' | 'private'>(tabProp);
+    const [showArchived, setShowArchived] = useState(false);
     const [q, setQ] = useState(qProp);
     const [debouncedQ, setDebouncedQ] = useState(qProp);
     const selectedChatIdRef = useRef<string | null>(selectedChat?.id ?? null);
 
-    const cacheKey = threadsCacheKey(tab, debouncedQ);
+    const cacheKey = threadsCacheKey(
+        tab,
+        debouncedQ,
+        tab === 'private' && showArchived,
+    );
     const entry = useChatStore((state) => state.threadsByKey[cacheKey]);
     const setThreads = useChatStore((state) => state.setThreads);
     const setThreadsStatus = useChatStore((state) => state.setThreadsStatus);
@@ -83,7 +89,11 @@ export default function ChatHubPage({
                 setThreadsStatus(cacheKey, 'loading');
             }
 
-            void fetchChatThreads({ tab, q: debouncedQ })
+            void fetchChatThreads({
+                tab,
+                q: debouncedQ,
+                archived: tab === 'private' && showArchived,
+            })
                 .then((payload) => {
                     setThreads(cacheKey, payload.data);
                     applyChatUnread({
@@ -104,7 +114,7 @@ export default function ChatHubPage({
                     );
                 });
         },
-        [tab, debouncedQ, cacheKey, setThreads, setThreadsStatus],
+        [tab, debouncedQ, showArchived, cacheKey, setThreads, setThreadsStatus],
     );
 
     useEffect(() => {
@@ -160,6 +170,11 @@ export default function ChatHubPage({
     const switchTab = (next: 'collection' | 'private'): void => {
         setTab(next);
         setHubTab(next);
+
+        if (next !== 'private') {
+            setShowArchived(false);
+        }
+
         router.visit(
             `/chat${selectedChat ? `/${selectedChat.id}` : ''}?tab=${next}`,
             {
@@ -251,16 +266,42 @@ export default function ChatHubPage({
                         </button>
                     </div>
                     <div className="border-b p-2">
-                        <Input
-                            data-test="chat-filter-q"
-                            value={q}
-                            placeholder={t('chatHub.search')}
-                            maxLength={STRING_LIMITS.SEARCH_CHAT_HUB}
-                            onChange={(event) => {
-                                setQ(event.target.value);
-                                setHubQuery(event.target.value);
-                            }}
-                        />
+                        <div className="flex items-center gap-1">
+                            <Input
+                                data-test="chat-filter-q"
+                                className="min-w-0 flex-1"
+                                value={q}
+                                placeholder={t('chatHub.search')}
+                                maxLength={STRING_LIMITS.SEARCH_CHAT_HUB}
+                                onChange={(event) => {
+                                    setQ(event.target.value);
+                                    setHubQuery(event.target.value);
+                                }}
+                            />
+                            {tab === 'private' ? (
+                                <HeaderIconButton
+                                    type="button"
+                                    data-test="chat-filter-archived"
+                                    variant={
+                                        showArchived ? 'default' : 'outline'
+                                    }
+                                    label={
+                                        showArchived
+                                            ? t('chatHub.showInbox')
+                                            : t('chatHub.showArchived')
+                                    }
+                                    onClick={() =>
+                                        setShowArchived((prev) => !prev)
+                                    }
+                                >
+                                    {showArchived ? (
+                                        <Inbox className="size-4" />
+                                    ) : (
+                                        <Archive className="size-4" />
+                                    )}
+                                </HeaderIconButton>
+                            ) : null}
+                        </div>
                     </div>
                     <div
                         data-test="chat-list"

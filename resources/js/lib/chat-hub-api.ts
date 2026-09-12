@@ -18,6 +18,7 @@ export type ChatSummary = {
         image_attachment_id: string | null;
     } | null;
     unread_count: number;
+    archived?: boolean;
     collection_icon: string | null;
     collection_color: string | null;
     updated_at: string | null;
@@ -68,6 +69,7 @@ export async function fetchChatThreads(options: {
     tab: 'collection' | 'private';
     q?: string;
     collectionId?: number;
+    archived?: boolean;
 }): Promise<{
     data: ChatSummary[];
     meta: { can_create_direct: boolean } & ChatUnreadShare;
@@ -81,6 +83,10 @@ export async function fetchChatThreads(options: {
 
     if (options.collectionId) {
         params.set('collection_id', String(options.collectionId));
+    }
+
+    if (options.tab === 'private' && options.archived) {
+        params.set('archived', '1');
     }
 
     const response = await fetch(`/chat/threads?${params}`, {
@@ -192,6 +198,37 @@ export async function deleteDirectChat(chatId: string): Promise<void> {
         .catch(() => {
             // Ignore; next poll/Echo will catch up.
         });
+}
+
+export async function archiveDirectChat(chatId: string): Promise<void> {
+    const response = await fetch(`/chat/${chatId}/archive`, {
+        method: 'POST',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+    });
+
+    await assertOk(response, 'Could not archive chat.');
+
+    useChatStore.getState().removeThread(chatId);
+}
+
+export async function unarchiveDirectChat(
+    chatId: string,
+): Promise<ChatSummary> {
+    const response = await fetch(`/chat/${chatId}/unarchive`, {
+        method: 'POST',
+        headers: jsonRequestHeaders(),
+        credentials: 'same-origin',
+    });
+
+    await assertOk(response, 'Could not unarchive chat.');
+
+    const json = (await response.json()) as { chat: ChatSummary };
+    const store = useChatStore.getState();
+    store.removeThread(chatId);
+    store.upsertThread({ ...json.chat, archived: false });
+
+    return json.chat;
 }
 
 export type ChatListMeta = {

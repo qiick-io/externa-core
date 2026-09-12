@@ -206,6 +206,7 @@ class ChatMessageController extends Controller
         }
 
         $chat->touch();
+        $this->chats->unarchiveDirectChatForRecipients($chat, $user);
 
         $message->load($this->messageRelations());
         $payload = $this->serializeMessage($message, $user);
