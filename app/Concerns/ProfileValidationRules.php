@@ -5,6 +5,9 @@ namespace App\Concerns;
 use App\Models\User;
 use Illuminate\Validation\Rule;
 
+/**
+ * Shared profile field validation rules for Fortify registration and updates.
+ */
 trait ProfileValidationRules
 {
     /**
@@ -15,7 +18,8 @@ trait ProfileValidationRules
     protected function profileRules(?int $userId = null): array
     {
         return [
-            'name' => $this->nameRules(),
+            'first_name' => $this->nameRules(),
+            'last_name' => $this->nameRules(),
             'email' => $this->emailRules($userId),
         ];
     }

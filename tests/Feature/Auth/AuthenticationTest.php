@@ -1,6 +1,8 @@
 <?php
 
+use App\Enums\PermissionEnum;
 use App\Models\User;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
 
@@ -11,7 +13,9 @@ test('login screen can be rendered', function () {
 });
 
 test('users can authenticate using the login screen', function () {
+    $this->seed(PermissionSeeder::class);
     $user = User::factory()->create();
+    $user->givePermissionTo(PermissionEnum::CanShowDashboard->value);
 
     $response = $this->post(route('login.store'), [
         'email' => $user->email,

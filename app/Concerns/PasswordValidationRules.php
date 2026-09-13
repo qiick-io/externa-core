@@ -5,6 +5,9 @@ namespace App\Concerns;
 use Illuminate\Contracts\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
+/**
+ * Shared password validation rule helpers for Fortify actions.
+ */
 trait PasswordValidationRules
 {
     /**

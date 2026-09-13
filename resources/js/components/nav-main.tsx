@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import {
     SidebarGroup,
     SidebarGroupLabel,
@@ -6,17 +7,36 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import type { NavItem } from '@/types';
 
-export function NavMain({ items = [] }: { items: NavItem[] }) {
+export type MainNavItem = NavItem & { permission?: string };
+
+/**
+ * Primary sidebar navigation filtered by permission.
+ * @param {{ items?: MainNavItem[] }} props - Component props.
+ * @param {MainNavItem[]} [props.items=[]] - Nav entries with optional permission gates.
+ * @returns {JSX.Element | null}
+ */
+export function NavMain({ items = [] }: { items?: MainNavItem[] }) {
+    const { t } = useTranslation();
     const { isCurrentUrl } = useCurrentUrl();
+    const { can } = useCan();
+
+    const visible = items.filter(
+        (item) => !item.permission || can(item.permission),
+    );
+
+    if (visible.length === 0) {
+        return null;
+    }
 
     return (
         <SidebarGroup className="px-2 py-0">
-            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+            <SidebarGroupLabel>{t('nav.platform')}</SidebarGroupLabel>
             <SidebarMenu>
-                {items.map((item) => (
+                {visible.map((item) => (
                     <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
                             asChild

@@ -9,6 +9,12 @@ import {
 import { toUrl } from '@/lib/utils';
 import type { NavItem } from '@/types';
 
+/**
+ * Sidebar footer links (typically external documentation and repository).
+ * @param {ComponentPropsWithoutRef<typeof SidebarGroup> & { items: NavItem[] }} props - Sidebar group props plus nav items.
+ * @param {NavItem[]} props.items - External links to render.
+ * @returns {JSX.Element}
+ */
 export function NavFooter({
     items,
     className,

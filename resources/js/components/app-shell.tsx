@@ -8,6 +8,13 @@ type Props = {
     variant?: AppVariant;
 };
 
+/**
+ * Root layout shell: sidebar provider or full-width column for header layout.
+ * @param {Props} props - Component props.
+ * @param {ReactNode} props.children - App chrome and page tree.
+ * @param {AppVariant} [props.variant='sidebar'] - Layout mode from shared page props.
+ * @returns {JSX.Element}
+ */
 export function AppShell({ children, variant = 'sidebar' }: Props) {
     const isOpen = usePage().props.sidebarOpen;
 
@@ -17,5 +24,9 @@ export function AppShell({ children, variant = 'sidebar' }: Props) {
         );
     }
 
-    return <SidebarProvider defaultOpen={isOpen}>{children}</SidebarProvider>;
+    return (
+        <SidebarProvider defaultOpen={isOpen} className="h-svh overflow-hidden">
+            {children}
+        </SidebarProvider>
+    );
 }

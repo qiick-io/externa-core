@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 
 @import 'tw-animate-css';
+/* Leaflet CSS is imported from map-coordinate-input.tsx — Tailwind v4 drops this @import. */
 
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -68,8 +69,9 @@
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
+    /* Brand hex applied as-is; dark uses --brand-primary-dark */
+    --primary: var(--brand-primary, oklch(0.205 0 0));
+    --primary-foreground: var(--brand-primary-foreground, oklch(0.985 0 0));
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.97 0 0);
@@ -89,8 +91,11 @@
     --radius: 0.625rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-primary: var(--brand-primary, oklch(0.205 0 0));
+    --sidebar-primary-foreground: var(
+        --brand-primary-foreground,
+        oklch(0.985 0 0)
+    );
     --sidebar-accent: oklch(0.97 0 0);
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
@@ -104,8 +109,14 @@
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.145 0 0);
     --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
+    --primary: var(
+        --brand-primary-dark,
+        var(--brand-primary, oklch(0.985 0 0))
+    );
+    --primary-foreground: var(
+        --brand-primary-dark-foreground,
+        var(--brand-primary-foreground, oklch(0.205 0 0))
+    );
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
     --muted: oklch(0.269 0 0);
@@ -124,8 +135,14 @@
     --chart-5: oklch(0.645 0.246 16.439);
     --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.985 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-primary: var(
+        --brand-primary-dark,
+        var(--brand-primary, oklch(0.985 0 0))
+    );
+    --sidebar-primary-foreground: var(
+        --brand-primary-dark-foreground,
+        var(--brand-primary-foreground, oklch(0.205 0 0))
+    );
     --sidebar-accent: oklch(0.269 0 0);
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(0.269 0 0);
@@ -140,4 +157,205 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    /* Tailwind v4 preflight sets cursor: default on buttons — restore click affordance */
+    button:not(:disabled),
+    [role='button']:not([aria-disabled='true']),
+    [role='checkbox']:not([aria-disabled='true']),
+    [role='radio']:not([aria-disabled='true']),
+    [role='switch']:not([aria-disabled='true']),
+    [role='combobox']:not([aria-disabled='true']),
+    [role='option']:not([aria-disabled='true']),
+    [role='menuitem']:not([aria-disabled='true']),
+    [role='menuitemcheckbox']:not([aria-disabled='true']),
+    [role='menuitemradio']:not([aria-disabled='true']),
+    [role='tab']:not([aria-disabled='true']),
+    label[for],
+    summary {
+        cursor: pointer;
+    }
+
+    button:disabled,
+    [aria-disabled='true'],
+    [role='button'][aria-disabled='true'],
+    [role='checkbox'][aria-disabled='true'],
+    [role='radio'][aria-disabled='true'],
+    [role='switch'][aria-disabled='true'],
+    [role='combobox'][aria-disabled='true'] {
+        cursor: not-allowed;
+    }
+}
+
+/* Assistant nav: gradient border + hover shimmer (no solid fill) */
+.sidebar-ai-nav {
+    border: 1px solid transparent;
+    background:
+        linear-gradient(var(--sidebar), var(--sidebar)) padding-box,
+        linear-gradient(135deg, #f97316, #f43f5e, #fbbf24) border-box !important;
+}
+
+.sidebar-ai-nav:hover,
+.sidebar-ai-nav:active,
+.sidebar-ai-nav[data-active='true'] {
+    background:
+        linear-gradient(
+                color-mix(in oklab, #f97316 12%, var(--sidebar)),
+                color-mix(in oklab, #f97316 12%, var(--sidebar))
+            )
+            padding-box,
+        linear-gradient(135deg, #f97316, #f43f5e, #fbbf24) border-box !important;
+}
+
+.sidebar-ai-nav::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+        105deg,
+        transparent 35%,
+        color-mix(in oklab, white 35%, transparent) 50%,
+        transparent 65%
+    );
+    transform: translateX(-120%);
+}
+
+.sidebar-ai-nav:hover::after {
+    animation: sidebar-ai-shimmer 0.85s ease;
+}
+
+@keyframes sidebar-ai-shimmer {
+    to {
+        transform: translateX(120%);
+    }
+}
+
+/* TipTap wysiwyg field */
+.externa-tiptap-editor.ProseMirror {
+    min-height: 10rem;
+}
+
+.externa-tiptap-editor.ProseMirror p.is-editor-empty:first-child::before {
+    color: var(--muted-foreground);
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+}
+
+.externa-tiptap-editor.ProseMirror a {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+/* --- Accessibility: OS-first contrast + motion --- */
+
+/* Stronger semantic tokens (shared by user toggle and prefers-contrast: more) */
+html.high-contrast {
+    --foreground: oklch(0.1 0 0);
+    --muted-foreground: oklch(0.35 0 0);
+    --border: oklch(0.55 0 0);
+    --input: oklch(0.55 0 0);
+    --ring: oklch(0.35 0 0);
+    --sidebar-foreground: oklch(0.1 0 0);
+    --sidebar-border: oklch(0.55 0 0);
+    --sidebar-ring: oklch(0.35 0 0);
+    --card-foreground: oklch(0.1 0 0);
+    --popover-foreground: oklch(0.1 0 0);
+    --secondary-foreground: oklch(0.1 0 0);
+    --accent-foreground: oklch(0.1 0 0);
+}
+
+html.high-contrast.dark {
+    --foreground: oklch(1 0 0);
+    --muted-foreground: oklch(0.85 0 0);
+    --border: oklch(0.65 0 0);
+    --input: oklch(0.65 0 0);
+    --ring: oklch(0.85 0 0);
+    --sidebar-foreground: oklch(1 0 0);
+    --sidebar-border: oklch(0.65 0 0);
+    --sidebar-ring: oklch(0.85 0 0);
+    --card-foreground: oklch(1 0 0);
+    --popover-foreground: oklch(1 0 0);
+    --secondary-foreground: oklch(1 0 0);
+    --accent-foreground: oklch(1 0 0);
+}
+
+@media (prefers-contrast: more) {
+    :root {
+        --foreground: oklch(0.1 0 0);
+        --muted-foreground: oklch(0.35 0 0);
+        --border: oklch(0.55 0 0);
+        --input: oklch(0.55 0 0);
+        --ring: oklch(0.35 0 0);
+        --sidebar-foreground: oklch(0.1 0 0);
+        --sidebar-border: oklch(0.55 0 0);
+        --sidebar-ring: oklch(0.35 0 0);
+        --card-foreground: oklch(0.1 0 0);
+        --popover-foreground: oklch(0.1 0 0);
+        --secondary-foreground: oklch(0.1 0 0);
+        --accent-foreground: oklch(0.1 0 0);
+    }
+
+    .dark {
+        --foreground: oklch(1 0 0);
+        --muted-foreground: oklch(0.85 0 0);
+        --border: oklch(0.65 0 0);
+        --input: oklch(0.65 0 0);
+        --ring: oklch(0.85 0 0);
+        --sidebar-foreground: oklch(1 0 0);
+        --sidebar-border: oklch(0.65 0 0);
+        --sidebar-ring: oklch(0.85 0 0);
+        --card-foreground: oklch(1 0 0);
+        --popover-foreground: oklch(1 0 0);
+        --secondary-foreground: oklch(1 0 0);
+        --accent-foreground: oklch(1 0 0);
+    }
+}
+
+/* Kill motion: OS always; html.reduce-motion forces when OS does not ask */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+}
+
+/* Fields DnD — sortable-ghost (dashed slot; children invisible) */
+[data-fields-dnd] .sortable-ghost {
+    opacity: 1 !important;
+    background: transparent !important;
+    border: 2px dashed color-mix(in oklch, var(--primary) 55%, transparent) !important;
+    box-shadow: none !important;
+}
+
+[data-fields-dnd] .sortable-ghost > * {
+    opacity: 0 !important;
+}
+
+[data-fields-dnd] .sortable-fallback {
+    opacity: 0.95;
+    box-shadow: 0 8px 24px
+        color-mix(in oklch, var(--foreground) 18%, transparent);
+    cursor: grabbing;
+    /* forceFallback sits under the cursor — must not steal nest/list hit-testing */
+    pointer-events: none !important;
+}
+
+[data-fields-dnd] .sortable-drag {
+    opacity: 0;
 }

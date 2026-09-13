@@ -1,0 +1,138 @@
+<?php
+
+namespace App\Enums;
+
+/**
+ * Collection field type identifiers and storage helpers.
+ */
+enum FieldTypeEnum: string
+{
+    case String = 'string';
+    case Autocomplete = 'autocomplete';
+    case ApiAutocomplete = 'api_autocomplete';
+    case Number = 'number';
+    case Boolean = 'boolean';
+    case Textarea = 'textarea';
+    case Wysiwyg = 'wysiwyg';
+    case Markdown = 'markdown';
+    case Code = 'code';
+    case Select = 'select';
+    case Multiselect = 'multiselect';
+    case CheckboxGroup = 'checkbox_group';
+    case CheckboxGroupTree = 'checkbox_group_tree';
+    case RadioGroup = 'radio_group';
+    case Date = 'date';
+    case Map = 'map';
+    case Color = 'color';
+    case Tag = 'tag';
+    case Image = 'image';
+    case Files = 'files';
+    case ManyToOne = 'many_to_one';
+    case OneToMany = 'one_to_many';
+    case ManyToMany = 'many_to_many';
+    case M2a = 'm2a';
+    case Blocks = 'blocks';
+    case Hash = 'hash';
+    case Slider = 'slider';
+    case GroupAccordion = 'group_accordion';
+    case GroupDetail = 'group_detail';
+    case GroupRaw = 'group_raw';
+    case GroupTabs = 'group_tabs';
+
+    /**
+     * @return list<string>
+     */
+    public static function values(): array
+    {
+        return array_column(self::cases(), 'value');
+    }
+
+    /**
+     * Layout container types (alias / no-data groups).
+     */
+    public function isLayoutGroup(): bool
+    {
+        return match ($this) {
+            self::GroupAccordion,
+            self::GroupDetail,
+            self::GroupRaw,
+            self::GroupTabs => true,
+            default => false,
+        };
+    }
+
+    /**
+     * Presentation-only types that never store item values and are omitted from public schema.
+     */
+    public function isNoData(): bool
+    {
+        return $this->isLayoutGroup();
+    }
+
+    /**
+     * Types stored as array in JSON (non-translatable or per-locale array).
+     */
+    public function isArrayStorage(): bool
+    {
+        return match ($this) {
+            self::Multiselect,
+            self::CheckboxGroup,
+            self::CheckboxGroupTree,
+            self::Tag,
+            self::Files,
+            self::OneToMany,
+            self::ManyToMany,
+            self::M2a,
+            self::Blocks => true,
+            default => false,
+        };
+    }
+
+    /**
+     * Whether this field type stores a relation to another collection.
+     */
+    public function isRelationType(): bool
+    {
+        return match ($this) {
+            self::ManyToOne,
+            self::OneToMany,
+            self::ManyToMany => true,
+            default => false,
+        };
+    }
+
+    /**
+     * Whether this relation type stores multiple related item IDs.
+     */
+    public function isMultipleRelationType(): bool
+    {
+        return match ($this) {
+            self::OneToMany,
+            self::ManyToMany => true,
+            default => false,
+        };
+    }
+
+    /**
+     * Whether editors may mark this field as per-locale (translatable).
+     *
+     * Hash fingerprints and relation IDs are shared across locales; enabling
+     * the flag is useless / misleading for those types.
+     */
+    public function supportsTranslatable(): bool
+    {
+        return match ($this) {
+            self::Hash,
+            self::ManyToOne,
+            self::OneToMany,
+            self::ManyToMany,
+            self::M2a,
+            self::Blocks,
+            self::GroupAccordion,
+            self::GroupDetail,
+            self::GroupRaw,
+            self::GroupTabs => false,
+            default => true,
+        };
+    }
+}

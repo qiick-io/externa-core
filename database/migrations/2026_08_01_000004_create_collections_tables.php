@@ -1,0 +1,139 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('collections', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('slug')->unique();
+            $table->text('description')->nullable();
+            $table->string('status', 16)->default('active');
+            $table->string('icon')->nullable();
+            $table->string('color', 7)->nullable();
+            $table->boolean('is_singleton')->default(false);
+            // Lean content versioning (draft vs published) — no versions table.
+            $table->boolean('versioning')->default(false);
+            // Null = unlimited for that axis; when both set, prune by age first then keep newest N.
+            $table->unsignedInteger('revision_retention_count')->nullable();
+            $table->unsignedInteger('revision_retention_days')->nullable();
+            if (Schema::getConnection()->getDriverName() === 'pgsql') {
+                $table->jsonb('form_layout')->nullable();
+            } else {
+                $table->json('form_layout')->nullable();
+            }
+            $table->unsignedInteger('sort_order')->default(0);
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        if (Schema::getConnection()->getDriverName() === 'pgsql') {
+            DB::statement('CREATE INDEX collections_sort_order_index ON collections (sort_order)');
+            DB::statement('CREATE INDEX collections_status_index ON collections (status)');
+        } else {
+            Schema::table('collections', function (Blueprint $table) {
+                $table->index('status');
+            });
+        }
+
+        Schema::create('collections_fields', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('collection_id')
+                ->constrained('collections')
+                ->cascadeOnDelete();
+            $table->string('name');
+            $table->string('type');
+            $table->boolean('translatable')->default(false);
+            if (Schema::getConnection()->getDriverName() === 'pgsql') {
+                $table->jsonb('settings')->nullable();
+            } else {
+                $table->json('settings')->nullable();
+            }
+            $table->unsignedInteger('sort_order')->default(0);
+            $table->timestamps();
+
+            $table->unique(['collection_id', 'name']);
+        });
+
+        if (Schema::getConnection()->getDriverName() === 'pgsql') {
+            DB::statement('CREATE INDEX collections_fields_collection_sort_index ON collections_fields (collection_id, sort_order)');
+        }
+
+        Schema::create('collections_items', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('collection_id')
+                ->constrained('collections')
+                ->cascadeOnDelete();
+            $table->foreignId('user_created_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
+            $table->foreignId('user_updated_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
+            // Draft workspace snapshot when collection.versioning is on (null = draft == published).
+            if (Schema::getConnection()->getDriverName() === 'pgsql') {
+                $table->jsonb('draft_data')->nullable();
+            } else {
+                $table->json('draft_data')->nullable();
+            }
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        if (Schema::getConnection()->getDriverName() === 'pgsql') {
+            DB::statement('CREATE INDEX collections_items_collection_id_id_index ON collections_items (collection_id, id DESC)');
+        } else {
+            Schema::table('collections_items', function (Blueprint $table) {
+                $table->index('collection_id');
+            });
+        }
+
+        Schema::create('collections_items_values', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('item_id')
+                ->constrained('collections_items')
+                ->cascadeOnDelete();
+            $table->foreignId('field_id')
+                ->constrained('collections_fields')
+                ->cascadeOnDelete();
+            $table->string('locale', 16)->nullable();
+            $table->unsignedSmallInteger('position')->default(0);
+            if (Schema::getConnection()->getDriverName() === 'pgsql') {
+                $table->jsonb('value');
+            } else {
+                $table->json('value');
+            }
+            $table->timestamps();
+
+            $table->unique(
+                ['item_id', 'field_id', 'locale', 'position'],
+                'collections_items_values_unique_slot'
+            );
+        });
+
+        if (Schema::getConnection()->getDriverName() === 'pgsql') {
+            DB::statement('CREATE INDEX collections_items_values_field_position_locale_index ON collections_items_values (field_id, position, locale)');
+            DB::statement('CREATE INDEX collections_items_values_value_gin_index ON collections_items_values USING GIN (value jsonb_path_ops)');
+        } else {
+            Schema::table('collections_items_values', function (Blueprint $table) {
+                $table->index('field_id');
+            });
+        }
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('collections_items_values');
+        Schema::dropIfExists('collections_items');
+        Schema::dropIfExists('collections_fields');
+        Schema::dropIfExists('collections');
+    }
+};

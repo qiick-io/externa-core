@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/app-logo';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { Breadcrumbs } from '@/components/breadcrumbs';
@@ -30,7 +31,7 @@ import {
 } from '@/components/ui/tooltip';
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useCurrentUrl } from '@/hooks/use-current-url';
-import { useInitials } from '@/hooks/use-initials';
+import { formatUserDisplayName, useInitials } from '@/hooks/use-initials';
 import { cn, toUrl } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem, NavItem } from '@/types';
@@ -50,12 +51,12 @@ const mainNavItems: NavItem[] = [
 const rightNavItems: NavItem[] = [
     {
         title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
+        href: 'https://github.com/qiick-io/externa-core',
         icon: Folder,
     },
     {
         title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
+        href: 'https://docs.externa.qiick.io',
         icon: BookOpen,
     },
 ];
@@ -63,17 +64,30 @@ const rightNavItems: NavItem[] = [
 const activeItemStyles =
     'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
 
+/**
+ * Top header with mobile sheet nav, desktop menu, and user dropdown.
+ * @param {Props} props - Component props.
+ * @param {BreadcrumbItem[]} [props.breadcrumbs=[]] - Optional breadcrumb trail.
+ * @returns {JSX.Element | null}
+ */
 export function AppHeader({ breadcrumbs = [] }: Props) {
+    const { t } = useTranslation();
     const page = usePage();
     const { auth } = page.props;
+    const user = auth.user;
     const getInitials = useInitials();
     const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
+
+    if (!user) {
+        return null;
+    }
+
+    const displayName = formatUserDisplayName(user.first_name, user.last_name);
 
     return (
         <>
             <div className="border-b border-sidebar-border/80">
                 <div className="mx-auto flex h-16 items-center px-4 md:max-w-7xl">
-                    {/* Mobile Menu */}
                     <div className="lg:hidden">
                         <Sheet>
                             <SheetTrigger asChild>
@@ -81,6 +95,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                     variant="ghost"
                                     size="icon"
                                     className="mr-2 h-[34px] w-[34px]"
+                                    aria-label={t('a11y.openMenu')}
                                 >
                                     <Menu className="h-5 w-5" />
                                 </Button>
@@ -93,7 +108,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                     Navigation menu
                                 </SheetTitle>
                                 <SheetHeader className="flex justify-start text-left">
-                                    <AppLogoIcon className="h-6 w-6 fill-current text-black dark:text-white" />
+                                    <AppLogoIcon className="h-6 w-6" />
                                 </SheetHeader>
                                 <div className="flex h-full flex-1 flex-col space-y-4 p-4">
                                     <div className="flex h-full flex-col justify-between text-sm">
@@ -141,8 +156,6 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                     >
                         <AppLogo />
                     </Link>
-
-                    {/* Desktop Navigation */}
                     <div className="ml-6 hidden h-full items-center space-x-6 lg:flex">
                         <NavigationMenu className="flex h-full items-stretch">
                             <NavigationMenuList className="flex h-full items-stretch space-x-2">
@@ -182,6 +195,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                 variant="ghost"
                                 size="icon"
                                 className="group h-9 w-9 cursor-pointer"
+                                aria-label={t('a11y.search')}
                             >
                                 <Search className="!size-5 opacity-80 group-hover:opacity-100" />
                             </Button>
@@ -216,19 +230,25 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                     variant="ghost"
                                     className="size-10 rounded-full p-1"
                                 >
-                                    <Avatar className="size-8 overflow-hidden rounded-full">
+                                    <Avatar
+                                        userId={user.id}
+                                        className="size-8 overflow-hidden rounded-full"
+                                    >
                                         <AvatarImage
-                                            src={auth.user.avatar}
-                                            alt={auth.user.name}
+                                            src={user.avatar}
+                                            alt={displayName}
                                         />
-                                        <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
-                                            {getInitials(auth.user.name)}
+                                        <AvatarFallback className="rounded-lg text-xs font-medium">
+                                            {getInitials(
+                                                user.first_name,
+                                                user.last_name,
+                                            )}
                                         </AvatarFallback>
                                     </Avatar>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-56" align="end">
-                                <UserMenuContent user={auth.user} />
+                                <UserMenuContent user={user} />
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>

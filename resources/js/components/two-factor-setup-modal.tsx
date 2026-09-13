@@ -2,6 +2,7 @@ import { Form } from '@inertiajs/react';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { Check, Copy, ScanLine } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import AlertError from '@/components/alert-error';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -62,15 +63,18 @@ function TwoFactorSetupStep({
     onNextStep: () => void;
     errors: string[];
 }) {
+    const { t } = useTranslation();
     const { resolvedAppearance } = useAppearance();
     const [copiedText, copy] = useClipboard();
     const IconComponent = copiedText === manualSetupKey ? Check : Copy;
 
+    const showSetupUi = Boolean(qrCodeSvg || manualSetupKey || !errors?.length);
+
     return (
         <>
-            {errors?.length ? (
-                <AlertError errors={errors} />
-            ) : (
+            {errors?.length ? <AlertError errors={errors} /> : null}
+
+            {showSetupUi ? (
                 <>
                     <div className="mx-auto flex max-w-md overflow-hidden">
                         <div className="mx-auto aspect-square w-64 rounded-lg border border-border">
@@ -104,7 +108,7 @@ function TwoFactorSetupStep({
                     <div className="relative flex w-full items-center justify-center">
                         <div className="absolute inset-0 top-1/2 h-px w-full bg-border" />
                         <span className="relative bg-card px-2 py-1">
-                            or, enter the code manually
+                            {t('settings.twoFactor.orEnterManually')}
                         </span>
                     </div>
 
@@ -133,7 +137,7 @@ function TwoFactorSetupStep({
                         </div>
                     </div>
                 </>
-            )}
+            ) : null}
         </>
     );
 }
@@ -145,6 +149,7 @@ function TwoFactorVerificationStep({
     onClose: () => void;
     onBack: () => void;
 }) {
+    const { t } = useTranslation();
     const [code, setCode] = useState<string>('');
     const pinInputContainerRef = useRef<HTMLDivElement>(null);
 
@@ -157,7 +162,12 @@ function TwoFactorVerificationStep({
     return (
         <Form
             {...confirm.form()}
+            // Fortify puts failures in the confirmTwoFactorAuthentication bag.
+            errorBag="confirmTwoFactorAuthentication"
+            // Always send React state — InputOTP + resetOnError can desync FormData.
+            transform={(data) => ({ ...data, code })}
             onSuccess={() => onClose()}
+            onError={() => setCode('')}
             resetOnError
             resetOnSuccess
         >
@@ -166,64 +176,76 @@ function TwoFactorVerificationStep({
                 errors,
             }: {
                 processing: boolean;
-                errors?: { confirmTwoFactorAuthentication?: { code?: string } };
-            }) => (
-                <>
-                    <div
-                        ref={pinInputContainerRef}
-                        className="relative w-full space-y-3"
-                    >
-                        <div className="flex w-full flex-col items-center space-y-3 py-2">
-                            <InputOTP
-                                id="otp"
-                                name="code"
-                                maxLength={OTP_MAX_LENGTH}
-                                onChange={setCode}
-                                disabled={processing}
-                                pattern={REGEXP_ONLY_DIGITS}
-                            >
-                                <InputOTPGroup>
-                                    {Array.from(
-                                        { length: OTP_MAX_LENGTH },
-                                        (_, index) => (
-                                            <InputOTPSlot
-                                                key={index}
-                                                index={index}
-                                            />
-                                        ),
-                                    )}
-                                </InputOTPGroup>
-                            </InputOTP>
-                            <InputError
-                                message={
-                                    errors?.confirmTwoFactorAuthentication?.code
-                                }
-                            />
-                        </div>
+                errors?: {
+                    code?: string;
+                    confirmTwoFactorAuthentication?: { code?: string };
+                };
+            }) => {
+                const codeError =
+                    errors?.code ??
+                    errors?.confirmTwoFactorAuthentication?.code;
 
-                        <div className="flex w-full space-x-5">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="flex-1"
-                                onClick={onBack}
-                                disabled={processing}
-                            >
-                                Back
-                            </Button>
-                            <Button
-                                type="submit"
-                                className="flex-1"
-                                disabled={
-                                    processing || code.length < OTP_MAX_LENGTH
-                                }
-                            >
-                                Confirm
-                            </Button>
+                return (
+                    <>
+                        <div
+                            ref={pinInputContainerRef}
+                            className="relative w-full space-y-3"
+                        >
+                            {codeError ? (
+                                <AlertError errors={[codeError]} />
+                            ) : null}
+
+                            <div className="flex w-full flex-col items-center space-y-3 py-2">
+                                <InputOTP
+                                    id="otp"
+                                    name="code"
+                                    maxLength={OTP_MAX_LENGTH}
+                                    value={code}
+                                    onChange={setCode}
+                                    disabled={processing}
+                                    pattern={REGEXP_ONLY_DIGITS}
+                                    autoFocus
+                                >
+                                    <InputOTPGroup>
+                                        {Array.from(
+                                            { length: OTP_MAX_LENGTH },
+                                            (_, index) => (
+                                                <InputOTPSlot
+                                                    key={index}
+                                                    index={index}
+                                                />
+                                            ),
+                                        )}
+                                    </InputOTPGroup>
+                                </InputOTP>
+                                <InputError message={codeError} />
+                            </div>
+
+                            <div className="flex w-full space-x-5">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={onBack}
+                                    disabled={processing}
+                                >
+                                    {t('common.back')}
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    className="flex-1"
+                                    disabled={
+                                        processing ||
+                                        code.length < OTP_MAX_LENGTH
+                                    }
+                                >
+                                    {t('settings.twoFactor.confirm')}
+                                </Button>
+                            </div>
                         </div>
-                    </div>
-                </>
-            )}
+                    </>
+                );
+            }}
         </Form>
     );
 }
@@ -240,6 +262,11 @@ type Props = {
     errors: string[];
 };
 
+/**
+ * Modal wizard for enabling two-factor authentication.
+ * @param {*} props - Component props.
+ * @returns {JSX.Element}
+ */
 export default function TwoFactorSetupModal({
     isOpen,
     onClose,
@@ -251,6 +278,7 @@ export default function TwoFactorSetupModal({
     fetchSetupData,
     errors,
 }: Props) {
+    const { t } = useTranslation();
     const [showVerificationStep, setShowVerificationStep] =
         useState<boolean>(false);
 
@@ -261,33 +289,31 @@ export default function TwoFactorSetupModal({
     }>(() => {
         if (twoFactorEnabled) {
             return {
-                title: 'Two-factor authentication enabled',
-                description:
-                    'Two-factor authentication is now enabled. Scan the QR code or enter the setup key in your authenticator app.',
-                buttonText: 'Close',
+                title: t('settings.twoFactor.enabledTitle'),
+                description: t('settings.twoFactor.enabledDescription'),
+                buttonText: t('common.close'),
             };
         }
 
         if (showVerificationStep) {
             return {
-                title: 'Verify authentication code',
-                description:
-                    'Enter the 6-digit code from your authenticator app',
-                buttonText: 'Continue',
+                title: t('settings.twoFactor.verifyTitle'),
+                description: t('settings.twoFactor.verifyDescription'),
+                buttonText: t('common.continue'),
             };
         }
 
         return {
-            title: 'Enable two-factor authentication',
-            description:
-                'To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app',
-            buttonText: 'Continue',
+            title: t('settings.twoFactor.enableTitle'),
+            description: t('settings.twoFactor.enableDescription'),
+            buttonText: t('common.continue'),
         };
-    }, [twoFactorEnabled, showVerificationStep]);
+    }, [twoFactorEnabled, showVerificationStep, t]);
 
     const handleModalNextStep = useCallback(() => {
         if (requiresConfirmation) {
             setShowVerificationStep(true);
+
             return;
         }
 
@@ -303,11 +329,19 @@ export default function TwoFactorSetupModal({
         }
     }, [twoFactorEnabled, clearSetupData]);
 
+    // Stable fetchSetupData + inflight coalesce in the hook; only kick off when opened
+    // without setup data. Do not depend on per-render identity of fetch helpers.
     useEffect(() => {
-        if (isOpen && !qrCodeSvg) {
-            fetchSetupData();
+        if (!isOpen) {
+            return;
         }
-    }, [isOpen, qrCodeSvg, fetchSetupData]);
+
+        if (qrCodeSvg && manualSetupKey) {
+            return;
+        }
+
+        void fetchSetupData();
+    }, [isOpen, qrCodeSvg, manualSetupKey, fetchSetupData]);
 
     const handleClose = useCallback(() => {
         resetModalState();
@@ -328,7 +362,7 @@ export default function TwoFactorSetupModal({
                 <div className="flex flex-col items-center space-y-5">
                     {showVerificationStep ? (
                         <TwoFactorVerificationStep
-                            onClose={onClose}
+                            onClose={handleClose}
                             onBack={() => setShowVerificationStep(false)}
                         />
                     ) : (

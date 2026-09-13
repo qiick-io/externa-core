@@ -1,3 +1,11 @@
+/**
+ * Page or section heading with optional description.
+ * @param {{ title: string, description?: string, variant?: 'default' | 'small' }} props - Component props.
+ * @param {string} props.title - Heading text.
+ * @param {string} [props.description] - Optional supporting text below the title.
+ * @param {'default' | 'small'} [props.variant='default'] - Visual size preset.
+ * @returns {JSX.Element}
+ */
 export default function Heading({
     title,
     description,

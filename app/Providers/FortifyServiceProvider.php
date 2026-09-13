@@ -4,15 +4,26 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Http\Responses\LoginResponse;
+use App\Http\Responses\PasskeyLoginResponse;
+use App\Services\Settings\ProjectSettings;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
+use Laravel\Passkeys\Contracts\PasskeyLoginResponse as PasskeyLoginResponseContract;
 
+/**
+ * Configures Laravel Fortify authentication views, actions, and rate limiting.
+ */
+/**
+ * Registers Fortify views, actions, and authentication rate limiting.
+ */
 class FortifyServiceProvider extends ServiceProvider
 {
     /**
@@ -20,7 +31,8 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(LoginResponseContract::class, LoginResponse::class);
+        $this->app->singleton(PasskeyLoginResponseContract::class, PasskeyLoginResponse::class);
     }
 
     /**
@@ -49,7 +61,9 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/login', [
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
-            'canRegister' => Features::enabled(Features::registration()),
+            'canRegister' => Features::enabled(Features::registration())
+                && app(ProjectSettings::class)->registrationEnabled(),
+            'canManagePasskeys' => Features::canManagePasskeys(),
             'status' => $request->session()->get('status'),
         ]));
 
@@ -66,11 +80,28 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn () => Inertia::render('auth/register'));
+        Fortify::registerView(function () {
+            if (! Features::enabled(Features::registration())
+                || ! app(ProjectSettings::class)->registrationEnabled()) {
+                abort(403);
+            }
+
+            return Inertia::render('auth/register');
+        });
 
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/two-factor-challenge'));
 
-        Fortify::confirmPasswordView(fn () => Inertia::render('auth/confirm-password'));
+        Fortify::confirmPasswordView(function () {
+            $canManagePasskeys = Features::canManagePasskeys();
+            $user = auth()->user();
+
+            return Inertia::render('auth/confirm-password', [
+                'canManagePasskeys' => $canManagePasskeys,
+                'hasPasskeys' => $canManagePasskeys
+                    && $user !== null
+                    && $user->hasPasskeysEnabled(),
+            ]);
+        });
     }
 
     /**
@@ -84,8 +115,17 @@ class FortifyServiceProvider extends ServiceProvider
 
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
+            $maxAttempts = app(ProjectSettings::class)->loginMaxAttempts();
 
-            return Limit::perMinute(5)->by($throttleKey);
+            return Limit::perMinute($maxAttempts)->by($throttleKey);
+        });
+
+        RateLimiter::for('passkeys', function (Request $request) {
+            $credentialId = $request->input('credential.id');
+
+            return Limit::perMinute(10)->by(
+                ($credentialId ?: $request->session()->getId()).'|'.$request->ip()
+            );
         });
     }
 }

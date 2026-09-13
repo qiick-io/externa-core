@@ -1,0 +1,65 @@
+"""
+Public CMS GraphQL API — same auth/permissions as /api/v1 (ResolveApiAccess + CollectionPermissionGuard).
+"""
+
+scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
+scalar JSON @scalar(class: "App\\GraphQL\\Scalars\\JSON")
+
+type Query {
+    collections: [Collection!]!
+        @field(resolver: "App\\GraphQL\\Queries\\CollectionsQuery")
+
+    collection(slug: String!): Collection
+        @field(resolver: "App\\GraphQL\\Queries\\CollectionQuery")
+
+    items(
+        collection: String!
+        filter: JSON
+        page: Int = 1
+        perPage: Int = 15
+    ): ItemPage!
+        @field(resolver: "App\\GraphQL\\Queries\\ItemsQuery")
+
+    item(collection: String!, id: ID!): Item
+        @field(resolver: "App\\GraphQL\\Queries\\ItemQuery")
+}
+
+type Mutation {
+    createItem(collection: String!, data: JSON!): Item!
+        @field(resolver: "App\\GraphQL\\Mutations\\CreateItem")
+
+    updateItem(collection: String!, id: ID!, data: JSON!): Item!
+        @field(resolver: "App\\GraphQL\\Mutations\\UpdateItem")
+
+    deleteItem(collection: String!, id: ID!): Boolean!
+        @field(resolver: "App\\GraphQL\\Mutations\\DeleteItem")
+}
+
+type Collection {
+    id: ID!
+    name: String!
+    slug: String!
+    is_singleton: Boolean!
+}
+
+type Item {
+    id: ID!
+    collection_id: ID!
+    data: JSON!
+    created_at: DateTime
+    updated_at: DateTime
+    user_created_id: ID
+    user_updated_id: ID
+}
+
+type ItemPage {
+    data: [Item!]!
+    meta: PageMeta!
+}
+
+type PageMeta {
+    current_page: Int!
+    last_page: Int!
+    per_page: Int!
+    total: Int!
+}

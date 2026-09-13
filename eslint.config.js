@@ -63,6 +63,8 @@ export default [
         },
         rules: {
             '@typescript-eslint/no-explicit-any': 'off',
+            // ponytail: recommended-latest enables this; fixing all sync setState-in-effect call sites is out of scope for a dep bump
+            'react-hooks/set-state-in-effect': 'off',
             '@typescript-eslint/consistent-type-imports': [
                 'error',
                 {
@@ -109,7 +111,11 @@ export default [
             'vendor',
             'node_modules',
             'public',
+            'storage',
+            'scripts',
             'bootstrap/ssr',
+            '.e2e/**',
+            'tests/Browser/**/*.mjs',
             'tailwind.config.js',
             'vite.config.ts',
             'resources/js/actions/**',

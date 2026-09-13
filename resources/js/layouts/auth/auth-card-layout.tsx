@@ -10,6 +10,14 @@ import {
 } from '@/components/ui/card';
 import { home } from '@/routes';
 
+/**
+ * Auth layout with branded card container for login and registration forms.
+ * @param {PropsWithChildren<{ name?: string, title?: string, description?: string }>} props - Layout props.
+ * @param {React.ReactNode} props.children - Auth form content inside the card.
+ * @param {string} [props.title] - Card title.
+ * @param {string} [props.description] - Card description.
+ * @returns {JSX.Element}
+ */
 export default function AuthCardLayout({
     children,
     title,
@@ -27,7 +35,7 @@ export default function AuthCardLayout({
                     className="flex items-center gap-2 self-center font-medium"
                 >
                     <div className="flex h-9 w-9 items-center justify-center">
-                        <AppLogoIcon className="size-9 fill-current text-black dark:text-white" />
+                        <AppLogoIcon className="size-9" />
                     </div>
                 </Link>
 

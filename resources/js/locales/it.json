@@ -1,0 +1,1442 @@
+{
+    "common": {
+        "save": "Salva",
+        "saved": "Salvato",
+        "cancel": "Annulla",
+        "continue": "Continua",
+        "back": "Indietro",
+        "close": "Chiudi",
+        "delete": "Elimina",
+        "email": "Email",
+        "emailAddress": "Indirizzo email",
+        "password": "Password",
+        "confirmPassword": "Conferma password",
+        "firstName": "Nome",
+        "lastName": "Cognome",
+        "hide": "Nascondi",
+        "view": "Mostra"
+    },
+    "roles": {
+        "names": {
+            "super-admin": "Super Admin",
+            "admin": "Admin",
+            "reader": "Lettore",
+            "public": "Pubblico"
+        }
+    },
+    "nav": {
+        "platform": "Piattaforma",
+        "dashboard": "Dashboard",
+        "files": "File",
+        "collections": "Collection",
+        "activityLog": "Activity Log",
+        "users": "Utenti",
+        "groups": "Gruppi",
+        "roles": "Ruoli",
+        "apiKeys": "API Keys",
+        "permissions": "Permessi",
+        "admin": "Admin",
+        "assistant": "Assistente",
+        "chat": "Chat",
+        "settings": "Impostazioni",
+        "repository": "Repository",
+        "documentation": "Documentazione"
+    },
+    "notifications": {
+        "title": "Notifiche",
+        "description": "Aggiornamenti dalle operazioni file in background.",
+        "loading": "Caricamento…",
+        "empty": "Nessuna notifica.",
+        "markAllRead": "Segna tutte come lette",
+        "markUnread": "Segna come non letta",
+        "openFolder": "Apri cartella",
+        "openChat": "Apri chat",
+        "downloadZip": "Scarica zip"
+    },
+    "userMenu": {
+        "settings": "Impostazioni",
+        "language": "Lingua",
+        "appearance": "Aspetto",
+        "accessibility": "Accessibilità",
+        "accessibilityOff": "Off",
+        "accessibilityOnCount": "{{count}} attive",
+        "highContrast": "Alto contrasto",
+        "reduceMotion": "Riduci movimento",
+        "logOut": "Esci"
+    },
+    "a11y": {
+        "skipToContent": "Vai al contenuto",
+        "mainNav": "Navigazione principale",
+        "openMenu": "Apri menu",
+        "search": "Cerca"
+    },
+    "auth": {
+        "login": {
+            "title": "Accedi al tuo account",
+            "description": "Inserisci email e password per accedere",
+            "head": "Accedi",
+            "forgotPassword": "Password dimenticata?",
+            "rememberMe": "Ricordami",
+            "submit": "Accedi",
+            "passkey": "Accedi con passkey",
+            "passkeyCancelled": "Accesso con passkey annullato.",
+            "passkeysUnsupported": "Le passkey non sono supportate in questo browser.",
+            "passkeysNeedHttps": "Le passkey richiedono HTTPS.",
+            "orContinueWithEmail": "oppure continua con email",
+            "noAccount": "Non hai un account?",
+            "signUp": "Registrati"
+        },
+        "register": {
+            "title": "Crea un account",
+            "description": "Inserisci i tuoi dati per creare l'account",
+            "head": "Registrati",
+            "submit": "Crea account",
+            "hasAccount": "Hai già un account?",
+            "logIn": "Accedi"
+        },
+        "forgotPassword": {
+            "title": "Password dimenticata",
+            "description": "Inserisci la tua email per ricevere il link di reset",
+            "head": "Password dimenticata",
+            "submit": "Invia link di reset",
+            "orReturn": "Oppure torna a",
+            "logIn": "accedi"
+        },
+        "resetPassword": {
+            "title": "Reimposta password",
+            "description": "Inserisci la nuova password qui sotto",
+            "head": "Reimposta password",
+            "submit": "Reimposta password"
+        },
+        "confirmPassword": {
+            "title": "Conferma la password",
+            "description": "Questa è un'area protetta dell'applicazione. Conferma la password per continuare.",
+            "head": "Conferma password",
+            "submit": "Conferma password",
+            "passkey": "Conferma con passkey",
+            "passkeyCancelled": "Conferma con passkey annullata.",
+            "orConfirmWithPasskey": "oppure conferma con passkey"
+        },
+        "verifyEmail": {
+            "title": "Verifica email",
+            "description": "Verifica il tuo indirizzo email cliccando sul link che ti abbiamo appena inviato.",
+            "head": "Verifica email",
+            "linkSent": "Un nuovo link di verifica è stato inviato all'indirizzo email fornito in fase di registrazione.",
+            "resend": "Reinvia email di verifica",
+            "logOut": "Esci"
+        },
+        "twoFactorChallenge": {
+            "head": "Autenticazione a due fattori",
+            "recoveryTitle": "Codice di recupero",
+            "recoveryDescription": "Conferma l'accesso al tuo account inserendo uno dei codici di recupero di emergenza.",
+            "recoveryToggle": "accedere con un codice di autenticazione",
+            "authTitle": "Codice di autenticazione",
+            "authDescription": "Inserisci il codice fornito dalla tua app di autenticazione.",
+            "authToggle": "accedere con un codice di recupero",
+            "recoveryPlaceholder": "Inserisci il codice di recupero",
+            "orYouCan": "oppure puoi "
+        }
+    },
+    "settings": {
+        "layout": {
+            "title": "Impostazioni",
+            "description": "Gestisci il profilo e le impostazioni dell'account",
+            "navAria": "Impostazioni",
+            "sectionAccount": "Account",
+            "sectionProject": "Progetto",
+            "sectionAccess": "Accesso",
+            "profile": "Profilo",
+            "security": "Sicurezza",
+            "project": "Progetto",
+            "appearance": "Aspetto",
+            "performance": "Performance",
+            "roles": "Ruoli",
+            "permissions": "Permessi",
+            "apiKeys": "Chiavi API",
+            "reportBug": "Segnala un Bug"
+        },
+        "profile": {
+            "breadcrumb": "Impostazioni profilo",
+            "head": "Impostazioni profilo",
+            "title": "Informazioni profilo",
+            "description": "Aggiorna i dettagli del profilo e l'indirizzo email",
+            "unverified": "Il tuo indirizzo email non è verificato.",
+            "resend": "Clicca qui per reinviare l'email di verifica.",
+            "linkSent": "Un nuovo link di verifica è stato inviato al tuo indirizzo email."
+        },
+        "notificationSounds": {
+            "title": "Suoni di notifica",
+            "description": "Suoni opzionali per nuovi messaggi chat e notifiche. Disattivati di default.",
+            "chat": "Suono messaggi chat",
+            "chatHint": "Quando qualcun altro invia un messaggio mentre non stai visualizzando quella chat.",
+            "notifications": "Suono notifiche",
+            "notificationsHint": "Quando arriva una nuova notifica e il pannello è chiuso.",
+            "test": "Prova suono"
+        },
+        "security": {
+            "breadcrumb": "Impostazioni sicurezza",
+            "head": "Impostazioni sicurezza",
+            "passwordTitle": "Aggiorna password",
+            "passwordDescription": "Usa una password lunga e casuale per mantenere l'account al sicuro",
+            "currentPassword": "Password attuale",
+            "newPassword": "Nuova password",
+            "savePassword": "Salva password",
+            "twoFactorTitle": "Autenticazione a due fattori",
+            "twoFactorDescription": "Gestisci le impostazioni dell'autenticazione a due fattori",
+            "enabledHint": "Al login ti verrà chiesto un PIN sicuro e casuale, recuperabile dall'app TOTP sul telefono.",
+            "disabledHint": "Quando attivi l'autenticazione a due fattori, al login ti verrà chiesto un PIN sicuro recuperabile da un'app TOTP sul telefono.",
+            "disable2fa": "Disattiva 2FA",
+            "enable2fa": "Attiva 2FA",
+            "continueSetup": "Continua configurazione",
+            "requiredBannerTitle": "Autenticazione a due fattori obbligatoria",
+            "requiredBannerDescription": "Questo progetto richiede l'autenticazione a due fattori. Attiva la 2FA o registra una passkey qui sotto prima di poter usare il resto dell'app.",
+            "passkeysTitle": "Passkey",
+            "passkeysDescription": "Accedi senza password con una passkey del dispositivo. Una passkey soddisfa anche il requisito di autenticazione a due fattori del progetto.",
+            "passkeysEmpty": "Nessuna passkey registrata.",
+            "passkeyName": "Nome passkey",
+            "passkeyNamePlaceholder": "es. MacBook Pro",
+            "passkeyCreated": "Aggiunta {{date}}",
+            "addPasskey": "Aggiungi passkey",
+            "deletePasskey": "Elimina",
+            "passkeysUnsupported": "Le passkey non sono supportate in questo browser.",
+            "passkeysNeedHttps": "Le passkey richiedono HTTPS."
+        },
+        "project": {
+            "breadcrumb": "Impostazioni progetto",
+            "head": "Impostazioni progetto",
+            "generalTitle": "Generale",
+            "generalDescription": "Identità del progetto e lingua predefinita",
+            "name": "Nome progetto",
+            "description": "Descrizione progetto",
+            "url": "URL progetto",
+            "defaultLanguage": "Lingua predefinita",
+            "contentLocalesTitle": "Lingue dei contenuti",
+            "contentLocalesDescription": "Locali usati per i contenuti traducibili delle collection. Distinti dalla lingua dell'interfaccia admin sopra.",
+            "contentLocalesAdd": "Aggiungi lingue",
+            "contentLocalesSearch": "Cerca lingue…",
+            "contentLocalesSelected": "Lingue selezionate (trascina per riordinare)",
+            "contentLocalesEmpty": "Nessuna lingua corrisponde alla ricerca.",
+            "defaultContentLocale": "Locale contenuto predefinito",
+            "sidebarTitle": "Moduli sidebar",
+            "sidebarDescription": "Riordina i moduli e scegli quali mostrare. Gli elementi bloccati restano sempre attivi.",
+            "securityTitle": "Sicurezza",
+            "securityDescription": "Sicurezza password, limite tentativi di login e policy 2FA",
+            "passwordPolicy": "Sicurezza password",
+            "passwordPolicies": {
+                "weak": {
+                    "label": "Debole",
+                    "description": "Minimo 6 caratteri. Nessun requisito di maiuscole/minuscole, numeri o simboli."
+                },
+                "medium": {
+                    "label": "Media",
+                    "description": "Minimo 8 caratteri, con maiuscole e minuscole e almeno un numero."
+                },
+                "strong": {
+                    "label": "Forte",
+                    "description": "Minimo 12 caratteri, maiuscole/minuscole, lettere, numeri, simboli e non presente in breach note."
+                }
+            },
+            "loginMaxAttempts": "Tentativi di login massimi al minuto",
+            "twoFactorRequired": "Richiedi autenticazione a due fattori per tutti gli utenti",
+            "twoFactorRequiredHint": "Se attiva, gli utenti devono abilitare la 2FA TOTP o registrare una passkey nella pagina Sicurezza prima di usare l'app.",
+            "registrationTitle": "Registrazione utenti",
+            "registrationDescription": "Controlla la registrazione pubblica e i default dei nuovi account",
+            "registrationEnabled": "Registrazione abilitata",
+            "defaultUserRole": "Ruolo utente predefinito",
+            "noRole": "Nessun ruolo predefinito",
+            "emailVerificationRequired": "Verifica email obbligatoria",
+            "allowedDomains": "Domini email consentiti",
+            "allowedDomainsHint": "Separati da virgola. Lascia vuoto per consentire qualsiasi dominio.",
+            "publicApiTitle": "API pubblica",
+            "publicApiDescription": "Allowlist di origin browser per l'API pubblica REST e GraphQL",
+            "publicApiAllowedOrigins": "Origin consentiti",
+            "publicApiAllowedOriginsHint": "Un origin per riga (es. https://www.example.com). Senza path. Lascia vuoto per disattivare il gate e usare CORS_ALLOWED_ORIGINS.",
+            "revisionRetentionTitle": "Conservazione revisioni",
+            "revisionRetentionDescription": "Limiti predefiniti per la cronologia revisioni degli item. Le collection possono sovrascriverli.",
+            "revisionRetentionCount": "Revisioni massime",
+            "revisionRetentionDays": "Conserva per (giorni)",
+            "revisionRetentionHint": "Lascia vuoto per illimitato su quell'asse. Si applica quando una collection non imposta un proprio limite.",
+            "uploadLimitsTitle": "Limiti upload",
+            "uploadLimitsDescription": "Limiti opzionali per Files e allegati chat. Lascia vuoto per illimitato.",
+            "filesMaxUploadMb": "Upload Files max (MB)",
+            "chatMaxUploadMb": "Upload chat max (MB)",
+            "uploadLimitsHint": "Vuoto = illimitato. Gli upload in una sola richiesta restano sotto upload_max_filesize / post_max_size di PHP; i file più grandi usano l'upload a chunk.",
+            "filesTitle": "File e storage",
+            "filesDescription": "Opzioni di trasformazione immagini usate dalla libreria file",
+            "allowedTransformations": "Trasformazioni consentite",
+            "transformations": {
+                "thumbnail": "Miniatura"
+            },
+            "presetTransformations": "Preset di trasformazione",
+            "presetTransformationsHint": "Preset immagini nominati usati dalla libreria file (GD). Aggiungi, modifica o elimina.",
+            "presetAdd": "Aggiungi preset",
+            "presetEdit": "Modifica preset",
+            "presetDelete": "Elimina preset",
+            "presetEmpty": "Nessun preset. Aggiungine almeno uno prima di salvare.",
+            "presetCreateTitle": "Crea preset",
+            "presetEditTitle": "Modifica preset",
+            "presetDialogDescription": "Configura ridimensionamento e encoding per questa chiave preset.",
+            "presetKey": "Chiave",
+            "presetKeyInvalid": "La chiave deve essere uno slug con lettere, numeri, underscore o trattini.",
+            "presetKeyDuplicate": "Esiste già un preset con questa chiave.",
+            "presetDimensionsRequired": "Imposta almeno larghezza o altezza.",
+            "presetFit": "Adattamento",
+            "presetWidth": "Larghezza",
+            "presetHeight": "Altezza",
+            "presetQuality": "Qualità",
+            "presetNoUpscale": "Non ingrandire",
+            "presetNoUpscaleShort": "no upscale",
+            "presetFormat": "Formato",
+            "presetCancel": "Annulla",
+            "presetSave": "Salva preset",
+            "presetFits": {
+                "contain": "Contain (dentro il box, con letterbox)",
+                "cover": "Cover (riempie e ritaglia)",
+                "inside": "Inside (dentro il box, senza letterbox)",
+                "outside": "Outside (copre entrambe le dimensioni)"
+            },
+            "presetFormats": {
+                "auto": "Auto (WebP se disponibile, altrimenti JPEG)",
+                "jpeg": "JPEG",
+                "png": "PNG",
+                "webp": "WebP"
+            },
+            "reportingTitle": "URL di segnalazione",
+            "reportingDescription": "Link opzionali per segnalare problemi, bug ed errori",
+            "reportIssueUrl": "URL segnalazione problema",
+            "reportBugUrl": "URL segnalazione bug",
+            "reportErrorUrl": "URL segnalazione errore",
+            "webhooksTitle": "Webhook in uscita",
+            "webhooksDescription": "Invia eventi di dominio firmati al tuo endpoint quando cambiano item, file o collezioni",
+            "webhookUrl": "URL webhook",
+            "webhookUrlHint": "Lascia vuoto per disabilitare. Richiede un worker della coda.",
+            "webhookSecret": "Secret webhook",
+            "webhookSecretHint": "Usato per le firme HMAC. Lascia vuoto per mantenere il secret attuale.",
+            "webhookSecretConfigured": "Un secret è già configurato.",
+            "webhookSecretGenerate": "Genera secret",
+            "webhookSendTest": "Invia evento di test",
+            "webhookSendTestHint": "Salva prima l'URL del webhook, poi accoda un ping firmato. Serve un worker della coda (o QUEUE_CONNECTION=sync).",
+            "modules": {
+                "dashboard": "Dashboard",
+                "ai": "Assistente",
+                "files": "File",
+                "collections": "Collezioni",
+                "chat": "Chat",
+                "activity": "Attività",
+                "users": "Utenti",
+                "groups": "Gruppi",
+                "roles": "Ruoli",
+                "apiKeys": "API Keys",
+                "permissions": "Permessi",
+                "settings": "Impostazioni"
+            }
+        },
+        "appearance": {
+            "breadcrumb": "Impostazioni aspetto",
+            "head": "Impostazioni aspetto",
+            "title": "Impostazioni aspetto",
+            "description": "Aggiorna il branding del progetto e il tema predefinito",
+            "brandingTitle": "Branding",
+            "brandingDescription": "Colore, logo e favicon usati nell'interfaccia e al login",
+            "projectColor": "Colore progetto",
+            "projectColorDark": "Colore progetto (scuro)",
+            "projectLogo": "Logo progetto",
+            "projectLogoDark": "Logo progetto (scuro)",
+            "publicFavicon": "Favicon",
+            "chooseFile": "Scegli file",
+            "changeFile": "Cambia file",
+            "clearFile": "Rimuovi",
+            "noFile": "Nessun file selezionato",
+            "defaultThemeTitle": "Tema predefinito",
+            "defaultThemeDescription": "Usato quando l'utente non ha scelto una preferenza personale chiaro/scuro",
+            "defaultAppearance": "Aspetto predefinito",
+            "light": "Chiaro",
+            "dark": "Scuro",
+            "system": "Sistema"
+        },
+        "performance": {
+            "breadcrumb": "Impostazioni performance",
+            "head": "Impostazioni performance",
+            "statusTitle": "Stato runtime",
+            "statusDescription": "Vista in sola lettura della configurazione runtime",
+            "cacheStore": "CACHE_STORE",
+            "redisReachable": "Redis raggiungibile",
+            "queueConnection": "QUEUE_CONNECTION",
+            "appEnv": "APP_ENV",
+            "appDebug": "APP_DEBUG",
+            "yes": "Sì",
+            "no": "No",
+            "bootstrapTitle": "Cache bootstrap Laravel",
+            "bootstrapDescription": "Config, route, eventi e package in cache in bootstrap/cache",
+            "configCached": "Config in cache",
+            "routesCached": "Route in cache",
+            "eventsCached": "Eventi in cache",
+            "packagesCached": "Package in cache",
+            "publicApiTitle": "Cache public API",
+            "publicApiDescription": "Cache versionate delle risposte REST/GraphQL pubbliche. Il TTL è una rete di sicurezza; la freschezza viene dall'incremento di versione in scrittura + flush epoch.",
+            "ttlSeconds": "TTL secondi",
+            "epoch": "Epoca",
+            "observabilityTitle": "Observability",
+            "observabilityDescription": "Link al monitoraggio job e alle dashboard di health applicativa",
+            "linkJobs": "Job",
+            "linkPulse": "Pulse",
+            "linkHorizon": "Horizon",
+            "flushTitle": "Svuota cache",
+            "flushDescription": "Cancella cache mirate. Lo svuotamento della public API incrementa un'epoca globale così la prossima lettura non è mai stale.",
+            "flushPublicApiTitle": "Risposte public API",
+            "flushPublicApiDescription": "Invalida le cache versionate delle risposte REST e GraphQL per tutte le collection.",
+            "flushPublicApiButton": "Svuota cache public API",
+            "flushPermissionMatricesTitle": "Matrici permessi",
+            "flushPermissionMatricesDescription": "Elimina le matrici permessi collection e file in cache per ogni ruolo.",
+            "flushPermissionMatricesButton": "Svuota matrici permessi",
+            "flushSpatiePermissionsTitle": "Permessi Spatie",
+            "flushSpatiePermissionsDescription": "Cancella la cache ruoli e permessi di Spatie.",
+            "flushSpatiePermissionsButton": "Svuota cache permessi Spatie",
+            "flushDashboardMetricsTitle": "Metriche dashboard",
+            "flushDashboardMetricsDescription": "Elimina le chiavi cache delle metriche dashboard così la visita successiva le ricalcola.",
+            "flushDashboardMetricsButton": "Svuota metriche dashboard",
+            "flushing": "Svuotamento…"
+        },
+        "deleteUser": {
+            "title": "Elimina account",
+            "description": "Elimina il tuo account e tutte le relative risorse",
+            "warning": "Attenzione",
+            "caution": "Procedi con cautela: questa azione non può essere annullata.",
+            "button": "Elimina account",
+            "confirmTitle": "Sei sicuro di voler eliminare il tuo account?",
+            "confirmDescription": "Una volta eliminato l'account, tutte le risorse e i dati verranno eliminati definitivamente. Inserisci la password per confermare."
+        },
+        "twoFactor": {
+            "enabledTitle": "Autenticazione a due fattori attiva",
+            "enabledDescription": "L'autenticazione a due fattori è ora attiva. Scansiona il QR code o inserisci la chiave nella tua app di autenticazione.",
+            "verifyTitle": "Verifica codice di autenticazione",
+            "verifyDescription": "Inserisci il codice a 6 cifre della tua app di autenticazione",
+            "enableTitle": "Attiva autenticazione a due fattori",
+            "enableDescription": "Per completare l'attivazione, scansiona il QR code o inserisci la chiave nella tua app di autenticazione",
+            "orEnterManually": "oppure inserisci il codice manualmente",
+            "confirm": "Conferma",
+            "recoveryTitle": "Codici di recupero 2FA",
+            "recoveryDescription": "I codici di recupero ti permettono di accedere se perdi il dispositivo 2FA. Conservali in un password manager sicuro.",
+            "viewCodes": "Mostra codici di recupero",
+            "hideCodes": "Nascondi codici di recupero",
+            "regenerate": "Rigenera codici",
+            "codesAria": "Codici di recupero",
+            "loadingAria": "Caricamento codici di recupero",
+            "regenerateWarning": "Ogni codice di recupero può essere usato una sola volta e verrà rimosso dopo l'uso. Se ne servono altri, clicca <bold>Rigenera codici</bold> sopra."
+        }
+    },
+    "collections": {
+        "meta": {
+            "name": "Nome collection",
+            "slug": "Slug",
+            "slugInvalid": "Usa lettere minuscole, numeri e trattini (es. mia-collection).",
+            "slugTaken": "Esiste già una collection con questo slug.",
+            "description": "Descrizione",
+            "descriptionPlaceholder": "Nota opzionale su questa collection…",
+            "status": "Stato",
+            "statusActive": "Attiva",
+            "statusInactive": "Inattiva",
+            "statusHint": "Le collection inattive restano nell’elenco admin ma sono nascoste dai selettori di relazione e dall’indice collection delle API pubbliche.",
+            "icon": "Icona",
+            "color": "Colore",
+            "chooseIcon": "Scegli icona…",
+            "searchIcons": "Cerca icone…",
+            "clearIconSearch": "Cancella ricerca",
+            "noIconsFound": "Nessuna icona corrisponde alla ricerca.",
+            "clearIcon": "Rimuovi icona",
+            "clearColor": "Rimuovi colore",
+            "singleton": "Singleton (un solo contenuto)",
+            "singletonShort": "Singleton",
+            "singletonHint": "Usalo per collection con una sola voce fissa (es. homepage o impostazioni sito). Questa scelta non si può cambiare dopo la creazione.",
+            "versioning": "Versioning contenuti",
+            "versioningHint": "Abilita bozza / pubblicato. Modifica in Bozza, poi Pubblica.",
+            "revisionRetention": "Conservazione revisioni",
+            "revisionRetentionHint": "Lascia vuoto per usare il default di progetto (Impostazioni → Progetto → Conservazione revisioni). Vuoto a entrambi i livelli conserva le revisioni per sempre. I limiti valgono sugli snapshot della cronologia (anche se Bozza/Pubblica è disattivato).",
+            "revisionRetentionCount": "Revisioni massime",
+            "revisionRetentionDays": "Conserva per (giorni)",
+            "listCollection": "Elenco",
+            "createDescription": "Crea una collection. Lo slug è generato dal nome, a meno che non lo modifichi.",
+            "editDescription": "Aggiorna nome, descrizione, stato, icona e colore. L’impostazione singleton non si può cambiare dopo la creazione.",
+            "cancel": "Annulla",
+            "save": "Salva",
+            "create": "Crea"
+        },
+        "list": {
+            "name": "Nome",
+            "slug": "Slug",
+            "description": "Descrizione",
+            "singleton": "Singleton",
+            "status": "Stato",
+            "actions": "Azioni",
+            "sortBy": "Ordina per",
+            "sortName": "Nome",
+            "sortSlug": "Slug",
+            "sortStatus": "Stato",
+            "sortUpdated": "Aggiornato"
+        },
+        "localized": {
+            "applyAll": "Applica a tutte le lingue",
+            "applyEmpty": "Applica alle lingue vuote"
+        },
+        "fieldMenu": {
+            "open": "Azioni campo",
+            "editRaw": "Modifica valore grezzo",
+            "copyRaw": "Copia valore grezzo",
+            "pasteRaw": "Incolla valore grezzo",
+            "undo": "Annulla modifiche",
+            "clear": "Cancella valore",
+            "editField": "Modifica campo",
+            "editRawTitle": "Modifica valore grezzo",
+            "editRawDescription": "Modifica il valore grezzo JSON o testo di questo campo. JSON non valido viene tenuto come testo semplice.",
+            "cancel": "Annulla",
+            "apply": "Applica",
+            "copied": "Valore grezzo copiato",
+            "copyFailed": "Impossibile copiare negli appunti",
+            "pasted": "Valore grezzo incollato",
+            "pasteFailed": "Impossibile leggere gli appunti"
+        },
+        "itemSave": {
+            "create": "Crea",
+            "save": "Salva",
+            "saveDraft": "Salva bozza",
+            "more": "Altre azioni di salvataggio",
+            "stay": "Salva e resta",
+            "createNew": "Salva e crea nuovo",
+            "copy": "Salva come copia",
+            "discard": "Scarta tutte le modifiche"
+        },
+        "itemToolbar": {
+            "previewAs": "Anteprima come…",
+            "chat": "Chat",
+            "revisions": "Revisioni",
+            "editFields": "Modifica campi",
+            "delete": "Elimina"
+        },
+        "itemChat": {
+            "title": "Chat",
+            "notify": "Notificami i nuovi messaggi in questa collection",
+            "empty": "Nessun messaggio ancora.",
+            "loading": "Caricamento…",
+            "loadOlder": "Carica precedenti",
+            "placeholder": "Scrivi un messaggio…",
+            "send": "Invia",
+            "sending": "Invio…",
+            "uploading": "Caricamento…",
+            "dropToAttach": "Rilascia per allegare",
+            "addCaption": "Aggiungi una didascalia…",
+            "sendPhoto": "Invia foto",
+            "sendPhotos": "Invia {{count}} foto",
+            "sendMedia": "Invia media",
+            "sendMediaMany": "Invia {{count}} media",
+            "sendFile": "Invia file",
+            "sendFiles": "Invia {{count}} file",
+            "mention": "Menziona",
+            "emoji": "Emoji",
+            "attach": "Allega file",
+            "download": "Scarica",
+            "saveToFiles": "Salva in Files",
+            "addToField": "Aggiungi a campo",
+            "addToFieldTitle": "Aggiungi allegato a un campo",
+            "selectField": "Campo",
+            "noFileFields": "Nessun campo immagine o file su questo item.",
+            "typing": {
+                "one": "{{name}} sta scrivendo…",
+                "many": "{{name}} +{{count}} stanno scrivendo…"
+            },
+            "edit": "Modifica",
+            "more": "Altro",
+            "error": "Impossibile caricare la chat.",
+            "sendError": "Impossibile inviare il messaggio.",
+            "reply": "Rispondi",
+            "copyText": "Copia testo",
+            "pin": "Fissa",
+            "unpin": "Togli",
+            "visibilityHint": "Visibile a chi può leggere questo item",
+            "openInHub": "Apri in Chat",
+            "mediaPreview": "Anteprima media",
+            "previousMedia": "Precedente",
+            "nextMedia": "Successivo",
+            "mediaIndex": "{{current}} / {{total}}",
+            "mediaLoadingFullRes": "Caricamento immagine…",
+            "mediaLoadingFullResPercent": "{{percent}}%",
+            "mediaLoadError": "Impossibile caricare l'immagine.",
+            "sendingMedia": "Invio…",
+            "retrySend": "Riprova",
+            "removePendingFile": "Rimuovi file",
+            "scrollToBottom": "Vai in fondo"
+        },
+        "packs": {
+            "createFromPack": "Crea da pack",
+            "createFromPackEllipsis": "Crea da pack…",
+            "createFromPackDescription": "Crea una collection (e le dipendenze) in un passaggio. Gli slug esistenti vengono riutilizzati; i campi mancanti vengono aggiunti.",
+            "noCollectionPacks": "Nessun pack di collection registrato.",
+            "creating": "Creazione…",
+            "addFieldPack": "Aggiungi pack campi",
+            "addFieldPackEllipsis": "Aggiungi pack campi…",
+            "addFieldPackDescription": "Applica un set curato di campi in un passaggio. I nomi esistenti vengono saltati.",
+            "noFieldPacks": "Nessun pack di campi registrato.",
+            "applying": "Applicazione…",
+            "applyPack": "Applica pack",
+            "previewFields": "Anteprima — {{count}} campi",
+            "fieldsCount": "Campi — {{count}}",
+            "relationsSuffix": " + {{count}} relazione/i",
+            "collection": "Collection",
+            "requires": "Richiede",
+            "translatable": "Traducibile",
+            "translatableSuffix": " · Traducibile",
+            "fieldPacks": {
+                "publishing": {
+                    "label": "Pubblicazione",
+                    "description": "Stato (bozza/pubblicato/archiviato), data published_at e flag featured."
+                },
+                "contact": {
+                    "label": "Contatti",
+                    "description": "Campi email, telefono e indirizzo postale."
+                },
+                "social": {
+                    "label": "Social",
+                    "description": "Campi URL per Facebook, Instagram, LinkedIn, Twitter/X e YouTube."
+                },
+                "seo_inline": {
+                    "label": "SEO (inline)",
+                    "description": "Campi SEO denormalizzati (seo_*) sulla collection corrente. Preferisci il pack collection SEO + relazione per Articoli/Pagine/Prodotti."
+                }
+            },
+            "collectionPacks": {
+                "seo": {
+                    "label": "SEO",
+                    "description": "Collection SEO dedicata (title, description, robots, immagini social). Collega da Articoli/Pagine/Prodotti via M2O."
+                },
+                "categories": {
+                    "label": "Categorie",
+                    "description": "Tassonomia categorie: name, slug, description."
+                },
+                "pages": {
+                    "label": "Pagine",
+                    "description": "Pagine con title, slug, status, body a blocchi e relazione SEO. Crea automaticamente il pack SEO se manca."
+                },
+                "articles": {
+                    "label": "Articoli",
+                    "description": "Blog/articoli con body a blocchi, cover, relazioni categoria e SEO. Crea automaticamente Categorie + SEO se mancano."
+                },
+                "products": {
+                    "label": "Prodotti",
+                    "description": "Prodotti con prezzo, immagini, relazioni categoria e SEO. Crea automaticamente Categorie + SEO se mancano."
+                }
+            }
+        },
+        "translatable": "Traducibile",
+        "translatableSuffix": " · Traducibile",
+        "newCollection": "Nuova collection",
+        "createField": "Aggiungi campo",
+        "addFieldFor": "Aggiungi campo per {{name}}",
+        "saveField": "Salva campo",
+        "chooseFieldType": "Scegli un tipo di campo, poi configura le impostazioni.",
+        "searchFieldTypes": "Cerca tipi di campo…",
+        "noMatchingFieldTypes": "Nessun tipo di campo corrisponde alla ricerca.",
+        "groups": {
+            "addLayout": "Aggiungi layout",
+            "accordion": "Fisarmonica",
+            "detail": "Gruppo dettaglio",
+            "raw": "Gruppo grezzo",
+            "tabs": "Schede",
+            "sectionN": "Sezione {{n}}",
+            "tabN": "Scheda {{n}}",
+            "addSection": "Aggiungi sezione",
+            "addTab": "Aggiungi scheda",
+            "emptyPanelHint": "Aggiungi una sezione, poi trascina i campi al suo interno. Oppure crea un gruppo grezzo e annidalo qui.",
+            "emptyTabsHint": "Aggiungi una scheda, poi trascina i campi al suo interno. Oppure crea un gruppo grezzo e annidalo qui.",
+            "dropIntoSection": "Trascina i campi qui"
+        },
+        "searchFields": "Cerca campi…",
+        "fieldSchema": "Schema campi",
+        "fieldsTitle": "Campi — {{name}}",
+        "advanced": "Avanzate",
+        "fieldBehavior": "Comportamento del campo",
+        "conditions": "Condizioni",
+        "conditionsDescription": "Nascondi, blocca o rendi obbligatorio questo campo in base ad altri valori.",
+        "validation": "Validazione",
+        "validationDescription": "Regole controllate quando si salva il contenuto dell’elemento.",
+        "typeSettings": "Impostazioni {{type}}",
+        "typeSettingsDescription": "Opzioni specifiche per questo tipo di campo.",
+        "general": "Generale",
+        "generalDescription": "Chiave, nome visualizzato e testo di aiuto per questo campo.",
+        "noFieldsYet": "Nessun campo ancora. Aggiungi un campo o applica un pack per definire il contenuto di questa collection.",
+        "clearSearchToReorder": "Cancella la ricerca per riordinare i campi con drag and drop.",
+        "map": {
+            "hintPoint": "Seleziona Aggiungi punto, poi clicca sulla mappa. Trascina il marker per spostarlo.",
+            "hintMulti": "Seleziona Aggiungi punto, poi clicca per aggiungere marker. Trascina per spostare; usa Elimina e clicca un marker per rimuoverlo.",
+            "hintDelete": "Clicca un marker per rimuoverlo.",
+            "toolbar": "Strumenti mappa",
+            "zoomIn": "Zoom avanti",
+            "zoomOut": "Zoom indietro",
+            "locate": "La mia posizione",
+            "fit": "Inquadra i punti",
+            "latitude": "Latitudine",
+            "longitude": "Longitudine",
+            "latitudeN": "Latitudine {{n}}",
+            "longitudeN": "Longitudine {{n}}",
+            "remove": "Rimuovi",
+            "removeLast": "Rimuovi ultimo punto",
+            "addPoint": "Aggiungi punto",
+            "delete": "Elimina",
+            "clear": "Svuota"
+        },
+        "fileField": {
+            "dragAndDrop": "Trascina e rilascia il file qui",
+            "uploadFromComputer": "Carica dal computer",
+            "chooseFromLibrary": "Scegli dalla libreria",
+            "importFromUrl": "Importa da URL",
+            "importFromUrlDescription": "Incolla l’URL pubblico di un file o di un’immagine. Verrà scaricato nella libreria file.",
+            "import": "Importa",
+            "cancel": "Annulla",
+            "replace": "Sostituisci",
+            "clear": "Rimuovi",
+            "remove": "Rimuovi",
+            "preview": "Anteprima",
+            "download": "Scarica",
+            "editItem": "Modifica elemento",
+            "chooseFile": "Scegli file",
+            "chooseImage": "Scegli immagine",
+            "noFile": "Nessun file selezionato",
+            "noFiles": "Nessun file selezionato",
+            "imageRequired": "Seleziona un file immagine.",
+            "uploadFailed": "Caricamento non riuscito",
+            "importFailed": "Importazione da URL non riuscita"
+        },
+        "requiredSuffix": " · Obbligatorio",
+        "hiddenInFormSuffix": " · Nascosto nel form",
+        "fieldTypes": {
+            "string": {
+                "label": "Campo di testo",
+                "description": "Testo su una riga"
+            },
+            "autocomplete": {
+                "label": "Combobox (statica)",
+                "description": "Campo di testo con suggerimenti predefiniti"
+            },
+            "api_autocomplete": {
+                "label": "Autocomplete (API)",
+                "description": "Campo di testo con suggerimenti da un URL remoto"
+            },
+            "code": {
+                "label": "Codice",
+                "description": "Snippet di codice con evidenziazione della sintassi"
+            },
+            "textarea": {
+                "label": "Area di testo",
+                "description": "Testo semplice su più righe"
+            },
+            "wysiwyg": {
+                "label": "WYSIWYG",
+                "description": "Testo formattato salvato come HTML"
+            },
+            "markdown": {
+                "label": "Markdown",
+                "description": "Testo formattato con sintassi Markdown"
+            },
+            "tag": {
+                "label": "Tag",
+                "description": "Tag separati da virgola"
+            },
+            "number": {
+                "label": "Numero",
+                "description": "Valore numerico"
+            },
+            "boolean": {
+                "label": "Interruttore",
+                "description": "Interruttore on / off"
+            },
+            "date": {
+                "label": "Data / Ora",
+                "description": "Data, ora o data-ora (modalità nelle impostazioni)"
+            },
+            "map": {
+                "label": "Mappa",
+                "description": "Punto geografico su OpenStreetMap (latitudine / longitudine)"
+            },
+            "color": {
+                "label": "Selettore colore",
+                "description": "Selezione colore"
+            },
+            "select": {
+                "label": "Selezione",
+                "description": "Scegli un’opzione da un elenco"
+            },
+            "multiselect": {
+                "label": "Selezione multipla",
+                "description": "Scegli più opzioni da un menu a tendina"
+            },
+            "checkbox_group": {
+                "label": "Gruppo checkbox",
+                "description": "Scegli più opzioni con checkbox visibili"
+            },
+            "checkbox_group_tree": {
+                "label": "Albero checkbox",
+                "description": "Scegli più opzioni da un albero annidato"
+            },
+            "radio_group": {
+                "label": "Gruppo radio",
+                "description": "Scegli un’opzione con pulsanti radio"
+            },
+            "image": {
+                "label": "Immagine",
+                "description": "Una o più immagini dal file manager"
+            },
+            "files": {
+                "label": "File",
+                "description": "Uno o più file dal file manager"
+            },
+            "blocks": {
+                "label": "Blocchi",
+                "description": "Sezioni di pagina flessibili da schemi di blocco inline"
+            },
+            "m2a": {
+                "label": "Costruttore (M2A)",
+                "description": "Contenuto flessibile da più collection correlate"
+            },
+            "many_to_many": {
+                "label": "Molti a molti",
+                "description": "Collega questo elemento a molti elementi correlati (M2M)"
+            },
+            "one_to_many": {
+                "label": "Uno a molti",
+                "description": "Collega questo elemento a molti figli in un’altra collection (O2M)"
+            },
+            "many_to_one": {
+                "label": "Molti a uno",
+                "description": "Collega questo elemento a un elemento correlato (M2O)"
+            },
+            "hash": {
+                "label": "ID fingerprint",
+                "description": "Identificatore univoco generato automaticamente (sha256), non un hash password"
+            },
+            "slider": {
+                "label": "Cursore",
+                "description": "Valore numerico selezionato con un cursore"
+            },
+            "group_accordion": {
+                "label": "Fisarmonica",
+                "description": "Sezioni pieghevoli — una per figlio diretto"
+            },
+            "group_detail": {
+                "label": "Gruppo dettaglio",
+                "description": "Pannello pieghevole singolo per campi annidati"
+            },
+            "group_raw": {
+                "label": "Gruppo grezzo",
+                "description": "Annidamento logico senza chrome visuale"
+            },
+            "group_tabs": {
+                "label": "Schede",
+                "description": "Figli visualizzati come schede"
+            }
+        },
+        "fieldTypeGroups": {
+            "text_numbers": "Testo e numeri",
+            "selection": "Selezione",
+            "relational": "Relazionali",
+            "other": "Altro",
+            "groups": "Gruppi"
+        }
+    },
+    "ai": {
+        "drawer": {
+            "title": "Azioni utili",
+            "description": "Scegli un preset: il testo viene inserito in chat, senza inviare.",
+            "searchPlaceholder": "Cerca azioni…",
+            "searchAria": "Cerca azioni",
+            "empty": "Nessuna azione disponibile con i tuoi permessi.",
+            "destructive": "Distruttivo",
+            "confirmTitle": "Inserire un’azione distruttiva?",
+            "confirmDescription": "«{{title}}» può eliminare o modificare molti dati. Il testo verrà solo inserito nel composer — puoi rivederlo prima di inviare.",
+            "confirmCancel": "Annulla",
+            "confirmInsert": "Inserisci nel composer"
+        },
+        "categories": {
+            "common": "Comuni",
+            "data": "Dati e import",
+            "files": "File",
+            "admin": "Admin",
+            "advanced": "Avanzate"
+        },
+        "presets": {
+            "apply-seo-collection-pack": {
+                "title": "Applica collection SEO",
+                "description": "Crea la collection SEO dedicata"
+            },
+            "scaffold-articles": {
+                "title": "Scaffold Articoli",
+                "description": "Articoli + Categorie + SEO (dipendenze auto)"
+            },
+            "scaffold-products": {
+                "title": "Scaffold Prodotti",
+                "description": "Prodotti + Categorie + SEO (dipendenze auto)"
+            },
+            "apply-publishing-field-pack": {
+                "title": "Applica pack pubblicazione",
+                "description": "status, published_at, featured su una collection esistente"
+            },
+            "apply-contact-field-pack": {
+                "title": "Applica pack contatti",
+                "description": "Campi email, telefono, indirizzo"
+            },
+            "apply-social-field-pack": {
+                "title": "Applica pack social",
+                "description": "URL dei profili social"
+            },
+            "apply-seo-inline-field-pack": {
+                "title": "Applica pack SEO inline",
+                "description": "Campi seo_* denormalizzati (caso speciale)"
+            },
+            "new-typed-collection": {
+                "title": "Nuova collection tipizzata",
+                "description": "Crea uno schema con campi tipizzati da una descrizione"
+            },
+            "list-collections": {
+                "title": "Elenca collection",
+                "description": "Mostra collection esistenti con id e campi"
+            },
+            "import-csv": {
+                "title": "Importa CSV allegato",
+                "description": "Crea/aggiorna una collection da un CSV in chat"
+            },
+            "import-excel": {
+                "title": "Importa Excel allegato",
+                "description": "Importa da un file .xlsx"
+            },
+            "import-url-json": {
+                "title": "Importa JSON da URL",
+                "description": "Fetch JSON remoto → collection"
+            },
+            "import-dry-run": {
+                "title": "Anteprima import (dry-run)",
+                "description": "Simula senza scrivere dati"
+            },
+            "import-upsert": {
+                "title": "Sync / upsert",
+                "description": "Re-import senza duplicati (chiave univoca)"
+            },
+            "export-collection": {
+                "title": "Esporta collection",
+                "description": "Esporta CSV o JSON"
+            },
+            "bulk-edit": {
+                "title": "Modifica elementi in blocco",
+                "description": "Aggiorna molti elementi con un filtro"
+            },
+            "bulk-delete": {
+                "title": "Elimina elementi in blocco",
+                "description": "Soft-delete degli elementi filtrati"
+            },
+            "nl-query": {
+                "title": "Query in linguaggio naturale",
+                "description": "Filtra e conta elementi"
+            },
+            "pdf-to-schema": {
+                "title": "PDF → schema / dati",
+                "description": "Estrae testo PDF e propone una collection"
+            },
+            "duplicate-collection": {
+                "title": "Duplica collection",
+                "description": "Copia schema (e opzionalmente campioni)"
+            },
+            "restore-collection": {
+                "title": "Ripristina collection dal cestino",
+                "description": "Ripristina soft-delete"
+            },
+            "manage-files": {
+                "title": "Organizza file",
+                "description": "Cartelle, sposta, rinomina"
+            },
+            "move-files": {
+                "title": "Sposta file",
+                "description": "Sposta file/cartelle in un’altra cartella"
+            },
+            "attach-file-to-item": {
+                "title": "Collega file a un elemento",
+                "description": "Imposta un campo file/immagine su un elemento"
+            },
+            "save-attachment-to-files": {
+                "title": "Salva allegato chat in File",
+                "description": "Copia l’allegato nel file manager"
+            },
+            "create-role": {
+                "title": "Crea ruolo con permessi",
+                "description": "Nuovo ruolo Spatie + sincronizza permessi"
+            },
+            "list-roles": {
+                "title": "Elenca ruoli",
+                "description": "Mostra ruoli e conteggio permessi"
+            },
+            "create-group": {
+                "title": "Crea gruppo utenti",
+                "description": "Gruppo con membri e ruoli collegati"
+            },
+            "create-user": {
+                "title": "Crea utente",
+                "description": "Nuovo utente con ruolo se possibile"
+            },
+            "list-users": {
+                "title": "Elenca utenti",
+                "description": "Elenco utenti attivi"
+            },
+            "audit-activity": {
+                "title": "Audit attività",
+                "description": "Cosa è successo di recente"
+            },
+            "async-large-import": {
+                "title": "Import grande in background",
+                "description": "Job asincrono con progresso"
+            },
+            "scheduled-sync": {
+                "title": "Sync URL programmato",
+                "description": "Import remoto periodico"
+            },
+            "rollback-last-turn": {
+                "title": "Annulla ultima operazione AI",
+                "description": "Rollback soft delle mutazioni recenti"
+            }
+        },
+        "usefulActionsAria": "Azioni utili",
+        "askPlaceholder": "Chiedi all’assistente…",
+        "askSomething": "Chiedi qualcosa…",
+        "offlinePlaceholder": "AI offline…",
+        "attachTooltip": "Allega CSV, TXT, Excel o PDF (max 5 MB)",
+        "attachShortTooltip": "Allega CSV o TXT (max 5 MB)",
+        "attachAria": "Allega",
+        "messageAria": "Messaggio",
+        "dictationAria": "Dettatura",
+        "stopDictation": "Ferma dettatura",
+        "voiceDictation": "Dettatura vocale",
+        "stopAria": "Ferma",
+        "sendAria": "Invia",
+        "openAssistant": "Apri assistente AI",
+        "fabTitle": "Nuova chat",
+        "fabDescription": "Drawer rapido dell'assistente. Apri la pagina completa per la cronologia.",
+        "fabEmpty": "Chiedi di collection, item o file.",
+        "askAi": "Chiedi all'AI",
+        "assistantOffline": "Assistente offline",
+        "assistantOnline": "Assistente online",
+        "aiOfflineHint": "AI offline — avvia LM Studio per abilitarla",
+        "thinking": "Sto pensando",
+        "copied": "Copiato negli appunti",
+        "copyFailed": "Copia non riuscita",
+        "speechUnavailable": "Sintesi vocale non disponibile",
+        "exportPdf": "Esporta PDF",
+        "pdfFailed": "Esportazione PDF non riuscita",
+        "regenerate": "Rigenera",
+        "readAloud": "Leggi ad alta voce",
+        "removeAttachment": "Rimuovi {{name}}",
+        "simulation": "Simulazione",
+        "simulationHint": "Non scrive dati",
+        "dictationUnsupported": "La dettatura non è supportata in questo browser"
+    },
+    "dashboard": {
+        "title": "Dashboard",
+        "description": "Panoramica di insight sui contenuti, attività recente, storage e salute degli upload.",
+        "insightsCollections": "Insight — collection",
+        "insightsCollectionsDesc": "Conteggio elementi per collection.",
+        "collection": "Collection",
+        "items": "Elementi",
+        "noCollections": "Nessuna collection ancora.",
+        "insightsActivity": "Insight — attività",
+        "insightsActivityDesc": "Eventi al giorno (ultimi 30 giorni; grafico ultimi 7).",
+        "noActivity7d": "Nessuna attività negli ultimi 7 giorni.",
+        "contentEvents": "Eventi contenuto",
+        "contentEventsDesc": "Creazione / aggiornamento / eliminazione elementi (30g).",
+        "noContentEvents": "Nessun evento contenuto.",
+        "created": "Creati",
+        "updated": "Aggiornati",
+        "deleted": "Eliminati",
+        "latestActivity": "Attività recente",
+        "latestActivityDesc": "Ultimi 10 eventi nell’app.",
+        "event": "Evento",
+        "descriptionCol": "Descrizione",
+        "when": "Quando",
+        "byUser": "da {{name}}",
+        "noActivity": "Nessuna attività ancora.",
+        "viewAll": "Vedi tutto",
+        "suspicious": "Eventi sospetti",
+        "suspiciousDesc": "Eventi falliti nell’ultima ora.",
+        "noSuspicious": "Nessun evento sospetto.",
+        "mostActive": "Utenti più attivi",
+        "mostActiveDesc": "Top 5 nelle ultime 24 ore.",
+        "user": "Utente",
+        "events": "Eventi",
+        "stuckUploads": "Upload bloccati/orfani",
+        "stuckUploadsDesc": "Incompleti, scaduti o senza parent.",
+        "upload": "Upload",
+        "chunks": "Chunk",
+        "noParent": "nessun parent",
+        "parentId": "parent #{{id}}",
+        "noStuckUploads": "Nessun upload bloccato.",
+        "storageOverview": "Panoramica storage",
+        "storageOverviewDesc": "File, cartelle e dimensione totale.",
+        "files": "File",
+        "folders": "Cartelle",
+        "totalSize": "Dimensione totale",
+        "uploadHealth": "Salute upload",
+        "uploadHealthDesc": "Upload in corso e stagnanti.",
+        "inProgress": "In corso",
+        "stale": "Stagnanti",
+        "largestFiles": "File più grandi",
+        "largestFilesDesc": "Top 10 per dimensione (caricati dopo il render iniziale).",
+        "loading": "Caricamento…",
+        "file": "File",
+        "size": "Dimensione",
+        "noFiles": "Nessun file ancora.",
+        "storageTrend": "Trend storage",
+        "storageTrendDesc": "Byte aggiunti al giorno (ultimi 14 giorni, caricati dopo il render iniziale).",
+        "date": "Data",
+        "added": "Aggiunti",
+        "noData": "Nessun dato.",
+        "storageByDisk": "Storage per disco",
+        "storageByDiskDesc": "Ripartizione opzionale (top 8, caricata dopo il render iniziale).",
+        "disk": "Disco",
+        "tabOverview": "Panoramica",
+        "tabHealth": "Salute",
+        "tabsLabel": "Sezioni dashboard",
+        "healthDescription": "Metriche operative da aggregati Pulse e code Horizon/Redis.",
+        "healthUnavailable": "Metriche di salute non disponibili.",
+        "healthQueue": "Connessione coda",
+        "healthBroadcast": "Connessione broadcast",
+        "healthRedis": "Redis",
+        "healthOk": "OK",
+        "healthDown": "Giù",
+        "healthPendingJobs": "Job in coda",
+        "healthFailedJobs": "Job falliti (DB)",
+        "healthExceptions": "Eccezioni (24h)",
+        "healthSlowJobs": "Job lenti (24h)",
+        "healthSlowQueries": "Query lente (24h)",
+        "healthPulseTitle": "Pulse",
+        "healthPulseDesc": "Ingest: {{ingest}} · ultime 24 ore",
+        "healthPulseOff": "Pulse disabilitato",
+        "healthPulseEmpty": "Nessun dato Pulse — abilita Pulse ed esegui pulse:work.",
+        "healthPulseChartTitle": "Segnali Pulse",
+        "healthPulseChartDesc": "Eccezioni, job lenti e query lente (24h).",
+        "healthPulseQuiet": "Nessun segnale Pulse nelle ultime 24 ore.",
+        "healthHorizonTitle": "Horizon / code",
+        "healthHorizonDesc": "Stato code in tempo reale da metriche Horizon Redis.",
+        "healthHorizonUnavailable": "Metriche Horizon non disponibili",
+        "healthHorizonEmpty": "Horizon non sta riportando — avvia horizon con code Redis.",
+        "healthHorizonStatus": "Stato",
+        "healthHorizonRunning": "In esecuzione",
+        "healthHorizonStopped": "Fermo",
+        "healthHorizonPending": "In attesa",
+        "healthHorizonFailed": "Falliti (Horizon)",
+        "healthHorizonProcesses": "Processi",
+        "healthHorizonThroughput": "Job / min",
+        "healthWorkloadsTitle": "Carico code",
+        "healthWorkloadsDesc": "Lunghezza, attesa e processi per coda.",
+        "healthWorkloadsEmpty": "Nessun carico code riportato.",
+        "healthWorkloadQueue": "Coda",
+        "healthWorkloadLength": "Lunghezza",
+        "healthWorkloadWait": "Attesa",
+        "healthWorkloadProcesses": "Proc"
+    },
+    "realtime": {
+        "connected": "Realtime connesso",
+        "connecting": "Connessione…",
+        "disabled": "Realtime off",
+        "offline": "Realtime offline"
+    },
+    "chatHub": {
+        "title": "Chat",
+        "collection": "Collection",
+        "private": "Private",
+        "new": "Nuova chat",
+        "newPrivate": "Nuova private",
+        "newItem": "Nuova chat item",
+        "search": "Cerca chat…",
+        "empty": "Nessuna chat.",
+        "pickThread": "Seleziona una chat o creane una nuova.",
+        "users": "Utenti",
+        "collections": "Collection",
+        "groups": "Gruppi",
+        "collectionLabel": "Collection",
+        "itemLabel": "Item",
+        "create": "Crea",
+        "searchDirectory": "Cerca persone e gruppi…",
+        "searchItems": "Cerca collection e item…",
+        "emptyDirectory": "Nessuna persona o gruppo.",
+        "emptyItems": "Nessun item.",
+        "loadMore": "Carica altri",
+        "loading": "Caricamento…",
+        "selectedCount": "{{count}} selezionati",
+        "noCreatePrivate": "Non puoi avviare chat private.",
+        "photo": "Foto",
+        "unreadCount": "{{count}} non lette",
+        "addPeople": "Aggiungi persone",
+        "addPeopleConfirm": "Aggiungi",
+        "archiveChat": "Archivia",
+        "archiveChatError": "Impossibile archiviare la chat.",
+        "unarchiveChat": "Ripristina",
+        "unarchiveChatError": "Impossibile ripristinare la chat.",
+        "showArchived": "Mostra archiviate",
+        "showInbox": "Mostra chat",
+        "deleteChat": "Elimina chat",
+        "deleteChatError": "Impossibile eliminare la chat."
+    },
+    "errors": {
+        "notFound": {
+            "head": "Pagina non trovata",
+            "title": "Pagina non trovata",
+            "description": "La pagina richiesta non esiste o non è più disponibile.",
+            "goHome": "Vai alla home"
+        }
+    },
+    "unsavedChanges": {
+        "title": "Modifiche non salvate",
+        "description": "Hai modifiche non salvate. Vuoi davvero scartarle?",
+        "discard": "Scarta modifiche",
+        "discardToolbar": "Scarta",
+        "badge": "Non salvato",
+        "keepEditing": "Continua a modificare",
+        "uploadTitle": "Caricamento in corso",
+        "uploadDescription": "I file sono ancora in caricamento. Puoi uscire: i caricamenti continueranno in background.",
+        "uploadLeave": "Esci comunque"
+    },
+    "activityLog": {
+        "title": "Activity Log",
+        "description": "Audit trail in sola lettura di modifiche e eventi di autenticazione.",
+        "searchPlaceholder": "Cerca descrizione o soggetto…",
+        "allUsers": "Tutti gli utenti",
+        "allActions": "Tutte le azioni",
+        "allLogs": "Tutti i log",
+        "filterByAction": "Filtra per azione",
+        "filterByLog": "Filtra per nome log",
+        "dateFrom": "Data da",
+        "dateTo": "Data a",
+        "empty": "Nessuna attività per i filtri selezionati.",
+        "system": "Sistema",
+        "noChanges": "Nessuna modifica ai campi registrata.",
+        "expand": "Espandi modifiche",
+        "collapse": "Comprimi modifiche",
+        "logName": "Nome log",
+        "columns": {
+            "date": "Data",
+            "user": "Utente",
+            "action": "Azione",
+            "description": "Descrizione",
+            "subject": "Soggetto",
+            "actions": "Azioni"
+        },
+        "events": {
+            "created": "Creato",
+            "updated": "Aggiornato",
+            "deleted": "Eliminato",
+            "restored": "Ripristinato",
+            "login": "Accesso",
+            "logout": "Uscita",
+            "failed": "Accesso fallito",
+            "ai_prompt": "Prompt AI",
+            "ai_response": "Risposta AI",
+            "ai_tool": "Tool AI",
+            "ai_mutation": "Mutazione AI",
+            "settings_updated": "Impostazioni aggiornate",
+            "chat_message": "Messaggio chat",
+            "chat_message_deleted": "Messaggio chat eliminato",
+            "permissions_synced": "Permessi sincronizzati",
+            "roles_synced": "Ruoli sincronizzati",
+            "groups_synced": "Gruppi sincronizzati",
+            "members_synced": "Membri sincronizzati",
+            "collection_permissions_synced": "Permessi collection sincronizzati",
+            "file_permissions_synced": "Permessi file sincronizzati"
+        },
+        "logs": {
+            "default": "Applicazione",
+            "auth": "Autenticazione",
+            "ai": "AI",
+            "chat": "Chat",
+            "settings": "Impostazioni"
+        }
+    },
+    "files": {
+        "title": "File",
+        "root": "Radice",
+        "folder": "Cartella",
+        "loading": "Caricamento…",
+        "loadMore": "Carica altri",
+        "saving": "Salvataggio…",
+        "actions": {
+            "details": "Dettagli",
+            "download": "Scarica",
+            "downloadZip": "Scarica zip",
+            "move": "Sposta",
+            "rename": "Rinomina",
+            "duplicate": "Duplica",
+            "favorite": "Preferito",
+            "unfavorite": "Rimuovi dai preferiti",
+            "replace": "Sostituisci",
+            "tag": "Tag",
+            "askAi": "Chiedi all'AI",
+            "restore": "Ripristina",
+            "forceDelete": "Elimina definitivamente",
+            "moreActions": "Altre azioni"
+        },
+        "toolbar": {
+            "newFolder": "Nuova cartella",
+            "upload": "Carica",
+            "uploadFile": "Carica file",
+            "uploadFolder": "Carica cartella",
+            "searchFiles": "Cerca file…",
+            "searchTrash": "Cerca nel cestino…",
+            "sortBy": "Ordina per",
+            "sort": "Ordina",
+            "sortAsc": "Ordine crescente",
+            "sortDesc": "Ordine decrescente",
+            "activeFiles": "File attivi",
+            "trash": "Cestino",
+            "selectedCount": "{{count}} selezionati",
+            "clearSelection": "Deseleziona"
+        },
+        "sort": {
+            "name": "Nome",
+            "size": "Dimensione",
+            "created": "Creato",
+            "updated": "Aggiornato"
+        },
+        "empty": {
+            "trash": "Il cestino è vuoto",
+            "dropToUpload": "Trascina i file qui per caricarli",
+            "folderEmpty": "Questa cartella è vuota",
+            "orUseUpload": "Oppure usa il pulsante Carica sopra",
+            "contextNewFolder": "Nuova cartella",
+            "contextUploadFile": "Carica file",
+            "contextUploadFolder": "Carica cartella"
+        },
+        "nameDialog": {
+            "name": "Nome",
+            "nameRequired": "Il nome è obbligatorio.",
+            "somethingWentWrong": "Qualcosa è andato storto."
+        },
+        "dialogs": {
+            "newFolderTitle": "Nuova cartella",
+            "newFolderDescription": "Crea una cartella nella posizione corrente.",
+            "createFolder": "Crea cartella",
+            "renameTitle": "Rinomina",
+            "renameDescription": "Inserisci un nuovo nome per questo elemento.",
+            "addTagsTitle": "Aggiungi tag",
+            "addTagsDescription": "I tag sono condivisi tra tutti i file. Scegline di esistenti o creane uno nuovo.",
+            "applyTags": "Applica tag",
+            "moveTitle": "Sposta nella cartella",
+            "moveDescription": "Scegli una cartella di destinazione per gli elementi selezionati.",
+            "moveHere": "Sposta qui",
+            "moving": "Spostamento…"
+        },
+        "delete": {
+            "titleOne": "Eliminare questo file?",
+            "titleMany": "Eliminare {{count}} file selezionati?",
+            "titleForceOne": "Eliminare questo file definitivamente?",
+            "titleForceMany": "Eliminare definitivamente {{count}} file selezionati?",
+            "descOne": "Questo file verrà spostato nel cestino.",
+            "descMany": "I file selezionati verranno spostati nel cestino.",
+            "descForceOne": "Questo file verrà rimosso definitivamente. L'operazione non può essere annullata.",
+            "descForceMany": "I file selezionati verranno rimossi definitivamente. L'operazione non può essere annullata.",
+            "scanningRefs": "Scansione riferimenti elementi…",
+            "referencedBy": "Referenziato da {{count}} elemento/i di collection — apri il pannello dettagli per i link. Puoi comunque eliminare.",
+            "confirmAnyway": "Elimina comunque",
+            "confirmPermanent": "Elimina definitivamente",
+            "confirmPermanentAnyway": "Elimina definitivamente comunque"
+        },
+        "detail": {
+            "title": "Dettagli",
+            "close": "Chiudi dettagli",
+            "sheetTitle": "Dettagli file",
+            "sheetDescription": "Modifica metadati, tag e sostituisci il contenuto del file.",
+            "replaceFile": "Sostituisci file",
+            "replacing": "Sostituzione…",
+            "visibility": "Visibilità",
+            "inherit": "Eredita dalla cartella",
+            "public": "Pubblico",
+            "private": "Privato",
+            "folderVisibilityHint": "Le cartelle private fanno ereditare l'accesso privato ai figli, salvo override.",
+            "fileVisibilityHint": "Effettivo: {{access}}. L'API CMS pubblica nasconde i file privati senza Read private.",
+            "titleLabel": "Titolo",
+            "descriptionLabel": "Descrizione",
+            "tagsLabel": "Tag",
+            "tagsHint": "Condivisi tra tutti i file — scegli un tag esistente o creane uno nuovo.",
+            "location": "Posizione",
+            "storage": "Storage",
+            "storagePath": "Percorso storage",
+            "whereUsed": "Dove è usato",
+            "scanningCollections": "Scansione collection…",
+            "notReferenced": "Non referenziato da alcun elemento di collection.",
+            "referenceCount": "{{count}} riferimento",
+            "referenceCountPlural": "{{count}} riferimenti",
+            "moreRefs": "+{{count}} altri",
+            "focalPoint": "Punto focale",
+            "fileNaming": "Nome file",
+            "diskName": "Nome su disco",
+            "downloadName": "Nome download",
+            "transforms": "Trasformazioni",
+            "translateX": "Trasla X",
+            "translateY": "Trasla Y",
+            "scale": "Scala",
+            "focalX": "Focale X",
+            "focalY": "Focale Y",
+            "mustBeNumber": "{{field}} deve essere un numero",
+            "updated": "File aggiornato",
+            "replaced": "File sostituito",
+            "failedSave": "Salvataggio file non riuscito",
+            "failedReplace": "Sostituzione file non riuscita",
+            "failedScanRefs": "Scansione riferimenti non riuscita"
+        },
+        "tags": {
+            "label": "Tag",
+            "filterBy": "Filtra per tag",
+            "filterHint": "Mostra i file che hanno uno dei tag selezionati.",
+            "clear": "Pulisci",
+            "empty": "Nessun tag ancora. Assegna un tag a un file per crearne uno.",
+            "placeholder": "Digita un tag e premi Invio",
+            "exactMatch": "Corrispondenza esatta — verrà riusato il tag “{{name}}”",
+            "existing": "Tag esistenti",
+            "moreTags": "{{count}} altri tag"
+        },
+        "folderPicker": {
+            "search": "Cerca cartelle…",
+            "breadcrumbs": "Breadcrumb cartelle",
+            "empty": "Nessuna cartella qui",
+            "destination": "Destinazione:",
+            "cannotMoveIntoSelected": "Non puoi spostare in una cartella selezionata o nei suoi discendenti.",
+            "failedLoad": "Caricamento cartelle non riuscito",
+            "failedMove": "Spostamento elementi non riuscito"
+        },
+        "uploadIndicator": {
+            "failed": "Caricamento non riuscito",
+            "complete": "Completato",
+            "batchProgress": "{{percent}}% · {{uploaded}}/{{total}} file",
+            "uploading": "{{count}} in caricamento",
+            "uploadingWithCompleted": "{{active}} in caricamento · {{completed}} completati",
+            "completedWithFailed": "{{completed}} completati · {{failed}} non riusciti",
+            "failedCount": "{{count}} non riusciti",
+            "oneComplete": "1 caricamento completato",
+            "manyComplete": "{{count}} caricamenti completati",
+            "minimize": "Riduci pannello caricamenti",
+            "expand": "Espandi pannello caricamenti",
+            "close": "Chiudi pannello caricamenti"
+        },
+        "toasts": {
+            "searchFailed": "Ricerca file non riuscita",
+            "loadMoreFailed": "Caricamento altri file non riuscito",
+            "uploadFailed": "Caricamento non riuscito",
+            "dropFailed": "Elaborazione file trascinati non riuscita",
+            "moveFailed": "Spostamento file non riuscito",
+            "actionFailed": "Azione non riuscita",
+            "tagFailed": "Assegnazione tag non riuscita",
+            "duplicationCompleted": "Duplicazione file completata",
+            "duplicationFailed": "Duplicazione file non riuscita",
+            "zipReady": "Lo zip è pronto",
+            "zipFailed": "Preparazione zip non riuscita",
+            "zipPreparing": "Preparazione zip — riceverai una notifica quando è pronto.",
+            "duplicationStarted": "Duplicazione avviata — riceverai una notifica al termine",
+            "duplicated": "File duplicato"
+        },
+        "card": {
+            "select": "Seleziona {{name}}",
+            "privateBadge": "Privato",
+            "privateTitle": "Privato — richiede Read private sui ruoli API"
+        }
+    }
+}

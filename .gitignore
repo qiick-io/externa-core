@@ -1,6 +1,7 @@
 /.phpunit.cache
 /bootstrap/ssr
 /node_modules
+/.e2e
 /public/build
 /public/hot
 /public/storage
@@ -32,6 +33,9 @@ yarn-error.log
 .env.local
 .env.*.local
 
+# Graphify (generated knowledge graph — rebuild with `graphify update .`)
+/graphify-out/
+
 # AI / assistenti
 /.claude
 /.codex
@@ -53,3 +57,10 @@ Thumbs.db
 /.php-cs-fixer.cache
 /.turbo
 /coverage
+
+# Ephemeral Playwright QA screenshots
+tests/Browser/*.png
+
+# Local-only Kitchen Sink QA seed (not for OSS)
+/database/data/kitchen-sink.json
+/database/seeders/KitchenSinkSeeder.php

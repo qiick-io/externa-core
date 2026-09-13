@@ -14,9 +14,6 @@ on:
       - master
       - workos
 
-permissions:
-  contents: write
-
 jobs:
   quality:
     runs-on: ubuntu-latest
@@ -28,22 +25,31 @@ jobs:
         with:
           php-version: '8.4'
 
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
       - name: Install Dependencies
         run: |
           composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
           npm install
 
-      - name: Run Pint
-        run: composer lint
+      - name: Prepare Application
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          # actions/routes are gitignored; without them import/order misclassifies @/actions|@/routes as unknown
+          php artisan wayfinder:generate --with-form --no-interaction
 
-      - name: Format Frontend
-        run: npm run format
+      - name: Run Pint
+        run: composer lint:check
 
       - name: Lint Frontend
-        run: npm run lint
+        run: npm run lint:check
 
-      # - name: Commit Changes
-      #   uses: stefanzweifel/git-auto-commit-action@v7
-      #   with:
-      #     commit_message: fix code style
-      #     commit_options: '--no-verify'
+      - name: Format Frontend
+        run: npm run format:check
+
+      - name: Typecheck Frontend
+        run: npm run types:check

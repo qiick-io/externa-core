@@ -6,6 +6,7 @@ export type BreadcrumbItem = {
     href: NonNullable<InertiaLinkProps['href']>;
 };
 
+/** Sidebar or header navigation entry. */
 export type NavItem = {
     title: string;
     href: NonNullable<InertiaLinkProps['href']>;

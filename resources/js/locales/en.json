@@ -1,0 +1,1442 @@
+{
+    "common": {
+        "save": "Save",
+        "saved": "Saved",
+        "cancel": "Cancel",
+        "continue": "Continue",
+        "back": "Back",
+        "close": "Close",
+        "delete": "Delete",
+        "email": "Email",
+        "emailAddress": "Email address",
+        "password": "Password",
+        "confirmPassword": "Confirm password",
+        "firstName": "First name",
+        "lastName": "Last name",
+        "hide": "Hide",
+        "view": "View"
+    },
+    "roles": {
+        "names": {
+            "super-admin": "Super Admin",
+            "admin": "Admin",
+            "reader": "Reader",
+            "public": "Public"
+        }
+    },
+    "nav": {
+        "platform": "Platform",
+        "dashboard": "Dashboard",
+        "files": "Files",
+        "collections": "Collections",
+        "activityLog": "Activity Log",
+        "users": "Users",
+        "groups": "Groups",
+        "roles": "Roles",
+        "apiKeys": "API Keys",
+        "permissions": "Permissions",
+        "admin": "Admin",
+        "assistant": "Assistant",
+        "chat": "Chat",
+        "settings": "Settings",
+        "repository": "Repository",
+        "documentation": "Documentation"
+    },
+    "notifications": {
+        "title": "Notifications",
+        "description": "Updates from background file operations.",
+        "loading": "Loading…",
+        "empty": "No notifications yet.",
+        "markAllRead": "Mark all as read",
+        "markUnread": "Mark as unread",
+        "openFolder": "Open folder",
+        "openChat": "Open chat",
+        "downloadZip": "Download zip"
+    },
+    "userMenu": {
+        "settings": "Settings",
+        "language": "Language",
+        "appearance": "Appearance",
+        "accessibility": "Accessibility",
+        "accessibilityOff": "Off",
+        "accessibilityOnCount": "{{count}} on",
+        "highContrast": "High contrast",
+        "reduceMotion": "Reduce motion",
+        "logOut": "Log out"
+    },
+    "a11y": {
+        "skipToContent": "Skip to content",
+        "mainNav": "Main navigation",
+        "openMenu": "Open menu",
+        "search": "Search"
+    },
+    "auth": {
+        "login": {
+            "title": "Log in to your account",
+            "description": "Enter your email and password below to log in",
+            "head": "Log in",
+            "forgotPassword": "Forgot password?",
+            "rememberMe": "Remember me",
+            "submit": "Log in",
+            "passkey": "Sign in with passkey",
+            "passkeyCancelled": "Passkey sign-in was cancelled.",
+            "passkeysUnsupported": "Passkeys are not supported in this browser.",
+            "passkeysNeedHttps": "Passkeys need HTTPS.",
+            "orContinueWithEmail": "or continue with email",
+            "noAccount": "Don't have an account?",
+            "signUp": "Sign up"
+        },
+        "register": {
+            "title": "Create an account",
+            "description": "Enter your details below to create your account",
+            "head": "Register",
+            "submit": "Create account",
+            "hasAccount": "Already have an account?",
+            "logIn": "Log in"
+        },
+        "forgotPassword": {
+            "title": "Forgot password",
+            "description": "Enter your email to receive a password reset link",
+            "head": "Forgot password",
+            "submit": "Email password reset link",
+            "orReturn": "Or, return to",
+            "logIn": "log in"
+        },
+        "resetPassword": {
+            "title": "Reset password",
+            "description": "Please enter your new password below",
+            "head": "Reset password",
+            "submit": "Reset password"
+        },
+        "confirmPassword": {
+            "title": "Confirm your password",
+            "description": "This is a secure area of the application. Please confirm your password before continuing.",
+            "head": "Confirm password",
+            "submit": "Confirm password",
+            "passkey": "Confirm with passkey",
+            "passkeyCancelled": "Passkey confirmation was cancelled.",
+            "orConfirmWithPasskey": "or confirm with passkey"
+        },
+        "verifyEmail": {
+            "title": "Verify email",
+            "description": "Please verify your email address by clicking on the link we just emailed to you.",
+            "head": "Email verification",
+            "linkSent": "A new verification link has been sent to the email address you provided during registration.",
+            "resend": "Resend verification email",
+            "logOut": "Log out"
+        },
+        "twoFactorChallenge": {
+            "head": "Two-factor authentication",
+            "recoveryTitle": "Recovery code",
+            "recoveryDescription": "Please confirm access to your account by entering one of your emergency recovery codes.",
+            "recoveryToggle": "login using an authentication code",
+            "authTitle": "Authentication code",
+            "authDescription": "Enter the authentication code provided by your authenticator application.",
+            "authToggle": "login using a recovery code",
+            "recoveryPlaceholder": "Enter recovery code",
+            "orYouCan": "or you can "
+        }
+    },
+    "settings": {
+        "layout": {
+            "title": "Settings",
+            "description": "Manage your profile and account settings",
+            "navAria": "Settings",
+            "sectionAccount": "Account",
+            "sectionProject": "Project",
+            "sectionAccess": "Access",
+            "profile": "Profile",
+            "security": "Security",
+            "project": "Project",
+            "appearance": "Appearance",
+            "performance": "Performance",
+            "roles": "Roles",
+            "permissions": "Permissions",
+            "apiKeys": "API Keys",
+            "reportBug": "Report a Bug"
+        },
+        "profile": {
+            "breadcrumb": "Profile settings",
+            "head": "Profile settings",
+            "title": "Profile information",
+            "description": "Update your profile details and email address",
+            "unverified": "Your email address is unverified.",
+            "resend": "Click here to resend the verification email.",
+            "linkSent": "A new verification link has been sent to your email address."
+        },
+        "notificationSounds": {
+            "title": "Notification sounds",
+            "description": "Optional sounds for new chat messages and notifications. Off by default.",
+            "chat": "Chat message sound",
+            "chatHint": "When someone else sends a message while you are not viewing that chat.",
+            "notifications": "Notification sound",
+            "notificationsHint": "When a new notification arrives and the drawer is closed.",
+            "test": "Test sound"
+        },
+        "security": {
+            "breadcrumb": "Security settings",
+            "head": "Security settings",
+            "passwordTitle": "Update password",
+            "passwordDescription": "Ensure your account is using a long, random password to stay secure",
+            "currentPassword": "Current password",
+            "newPassword": "New password",
+            "savePassword": "Save password",
+            "twoFactorTitle": "Two-factor authentication",
+            "twoFactorDescription": "Manage your two-factor authentication settings",
+            "enabledHint": "You will be prompted for a secure, random pin during login, which you can retrieve from the TOTP-supported application on your phone.",
+            "disabledHint": "When you enable two-factor authentication, you will be prompted for a secure pin during login. This pin can be retrieved from a TOTP-supported application on your phone.",
+            "disable2fa": "Disable 2FA",
+            "enable2fa": "Enable 2FA",
+            "continueSetup": "Continue setup",
+            "requiredBannerTitle": "Two-factor authentication required",
+            "requiredBannerDescription": "This project requires two-factor authentication. Enable 2FA or register a passkey below before you can use the rest of the app.",
+            "passkeysTitle": "Passkeys",
+            "passkeysDescription": "Sign in without a password using a device passkey. A passkey also satisfies the project two-factor requirement.",
+            "passkeysEmpty": "No passkeys registered yet.",
+            "passkeyName": "Passkey name",
+            "passkeyNamePlaceholder": "e.g. MacBook Pro",
+            "passkeyCreated": "Added {{date}}",
+            "addPasskey": "Add passkey",
+            "deletePasskey": "Delete",
+            "passkeysUnsupported": "Passkeys are not supported in this browser.",
+            "passkeysNeedHttps": "Passkeys need HTTPS."
+        },
+        "project": {
+            "breadcrumb": "Project settings",
+            "head": "Project settings",
+            "generalTitle": "General",
+            "generalDescription": "Project identity and default language",
+            "name": "Project name",
+            "description": "Project description",
+            "url": "Project URL",
+            "defaultLanguage": "Default language",
+            "contentLocalesTitle": "Content languages",
+            "contentLocalesDescription": "Locales used for translatable collection content. Separate from the admin UI language above.",
+            "contentLocalesAdd": "Add languages",
+            "contentLocalesSearch": "Search languages…",
+            "contentLocalesSelected": "Selected languages (drag to reorder)",
+            "contentLocalesEmpty": "No languages match your search.",
+            "defaultContentLocale": "Default content locale",
+            "sidebarTitle": "Sidebar modules",
+            "sidebarDescription": "Reorder modules and choose which appear in the sidebar. Locked items always stay enabled.",
+            "securityTitle": "Security",
+            "securityDescription": "Password strength, login limits, and two-factor policy",
+            "passwordPolicy": "Password security",
+            "passwordPolicies": {
+                "weak": {
+                    "label": "Weak",
+                    "description": "Minimum 6 characters. No mixed case, numbers, or symbols required."
+                },
+                "medium": {
+                    "label": "Medium",
+                    "description": "Minimum 8 characters, with mixed case letters and at least one number."
+                },
+                "strong": {
+                    "label": "Strong",
+                    "description": "Minimum 12 characters, mixed case, letters, numbers, symbols, and not found in known data breaches."
+                }
+            },
+            "loginMaxAttempts": "Max login attempts per minute",
+            "twoFactorRequired": "Require two-factor authentication for all users",
+            "twoFactorRequiredHint": "When enabled, users must enable TOTP 2FA or register a passkey on the Security page before using the app.",
+            "registrationTitle": "User registration",
+            "registrationDescription": "Control public sign-up and defaults for new accounts",
+            "registrationEnabled": "Registration enabled",
+            "defaultUserRole": "Default user role",
+            "noRole": "No default role",
+            "emailVerificationRequired": "Email verification required",
+            "allowedDomains": "Allowed email domains",
+            "allowedDomainsHint": "Comma-separated. Leave empty to allow any domain.",
+            "publicApiTitle": "Public API",
+            "publicApiDescription": "Browser origin allowlist for the public REST and GraphQL API",
+            "publicApiAllowedOrigins": "Allowed origins",
+            "publicApiAllowedOriginsHint": "One origin per line (e.g. https://www.example.com). No paths. Leave empty to disable the origin gate and use CORS_ALLOWED_ORIGINS.",
+            "revisionRetentionTitle": "Revision retention",
+            "revisionRetentionDescription": "Default limits for collection item revision history. Collections can override these.",
+            "revisionRetentionCount": "Max revisions",
+            "revisionRetentionDays": "Retain for (days)",
+            "revisionRetentionHint": "Leave empty for unlimited on that axis. Applies when a collection does not set its own limit.",
+            "uploadLimitsTitle": "Upload limits",
+            "uploadLimitsDescription": "Optional size caps for Files pool and chat attachments. Leave empty for unlimited.",
+            "filesMaxUploadMb": "Files max upload (MB)",
+            "chatMaxUploadMb": "Chat max upload (MB)",
+            "uploadLimitsHint": "Empty = unlimited. Single-request uploads still cannot exceed PHP upload_max_filesize / post_max_size; larger files use chunked upload.",
+            "filesTitle": "Files & storage",
+            "filesDescription": "Image transformation options used by the file library",
+            "allowedTransformations": "Allowed transformations",
+            "transformations": {
+                "thumbnail": "Thumbnail"
+            },
+            "presetTransformations": "Transformation presets",
+            "presetTransformationsHint": "Named image presets used by the file library (GD). Add, edit, or delete presets.",
+            "presetAdd": "Add preset",
+            "presetEdit": "Edit preset",
+            "presetDelete": "Delete preset",
+            "presetEmpty": "No presets yet. Add at least one before saving.",
+            "presetCreateTitle": "Create preset",
+            "presetEditTitle": "Edit preset",
+            "presetDialogDescription": "Configure how images are resized and encoded for this preset key.",
+            "presetKey": "Key",
+            "presetKeyInvalid": "Key must be a slug using letters, numbers, underscores, or hyphens.",
+            "presetKeyDuplicate": "A preset with this key already exists.",
+            "presetDimensionsRequired": "Set at least width or height.",
+            "presetFit": "Fit",
+            "presetWidth": "Width",
+            "presetHeight": "Height",
+            "presetQuality": "Quality",
+            "presetNoUpscale": "Do not upscale",
+            "presetNoUpscaleShort": "no upscale",
+            "presetFormat": "Format",
+            "presetCancel": "Cancel",
+            "presetSave": "Save preset",
+            "presetFits": {
+                "contain": "Contain (fit inside, letterbox)",
+                "cover": "Cover (fill and crop)",
+                "inside": "Inside (fit inside, no letterbox)",
+                "outside": "Outside (cover both dimensions)"
+            },
+            "presetFormats": {
+                "auto": "Auto (WebP when available, else JPEG)",
+                "jpeg": "JPEG",
+                "png": "PNG",
+                "webp": "WebP"
+            },
+            "reportingTitle": "Reporting URLs",
+            "reportingDescription": "Optional links for issue, bug, and error reporting",
+            "reportIssueUrl": "Report issue URL",
+            "reportBugUrl": "Report bug URL",
+            "reportErrorUrl": "Report error URL",
+            "webhooksTitle": "Outbound webhooks",
+            "webhooksDescription": "Send signed domain events to your endpoint when items, files, or collections change",
+            "webhookUrl": "Webhook URL",
+            "webhookUrlHint": "Leave empty to disable outbound events. Requires a queue worker.",
+            "webhookSecret": "Webhook secret",
+            "webhookSecretHint": "Used for HMAC signatures. Leave blank to keep the current secret.",
+            "webhookSecretConfigured": "A secret is already configured.",
+            "webhookSecretGenerate": "Generate secret",
+            "webhookSendTest": "Send test event",
+            "webhookSendTestHint": "Save the webhook URL first, then queue a signed ping. Requires a queue worker unless QUEUE_CONNECTION=sync.",
+            "modules": {
+                "dashboard": "Dashboard",
+                "ai": "Assistant",
+                "files": "Files",
+                "collections": "Collections",
+                "chat": "Chat",
+                "activity": "Activity",
+                "users": "Users",
+                "groups": "Groups",
+                "roles": "Roles",
+                "apiKeys": "API Keys",
+                "permissions": "Permissions",
+                "settings": "Settings"
+            }
+        },
+        "appearance": {
+            "breadcrumb": "Appearance settings",
+            "head": "Appearance settings",
+            "title": "Appearance settings",
+            "description": "Update project branding and the default theme",
+            "brandingTitle": "Branding",
+            "brandingDescription": "Project color, logo, and favicon used in the app chrome and on login",
+            "projectColor": "Project color",
+            "projectColorDark": "Project color (dark)",
+            "projectLogo": "Project logo",
+            "projectLogoDark": "Project logo (dark)",
+            "publicFavicon": "Favicon",
+            "chooseFile": "Choose file",
+            "changeFile": "Change file",
+            "clearFile": "Clear",
+            "noFile": "No file selected",
+            "defaultThemeTitle": "Default theme",
+            "defaultThemeDescription": "Used when a user has not chosen a personal light/dark preference",
+            "defaultAppearance": "Default appearance",
+            "light": "Light",
+            "dark": "Dark",
+            "system": "System"
+        },
+        "performance": {
+            "breadcrumb": "Performance settings",
+            "head": "Performance settings",
+            "statusTitle": "Runtime status",
+            "statusDescription": "Read-only view of the runtime configuration",
+            "cacheStore": "CACHE_STORE",
+            "redisReachable": "Redis reachable",
+            "queueConnection": "QUEUE_CONNECTION",
+            "appEnv": "APP_ENV",
+            "appDebug": "APP_DEBUG",
+            "yes": "Yes",
+            "no": "No",
+            "bootstrapTitle": "Laravel bootstrap cache",
+            "bootstrapDescription": "Config, routes, events, and packages cached at bootstrap/cache",
+            "configCached": "Config cached",
+            "routesCached": "Routes cached",
+            "eventsCached": "Events cached",
+            "packagesCached": "Packages cached",
+            "publicApiTitle": "Public API cache",
+            "publicApiDescription": "Versioned response cache for public REST/GraphQL. TTL is a safety net; freshness comes from version bump on write + epoch flush.",
+            "ttlSeconds": "TTL seconds",
+            "epoch": "Epoch",
+            "observabilityTitle": "Observability",
+            "observabilityDescription": "Links to job monitoring and application health dashboards",
+            "linkJobs": "Jobs",
+            "linkPulse": "Pulse",
+            "linkHorizon": "Horizon",
+            "flushTitle": "Flush caches",
+            "flushDescription": "Clear targeted caches. Public API flush bumps a global epoch so the next read is never stale.",
+            "flushPublicApiTitle": "Public API responses",
+            "flushPublicApiDescription": "Invalidate versioned REST and GraphQL response caches for all collections.",
+            "flushPublicApiButton": "Flush public API cache",
+            "flushPermissionMatricesTitle": "Permission matrices",
+            "flushPermissionMatricesDescription": "Drop cached collection and file permission matrices for every role.",
+            "flushPermissionMatricesButton": "Flush permission matrices",
+            "flushSpatiePermissionsTitle": "Spatie permissions",
+            "flushSpatiePermissionsDescription": "Clear Spatie's role and permission cache.",
+            "flushSpatiePermissionsButton": "Flush Spatie permission cache",
+            "flushDashboardMetricsTitle": "Dashboard metrics",
+            "flushDashboardMetricsDescription": "Forget cached dashboard metric keys so the next visit recomputes them.",
+            "flushDashboardMetricsButton": "Flush dashboard metrics",
+            "flushing": "Flushing…"
+        },
+        "deleteUser": {
+            "title": "Delete account",
+            "description": "Delete your account and all of its resources",
+            "warning": "Warning",
+            "caution": "Please proceed with caution, this cannot be undone.",
+            "button": "Delete account",
+            "confirmTitle": "Are you sure you want to delete your account?",
+            "confirmDescription": "Once your account is deleted, all of its resources and data will also be permanently deleted. Please enter your password to confirm you would like to permanently delete your account."
+        },
+        "twoFactor": {
+            "enabledTitle": "Two-factor authentication enabled",
+            "enabledDescription": "Two-factor authentication is now enabled. Scan the QR code or enter the setup key in your authenticator app.",
+            "verifyTitle": "Verify authentication code",
+            "verifyDescription": "Enter the 6-digit code from your authenticator app",
+            "enableTitle": "Enable two-factor authentication",
+            "enableDescription": "To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app",
+            "orEnterManually": "or, enter the code manually",
+            "confirm": "Confirm",
+            "recoveryTitle": "2FA recovery codes",
+            "recoveryDescription": "Recovery codes let you regain access if you lose your 2FA device. Store them in a secure password manager.",
+            "viewCodes": "View recovery codes",
+            "hideCodes": "Hide recovery codes",
+            "regenerate": "Regenerate codes",
+            "codesAria": "Recovery codes",
+            "loadingAria": "Loading recovery codes",
+            "regenerateWarning": "Each recovery code can be used once to access your account and will be removed after use. If you need more, click <bold>Regenerate codes</bold> above."
+        }
+    },
+    "collections": {
+        "meta": {
+            "name": "Collection name",
+            "slug": "Slug",
+            "slugInvalid": "Use lowercase letters, numbers, and hyphens (e.g. my-collection).",
+            "slugTaken": "A collection with this slug already exists.",
+            "description": "Description",
+            "descriptionPlaceholder": "Optional note about this collection…",
+            "status": "Status",
+            "statusActive": "Active",
+            "statusInactive": "Inactive",
+            "statusHint": "Inactive collections stay in the admin list but are hidden from relation pickers and the public API collection index.",
+            "icon": "Icon",
+            "color": "Color",
+            "chooseIcon": "Choose icon…",
+            "searchIcons": "Search icons…",
+            "clearIconSearch": "Clear search",
+            "noIconsFound": "No icons match your search.",
+            "clearIcon": "Clear icon",
+            "clearColor": "Clear color",
+            "singleton": "Singleton (one content item)",
+            "singletonShort": "Singleton",
+            "singletonHint": "Use this for collections with a single fixed entry (e.g. homepage or site settings). This choice cannot be changed after the collection is created.",
+            "versioning": "Content versioning",
+            "versioningHint": "Enable Draft / Published workspaces. Edit in Draft, then Publish to promote.",
+            "revisionRetention": "Revision retention",
+            "revisionRetentionHint": "Leave empty to use the project default (Settings → Project → Revision retention). Empty at both levels keeps revisions forever. Limits apply to history snapshots (including when Draft/Publish is off).",
+            "revisionRetentionCount": "Max revisions",
+            "revisionRetentionDays": "Retain for (days)",
+            "listCollection": "List",
+            "createDescription": "Create a collection. Slug is generated from the name unless you edit it.",
+            "editDescription": "Update collection name, description, status, icon, and color. The singleton setting cannot be changed after creation.",
+            "cancel": "Cancel",
+            "save": "Save",
+            "create": "Create"
+        },
+        "list": {
+            "name": "Name",
+            "slug": "Slug",
+            "description": "Description",
+            "singleton": "Singleton",
+            "status": "Status",
+            "actions": "Actions",
+            "sortBy": "Sort by",
+            "sortName": "Name",
+            "sortSlug": "Slug",
+            "sortStatus": "Status",
+            "sortUpdated": "Updated"
+        },
+        "localized": {
+            "applyAll": "Apply to all locales",
+            "applyEmpty": "Apply to empty locales"
+        },
+        "fieldMenu": {
+            "open": "Field actions",
+            "editRaw": "Edit raw value",
+            "copyRaw": "Copy raw value",
+            "pasteRaw": "Paste raw value",
+            "undo": "Undo changes",
+            "clear": "Clear value",
+            "editField": "Edit field",
+            "editRawTitle": "Edit raw value",
+            "editRawDescription": "Edit the raw JSON or string value for this field. Invalid JSON is kept as plain text.",
+            "cancel": "Cancel",
+            "apply": "Apply",
+            "copied": "Raw value copied",
+            "copyFailed": "Could not copy to clipboard",
+            "pasted": "Raw value pasted",
+            "pasteFailed": "Could not read clipboard"
+        },
+        "itemSave": {
+            "create": "Create",
+            "save": "Save",
+            "saveDraft": "Save draft",
+            "more": "More save actions",
+            "stay": "Save and Stay",
+            "createNew": "Save and Create New",
+            "copy": "Save as Copy",
+            "discard": "Discard All Changes"
+        },
+        "itemToolbar": {
+            "previewAs": "Preview as…",
+            "chat": "Chat",
+            "revisions": "Revisions",
+            "editFields": "Edit fields",
+            "delete": "Delete"
+        },
+        "itemChat": {
+            "title": "Chat",
+            "notify": "Notify me of new messages in this collection",
+            "empty": "No messages yet.",
+            "loading": "Loading…",
+            "loadOlder": "Load older",
+            "placeholder": "Write a message…",
+            "send": "Send",
+            "sending": "Sending…",
+            "uploading": "Uploading…",
+            "dropToAttach": "Drop files to attach",
+            "addCaption": "Add a caption…",
+            "sendPhoto": "Send Photo",
+            "sendPhotos": "Send {{count}} Photos",
+            "sendMedia": "Send Media",
+            "sendMediaMany": "Send {{count}} Media",
+            "sendFile": "Send File",
+            "sendFiles": "Send {{count}} Files",
+            "mention": "Mention",
+            "emoji": "Emoji",
+            "attach": "Attach file",
+            "download": "Download",
+            "saveToFiles": "Save to Files",
+            "addToField": "Add to field",
+            "addToFieldTitle": "Add attachment to field",
+            "selectField": "Field",
+            "noFileFields": "No image or file fields on this item.",
+            "typing": {
+                "one": "{{name}} is typing…",
+                "many": "{{name}} +{{count}} are typing…"
+            },
+            "edit": "Edit",
+            "more": "More",
+            "error": "Could not load chat.",
+            "sendError": "Could not send message.",
+            "reply": "Reply",
+            "copyText": "Copy text",
+            "pin": "Pin",
+            "unpin": "Unpin",
+            "visibilityHint": "Visible to anyone who can read this item",
+            "openInHub": "Open in Chat",
+            "mediaPreview": "Media preview",
+            "previousMedia": "Previous",
+            "nextMedia": "Next",
+            "mediaIndex": "{{current}} / {{total}}",
+            "mediaLoadingFullRes": "Loading image…",
+            "mediaLoadingFullResPercent": "{{percent}}%",
+            "mediaLoadError": "Could not load image.",
+            "sendingMedia": "Sending…",
+            "retrySend": "Retry",
+            "removePendingFile": "Remove file",
+            "scrollToBottom": "Scroll to bottom"
+        },
+        "packs": {
+            "createFromPack": "Create from pack",
+            "createFromPackEllipsis": "Create from pack…",
+            "createFromPackDescription": "Scaffold a collection (and dependencies) in one step. Existing slugs are reused; missing fields are added.",
+            "noCollectionPacks": "No collection packs are registered.",
+            "creating": "Creating…",
+            "addFieldPack": "Add field pack",
+            "addFieldPackEllipsis": "Add field pack…",
+            "addFieldPackDescription": "Apply a curated set of fields in one step. Existing names are skipped.",
+            "noFieldPacks": "No field packs are registered.",
+            "applying": "Applying…",
+            "applyPack": "Apply pack",
+            "previewFields": "Preview — {{count}} fields",
+            "fieldsCount": "Fields — {{count}}",
+            "relationsSuffix": " + {{count}} relation(s)",
+            "collection": "Collection",
+            "requires": "Requires",
+            "translatable": "Translatable",
+            "translatableSuffix": " · Translatable",
+            "fieldPacks": {
+                "publishing": {
+                    "label": "Publishing",
+                    "description": "Status (draft/published/archived), published_at date, and featured flag."
+                },
+                "contact": {
+                    "label": "Contact",
+                    "description": "Email, phone, and postal address fields."
+                },
+                "social": {
+                    "label": "Social",
+                    "description": "Facebook, Instagram, LinkedIn, Twitter/X, and YouTube URL fields."
+                },
+                "seo_inline": {
+                    "label": "SEO (inline)",
+                    "description": "Denormalized SEO metadata fields (seo_*) on the current collection. Prefer the SEO collection pack + relation when scaffolding Articles/Pages/Products."
+                }
+            },
+            "collectionPacks": {
+                "seo": {
+                    "label": "SEO",
+                    "description": "Dedicated SEO collection (title, description, robots, social images). Link from Articles/Pages/Products via M2O."
+                },
+                "categories": {
+                    "label": "Categories",
+                    "description": "Category taxonomy: name, slug, description."
+                },
+                "pages": {
+                    "label": "Pages",
+                    "description": "Pages with title, slug, status, body blocks, and SEO relation. Auto-creates the SEO pack if missing."
+                },
+                "articles": {
+                    "label": "Articles",
+                    "description": "Blog/articles with body blocks, cover, category and SEO relations. Auto-creates Categories + SEO packs if missing."
+                },
+                "products": {
+                    "label": "Products",
+                    "description": "Products with price, images, category and SEO relations. Auto-creates Categories + SEO packs if missing."
+                }
+            }
+        },
+        "translatable": "Translatable",
+        "translatableSuffix": " · Translatable",
+        "newCollection": "New collection",
+        "createField": "Add field",
+        "addFieldFor": "Add field for {{name}}",
+        "saveField": "Save field",
+        "chooseFieldType": "Choose a field type, then configure its settings.",
+        "searchFieldTypes": "Search field types…",
+        "noMatchingFieldTypes": "No field types match your search.",
+        "groups": {
+            "addLayout": "Add layout",
+            "accordion": "Accordion",
+            "detail": "Detail group",
+            "raw": "Raw group",
+            "tabs": "Tabs",
+            "sectionN": "Section {{n}}",
+            "tabN": "Tab {{n}}",
+            "addSection": "Add section",
+            "addTab": "Add tab",
+            "emptyPanelHint": "Add a section, then drop fields into it. You can also create a Raw group and nest it here.",
+            "emptyTabsHint": "Add a tab, then drop fields into it. You can also create a Raw group and nest it here.",
+            "dropIntoSection": "Drop fields here"
+        },
+        "searchFields": "Search fields…",
+        "fieldSchema": "Field schema",
+        "fieldsTitle": "Fields — {{name}}",
+        "advanced": "Advanced",
+        "fieldBehavior": "Field behavior",
+        "conditions": "Conditions",
+        "conditionsDescription": "Hide, lock, or require this field based on other values.",
+        "validation": "Validation",
+        "validationDescription": "Rules checked when saving item content.",
+        "typeSettings": "{{type}} settings",
+        "typeSettingsDescription": "Type-specific options for this field.",
+        "general": "General",
+        "generalDescription": "Key, display name, and helper text for this field.",
+        "noFieldsYet": "No fields yet. Add a field or apply a field pack to define what content this collection stores.",
+        "clearSearchToReorder": "Clear search to reorder fields by drag and drop.",
+        "map": {
+            "hintPoint": "Select Add point, then click the map. Drag the marker to move.",
+            "hintMulti": "Select Add point, then click to add markers. Drag to move; use Delete and click a marker to remove.",
+            "hintDelete": "Click a marker to remove it.",
+            "toolbar": "Map tools",
+            "zoomIn": "Zoom in",
+            "zoomOut": "Zoom out",
+            "locate": "My location",
+            "fit": "Fit to points",
+            "latitude": "Latitude",
+            "longitude": "Longitude",
+            "latitudeN": "Latitude {{n}}",
+            "longitudeN": "Longitude {{n}}",
+            "remove": "Remove",
+            "removeLast": "Remove last point",
+            "addPoint": "Add point",
+            "delete": "Delete",
+            "clear": "Clear"
+        },
+        "fileField": {
+            "dragAndDrop": "Drag and drop the file here",
+            "uploadFromComputer": "Upload from computer",
+            "chooseFromLibrary": "Choose from library",
+            "importFromUrl": "Import from URL",
+            "importFromUrlDescription": "Paste a public file or image URL. It will be downloaded into the files library.",
+            "import": "Import",
+            "cancel": "Cancel",
+            "replace": "Replace",
+            "clear": "Clear",
+            "remove": "Remove",
+            "preview": "Preview",
+            "download": "Download",
+            "editItem": "Edit Item",
+            "chooseFile": "Choose file",
+            "chooseImage": "Choose image",
+            "noFile": "No file selected",
+            "noFiles": "No files selected",
+            "imageRequired": "Please choose an image file.",
+            "uploadFailed": "Upload failed",
+            "importFailed": "Import from URL failed"
+        },
+        "requiredSuffix": " · Required",
+        "hiddenInFormSuffix": " · Hidden in form",
+        "fieldTypes": {
+            "string": {
+                "label": "Text Input",
+                "description": "Single line text"
+            },
+            "autocomplete": {
+                "label": "Combobox (static)",
+                "description": "Text input with predefined suggestion options"
+            },
+            "api_autocomplete": {
+                "label": "Autocomplete (API)",
+                "description": "Text input with suggestions fetched from a remote URL"
+            },
+            "code": {
+                "label": "Code",
+                "description": "Code snippet with syntax highlighting"
+            },
+            "textarea": {
+                "label": "TextArea",
+                "description": "Multi-line plain text"
+            },
+            "wysiwyg": {
+                "label": "WYSIWYG",
+                "description": "Rich text stored as HTML"
+            },
+            "markdown": {
+                "label": "Markdown",
+                "description": "Formatted text with Markdown syntax"
+            },
+            "tag": {
+                "label": "Tag",
+                "description": "Comma-separated tags"
+            },
+            "number": {
+                "label": "Number",
+                "description": "Numeric value"
+            },
+            "boolean": {
+                "label": "Toggle",
+                "description": "On / off switch"
+            },
+            "date": {
+                "label": "Date / Time",
+                "description": "Date, time, or datetime (mode in settings)"
+            },
+            "map": {
+                "label": "Map",
+                "description": "Geographic point on OpenStreetMap (latitude / longitude)"
+            },
+            "color": {
+                "label": "Color Picker",
+                "description": "Color selection"
+            },
+            "select": {
+                "label": "Select",
+                "description": "Pick one option from a list"
+            },
+            "multiselect": {
+                "label": "Multi Select",
+                "description": "Pick multiple options from a dropdown"
+            },
+            "checkbox_group": {
+                "label": "Checkbox Group",
+                "description": "Pick multiple options with visible checkboxes"
+            },
+            "checkbox_group_tree": {
+                "label": "Checkbox Group Tree",
+                "description": "Pick multiple options from a nested tree"
+            },
+            "radio_group": {
+                "label": "Radio Group",
+                "description": "Pick one option with radio buttons"
+            },
+            "image": {
+                "label": "Image",
+                "description": "Single or multiple images from the file manager"
+            },
+            "files": {
+                "label": "Files",
+                "description": "Single or multiple files from the file manager"
+            },
+            "blocks": {
+                "label": "Blocks",
+                "description": "Build flexible page sections from inline block schemas"
+            },
+            "m2a": {
+                "label": "Builder (M2A)",
+                "description": "Build flexible content from multiple related collections"
+            },
+            "many_to_many": {
+                "label": "Many to Many",
+                "description": "Link this item to many related items (M2M)"
+            },
+            "one_to_many": {
+                "label": "One to Many",
+                "description": "Link this item to many children in another collection (O2M)"
+            },
+            "many_to_one": {
+                "label": "Many to One",
+                "description": "Link this item to one related item (M2O)"
+            },
+            "hash": {
+                "label": "Fingerprint ID",
+                "description": "Auto-generated unique identifier (sha256), not a password hash"
+            },
+            "slider": {
+                "label": "Slider",
+                "description": "Numeric value selected with a slider control"
+            },
+            "group_accordion": {
+                "label": "Accordion",
+                "description": "Collapsible sections — one per direct child"
+            },
+            "group_detail": {
+                "label": "Detail group",
+                "description": "Single collapsible panel for nested fields"
+            },
+            "group_raw": {
+                "label": "Raw group",
+                "description": "Logical nesting without visual chrome"
+            },
+            "group_tabs": {
+                "label": "Tabs",
+                "description": "Children rendered as tabs"
+            }
+        },
+        "fieldTypeGroups": {
+            "text_numbers": "Text & numbers",
+            "selection": "Selection",
+            "relational": "Relational",
+            "other": "Other",
+            "groups": "Groups"
+        }
+    },
+    "ai": {
+        "drawer": {
+            "title": "Useful actions",
+            "description": "Pick a preset: the text is inserted into chat, without sending.",
+            "searchPlaceholder": "Search actions…",
+            "searchAria": "Search actions",
+            "empty": "No actions available with your permissions.",
+            "destructive": "Destructive",
+            "confirmTitle": "Insert destructive action?",
+            "confirmDescription": "«{{title}}» may delete or change a lot of data. The text will only be inserted into the composer — you can review it before sending.",
+            "confirmCancel": "Cancel",
+            "confirmInsert": "Insert into composer"
+        },
+        "categories": {
+            "common": "Common",
+            "data": "Data & import",
+            "files": "Files",
+            "admin": "Admin",
+            "advanced": "Advanced"
+        },
+        "presets": {
+            "apply-seo-collection-pack": {
+                "title": "Apply SEO collection",
+                "description": "Create the standalone SEO entity collection"
+            },
+            "scaffold-articles": {
+                "title": "Scaffold Articles",
+                "description": "Articles + Categories + SEO (deps auto-created)"
+            },
+            "scaffold-products": {
+                "title": "Scaffold Products",
+                "description": "Products + Categories + SEO (deps auto-created)"
+            },
+            "apply-publishing-field-pack": {
+                "title": "Apply publishing field pack",
+                "description": "status, published_at, featured on an existing collection"
+            },
+            "apply-contact-field-pack": {
+                "title": "Apply contact field pack",
+                "description": "email, phone, address fields"
+            },
+            "apply-social-field-pack": {
+                "title": "Apply social field pack",
+                "description": "Social profile URL fields"
+            },
+            "apply-seo-inline-field-pack": {
+                "title": "Apply SEO inline field pack",
+                "description": "Denormalized seo_* fields (edge case)"
+            },
+            "new-typed-collection": {
+                "title": "New typed collection",
+                "description": "Create a schema with typed fields from a description"
+            },
+            "list-collections": {
+                "title": "List collections",
+                "description": "Show existing collections with ids and fields"
+            },
+            "import-csv": {
+                "title": "Import attached CSV",
+                "description": "Create/update a collection from a CSV in chat"
+            },
+            "import-excel": {
+                "title": "Import attached Excel",
+                "description": "Import from a .xlsx file"
+            },
+            "import-url-json": {
+                "title": "Import JSON from URL",
+                "description": "Remote JSON fetch → collection"
+            },
+            "import-dry-run": {
+                "title": "Import preview (dry-run)",
+                "description": "Simulate without writing data"
+            },
+            "import-upsert": {
+                "title": "Sync / upsert",
+                "description": "Re-import without duplicates (unique key)"
+            },
+            "export-collection": {
+                "title": "Export collection",
+                "description": "Export CSV or JSON"
+            },
+            "bulk-edit": {
+                "title": "Bulk edit items",
+                "description": "Update many items with a filter"
+            },
+            "bulk-delete": {
+                "title": "Bulk delete items",
+                "description": "Soft-delete filtered items"
+            },
+            "nl-query": {
+                "title": "Natural-language query",
+                "description": "Filter and count items"
+            },
+            "pdf-to-schema": {
+                "title": "PDF → schema / data",
+                "description": "Extract PDF text and propose a collection"
+            },
+            "duplicate-collection": {
+                "title": "Duplicate collection",
+                "description": "Copy schema (and optionally samples)"
+            },
+            "restore-collection": {
+                "title": "Restore collection from trash",
+                "description": "Restore soft-delete"
+            },
+            "manage-files": {
+                "title": "Organize files",
+                "description": "Folders, move, rename"
+            },
+            "move-files": {
+                "title": "Move files",
+                "description": "Move files/folders into another folder"
+            },
+            "attach-file-to-item": {
+                "title": "Link file to an item",
+                "description": "Set a file/image field on an item"
+            },
+            "save-attachment-to-files": {
+                "title": "Save chat attachment to Files",
+                "description": "Copy attachment into the file manager"
+            },
+            "create-role": {
+                "title": "Create role with permissions",
+                "description": "New Spatie role + sync permission names"
+            },
+            "list-roles": {
+                "title": "List roles",
+                "description": "Show roles and permission counts"
+            },
+            "create-group": {
+                "title": "Create user group",
+                "description": "Group with members and linked roles"
+            },
+            "create-user": {
+                "title": "Create user",
+                "description": "New user with a role when possible"
+            },
+            "list-users": {
+                "title": "List users",
+                "description": "Active users list"
+            },
+            "audit-activity": {
+                "title": "Activity audit",
+                "description": "What happened recently"
+            },
+            "async-large-import": {
+                "title": "Large background import",
+                "description": "Async job with progress"
+            },
+            "scheduled-sync": {
+                "title": "Scheduled URL sync",
+                "description": "Periodic remote import"
+            },
+            "rollback-last-turn": {
+                "title": "Undo last AI operation",
+                "description": "Soft rollback of recent mutations"
+            }
+        },
+        "usefulActionsAria": "Useful actions",
+        "askPlaceholder": "Ask the assistant…",
+        "askSomething": "Ask something…",
+        "offlinePlaceholder": "AI is offline…",
+        "attachTooltip": "Attach CSV, TXT, Excel or PDF (max 5 MB)",
+        "attachShortTooltip": "Attach CSV or TXT (max 5 MB)",
+        "attachAria": "Attach",
+        "messageAria": "Message",
+        "dictationAria": "Dictation",
+        "stopDictation": "Stop dictation",
+        "voiceDictation": "Voice dictation",
+        "stopAria": "Stop",
+        "sendAria": "Send",
+        "openAssistant": "Open AI assistant",
+        "fabTitle": "New chat",
+        "fabDescription": "Quick assistant drawer. Open the full page for history.",
+        "fabEmpty": "Ask about collections, items, or files.",
+        "askAi": "Ask AI",
+        "assistantOffline": "Assistant offline",
+        "assistantOnline": "Assistant online",
+        "aiOfflineHint": "AI offline — start LM Studio to enable",
+        "thinking": "Thinking",
+        "copied": "Copied to clipboard",
+        "copyFailed": "Copy failed",
+        "speechUnavailable": "Speech synthesis unavailable",
+        "exportPdf": "Export PDF",
+        "pdfFailed": "PDF export failed",
+        "regenerate": "Regenerate",
+        "readAloud": "Read aloud",
+        "removeAttachment": "Remove {{name}}",
+        "simulation": "Simulation",
+        "simulationHint": "Does not write data",
+        "dictationUnsupported": "Dictation is not supported in this browser"
+    },
+    "dashboard": {
+        "title": "Dashboard",
+        "description": "Overview of content insights, recent activity, storage usage, and upload health.",
+        "insightsCollections": "Insights — collections",
+        "insightsCollectionsDesc": "Item counts per collection.",
+        "collection": "Collection",
+        "items": "Items",
+        "noCollections": "No collections yet.",
+        "insightsActivity": "Insights — activity",
+        "insightsActivityDesc": "Events per day (last 30 days; chart shows last 7).",
+        "noActivity7d": "No activity in the last 7 days.",
+        "contentEvents": "Content events",
+        "contentEventsDesc": "Collection item create / update / delete (30d).",
+        "noContentEvents": "No content events.",
+        "created": "Created",
+        "updated": "Updated",
+        "deleted": "Deleted",
+        "latestActivity": "Latest activity",
+        "latestActivityDesc": "Last 10 events across the app.",
+        "event": "Event",
+        "descriptionCol": "Description",
+        "when": "When",
+        "byUser": "by {{name}}",
+        "noActivity": "No activity yet.",
+        "viewAll": "View all",
+        "suspicious": "Suspicious events",
+        "suspiciousDesc": "Failed events from the last hour.",
+        "noSuspicious": "No suspicious events.",
+        "mostActive": "Most active users",
+        "mostActiveDesc": "Top 5 in the last 24 hours.",
+        "user": "User",
+        "events": "Events",
+        "stuckUploads": "Stuck/orphan uploads",
+        "stuckUploadsDesc": "Incomplete, expired, or missing parent.",
+        "upload": "Upload",
+        "chunks": "Chunks",
+        "noParent": "no parent",
+        "parentId": "parent #{{id}}",
+        "noStuckUploads": "No stuck uploads.",
+        "storageOverview": "Storage overview",
+        "storageOverviewDesc": "Files, folders, and total size.",
+        "files": "Files",
+        "folders": "Folders",
+        "totalSize": "Total size",
+        "uploadHealth": "Upload health",
+        "uploadHealthDesc": "In-progress and stale uploads.",
+        "inProgress": "In progress",
+        "stale": "Stale",
+        "largestFiles": "Largest files",
+        "largestFilesDesc": "Top 10 by size (loaded after initial render).",
+        "loading": "Loading…",
+        "file": "File",
+        "size": "Size",
+        "noFiles": "No files yet.",
+        "storageTrend": "Storage trend",
+        "storageTrendDesc": "Daily bytes added (last 14 days, loaded after initial render).",
+        "date": "Date",
+        "added": "Added",
+        "noData": "No data.",
+        "storageByDisk": "Storage by disk",
+        "storageByDiskDesc": "Optional breakdown (top 8, loaded after initial render).",
+        "disk": "Disk",
+        "tabOverview": "Overview",
+        "tabHealth": "Health",
+        "tabsLabel": "Dashboard sections",
+        "healthDescription": "Operational metrics from Pulse aggregates and Horizon/Redis queues.",
+        "healthUnavailable": "Health metrics are unavailable.",
+        "healthQueue": "Queue connection",
+        "healthBroadcast": "Broadcast connection",
+        "healthRedis": "Redis",
+        "healthOk": "OK",
+        "healthDown": "Down",
+        "healthPendingJobs": "Pending jobs",
+        "healthFailedJobs": "Failed jobs (DB)",
+        "healthExceptions": "Exceptions (24h)",
+        "healthSlowJobs": "Slow jobs (24h)",
+        "healthSlowQueries": "Slow queries (24h)",
+        "healthPulseTitle": "Pulse",
+        "healthPulseDesc": "Ingest: {{ingest}} · last 24 hours",
+        "healthPulseOff": "Pulse is disabled",
+        "healthPulseEmpty": "No Pulse data yet — enable Pulse and run pulse:work.",
+        "healthPulseChartTitle": "Pulse signals",
+        "healthPulseChartDesc": "Exceptions, slow jobs, and slow queries (24h).",
+        "healthPulseQuiet": "No Pulse signals in the last 24 hours.",
+        "healthHorizonTitle": "Horizon / queues",
+        "healthHorizonDesc": "Live queue status from Horizon Redis metrics.",
+        "healthHorizonUnavailable": "Horizon metrics unavailable",
+        "healthHorizonEmpty": "Horizon is not reporting — start horizon when using Redis queues.",
+        "healthHorizonStatus": "Status",
+        "healthHorizonRunning": "Running",
+        "healthHorizonStopped": "Stopped",
+        "healthHorizonPending": "Pending",
+        "healthHorizonFailed": "Failed (Horizon)",
+        "healthHorizonProcesses": "Processes",
+        "healthHorizonThroughput": "Jobs / min",
+        "healthWorkloadsTitle": "Queue workloads",
+        "healthWorkloadsDesc": "Length, wait, and processes per queue.",
+        "healthWorkloadsEmpty": "No queue workloads reported.",
+        "healthWorkloadQueue": "Queue",
+        "healthWorkloadLength": "Length",
+        "healthWorkloadWait": "Wait",
+        "healthWorkloadProcesses": "Procs"
+    },
+    "realtime": {
+        "connected": "Realtime connected",
+        "connecting": "Connecting…",
+        "disabled": "Realtime off",
+        "offline": "Realtime offline"
+    },
+    "chatHub": {
+        "title": "Chat",
+        "collection": "Collection",
+        "private": "Private",
+        "new": "New chat",
+        "newPrivate": "New private",
+        "newItem": "New item chat",
+        "search": "Search chats…",
+        "empty": "No chats yet.",
+        "pickThread": "Select a chat or start a new one.",
+        "users": "Users",
+        "collections": "Collections",
+        "groups": "Groups",
+        "collectionLabel": "Collection",
+        "itemLabel": "Item",
+        "create": "Create",
+        "searchDirectory": "Search people and groups…",
+        "searchItems": "Search collections and items…",
+        "emptyDirectory": "No people or groups.",
+        "emptyItems": "No items.",
+        "loadMore": "Load more",
+        "loading": "Loading…",
+        "selectedCount": "{{count}} selected",
+        "noCreatePrivate": "You cannot start private chats.",
+        "photo": "Photo",
+        "unreadCount": "{{count}} unread",
+        "addPeople": "Add people",
+        "addPeopleConfirm": "Add",
+        "archiveChat": "Archive",
+        "archiveChatError": "Could not archive chat.",
+        "unarchiveChat": "Unarchive",
+        "unarchiveChatError": "Could not unarchive chat.",
+        "showArchived": "Show archived",
+        "showInbox": "Show chats",
+        "deleteChat": "Delete chat",
+        "deleteChatError": "Could not delete chat."
+    },
+    "errors": {
+        "notFound": {
+            "head": "Page not found",
+            "title": "Page not found",
+            "description": "The page you requested does not exist or is no longer available.",
+            "goHome": "Go to home"
+        }
+    },
+    "unsavedChanges": {
+        "title": "Unsaved changes",
+        "description": "You have unsaved changes. Are you sure you want to discard them?",
+        "discard": "Discard changes",
+        "discardToolbar": "Discard",
+        "badge": "Unsaved",
+        "keepEditing": "Keep editing",
+        "uploadTitle": "Upload in progress",
+        "uploadDescription": "Files are still uploading. You can leave — uploads will finish in the background.",
+        "uploadLeave": "Leave anyway"
+    },
+    "activityLog": {
+        "title": "Activity Log",
+        "description": "Read-only audit trail of model changes and authentication events.",
+        "searchPlaceholder": "Search description or subject…",
+        "allUsers": "All users",
+        "allActions": "All actions",
+        "allLogs": "All logs",
+        "filterByAction": "Filter by action",
+        "filterByLog": "Filter by log name",
+        "dateFrom": "From date",
+        "dateTo": "To date",
+        "empty": "No activity found for the selected filters.",
+        "system": "System",
+        "noChanges": "No field changes recorded.",
+        "expand": "Expand changes",
+        "collapse": "Collapse changes",
+        "logName": "Log name",
+        "columns": {
+            "date": "Date",
+            "user": "User",
+            "action": "Action",
+            "description": "Description",
+            "subject": "Subject",
+            "actions": "Actions"
+        },
+        "events": {
+            "created": "Created",
+            "updated": "Updated",
+            "deleted": "Deleted",
+            "restored": "Restored",
+            "login": "Login",
+            "logout": "Logout",
+            "failed": "Failed login",
+            "ai_prompt": "AI prompt",
+            "ai_response": "AI response",
+            "ai_tool": "AI tool",
+            "ai_mutation": "AI mutation",
+            "settings_updated": "Settings updated",
+            "chat_message": "Chat message",
+            "chat_message_deleted": "Chat message deleted",
+            "permissions_synced": "Permissions synced",
+            "roles_synced": "Roles synced",
+            "groups_synced": "Groups synced",
+            "members_synced": "Members synced",
+            "collection_permissions_synced": "Collection permissions synced",
+            "file_permissions_synced": "File permissions synced"
+        },
+        "logs": {
+            "default": "Application",
+            "auth": "Authentication",
+            "ai": "AI",
+            "chat": "Chat",
+            "settings": "Settings"
+        }
+    },
+    "files": {
+        "title": "Files",
+        "root": "Root",
+        "folder": "Folder",
+        "loading": "Loading…",
+        "loadMore": "Load more",
+        "saving": "Saving…",
+        "actions": {
+            "details": "Details",
+            "download": "Download",
+            "downloadZip": "Download zip",
+            "move": "Move",
+            "rename": "Rename",
+            "duplicate": "Duplicate",
+            "favorite": "Favorite",
+            "unfavorite": "Unfavorite",
+            "replace": "Replace",
+            "tag": "Tag",
+            "askAi": "Ask AI",
+            "restore": "Restore",
+            "forceDelete": "Delete forever",
+            "moreActions": "More actions"
+        },
+        "toolbar": {
+            "newFolder": "New folder",
+            "upload": "Upload",
+            "uploadFile": "Upload file",
+            "uploadFolder": "Upload folder",
+            "searchFiles": "Search files…",
+            "searchTrash": "Search trash…",
+            "sortBy": "Sort by",
+            "sort": "Sort",
+            "sortAsc": "Sort ascending",
+            "sortDesc": "Sort descending",
+            "activeFiles": "Active files",
+            "trash": "Trash",
+            "selectedCount": "{{count}} selected",
+            "clearSelection": "Clear selection"
+        },
+        "sort": {
+            "name": "Name",
+            "size": "Size",
+            "created": "Created",
+            "updated": "Updated"
+        },
+        "empty": {
+            "trash": "Trash is empty",
+            "dropToUpload": "Drop files anywhere to upload",
+            "folderEmpty": "This folder is empty",
+            "orUseUpload": "Or use the Upload button above",
+            "contextNewFolder": "New Folder",
+            "contextUploadFile": "Upload File",
+            "contextUploadFolder": "Upload Folder"
+        },
+        "nameDialog": {
+            "name": "Name",
+            "nameRequired": "Name is required.",
+            "somethingWentWrong": "Something went wrong."
+        },
+        "dialogs": {
+            "newFolderTitle": "New folder",
+            "newFolderDescription": "Create a folder in the current location.",
+            "createFolder": "Create folder",
+            "renameTitle": "Rename",
+            "renameDescription": "Enter a new name for this item.",
+            "addTagsTitle": "Add tags",
+            "addTagsDescription": "Tags are shared across all files. Pick existing ones or create a new name.",
+            "applyTags": "Apply tags",
+            "moveTitle": "Move to folder",
+            "moveDescription": "Choose a destination folder for the selected items.",
+            "moveHere": "Move here",
+            "moving": "Moving…"
+        },
+        "delete": {
+            "titleOne": "Delete this file?",
+            "titleMany": "Delete {{count}} selected files?",
+            "titleForceOne": "Delete this file permanently?",
+            "titleForceMany": "Delete {{count}} selected files permanently?",
+            "descOne": "This file will be moved to trash.",
+            "descMany": "Selected files will be moved to trash.",
+            "descForceOne": "This file will be permanently removed. This cannot be undone.",
+            "descForceMany": "Selected files will be permanently removed. This cannot be undone.",
+            "scanningRefs": "Scanning item references…",
+            "referencedBy": "Referenced by {{count}} collection item(s) — open the detail panel for links. You can still delete anyway.",
+            "confirmAnyway": "Delete anyway",
+            "confirmPermanent": "Delete permanently",
+            "confirmPermanentAnyway": "Delete permanently anyway"
+        },
+        "detail": {
+            "title": "Details",
+            "close": "Close details",
+            "sheetTitle": "File details",
+            "sheetDescription": "Edit file metadata, tags, and replace the file contents.",
+            "replaceFile": "Replace file",
+            "replacing": "Replacing…",
+            "visibility": "Visibility",
+            "inherit": "Inherit from folder",
+            "public": "Public",
+            "private": "Private",
+            "folderVisibilityHint": "Private folders make children inherit private access unless overridden.",
+            "fileVisibilityHint": "Effective: {{access}}. Public CMS API hides private files without Read private.",
+            "titleLabel": "Title",
+            "descriptionLabel": "Description",
+            "tagsLabel": "Tags",
+            "tagsHint": "Shared across all files — pick an existing tag or create a new one.",
+            "location": "Location",
+            "storage": "Storage",
+            "storagePath": "Storage path",
+            "whereUsed": "Where used",
+            "scanningCollections": "Scanning collections…",
+            "notReferenced": "Not referenced by any collection items.",
+            "referenceCount": "{{count}} reference",
+            "referenceCountPlural": "{{count}} references",
+            "moreRefs": "+{{count}} more",
+            "focalPoint": "Focal point",
+            "fileNaming": "File naming",
+            "diskName": "Disk name",
+            "downloadName": "Download name",
+            "transforms": "Transforms",
+            "translateX": "Translate X",
+            "translateY": "Translate Y",
+            "scale": "Scale",
+            "focalX": "Focal X",
+            "focalY": "Focal Y",
+            "mustBeNumber": "{{field}} must be a number",
+            "updated": "File updated",
+            "replaced": "File replaced",
+            "failedSave": "Failed to save file",
+            "failedReplace": "Failed to replace file",
+            "failedScanRefs": "Failed to scan references"
+        },
+        "tags": {
+            "label": "Tags",
+            "filterBy": "Filter by tags",
+            "filterHint": "Show files that have any of the selected tags.",
+            "clear": "Clear",
+            "empty": "No tags yet. Tag a file to create one.",
+            "placeholder": "Type a tag and press Enter",
+            "exactMatch": "Exact match — will reuse existing tag “{{name}}”",
+            "existing": "Existing tags",
+            "moreTags": "{{count}} more tags"
+        },
+        "folderPicker": {
+            "search": "Search folders…",
+            "breadcrumbs": "Folder breadcrumbs",
+            "empty": "No folders here",
+            "destination": "Destination:",
+            "cannotMoveIntoSelected": "Cannot move into a selected folder or its descendants.",
+            "failedLoad": "Failed to load folders",
+            "failedMove": "Failed to move items"
+        },
+        "uploadIndicator": {
+            "failed": "Upload failed",
+            "complete": "Complete",
+            "batchProgress": "{{percent}}% · {{uploaded}}/{{total}} files",
+            "uploading": "{{count}} uploading",
+            "uploadingWithCompleted": "{{active}} uploading · {{completed}} completed",
+            "completedWithFailed": "{{completed}} completed · {{failed}} failed",
+            "failedCount": "{{count}} failed",
+            "oneComplete": "1 upload complete",
+            "manyComplete": "{{count}} uploads complete",
+            "minimize": "Minimize upload panel",
+            "expand": "Expand upload panel",
+            "close": "Close upload panel"
+        },
+        "toasts": {
+            "searchFailed": "Failed to search files",
+            "loadMoreFailed": "Failed to load more files",
+            "uploadFailed": "Upload failed",
+            "dropFailed": "Failed to process dropped files",
+            "moveFailed": "Failed to move file",
+            "actionFailed": "Action failed",
+            "tagFailed": "Failed to tag files",
+            "duplicationCompleted": "File duplication completed",
+            "duplicationFailed": "File duplication failed",
+            "zipReady": "Your zip is ready",
+            "zipFailed": "Zip preparation failed",
+            "zipPreparing": "Preparing zip — you'll be notified when it's ready.",
+            "duplicationStarted": "Duplication started — you'll be notified when it finishes",
+            "duplicated": "File duplicated"
+        },
+        "card": {
+            "select": "Select {{name}}",
+            "privateBadge": "Private",
+            "privateTitle": "Private — requires Read private on API roles"
+        }
+    }
+}

@@ -1,6 +1,10 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { dashboard, login, register } from '@/routes';
 
+/**
+ * Public landing page for unauthenticated visitors.
+ * @returns {JSX.Element}
+ */
 export default function Welcome({
     canRegister = true,
 }: {

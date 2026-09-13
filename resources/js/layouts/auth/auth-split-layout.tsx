@@ -3,6 +3,14 @@ import AppLogoIcon from '@/components/app-logo-icon';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
 
+/**
+ * Split-screen auth layout with branded panel and form column.
+ * @param {AuthLayoutProps} props - Auth layout props.
+ * @param {React.ReactNode} props.children - Auth form content.
+ * @param {string} props.title - Page heading.
+ * @param {string} props.description - Subheading shown below the title.
+ * @returns {JSX.Element}
+ */
 export default function AuthSplitLayout({
     children,
     title,
@@ -18,7 +26,7 @@ export default function AuthSplitLayout({
                     href={home()}
                     className="relative z-20 flex items-center text-lg font-medium"
                 >
-                    <AppLogoIcon className="mr-2 size-8 fill-current text-white" />
+                    <AppLogoIcon className="mr-2 size-8" />
                     {name}
                 </Link>
             </div>
@@ -28,7 +36,7 @@ export default function AuthSplitLayout({
                         href={home()}
                         className="relative z-20 flex items-center justify-center lg:hidden"
                     >
-                        <AppLogoIcon className="h-10 fill-current text-black sm:h-12" />
+                        <AppLogoIcon className="h-10 sm:h-12" />
                     </Link>
                     <div className="flex flex-col items-start gap-2 text-left sm:items-center sm:text-center">
                         <h1 className="text-xl font-medium">{title}</h1>
