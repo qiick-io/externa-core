@@ -11,14 +11,14 @@ use Illuminate\Validation\ValidationException;
 /**
  * Nesting helpers for layout group fields (`settings.group` = parent field name).
  *
- * Directus parity: any field may nest under any layout group (including leaf→
+ * Any field may nest under any layout group (including leaf→
  * Accordion/Tabs directly). Accordion/Tabs treat each direct child as a panel
  * (group children expose nested fields; leaf children render as the panel body).
  */
 class CollectionFieldGroupService
 {
     /**
-     * Accordion and Tabs use direct children as panels/sections (Directus).
+     * Accordion and Tabs use direct children as panels/sections.
      * Explicit Raw sections are still seeded for empty UX — not required on drop.
      */
     public function isPanelContainer(FieldTypeEnum $type): bool
@@ -28,12 +28,12 @@ class CollectionFieldGroupService
     }
 
     /**
-     * Directus parity: any field type may nest under any layout group.
+     * Any field type may nest under any layout group.
      * Cycle prevention stays in assertValidGroupParent / wouldCreateCycle.
      */
     public function canNestFieldIntoGroup(FieldTypeEnum $childType, FieldTypeEnum $parentType): bool
     {
-        // $childType kept for call-site symmetry; Directus has no child-type gate.
+        // $childType kept for call-site symmetry; no child-type gate.
         return $parentType->isLayoutGroup();
     }
 
@@ -219,7 +219,7 @@ class CollectionFieldGroupService
     /**
      * Persist group nesting from a reorder payload map (field id => parent name|null).
      *
-     * Directus parity: leaf→Accordion/Tabs nests directly (meta.group = panel name).
+     * Leaf→Accordion/Tabs nests directly (meta.group = panel name).
      * No mandatory Raw auto-wrap on drop. Cycle checks via assertValidGroupParent.
      *
      * @param  array<int|string, string|null>  $groupsById

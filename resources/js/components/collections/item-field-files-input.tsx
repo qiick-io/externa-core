@@ -54,7 +54,7 @@ const imageHoverActionClass =
     'inline-flex size-9 items-center justify-center rounded-md bg-white/15 text-white transition-colors hover:bg-white/25 disabled:pointer-events-none disabled:opacity-50';
 
 /**
- * Directus-style meta line: `1,320 × 1,000 • 23.3 KB • image/png`.
+ * meta line: `1,320 × 1,000 • 23.3 KB • image/png`.
  */
 function formatImageFieldMetaLine(file: AdminFileRow): string {
     const parts: string[] = [];
@@ -286,7 +286,7 @@ function FileFieldEmptyDropzone({
 
 /**
  * Selected single-image preview: fills the dropzone slot; hover shows meta + actions.
- * ponytail: no Directus image-editor (sliders) — crop/focal lives in the file manager.
+ * ponytail: no inline image-editor (sliders) — crop/focal lives in the file manager.
  */
 function SingleImageFilledPreview({
     file,

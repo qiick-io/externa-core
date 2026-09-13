@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('icon')->nullable();
             $table->string('color', 7)->nullable();
             $table->boolean('is_singleton')->default(false);
-            // Lean Directus-like content versioning (draft vs published) — no versions table.
+            // Lean content versioning (draft vs published) — no versions table.
             $table->boolean('versioning')->default(false);
             // Null = unlimited for that axis; when both set, prune by age first then keep newest N.
             $table->unsignedInteger('revision_retention_count')->nullable();

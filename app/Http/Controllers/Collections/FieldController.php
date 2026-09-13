@@ -94,7 +94,7 @@ class FieldController extends Controller
 
         $groupService = app(CollectionFieldGroupService::class);
 
-        // Directus UX: seed empty Raw panels for new Accordion/Tabs chrome.
+        // Seed empty Raw panels for new Accordion/Tabs chrome.
         // Leaf→Accordion/Tabs may nest directly (no auto-wrap on create/reorder).
         $groupService->seedDefaultPanelSections($collection, $field);
 

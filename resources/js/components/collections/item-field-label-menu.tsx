@@ -49,7 +49,7 @@ export type ItemFieldLabelMenuProps = {
 };
 
 /**
- * Directus-like caret menu on an item form field label.
+ * caret menu on an item form field label.
  */
 export function ItemFieldLabelMenu({
     getCurrentValue,

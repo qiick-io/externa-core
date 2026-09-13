@@ -48,7 +48,7 @@ enum FieldTypeEnum: string
     }
 
     /**
-     * Layout container types (Directus-style alias / no-data groups).
+     * Layout container types (alias / no-data groups).
      */
     public function isLayoutGroup(): bool
     {

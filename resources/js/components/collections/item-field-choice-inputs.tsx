@@ -277,7 +277,7 @@ export function BooleanToggleInput({
 }) {
     const booleanSettings = parseBooleanFieldSettings(settings);
     const [checked, setChecked] = useState(defaultChecked);
-    // Directus boolean: checkbox + fixed affirmative label (not a Yes/No flip).
+    // Boolean: checkbox + fixed affirmative label (not a Yes/No flip).
     const onLabel = resolveTranslatedText(
         booleanSettings.labelOn,
         locales,

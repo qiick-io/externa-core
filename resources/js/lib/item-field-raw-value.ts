@@ -1,5 +1,5 @@
 /**
- * Helpers for Directus-like raw field value copy / paste / edit on item forms.
+ * Helpers for raw field value copy / paste / edit on item forms.
  */
 
 /** Serialize a field value for the raw editor / clipboard. */

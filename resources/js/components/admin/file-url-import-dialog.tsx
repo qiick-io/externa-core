@@ -17,7 +17,7 @@ import { toast } from '@/lib/toast';
 import type { AdminFileRow } from '@/types/files';
 
 /**
- * Download a remote file into the library (Directus-style Import from URL).
+ * Download a remote file into the library (Import from URL).
  * Shared by file/image fields and markdown image toolbar.
  */
 export function FileUrlImportDialog({

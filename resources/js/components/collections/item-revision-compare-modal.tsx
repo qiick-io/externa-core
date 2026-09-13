@@ -48,7 +48,7 @@ type Props = {
 };
 
 /**
- * Giant side-by-side form compare modal (Directus-like soft restore).
+ * Giant side-by-side form compare modal (soft restore).
  */
 export function ItemRevisionCompareModal({
     open,

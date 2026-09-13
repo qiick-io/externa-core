@@ -144,11 +144,11 @@ test('nesting via settings.group validates parent and reorder nests leaf under a
         ],
     ])->assertRedirect()->assertSessionHasNoErrors();
 
-    // Directus parity: leaf→Accordion nests directly (no Raw auto-wrap).
+    // leaf→Accordion nests directly (no Raw auto-wrap).
     expect($title->fresh()->settings['group'] ?? null)->toBe('acc');
 });
 
-test('accordion and tabs accept any layout group children (Directus parity)', function () {
+test('accordion and tabs accept any layout group children ()', function () {
     $user = grantCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 

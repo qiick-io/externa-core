@@ -178,7 +178,7 @@ function uniqueFieldName(used: Set<string>, base: string): string {
 }
 
 /**
- * Create a Raw section/tab under Accordion/Tabs (Directus: nest group-raw).
+ * Create a Raw section/tab under Accordion/Tabs (nest group-raw).
  */
 function createPanelSectionField(
     collectionId: number,

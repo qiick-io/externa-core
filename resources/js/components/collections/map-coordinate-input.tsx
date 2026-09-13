@@ -46,7 +46,7 @@ type LatLng = MapLatLng;
 
 type MapTool = 'add' | 'delete';
 
-/** Directus-like filled circle — no PNG icon URLs (Vite breaks Leaflet defaults). */
+/** filled circle — no PNG icon URLs (Vite breaks Leaflet defaults). */
 function pointDivIcon(L: typeof LeafletNS) {
     return L.divIcon({
         className: 'externa-map-point',
@@ -70,7 +70,7 @@ type MapCoordinateInputProps = {
 
 /**
  * Leaflet OSM picker for map fields (Point or MultiPoint GeoJSON).
- * Directus-like: left toolbar, click-to-add, no lat/lng inputs.
+ * : left toolbar, click-to-add, no lat/lng inputs.
  * LineString/Polygon draw deferred — no leaflet-geoman/draw dep yet.
  */
 export function MapCoordinateInput({

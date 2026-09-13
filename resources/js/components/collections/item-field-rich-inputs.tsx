@@ -97,8 +97,7 @@ const colorFieldChrome =
     'w-full rounded-md border border-input bg-transparent px-3 py-1.5 shadow-xs dark:border-white/25 has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-inset';
 
 /**
- * Directus markdown interface uses CodeMirror 5 + custom Vue toolbar — not this
- * package. We keep @uiw/react-md-editor for React, match Directus *actions* +
+ * Keep @uiw/react-md-editor for React markdown editing; match common CMS *actions* +
  * Externa WYSIWYG chrome. Fixed viewport with internal scroll.
  */
 const MARKDOWN_EDITOR_HEIGHT = 560;
@@ -424,8 +423,8 @@ export function MarkdownModeToggle({
 }
 
 /**
- * Directus-parity markdown actions with WYSIWYG-matching chrome.
- * Directus stack is Vue+CodeMirror; we drive @uiw textarea via orchestrator.
+ * Markdown actions with WYSIWYG-matching chrome.
+ * Drive @uiw textarea via orchestrator.
  */
 function MarkdownToolbar({
     disabled,
@@ -585,7 +584,7 @@ function MarkdownToolbar({
 
 /**
  * Markdown editor for collection item fields.
- * Feature set matches Directus `input-rich-text-md` default toolbar.
+ * Feature set covers the default rich-text markdown toolbar actions.
  */
 export function MarkdownFieldInput({
     id,
@@ -1025,7 +1024,7 @@ function prettyPrintJson(raw: string): string {
 }
 
 /**
- * Map Directus/Externa code field language setting → CodeMirror lang extension.
+ * Map code field language setting → CodeMirror lang extension.
  */
 function codeLanguageExtension(language: string): Extension {
     const normalized = language.trim().toLowerCase();
@@ -1059,7 +1058,7 @@ function codeLanguageExtension(language: string): Extension {
 }
 
 /**
- * Code editor input for collection item fields (Directus `input-code` parity).
+ * Code editor input for collection item fields.
  * CodeMirror: syntax highlight, line numbers, JSON pretty-print.
  */
 export function CodeFieldInput({

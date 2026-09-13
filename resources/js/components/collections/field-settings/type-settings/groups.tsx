@@ -31,7 +31,7 @@ type GroupsSettingsProps = {
 };
 
 /**
- * Type-specific settings for layout group fields (Directus group-* parity).
+ * Type-specific settings for layout group fields.
  */
 export function GroupsSettings({
     fieldType,
@@ -67,7 +67,7 @@ export function GroupsSettings({
                     onCheckedChange={(checked) =>
                         onAccordionSettingsChange((current) => ({
                             accordionMode: checked,
-                            // Directus: "all open" is only available when accordion mode is off.
+                            // "all open" is only available when accordion mode is off.
                             start:
                                 checked && current.start === 'opened'
                                     ? 'closed'
@@ -105,7 +105,7 @@ export function GroupsSettings({
                     Sections are typically Raw groups nested under this
                     accordion (two empty ones are created automatically). Use
                     Add section on the accordion, or nest any field — including
-                    leaves — directly (Directus: leaf children become accordion
+                    leaves — directly (leaf children become accordion
                     panels).
                 </p>
             </div>
@@ -156,7 +156,7 @@ export function GroupsSettings({
                     Tab panels are typically Raw groups nested under this tabs
                     group (two empty ones are created automatically). Use Add
                     tab, or nest any field — including leaves — directly
-                    (Directus: leaf children become tabs).
+                    (leaf children become tabs).
                 </p>
             </div>
         );
@@ -198,7 +198,7 @@ export function parseAccordionGroupSettings(
     settings?: Record<string, unknown> | null,
 ): AccordionGroupSettings {
     const start = settings?.start;
-    // Directus default: accordionMode true when unset.
+    // Default: accordionMode true when unset.
     const accordionMode = settingsFlagExplicitlyDisabled(
         settings?.accordion_mode,
     )

@@ -127,7 +127,7 @@ type LucideIconPickerProps = {
 };
 
 /**
- * Searchable, category-grouped Lucide icon picker (Directus-style grid).
+ * Searchable, category-grouped Lucide icon picker (grid).
  */
 export function LucideIconPicker({
     id,

@@ -96,7 +96,7 @@ export function halfPairedDropIntent(
 /**
  * Half dragged onto an occupied half pair (external — not the live partner).
  *
- * Directus SortableJS + 2-col grid:
+ * SortableJS + 2-col grid:
  * - Leading card right edge → insert before (active|over, old right wraps)
  * - Leading mid/left → stack below the pair
  * - Trailing mid → insert before (left|active, over wraps)

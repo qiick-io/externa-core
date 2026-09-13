@@ -335,7 +335,7 @@ html.reduce-motion *::after {
     scroll-behavior: auto !important;
 }
 
-/* Fields DnD — Directus sortable-ghost (dashed slot; children invisible) */
+/* Fields DnD — sortable-ghost (dashed slot; children invisible) */
 [data-fields-dnd] .sortable-ghost {
     opacity: 1 !important;
     background: transparent !important;

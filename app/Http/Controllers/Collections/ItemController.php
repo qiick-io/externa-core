@@ -372,7 +372,7 @@ class ItemController extends Controller
             $version = 'published';
         }
 
-        // Directus-like: published workspace is read-only when versioning is enabled.
+        // : published workspace is read-only when versioning is enabled.
         if ($collection->versioning && $version === 'published') {
             return redirect()
                 ->route('collections.items.show', [

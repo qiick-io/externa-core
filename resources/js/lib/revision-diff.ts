@@ -1,5 +1,5 @@
 /**
- * Helpers for revision compare / soft-apply (Directus-like).
+ * Helpers for revision compare / soft-apply ().
  */
 
 /**

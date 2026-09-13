@@ -261,7 +261,7 @@ trait ValidatesCollectionFieldSettings
             }
         }
 
-        // Directus: "all open" is only valid when accordion mode is off.
+        // "all open" is only valid when accordion mode is off.
         $accordionMode = array_key_exists('accordion_mode', $settings)
             ? CollectionField::settingsFlagIsEnabled($settings['accordion_mode'])
             : null;

@@ -48,7 +48,7 @@ function settingsFlagExplicitlyDisabled(value: unknown): boolean {
     );
 }
 
-/** Directus default: accordionMode true when unset. */
+/** Default: accordionMode true when unset. */
 function accordionModeEnabled(
     settings?: Record<string, unknown> | null,
 ): boolean {
@@ -76,7 +76,7 @@ function groupShellProps(field: FieldDef): Record<string, string | number> {
 }
 
 /**
- * Accordion/tab panel body (Directus kitchen_sink):
+ * Accordion/tab panel body:
  * - Raw/detail/… group child → section header is the group label; render its children inside
  * - Legacy leaf-as-direct-child → header is the leaf label; field body without duplicate label
  */
@@ -550,7 +550,7 @@ export function renderGroupFieldTree<T extends FieldDef>({
             );
             const fillWidth = settingsFlagEnabled(field.settings?.fill_width);
 
-            // Directus group-raw is chrome-less when it has children; empty raw
+            // group-raw is chrome-less when it has children; empty raw
             // still needs a shell so fields-builder empty groups are not dropped.
             if (visibleChildren.length === 0) {
                 return (

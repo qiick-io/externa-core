@@ -24,10 +24,10 @@ export function isPanelContainerType(type: string): boolean {
 }
 
 /**
- * Directus data-model: any field may nest under any layout group (API + UI),
+ * Any field may nest under any layout group (API + UI),
  * including leaf→Accordion/Tabs directly. Cycle checks stay separate.
  *
- * @param _childType - Dragged field type (unused; Directus has no type gate)
+ * @param _childType - Dragged field type (unused; no type gate)
  * @param parentType - Target group type
  */
 export function canNestFieldIntoGroup(
@@ -469,7 +469,7 @@ export function moveSameParentSiblingBlock<
 
 /**
  * Move a field (and its descendant block) under a new parent / sibling slot.
- * Flat order stays DFS-contiguous like Directus nested sort.
+ * Flat order stays DFS-contiguous like nested DFS sort.
  *
  * @param beforeSiblingId - Insert before this sibling under the new parent; null appends.
  */
