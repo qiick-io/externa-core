@@ -443,10 +443,10 @@ export default function Dashboard({
                             </Card>
                         </section>
 
-                        <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-12">
-                            <div className="grid grid-cols-1 gap-4 xl:col-span-5">
-                                <Card>
-                                    <CardHeader className="pb-3">
+                        <div className="flex flex-col gap-4">
+                            <div className="grid grid-cols-1 gap-4 xl:h-[clamp(28rem,52vh,36rem)] xl:grid-cols-12">
+                                <Card className="h-full max-h-[28rem] min-h-[18rem] gap-4 xl:col-span-5 xl:max-h-none xl:min-h-0">
+                                    <CardHeader className="shrink-0 pb-3">
                                         <CardTitle>
                                             {t('dashboard.latestActivity')}
                                         </CardTitle>
@@ -454,8 +454,8 @@ export default function Dashboard({
                                             {t('dashboard.latestActivityDesc')}
                                         </CardDescription>
                                     </CardHeader>
-                                    <CardContent className="flex flex-col gap-3">
-                                        <div className="overflow-x-auto rounded-md border">
+                                    <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
+                                        <div className="max-h-[20rem] min-h-[10rem] overflow-auto rounded-md border xl:max-h-none xl:min-h-0 xl:flex-1">
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow>
@@ -545,246 +545,9 @@ export default function Dashboard({
                                         </div>
                                     </CardContent>
                                 </Card>
-
-                                <Card>
-                                    <CardHeader className="pb-3">
-                                        <CardTitle>
-                                            {t('dashboard.suspicious')}
-                                        </CardTitle>
-                                        <CardDescription>
-                                            {t('dashboard.suspiciousDesc')}
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="overflow-x-auto rounded-md border">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>
-                                                            {t(
-                                                                'dashboard.descriptionCol',
-                                                            )}
-                                                        </TableHead>
-                                                        <TableHead className="w-[10rem] text-right">
-                                                            {t(
-                                                                'dashboard.when',
-                                                            )}
-                                                        </TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {suspiciousEvents.map(
-                                                        (event) => (
-                                                            <TableRow
-                                                                key={event.id}
-                                                            >
-                                                                <TableCell className="min-w-0">
-                                                                    <div className="truncate font-medium">
-                                                                        {
-                                                                            event.description
-                                                                        }
-                                                                    </div>
-                                                                    <div className="truncate text-xs text-muted-foreground">
-                                                                        {event
-                                                                            .causer
-                                                                            ?.label
-                                                                            ? t(
-                                                                                  'dashboard.byUser',
-                                                                                  {
-                                                                                      name: event
-                                                                                          .causer
-                                                                                          .label,
-                                                                                  },
-                                                                              )
-                                                                            : '—'}
-                                                                    </div>
-                                                                </TableCell>
-                                                                <TableCell className="text-right text-xs text-muted-foreground">
-                                                                    {event.created_at
-                                                                        ? new Date(
-                                                                              event.created_at,
-                                                                          ).toLocaleString()
-                                                                        : '—'}
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ),
-                                                    )}
-                                                    {suspiciousEvents.length ===
-                                                    0 ? (
-                                                        <TableRow>
-                                                            <TableCell
-                                                                className="py-6 text-center text-muted-foreground"
-                                                                colSpan={2}
-                                                            >
-                                                                {t(
-                                                                    'dashboard.noSuspicious',
-                                                                )}
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ) : null}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
-                                    <Card>
-                                        <CardHeader className="pb-3">
-                                            <CardTitle>
-                                                {t('dashboard.mostActive')}
-                                            </CardTitle>
-                                            <CardDescription>
-                                                {t('dashboard.mostActiveDesc')}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <div className="overflow-x-auto rounded-md border">
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow>
-                                                            <TableHead>
-                                                                {t(
-                                                                    'dashboard.user',
-                                                                )}
-                                                            </TableHead>
-                                                            <TableHead className="w-[6rem] text-right">
-                                                                {t(
-                                                                    'dashboard.events',
-                                                                )}
-                                                            </TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {mostActiveUsers.map(
-                                                            (user) => (
-                                                                <TableRow
-                                                                    key={
-                                                                        user.id
-                                                                    }
-                                                                >
-                                                                    <TableCell className="font-medium">
-                                                                        {
-                                                                            user.label
-                                                                        }
-                                                                    </TableCell>
-                                                                    <TableCell className="text-right">
-                                                                        {user.activity_count.toLocaleString()}
-                                                                    </TableCell>
-                                                                </TableRow>
-                                                            ),
-                                                        )}
-                                                        {mostActiveUsers.length ===
-                                                        0 ? (
-                                                            <TableRow>
-                                                                <TableCell
-                                                                    className="py-6 text-center text-muted-foreground"
-                                                                    colSpan={2}
-                                                                >
-                                                                    {t(
-                                                                        'dashboard.noActivity',
-                                                                    )}
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ) : null}
-                                                    </TableBody>
-                                                </Table>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    <Card>
-                                        <CardHeader className="pb-3">
-                                            <CardTitle>
-                                                {t('dashboard.stuckUploads')}
-                                            </CardTitle>
-                                            <CardDescription>
-                                                {t(
-                                                    'dashboard.stuckUploadsDesc',
-                                                )}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <div className="overflow-x-auto rounded-md border">
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow>
-                                                            <TableHead>
-                                                                {t(
-                                                                    'dashboard.upload',
-                                                                )}
-                                                            </TableHead>
-                                                            <TableHead className="w-[6rem] text-right">
-                                                                {t(
-                                                                    'dashboard.chunks',
-                                                                )}
-                                                            </TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {stuckOrphanUploads.map(
-                                                            (upload) => (
-                                                                <TableRow
-                                                                    key={
-                                                                        upload.id
-                                                                    }
-                                                                >
-                                                                    <TableCell className="min-w-0">
-                                                                        <div className="truncate font-medium">
-                                                                            {
-                                                                                upload.file_name
-                                                                            }
-                                                                        </div>
-                                                                        <div className="truncate text-xs text-muted-foreground">
-                                                                            {
-                                                                                upload.disk
-                                                                            }{' '}
-                                                                            ·{' '}
-                                                                            {upload.parent_id
-                                                                                ? t(
-                                                                                      'dashboard.parentId',
-                                                                                      {
-                                                                                          id: upload.parent_id,
-                                                                                      },
-                                                                                  )
-                                                                                : t(
-                                                                                      'dashboard.noParent',
-                                                                                  )}
-                                                                        </div>
-                                                                    </TableCell>
-                                                                    <TableCell className="text-right text-xs text-muted-foreground">
-                                                                        {upload.uploaded_chunks.toLocaleString()}
-                                                                        /
-                                                                        {upload.total_chunks.toLocaleString()}
-                                                                    </TableCell>
-                                                                </TableRow>
-                                                            ),
-                                                        )}
-                                                        {stuckOrphanUploads.length ===
-                                                        0 ? (
-                                                            <TableRow>
-                                                                <TableCell
-                                                                    className="py-6 text-center text-muted-foreground"
-                                                                    colSpan={2}
-                                                                >
-                                                                    {t(
-                                                                        'dashboard.noStuckUploads',
-                                                                    )}
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ) : null}
-                                                    </TableBody>
-                                                </Table>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col gap-4 xl:col-span-7">
-                                <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
-                                    <Card>
-                                        <CardHeader className="pb-3">
+                                <div className="grid min-h-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:col-span-7 xl:h-full xl:grid-rows-2">
+                                    <Card className="h-full min-h-0 gap-4">
+                                        <CardHeader className="shrink-0 pb-3">
                                             <CardTitle>
                                                 {t('dashboard.storageOverview')}
                                             </CardTitle>
@@ -823,9 +586,8 @@ export default function Dashboard({
                                             </div>
                                         </CardContent>
                                     </Card>
-
-                                    <Card>
-                                        <CardHeader className="pb-3">
+                                    <Card className="h-full min-h-0 gap-4">
+                                        <CardHeader className="shrink-0 pb-3">
                                             <CardTitle>
                                                 {t('dashboard.uploadHealth')}
                                             </CardTitle>
@@ -861,11 +623,8 @@ export default function Dashboard({
                                             </div>
                                         </CardContent>
                                     </Card>
-                                </div>
-
-                                <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
-                                    <Card>
-                                        <CardHeader className="pb-3">
+                                    <Card className="h-full max-h-[22rem] min-h-[14rem] gap-4 xl:max-h-none xl:min-h-0">
+                                        <CardHeader className="shrink-0 pb-3">
                                             <CardTitle>
                                                 {t('dashboard.largestFiles')}
                                             </CardTitle>
@@ -875,7 +634,7 @@ export default function Dashboard({
                                                 )}
                                             </CardDescription>
                                         </CardHeader>
-                                        <CardContent>
+                                        <CardContent className="flex min-h-0 flex-1 flex-col">
                                             <Deferred
                                                 data="largestFiles"
                                                 fallback={
@@ -884,7 +643,7 @@ export default function Dashboard({
                                                     </div>
                                                 }
                                             >
-                                                <div className="overflow-x-auto rounded-md border">
+                                                <div className="max-h-[20rem] min-h-[10rem] overflow-auto rounded-md border xl:max-h-none xl:min-h-0 xl:flex-1">
                                                     <Table>
                                                         <TableHeader>
                                                             <TableRow>
@@ -956,9 +715,8 @@ export default function Dashboard({
                                             </Deferred>
                                         </CardContent>
                                     </Card>
-
-                                    <Card>
-                                        <CardHeader className="pb-3">
+                                    <Card className="h-full max-h-[22rem] min-h-[14rem] gap-4 xl:max-h-none xl:min-h-0">
+                                        <CardHeader className="shrink-0 pb-3">
                                             <CardTitle>
                                                 {t('dashboard.storageTrend')}
                                             </CardTitle>
@@ -968,7 +726,7 @@ export default function Dashboard({
                                                 )}
                                             </CardDescription>
                                         </CardHeader>
-                                        <CardContent>
+                                        <CardContent className="flex min-h-0 flex-1 flex-col">
                                             <Deferred
                                                 data="storageTrend"
                                                 fallback={
@@ -977,7 +735,7 @@ export default function Dashboard({
                                                     </div>
                                                 }
                                             >
-                                                <div className="overflow-x-auto rounded-md border">
+                                                <div className="max-h-[20rem] min-h-[10rem] overflow-auto rounded-md border xl:max-h-none xl:min-h-0 xl:flex-1">
                                                     <Table>
                                                         <TableHeader>
                                                             <TableRow>
@@ -1036,8 +794,253 @@ export default function Dashboard({
                                         </CardContent>
                                     </Card>
                                 </div>
+                            </div>
 
-                                <Card>
+                            <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+                                <div className="flex flex-col gap-4 xl:col-span-5">
+                                    <Card>
+                                        <CardHeader className="pb-3">
+                                            <CardTitle>
+                                                {t('dashboard.suspicious')}
+                                            </CardTitle>
+                                            <CardDescription>
+                                                {t('dashboard.suspiciousDesc')}
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="overflow-x-auto rounded-md border">
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow>
+                                                            <TableHead>
+                                                                {t(
+                                                                    'dashboard.descriptionCol',
+                                                                )}
+                                                            </TableHead>
+                                                            <TableHead className="w-[10rem] text-right">
+                                                                {t(
+                                                                    'dashboard.when',
+                                                                )}
+                                                            </TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {suspiciousEvents.map(
+                                                            (event) => (
+                                                                <TableRow
+                                                                    key={
+                                                                        event.id
+                                                                    }
+                                                                >
+                                                                    <TableCell className="min-w-0">
+                                                                        <div className="truncate font-medium">
+                                                                            {
+                                                                                event.description
+                                                                            }
+                                                                        </div>
+                                                                        <div className="truncate text-xs text-muted-foreground">
+                                                                            {event
+                                                                                .causer
+                                                                                ?.label
+                                                                                ? t(
+                                                                                      'dashboard.byUser',
+                                                                                      {
+                                                                                          name: event
+                                                                                              .causer
+                                                                                              .label,
+                                                                                      },
+                                                                                  )
+                                                                                : '—'}
+                                                                        </div>
+                                                                    </TableCell>
+                                                                    <TableCell className="text-right text-xs text-muted-foreground">
+                                                                        {event.created_at
+                                                                            ? new Date(
+                                                                                  event.created_at,
+                                                                              ).toLocaleString()
+                                                                            : '—'}
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ),
+                                                        )}
+                                                        {suspiciousEvents.length ===
+                                                        0 ? (
+                                                            <TableRow>
+                                                                <TableCell
+                                                                    className="py-6 text-center text-muted-foreground"
+                                                                    colSpan={2}
+                                                                >
+                                                                    {t(
+                                                                        'dashboard.noSuspicious',
+                                                                    )}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ) : null}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                    <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2">
+                                        <Card>
+                                            <CardHeader className="pb-3">
+                                                <CardTitle>
+                                                    {t('dashboard.mostActive')}
+                                                </CardTitle>
+                                                <CardDescription>
+                                                    {t(
+                                                        'dashboard.mostActiveDesc',
+                                                    )}
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="overflow-x-auto rounded-md border">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead>
+                                                                    {t(
+                                                                        'dashboard.user',
+                                                                    )}
+                                                                </TableHead>
+                                                                <TableHead className="w-[6rem] text-right">
+                                                                    {t(
+                                                                        'dashboard.events',
+                                                                    )}
+                                                                </TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {mostActiveUsers.map(
+                                                                (user) => (
+                                                                    <TableRow
+                                                                        key={
+                                                                            user.id
+                                                                        }
+                                                                    >
+                                                                        <TableCell className="font-medium">
+                                                                            {
+                                                                                user.label
+                                                                            }
+                                                                        </TableCell>
+                                                                        <TableCell className="text-right">
+                                                                            {user.activity_count.toLocaleString()}
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                ),
+                                                            )}
+                                                            {mostActiveUsers.length ===
+                                                            0 ? (
+                                                                <TableRow>
+                                                                    <TableCell
+                                                                        className="py-6 text-center text-muted-foreground"
+                                                                        colSpan={
+                                                                            2
+                                                                        }
+                                                                    >
+                                                                        {t(
+                                                                            'dashboard.noActivity',
+                                                                        )}
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ) : null}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                        <Card>
+                                            <CardHeader className="pb-3">
+                                                <CardTitle>
+                                                    {t(
+                                                        'dashboard.stuckUploads',
+                                                    )}
+                                                </CardTitle>
+                                                <CardDescription>
+                                                    {t(
+                                                        'dashboard.stuckUploadsDesc',
+                                                    )}
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="overflow-x-auto rounded-md border">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead>
+                                                                    {t(
+                                                                        'dashboard.upload',
+                                                                    )}
+                                                                </TableHead>
+                                                                <TableHead className="w-[6rem] text-right">
+                                                                    {t(
+                                                                        'dashboard.chunks',
+                                                                    )}
+                                                                </TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {stuckOrphanUploads.map(
+                                                                (upload) => (
+                                                                    <TableRow
+                                                                        key={
+                                                                            upload.id
+                                                                        }
+                                                                    >
+                                                                        <TableCell className="min-w-0">
+                                                                            <div className="truncate font-medium">
+                                                                                {
+                                                                                    upload.file_name
+                                                                                }
+                                                                            </div>
+                                                                            <div className="truncate text-xs text-muted-foreground">
+                                                                                {
+                                                                                    upload.disk
+                                                                                }{' '}
+                                                                                ·{' '}
+                                                                                {upload.parent_id
+                                                                                    ? t(
+                                                                                          'dashboard.parentId',
+                                                                                          {
+                                                                                              id: upload.parent_id,
+                                                                                          },
+                                                                                      )
+                                                                                    : t(
+                                                                                          'dashboard.noParent',
+                                                                                      )}
+                                                                            </div>
+                                                                        </TableCell>
+                                                                        <TableCell className="text-right text-xs text-muted-foreground">
+                                                                            {upload.uploaded_chunks.toLocaleString()}
+                                                                            /
+                                                                            {upload.total_chunks.toLocaleString()}
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                ),
+                                                            )}
+                                                            {stuckOrphanUploads.length ===
+                                                            0 ? (
+                                                                <TableRow>
+                                                                    <TableCell
+                                                                        className="py-6 text-center text-muted-foreground"
+                                                                        colSpan={
+                                                                            2
+                                                                        }
+                                                                    >
+                                                                        {t(
+                                                                            'dashboard.noStuckUploads',
+                                                                        )}
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ) : null}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                </div>
+                                <Card className="xl:col-span-7">
                                     <CardHeader className="pb-3">
                                         <CardTitle>
                                             {t('dashboard.storageByDisk')}
