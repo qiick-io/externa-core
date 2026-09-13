@@ -1,14 +1,28 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/react-starter-kit",
+    "name": "qiick/externa-core",
     "type": "project",
     "version": "1.0.0-beta.1",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Externa — headless CMS / content API with operator admin UI.",
     "keywords": [
+        "externa",
+        "cms",
+        "headless",
         "laravel",
-        "framework"
+        "inertia"
     ],
     "license": "MIT",
+    "authors": [
+        {
+            "name": "Qiick",
+            "homepage": "https://qiick.io"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/qiick-io/externa-core/issues",
+        "source": "https://github.com/qiick-io/externa-core",
+        "docs": "https://docs.externa.qiick.io"
+    },
     "require": {
         "php": "^8.4",
         "inertiajs/inertia-laravel": "^2.0",

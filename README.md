@@ -4,9 +4,9 @@ Externa is a headless CMS / content API with an operator admin UI. **Version:** 
 
 Stack: **Laravel 13**, **Inertia + React 19**, Vite, Spatie Permission / Activitylog, Wayfinder typed routes.
 
-Full documentation lives in the sibling **[externa-docs](../externa-docs)** site (run it locally on port 3001, or browse the Markdoc pages under `src/app/docs/`). Start with [Installation](../externa-docs/src/app/docs/installation/page.md) and [Minimal vs full stack](../externa-docs/src/app/docs/minimal-vs-full-stack/page.md).
+Full documentation: **[docs.externa.qiick.io](https://docs.externa.qiick.io)**. Start with [Installation](https://docs.externa.qiick.io/docs/installation) and [Minimal vs full stack](https://docs.externa.qiick.io/docs/minimal-vs-full-stack).
 
-Security posture for operators: **[SECURITY.md](./SECURITY.md)** and [Threat model & hosting](../externa-docs/src/app/docs/threat-model/page.md).
+Security posture for operators: **[SECURITY.md](./SECURITY.md)** and [Threat model & hosting](https://docs.externa.qiick.io/docs/threat-model).
 
 ## Requirements
 
@@ -23,12 +23,12 @@ Optional: [Laravel Herd](https://herd.laravel.com) (PHP, nginx, `.test` hosts; P
 ## Quick start
 
 ```bash
-git clone <your-fork-or-remote> externa-core
+git clone https://github.com/qiick-io/externa-core.git
 cd externa-core
 nvm use   # Node 24
 
 cp .env.example .env
-# Edit .env: set APP_URL (Herd host if used). For no Redis, see “Minimal vs full” below.
+# Edit .env: set APP_URL to match how you browse. For no Redis, see “Minimal vs full” below.
 
 touch database/database.sqlite   # if missing (SQLite default)
 
@@ -54,7 +54,7 @@ composer run dev
 # serve + queue:listen + pail + vite
 ```
 
-Or with Herd serving the site: keep Vite + a queue worker (`php artisan queue:listen --tries=1 --timeout=0`).
+Or with Herd serving the site: keep Vite + a queue worker (`php artisan queue:listen --tries=1 --timeout=0`). For Herd HTTPS (`herd secure`), set `HERD_SITE` to your hostname (e.g. `my-app.test`) so Vite can detect TLS certs.
 
 **Full stack** (Redis + realtime + Pulse — matches `.env.example` defaults):
 
@@ -74,7 +74,7 @@ Standalone all-in-one (starts its own Reverb — conflicts if Herd already binds
 composer run dev:full
 ```
 
-Open `APP_URL` (Herd host or `php artisan serve`). Unauthenticated `/` redirects to login.
+Open `APP_URL` (your Herd host, `http://localhost`, or `php artisan serve`). Unauthenticated `/` redirects to login.
 
 ### First login (local / dev only)
 
@@ -89,11 +89,11 @@ Override with `INITIAL_SUPER_ADMIN_*` in `.env` **before** seeding. **Local/dev 
 
 ## Important environment variables
 
-Copy from `.env.example` and tune. Full reference: [Environment variables](../externa-docs/src/app/docs/environment-variables/page.md).
+Copy from `.env.example` and tune. Full reference: [Environment variables](https://docs.externa.qiick.io/docs/environment-variables).
 
 | Group | Keys (curated) | Notes |
 | --- | --- | --- |
-| **App** | `APP_NAME`, `APP_ENV`, `APP_KEY`, `APP_DEBUG`, `APP_URL` | `APP_URL` must match how you browse. **HTTP is fine** for password login, TOTP 2FA, and the rest of the CMS. **Passkeys / WebAuthn** need a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts): HTTPS, or `http://localhost` / `http://*.localhost`. Plain `http://externa-core.test` is not secure — browsers hide `PublicKeyCredential` (expected, not a Brave bug). Local HTTPS: `herd secure externa-core`, `APP_URL=https://externa-core.test`, Vite `detectTls` only when Herd certs exist. After switching back to HTTP (`herd unsecure`), clear **http + https** cookies for the site or Chromium (incl. Cursor’s browser) keeps Secure session cookies → **419 Page Expired** on login. Docs: [Passkeys](../externa-docs/src/app/docs/passkeys/page.md). |
+| **App** | `APP_NAME`, `APP_ENV`, `APP_KEY`, `APP_DEBUG`, `APP_URL` | `APP_URL` must match how you browse. **HTTP is fine** for password login, TOTP 2FA, and the rest of the CMS. **Passkeys / WebAuthn** need a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts): HTTPS, or `http://localhost` / `http://*.localhost`. Plain `http://*.test` hosts are not secure — browsers hide `PublicKeyCredential`. Local HTTPS: `herd secure <site>`, matching `APP_URL=https://…`, and `HERD_SITE=<site>` for Vite TLS detection. After switching back to HTTP (`herd unsecure`), clear **http + https** cookies for the site or browsers may keep Secure session cookies → **419 Page Expired** on login. Docs: [Passkeys](https://docs.externa.qiick.io/docs/passkeys). |
 | **Database** | `DB_CONNECTION` (+ `DB_*` if not SQLite) | Default `sqlite`. |
 | **Session / cache** | `SESSION_DRIVER`, `CACHE_STORE` | Default `database`. |
 | **Queue** | `QUEUE_CONNECTION` | Full: `redis` + Horizon. Minimal: `database` + `queue:listen`. |
@@ -114,7 +114,7 @@ See `.env.example` for every key and inline comments.
 | **Pulse** | Metrics for dashboard **Health**; full UI at `/pulse`. Needs ingest worker when using redis ingest. |
 | **Queue worker** | Always needed for zip downloads, large/bulk duplicates, and collection imports — even on the minimal stack. |
 
-Details: [Redis](../externa-docs/src/app/docs/redis-prerequisite/page.md) · [Horizon](../externa-docs/src/app/docs/horizon/page.md) · [Reverb](../externa-docs/src/app/docs/reverb-and-echo/page.md) · [Pulse](../externa-docs/src/app/docs/pulse-and-health/page.md) · [Operations](../externa-docs/src/app/docs/operations/page.md).
+Details: [Redis](https://docs.externa.qiick.io/docs/redis-prerequisite) · [Horizon](https://docs.externa.qiick.io/docs/horizon) · [Reverb](https://docs.externa.qiick.io/docs/reverb-and-echo) · [Pulse](https://docs.externa.qiick.io/docs/pulse-and-health) · [Operations](https://docs.externa.qiick.io/docs/operations).
 
 ## Tests and quality
 
@@ -132,16 +132,15 @@ npm run format:check
 npm run types:check
 ```
 
-Pest browser tests live under `tests/Browser/`. Local Playwright QA harnesses (`.mjs`) live under gitignored `.e2e/` (agents/local only) — see [Testing](../externa-docs/src/app/docs/testing/page.md).
+Pest browser tests live under `tests/Browser/`. See [Testing](https://docs.externa.qiick.io/docs/testing).
 
-## Related packages
+## Related projects
 
-| Package | Role |
+| Project | Role |
 | --- | --- |
-| [externa-docs](../externa-docs) | Product & ops documentation (Next.js + Markdoc) |
-| [externa-website](../externa-website) | Marketing site |
-| [externa-bruno](../externa-bruno) | Bruno collection for Public CMS API + GraphQL |
+| [Documentation](https://docs.externa.qiick.io) | Product & ops docs |
+| [GitHub — externa-core](https://github.com/qiick-io/externa-core) | This repository |
 
 ## License
 
-MIT (see `composer.json`).
+MIT — see [LICENSE](./LICENSE).

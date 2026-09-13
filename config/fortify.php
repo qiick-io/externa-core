@@ -140,9 +140,9 @@ return [
     |
     | Fortify passkey (WebAuthn) settings. RP ID and allowed origins must match
     | APP_URL. WebAuthn also requires a secure context in the browser: HTTPS, or
-    | http://localhost / http://*.localhost. http://externa-core.test is not
-    | secure — use Herd HTTPS (and https://… APP_URL) or localhost for local
-    | passkey testing.
+    | http://localhost / http://*.localhost. Plain http://*.test hosts are not
+    | secure — use local HTTPS (and https://… APP_URL) or localhost for passkey
+    | testing.
     |
     */
 

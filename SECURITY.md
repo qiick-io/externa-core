@@ -2,7 +2,7 @@
 
 Externa is a self-hosted CMS. **Operators own transport encryption, disk encryption, backups, and network exposure.** The application provides RBAC, secret redaction in audit trails, hashed credentials, and optional MFA — not end-to-end encryption of chat or activity payloads.
 
-Longer docs: [Threat model & hosting](../externa-docs/src/app/docs/threat-model/page.md) · [Pre-release security checklist](../externa-docs/src/app/docs/security-checklist/page.md) · [Deployment](../externa-docs/src/app/docs/deployment/page.md).
+Longer docs: [Threat model & hosting](https://docs.externa.qiick.io/docs/threat-model) · [Pre-release security checklist](https://docs.externa.qiick.io/docs/security-checklist) · [Deployment](https://docs.externa.qiick.io/docs/deployment).
 
 ## Reporting a vulnerability
 
@@ -24,7 +24,7 @@ Please **do not** open a public GitHub issue for security bugs.
 
 **Assumption:** anyone with DB access **or** `APP_KEY` + app code can read application data, including chat bodies and activity properties. Laravel `encrypted` casts use `APP_KEY` on the server — that is **not** end-to-end encryption.
 
-**Files pool:** uploads/renames reject a denylist of dangerous extensions (`ForbiddenUploadExtension`); name/metadata/tags are `strip_tags`’d (`PlainTextSanitizer`). Team chat attachments remain any-type until **Save to Files**. Details: [File manager — Upload security](../externa-docs/src/app/docs/file-manager/page.md).
+**Files pool:** uploads/renames reject a denylist of dangerous extensions (`ForbiddenUploadExtension`); name/metadata/tags are `strip_tags`’d (`PlainTextSanitizer`). Team chat attachments remain any-type until **Save to Files**. Details: [File manager — Upload security](https://docs.externa.qiick.io/docs/file-manager).
 
 ## Data handling defaults
 
@@ -40,7 +40,7 @@ Please **do not** open a public GitHub issue for security bugs.
 
 ## Deploy checklist (host)
 
-Use this when shipping a production instance. App-level gates: [Security checklist](../externa-docs/src/app/docs/security-checklist/page.md).
+Use this when shipping a production instance. App-level gates: [Security checklist](https://docs.externa.qiick.io/docs/security-checklist).
 
 - [ ] `APP_ENV=production`, `APP_DEBUG=false`, unique `APP_KEY` (never reuse across envs)
 - [ ] **HTTPS** for the public origin (`APP_URL`); required for passkeys / secure cookies
@@ -48,14 +48,12 @@ Use this when shipping a production instance. App-level gates: [Security checkli
 - [ ] Production DB (Postgres/MySQL preferred); enable **storage/volume encryption** and encrypted backups
 - [ ] Restrict who can open `/activity-logs` (permission `can-show-activity-logs`)
 - [ ] Keep `.env` and backups off world-readable paths; limit shell access to operators
-- [ ] Queue + scheduler running (`activitylog:clean`, file/AI jobs) — see [Operations](../externa-docs/src/app/docs/operations/page.md)
-- [ ] Review Public API CORS / API keys / IP allowlists — [Public CMS API](../externa-docs/src/app/docs/public-cms-api/page.md) / [Deployment](../externa-docs/src/app/docs/deployment/page.md)
-- [ ] Optional: require MFA project-wide (`two_factor_required`) — [Passkeys](../externa-docs/src/app/docs/passkeys/page.md)
+- [ ] Queue + scheduler running (`activitylog:clean`, file/AI jobs) — see [Operations](https://docs.externa.qiick.io/docs/operations)
+- [ ] Review Public API CORS / API keys / IP allowlists — [Public CMS API](https://docs.externa.qiick.io/docs/public-cms-api) / [Deployment](https://docs.externa.qiick.io/docs/deployment)
+- [ ] Optional: require MFA project-wide (`two_factor_required`) — [Passkeys](https://docs.externa.qiick.io/docs/passkeys)
 
 ## What we do not provide by default
 
 - Column-level encryption of chat bodies or activity JSON
 - Client-side E2EE for DMs / item chat
 - Guarantees against a compromised application server
-
-Those are deliberate for a collaborative OSS CMS: search, admin audit, and AI tools need server-readable content. Harden the host instead.

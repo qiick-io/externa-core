@@ -74,15 +74,18 @@ function wayfinderVite8(command: string): Plugin {
     };
 }
 
-const herdSite = 'externa-core.test';
+// Optional Laravel Herd HTTPS: set HERD_SITE to your Valet/Herd hostname
+// (e.g. my-app.test) when using `herd secure`. Unset → Vite stays on HTTP.
+const herdSite = process.env.HERD_SITE?.trim() || '';
 const herdCertDir = path.join(
     os.homedir(),
     'Library/Application Support/Herd/config/valet/Certificates',
 );
-// Only when `herd secure` has issued certs — otherwise Vite stays on HTTP (unsecure).
-const herdTlsHost = existsSync(path.join(herdCertDir, `${herdSite}.crt`))
-    ? herdSite
-    : false;
+const herdTlsHost =
+    herdSite !== '' &&
+    existsSync(path.join(herdCertDir, `${herdSite}.crt`))
+        ? herdSite
+        : false;
 
 export default defineConfig({
     plugins: [
@@ -90,7 +93,7 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
             ssr: 'resources/js/ssr.tsx',
             refresh: true,
-            // Herd `secure` → hot URL https://externa-core.test:5173 (not 127.0.0.1).
+            // Herd `secure` → hot URL https://{HERD_SITE}:5173 (not 127.0.0.1).
             detectTls: herdTlsHost,
         }),
         react({
