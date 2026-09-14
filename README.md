@@ -1,12 +1,71 @@
 # Externa
 
-Externa is a headless CMS / content API with an operator admin UI. **Version:** `1.0.0-beta.1` (from `composer.json`; mirrored in `package.json`). Manage **dynamic collections**, a **hierarchical file tree**, and **RBAC** (roles, groups, effective permissions), then expose content to websites via the **Public CMS API** (`/api/v1`) and **GraphQL** (`/api/graphql`). An optional in-app AI assistant (OpenAI-compatible / LM Studio) respects the signed-in user’s permissions.
+[![Docs](https://img.shields.io/badge/docs-docs.externa.qiick.io-0f766e)](https://docs.externa.qiick.io)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+
+**Version:** `1.0.0-beta.1` (from `composer.json`; mirrored in `package.json`).
+
+Externa is a **Laravel-native headless CMS**: operators manage structured content in a full admin UI; websites and apps consume it through the **Public CMS API** (`/api/v1`) and **GraphQL** (`/api/graphql`). Optional in-app AI tools respect the signed-in user’s permissions — you own the code, so automation is Jobs/listeners, not a locked Flow canvas.
+
+**Who it is for:** teams that want a self-hosted content API with a serious admin (collections, files, RBAC) on a stack they already know — Laravel 13, Inertia + React 19, Vite.
+
+| | |
+| --- | --- |
+| **Docs** | [docs.externa.qiick.io](https://docs.externa.qiick.io) |
+| **Install** | [Installation](https://docs.externa.qiick.io/docs/installation) · [Minimal vs full stack](https://docs.externa.qiick.io/docs/minimal-vs-full-stack) |
+| **Security** | [SECURITY.md](./SECURITY.md) · [Threat model](https://docs.externa.qiick.io/docs/threat-model) |
+| **Issues** | [GitHub Issues](https://github.com/qiick-io/externa-core/issues) |
+
+### Highlights
+
+- **Dynamic collections** — fields, locales, lean draft/publish, typed item editor
+- **Hierarchical files** — folders, uploads, versions, async zip
+- **RBAC + groups** — Spatie roles/permissions with group inheritance; `public` role for the API
+- **Public CMS API + GraphQL** — collection access matrix, API keys, origin allowlist
+- **Chat + activity** — item/private threads; Spatie activity log
+- **Optional AI assistant** — OpenAI-compatible / LM Studio; tools gated by effective permissions
 
 Stack: **Laravel 13**, **Inertia + React 19**, Vite, Spatie Permission / Activitylog, Wayfinder typed routes.
 
-Full documentation: **[docs.externa.qiick.io](https://docs.externa.qiick.io)**. Start with [Installation](https://docs.externa.qiick.io/docs/installation) and [Minimal vs full stack](https://docs.externa.qiick.io/docs/minimal-vs-full-stack).
+## Product UI
 
-Security posture for operators: **[SECURITY.md](./SECURITY.md)** and [Threat model & hosting](https://docs.externa.qiick.io/docs/threat-model).
+Light-theme shots from the admin (demo seed data). More in the [docs](https://docs.externa.qiick.io).
+
+<p align="center">
+  <img src="docs/images/collection-items.webp" alt="Blog Posts collection items list" width="800" />
+  <br />
+  <em>Collection items — list, filters, and actions</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/collection-item.webp" alt="Collection item editor with rich text" width="800" />
+  <br />
+  <em>Item editor — localized fields and rich text</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/file-manager.webp" alt="Hierarchical file manager" width="800" />
+  <br />
+  <em>File manager — folders and assets</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/roles.webp" alt="Roles settings matrix" width="800" />
+  <br />
+  <em>Roles — project access control</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/chat.webp" alt="In-app chat hub" width="800" />
+  <br />
+  <em>Chat — collection and private threads</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/users.webp" alt="Users list with roles and groups" width="800" />
+  <br />
+  <em>Users — roles, groups, and status</em>
+</p>
 
 ## Requirements
 
@@ -139,6 +198,7 @@ Pest browser tests live under `tests/Browser/`. See [Testing](https://docs.exter
 | Project | Role |
 | --- | --- |
 | [Documentation](https://docs.externa.qiick.io) | Product & ops docs |
+| [externa-bruno](https://github.com/qiick-io/externa-bruno) | Runnable Public CMS API + GraphQL requests |
 | [GitHub — externa-core](https://github.com/qiick-io/externa-core) | This repository |
 
 ## License
