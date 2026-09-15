@@ -14,6 +14,7 @@ use App\Services\Files\FileWhereUsedScanner;
 use App\Services\FileService;
 use App\Services\FileTransformService;
 use App\Services\Settings\ProjectSettings;
+use App\Support\Files\FilesDisk;
 use App\Support\Uploads\UploadSizeLimiter;
 use App\Support\Validation\SearchQueryRules;
 use Illuminate\Database\Eloquent\Builder;
@@ -246,13 +247,13 @@ class FileController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'disk' => ['nullable', 'string', Rule::in(['assets'])],
+            'disk' => ['nullable', 'string', Rule::in(FilesDisk::allowed())],
         ]);
 
         $folder = $this->fileService->createFolder(
             $validated['name'],
             $validated['parent_id'] ?? null,
-            $validated['disk'] ?? 'assets',
+            $validated['disk'] ?? FilesDisk::default(),
         );
 
         return (new FileResource($folder->load('tags')))
@@ -268,7 +269,7 @@ class FileController extends Controller
         $validated = $request->validate([
             'file' => ['required', 'file'],
             'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'disk' => ['nullable', 'string', Rule::in(['assets'])],
+            'disk' => ['nullable', 'string', Rule::in(FilesDisk::allowed())],
             'name' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -282,7 +283,7 @@ class FileController extends Controller
         $file = $this->fileService->uploadFile(
             $uploaded,
             $validated['parent_id'] ?? null,
-            $validated['disk'] ?? 'assets',
+            $validated['disk'] ?? FilesDisk::default(),
             $validated['name'] ?? null,
         );
 
@@ -396,7 +397,7 @@ class FileController extends Controller
             $file = $this->fileService->uploadFile(
                 $uploaded,
                 $validated['parent_id'] ?? null,
-                'assets',
+                FilesDisk::default(),
                 $fileName,
             );
         } finally {
@@ -672,7 +673,7 @@ class FileController extends Controller
     {
         $validated = $request->validate([
             'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'disk' => ['nullable', 'string', Rule::in(['assets'])],
+            'disk' => ['nullable', 'string', Rule::in(FilesDisk::allowed())],
             'version' => ['nullable', 'date'],
         ]);
 
@@ -789,7 +790,7 @@ class FileController extends Controller
             'total_chunks' => ['required', 'integer', 'min:1'],
             'mime_type' => ['nullable', 'string', 'max:255'],
             'parent_id' => ['nullable', 'integer', 'exists:files,id'],
-            'disk' => ['nullable', 'string', Rule::in(['assets'])],
+            'disk' => ['nullable', 'string', Rule::in(FilesDisk::allowed())],
         ]);
 
         UploadSizeLimiter::assertWithinCap(
@@ -804,7 +805,7 @@ class FileController extends Controller
             $validated['total_chunks'],
             $validated['mime_type'] ?? null,
             $validated['parent_id'] ?? null,
-            $validated['disk'] ?? 'assets',
+            $validated['disk'] ?? FilesDisk::default(),
         );
 
         return response()->json([

@@ -11,6 +11,7 @@ use App\Models\File;
 use App\Services\Api\FilePermissionGuard;
 use App\Services\FileService;
 use App\Services\FileTransformService;
+use App\Support\Files\FilesDisk;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -136,7 +137,7 @@ class FileController extends Controller
             'file' => ['required', 'file'],
             'parent_id' => ['nullable', 'integer', 'exists:files,id'],
             'name' => ['nullable', 'string', 'max:255'],
-            'disk' => ['nullable', 'string', Rule::in(['assets'])],
+            'disk' => ['nullable', 'string', Rule::in(FilesDisk::allowed())],
         ]);
 
         /** @var UploadedFile $upload */
@@ -145,7 +146,7 @@ class FileController extends Controller
         $file = $this->fileService->uploadFile(
             $upload,
             isset($validated['parent_id']) ? (int) $validated['parent_id'] : null,
-            $validated['disk'] ?? 'assets',
+            $validated['disk'] ?? FilesDisk::default(),
             $validated['name'] ?? null,
         );
 
