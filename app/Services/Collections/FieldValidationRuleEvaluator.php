@@ -145,6 +145,7 @@ class FieldValueUniqueRule implements ValidationRule
             return;
         }
 
+        // MySQL/MariaDB JSON key order + CAST(? AS JSON) dialect differ — compare decoded values in PHP.
         $exists = $query->get()->contains(
             static fn (CollectionItemValue $row): bool => $row->value === $value
         );

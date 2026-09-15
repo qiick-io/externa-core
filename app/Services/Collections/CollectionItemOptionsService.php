@@ -196,6 +196,8 @@ class CollectionItemOptionsService
     {
         return match (DB::getDriverName()) {
             'pgsql' => 'LOWER(value::text)',
+            'sqlite' => "LOWER(CAST(json_extract(value, '$') AS TEXT))",
+            'mysql', 'mariadb' => 'LOWER(JSON_UNQUOTE(value))',
             default => 'LOWER(CAST(value AS TEXT))',
         };
     }
@@ -205,6 +207,7 @@ class CollectionItemOptionsService
         return match (DB::getDriverName()) {
             'pgsql' => "value #>> '{}'",
             'sqlite' => "json_extract(value, '$')",
+            'mysql', 'mariadb' => 'JSON_UNQUOTE(value)',
             default => 'JSON_UNQUOTE(value)',
         };
     }

@@ -74,7 +74,7 @@ Light-theme shots from the admin (demo seed data). More in the [docs](https://do
 | **PHP 8.4+** | Pinned in `.php-version` / `composer.json` (`^8.4`). Herd PHP 8.4 recommended on macOS. |
 | **Composer 2** | PHP dependencies and `composer setup` / `composer run dev`. |
 | **Node.js 24** | Pinned in `.nvmrc` and `package.json` `engines`. Use `nvm use` (or equivalent). |
-| **SQLite** (default) | Or MySQL / Postgres via `DB_*`. |
+| **Database** | **SQLite** 3.x (local/CI default); **PostgreSQL** 14+ (16 preferred, production recommended); **MySQL** 8.0+; **MariaDB** 10.6+ (10.11+ preferred). MySQL/MariaDB: `utf8mb4` / `utf8mb4_unicode_ci`. Matrix: [Supported databases](https://docs.externa.qiick.io/docs/supported-databases). |
 | **Redis** (optional) | Needed for Horizon, Reverb-friendly realtime, and Pulse redis ingest. |
 
 Optional: [Laravel Herd](https://herd.laravel.com) (PHP, nginx, `.test` hosts; Pro adds shared Reverb on `:8080`). Optional AI: an OpenAI-compatible gateway (e.g. [LM Studio](https://lmstudio.ai)) at `LOCAL_AI_URL`.
@@ -153,7 +153,7 @@ Copy from `.env.example` and tune. Full reference: [Environment variables](https
 | Group | Keys (curated) | Notes |
 | --- | --- | --- |
 | **App** | `APP_NAME`, `APP_ENV`, `APP_KEY`, `APP_DEBUG`, `APP_URL` | `APP_URL` must match how you browse. **HTTP is fine** for password login, TOTP 2FA, and the rest of the CMS. **Passkeys / WebAuthn** need a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts): HTTPS, or `http://localhost` / `http://*.localhost`. Plain `http://*.test` hosts are not secure — browsers hide `PublicKeyCredential`. Local HTTPS: `herd secure <site>`, matching `APP_URL=https://…`, and `HERD_SITE=<site>` for Vite TLS detection. After switching back to HTTP (`herd unsecure`), clear **http + https** cookies for the site or browsers may keep Secure session cookies → **419 Page Expired** on login. Docs: [Passkeys](https://docs.externa.qiick.io/docs/passkeys). |
-| **Database** | `DB_CONNECTION` (+ `DB_*` if not SQLite) | Default `sqlite`. |
+| **Database** | `DB_CONNECTION` (+ `DB_*` if not SQLite) | Default `sqlite`. Also `pgsql`, `mysql`, `mariadb` — see [Supported databases](https://docs.externa.qiick.io/docs/supported-databases). |
 | **Session / cache** | `SESSION_DRIVER`, `CACHE_STORE` | Default `database`. |
 | **Queue** | `QUEUE_CONNECTION` | Full: `redis` + Horizon. Minimal: `database` + `queue:listen`. |
 | **Redis** | `REDIS_CLIENT`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | Required for Horizon / Pulse redis ingest. |

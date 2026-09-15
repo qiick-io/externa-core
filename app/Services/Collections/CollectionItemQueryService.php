@@ -395,6 +395,7 @@ class CollectionItemQueryService
     {
         return match (DB::getDriverName()) {
             'pgsql' => "(NULLIF({$this->valueTextSql()}, ''))::numeric",
+            'mysql', 'mariadb' => 'CAST('.$this->valueTextSql().' AS DECIMAL(65,10))',
             default => 'CAST('.$this->valueTextSql().' AS REAL)',
         };
     }

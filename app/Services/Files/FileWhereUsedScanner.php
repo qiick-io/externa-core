@@ -89,6 +89,8 @@ class FileWhereUsedScanner
                     $q->whereRaw('value::text LIKE ?', ['%'.$needle.'%']);
                 } elseif ($driver === 'sqlite') {
                     $q->whereRaw('CAST(value AS TEXT) LIKE ?', ['%'.$needle.'%']);
+                } elseif (in_array($driver, ['mysql', 'mariadb'], true)) {
+                    $q->whereRaw('CAST(JSON_UNQUOTE(value) AS CHAR) LIKE ?', ['%'.$needle.'%']);
                 } else {
                     $q->whereRaw('CAST(value AS CHAR) LIKE ?', ['%'.$needle.'%']);
                 }

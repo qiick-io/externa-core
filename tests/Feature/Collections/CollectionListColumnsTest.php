@@ -142,7 +142,8 @@ test('put list-columns persists user-scoped preferences', function () {
         'collection_'.$collection->id.'_aligns',
         $user->id,
     );
-    expect($aligns)->toBe([
+    // MySQL/MariaDB JSON columns may reorder object keys; equality not identity.
+    expect($aligns)->toEqual([
         'title' => 'center',
         'slug' => 'right',
     ]);
