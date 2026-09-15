@@ -165,7 +165,7 @@ test('many_to_many junction_fields persist and store meta', function () {
         ],
     ])->assertRedirect()->assertSessionHasNoErrors();
 
-    expect(H::assemble(H::latestItem($host))['related_tags'])->toBe([
+    expect(H::assemble(H::latestItem($host))['related_tags'])->toEqual([
         ['related_item_id' => $tag->id, 'meta' => ['sort' => 3]],
     ]);
 });

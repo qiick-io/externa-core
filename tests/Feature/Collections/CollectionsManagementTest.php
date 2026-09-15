@@ -1472,13 +1472,14 @@ test('many to many relation values are saved as array storage rows', function ()
         ->get();
 
     expect($rows)->toHaveCount(2);
-    expect($rows->pluck('value')->all())->toBe([
+    // MySQL/MariaDB JSON may reorder object keys — equality not identity.
+    expect($rows->pluck('value')->all())->toEqual([
         ['related_item_id' => $firstTag->id, 'meta' => []],
         ['related_item_id' => $secondTag->id, 'meta' => []],
     ]);
 
     $assembled = app(CollectionItemValuesAssembler::class)->assemble($article);
-    expect($assembled['related_tags'])->toBe([
+    expect($assembled['related_tags'])->toEqual([
         ['related_item_id' => $firstTag->id, 'meta' => []],
         ['related_item_id' => $secondTag->id, 'meta' => []],
     ]);
@@ -1514,7 +1515,7 @@ test('many to many accepts junction metadata objects', function () {
 
     $article = CollectionItem::query()->where('collection_id', $articles->id)->firstOrFail();
     $assembled = app(CollectionItemValuesAssembler::class)->assemble($article);
-    expect($assembled['related_tags'])->toBe([
+    expect($assembled['related_tags'])->toEqual([
         ['related_item_id' => $tag->id, 'meta' => ['sort' => 1]],
     ]);
 });
@@ -1558,7 +1559,7 @@ test('m2a blocks are saved and assembled in order', function () {
     expect($entry)->not->toBeNull();
 
     $assembled = app(CollectionItemValuesAssembler::class)->assemble($entry);
-    expect($assembled['content'])->toBe([
+    expect($assembled['content'])->toEqual([
         [
             'related_collection_id' => $blocks->id,
             'related_item_id' => $blockItem->id,
@@ -1677,7 +1678,7 @@ test('blocks field values are saved and assembled in order', function () {
     $item = CollectionItem::query()->where('collection_id', $collection->id)->firstOrFail();
     $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
 
-    expect($assembled['content'])->toBe($payload['content']);
+    expect($assembled['content'])->toEqual($payload['content']);
     expect(
         CollectionItemValue::query()
             ->where('item_id', $item->id)
@@ -2109,7 +2110,7 @@ test('nested m2a inside blocks is saved and assembled', function () {
 
     expect($assembled['body'])->toHaveCount(1)
         ->and($assembled['body'][0]['data']['heading'])->toBe('Reuse')
-        ->and($assembled['body'][0]['data']['modules'])->toBe([
+        ->and($assembled['body'][0]['data']['modules'])->toEqual([
             [
                 'related_collection_id' => $modules->id,
                 'related_item_id' => $moduleItem->id,
@@ -2212,7 +2213,7 @@ test('nested m2m inside blocks is saved as json links not junction rows', functi
     $item = CollectionItem::query()->where('collection_id', $articles->id)->firstOrFail();
     $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
 
-    expect($assembled['body'][0]['data']['articles'])->toBe([
+    expect($assembled['body'][0]['data']['articles'])->toEqual([
         [
             'related_item_id' => $relatedItem->id,
             'meta' => ['note' => 'featured'],
