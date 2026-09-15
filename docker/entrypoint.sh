@@ -5,14 +5,30 @@ role="${1:-app}"
 
 cd /var/www/html
 
-mkdir -p storage/framework/{cache,sessions,views} storage/logs storage/app/{public,private,zips,tmp} bootstrap/cache
+mkdir -p storage/framework/{cache/data,sessions,views} storage/logs storage/app/{public,private,zips,tmp} bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
 
 if [[ -f artisan ]]; then
-  # Dev bind-mount: install PHP deps into the named vendor volume when empty
-  if [[ "${APP_ENV:-local}" != "production" && ! -f vendor/autoload.php && -f composer.json ]]; then
-    echo "Installing Composer dependencies..."
-    composer install --no-interaction --prefer-dist --optimize-autoloader
+  # Dev bind-mount: only the app role installs into the named vendor volume;
+  # sibling workers wait so parallel composer installs cannot corrupt the archive cache.
+  if [[ "${APP_ENV:-local}" != "production" && -f composer.json ]]; then
+    if [[ "$role" == "app" ]]; then
+      if [[ ! -f vendor/autoload.php ]]; then
+        echo "Installing Composer dependencies..."
+        composer install --no-interaction --prefer-dist --optimize-autoloader
+      fi
+    else
+      echo "Waiting for vendor/autoload.php..."
+      for i in $(seq 1 180); do
+        [[ -f vendor/autoload.php ]] && break
+        sleep 1
+      done
+    fi
+    if [[ ! -f vendor/autoload.php ]]; then
+      echo "vendor/autoload.php missing" >&2
+      exit 1
+    fi
   fi
 
   if [[ -f artisan && -z "${APP_KEY:-}" ]]; then
