@@ -115,4 +115,22 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Markdown Mail Settings
+    |--------------------------------------------------------------------------
+    |
+    | Theme + component paths for Markdown / notification emails. App overrides
+    | live under resources/views/vendor/mail (and resources/views/mail/themes).
+    |
+    */
+
+    'markdown' => [
+        'theme' => env('MAIL_MARKDOWN_THEME', 'default'),
+
+        'paths' => [
+            resource_path('views/vendor/mail'),
+        ],
+    ],
+
 ];

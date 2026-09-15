@@ -118,6 +118,35 @@ class ProjectAppearance
     }
 
     /**
+     * Light-theme branding for transactional mail (reset / verify / MailMessage).
+     *
+     * Logo URL is whatever the assets (or FILE_PUBLIC_URL_BASE) disk exposes — must be
+     * an absolute URL reachable by email clients (public disk / CDN / S3), not localhost in prod.
+     *
+     * @return array{
+     *     name: string,
+     *     logoUrl: string|null,
+     *     primaryColor: string,
+     *     primaryForeground: string
+     * }
+     */
+    public function forMail(): array
+    {
+        $shared = $this->shared();
+        $primary = is_string($shared['projectColor'] ?? null) && $shared['projectColor'] !== ''
+            ? $shared['projectColor']
+            : '#18181b';
+        $foreground = ContrastingForeground::forHex($primary) ?? ContrastingForeground::WHITE;
+
+        return [
+            'name' => app(ProjectSettings::class)->displayName(),
+            'logoUrl' => $this->absolutePublicUrl($shared['logoUrl'] ?? null),
+            'primaryColor' => $primary,
+            'primaryForeground' => $foreground,
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $idsByKey
      * @return array<string, string|null>
      */
@@ -132,6 +161,19 @@ class ProjectAppearance
         }
 
         return $urls;
+    }
+
+    private function absolutePublicUrl(?string $url): ?string
+    {
+        if ($url === null || $url === '') {
+            return null;
+        }
+
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            return $url;
+        }
+
+        return url($url);
     }
 
     /**
