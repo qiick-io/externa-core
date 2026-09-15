@@ -3,10 +3,12 @@
 use App\Enums\FileTypeEnum;
 use App\Models\File;
 use App\Models\User;
+use App\Notifications\FileZipReadyNotification;
 use App\Services\Settings\SettingsRepository;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @return array{logo: File, logoUrl: string}
@@ -32,7 +34,7 @@ function seedMailBrandingAppearance(string $projectName = 'Externa Brand', strin
         'project_logo' => $logo->id,
     ]);
 
-    $logoUrl = (string) \Illuminate\Support\Facades\Storage::disk('assets')->url($logo->storage_path);
+    $logoUrl = (string) Storage::disk('assets')->url($logo->storage_path);
 
     return ['logo' => $logo, 'logoUrl' => $logoUrl];
 }
@@ -88,7 +90,7 @@ test('database notifications stay unaffected by mail branding', function () {
     $user = User::factory()->create();
     seedMailBrandingAppearance();
 
-    $notification = new \App\Notifications\FileZipReadyNotification(
+    $notification = new FileZipReadyNotification(
         jobId: 'job-1',
         downloadUrl: 'https://example.test/zip',
         expiresAt: now()->addHour()->toIso8601String(),
@@ -100,5 +102,5 @@ test('database notifications stay unaffected by mail branding', function () {
 
     $user->notify($notification);
 
-    Notification::assertSentTo($user, \App\Notifications\FileZipReadyNotification::class);
+    Notification::assertSentTo($user, FileZipReadyNotification::class);
 });
