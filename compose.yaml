@@ -1,0 +1,277 @@
+# Track A — local full stack (Herd parity). Official path: Compose, not Sail.
+# Usage:
+#   cp .env.docker.example .env
+#   docker compose up --build
+# Optional MinIO: docker compose --profile minio up --build
+
+name: externa
+
+services:
+  app:
+    build:
+      context: .
+      target: development
+    command: ["app"]
+    ports:
+      - "${APP_PORT:-8000}:80"
+    env_file:
+      - .env
+    environment:
+      APP_ENV: local
+      RUN_MIGRATIONS: "${RUN_MIGRATIONS:-true}"
+      CACHE_CONFIG: "false"
+      DB_CONNECTION: pgsql
+      DB_HOST: pgsql
+      DB_PORT: 5432
+      DB_DATABASE: "${DB_DATABASE:-externa}"
+      DB_USERNAME: "${DB_USERNAME:-externa}"
+      DB_PASSWORD: "${DB_PASSWORD:-secret}"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QUEUE_CONNECTION: redis
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      BROADCAST_CONNECTION: reverb
+      REVERB_HOST: reverb
+      REVERB_PORT: 8080
+      REVERB_SERVER_HOST: 0.0.0.0
+      REVERB_SERVER_PORT: 8080
+      VITE_REVERB_HOST: localhost
+      VITE_REVERB_PORT: "${REVERB_HOST_PORT:-8081}"
+      VITE_REVERB_SCHEME: http
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+    volumes:
+      - .:/var/www/html
+      - externa_vendor:/var/www/html/vendor
+      - externa_node_modules:/var/www/html/node_modules
+      - externa_storage:/var/www/html/storage
+    depends_on:
+      pgsql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks:
+      - externa
+
+  vite:
+    image: node:24-bookworm
+    working_dir: /var/www/html
+    command: ["sh", "-c", "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"]
+    ports:
+      - "${VITE_PORT:-5173}:5173"
+    env_file:
+      - .env
+    environment:
+      VITE_REVERB_APP_KEY: "${REVERB_APP_KEY:-externa-reverb}"
+      VITE_REVERB_HOST: localhost
+      VITE_REVERB_PORT: "${REVERB_HOST_PORT:-8081}"
+      VITE_REVERB_SCHEME: http
+    volumes:
+      - .:/var/www/html
+      - externa_node_modules:/var/www/html/node_modules
+    depends_on:
+      - app
+    networks:
+      - externa
+
+  horizon:
+    build:
+      context: .
+      target: development
+    command: ["horizon"]
+    env_file:
+      - .env
+    environment:
+      APP_ENV: local
+      DB_CONNECTION: pgsql
+      DB_HOST: pgsql
+      DB_PORT: 5432
+      DB_DATABASE: "${DB_DATABASE:-externa}"
+      DB_USERNAME: "${DB_USERNAME:-externa}"
+      DB_PASSWORD: "${DB_PASSWORD:-secret}"
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+      CACHE_STORE: redis
+    volumes:
+      - .:/var/www/html
+      - externa_vendor:/var/www/html/vendor
+      - externa_storage:/var/www/html/storage
+    depends_on:
+      app:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - externa
+
+  reverb:
+    build:
+      context: .
+      target: development
+    command: ["reverb"]
+    ports:
+      # Host 8081 avoids clash with Herd Reverb on :8080
+      - "${REVERB_HOST_PORT:-8081}:8080"
+    env_file:
+      - .env
+    environment:
+      APP_ENV: local
+      REDIS_HOST: redis
+      REVERB_SERVER_HOST: 0.0.0.0
+      REVERB_SERVER_PORT: 8080
+      BROADCAST_CONNECTION: reverb
+    volumes:
+      - .:/var/www/html
+      - externa_vendor:/var/www/html/vendor
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - externa
+
+  scheduler:
+    build:
+      context: .
+      target: development
+    command: ["scheduler"]
+    env_file:
+      - .env
+    environment:
+      APP_ENV: local
+      DB_CONNECTION: pgsql
+      DB_HOST: pgsql
+      DB_PORT: 5432
+      DB_DATABASE: "${DB_DATABASE:-externa}"
+      DB_USERNAME: "${DB_USERNAME:-externa}"
+      DB_PASSWORD: "${DB_PASSWORD:-secret}"
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+    volumes:
+      - .:/var/www/html
+      - externa_vendor:/var/www/html/vendor
+      - externa_storage:/var/www/html/storage
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - externa
+
+  pulse:
+    build:
+      context: .
+      target: development
+    command: ["pulse"]
+    env_file:
+      - .env
+    environment:
+      APP_ENV: local
+      REDIS_HOST: redis
+      PULSE_REDIS_CONNECTION: pulse
+    volumes:
+      - .:/var/www/html
+      - externa_vendor:/var/www/html/vendor
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - externa
+
+  pgsql:
+    image: postgres:16-alpine
+    ports:
+      - "${FORWARD_DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: "${DB_DATABASE:-externa}"
+      POSTGRES_USER: "${DB_USERNAME:-externa}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-secret}"
+    volumes:
+      - externa_pgsql:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-externa} -d ${DB_DATABASE:-externa}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - externa
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${FORWARD_REDIS_PORT:-6379}:6379"
+    volumes:
+      - externa_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - externa
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "${FORWARD_MAILPIT_PORT:-8025}:8025"
+      - "${FORWARD_MAILPIT_SMTP_PORT:-1025}:1025"
+    networks:
+      - externa
+
+  minio:
+    profiles: ["minio"]
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "${FORWARD_MINIO_PORT:-9000}:9000"
+      - "${FORWARD_MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: "${AWS_ACCESS_KEY_ID:-externa}"
+      MINIO_ROOT_PASSWORD: "${AWS_SECRET_ACCESS_KEY:-externasecret}"
+    volumes:
+      - externa_minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+    networks:
+      - externa
+
+  minio-init:
+    profiles: ["minio"]
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $${AWS_ACCESS_KEY_ID:-externa} $${AWS_SECRET_ACCESS_KEY:-externasecret};
+      mc mb --ignore-existing local/$${AWS_BUCKET:-externa};
+      mc anonymous set download local/$${AWS_BUCKET:-externa}/public || true;
+      exit 0;
+      "
+    environment:
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-externa}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-externasecret}"
+      AWS_BUCKET: "${AWS_BUCKET:-externa}"
+    networks:
+      - externa
+
+volumes:
+  externa_pgsql:
+  externa_redis:
+  externa_storage:
+  externa_vendor:
+  externa_node_modules:
+  externa_minio:
+
+networks:
+  externa:
+    driver: bridge
