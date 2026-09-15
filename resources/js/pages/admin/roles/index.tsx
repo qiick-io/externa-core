@@ -223,9 +223,7 @@ export default function AdminRolesIndex({
                                                             </Link>
                                                         </HeaderIconButton>
                                                     )}
-                                                    {canDuplicateRole(
-                                                        role,
-                                                    ) && (
+                                                    {canDuplicateRole(role) && (
                                                         <HeaderIconButton
                                                             type="button"
                                                             variant="outline"
