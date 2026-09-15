@@ -6,6 +6,7 @@ use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkRoleActionRequest;
+use App\Http\Requests\Admin\DuplicateRoleRequest;
 use App\Http\Requests\Admin\StoreRoleRequest;
 use App\Http\Requests\Admin\UpdateRoleRequest;
 use App\Http\Requests\Concerns\AuthorizesWithPermission;
@@ -125,6 +126,66 @@ class RoleController extends Controller
         return redirect()
             ->route('roles.index')
             ->with('success', __('Role created.'));
+    }
+
+    /**
+     * Clone Spatie permissions and collection/file matrices into a new role.
+     *
+     * Does not copy user or group memberships. Locked system sources are rejected.
+     */
+    public function duplicate(DuplicateRoleRequest $request, Role $role): RedirectResponse
+    {
+        if ($role->name === RoleEnum::SuperAdmin->value || $role->isLockedSystemRole()) {
+            abort(403, 'This role cannot be duplicated.');
+        }
+
+        $data = $request->validated();
+        $guard = config('auth.defaults.guard', 'web');
+
+        $clone = Role::query()->create([
+            'name' => $data['name'],
+            'guard_name' => $guard,
+            'is_system' => false,
+            'is_assignable' => true,
+        ]);
+
+        $this->syncPermissions(
+            $clone,
+            $role->permissions()->pluck('id')->map(fn ($id) => (int) $id)->all(),
+        );
+
+        $this->collectionPermissionSync->sync(
+            $clone,
+            $this->collectionPermissionSync->matrixForRole($role),
+        );
+
+        $this->filePermissionSync->sync(
+            $clone,
+            $this->filePermissionSync->matrixForRole($role),
+        );
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return redirect()
+            ->route('roles.edit', $clone)
+            ->with('success', __('Role duplicated.'));
+    }
+
+    /**
+     * Suggest a unique clone name: `{source}-copy`, `{source}-copy-2`, …
+     */
+    public static function uniqueDuplicateRoleName(string $sourceName): string
+    {
+        $guard = config('auth.defaults.guard', 'web');
+        $candidate = $sourceName.'-copy';
+        $suffix = 2;
+
+        while (Role::query()->where('guard_name', $guard)->where('name', $candidate)->exists()) {
+            $candidate = $sourceName.'-copy-'.$suffix;
+            $suffix++;
+        }
+
+        return $candidate;
     }
 
     /**

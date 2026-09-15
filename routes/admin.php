@@ -90,6 +90,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware('permission:'.PermissionEnum::CanCreateRoles->value)
             ->name('roles.store');
 
+        Route::post('roles/{role}/duplicate', [RoleController::class, 'duplicate'])
+            ->middleware('permission:'.PermissionEnum::CanCreateRoles->value)
+            ->name('roles.duplicate');
+
         Route::get('roles/{role}/edit', [RoleController::class, 'edit'])
             ->middleware('permission:'.PermissionEnum::CanEditRoles->value)
             ->name('roles.edit');

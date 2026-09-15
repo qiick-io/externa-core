@@ -22,6 +22,29 @@
             "admin": "Admin",
             "reader": "Reader",
             "public": "Public"
+        },
+        "actions": {
+            "edit": "Edit",
+            "delete": "Delete",
+            "duplicate": "Duplicate",
+            "newRole": "New role"
+        },
+        "columns": {
+            "name": "Name",
+            "permissions": "Permissions",
+            "actions": "Actions"
+        },
+        "empty": "No roles yet.",
+        "systemBadge": "System",
+        "deleteTitle": "Delete role?",
+        "deleteDescription": "Delete \"{{name}}\"? This cannot be undone.",
+        "deleteFallback": "This cannot be undone.",
+        "duplicate": {
+            "title": "Duplicate role",
+            "description": "Create a copy of \"{{name}}\" with the same permissions and access matrices. Memberships are not copied.",
+            "name": "New role name",
+            "submit": "Duplicate",
+            "duplicating": "Duplicating…"
         }
     },
     "nav": {
