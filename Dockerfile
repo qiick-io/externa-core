@@ -44,6 +44,18 @@ RUN composer dump-autoload --optimize --no-dev \
     && rm -rf node_modules
 
 # -----------------------------------------------------------------------------
+# Vite (Compose): PHP for Wayfinder + Node for npm run dev
+# -----------------------------------------------------------------------------
+FROM php-base AS vite
+
+COPY --from=node:24-bookworm /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:24-bookworm /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+
+WORKDIR /var/www/html
+
+# -----------------------------------------------------------------------------
 # Development: extensions + nginx; source bind-mounted by Compose
 # -----------------------------------------------------------------------------
 FROM php-base AS development

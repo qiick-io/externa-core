@@ -23,9 +23,9 @@ services:
       DB_CONNECTION: pgsql
       DB_HOST: pgsql
       DB_PORT: 5432
-      DB_DATABASE: "${DB_DATABASE:-externa}"
-      DB_USERNAME: "${DB_USERNAME:-externa}"
-      DB_PASSWORD: "${DB_PASSWORD:-secret}"
+      DB_DATABASE: "${COMPOSE_DB_DATABASE:-externa}"
+      DB_USERNAME: "${COMPOSE_DB_USERNAME:-externa}"
+      DB_PASSWORD: "${COMPOSE_DB_PASSWORD:-secret}"
       REDIS_HOST: redis
       REDIS_PORT: 6379
       QUEUE_CONNECTION: redis
@@ -62,7 +62,9 @@ services:
       - externa
 
   vite:
-    image: node:24-bookworm
+    build:
+      context: .
+      target: vite
     working_dir: /var/www/html
     command: ["sh", "-c", "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"]
     ports:
@@ -70,15 +72,26 @@ services:
     env_file:
       - .env
     environment:
+      # Match app overrides so artisan wayfinder can boot inside vite container
+      APP_ENV: local
+      DB_CONNECTION: pgsql
+      DB_HOST: pgsql
+      DB_PORT: 5432
+      DB_DATABASE: "${COMPOSE_DB_DATABASE:-externa}"
+      DB_USERNAME: "${COMPOSE_DB_USERNAME:-externa}"
+      DB_PASSWORD: "${COMPOSE_DB_PASSWORD:-secret}"
+      REDIS_HOST: redis
       VITE_REVERB_APP_KEY: "${REVERB_APP_KEY:-externa-reverb}"
       VITE_REVERB_HOST: localhost
       VITE_REVERB_PORT: "${REVERB_HOST_PORT:-8081}"
       VITE_REVERB_SCHEME: http
     volumes:
       - .:/var/www/html
+      - externa_vendor:/var/www/html/vendor
       - externa_node_modules:/var/www/html/node_modules
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     networks:
       - externa
 
@@ -94,9 +107,9 @@ services:
       DB_CONNECTION: pgsql
       DB_HOST: pgsql
       DB_PORT: 5432
-      DB_DATABASE: "${DB_DATABASE:-externa}"
-      DB_USERNAME: "${DB_USERNAME:-externa}"
-      DB_PASSWORD: "${DB_PASSWORD:-secret}"
+      DB_DATABASE: "${COMPOSE_DB_DATABASE:-externa}"
+      DB_USERNAME: "${COMPOSE_DB_USERNAME:-externa}"
+      DB_PASSWORD: "${COMPOSE_DB_PASSWORD:-secret}"
       REDIS_HOST: redis
       QUEUE_CONNECTION: redis
       CACHE_STORE: redis
@@ -151,9 +164,9 @@ services:
       DB_CONNECTION: pgsql
       DB_HOST: pgsql
       DB_PORT: 5432
-      DB_DATABASE: "${DB_DATABASE:-externa}"
-      DB_USERNAME: "${DB_USERNAME:-externa}"
-      DB_PASSWORD: "${DB_PASSWORD:-secret}"
+      DB_DATABASE: "${COMPOSE_DB_DATABASE:-externa}"
+      DB_USERNAME: "${COMPOSE_DB_USERNAME:-externa}"
+      DB_PASSWORD: "${COMPOSE_DB_PASSWORD:-secret}"
       REDIS_HOST: redis
       QUEUE_CONNECTION: redis
     volumes:
@@ -175,7 +188,14 @@ services:
       - .env
     environment:
       APP_ENV: local
+      DB_CONNECTION: pgsql
+      DB_HOST: pgsql
+      DB_PORT: 5432
+      DB_DATABASE: "${COMPOSE_DB_DATABASE:-externa}"
+      DB_USERNAME: "${COMPOSE_DB_USERNAME:-externa}"
+      DB_PASSWORD: "${COMPOSE_DB_PASSWORD:-secret}"
       REDIS_HOST: redis
+      CACHE_STORE: redis
       PULSE_REDIS_CONNECTION: pulse
     volumes:
       - .:/var/www/html
@@ -193,13 +213,13 @@ services:
     ports:
       - "${FORWARD_DB_PORT:-5432}:5432"
     environment:
-      POSTGRES_DB: "${DB_DATABASE:-externa}"
-      POSTGRES_USER: "${DB_USERNAME:-externa}"
-      POSTGRES_PASSWORD: "${DB_PASSWORD:-secret}"
+      POSTGRES_DB: "${COMPOSE_DB_DATABASE:-externa}"
+      POSTGRES_USER: "${COMPOSE_DB_USERNAME:-externa}"
+      POSTGRES_PASSWORD: "${COMPOSE_DB_PASSWORD:-secret}"
     volumes:
       - externa_pgsql:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-externa} -d ${DB_DATABASE:-externa}"]
+      test: ["CMD-SHELL", "pg_isready -U ${COMPOSE_DB_USERNAME:-externa} -d ${COMPOSE_DB_DATABASE:-externa}"]
       interval: 5s
       timeout: 5s
       retries: 10
