@@ -22,6 +22,29 @@
             "admin": "Admin",
             "reader": "Leser",
             "public": "Öffentlich"
+        },
+        "actions": {
+            "edit": "Bearbeiten",
+            "delete": "Löschen",
+            "duplicate": "Duplizieren",
+            "newRole": "Neue Rolle"
+        },
+        "columns": {
+            "name": "Name",
+            "permissions": "Berechtigungen",
+            "actions": "Aktionen"
+        },
+        "empty": "Noch keine Rollen.",
+        "systemBadge": "System",
+        "deleteTitle": "Rolle löschen?",
+        "deleteDescription": "„{{name}}“ löschen? Dies kann nicht rückgängig gemacht werden.",
+        "deleteFallback": "Dies kann nicht rückgängig gemacht werden.",
+        "duplicate": {
+            "title": "Rolle duplizieren",
+            "description": "Kopie von „{{name}}“ mit denselben Berechtigungen und Zugriffsmatrizen erstellen. Mitgliedschaften werden nicht kopiert.",
+            "name": "Name der neuen Rolle",
+            "submit": "Duplizieren",
+            "duplicating": "Wird dupliziert…"
         }
     },
     "nav": {

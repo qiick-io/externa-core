@@ -83,4 +83,14 @@ class FilePermissionSync
             'delete' => (bool) ($map['delete'] ?? false),
         ];
     }
+
+    /**
+     * Alias matching CollectionPermissionSync::matrixForRole for role clone flows.
+     *
+     * @return array{create: bool, read: bool, read_private: bool, update: bool, delete: bool}
+     */
+    public function matrixForRole(Role $role): array
+    {
+        return $this->grantsForRole($role);
+    }
 }
