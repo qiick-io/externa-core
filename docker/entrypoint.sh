@@ -9,6 +9,24 @@ mkdir -p storage/framework/{cache/data,sessions,views} storage/logs storage/app/
 chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
 
+# Bind :80 immediately so host-published ports accept TCP while composer/migrate run.
+# Docker marks the container "running" as soon as entrypoint starts; without this,
+# browsers see ERR_CONNECTION_REFUSED until nginx finally starts (minutes on cold vendor).
+# Mid-boot may be 502 (no php-fpm yet) — not connection refused.
+stop_nginx_daemon() {
+  if [[ -f /run/nginx.pid ]] || [[ -f /var/run/nginx.pid ]]; then
+    nginx -s quit 2>/dev/null || true
+    for _ in $(seq 1 25); do
+      [[ -f /run/nginx.pid || -f /var/run/nginx.pid ]] || break
+      sleep 0.2
+    done
+  fi
+}
+
+if [[ "$role" == "app" ]]; then
+  nginx 2>/dev/null || true
+fi
+
 if [[ -f artisan ]]; then
   # Dev bind-mount: only the app role installs into the named vendor volume;
   # sibling workers wait so parallel composer installs cannot corrupt the archive cache.
@@ -78,6 +96,7 @@ fi
 
 case "$role" in
   app)
+    stop_nginx_daemon
     php-fpm -D
     exec nginx -g 'daemon off;'
     ;;

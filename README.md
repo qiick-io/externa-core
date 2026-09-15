@@ -142,9 +142,11 @@ Official local path is **Compose** (`compose.yaml`) — Sail stays in `require-d
 ```bash
 cp .env.docker.example .env
 docker compose up --build
-# App: http://localhost:8000
+# App: http://localhost:8000  (COMPOSE_APP_URL overrides Herd APP_URL inside containers)
 # Reverb published on host :8081 (avoids Herd Reverb on :8080)
 # MinIO: docker compose --profile minio up --build
+# MySQL: docker compose --profile mysql -f compose.yaml -f compose.mysql.yaml up --build
+# MariaDB (host :3307): docker compose --profile mariadb -f compose.yaml -f compose.mariadb.yaml up --build
 ```
 
 Production: multi-stage `Dockerfile` (`--target production`), `compose.prod.yaml`, `.env.docker.prod.example`. Probes: `GET /health/live`, `GET /health/ready` (+ Laravel `/up`). Docs: [Installation](https://docs.externa.qiick.io/docs/installation) · [Deployment](https://docs.externa.qiick.io/docs/deployment).
