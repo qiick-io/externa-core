@@ -135,6 +135,22 @@ composer run dev:full
 
 Open `APP_URL` (your Herd host, `http://localhost`, or `php artisan serve`). Unauthenticated `/` redirects to login.
 
+### Docker (local full stack)
+
+Official local path is **Compose** (`compose.yaml`) — Sail stays in `require-dev` but is not required. Stack: app (nginx+php-fpm) + Vite + Postgres + Redis + Horizon + Reverb + scheduler + Pulse + Mailpit. Optional MinIO profile for `FILES_DISK=s3`.
+
+```bash
+cp .env.docker.example .env
+docker compose up --build
+# App: http://localhost:8000  (COMPOSE_APP_URL overrides Herd APP_URL inside containers)
+# Reverb published on host :8081 (avoids Herd Reverb on :8080)
+# MinIO: docker compose --profile minio up --build
+# MySQL: docker compose --profile mysql -f compose.yaml -f compose.mysql.yaml up --build
+# MariaDB (host :3307): docker compose --profile mariadb -f compose.yaml -f compose.mariadb.yaml up --build
+```
+
+Production: multi-stage `Dockerfile` (`--target production`), `compose.prod.yaml`, `.env.docker.prod.example`. Probes: `GET /health/live`, `GET /health/ready` (+ Laravel `/up`). Docs: [Installation](https://docs.externa.qiick.io/docs/installation) · [Deployment](https://docs.externa.qiick.io/docs/deployment).
+
 ### First login (local / dev only)
 
 `php artisan db:seed` creates permissions, roles (`super-admin`, `admin`, `reader`, `public`), and a super admin from `config/super_admin.php`:
@@ -160,7 +176,7 @@ Copy from `.env.example` and tune. Full reference: [Environment variables](https
 | **Broadcast / Reverb** | `BROADCAST_CONNECTION`, `REVERB_*`, `VITE_REVERB_*` | Full: `reverb`. Minimal: `log` (60s notification poll). Restart Vite after `VITE_REVERB_*` changes. |
 | **Pulse** | `PULSE_ENABLED`, `PULSE_INGEST_DRIVER`, `PULSE_*` | Prefer redis ingest + `pulse:work`. Disable with `PULSE_ENABLED=false` when not using Redis. |
 | **AI** | `AI_DEFAULT_PROVIDER`, `LOCAL_AI_URL`, `LOCAL_AI_MODEL`, … | Optional; defaults target a local OpenAI-compatible gateway. |
-| **Files** | `FILES_DUPLICATE_SYNC_MAX_BYTES`, `FILES_ZIP_*` | Async zip / large duplicate need a queue worker. |
+| **Files** | `FILES_DISK`, `FILES_DUPLICATE_SYNC_MAX_BYTES`, `FILES_ZIP_*`, `AWS_*` | File manager disk (`assets` or `s3`). Async zip / large duplicate need a queue worker. Zip archives stay on the shared local `storage` volume. |
 
 See `.env.example` for every key and inline comments.
 

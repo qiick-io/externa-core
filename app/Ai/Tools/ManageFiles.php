@@ -433,7 +433,7 @@ class ManageFiles implements Tool
             null,
             true,
         );
-        $file = app(FileService::class)->uploadFile($uploadedFile, $parentId, 'assets');
+        $file = app(FileService::class)->uploadFile($uploadedFile, $parentId);
         $this->logAiMutation($file, 'save_ai_attachment');
         $attachment->delete();
 

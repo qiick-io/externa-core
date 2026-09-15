@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Storage\AbsolutePath;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -79,7 +80,7 @@ class AiChatAttachment extends Model
      */
     public function absolutePath(): string
     {
-        return Storage::disk($this->disk)->path($this->path);
+        return AbsolutePath::resolve($this->disk, $this->path);
     }
 
     /**
