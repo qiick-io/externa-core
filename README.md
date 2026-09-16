@@ -12,7 +12,7 @@ Externa is a **Laravel-native headless CMS**: operators manage structured conten
 | | |
 | --- | --- |
 | **Docs** | [docs.externa.qiick.io](https://docs.externa.qiick.io) |
-| **Install** | [Installation](https://docs.externa.qiick.io/docs/installation) · [Minimal vs full stack](https://docs.externa.qiick.io/docs/minimal-vs-full-stack) |
+| **Install** | `composer create-project qiick/externa-core` · [Installation](https://docs.externa.qiick.io/docs/installation) · [Minimal vs full stack](https://docs.externa.qiick.io/docs/minimal-vs-full-stack) |
 | **API** | [Public CMS API](https://docs.externa.qiick.io/docs/public-cms-api) · [GraphQL](https://docs.externa.qiick.io/docs/graphql) · [1.x compatibility](https://docs.externa.qiick.io/docs/api-compatibility) |
 | **Security** | [SECURITY.md](./SECURITY.md) · [Threat model](https://docs.externa.qiick.io/docs/threat-model) |
 | **Issues** | [GitHub Issues](https://github.com/qiick-io/externa-core/issues) |
@@ -82,6 +82,23 @@ Optional: [Laravel Herd](https://herd.laravel.com) (PHP, nginx, `.test` hosts; P
 
 ## Quick start
 
+**Operators (recommended):** create a new site from Packagist (no git clone):
+
+```bash
+composer create-project qiick/externa-core:^1.0.0@beta my-externa
+cd my-externa
+nvm use   # Node 24
+composer setup
+php artisan db:seed
+php artisan storage:link
+```
+
+Beta tags need Composer stability: `@beta` (or `"minimum-stability": "beta"` in a root that requires the package). After Packagist lists a tag, `create-project` pulls that release; until then use the [git contributor path](#contributors-git-clone) or a VCS repository. Docs: [Installation](https://docs.externa.qiick.io/docs/installation) · [Packagist & create-project](https://docs.externa.qiick.io/docs/packagist).
+
+**Shortcut:** `composer setup` runs install → copy `.env` if missing → `key:generate` → migrate → `npm install` → `npm run build`. Still run `db:seed`, `storage:link`, and Wayfinder (or let Vite generate routes on first `npm run dev`). Interactive first-run: `php artisan externa:install` when available (#4).
+
+### Contributors (git clone)
+
 ```bash
 git clone https://github.com/qiick-io/externa-core.git
 cd externa-core
@@ -102,8 +119,6 @@ npm install
 php artisan wayfinder:generate --with-form --no-interaction
 npm run build   # or skip and rely on `npm run dev` / Vite HMR
 ```
-
-**Shortcut:** `composer setup` runs install → copy `.env` if missing → `key:generate` → migrate → `npm install` → `npm run build`. Still run `db:seed`, `storage:link`, and Wayfinder (or let Vite generate routes on first `npm run dev`).
 
 ### Run locally
 
