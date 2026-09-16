@@ -151,6 +151,10 @@ composer run dev:full
 
 Open `APP_URL` (your Herd host, `http://localhost`, or `php artisan serve`). Unauthenticated `/` redirects to login.
 
+### Dev Container (VS Code / Codespaces)
+
+Open the repo in VS Code **Reopen in Container** or GitHub Codespaces — `.devcontainer/devcontainer.json` reuses `compose.yaml` (`app` service). Post-create runs composer/npm/migrate/seed. Docs: [Installation](https://docs.externa.qiick.io/docs/installation).
+
 ### Docker (local full stack)
 
 Official local path is **Compose** (`compose.yaml`) — Sail stays in `require-dev` but is not required. Stack: app (nginx+php-fpm) + Vite + Postgres + Redis + Horizon + Reverb + scheduler + Pulse + Mailpit. Optional MinIO profile for `FILES_DISK=s3`.
