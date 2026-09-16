@@ -64,3 +64,5 @@ tests/Browser/*.png
 # Local-only Kitchen Sink QA seed (not for OSS)
 /database/data/kitchen-sink.json
 /database/seeders/KitchenSinkSeeder.php
+
+/backups
