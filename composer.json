@@ -34,6 +34,7 @@
         "laravel/reverb": "^1.11",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
+        "league/flysystem-aws-s3-v3": "^3.25",
         "nuwave/lighthouse": "^6.69",
         "phpoffice/phpspreadsheet": "^5.9",
         "smalot/pdfparser": "^2.12",
