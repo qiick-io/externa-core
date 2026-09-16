@@ -1,0 +1,54 @@
+# Swap default Postgres for MySQL (Herd-like :3306).
+# Host .env stays Herd-safe — COMPOSE_* / overlay env only.
+#
+#   docker compose --profile mysql -f compose.yaml -f compose.mysql.yaml up --build
+#   docker compose --profile mysql -f compose.yaml -f compose.mysql.yaml exec app php artisan migrate --seed --force
+#
+# Stop pgsql first if it still owns :5432 from a prior up:
+#   docker compose stop pgsql
+
+services:
+  pgsql:
+    profiles: ["pgsql"]
+
+  app:
+    environment:
+      COMPOSE_DB_CONNECTION: mysql
+      COMPOSE_DB_HOST: mysql
+      COMPOSE_DB_PORT: "3306"
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_CHARSET: utf8mb4
+      DB_COLLATION: utf8mb4_unicode_ci
+    depends_on:
+      mysql:
+        condition: service_healthy
+        required: true
+      pgsql:
+        condition: service_healthy
+        required: false
+
+  vite:
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: "3306"
+
+  horizon:
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: "3306"
+
+  scheduler:
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: "3306"
+
+  pulse:
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: "3306"

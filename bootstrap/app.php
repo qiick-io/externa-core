@@ -24,6 +24,9 @@ return Application::configure(basePath: dirname(__DIR__))
         channels: __DIR__.'/../routes/channels.php',
         health: '/up',
         apiPrefix: 'api',
+        then: function (): void {
+            require __DIR__.'/../routes/health.php';
+        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([

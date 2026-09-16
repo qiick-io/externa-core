@@ -1,0 +1,51 @@
+# Swap default Postgres for MariaDB (Herd-like host :3307 → container 3306).
+# Host .env stays Herd-safe — COMPOSE_* / overlay env only.
+#
+#   docker compose --profile mariadb -f compose.yaml -f compose.mariadb.yaml up --build
+#   docker compose --profile mariadb -f compose.yaml -f compose.mariadb.yaml exec app php artisan migrate --seed --force
+
+services:
+  pgsql:
+    profiles: ["pgsql"]
+
+  app:
+    environment:
+      COMPOSE_DB_CONNECTION: mariadb
+      COMPOSE_DB_HOST: mariadb
+      COMPOSE_DB_PORT: "3306"
+      DB_CONNECTION: mariadb
+      DB_HOST: mariadb
+      DB_PORT: "3306"
+      DB_CHARSET: utf8mb4
+      DB_COLLATION: utf8mb4_unicode_ci
+    depends_on:
+      mariadb:
+        condition: service_healthy
+        required: true
+      pgsql:
+        condition: service_healthy
+        required: false
+
+  vite:
+    environment:
+      DB_CONNECTION: mariadb
+      DB_HOST: mariadb
+      DB_PORT: "3306"
+
+  horizon:
+    environment:
+      DB_CONNECTION: mariadb
+      DB_HOST: mariadb
+      DB_PORT: "3306"
+
+  scheduler:
+    environment:
+      DB_CONNECTION: mariadb
+      DB_HOST: mariadb
+      DB_PORT: "3306"
+
+  pulse:
+    environment:
+      DB_CONNECTION: mariadb
+      DB_HOST: mariadb
+      DB_PORT: "3306"
