@@ -1,0 +1,47 @@
+name: audit
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - master
+  pull_request:
+    branches:
+      - develop
+      - main
+      - master
+
+# Policy (beta.3 / #32): fail on high+critical for Composer and production npm deps.
+# Low/medium Composer advisories ignored; npm uses --audit-level=high.
+# Before GA (#24): keep blocking (do not add continue-on-error). Never run audit fix --force in CI.
+jobs:
+  composer-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+
+      - name: Composer audit (locked, high+)
+        run: >
+          composer audit --locked
+          --ignore-severity=low
+          --ignore-severity=medium
+
+  npm-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: npm audit (production, high+)
+        run: npm audit --omit=dev --audit-level=high

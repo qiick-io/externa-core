@@ -1,0 +1,53 @@
+# Managed overlay — app + workers only; DB and Redis are external.
+# Usage:
+#   cp .env.docker.prod.managed.example .env
+#   docker compose -f compose.prod.yaml -f compose.prod.managed.yaml config --quiet
+#   docker compose -f compose.prod.yaml -f compose.prod.managed.yaml up --build -d
+#
+# Bundled pgsql/redis get a never-enabled profile so they do not start.
+# Health: GET /health/ready still checks external DB + Redis when drivers require them.
+
+services:
+  app:
+    depends_on: !reset
+      redis:
+        condition: service_started
+        required: false
+      pgsql:
+        condition: service_started
+        required: false
+    environment:
+      DB_HOST: "${DB_HOST:?Set DB_HOST to your managed database hostname}"
+      REDIS_HOST: "${REDIS_HOST:?Set REDIS_HOST to your managed Redis hostname}"
+
+  horizon:
+    environment:
+      DB_HOST: "${DB_HOST:?Set DB_HOST}"
+      REDIS_HOST: "${REDIS_HOST:?Set REDIS_HOST}"
+
+  reverb:
+    depends_on: !reset
+      redis:
+        condition: service_started
+        required: false
+    environment:
+      REDIS_HOST: "${REDIS_HOST:?Set REDIS_HOST}"
+
+  scheduler:
+    environment:
+      DB_HOST: "${DB_HOST:?Set DB_HOST}"
+      REDIS_HOST: "${REDIS_HOST:?Set REDIS_HOST}"
+
+  pulse:
+    depends_on: !reset
+      redis:
+        condition: service_started
+        required: false
+    environment:
+      REDIS_HOST: "${REDIS_HOST:?Set REDIS_HOST}"
+
+  pgsql:
+    profiles: ["bundled-db"]
+
+  redis:
+    profiles: ["bundled-redis"]

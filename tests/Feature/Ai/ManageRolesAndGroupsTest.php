@@ -30,6 +30,52 @@ test('manage roles tool is registered when user can show roles', function () {
     expect($tools)->toContain('ManageRoles');
 });
 
+test('manage roles duplicates role with permissions', function () {
+    $user = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+        PermissionEnum::CanCreateRoles->value,
+        PermissionEnum::CanShowRoles->value,
+    ]);
+    $this->actingAs($user);
+
+    $source = Role::query()->create([
+        'name' => 'source-editor',
+        'guard_name' => config('auth.defaults.guard', 'web'),
+    ]);
+    $source->givePermissionTo(PermissionEnum::CanShowCollections->value);
+
+    $result = (string) (new ManageRoles)->handle(new Request([
+        'action' => 'duplicate',
+        'role_id' => $source->id,
+        'name' => 'cloned-editor',
+    ]));
+
+    expect($result)->toContain('"ok": true')
+        ->and($result)->toContain('cloned-editor');
+
+    $clone = Role::query()->where('name', 'cloned-editor')->first();
+    expect($clone)->not->toBeNull()
+        ->and($clone->hasPermissionTo(PermissionEnum::CanShowCollections->value))->toBeTrue();
+});
+
+test('manage roles cannot duplicate super-admin', function () {
+    $user = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+        PermissionEnum::CanCreateRoles->value,
+        PermissionEnum::CanShowRoles->value,
+    ]);
+    $this->actingAs($user);
+
+    $superAdmin = Role::query()->where('name', RoleEnum::SuperAdmin->value)->firstOrFail();
+
+    $result = (string) (new ManageRoles)->handle(new Request([
+        'action' => 'duplicate',
+        'role_id' => $superAdmin->id,
+    ]));
+
+    expect($result)->toContain('cannot be duplicated');
+});
+
 test('manage roles creates role with synced permissions', function () {
     $user = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
