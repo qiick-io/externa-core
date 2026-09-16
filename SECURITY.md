@@ -2,7 +2,11 @@
 
 Externa is a self-hosted CMS. **Operators own transport encryption, disk encryption, backups, and network exposure.** The application provides RBAC, secret redaction in audit trails, hashed credentials, and optional MFA — not end-to-end encryption of chat or activity payloads.
 
-Longer docs: [Threat model & hosting](https://docs.externa.qiick.io/docs/threat-model) · [Pre-release security checklist](https://docs.externa.qiick.io/docs/security-checklist) · [Deployment](https://docs.externa.qiick.io/docs/deployment).
+Longer docs: [Threat model & hosting](https://docs.externa.qiick.io/docs/threat-model) · [Pre-release security checklist](https://docs.externa.qiick.io/docs/security-checklist) · [Deployment](https://docs.externa.qiick.io/docs/deployment) · [Dependency audits (CI)](https://docs.externa.qiick.io/docs/contributing#dependency-audits-ci).
+
+## Dependency audits
+
+PRs run `composer audit` (lockfile, high+) and `npm audit --omit=dev` (high+) via `.github/workflows/audit.yml`. Failures are **blocking**. Do not use `npm audit fix --force` in CI. Triage: upgrade first; justified ignores need a PR note and follow-up.
 
 ## Reporting a vulnerability
 
