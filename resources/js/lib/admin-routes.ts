@@ -65,6 +65,10 @@ const adminRoutes = {
             url(
                 `/settings/roles/${typeof role === 'number' ? role : role.role}`,
             ),
+        duplicate: (role: number | { role: number }) =>
+            url(
+                `/settings/roles/${typeof role === 'number' ? role : role.role}/duplicate`,
+            ),
         bulkActions: () => url('/settings/roles/bulk-actions'),
     },
     apiKeys: {

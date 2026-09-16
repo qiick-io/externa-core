@@ -9,6 +9,7 @@ use App\Models\FileUpload;
 use App\Models\FileVersion;
 use App\Models\User;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
+use App\Support\Files\FilesDisk;
 use App\Support\Security\PlainTextSanitizer;
 use App\Support\Uploads\ForbiddenUploadExtension;
 use App\Traits\HasFiles;
@@ -29,8 +30,10 @@ class FileService
     /**
      * Create a folder node and persist its computed path.
      */
-    public function createFolder(string $name, ?int $parentId = null, string $disk = 'assets'): File
+    public function createFolder(string $name, ?int $parentId = null, ?string $disk = null): File
     {
+        $disk ??= FilesDisk::default();
+
         $file = DB::transaction(function () use ($name, $parentId, $disk) {
             $file = File::query()->create([
                 'parent_id' => $parentId,
@@ -55,8 +58,9 @@ class FileService
     /**
      * Store an uploaded file, deduplicate by hash when possible, and link a version row.
      */
-    public function uploadFile(UploadedFile $uploadedFile, ?int $parentId = null, string $disk = 'assets', ?string $name = null): File
+    public function uploadFile(UploadedFile $uploadedFile, ?int $parentId = null, ?string $disk = null, ?string $name = null): File
     {
+        $disk ??= FilesDisk::default();
         $fileName = PlainTextSanitizer::sanitize($name ?? $uploadedFile->getClientOriginalName()) ?? '';
         ForbiddenUploadExtension::assertAllowed($fileName, $name !== null ? 'name' : 'file');
         $mimeType = $uploadedFile->getMimeType();
@@ -827,8 +831,10 @@ class FileService
     /**
      * Begin a chunked upload session and return tracking metadata.
      */
-    public function initChunkUpload(string $fileName, int $totalSize, int $totalChunks, ?string $mimeType = null, ?int $parentId = null, string $disk = 'assets'): FileUpload
+    public function initChunkUpload(string $fileName, int $totalSize, int $totalChunks, ?string $mimeType = null, ?int $parentId = null, ?string $disk = null): FileUpload
     {
+        $disk ??= FilesDisk::default();
+
         $fileName = PlainTextSanitizer::sanitize($fileName) ?? '';
         ForbiddenUploadExtension::assertAllowed($fileName, 'file_name');
 

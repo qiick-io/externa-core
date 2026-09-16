@@ -22,6 +22,29 @@
             "admin": "Admin",
             "reader": "Lettore",
             "public": "Pubblico"
+        },
+        "actions": {
+            "edit": "Modifica",
+            "delete": "Elimina",
+            "duplicate": "Duplica",
+            "newRole": "Nuovo ruolo"
+        },
+        "columns": {
+            "name": "Nome",
+            "permissions": "Permessi",
+            "actions": "Azioni"
+        },
+        "empty": "Nessun ruolo.",
+        "systemBadge": "Sistema",
+        "deleteTitle": "Eliminare il ruolo?",
+        "deleteDescription": "Eliminare \"{{name}}\"? L'operazione non può essere annullata.",
+        "deleteFallback": "L'operazione non può essere annullata.",
+        "duplicate": {
+            "title": "Duplica ruolo",
+            "description": "Crea una copia di \"{{name}}\" con gli stessi permessi e matrici di accesso. Le membership non vengono copiate.",
+            "name": "Nome del nuovo ruolo",
+            "submit": "Duplica",
+            "duplicating": "Duplicazione…"
         }
     },
     "nav": {

@@ -103,7 +103,7 @@ test('authorized users can view and update project settings', function () {
         ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'default_user_role'))
         ->toBe('member')
         ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'preset_transformations'))
-        ->toBe($presets)
+        ->toEqual($presets)
         ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'public_api_allowed_origins'))
         ->toBe(['https://www.example.com', 'https://app.example.com'])
         ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'revision_retention_count'))
