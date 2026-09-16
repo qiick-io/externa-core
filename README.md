@@ -76,7 +76,7 @@ Light-theme shots from the admin (demo seed data). More in the [docs](https://do
 | **Composer 2** | PHP dependencies and `composer setup` / `composer run dev`. |
 | **Node.js 24** | Pinned in `.nvmrc` and `package.json` `engines`. Use `nvm use` (or equivalent). |
 | **Database** | **SQLite** 3.x (local/CI default); **PostgreSQL** 14+ (16 preferred, production recommended); **MySQL** 8.0+; **MariaDB** 10.6+ (10.11+ preferred). MySQL/MariaDB: `utf8mb4` / `utf8mb4_unicode_ci`. Matrix: [Supported databases](https://docs.externa.qiick.io/docs/supported-databases). |
-| **Redis** (optional) | Needed for Horizon, Reverb-friendly realtime, and Pulse redis ingest. |
+| **Redis** (optional) | Needed for Horizon, Reverb-friendly realtime, and Pulse redis ingest. Prod without Redis: [docs](https://docs.externa.qiick.io/docs/production-without-redis). |
 
 Optional: [Laravel Herd](https://herd.laravel.com) (PHP, nginx, `.test` hosts; Pro adds shared Reverb on `:8080`). Optional AI: an OpenAI-compatible gateway (e.g. [LM Studio](https://lmstudio.ai)) at `LOCAL_AI_URL`.
 
