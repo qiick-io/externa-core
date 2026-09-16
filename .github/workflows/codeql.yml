@@ -30,8 +30,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # javascript-typescript covers resources/js; php for Laravel app
-        language: [javascript-typescript, php]
+        # JS/TS only — current CodeQL Actions pack rejects `php`
+        # ("Did not recognize the following languages: php"). Re-add when available.
+        language: [javascript-typescript]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
