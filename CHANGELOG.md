@@ -9,6 +9,16 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+## [1.0.0-beta.3] - 2026-09-16
+
+### Added
+
+- Packagist/create-project docs path; upgrade + backup runbooks; production without Redis
+- Multi-arch Docker bake; managed Compose overlay; reverse proxy cookbook
+- Lefthook/commitlint; `externa:install` / `externa:upgrade`
+- AI ManageRoles duplicate; embeddings-backed SearchSimilar; Dev Container; GA readiness notes
+
+
 ### Added
 
 - (accumulate here until the next tagged release)
@@ -52,6 +62,6 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 [GitHub Release](https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.1)
 
-[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.0.0-beta.2...HEAD
+[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.0.0-beta.3...HEAD
 [1.0.0-beta.2]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.2
 [1.0.0-beta.1]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.1
