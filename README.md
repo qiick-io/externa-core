@@ -12,7 +12,7 @@ Externa is a **Laravel-native headless CMS**: operators manage structured conten
 | | |
 | --- | --- |
 | **Docs** | [docs.externa.qiick.io](https://docs.externa.qiick.io) |
-| **Install** | `composer create-project qiick/externa-core` · [Installation](https://docs.externa.qiick.io/docs/installation) · [Minimal vs full stack](https://docs.externa.qiick.io/docs/minimal-vs-full-stack) |
+| **Install** | `composer create-project qiick/externa-core` · [Installation](https://docs.externa.qiick.io/docs/installation) · [Upgrade](https://docs.externa.qiick.io/docs/upgrade) · [Minimal vs full stack](https://docs.externa.qiick.io/docs/minimal-vs-full-stack) |
 | **API** | [Public CMS API](https://docs.externa.qiick.io/docs/public-cms-api) · [GraphQL](https://docs.externa.qiick.io/docs/graphql) · [1.x compatibility](https://docs.externa.qiick.io/docs/api-compatibility) |
 | **Security** | [SECURITY.md](./SECURITY.md) · [Threat model](https://docs.externa.qiick.io/docs/threat-model) |
 | **Issues** | [GitHub Issues](https://github.com/qiick-io/externa-core/issues) |
