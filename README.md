@@ -13,6 +13,7 @@ Externa is a **Laravel-native headless CMS**: operators manage structured conten
 | --- | --- |
 | **Docs** | [docs.externa.qiick.io](https://docs.externa.qiick.io) |
 | **Install** | [Installation](https://docs.externa.qiick.io/docs/installation) · [Minimal vs full stack](https://docs.externa.qiick.io/docs/minimal-vs-full-stack) |
+| **API** | [Public CMS API](https://docs.externa.qiick.io/docs/public-cms-api) · [GraphQL](https://docs.externa.qiick.io/docs/graphql) · [1.x compatibility](https://docs.externa.qiick.io/docs/api-compatibility) |
 | **Security** | [SECURITY.md](./SECURITY.md) · [Threat model](https://docs.externa.qiick.io/docs/threat-model) |
 | **Issues** | [GitHub Issues](https://github.com/qiick-io/externa-core/issues) |
 
@@ -21,7 +22,7 @@ Externa is a **Laravel-native headless CMS**: operators manage structured conten
 - **Dynamic collections** — fields, locales, lean draft/publish, typed item editor
 - **Hierarchical files** — folders, uploads, versions, async zip
 - **RBAC + groups** — Spatie roles/permissions with group inheritance; `public` role for the API
-- **Public CMS API + GraphQL** — collection access matrix, API keys, origin allowlist
+- **Public CMS API + GraphQL** — collection access matrix, API keys, origin allowlist; [1.x compatibility policy](https://docs.externa.qiick.io/docs/api-compatibility)
 - **Chat + activity** — item/private threads; Spatie activity log
 - **Optional AI assistant** — OpenAI-compatible / LM Studio; tools gated by effective permissions
 
