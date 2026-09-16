@@ -7,6 +7,10 @@ use App\Ai\Concerns\LogsAiToolUse;
 use App\Ai\Support\AiToolJsonDecoder;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
+use App\Http\Controllers\Admin\RoleController;
+use App\Models\Role as AppRole;
+use App\Services\Api\CollectionPermissionSync;
+use App\Services\Api\FilePermissionSync;
 use App\Services\Authorization\EffectivePermissionResolver;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -29,7 +33,7 @@ class ManageRoles implements Tool
      */
     public function description(): Stringable|string
     {
-        return 'List, get, create, update, or delete Spatie roles; sync permission names onto a role; list available permission names. Use list_permissions before creating a role with a permission set.';
+        return 'List, get, create, update, delete, or duplicate Spatie roles; sync permission names onto a role; list available permission names. Use list_permissions before creating a role with a permission set. Duplicate clones permissions + collection/file matrices into a new named role (no memberships); cannot duplicate super-admin or locked system roles.';
     }
 
     /**
@@ -46,8 +50,9 @@ class ManageRoles implements Tool
                 'create' => $this->createRole($request),
                 'update' => $this->updateRole($request),
                 'delete' => $this->deleteRole($request->integer('role_id')),
+                'duplicate' => $this->duplicateRole($request),
                 'list_permissions' => $this->listPermissions($request),
-                default => 'Error: Unknown action. Use list, get, create, update, delete, or list_permissions.',
+                default => 'Error: Unknown action. Use list, get, create, update, delete, duplicate, or list_permissions.',
             };
         });
     }
@@ -59,16 +64,103 @@ class ManageRoles implements Tool
     {
         return [
             'action' => $schema->string()->required()->description(
-                'list|get|create|update|delete|list_permissions'
+                'list|get|create|update|delete|duplicate|list_permissions'
             ),
-            'role_id' => $schema->integer(),
-            'name' => $schema->string()->description('Role name (slug-like, e.g. product-manager)'),
+            'role_id' => $schema->integer()->description('Source role id for get/update/delete/duplicate'),
+            'name' => $schema->string()->description('Role name (slug-like). For duplicate: optional new name; defaults to {source}-copy'),
+            'source_name' => $schema->string()->description('Source role name for duplicate when role_id omitted'),
             'permission_names_json' => $schema->string()->description(
                 'JSON array of permission names to sync, e.g. ["can-show-collections","can-create-collections"]'
             ),
             'query' => $schema->string(),
             'limit' => $schema->integer(),
         ];
+    }
+
+    private function duplicateRole(Request $request): string
+    {
+        if ($error = $this->requirePermission(PermissionEnum::CanCreateRoles)) {
+            return $error;
+        }
+
+        if ($error = $this->requirePermission(PermissionEnum::CanShowRoles)) {
+            return $error;
+        }
+
+        $source = $this->findAppRoleForDuplicate($request);
+
+        if (is_string($source)) {
+            return $source;
+        }
+
+        if ($source->name === RoleEnum::SuperAdmin->value || $source->isLockedSystemRole()) {
+            return 'Error: This role cannot be duplicated.';
+        }
+
+        $name = trim((string) $request->string('name'));
+        if ($name === '' || $name === $source->name) {
+            $name = RoleController::uniqueDuplicateRoleName($source->name);
+        }
+
+        if ($name === RoleEnum::SuperAdmin->value) {
+            return 'Error: You cannot create another super-admin role.';
+        }
+
+        $guard = config('auth.defaults.guard', 'web');
+
+        if (AppRole::query()->where('name', $name)->where('guard_name', $guard)->exists()) {
+            return 'Error: A role with this name already exists.';
+        }
+
+        $clone = AppRole::query()->create([
+            'name' => $name,
+            'guard_name' => $guard,
+            'is_system' => false,
+            'is_assignable' => true,
+        ]);
+
+        $clone->syncPermissions($source->permissions()->pluck('id')->all());
+
+        app(CollectionPermissionSync::class)->sync(
+            $clone,
+            app(CollectionPermissionSync::class)->matrixForRole($source),
+        );
+        app(FilePermissionSync::class)->sync(
+            $clone,
+            app(FilePermissionSync::class)->matrixForRole($source),
+        );
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->logAiMutation($clone, 'duplicate_role');
+        $clone->load('permissions:id,name');
+
+        return json_encode([
+            'ok' => true,
+            'role' => $this->serializeRole($clone, true),
+            'source_role_id' => $source->id,
+            'url' => route('roles.edit', $clone),
+        ], JSON_PRETTY_PRINT) ?: '{}';
+    }
+
+    private function findAppRoleForDuplicate(Request $request): AppRole|string
+    {
+        if ($request->filled('role_id')) {
+            $role = AppRole::query()->find($request->integer('role_id'));
+
+            return $role ?? 'Error: Role not found.';
+        }
+
+        $sourceName = trim((string) $request->string('source_name'));
+        if ($sourceName === '') {
+            return 'Error: role_id or source_name is required to identify the source role.';
+        }
+
+        $role = AppRole::query()
+            ->where('name', $sourceName)
+            ->where('guard_name', config('auth.defaults.guard', 'web'))
+            ->first();
+
+        return $role ?? 'Error: Role not found.';
     }
 
     private function listRoles(Request $request): string
