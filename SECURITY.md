@@ -8,6 +8,13 @@ Longer docs: [Threat model & hosting](https://docs.externa.qiick.io/docs/threat-
 
 PRs run `composer audit` (lockfile, high+) and `npm audit --omit=dev` (high+) via `.github/workflows/audit.yml`. Failures are **blocking**. Do not use `npm audit fix --force` in CI. Triage: upgrade first; justified ignores need a PR note and follow-up.
 
+## Code scanning & secrets (maintainers)
+
+- **CodeQL** — `.github/workflows/codeql.yml` runs on PRs, `develop`/`main`, and weekly (**JavaScript/TypeScript**). PHP not in the current Actions language pack yet — re-enable when GitHub ships it. Review alerts under **Security → Code scanning**; fix or dismiss with reason.
+- **Secret scanning** and **push protection** — enabled on `qiick-io/externa-core`. Org owners: **Settings → Code security** (repo or org defaults). If a push is blocked, rotate the secret and scrub history if needed.
+
+Reporting app vulnerabilities is below; dependency audits are separate (#32).
+
 ## Reporting a vulnerability
 
 Please **do not** open a public GitHub issue for security bugs.
