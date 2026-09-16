@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\LogsApplicationActivity;
+use App\Jobs\Ai\GenerateCollectionItemEmbeddingJob;
 use App\Services\Api\PublicApiResponseCache;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 use App\Support\Collections\CollectionItemDataAccessor;
@@ -73,6 +74,12 @@ class CollectionItem extends Model
         });
 
         // Create/update webhooks fire from CollectionItemValuesWriter (avoids empty create[])
+        static::saved(function (CollectionItem $item): void {
+            if (config('ai.embeddings.enabled')) {
+                GenerateCollectionItemEmbeddingJob::dispatch($item->id);
+            }
+        });
+
         static::deleted(function (CollectionItem $item): void {
             app(OutboundWebhookDispatcher::class)->dispatchItem('item.deleted', $item);
             app(PublicApiResponseCache::class)->bump((int) $item->collection_id);
