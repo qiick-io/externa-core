@@ -165,7 +165,7 @@ docker compose up --build
 # MariaDB (host :3307): docker compose --profile mariadb -f compose.yaml -f compose.mariadb.yaml up --build
 ```
 
-Production: multi-stage `Dockerfile` (`--target production`), `compose.prod.yaml`, `.env.docker.prod.example`. Probes: `GET /health/live`, `GET /health/ready` (+ Laravel `/up`). Docs: [Installation](https://docs.externa.qiick.io/docs/installation) · [Deployment](https://docs.externa.qiick.io/docs/deployment).
+Production: multi-stage `Dockerfile` (`--target production`), `compose.prod.yaml`, `.env.docker.prod.example`. Probes: `GET /health/live`, `GET /health/ready` (+ Laravel `/up`). Docs: [Installation](https://docs.externa.qiick.io/docs/installation) · [Deployment](https://docs.externa.qiick.io/docs/deployment) · [Reverse proxy](https://docs.externa.qiick.io/docs/reverse-proxy).
 
 ### First login (local / dev only)
 
