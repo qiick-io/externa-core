@@ -14,14 +14,15 @@ class FileTransformService
 {
     public const DEFAULT_SIZE = 128;
 
-    public const MAX_SIZE = 256;
+    /** Absolute ceiling for `?size=` thumbs (presets may allow larger named keys). */
+    public const MAX_SIZE = 512;
 
     public const DEFAULT_QUALITY = 82;
 
     /**
      * @var list<int>
      */
-    private const LEGACY_CLEANUP_SIZES = [64, 128, 256];
+    private const LEGACY_CLEANUP_SIZES = [64, 128, 256, 512];
 
     /**
      * Whether the file is a raster image eligible for thumbnail generation.
@@ -197,7 +198,8 @@ class FileTransformService
     public function maxSize(): int
     {
         try {
-            return app(ProjectSettings::class)->maxTransformSize();
+            // Floor at MAX_SIZE so grid can request 512 even when project presets top out lower.
+            return max(self::MAX_SIZE, app(ProjectSettings::class)->maxTransformSize());
         } catch (\Throwable) {
             return self::MAX_SIZE;
         }
