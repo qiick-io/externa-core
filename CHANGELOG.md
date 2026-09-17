@@ -9,6 +9,24 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+## [1.0.0-beta.4] - 2026-09-17
+
+### Changed
+
+- create-project Composer post-scripts stay minimal (handoff to `externa:install`; no auto-migrate/SQLite assumption) (#93)
+- npm `prepare` no-ops Lefthook without `.git` (Docker `image-build` green) (#94)
+- Dependency refresh within constraints; skipped reckless majors documented in #95
+
+### Security
+
+- Private effective files use non-public `private_assets` disk; block SVG/HTML/HTM uploads (#84, #85)
+- AI collection-import webhook requires HMAC over body + `collection_id` (#86)
+
+### Added
+
+- Larastan/PHPStan level 5 + baseline in CI lint gate (#87)
+- Release shipping ownership docs (no agent auto-merge to `main`) (#92)
+
 ## [1.0.0-beta.3] - 2026-09-16
 
 ### Added
@@ -18,10 +36,6 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Lefthook/commitlint; `externa:install` / `externa:upgrade`
 - AI ManageRoles duplicate; embeddings-backed SearchSimilar; Dev Container; GA readiness notes
 
-
-### Added
-
-- (accumulate here until the next tagged release)
 
 ## [1.0.0-beta.2] - 2026-09-16
 
@@ -62,6 +76,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 [GitHub Release](https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.1)
 
-[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.0.0-beta.3...HEAD
+[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.0.0-beta.4...HEAD
+[1.0.0-beta.4]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.4
 [1.0.0-beta.2]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.2
 [1.0.0-beta.1]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.1
