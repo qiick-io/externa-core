@@ -9,6 +9,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+### Security
+
+- Outbound webhooks refuse delivery when the signing secret is empty (no empty-key HMAC) (#88)
+
 ## [1.0.0-beta.4] - 2026-09-17
 
 ### Changed
