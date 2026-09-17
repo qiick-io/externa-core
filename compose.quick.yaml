@@ -1,18 +1,21 @@
-# Track B — production-oriented Compose (no Vite, no Mailpit, no Sail).
+# Quick deploy — pull published GHCR image (no local build).
 # Usage:
-#   cp .env.docker.prod.example .env
-#   docker compose -f compose.prod.yaml up --build -d
+#   cp .env.docker.quick.example .env
+#   # set APP_KEY, DB_PASSWORD, APP_URL, INITIAL_SUPER_ADMIN_*
+#   docker compose -f compose.quick.yaml up -d
 #
-# Put TLS / reverse proxy in front (Caddy/Traefik/nginx). Set TRUSTED_PROXIES.
-# Reverb WebSockets: proxy Upgrade headers to reverb:8080 (or publish REVERB_HOST_PORT).
+# Image override (local bake / smoke):
+#   EXTERNA_IMAGE=externa:prod docker compose -f compose.quick.yaml up -d
+#
+# First boot: RUN_MIGRATIONS=true (default here). Seed/admin only when RUN_SEED=true.
+# After bootstrap: set RUN_SEED=false (and optionally RUN_MIGRATIONS=false).
+# TLS / proxy: see docs Reverse proxy (#17). Managed DB/Redis: compose.prod.managed.yaml (#15).
 
-name: externa-prod
+name: externa-quick
 
 services:
   app:
-    build:
-      context: .
-      target: production
+    image: ${EXTERNA_IMAGE:-ghcr.io/qiick-io/externa-core:latest}
     command: ["app"]
     ports:
       - "${APP_PORT:-8080}:80"
@@ -36,7 +39,7 @@ services:
       REVERB_PORT: 8080
       REVERB_SCHEME: http
     volumes:
-      - externa_prod_storage:/var/www/html/storage
+      - externa_quick_storage:/var/www/html/storage
     depends_on:
       pgsql:
         condition: service_healthy
@@ -47,15 +50,13 @@ services:
       interval: 15s
       timeout: 5s
       retries: 10
-      start_period: 60s
+      start_period: 90s
     networks:
-      - externa-prod
+      - externa-quick
     restart: unless-stopped
 
   horizon:
-    build:
-      context: .
-      target: production
+    image: ${EXTERNA_IMAGE:-ghcr.io/qiick-io/externa-core:latest}
     command: ["horizon"]
     env_file:
       - .env
@@ -66,18 +67,16 @@ services:
       REDIS_HOST: "${REDIS_HOST:-redis}"
       QUEUE_CONNECTION: redis
     volumes:
-      - externa_prod_storage:/var/www/html/storage
+      - externa_quick_storage:/var/www/html/storage
     depends_on:
       app:
         condition: service_healthy
     networks:
-      - externa-prod
+      - externa-quick
     restart: unless-stopped
 
   reverb:
-    build:
-      context: .
-      target: production
+    image: ${EXTERNA_IMAGE:-ghcr.io/qiick-io/externa-core:latest}
     command: ["reverb"]
     ports:
       - "${REVERB_HOST_PORT:-8081}:8080"
@@ -92,13 +91,11 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - externa-prod
+      - externa-quick
     restart: unless-stopped
 
   scheduler:
-    build:
-      context: .
-      target: production
+    image: ${EXTERNA_IMAGE:-ghcr.io/qiick-io/externa-core:latest}
     command: ["scheduler"]
     env_file:
       - .env
@@ -109,18 +106,16 @@ services:
       REDIS_HOST: "${REDIS_HOST:-redis}"
       QUEUE_CONNECTION: redis
     volumes:
-      - externa_prod_storage:/var/www/html/storage
+      - externa_quick_storage:/var/www/html/storage
     depends_on:
       app:
         condition: service_healthy
     networks:
-      - externa-prod
+      - externa-quick
     restart: unless-stopped
 
   pulse:
-    build:
-      context: .
-      target: production
+    image: ${EXTERNA_IMAGE:-ghcr.io/qiick-io/externa-core:latest}
     command: ["pulse"]
     env_file:
       - .env
@@ -131,7 +126,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - externa-prod
+      - externa-quick
     restart: unless-stopped
 
   pgsql:
@@ -141,34 +136,34 @@ services:
       POSTGRES_USER: "${DB_USERNAME:-externa}"
       POSTGRES_PASSWORD: "${DB_PASSWORD:-change-me}"
     volumes:
-      - externa_prod_pgsql:/var/lib/postgresql/data
+      - externa_quick_pgsql:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-externa} -d ${DB_DATABASE:-externa}"]
       interval: 5s
       timeout: 5s
       retries: 10
     networks:
-      - externa-prod
+      - externa-quick
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     volumes:
-      - externa_prod_redis:/data
+      - externa_quick_redis:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
     networks:
-      - externa-prod
+      - externa-quick
     restart: unless-stopped
 
 volumes:
-  externa_prod_storage:
-  externa_prod_pgsql:
-  externa_prod_redis:
+  externa_quick_storage:
+  externa_quick_pgsql:
+  externa_quick_redis:
 
 networks:
-  externa-prod:
+  externa-quick:
     driver: bridge
