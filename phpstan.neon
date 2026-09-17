@@ -1,0 +1,10 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    paths:
+        - app/
+    # Level 5: ratchet without boiling the ocean on day one (#87).
+    level: 5
+    treatPhpDocTypesAsCertain: false

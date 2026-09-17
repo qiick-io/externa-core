@@ -32,9 +32,12 @@ Reinstall hooks: `npx lefthook install`.
 
 ```bash
 composer lint:check
+composer analyse   # Larastan/PHPStan (baseline in phpstan-baseline.neon)
 composer test
 npm run lint:check && npm run format:check && npm run types:check
 ```
+
+New PHPStan findings outside the baseline fail CI (`lint` workflow). Regenerate only intentionally: `composer analyse:baseline`.
 
 ## Commit messages
 
