@@ -60,7 +60,7 @@ class FileService
      */
     public function uploadFile(UploadedFile $uploadedFile, ?int $parentId = null, ?string $disk = null, ?string $name = null): File
     {
-        $disk ??= FilesDisk::default();
+        $disk = $this->resolveUploadDisk($disk, $parentId);
         $fileName = PlainTextSanitizer::sanitize($name ?? $uploadedFile->getClientOriginalName()) ?? '';
         ForbiddenUploadExtension::assertAllowed($fileName, $name !== null ? 'name' : 'file');
         $mimeType = $uploadedFile->getMimeType();
@@ -187,6 +187,11 @@ class FileService
 
             app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $moved);
 
+            $moved = $this->reconcilePrivacyDisk($moved);
+            if ($moved->isFolder()) {
+                $this->reconcileDescendantPrivacyDisks($moved);
+            }
+
             return $moved;
         } catch (\Throwable $e) {
             if ($fileMoved && $oldStoragePath && $newStoragePath) {
@@ -236,6 +241,8 @@ class FileService
      */
     public function updateMetadata(File $file, array $attributes): File
     {
+        $accessChanged = array_key_exists('access', $attributes);
+
         $updated = DB::transaction(function () use ($file, $attributes) {
             $allowed = [
                 'title',
@@ -275,9 +282,110 @@ class FileService
             return $file->fresh(['tags']);
         });
 
+        if ($accessChanged) {
+            $updated = $this->reconcilePrivacyDisk($updated);
+            if ($updated->isFolder()) {
+                $this->reconcileDescendantPrivacyDisks($updated);
+            }
+        }
+
         app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $updated);
 
         return $updated;
+    }
+
+    /**
+     * Move effective-private local assets onto private_assets (and back when public).
+     *
+     * @return int Number of files whose disk changed
+     */
+    public function migratePrivateFilesToPrivateDisk(): int
+    {
+        $moved = 0;
+
+        File::query()
+            ->where('type', FileTypeEnum::File)
+            ->whereIn('disk', ['assets', FilesDisk::PRIVATE_ASSETS])
+            ->whereNotNull('storage_path')
+            ->orderBy('id')
+            ->chunkById(100, function ($files) use (&$moved): void {
+                foreach ($files as $file) {
+                    $before = $file->disk;
+                    $reconciled = $this->reconcilePrivacyDisk($file);
+                    if ($reconciled->disk !== $before) {
+                        $moved++;
+                    }
+                }
+            });
+
+        return $moved;
+    }
+
+    /**
+     * Ensure a file's local disk matches effective privacy (assets ↔ private_assets).
+     */
+    public function reconcilePrivacyDisk(File $file): File
+    {
+        if (! $file->isFile() || ! $file->storage_path) {
+            return $file;
+        }
+
+        if (! FilesDisk::isLocalAssetsFamily($file->disk)) {
+            return $file;
+        }
+
+        $targetDisk = FilesDisk::forEffectivePrivacy($file->isEffectivelyPrivate(), $file->disk);
+        if ($targetDisk === $file->disk) {
+            return $file;
+        }
+
+        app(FileTransformService::class)->clearTransforms($file);
+
+        $newPath = $this->generateStoragePath($file->name, $targetDisk);
+        $this->movePhysicalFileBetweenDisks(
+            $file,
+            $file->disk,
+            $targetDisk,
+            $file->storage_path,
+            $newPath,
+        );
+
+        $file->disk = $targetDisk;
+        $file->storage_path = $newPath;
+        $file->save();
+
+        if ($file->current_version_id) {
+            FileVersion::query()
+                ->where('id', $file->current_version_id)
+                ->update([
+                    'disk' => $targetDisk,
+                    'storage_path' => $newPath,
+                ]);
+        }
+
+        return $file->fresh(['tags']);
+    }
+
+    /**
+     * Reconcile local disks for every file under a folder after visibility changes.
+     */
+    public function reconcileDescendantPrivacyDisks(File $folder): void
+    {
+        if (! $folder->isFolder()) {
+            return;
+        }
+
+        File::query()
+            ->where('type', FileTypeEnum::File)
+            ->where('path', 'like', $folder->path.'/%')
+            ->whereIn('disk', ['assets', FilesDisk::PRIVATE_ASSETS])
+            ->whereNotNull('storage_path')
+            ->orderBy('id')
+            ->chunkById(100, function ($files): void {
+                foreach ($files as $file) {
+                    $this->reconcilePrivacyDisk($file);
+                }
+            });
     }
 
     /**
@@ -833,7 +941,7 @@ class FileService
      */
     public function initChunkUpload(string $fileName, int $totalSize, int $totalChunks, ?string $mimeType = null, ?int $parentId = null, ?string $disk = null): FileUpload
     {
-        $disk ??= FilesDisk::default();
+        $disk = $this->resolveUploadDisk($disk, $parentId);
 
         $fileName = PlainTextSanitizer::sanitize($fileName) ?? '';
         ForbiddenUploadExtension::assertAllowed($fileName, 'file_name');
@@ -1091,6 +1199,22 @@ class FileService
                 $this->updateChildrenPaths($child);
             }
         }
+    }
+
+    /**
+     * Resolve upload disk from FILES_DISK / caller, then map privacy for local assets.
+     */
+    protected function resolveUploadDisk(?string $disk, ?int $parentId): string
+    {
+        $disk ??= FilesDisk::default();
+
+        $parentPrivate = false;
+        if ($parentId !== null) {
+            $parent = File::query()->find($parentId);
+            $parentPrivate = $parent?->isEffectivelyPrivate() ?? false;
+        }
+
+        return FilesDisk::forEffectivePrivacy($parentPrivate, $disk);
     }
 
     protected function generateStoragePath(string $fileName, string $disk): string

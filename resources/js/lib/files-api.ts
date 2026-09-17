@@ -50,6 +50,11 @@ export function filePublicUrl(file: AdminFileRow): string | null {
         return null;
     }
 
+    // Never invent a public /storage/assets URL for effective-private bytes.
+    if (file.effective_access === 'private' || file.disk === 'private_assets') {
+        return adminRoutes.files.download(file.id);
+    }
+
     return `/storage/assets/${file.storage_path}`;
 }
 
