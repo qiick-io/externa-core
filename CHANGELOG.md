@@ -9,9 +9,20 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-17
+
 ### Added
 
 - Docker deploy DX: GHCR multi-arch publish on `v*` tags, `compose.quick.yaml` pull path, gated `RUN_SEED` first-boot, healthchecks on quick Compose (#56)
+
+### Changed
+
+- Extract chunk upload flow into `FileChunkUploadService` (#89)
+- README install path: stable Packagist `create-project` → `externa:install` (no auto-migrate); Herd / Docker / health links
+
+### Fixed
+
+- File manager grid covers clip correctly; 512px thumbs for preview quality (#105 / #104)
 
 ### Security
 
@@ -88,7 +99,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 [GitHub Release](https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.1)
 
-[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.0.0-beta.4...HEAD
+[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0
 [1.0.0-beta.4]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.4
 [1.0.0-beta.2]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.2
 [1.0.0-beta.1]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.1
