@@ -3,7 +3,7 @@
 [![Docs](https://img.shields.io/badge/docs-docs.externa.qiick.io-0f766e)](https://docs.externa.qiick.io)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-**Version:** `1.0.0-beta.4` (from `composer.json`; mirrored in `package.json`). See [CHANGELOG.md](./CHANGELOG.md) and [Releasing docs](https://docs.externa.qiick.io/docs/releasing).
+**Version:** `1.0.0` (from `composer.json`; mirrored in `package.json`). See [CHANGELOG.md](./CHANGELOG.md) and [Releasing docs](https://docs.externa.qiick.io/docs/releasing).
 
 Externa is a **Laravel-native headless CMS**: operators manage structured content in a full admin UI; websites and apps consume it through the **Public CMS API** (`/api/v1`) and **GraphQL** (`/api/graphql`). Optional in-app AI tools respect the signed-in user’s permissions — you own the code, so automation is Jobs/listeners, not a locked Flow canvas.
 
@@ -85,15 +85,19 @@ Optional: [Laravel Herd](https://herd.laravel.com) (PHP, nginx, `.test` hosts; P
 **Operators (recommended):** create a new site from Packagist (no git clone):
 
 ```bash
-composer create-project qiick/externa-core:^1.0.0@beta my-externa
+composer create-project qiick/externa-core my-externa
 cd my-externa
 nvm use   # Node 24
 php artisan externa:install
 ```
 
+Pin a release if needed: `qiick/externa-core:1.0.0`. Pre-tag smoke from git: `composer create-project qiick/externa-core:dev-develop my-externa`.
+
 `create-project` only copies `.env` (if missing) and runs `key:generate` — **no** migrate, seed, or SQLite assumption. Interactive first-run is `externa:install` (DB, APP_NAME/URL, stack profile, optional seed / AI URL, npm build).
 
-Beta tags need Composer stability: `@beta` (or `"minimum-stability": "beta"` in a root that requires the package). Package: [packagist.org/packages/qiick/externa-core](https://packagist.org/packages/qiick/externa-core). Docs: [Installation](https://docs.externa.qiick.io/docs/installation) · [Packagist & create-project](https://docs.externa.qiick.io/docs/packagist).
+Package: [packagist.org/packages/qiick/externa-core](https://packagist.org/packages/qiick/externa-core). Docs: [Installation](https://docs.externa.qiick.io/docs/installation) · [Packagist & create-project](https://docs.externa.qiick.io/docs/packagist). Historical beta tags needed `@beta` (or `"minimum-stability": "beta"`).
+
+**Local paths:** [Laravel Herd](https://herd.laravel.com) (PHP / nginx / `.test`) or Docker Compose / GHCR quick-deploy — see [Deploy with Docker](https://docs.externa.qiick.io/docs/deploy-with-docker) and sections below. Health: `GET /health/live`, `GET /health/ready`.
 
 **CI / non-interactive:** `composer setup` runs install → copy `.env` if missing → `key:generate` → migrate → `npm install` → `npm run build`. Still run `db:seed`, `storage:link`, and Wayfinder when needed. Do **not** use `composer setup` as the human create-project happy path.
 
