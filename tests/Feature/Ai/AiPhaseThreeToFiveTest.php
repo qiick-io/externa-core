@@ -8,6 +8,7 @@ use App\Ai\Tools\ManageCollectionItems;
 use App\Ai\Tools\RollbackLastAiTurn;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Ai\CollectionImportWebhookController;
 use App\Jobs\ImportCollectionJob;
 use App\Models\AiChatAttachment;
 use App\Models\AiSyncSource;
@@ -185,7 +186,7 @@ test('sync source can be created and the command queues it', function () {
     ));
 });
 
-test('collection import webhook rejects bad token and accepts valid token', function () {
+test('collection import webhook rejects bad signature and accepts valid HMAC', function () {
     config()->set('ai.webhook_token', 'signed-secret');
     $collection = Collection::factory()->create();
     $payload = [
@@ -194,14 +195,34 @@ test('collection import webhook rejects bad token and accepts valid token', func
             ['sku' => 'A1', 'title' => 'Webhook item'],
         ],
     ];
-
-    $this->withToken('bad-token')
-        ->postJson(route('ai.webhooks.collection-import'), $payload)
-        ->assertForbidden();
+    $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
+    $validSignature = CollectionImportWebhookController::sign(
+        $rawBody,
+        (string) $collection->id,
+        'signed-secret',
+    );
 
     $this->withToken('signed-secret')
         ->postJson(route('ai.webhooks.collection-import'), $payload)
-        ->assertSuccessful()
+        ->assertForbidden();
+
+    $this->withHeaders(['X-AI-Webhook-Signature' => 'sha256=deadbeef'])
+        ->postJson(route('ai.webhooks.collection-import'), $payload)
+        ->assertForbidden();
+
+    $this->call(
+        'POST',
+        route('ai.webhooks.collection-import'),
+        [],
+        [],
+        [],
+        [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_AI_WEBHOOK_SIGNATURE' => $validSignature,
+        ],
+        $rawBody,
+    )->assertSuccessful()
         ->assertJson([
             'ok' => true,
             'collection_id' => $collection->id,
@@ -209,6 +230,50 @@ test('collection import webhook rejects bad token and accepts valid token', func
         ]);
 
     expect($collection->items()->count())->toBe(1);
+});
+
+test('collection import webhook signature for collection A cannot write collection B', function () {
+    config()->set('ai.webhook_token', 'signed-secret');
+    $collectionA = Collection::factory()->create();
+    $collectionB = Collection::factory()->create();
+
+    $payloadA = [
+        'collection_id' => $collectionA->id,
+        'records' => [
+            ['sku' => 'A1', 'title' => 'Only for A'],
+        ],
+    ];
+    $rawBodyA = json_encode($payloadA, JSON_THROW_ON_ERROR);
+    $signatureForA = CollectionImportWebhookController::sign(
+        $rawBodyA,
+        (string) $collectionA->id,
+        'signed-secret',
+    );
+
+    $payloadB = [
+        'collection_id' => $collectionB->id,
+        'records' => [
+            ['sku' => 'B1', 'title' => 'Tampered to B'],
+        ],
+    ];
+    $rawBodyB = json_encode($payloadB, JSON_THROW_ON_ERROR);
+
+    $this->call(
+        'POST',
+        route('ai.webhooks.collection-import'),
+        [],
+        [],
+        [],
+        [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_AI_WEBHOOK_SIGNATURE' => $signatureForA,
+        ],
+        $rawBodyB,
+    )->assertForbidden();
+
+    expect($collectionA->items()->count())->toBe(0)
+        ->and($collectionB->items()->count())->toBe(0);
 });
 
 test('daily prompt quota rejects the next prompt', function () {
