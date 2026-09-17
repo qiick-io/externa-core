@@ -122,8 +122,7 @@
         ],
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi",
-            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
-            "@php artisan migrate --graceful --ansi"
+            "@php -r \"fwrite(STDOUT, PHP_EOL.'  Next step: php artisan externa:install'.PHP_EOL.PHP_EOL);\""
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"

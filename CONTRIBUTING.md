@@ -9,7 +9,7 @@ git clone https://github.com/qiick-io/externa-core.git
 cd externa-core
 nvm use          # Node 24
 composer install
-npm ci           # also installs Lefthook git hooks via prepare
+npm ci           # prepare installs Lefthook hooks when .git is present
 ```
 
 Docs: [Contributing](https://docs.externa.qiick.io/docs/contributing).
@@ -21,6 +21,8 @@ Docs: [Contributing](https://docs.externa.qiick.io/docs/contributing).
 | `pre-commit` | Pint on dirty PHP; ESLint + Prettier on staged JS/TS/CSS |
 | `commit-msg` | commitlint (Conventional Commits) |
 | `pre-push` | `pint --test` + `eslint` — **not** full Pest |
+
+`npm` `prepare` runs `lefthook install` only when `.git` exists (clone/checkout). Docker/`npm ci` without a git checkout no-ops — image builds stay green.
 
 **CI is authoritative.** Hooks can be skipped: `LEFTHOOK=0` or `git commit --no-verify` (emergency only).
 

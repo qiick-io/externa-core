@@ -1,6 +1,6 @@
 # Contributor local hooks. CI remains source of truth.
 # Skip: LEFTHOOK=0 git commit …   or   git commit --no-verify (discouraged)
-# Install: npm ci   (runs prepare → lefthook install)
+# Install: npm ci   (prepare → lefthook install when .git present; no-op otherwise)
 
 pre-commit:
   parallel: true
