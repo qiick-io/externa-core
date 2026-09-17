@@ -58,6 +58,19 @@ return [
             'report' => false,
         ],
 
+        /*
+        | Effective-private file manager bytes. Not linked via storage:link —
+        | only reachable through authenticated admin download / API content.
+        */
+        'private_assets' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/assets'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

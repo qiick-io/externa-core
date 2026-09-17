@@ -25,6 +25,11 @@ class FileResource extends JsonResource
     {
         $transformService = app(FileTransformService::class);
         $publicUrl = $transformService->publicUrl($this->resource);
+        // Private (or non-URL disks): session-auth download, not static /storage/...
+        $url = $publicUrl;
+        if ($url === null && $this->resource->isFile() && $this->resource->storage_path) {
+            $url = route('files.download', $this->resource);
+        }
         $thumbnailUrl = $transformService->isImage($this->resource)
             ? route('files.thumbnail', $this->resource)
             : null;
@@ -44,7 +49,7 @@ class FileResource extends JsonResource
             'path' => $this->path,
             'disk' => $this->disk,
             'storage_path' => $this->storage_path,
-            'url' => $publicUrl,
+            'url' => $url,
             'thumbnail_url' => $thumbnailUrl,
             'mime_type' => $this->mime_type,
             'extension' => $this->extension,

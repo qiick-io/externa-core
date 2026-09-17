@@ -19,6 +19,8 @@ final class ForbiddenUploadExtension
         'asp', 'aspx', 'jsp',
         'sh', 'bash', 'ps1',
         'dll', 'so',
+        // Stored XSS / content-sniff when served from a public disk
+        'svg', 'html', 'htm',
     ];
 
     public static function isForbidden(string $fileName): bool

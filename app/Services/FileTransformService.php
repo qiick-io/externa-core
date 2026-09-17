@@ -247,7 +247,10 @@ class FileTransformService
     }
 
     /**
-     * Public storage URL for the file's current bytes, or null for folders.
+     * Public storage URL for the file's current bytes, or null for folders / private files.
+     *
+     * Effective-private files must not emit a static `/storage/...` URL — use an
+     * authenticated download or API content path instead.
      */
     public function publicUrl(File $file): ?string
     {
@@ -255,7 +258,16 @@ class FileTransformService
             return null;
         }
 
-        return Storage::disk($file->disk)->url($file->storage_path);
+        if ($file->isEffectivelyPrivate()) {
+            return null;
+        }
+
+        $disk = Storage::disk($file->disk);
+        if (! method_exists($disk, 'url') || blank(config("filesystems.disks.{$file->disk}.url"))) {
+            return null;
+        }
+
+        return $disk->url($file->storage_path);
     }
 
     /**

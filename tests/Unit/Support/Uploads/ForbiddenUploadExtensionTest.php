@@ -24,6 +24,9 @@ it('denies forbidden extensions', function (string $fileName): void {
     'run.exe',
     'script.phtml',
     'payload.phar',
+    'xss.svg',
+    'page.html',
+    'legacy.HTM',
 ]);
 
 it('uses the given validation field on reject', function (): void {
