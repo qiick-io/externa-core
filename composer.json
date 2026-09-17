@@ -2,8 +2,8 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "qiick/externa-core",
     "type": "project",
-    "version": "1.0.0-beta.3",
-    "description": "Externa — headless CMS / content API with operator admin UI.",
+    "version": "1.0.0-beta.4",
+    "description": "Externa \u2014 headless CMS / content API with operator admin UI.",
     "keywords": [
         "externa",
         "cms",
@@ -47,6 +47,7 @@
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",
+        "larastan/larastan": "^3.12",
         "laravel/boost": "^2.0",
         "laravel/pail": "^1.2.5",
         "laravel/pint": "^1.27",
@@ -97,6 +98,12 @@
         "lint:check": [
             "pint --parallel --test"
         ],
+        "analyse": [
+            "phpstan analyse --memory-limit=1G"
+        ],
+        "analyse:baseline": [
+            "phpstan analyse --memory-limit=1G --generate-baseline"
+        ],
         "ci:check": [
             "Composer\\Config::disableProcessTimeout",
             "npm run lint:check",
@@ -122,8 +129,7 @@
         ],
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi",
-            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
-            "@php artisan migrate --graceful --ansi"
+            "@php -r \"fwrite(STDOUT, PHP_EOL.'  Next step: php artisan externa:install'.PHP_EOL.PHP_EOL);\""
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"

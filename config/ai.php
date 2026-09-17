@@ -59,6 +59,7 @@ return [
         explode(',', (string) env('AI_REMOTE_IMPORT_HOSTS', '')),
     ))),
 
+    // HMAC-SHA256 key for collection-import webhook (body + collection_id).
     'webhook_token' => env('AI_WEBHOOK_TOKEN'),
 
     'daily_prompt_limit' => (int) env('AI_DAILY_PROMPT_LIMIT', 0),

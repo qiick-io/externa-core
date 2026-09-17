@@ -145,6 +145,27 @@ test('file list resource includes thumbnail_url for images and null for other fi
     expect($documentRow['url'])->not->toBeNull();
 });
 
+test('thumbnail endpoint honors a larger size for grid covers', function () {
+    $user = grantThumbnailPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanCreateFiles->value,
+    ]);
+    $this->actingAs($user);
+
+    $created = $this->postJson(route('files.upload'), [
+        'file' => UploadedFile::fake()->image('grid-source.png', 900, 700),
+    ])->assertCreated();
+
+    $file = File::query()->findOrFail($created->json('id'));
+
+    $response = $this->get(route('files.thumbnail', ['file' => $file, 'size' => 512]));
+    $response->assertOk();
+    expect($response->headers->get('content-type'))->toContain('image/');
+
+    $cachePath = app(FileTransformService::class)->ensureThumbnail($file, 512);
+    Storage::disk('assets')->assertExists($cachePath);
+});
+
 test('thumbnail endpoint honors a named transform preset key', function () {
     $user = grantThumbnailPermissions(User::factory()->create(), [
         PermissionEnum::CanShowFiles->value,

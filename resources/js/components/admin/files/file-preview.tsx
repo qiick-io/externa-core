@@ -1,6 +1,7 @@
 import { FolderOpen } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { FileIcon, defaultStyles } from 'react-file-icon';
+import { withSearchParam } from '@/lib/file-field-image';
 import { filePublicUrl, isImageFile, isPlayableVideo } from '@/lib/files-api';
 import { cn } from '@/lib/utils';
 import type { AdminFileRow } from '@/types/files';
@@ -20,6 +21,9 @@ const sizeClass = {
     md: 'size-16',
     lg: 'size-40',
 };
+
+/** Grid cover ~2× typical card CSS px; matches FileTransformService::MAX_SIZE / card preset. */
+const GRID_COVER_THUMB_SIZE = 512;
 
 /**
  * Thumbnail or icon preview for a file row.
@@ -79,7 +83,12 @@ export function FilePreview({
     const publicUrl = filePublicUrl(file);
 
     if (isImageFile(file)) {
-        const imageSrc = file.thumbnail_url ?? publicUrl;
+        const thumb = file.thumbnail_url ?? null;
+        const imageSrc = thumb
+            ? isCover
+                ? withSearchParam(thumb, 'size', String(GRID_COVER_THUMB_SIZE))
+                : thumb
+            : publicUrl;
 
         if (imageSrc) {
             return (

@@ -29,7 +29,7 @@ beforeEach(function (): void {
 
 test('FILES_DISK defaults to configured s3 disk', function () {
     expect(FilesDisk::default())->toBe('s3')
-        ->and(FilesDisk::allowed())->toContain('s3', 'assets');
+        ->and(FilesDisk::allowed())->toContain('s3', 'assets', FilesDisk::PRIVATE_ASSETS);
 });
 
 test('file manager upload and download work on FILES_DISK=s3', function () {

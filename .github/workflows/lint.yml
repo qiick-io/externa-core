@@ -45,6 +45,9 @@ jobs:
       - name: Run Pint
         run: composer lint:check
 
+      - name: Run PHPStan (Larastan)
+        run: composer analyse
+
       - name: Lint Frontend
         run: npm run lint:check
 

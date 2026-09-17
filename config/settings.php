@@ -123,6 +123,16 @@ return [
                     'without_enlargement' => true,
                     'format' => 'auto',
                 ],
+                // Grid / cover previews (~2× typical card CSS size on retina)
+                [
+                    'key' => 'card',
+                    'fit' => 'inside',
+                    'width' => 512,
+                    'height' => 512,
+                    'quality' => 82,
+                    'without_enlargement' => true,
+                    'format' => 'auto',
+                ],
             ],
             'report_issue_url' => null,
             // Fallback for settings nav + Project settings form; empty/null overrides stay empty

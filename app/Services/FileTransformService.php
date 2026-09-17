@@ -14,14 +14,15 @@ class FileTransformService
 {
     public const DEFAULT_SIZE = 128;
 
-    public const MAX_SIZE = 256;
+    /** Absolute ceiling for `?size=` thumbs (presets may allow larger named keys). */
+    public const MAX_SIZE = 512;
 
     public const DEFAULT_QUALITY = 82;
 
     /**
      * @var list<int>
      */
-    private const LEGACY_CLEANUP_SIZES = [64, 128, 256];
+    private const LEGACY_CLEANUP_SIZES = [64, 128, 256, 512];
 
     /**
      * Whether the file is a raster image eligible for thumbnail generation.
@@ -197,7 +198,8 @@ class FileTransformService
     public function maxSize(): int
     {
         try {
-            return app(ProjectSettings::class)->maxTransformSize();
+            // Floor at MAX_SIZE so grid can request 512 even when project presets top out lower.
+            return max(self::MAX_SIZE, app(ProjectSettings::class)->maxTransformSize());
         } catch (\Throwable) {
             return self::MAX_SIZE;
         }
@@ -247,7 +249,10 @@ class FileTransformService
     }
 
     /**
-     * Public storage URL for the file's current bytes, or null for folders.
+     * Public storage URL for the file's current bytes, or null for folders / private files.
+     *
+     * Effective-private files must not emit a static `/storage/...` URL — use an
+     * authenticated download or API content path instead.
      */
     public function publicUrl(File $file): ?string
     {
@@ -255,7 +260,16 @@ class FileTransformService
             return null;
         }
 
-        return Storage::disk($file->disk)->url($file->storage_path);
+        if ($file->isEffectivelyPrivate()) {
+            return null;
+        }
+
+        $disk = Storage::disk($file->disk);
+        if (! method_exists($disk, 'url') || blank(config("filesystems.disks.{$file->disk}.url"))) {
+            return null;
+        }
+
+        return $disk->url($file->storage_path);
     }
 
     /**

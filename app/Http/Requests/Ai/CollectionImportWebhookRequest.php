@@ -11,7 +11,7 @@ use Illuminate\Foundation\Http\FormRequest;
 class CollectionImportWebhookRequest extends FormRequest
 {
     /**
-     * Authorization is enforced by the webhook token in the controller.
+     * Authorization is enforced by HMAC signature in the controller.
      */
     public function authorize(): bool
     {
