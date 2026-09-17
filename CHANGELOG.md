@@ -17,6 +17,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - npm `prepare` no-ops Lefthook without `.git` (Docker `image-build` green) (#94)
 - Dependency refresh within constraints; skipped reckless majors documented in #95
 
+### Fixed
+
+- Docker `php-base`: pin phpredis `6.3.0` from GitHub tarball (bypass flaky `pecl install redis` / `No releases available for package "pecl.php.net/redis"` on multiarch-bake)
+
 ### Security
 
 - Private effective files use non-public `private_assets` disk; block SVG/HTML/HTM uploads (#84, #85)

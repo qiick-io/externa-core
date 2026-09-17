@@ -3,8 +3,12 @@
 #   docker build --target production -t externa:prod .
 
 ARG PHP_VERSION=8.4
+# Pin phpredis; install from GitHub tarball (bypass flaky pecl.php.net channel lookups).
+ARG PHPREDIS_VERSION=6.3.0
 
 FROM php:${PHP_VERSION}-fpm-bookworm AS php-base
+
+ARG PHPREDIS_VERSION
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl git unzip \
@@ -12,8 +16,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         $PHPIZE_DEPS \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) bcmath gd intl opcache pcntl pdo_mysql pdo_pgsql sockets zip \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
+    && curl -fsSL "https://github.com/phpredis/phpredis/archive/refs/tags/${PHPREDIS_VERSION}.tar.gz" \
+        -o /tmp/phpredis.tar.gz \
+    && mkdir -p /usr/src/php/ext/redis \
+    && tar -xzf /tmp/phpredis.tar.gz -C /usr/src/php/ext/redis --strip-components=1 \
+    && rm /tmp/phpredis.tar.gz \
+    && docker-php-ext-install -j$(nproc) redis \
     && apt-get purge -y --auto-remove $PHPIZE_DEPS \
     && rm -rf /var/lib/apt/lists/*
 
