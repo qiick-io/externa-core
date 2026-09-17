@@ -2,8 +2,8 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "qiick/externa-core",
     "type": "project",
-    "version": "1.0.0-beta.3",
-    "description": "Externa — headless CMS / content API with operator admin UI.",
+    "version": "1.0.0-beta.4",
+    "description": "Externa \u2014 headless CMS / content API with operator admin UI.",
     "keywords": [
         "externa",
         "cms",
