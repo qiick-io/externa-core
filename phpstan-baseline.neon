@@ -1,0 +1,787 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Match arm comparison between App\\Enums\\FieldTypeEnum and App\\Enums\\FieldTypeEnum\:\:Blocks is always false\.$#'
+			identifier: match.alwaysFalse
+			count: 1
+			path: app/Ai/Support/FieldTypeCookbook.php
+
+		-
+			message: '#^Match arm comparison between App\\Enums\\FieldTypeEnum and App\\Enums\\FieldTypeEnum\:\:M2a is always false\.$#'
+			identifier: match.alwaysFalse
+			count: 1
+			path: app/Ai/Support/FieldTypeCookbook.php
+
+		-
+			message: '#^Match arm comparison between App\\Enums\\FieldTypeEnum and App\\Enums\\FieldTypeEnum\:\:ManyToMany is always false\.$#'
+			identifier: match.alwaysFalse
+			count: 1
+			path: app/Ai/Support/FieldTypeCookbook.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Ai/Support/SafeRemoteUrlValidator.php
+
+		-
+			message: '#^Parameter \#2 \$usedNames of method App\\Ai\\Tools\\ImportCollectionCsv\:\:uniqueFieldNameFromHeader\(\) expects array\<string, true\>, array\<string, bool\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ImportCollectionCsv.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-list\<string\|null\> and array\{\} will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Ai/Tools/ImportCollectionCsv.php
+
+		-
+			message: '#^Call to function is_int\(\) with int will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Ai/Tools/ImportRemoteJson.php
+
+		-
+			message: '#^Parameter \#2 \$usedNames of method App\\Ai\\Tools\\ImportRemoteJson\:\:uniqueFieldNameFromHeader\(\) expects array\<string, true\>, array\<string, bool\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ImportRemoteJson.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,stdClass\>\:\:map\(\) expects callable\(stdClass, int\)\: array\{id\: int, collection_id\: int, deleted_at\: Illuminate\\Support\\Carbon\|null, data\: array\<string, mixed\>\}, Closure\(App\\Models\\CollectionItem\)\: array\{id\: int, collection_id\: int, deleted_at\: Illuminate\\Support\\Carbon\|null, data\: array\<string, mixed\>\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ManageCollectionItems.php
+
+		-
+			message: '#^Parameter \#2 \$query of method App\\Ai\\Tools\\ManageCollectionItems\:\:applyAiItemFilter\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\CollectionItem\>, Illuminate\\Database\\Query\\Builder given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Tools/ManageCollectionItems.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Ai/Tools/ManageCollections.php
+
+		-
+			message: '#^Cannot call method addMinutes\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Console/Commands/RunAiSyncSourcesCommand.php
+
+		-
+			message: '#^Method App\\GraphQL\\Queries\\CollectionQuery\:\:__invoke\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/GraphQL/Queries/CollectionQuery.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: mixed$#'
+			identifier: match.unhandled
+			count: 1
+			path: app/Http/Controllers/Admin/FileController.php
+
+		-
+			message: '#^Property App\\Models\\File\:\:\$is_favorited is not writable\.$#'
+			identifier: assign.propertyReadOnly
+			count: 3
+			path: app/Http/Controllers/Admin/FileController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\ConnectionInterface\:\:getDriverName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/RoleController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\ConnectionInterface\:\:getDriverName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/UserController.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: mixed$#'
+			identifier: match.unhandled
+			count: 1
+			path: app/Http/Controllers/Admin/UserController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\ConnectionInterface\:\:getDriverName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Admin/UserGroupController.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: mixed$#'
+			identifier: match.unhandled
+			count: 1
+			path: app/Http/Controllers/Admin/UserGroupController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$attachments\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ai/AiChatController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$content\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ai/AiChatController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\Conversation\:\:\$pinned_at\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Ai/AiConversationController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$content\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ai/AiConversationController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Controllers/Ai/AiConversationController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Ai/AiConversationController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$tool_calls\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ai/AiConversationController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$tool_results\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ai/AiConversationController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Laravel\\Ai\\Models\\ConversationMessage\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Ai/AiConversationController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\Conversation\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ai/AiPageController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\Conversation\:\:\$pinned_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ai/AiPageController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\Conversation\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ai/AiPageController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\Conversation\:\:\$updated_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ai/AiPageController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$attachments\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ai/AiPageController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$content\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ai/AiPageController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ai/AiPageController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Ai/AiPageController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$tool_calls\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ai/AiPageController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$tool_results\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Ai/AiPageController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Laravel\\Ai\\Models\\ConversationMessage\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Ai/AiPageController.php
+
+		-
+			message: '#^Parameter \#2 \$usedNames of method App\\Http\\Controllers\\Ai\\CollectionImportWebhookController\:\:uniqueFieldNameFromHeader\(\) expects array\<string, true\>, array\<string, bool\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Ai/CollectionImportWebhookController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between App\\Enums\\FieldTypeEnum and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Http/Controllers/Api/V1/CollectionController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between int and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 2
+			path: app/Http/Controllers/Api/V1/CollectionItemController.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Chat/ChatMessageController.php
+
+		-
+			message: '#^Offset 1 on array\{list\<string\>, list\<numeric\-string\>\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/Chat/ChatMessageController.php
+
+		-
+			message: '#^Property App\\Models\\CollectionItemChatMessage\:\:\$mentioned_user_ids \(string\|null\) does not accept list\<int\>\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Http/Controllers/Chat/ChatMessageController.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: mixed$#'
+			identifier: match.unhandled
+			count: 1
+			path: app/Http/Controllers/Collections/ContentCollectionController.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: mixed$#'
+			identifier: match.unhandled
+			count: 1
+			path: app/Http/Controllers/Collections/ItemController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Collections/ItemRevisionController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Collections/ItemRevisionController.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Collections/ItemRevisionController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,App\\Models\\CollectionItemRevision\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Collections/ItemRevisionController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\File\:\:\$bytes_added\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\File\:\:\$date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\File\:\:\$files_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\File\:\:\$files_size_sum\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property Spatie\\Activitylog\\Models\\Activity\:\:\$activity_count\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property Spatie\\Activitylog\\Models\\Activity\:\:\$date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property Spatie\\Activitylog\\Models\\Activity\:\:\$event_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Negated boolean expression is always true\.$#'
+			identifier: booleanNot.alwaysTrue
+			count: 1
+			path: app/Http/Requests/Collections/UpdateContentCollectionRequest.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Http/Requests/Settings/UpdateProjectSettingsRequest.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 3
+			path: app/Http/Resources/Admin/ApiKeyResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/FileResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/FileResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/FileResource.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Resources/Admin/FileResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\UserGroup\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/UserResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/UserResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/UserResource.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Resources/Admin/UserResource.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\UserGroup\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Resources/Admin/UserResource.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Resources/Admin/UserResource.php
+
+		-
+			message: '#^Cannot call method isPast\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Models/AiChatAttachment.php
+
+		-
+			message: '#^Cannot call method isPast\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Models/ApiKey.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$allowlist$#'
+			identifier: parameter.notFound
+			count: 1
+			path: app/Models/ApiKey.php
+
+		-
+			message: '#^Method App\\Models\\Collection\:\:getActivitylogOptions\(\) has invalid return type Spatie\\Activitylog\\LogOptions\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/Collection.php
+
+		-
+			message: '#^PHPDoc tag @return with type Spatie\\Activitylog\\LogOptions is not subtype of native type Spatie\\Activitylog\\Support\\LogOptions\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/Models/Collection.php
+
+		-
+			message: '#^Method App\\Models\\CollectionField\:\:getActivitylogOptions\(\) has invalid return type Spatie\\Activitylog\\LogOptions\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/CollectionField.php
+
+		-
+			message: '#^PHPDoc tag @return with type Spatie\\Activitylog\\LogOptions is not subtype of native type Spatie\\Activitylog\\Support\\LogOptions\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/Models/CollectionField.php
+
+		-
+			message: '#^Method App\\Models\\CollectionItem\:\:getActivitylogOptions\(\) has invalid return type Spatie\\Activitylog\\LogOptions\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/CollectionItem.php
+
+		-
+			message: '#^PHPDoc tag @return with type Spatie\\Activitylog\\LogOptions is not subtype of native type Spatie\\Activitylog\\Support\\LogOptions\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/Models/CollectionItem.php
+
+		-
+			message: '#^Cannot call method isPast\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Models/CollectionItemChatAttachment.php
+
+		-
+			message: '#^Parameter \#1 \$array of function array_values contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Models/CollectionItemChatMessage.php
+
+		-
+			message: '#^Method App\\Models\\File\:\:getActivitylogOptions\(\) has invalid return type Spatie\\Activitylog\\LogOptions\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/File.php
+
+		-
+			message: '#^PHPDoc tag @return with type Spatie\\Activitylog\\LogOptions is not subtype of native type Spatie\\Activitylog\\Support\\LogOptions\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/Models/File.php
+
+		-
+			message: '#^Method App\\Models\\FileUpload\:\:getActivitylogOptions\(\) has invalid return type Spatie\\Activitylog\\LogOptions\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/FileUpload.php
+
+		-
+			message: '#^PHPDoc tag @return with type Spatie\\Activitylog\\LogOptions is not subtype of native type Spatie\\Activitylog\\Support\\LogOptions\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/Models/FileUpload.php
+
+		-
+			message: '#^Method App\\Models\\FileVersion\:\:getActivitylogOptions\(\) has invalid return type Spatie\\Activitylog\\LogOptions\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/FileVersion.php
+
+		-
+			message: '#^PHPDoc tag @return with type Spatie\\Activitylog\\LogOptions is not subtype of native type Spatie\\Activitylog\\Support\\LogOptions\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/Models/FileVersion.php
+
+		-
+			message: '#^Method App\\Models\\Role\:\:getActivitylogOptions\(\) has invalid return type Spatie\\Activitylog\\LogOptions\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/Role.php
+
+		-
+			message: '#^PHPDoc tag @return with type Spatie\\Activitylog\\LogOptions is not subtype of native type Spatie\\Activitylog\\Support\\LogOptions\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/Models/Role.php
+
+		-
+			message: '#^Method App\\Models\\User\:\:groups\(\) should return Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany\<App\\Models\\UserGroup, \$this\(App\\Models\\User\), Illuminate\\Database\\Eloquent\\Relations\\Pivot, ''pivot''\> but returns Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany\<App\\Models\\UserGroup, \$this\(App\\Models\\User\), App\\Models\\UserGroupUser, ''pivot''\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Method App\\Models\\UserGroup\:\:getActivitylogOptions\(\) has invalid return type Spatie\\Activitylog\\LogOptions\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/UserGroup.php
+
+		-
+			message: '#^Method App\\Models\\UserGroup\:\:users\(\) should return Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany\<App\\Models\\User, \$this\(App\\Models\\UserGroup\), Illuminate\\Database\\Eloquent\\Relations\\Pivot, ''pivot''\> but returns Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany\<App\\Models\\User, \$this\(App\\Models\\UserGroup\), App\\Models\\UserGroupUser, ''pivot''\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/UserGroup.php
+
+		-
+			message: '#^PHPDoc tag @return with type Spatie\\Activitylog\\LogOptions is not subtype of native type Spatie\\Activitylog\\Support\\LogOptions\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/Models/UserGroup.php
+
+		-
+			message: '#^Method App\\Services\\Ai\\EmbeddingSimilarity\:\:topMatches\(\) should return Illuminate\\Support\\Collection\<int, array\{collection_item_id\: int, score\: float\}\> but returns Illuminate\\Support\\Collection\<int, array\{collection_item_id\: int\<0, max\>, score\: float\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Ai/EmbeddingSimilarity.php
+
+		-
+			message: '#^Offset int on array\<int, array\<mixed, mixed\>\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Api/CollectionPermissionGuard.php
+
+		-
+			message: '#^Cannot cast App\\Enums\\FieldTypeEnum to string\.$#'
+			identifier: cast.string
+			count: 1
+			path: app/Services/Api/CollectionPermissionSync.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Api/CollectionPermissionSync.php
+
+		-
+			message: '#^Method App\\Services\\Api\\RelationIncludeHydrator\:\:fieldType\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Services/Api/RelationIncludeHydrator.php
+
+		-
+			message: '#^Parameter &\$serializedCache by\-ref type of method App\\Services\\Api\\RelationIncludeHydrator\:\:serializeNested\(\) expects array\<int, array\<string, mixed\>\>, array\<int\|string, array\<string, mixed\>\> given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: app/Services/Api/RelationIncludeHydrator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Services/Chat/ChatService.php
+
+		-
+			message: '#^Call to an undefined method App\\Support\\Collections\\CollectionLocaleResolver\:\:defaultLocale\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/Collections/CollectionFormLayoutNormalizer.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Services/Collections/CollectionItemDataRuleBuilder.php
+
+		-
+			message: '#^Match expression does not handle remaining values\: App\\Enums\\FieldTypeEnum\:\:GroupAccordion\|App\\Enums\\FieldTypeEnum\:\:GroupDetail\|App\\Enums\\FieldTypeEnum\:\:GroupRaw\|App\\Enums\\FieldTypeEnum\:\:GroupTabs$#'
+			identifier: match.unhandled
+			count: 2
+			path: app/Services/Collections/CollectionItemDataRuleBuilder.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Services/Collections/CollectionItemDataRuleBuilder.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<int, App\\Models\\CollectionItem\>\:\:through\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/Collections/CollectionItemOptionsService.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between App\\Enums\\FieldTypeEnum and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Services/Collections/CollectionItemQueryService.php
+
+		-
+			message: '#^Cannot cast App\\Enums\\FieldTypeEnum to string\.$#'
+			identifier: cast.string
+			count: 1
+			path: app/Services/Collections/CollectionListColumnsNormalizer.php
+
+		-
+			message: '#^Method App\\Services\\Collections\\CollectionListColumnsNormalizer\:\:fieldType\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Services/Collections/CollectionListColumnsNormalizer.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Collections/CollectionListColumnsNormalizer.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between App\\Enums\\FieldTypeEnum and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Services/Collections/CollectionListDisplayEnricher.php
+
+		-
+			message: '#^Parameter \#2 \$usedNames of method App\\Services\\Collections\\MigrateFormLayoutToGroupsService\:\:uniqueName\(\) expects array\<string, true\>, array\<mixed, \(int\|string\)\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Collections/MigrateFormLayoutToGroupsService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/FileService.php
+
+		-
+			message: '#^Comparison operation "\<" between int\<1, max\> and 1 is always false\.$#'
+			identifier: smaller.alwaysFalse
+			count: 2
+			path: app/Services/FileTransformService.php
+
+		-
+			message: '#^Result of \|\| is always false\.$#'
+			identifier: booleanOr.alwaysFalse
+			count: 1
+			path: app/Services/FileTransformService.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 2
+			path: app/Services/FileTransformService.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between App\\Enums\\FieldTypeEnum and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Services/Files/FileWhereUsedScanner.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Services/Settings/ProjectSettings.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 2
+			path: app/Services/Settings/ProjectSettings.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Settings/SettingsRepository.php
+
+		-
+			message: '#^Call to an undefined method App\\Support\\Collections\\CollectionFieldSettingsPipeline\:\:input\(\)\.$#'
+			identifier: method.notFound
+			count: 4
+			path: app/Support/Collections/CollectionFieldSettingsPipeline.php
+
+		-
+			message: '#^Call to an undefined method App\\Support\\Collections\\CollectionFieldSettingsPipeline\:\:merge\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Support/Collections/CollectionFieldSettingsPipeline.php
+
+		-
+			message: '#^Call to an undefined method App\\Support\\Collections\\CollectionFieldSettingsPipeline\:\:route\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: app/Support/Collections/CollectionFieldSettingsPipeline.php
+
+		-
+			message: '#^If condition is always false\.$#'
+			identifier: if.alwaysFalse
+			count: 1
+			path: app/Support/Http/CurlMultiReadableStream.php
+
+		-
+			message: '#^Property App\\Support\\Http\\CurlMultiReadableStream\:\:\$curlHandle \(CurlHandle\|resource\|null\) is never assigned resource so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: app/Support/Http/CurlMultiReadableStream.php
+
+		-
+			message: '#^Property App\\Support\\Http\\CurlMultiReadableStream\:\:\$multiHandle \(CurlMultiHandle\|resource\|null\) is never assigned resource so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: app/Support/Http/CurlMultiReadableStream.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Support/Http/CurlMultiReadableStream.php
+
+		-
+			message: '#^PHPDoc tag @return contains generic type GuzzleHttp\\Promise\\PromiseInterface\<GuzzleHttp\\Psr7\\Response\> but interface GuzzleHttp\\Promise\\PromiseInterface is not generic\.$#'
+			identifier: generics.notGeneric
+			count: 1
+			path: app/Support/Http/CurlSseStreamer.php
+
+		-
+			message: '#^Call to function is_int\(\) with int will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Support/Validation/FilterQueryLimits.php
+
+		-
+			message: '#^Trait App\\Traits\\HasFiles is used zero times and is not analysed\.$#'
+			identifier: trait.unused
+			count: 1
+			path: app/Traits/HasFiles.php
