@@ -169,7 +169,22 @@ docker compose up --build
 # MariaDB (host :3307): docker compose --profile mariadb -f compose.yaml -f compose.mariadb.yaml up --build
 ```
 
-Production: multi-stage `Dockerfile` (`--target production`), `compose.prod.yaml`, `.env.docker.prod.example`. Probes: `GET /health/live`, `GET /health/ready` (+ Laravel `/up`). Docs: [Installation](https://docs.externa.qiick.io/docs/installation) · [Deployment](https://docs.externa.qiick.io/docs/deployment) · [Reverse proxy](https://docs.externa.qiick.io/docs/reverse-proxy).
+### Docker (quick production deploy)
+
+Pull the multi-arch image from **GHCR** (`ghcr.io/qiick-io/externa-core`) — no local build:
+
+```bash
+cp .env.docker.quick.example .env
+# Set APP_KEY, DB_PASSWORD, APP_URL; for first admin set RUN_SEED=true + INITIAL_SUPER_ADMIN_*
+docker compose -f compose.quick.yaml up -d
+# App: http://localhost:8080  · health: GET /health/ready
+```
+
+Build-from-source prod path: `compose.prod.yaml` + `.env.docker.prod.example`. Managed DB/Redis overlay: `compose.prod.managed.yaml`. Multi-arch bake/push: `docker-bake.hcl`, `./scripts/docker-buildx.sh` (CI publishes on `v*` tags).
+
+First boot is **gated**: `RUN_MIGRATIONS` / `RUN_SEED` (entrypoint defaults both off; Compose samples enable migrate for bring-up; seed stays opt-in). After bootstrap set `RUN_SEED=false`.
+
+Probes: `GET /health/live`, `GET /health/ready` (+ Laravel `/up`). Docs: [Deploy with Docker](https://docs.externa.qiick.io/docs/deploy-with-docker) · [Installation](https://docs.externa.qiick.io/docs/installation) · [Deployment](https://docs.externa.qiick.io/docs/deployment) · [Reverse proxy](https://docs.externa.qiick.io/docs/reverse-proxy).
 
 ### First login (local / dev only)
 
