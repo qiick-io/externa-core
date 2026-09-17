@@ -15,7 +15,7 @@
         "lint": "eslint . --fix",
         "lint:check": "eslint .",
         "types:check": "tsc --noEmit",
-        "prepare": "lefthook install"
+        "prepare": "node --input-type=commonjs -e \"const fs=require('fs'); if (fs.existsSync('.git')) { require('child_process').execSync('lefthook install', {stdio:'inherit'}) }\""
     },
     "devDependencies": {
         "@commitlint/cli": "^21.2.2",
