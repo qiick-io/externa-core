@@ -50,7 +50,7 @@ export const FILE_FIELD_IMAGE_SIZES =
     '(max-width: 640px) 92vw, (max-width: 1024px) 45vw, 36rem';
 
 /**
- * Thumb 128/256 + original. Wide/retina slots pick original (thumb max ~256).
+ * Thumb 128/256/512 + original. Wide/retina slots pick original when needed.
  */
 export function fileFieldImageSources(file: FileFieldImageFile): {
     src: string;
@@ -70,18 +70,19 @@ export function fileFieldImageSources(file: FileFieldImageFile): {
 
     const thumb128 = withSearchParam(thumb, 'size', '128');
     const thumb256 = withSearchParam(thumb, 'size', '256');
+    const thumb512 = withSearchParam(thumb, 'size', '512');
 
     if (!full) {
         return {
-            src: thumb256,
-            srcSet: `${thumb128} 128w, ${thumb256} 256w`,
+            src: thumb512,
+            srcSet: `${thumb128} 128w, ${thumb256} 256w, ${thumb512} 512w`,
             sizes: FILE_FIELD_IMAGE_SIZES,
         };
     }
 
     return {
-        src: thumb256,
-        srcSet: `${thumb128} 128w, ${thumb256} 256w, ${full} 1600w`,
+        src: thumb512,
+        srcSet: `${thumb128} 128w, ${thumb256} 256w, ${thumb512} 512w, ${full} 1600w`,
         sizes: FILE_FIELD_IMAGE_SIZES,
     };
 }

@@ -243,7 +243,7 @@ export function FileCard({
                     }}
                 >
                     {useCoverLayout && (
-                        <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
+                        <div className="absolute inset-0 z-0 overflow-hidden rounded-xl">
                             <FilePreview
                                 file={file}
                                 hovered={hovered}
@@ -284,7 +284,7 @@ export function FileCard({
                     )}
 
                     {useCoverLayout ? (
-                        <div className="absolute inset-x-0 bottom-0 z-10 min-w-0 bg-background/65 px-2.5 py-2 backdrop-blur-md">
+                        <div className="absolute inset-x-0 bottom-0 z-10 min-w-0 overflow-hidden rounded-b-xl bg-background/65 px-2.5 py-2 backdrop-blur-md">
                             <div className="flex min-w-0 flex-col items-center gap-1 text-center">
                                 {titleControl}
                                 {tagsRow}
