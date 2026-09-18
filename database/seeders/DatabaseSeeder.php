@@ -16,5 +16,19 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             CreateSuperAdminSeeder::class,
         ]);
+
+        // Heavy CMS demo (packs, kitchen sink, users). Opt-in only — keeps CI/install lean.
+        if ($this->shouldSeedRichDemo()) {
+            $this->call(DemoSeeder::class);
+        }
+    }
+
+    private function shouldSeedRichDemo(): bool
+    {
+        if (app()->environment('testing')) {
+            return false;
+        }
+
+        return filter_var(env('SEED_DEMO_RICH', false), FILTER_VALIDATE_BOOLEAN);
     }
 }
