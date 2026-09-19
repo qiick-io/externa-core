@@ -81,6 +81,10 @@ import {
     resolveTranslatedText,
 } from '@/lib/collection-field-types';
 import {
+    fieldControlChromeMulti,
+    fieldControlChromeSingle,
+} from '@/lib/field-control-chrome';
+import {
     CHUNK_SIZE_BYTES,
     filePublicUrl,
     uploadFileChunked,
@@ -92,10 +96,12 @@ import type { AdminFileRow } from '@/types/files';
 
 import '@uiw/react-md-editor/markdown-editor.css';
 
-/** Outer chrome for color picker — matches choice-field bordered groups. */
-const colorFieldChrome =
-    'w-full rounded-md border border-input bg-transparent px-3 py-1.5 shadow-xs dark:border-white/25 has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-inset';
-
+/** Outer chrome for color picker — matches Input h-9 single-row controls. */
+const colorFieldChrome = cn(fieldControlChromeSingle, 'dark:border-white/25');
+const colorFieldChromeWithOpacity = cn(
+    fieldControlChromeMulti,
+    'dark:border-white/25',
+);
 /**
  * Keep @uiw/react-md-editor for React markdown editing; match common CMS *actions* +
  * Externa WYSIWYG chrome. Fixed viewport with internal scroll.
@@ -1277,41 +1283,51 @@ export function ColorFieldInput({
               .padStart(2, '0')}`
         : hex;
 
+    const swatchAndHex = (
+        <>
+            <Input
+                id={id}
+                type="color"
+                value={hex}
+                disabled={readonly}
+                className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
+                onChange={(event) => setHex(event.target.value)}
+            />
+            <Input
+                type="text"
+                value={storedValue}
+                readOnly
+                className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono text-sm shadow-none focus-visible:ring-0"
+            />
+        </>
+    );
+
+    if (!colorSettings.opacity) {
+        return (
+            <div className={cn(colorFieldChrome, 'gap-2')}>
+                {swatchAndHex}
+                <input type="hidden" name={name} value={storedValue} />
+            </div>
+        );
+    }
+
     return (
-        <div className={cn(colorFieldChrome, 'space-y-2')}>
-            <div className="flex h-7 items-center gap-2">
-                <Input
-                    id={id}
-                    type="color"
-                    value={hex}
+        <div className={cn(colorFieldChromeWithOpacity, 'space-y-2')}>
+            <div className="flex h-7 items-center gap-2">{swatchAndHex}</div>
+            <div className="flex items-center gap-2">
+                <span className="inline-flex h-6 min-w-9 shrink-0 items-center justify-center rounded-sm bg-muted px-1.5 font-mono text-xs text-foreground tabular-nums">
+                    {Math.round(alpha * 100)}%
+                </span>
+                <Slider
+                    className="w-auto min-w-0 flex-1"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={[Math.round(alpha * 100)]}
                     disabled={readonly}
-                    className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
-                    onChange={(event) => setHex(event.target.value)}
-                />
-                <Input
-                    type="text"
-                    value={storedValue}
-                    readOnly
-                    className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono text-sm shadow-none focus-visible:ring-0"
+                    onValueChange={(next) => setAlpha((next[0] ?? 100) / 100)}
                 />
             </div>
-            {colorSettings.opacity ? (
-                <div className="space-y-1.5">
-                    <p className="text-xs text-muted-foreground">
-                        Opacity {Math.round(alpha * 100)}%
-                    </p>
-                    <Slider
-                        min={0}
-                        max={100}
-                        step={1}
-                        value={[Math.round(alpha * 100)]}
-                        disabled={readonly}
-                        onValueChange={(next) =>
-                            setAlpha((next[0] ?? 100) / 100)
-                        }
-                    />
-                </div>
-            ) : null}
             <input type="hidden" name={name} value={storedValue} />
         </div>
     );
