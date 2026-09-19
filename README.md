@@ -55,7 +55,7 @@ Pin a release if needed: `qiick/externa-core:1.0.0`. Pre-tag smoke from git: `co
 
 `create-project` only copies `.env` (if missing) and runs `key:generate` — **no** migrate, seed, or SQLite assumption. Interactive first-run is `externa:install` (DB, APP_NAME/URL, stack profile, optional seed / AI URL, npm build).
 
-> **Install only — not the update channel.** `composer create-project` copies the app tree once. After you push that tree to **your** git remote, Packagist / Composer will **not** pull newer Externa releases into it. To stay current, track Git tags (or add `upstream` and merge `vX.Y.Z`), then run `php artisan externa:upgrade` for migrate / permissions / cache — see **[Upgrade](https://docs.externa.qiick.io/docs/upgrade)**. Docker operators: pull a newer GHCR image tag — same guide.
+> **Install only — not the update channel.** `composer create-project` copies the app tree once. After you push that tree to **your** git remote, Packagist / Composer will **not** pull newer Externa releases into it. To stay current, track Git tags (or add `upstream` and merge `vX.Y.Z`), then run `php artisan externa:upgrade` for migrate / permissions / cache — optional opt-in code sync: `php artisan externa:upgrade --sync-upstream=vX.Y.Z` (dry-run first). See **[Upgrade](https://docs.externa.qiick.io/docs/upgrade)**. Docker operators: pull a newer GHCR image tag — same guide.
 
 Package: [packagist.org/packages/qiick/externa-core](https://packagist.org/packages/qiick/externa-core). Docs: [Installation](https://docs.externa.qiick.io/docs/installation) · [Packagist & create-project](https://docs.externa.qiick.io/docs/packagist). Historical beta tags needed `@beta` (or `"minimum-stability": "beta"`).
 
