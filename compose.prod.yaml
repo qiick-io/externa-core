@@ -22,7 +22,6 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       RUN_MIGRATIONS: "${RUN_MIGRATIONS:-true}"
-      RUN_SEED: "${RUN_SEED:-false}"
       CACHE_CONFIG: "true"
       DB_CONNECTION: "${DB_CONNECTION:-pgsql}"
       DB_HOST: "${DB_HOST:-pgsql}"

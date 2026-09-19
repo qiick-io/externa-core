@@ -93,11 +93,6 @@ class ProjectSettingsController extends Controller
                 ->with('error', __('Configure a webhook URL before sending a test event.'));
         }
 
-        if ($this->projectSettings->webhookSecret() === null) {
-            return to_route('project.edit')
-                ->with('error', __('Configure a webhook signing secret before sending a test event.'));
-        }
-
         $dispatcher->dispatchPing();
 
         return to_route('project.edit')

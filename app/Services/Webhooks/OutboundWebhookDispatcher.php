@@ -7,7 +7,6 @@ use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\File;
 use App\Services\Settings\ProjectSettings;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -58,15 +57,6 @@ class OutboundWebhookDispatcher
 
         $url = $this->projectSettings->webhookUrl();
         if ($url === null) {
-            return;
-        }
-
-        // Prefer refuse over empty-key HMAC (deterministic, false authenticity).
-        if ($this->projectSettings->webhookSecret() === null) {
-            Log::warning('Outbound webhook refused: URL configured without signing secret', [
-                'type' => $type,
-            ]);
-
             return;
         }
 

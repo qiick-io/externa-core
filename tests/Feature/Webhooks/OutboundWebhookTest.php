@@ -42,16 +42,6 @@ test('dispatcher is a no-op when webhook url is empty', function () {
     Queue::assertNothingPushed();
 });
 
-test('dispatcher refuses when webhook url set without secret', function () {
-    Queue::fake();
-    $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://hooks.example.test/externa');
-
-    app(OutboundWebhookDispatcher::class)->dispatch('ping', ['ok' => true]);
-
-    Queue::assertNothingPushed();
-});
-
 test('dispatcher queues deliver job when webhook url is set', function () {
     Queue::fake();
     configureOutboundWebhook();
@@ -91,23 +81,6 @@ test('deliver job posts signed payload', function () {
             && $request->header('Content-Type')[0] === 'application/json'
             && str_contains($body, '"type":"item.updated"');
     });
-});
-
-test('deliver job refuses when signing secret is empty', function () {
-    $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://hooks.example.test/externa');
-    Http::fake();
-
-    $job = new DeliverOutboundWebhookJob(
-        'evt_01nosecret',
-        'ping',
-        '2026-07-24T12:00:00Z',
-        [],
-    );
-
-    $job->handle(app(ProjectSettings::class));
-
-    Http::assertNothingSent();
 });
 
 test('item store update and delete dispatch expected event types', function () {
@@ -282,20 +255,6 @@ test('send test webhook queues ping when url configured', function () {
 });
 
 test('send test webhook flashes error when url missing', function () {
-    $user = grantProjectSettingsPermissions(User::factory()->create(), [
-        PermissionEnum::CanManageProjectSettings->value,
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('project.webhook-test'))
-        ->assertRedirect(route('project.edit'))
-        ->assertSessionHas('error');
-});
-
-test('send test webhook flashes error when secret missing', function () {
-    $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://hooks.example.test/externa');
-
     $user = grantProjectSettingsPermissions(User::factory()->create(), [
         PermissionEnum::CanManageProjectSettings->value,
     ]);

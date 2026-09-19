@@ -46,16 +46,7 @@ class DeliverOutboundWebhookJob implements ShouldQueue
             return;
         }
 
-        $secret = $projectSettings->webhookSecret();
-        // Prefer refuse over empty-key HMAC (deterministic, false authenticity).
-        if ($secret === null || $secret === '') {
-            Log::warning('Outbound webhook delivery refused: signing secret empty', [
-                'event_id' => $this->eventId,
-                'type' => $this->type,
-            ]);
-
-            return;
-        }
+        $secret = $projectSettings->webhookSecret() ?? '';
 
         // Cast so empty data is `{}` (not `[]`) for consumers expecting an object.
         $payload = json_encode([

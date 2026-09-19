@@ -1395,8 +1395,7 @@ export default function ProjectSettingsPage({
                                         variant="secondary"
                                         disabled={
                                             sendingTestWebhook ||
-                                            !project.webhook_url ||
-                                            !project.webhook_secret_configured
+                                            !project.webhook_url
                                         }
                                         onClick={sendTestWebhook}
                                         data-test="project-webhook-test"

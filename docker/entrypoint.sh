@@ -85,17 +85,8 @@ if [[ -f artisan ]]; then
     php artisan event:cache || true
   fi
 
-  # Gated first-boot: migrate / seed never run unless explicitly enabled.
-  # Defaults false so image restarts cannot surprise-mutate a live DB.
-  # Compose samples set RUN_MIGRATIONS=true for first bring-up; RUN_SEED stays opt-in.
   if [[ "${RUN_MIGRATIONS:-false}" == "true" ]]; then
-    echo "RUN_MIGRATIONS=true — running migrate --force"
     php artisan migrate --force
-  fi
-
-  if [[ "${RUN_SEED:-false}" == "true" ]]; then
-    echo "RUN_SEED=true — running db:seed --force (roles + INITIAL_SUPER_ADMIN_*)"
-    php artisan db:seed --force
   fi
 
   if [[ "${STORAGE_LINK:-true}" == "true" ]]; then
