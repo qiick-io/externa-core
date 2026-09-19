@@ -28,46 +28,6 @@ Externa is a **Laravel-native headless CMS**: operators manage structured conten
 
 Stack: **Laravel 13**, **Inertia + React 19**, Vite, Spatie Permission / Activitylog, Wayfinder typed routes.
 
-## Product UI
-
-Light-theme shots from the admin (demo seed data). More in the [docs](https://docs.externa.qiick.io).
-
-<p align="center">
-  <img src="docs/images/collection-items.webp" alt="Blog Posts collection items list" width="800" />
-  <br />
-  <em>Collection items — list, filters, and actions</em>
-</p>
-
-<p align="center">
-  <img src="docs/images/collection-item.webp" alt="Collection item editor with rich text" width="800" />
-  <br />
-  <em>Item editor — localized fields and rich text</em>
-</p>
-
-<p align="center">
-  <img src="docs/images/file-manager.webp" alt="Hierarchical file manager" width="800" />
-  <br />
-  <em>File manager — folders and assets</em>
-</p>
-
-<p align="center">
-  <img src="docs/images/roles.webp" alt="Roles settings matrix" width="800" />
-  <br />
-  <em>Roles — project access control</em>
-</p>
-
-<p align="center">
-  <img src="docs/images/chat.webp" alt="In-app chat hub" width="800" />
-  <br />
-  <em>Chat — collection and private threads</em>
-</p>
-
-<p align="center">
-  <img src="docs/images/users.webp" alt="Users list with roles and groups" width="800" />
-  <br />
-  <em>Users — roles, groups, and status</em>
-</p>
-
 ## Requirements
 
 | Requirement | Notes |
@@ -94,6 +54,8 @@ php artisan externa:install
 Pin a release if needed: `qiick/externa-core:1.0.0`. Pre-tag smoke from git: `composer create-project qiick/externa-core:dev-develop my-externa`.
 
 `create-project` only copies `.env` (if missing) and runs `key:generate` — **no** migrate, seed, or SQLite assumption. Interactive first-run is `externa:install` (DB, APP_NAME/URL, stack profile, optional seed / AI URL, npm build).
+
+> **Install only — not the update channel.** `composer create-project` copies the app tree once. After you push that tree to **your** git remote, Packagist / Composer will **not** pull newer Externa releases into it. To stay current, track Git tags (or add `upstream` and merge `vX.Y.Z`), then run `php artisan externa:upgrade` for migrate / permissions / cache — see **[Upgrade](https://docs.externa.qiick.io/docs/upgrade)**. Docker operators: pull a newer GHCR image tag — same guide.
 
 Package: [packagist.org/packages/qiick/externa-core](https://packagist.org/packages/qiick/externa-core). Docs: [Installation](https://docs.externa.qiick.io/docs/installation) · [Packagist & create-project](https://docs.externa.qiick.io/docs/packagist). Historical beta tags needed `@beta` (or `"minimum-stability": "beta"`).
 
@@ -200,6 +162,46 @@ Probes: `GET /health/live`, `GET /health/ready` (+ Laravel `/up`). Docs: [Deploy
 | Password | `password` |
 
 Override with `INITIAL_SUPER_ADMIN_*` in `.env` **before** seeding. **Local/dev only** — change or remove before any shared or production deploy.
+
+## Product UI
+
+Light-theme shots from the admin (demo seed data). More in the [docs](https://docs.externa.qiick.io).
+
+<p align="center">
+  <img src="docs/images/collection-items.webp" alt="Blog Posts collection items list" width="800" />
+  <br />
+  <em>Collection items — list, filters, and actions</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/collection-item.webp" alt="Collection item editor with rich text" width="800" />
+  <br />
+  <em>Item editor — localized fields and rich text</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/file-manager.webp" alt="Hierarchical file manager" width="800" />
+  <br />
+  <em>File manager — folders and assets</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/roles.webp" alt="Roles settings matrix" width="800" />
+  <br />
+  <em>Roles — project access control</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/chat.webp" alt="In-app chat hub" width="800" />
+  <br />
+  <em>Chat — collection and private threads</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/users.webp" alt="Users list with roles and groups" width="800" />
+  <br />
+  <em>Users — roles, groups, and status</em>
+</p>
 
 ## Important environment variables
 
