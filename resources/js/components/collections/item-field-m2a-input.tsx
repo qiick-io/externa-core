@@ -1,9 +1,11 @@
-import { Fragment, useState } from 'react';
+import { ArrowDown, ArrowUp, GripVertical } from 'lucide-react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { PaginatedMultiSelect } from '@/components/admin/paginated-multi-select';
 import { Button } from '@/components/ui/button';
 import { parseM2aFieldSettings } from '@/lib/collection-field-types';
 import type { RelatedCollectionOption } from '@/lib/collection-field-types';
+import { createSortableList } from '@/lib/create-sortable-list';
 import { cn } from '@/lib/utils';
 
 const inputLike =
@@ -18,12 +20,82 @@ type FieldDef = {
 };
 
 type M2aBlock = {
+    id: string;
     related_collection_id: number;
     related_item_id: number;
 };
 
 function isFiniteNumber(value: unknown): value is number {
     return typeof value === 'number' && Number.isFinite(value);
+}
+
+function newBlockId(): string {
+    if (
+        typeof crypto !== 'undefined' &&
+        typeof crypto.randomUUID === 'function'
+    ) {
+        try {
+            return crypto.randomUUID();
+        } catch {
+            // some embedded webviews expose the method but throw
+        }
+    }
+
+    // ponytail: UUID v4 fallback when crypto.randomUUID is missing
+    return `m2a-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function moveItem<T>(items: T[], from: number, to: number): T[] {
+    const next = items.slice();
+    const [item] = next.splice(from, 1);
+
+    if (item === undefined) {
+        return items;
+    }
+
+    next.splice(to, 0, item);
+
+    return next;
+}
+
+function parseM2aBlocks(defaultValue: unknown): M2aBlock[] {
+    if (!Array.isArray(defaultValue)) {
+        return [];
+    }
+
+    return defaultValue.flatMap((entry) => {
+        if (
+            !entry ||
+            typeof entry !== 'object' ||
+            !isFiniteNumber(
+                (entry as { related_collection_id?: unknown })
+                    .related_collection_id,
+            ) ||
+            !isFiniteNumber(
+                (entry as { related_item_id?: unknown }).related_item_id,
+            )
+        ) {
+            return [];
+        }
+
+        return [
+            {
+                id: newBlockId(),
+                related_collection_id: (
+                    entry as {
+                        related_collection_id: number;
+                        related_item_id: number;
+                    }
+                ).related_collection_id,
+                related_item_id: (
+                    entry as {
+                        related_collection_id: number;
+                        related_item_id: number;
+                    }
+                ).related_item_id,
+            },
+        ];
+    });
 }
 
 export function M2aFieldInput({
@@ -51,23 +123,14 @@ export function M2aFieldInput({
                 ?.display_field ?? 'title',
         ).trim() || 'title';
 
-    const [blocks, setBlocks] = useState<M2aBlock[]>(() => {
-        if (!Array.isArray(defaultValue)) {
-            return [];
-        }
+    const [blocks, setBlocks] = useState<M2aBlock[]>(() =>
+        parseM2aBlocks(defaultValue),
+    );
+    const blocksRef = useRef(blocks);
+    const listRef = useRef<HTMLDivElement | null>(null);
 
-        return defaultValue.filter(
-            (entry): entry is M2aBlock =>
-                Boolean(entry) &&
-                typeof entry === 'object' &&
-                isFiniteNumber(
-                    (entry as { related_collection_id?: unknown })
-                        .related_collection_id,
-                ) &&
-                isFiniteNumber(
-                    (entry as { related_item_id?: unknown }).related_item_id,
-                ),
-        );
+    useLayoutEffect(() => {
+        blocksRef.current = blocks;
     });
 
     const addBlock = () => {
@@ -80,127 +143,184 @@ export function M2aFieldInput({
         setBlocks((current) => [
             ...current,
             {
+                id: newBlockId(),
                 related_collection_id: firstCollection.id,
                 related_item_id: 0,
             },
         ]);
     };
 
-    const updateBlock = (index: number, patch: Partial<M2aBlock>) => {
+    const updateBlock = (blockId: string, patch: Partial<M2aBlock>) => {
         setBlocks((current) =>
-            current.map((block, blockIndex) =>
-                blockIndex === index ? { ...block, ...patch } : block,
+            current.map((block) =>
+                block.id === blockId ? { ...block, ...patch } : block,
             ),
         );
     };
 
-    const removeBlock = (index: number) => {
-        setBlocks((current) =>
-            current.filter((_, blockIndex) => blockIndex !== index),
-        );
+    const removeBlock = (blockId: string) => {
+        setBlocks((current) => current.filter((block) => block.id !== blockId));
     };
 
-    const moveBlock = (index: number, direction: -1 | 1) => {
+    const moveBlock = (blockId: string, direction: -1 | 1) => {
         setBlocks((current) => {
-            const targetIndex = index + direction;
+            const index = current.findIndex((block) => block.id === blockId);
+            const nextIndex = index + direction;
 
-            if (targetIndex < 0 || targetIndex >= current.length) {
+            if (index === -1 || nextIndex < 0 || nextIndex >= current.length) {
                 return current;
             }
 
-            const next = [...current];
-            const [moved] = next.splice(index, 1);
-            next.splice(targetIndex, 0, moved);
-
-            return next;
+            return moveItem(current, index, nextIndex);
         });
     };
 
+    const blocksKey = blocks.map((block) => block.id).join('\0');
+
+    useEffect(() => {
+        const el = listRef.current;
+
+        if (!el || readonly || blocksKey === '') {
+            return;
+        }
+
+        const sortable = createSortableList(el, {
+            handle: '.drag-handle',
+            onEnd: () => {
+                const order = sortable.toArray();
+                const prev = blocksRef.current.map((block) => block.id);
+
+                if (
+                    order.length === 0 ||
+                    order.join('\0') === prev.join('\0')
+                ) {
+                    return;
+                }
+
+                setBlocks((current) => {
+                    const byId = new Map(
+                        current.map((block) => [block.id, block]),
+                    );
+
+                    return order
+                        .map((id) => byId.get(id))
+                        .filter((block): block is M2aBlock => !!block);
+                });
+            },
+        });
+
+        return () => sortable.destroy();
+    }, [blocksKey, readonly]);
+
     return (
         <div className="space-y-3">
-            {blocks.map((block, blockIndex) => {
-                const fetchUrl = `/collections/${collectionId}/items/options?field_id=${field.id}&related_collection_id=${block.related_collection_id}&display_field=${encodeURIComponent(displayField)}`;
-                const selectedIds =
-                    block.related_item_id > 0 ? [block.related_item_id] : [];
+            <div ref={listRef} className="space-y-3">
+                {blocks.map((block, blockIndex) => {
+                    const fetchUrl = `/collections/${collectionId}/items/options?field_id=${field.id}&related_collection_id=${block.related_collection_id}&display_field=${encodeURIComponent(displayField)}`;
+                    const selectedIds =
+                        block.related_item_id > 0
+                            ? [block.related_item_id]
+                            : [];
 
-                return (
-                    <div
-                        key={`${blockIndex}-${block.related_collection_id}`}
-                        className="space-y-2 rounded-lg border p-3"
-                    >
-                        <div className="flex flex-wrap items-center gap-2">
-                            <select
-                                className={cn(inputLike, 'max-w-xs')}
-                                value={block.related_collection_id}
+                    return (
+                        <div
+                            key={block.id}
+                            data-id={block.id}
+                            className="space-y-2 rounded-lg border p-3"
+                        >
+                            <div className="flex flex-wrap items-center gap-2">
+                                {!readonly ? (
+                                    <button
+                                        type="button"
+                                        className="drag-handle text-muted-foreground"
+                                        aria-label="Drag to reorder"
+                                    >
+                                        <GripVertical className="size-4" />
+                                    </button>
+                                ) : null}
+                                <select
+                                    className={cn(inputLike, 'max-w-xs')}
+                                    value={block.related_collection_id}
+                                    disabled={readonly}
+                                    onChange={(event) =>
+                                        updateBlock(block.id, {
+                                            related_collection_id: Number(
+                                                event.target.value,
+                                            ),
+                                            related_item_id: 0,
+                                        })
+                                    }
+                                >
+                                    {allowedCollections.map((collection) => (
+                                        <option
+                                            key={collection.id}
+                                            value={collection.id}
+                                        >
+                                            {collection.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {!readonly ? (
+                                    <div className="ml-auto flex gap-1">
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            disabled={blockIndex === 0}
+                                            aria-label="Move block up"
+                                            onClick={() =>
+                                                moveBlock(block.id, -1)
+                                            }
+                                        >
+                                            <ArrowUp className="size-4" />
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            disabled={
+                                                blockIndex === blocks.length - 1
+                                            }
+                                            aria-label="Move block down"
+                                            onClick={() =>
+                                                moveBlock(block.id, 1)
+                                            }
+                                        >
+                                            <ArrowDown className="size-4" />
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() =>
+                                                removeBlock(block.id)
+                                            }
+                                        >
+                                            Remove
+                                        </Button>
+                                    </div>
+                                ) : null}
+                            </div>
+                            <PaginatedMultiSelect
+                                fetchUrl={fetchUrl}
+                                value={selectedIds}
                                 disabled={readonly}
-                                onChange={(event) =>
-                                    updateBlock(blockIndex, {
-                                        related_collection_id: Number(
-                                            event.target.value,
-                                        ),
-                                        related_item_id: 0,
+                                multiple={false}
+                                onChange={(next) =>
+                                    updateBlock(block.id, {
+                                        related_item_id: next[0] ?? 0,
                                     })
                                 }
-                            >
-                                {allowedCollections.map((collection) => (
-                                    <option
-                                        key={collection.id}
-                                        value={collection.id}
-                                    >
-                                        {collection.name}
-                                    </option>
-                                ))}
-                            </select>
-                            {!readonly ? (
-                                <div className="flex gap-1">
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() =>
-                                            moveBlock(blockIndex, -1)
-                                        }
-                                    >
-                                        Up
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => moveBlock(blockIndex, 1)}
-                                    >
-                                        Down
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => removeBlock(blockIndex)}
-                                    >
-                                        Remove
-                                    </Button>
-                                </div>
-                            ) : null}
+                                placeholder="Select block item…"
+                            />
                         </div>
-                        <PaginatedMultiSelect
-                            fetchUrl={fetchUrl}
-                            value={selectedIds}
-                            disabled={readonly}
-                            multiple={false}
-                            onChange={(next) =>
-                                updateBlock(blockIndex, {
-                                    related_item_id: next[0] ?? 0,
-                                })
-                            }
-                            placeholder="Select block item…"
-                        />
-                    </div>
-                );
-            })}
+                    );
+                })}
+            </div>
             {blocks
                 .filter((block) => block.related_item_id > 0)
                 .map((block, index) => (
-                    <Fragment key={`submit-${index}-${block.related_item_id}`}>
+                    <Fragment key={`submit-${block.id}`}>
                         <input
                             type="hidden"
                             name={`${name}[${index}][related_collection_id]`}

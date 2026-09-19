@@ -6,11 +6,31 @@ on:
       - develop
       - main
       - master
+    tags:
+      - "v*"
   pull_request:
     branches:
       - develop
       - main
       - master
+    # Skip Docker CI on PRs that cannot affect images/compose.
+    paths:
+      - Dockerfile
+      - docker-bake.hcl
+      - compose.yaml
+      - compose.*.yaml
+      - .env.docker*
+      - scripts/docker*
+      - .github/workflows/docker.yml
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Image version tag (e.g. 1.0.0-beta.4). Empty = git describe / sha."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
 
 jobs:
   compose-config:
@@ -30,12 +50,19 @@ jobs:
       - name: Validate production Compose
         run: docker compose -f compose.prod.yaml config --quiet
 
+      - name: Validate quick-deploy Compose
+        run: |
+          cp .env.docker.quick.example .env
+          php -r "file_put_contents('.env', preg_replace('/^APP_KEY=.*/m', 'APP_KEY=base64:'.base64_encode(random_bytes(32)), file_get_contents('.env')));"
+          docker compose -f compose.quick.yaml config --quiet
+
       - name: Validate managed production Compose
         run: |
           cp .env.docker.prod.managed.example .env
           php -r "file_put_contents('.env', preg_replace('/^APP_KEY=.*/m', 'APP_KEY=base64:'.base64_encode(random_bytes(32)), file_get_contents('.env')));"
           docker compose -f compose.prod.yaml -f compose.prod.managed.yaml config --quiet
 
+  # Native amd64 only — PR time budget ~3–5 min (vs ~35 min with QEMU multiarch).
   image-build:
     runs-on: ubuntu-latest
     needs: compose-config
@@ -49,9 +76,11 @@ jobs:
       - name: Build production target
         run: docker build --target production -t externa:prod .
 
-  # Multi-arch bake is slower (QEMU). Runs on push and PR so Docker php-base
-  # regressions (e.g. phpredis install) fail before merge; either arch fails the job.
+  # Multi-arch bake is slow (~30 min QEMU). Keep on merge/release path only so
+  # pecl/php-base regressions still fail before develop/main advances; PRs use
+  # native image-build for fast feedback.
   multiarch-bake:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     needs: compose-config
     steps:
@@ -69,3 +98,50 @@ jobs:
 
       - name: Bake development (amd64 + arm64)
         run: docker buildx bake -f docker-bake.hcl development
+
+  # Publish multi-arch production image to GHCR on version tags (and optional dispatch).
+  ghcr-publish:
+    if: >
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    needs: compose-config
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Resolve version
+        id: meta
+        run: |
+          if [[ -n "${{ inputs.version }}" ]]; then
+            VERSION="${{ inputs.version }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo "${GITHUB_SHA::12}")"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Publishing ghcr.io/qiick-io/externa-core:${VERSION}"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bake and push production (amd64 + arm64)
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          REGISTRY: ghcr.io/qiick-io/externa-core
+          TAG: ghcr.io/qiick-io/externa-core:${{ steps.meta.outputs.version }}
+        run: docker buildx bake -f docker-bake.hcl production --push

@@ -14,6 +14,7 @@ import {
     formatUserDisplayName,
     getInitialsFromParts,
 } from '@/hooks/use-initials';
+import { fieldControlHeight } from '@/lib/field-control-chrome';
 import { cn } from '@/lib/utils';
 import type { AdminSelectOption, Paginated } from '@/types/admin';
 
@@ -231,7 +232,10 @@ export function PaginatedMultiSelect({
                     aria-expanded={open}
                     disabled={disabled}
                     className={cn(
-                        'h-auto min-h-9 w-full justify-between font-normal',
+                        'w-full justify-between font-normal',
+                        multiple
+                            ? 'h-auto min-h-9'
+                            : cn(fieldControlHeight, 'overflow-hidden'),
                         className,
                     )}
                 >

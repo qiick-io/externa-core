@@ -39,6 +39,11 @@ import {
     resolveTranslatedText,
 } from '@/lib/collection-field-types';
 import type { FieldTreeOptionRow } from '@/lib/collection-field-types';
+import {
+    fieldControlChromeMulti,
+    fieldControlChromeSingle,
+    fieldControlHeight,
+} from '@/lib/field-control-chrome';
 import { cn } from '@/lib/utils';
 
 const inputLike =
@@ -47,20 +52,6 @@ const inputLike =
 /** Radix Select forbids empty string values — map allowNone ↔ sentinel. */
 const SELECT_NONE_VALUE = '__none__';
 const SELECT_OTHER_VALUE = '__other__';
-
-/** Shared border/ring chrome for naked choice controls (boolean, checkbox group, radio, tree, slider). */
-const choiceFieldChromeBase =
-    'w-full rounded-md border border-input bg-transparent shadow-xs has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-inset';
-
-/** Single-line choice chrome — matches Input h-9 (36px). */
-const choiceFieldChromeSingle = cn(
-    choiceFieldChromeBase,
-    'flex h-9 min-h-9 items-center px-3',
-);
-
-/** Multi-option / growing chrome — tight padding, height follows content. */
-const choiceFieldChrome = cn(choiceFieldChromeBase, 'px-3 py-1.5');
-
 type DefaultValue =
     | string
     | number
@@ -220,8 +211,10 @@ export function InputWithIcons({
         return <>{children}</>;
     }
 
-    const addonClass =
-        'inline-flex h-9 w-9 shrink-0 items-center justify-center border border-input bg-muted/50 text-muted-foreground';
+    const addonClass = cn(
+        'inline-flex w-9 shrink-0 items-center justify-center border border-input bg-muted/50 text-muted-foreground',
+        fieldControlHeight,
+    );
 
     return (
         <div className="flex w-full items-stretch">
@@ -288,7 +281,7 @@ export function BooleanToggleInput({
         <label
             htmlFor={id}
             className={cn(
-                choiceFieldChromeSingle,
+                fieldControlChromeSingle,
                 'cursor-pointer gap-3',
                 readonly && 'cursor-not-allowed opacity-50',
             )}
@@ -657,14 +650,17 @@ export function SliderFieldInput({
     const [value, setValue] = useState(initialValue);
 
     return (
-        <div
-            className={cn(
-                sliderSettings.showValue
-                    ? cn('flex flex-col gap-1.5', choiceFieldChrome)
-                    : choiceFieldChromeSingle,
-            )}
-        >
+        <div className={cn(fieldControlChromeSingle, 'gap-2')}>
+            {sliderSettings.showValue ? (
+                <span
+                    className="inline-flex h-6 min-w-9 shrink-0 items-center justify-center rounded-sm bg-muted px-1.5 font-mono text-xs text-foreground tabular-nums"
+                    aria-live="polite"
+                >
+                    {value}
+                </span>
+            ) : null}
             <Slider
+                className="w-auto min-w-0 flex-1"
                 min={sliderSettings.min}
                 max={sliderSettings.max}
                 step={sliderSettings.step}
@@ -674,11 +670,6 @@ export function SliderFieldInput({
                     setValue(next[0] ?? sliderSettings.min)
                 }
             />
-            {sliderSettings.showValue ? (
-                <p className="text-sm leading-none text-muted-foreground">
-                    {value}
-                </p>
-            ) : null}
             <input type="hidden" name={name} value={String(value)} />
         </div>
     );
@@ -727,7 +718,7 @@ export function CheckboxGroupInput({
     ];
 
     return (
-        <div className={cn('flex flex-col gap-2', choiceFieldChrome)}>
+        <div className={cn('flex flex-col gap-2', fieldControlChromeMulti)}>
             {options.map((option) => {
                 const checked = selectedValues.includes(option.value);
 
@@ -925,7 +916,7 @@ export function RadioWithOtherInput({
     const submitted = selected === '__other__' ? otherValue : selected;
 
     return (
-        <div className={cn('flex flex-col gap-2', choiceFieldChrome)}>
+        <div className={cn('flex flex-col gap-2', fieldControlChromeMulti)}>
             {options.map((option) => (
                 <label
                     key={option.value}
@@ -1277,7 +1268,7 @@ export function CheckboxGroupTreeInput({
             : selectedValues;
 
     return (
-        <div className={cn('flex flex-col gap-2', choiceFieldChrome)}>
+        <div className={cn('flex flex-col gap-2', fieldControlChromeMulti)}>
             <CheckboxGroupTreeNodes
                 nodes={treeOptions}
                 depth={0}
