@@ -90,7 +90,7 @@
         "laravel-echo": "^2.5.0",
         "laravel-vite-plugin": "^3.2.0",
         "leaflet": "^1.9.4",
-        "lucide-react": "^0.577.0",
+        "lucide-react": "^1.47.0",
         "pusher-js": "^8.6.0",
         "radix-ui": "^1.6.7",
         "react": "^19.3.0",
