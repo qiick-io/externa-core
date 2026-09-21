@@ -27,7 +27,7 @@
         "@types/node": "^24.13.3",
         "@types/sortablejs": "^1.15.9",
         "babel-plugin-react-compiler": "^1.0.0",
-        "eslint": "^9.39.5",
+        "eslint": "^10.10.0",
         "eslint-config-prettier": "^10.1.8",
         "eslint-import-resolver-typescript": "^4.4.5",
         "eslint-plugin-import": "^2.32.0",
