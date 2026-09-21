@@ -32,10 +32,10 @@
         "eslint-import-resolver-typescript": "^4.4.5",
         "eslint-plugin-import": "^2.32.0",
         "eslint-plugin-react": "^7.37.5",
-        "eslint-plugin-react-hooks": "^7.0.1",
+        "eslint-plugin-react-hooks": "^7.1.1",
         "lefthook": "^2.1.14",
         "playwright": "^1.63.0",
-        "prettier": "^3.9.7",
+        "prettier": "^3.9.8",
         "prettier-plugin-tailwindcss": "^0.8.1",
         "typescript-eslint": "^8.70.0"
     },
