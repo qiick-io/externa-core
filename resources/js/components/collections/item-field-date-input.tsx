@@ -14,6 +14,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { fieldControlHeight } from '@/lib/field-control-chrome';
 import { cn } from '@/lib/utils';
 
 type DateMode = 'date' | 'time' | 'datetime';
@@ -222,6 +223,7 @@ export function DateFieldInput({
                         disabled={readonly}
                         aria-invalid={hasError}
                         className={cn(
+                            fieldControlHeight,
                             'w-full justify-between font-normal',
                             !selected && 'text-muted-foreground',
                         )}

@@ -3,7 +3,7 @@
 [![Docs](https://img.shields.io/badge/docs-docs.externa.qiick.io-0f766e)](https://docs.externa.qiick.io)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-**Version:** `1.0.0-beta.4` (from `composer.json`; mirrored in `package.json`). See [CHANGELOG.md](./CHANGELOG.md) and [Releasing docs](https://docs.externa.qiick.io/docs/releasing).
+**Version:** `1.0.0` (from `composer.json`; mirrored in `package.json`). See [CHANGELOG.md](./CHANGELOG.md) and [Releasing docs](https://docs.externa.qiick.io/docs/releasing).
 
 Externa is a **Laravel-native headless CMS**: operators manage structured content in a full admin UI; websites and apps consume it through the **Public CMS API** (`/api/v1`) and **GraphQL** (`/api/graphql`). Optional in-app AI tools respect the signed-in user’s permissions — you own the code, so automation is Jobs/listeners, not a locked Flow canvas.
 
@@ -28,46 +28,6 @@ Externa is a **Laravel-native headless CMS**: operators manage structured conten
 
 Stack: **Laravel 13**, **Inertia + React 19**, Vite, Spatie Permission / Activitylog, Wayfinder typed routes.
 
-## Product UI
-
-Light-theme shots from the admin (demo seed data). More in the [docs](https://docs.externa.qiick.io).
-
-<p align="center">
-  <img src="docs/images/collection-items.webp" alt="Blog Posts collection items list" width="800" />
-  <br />
-  <em>Collection items — list, filters, and actions</em>
-</p>
-
-<p align="center">
-  <img src="docs/images/collection-item.webp" alt="Collection item editor with rich text" width="800" />
-  <br />
-  <em>Item editor — localized fields and rich text</em>
-</p>
-
-<p align="center">
-  <img src="docs/images/file-manager.webp" alt="Hierarchical file manager" width="800" />
-  <br />
-  <em>File manager — folders and assets</em>
-</p>
-
-<p align="center">
-  <img src="docs/images/roles.webp" alt="Roles settings matrix" width="800" />
-  <br />
-  <em>Roles — project access control</em>
-</p>
-
-<p align="center">
-  <img src="docs/images/chat.webp" alt="In-app chat hub" width="800" />
-  <br />
-  <em>Chat — collection and private threads</em>
-</p>
-
-<p align="center">
-  <img src="docs/images/users.webp" alt="Users list with roles and groups" width="800" />
-  <br />
-  <em>Users — roles, groups, and status</em>
-</p>
-
 ## Requirements
 
 | Requirement | Notes |
@@ -85,15 +45,21 @@ Optional: [Laravel Herd](https://herd.laravel.com) (PHP, nginx, `.test` hosts; P
 **Operators (recommended):** create a new site from Packagist (no git clone):
 
 ```bash
-composer create-project qiick/externa-core:^1.0.0@beta my-externa
+composer create-project qiick/externa-core my-externa
 cd my-externa
 nvm use   # Node 24
 php artisan externa:install
 ```
 
+Pin a release if needed: `qiick/externa-core:1.0.0`. Pre-tag smoke from git: `composer create-project qiick/externa-core:dev-develop my-externa`.
+
 `create-project` only copies `.env` (if missing) and runs `key:generate` — **no** migrate, seed, or SQLite assumption. Interactive first-run is `externa:install` (DB, APP_NAME/URL, stack profile, optional seed / AI URL, npm build).
 
-Beta tags need Composer stability: `@beta` (or `"minimum-stability": "beta"` in a root that requires the package). Package: [packagist.org/packages/qiick/externa-core](https://packagist.org/packages/qiick/externa-core). Docs: [Installation](https://docs.externa.qiick.io/docs/installation) · [Packagist & create-project](https://docs.externa.qiick.io/docs/packagist).
+> **Install only — not the update channel.** `composer create-project` copies the app tree once. After you push that tree to **your** git remote, Packagist / Composer will **not** pull newer Externa releases into it. To stay current, track Git tags (or add `upstream` and merge `vX.Y.Z`), then run `php artisan externa:upgrade` for migrate / permissions / cache — optional opt-in code sync: `php artisan externa:upgrade --sync-upstream=vX.Y.Z` (dry-run first). See **[Upgrade](https://docs.externa.qiick.io/docs/upgrade)**. Docker operators: pull a newer GHCR image tag — same guide.
+
+Package: [packagist.org/packages/qiick/externa-core](https://packagist.org/packages/qiick/externa-core). Docs: [Installation](https://docs.externa.qiick.io/docs/installation) · [Packagist & create-project](https://docs.externa.qiick.io/docs/packagist). Historical beta tags needed `@beta` (or `"minimum-stability": "beta"`).
+
+**Local paths:** [Laravel Herd](https://herd.laravel.com) (PHP / nginx / `.test`) or Docker Compose / GHCR quick-deploy — see [Deploy with Docker](https://docs.externa.qiick.io/docs/deploy-with-docker) and sections below. Health: `GET /health/live`, `GET /health/ready`.
 
 **CI / non-interactive:** `composer setup` runs install → copy `.env` if missing → `key:generate` → migrate → `npm install` → `npm run build`. Still run `db:seed`, `storage:link`, and Wayfinder when needed. Do **not** use `composer setup` as the human create-project happy path.
 
@@ -169,7 +135,22 @@ docker compose up --build
 # MariaDB (host :3307): docker compose --profile mariadb -f compose.yaml -f compose.mariadb.yaml up --build
 ```
 
-Production: multi-stage `Dockerfile` (`--target production`), `compose.prod.yaml`, `.env.docker.prod.example`. Probes: `GET /health/live`, `GET /health/ready` (+ Laravel `/up`). Docs: [Installation](https://docs.externa.qiick.io/docs/installation) · [Deployment](https://docs.externa.qiick.io/docs/deployment) · [Reverse proxy](https://docs.externa.qiick.io/docs/reverse-proxy).
+### Docker (quick production deploy)
+
+Pull the multi-arch image from **GHCR** (`ghcr.io/qiick-io/externa-core`) — no local build:
+
+```bash
+cp .env.docker.quick.example .env
+# Set APP_KEY, DB_PASSWORD, APP_URL; for first admin set RUN_SEED=true + INITIAL_SUPER_ADMIN_*
+docker compose -f compose.quick.yaml up -d
+# App: http://localhost:8080  · health: GET /health/ready
+```
+
+Build-from-source prod path: `compose.prod.yaml` + `.env.docker.prod.example`. Managed DB/Redis overlay: `compose.prod.managed.yaml`. Multi-arch bake/push: `docker-bake.hcl`, `./scripts/docker-buildx.sh` (CI publishes on `v*` tags).
+
+First boot is **gated**: `RUN_MIGRATIONS` / `RUN_SEED` (entrypoint defaults both off; Compose samples enable migrate for bring-up; seed stays opt-in). After bootstrap set `RUN_SEED=false`.
+
+Probes: `GET /health/live`, `GET /health/ready` (+ Laravel `/up`). Docs: [Deploy with Docker](https://docs.externa.qiick.io/docs/deploy-with-docker) · [Installation](https://docs.externa.qiick.io/docs/installation) · [Deployment](https://docs.externa.qiick.io/docs/deployment) · [Reverse proxy](https://docs.externa.qiick.io/docs/reverse-proxy).
 
 ### First login (local / dev only)
 
@@ -181,6 +162,46 @@ Production: multi-stage `Dockerfile` (`--target production`), `compose.prod.yaml
 | Password | `password` |
 
 Override with `INITIAL_SUPER_ADMIN_*` in `.env` **before** seeding. **Local/dev only** — change or remove before any shared or production deploy.
+
+## Product UI
+
+Light-theme shots from the admin (demo seed data). More in the [docs](https://docs.externa.qiick.io).
+
+<p align="center">
+  <img src="docs/images/collection-items.webp" alt="Blog Posts collection items list" width="800" />
+  <br />
+  <em>Collection items — list, filters, and actions</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/collection-item.webp" alt="Collection item editor with rich text" width="800" />
+  <br />
+  <em>Item editor — localized fields and rich text</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/file-manager.webp" alt="Hierarchical file manager" width="800" />
+  <br />
+  <em>File manager — folders and assets</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/roles.webp" alt="Roles settings matrix" width="800" />
+  <br />
+  <em>Roles — project access control</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/chat.webp" alt="In-app chat hub" width="800" />
+  <br />
+  <em>Chat — collection and private threads</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/users.webp" alt="Users list with roles and groups" width="800" />
+  <br />
+  <em>Users — roles, groups, and status</em>
+</p>
 
 ## Important environment variables
 
