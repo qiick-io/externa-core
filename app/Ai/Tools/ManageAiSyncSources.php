@@ -4,11 +4,13 @@ namespace App\Ai\Tools;
 
 use App\Ai\Concerns\ChecksAiPermissions;
 use App\Ai\Concerns\LogsAiToolUse;
+use App\Ai\Concerns\RequiresDestructiveApproval;
 use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Enums\PermissionEnum;
 use App\Models\AiSyncSource;
 use App\Models\Collection;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -16,10 +18,19 @@ use Stringable;
 /**
  * AI tool for configuring and inspecting AI sync sources.
  */
-class ManageAiSyncSources implements Tool
+class ManageAiSyncSources implements Approvable, Tool
 {
     use ChecksAiPermissions;
     use LogsAiToolUse;
+    use RequiresDestructiveApproval;
+
+    /**
+     * @return list<string>
+     */
+    protected function destructiveActions(): array
+    {
+        return ['delete'];
+    }
 
     /**
      * Describe what this tool does for the model.

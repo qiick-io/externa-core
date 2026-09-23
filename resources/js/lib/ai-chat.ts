@@ -116,11 +116,40 @@ export type AiStatus = {
     model?: string | null;
 };
 
+/** Destructive tool call the paused assistant turn is waiting on (laravel/ai `tool_approval_request`). */
+export type AiPendingApproval = {
+    id: string;
+    tool: string;
+    arguments?: Record<string, unknown>;
+    reason?: string | null;
+};
+
+/** User decision for one pending tool approval, sent to resume a paused turn. */
+export type AiApprovalDecision = {
+    id: string;
+    approved: boolean;
+};
+
+/**
+ * Short notice shown on a turn paused for tool approval.
+ *
+ * @param approvals - Pending approvals of the paused turn
+ * @returns English notice naming the gated tools
+ */
+export function awaitingApprovalContent(
+    approvals: AiPendingApproval[],
+): string {
+    const tools = [...new Set(approvals.map((approval) => approval.tool))];
+
+    return `Waiting for your approval to run ${tools.length > 0 ? tools.join(', ') : 'a tool'}.`;
+}
+
 /** Callbacks invoked while consuming an AI chat SSE stream. */
 export type AiStreamHandlers = {
     onToken?: (token: string) => void;
     onTool?: (toolName: string) => void;
     onToolResult?: (toolName: string, result: unknown) => void;
+    onApprovalRequest?: (approvals: AiPendingApproval[]) => void;
     onDone?: (fullText: string) => void;
     onError?: (error: Error) => void;
     onConversationId?: (conversationId: string) => void;
@@ -138,6 +167,7 @@ type ParsedSsePayload = {
     tool_name?: string;
     name?: string;
     result?: unknown;
+    approvals?: AiPendingApproval[];
 };
 
 /**
@@ -263,6 +293,7 @@ export async function uploadAiAttachment(
  * @param conversationId - Existing conversation id, or null for a new thread
  * @param handlers - Stream event callbacks and optional abort signal
  * @param attachmentIds - Previously uploaded attachment ids to include
+ * @param approvals - Decisions resuming a turn paused for tool approval (message may be empty)
  * @returns {void}
  */
 export async function streamAiChat(
@@ -270,6 +301,7 @@ export async function streamAiChat(
     conversationId: string | null | undefined,
     handlers: AiStreamHandlers = {},
     attachmentIds: string[] = [],
+    approvals: AiApprovalDecision[] = [],
 ): Promise<void> {
     let response: Response;
 
@@ -286,6 +318,7 @@ export async function streamAiChat(
                 message,
                 conversation_id: conversationId ?? null,
                 attachment_ids: attachmentIds,
+                ...(approvals.length > 0 ? { approvals } : {}),
             }),
         });
     } catch (error) {
@@ -436,6 +469,14 @@ export async function streamAiChat(
                             parsed.tool_name ?? parsed.name ?? 'tool',
                             parsed.result,
                         );
+                    }
+
+                    continue;
+                }
+
+                if (parsed.type === 'tool_approval_request') {
+                    if (!abortSignal?.aborted && parsed.approvals) {
+                        handlers.onApprovalRequest?.(parsed.approvals);
                     }
 
                     continue;

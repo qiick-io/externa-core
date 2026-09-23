@@ -536,7 +536,8 @@ test('ai tool actions mutate and read expected database state', function () {
 
     $conversation = Conversation::query()->create([
         'id' => (string) Str::uuid(),
-        'user_id' => $this->aiToolActor->id,
+        'participant_type' => $this->aiToolActor->getMorphClass(),
+        'participant_id' => $this->aiToolActor->id,
         'title' => "{$unique} rollback",
     ]);
     $rollbackCollection = Collection::factory()->create(['name' => "{$unique} rollback collection"]);

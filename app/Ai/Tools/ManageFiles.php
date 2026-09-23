@@ -4,6 +4,7 @@ namespace App\Ai\Tools;
 
 use App\Ai\Concerns\ChecksAiPermissions;
 use App\Ai\Concerns\LogsAiToolUse;
+use App\Ai\Concerns\RequiresDestructiveApproval;
 use App\Ai\Support\AiToolJsonDecoder;
 use App\Enums\FileTypeEnum;
 use App\Enums\PermissionEnum;
@@ -12,6 +13,7 @@ use App\Models\File;
 use App\Services\FileService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Http\UploadedFile;
+use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -19,10 +21,19 @@ use Stringable;
 /**
  * AI tool for browsing and mutating files and folders in the file manager.
  */
-class ManageFiles implements Tool
+class ManageFiles implements Approvable, Tool
 {
     use ChecksAiPermissions;
     use LogsAiToolUse;
+    use RequiresDestructiveApproval;
+
+    /**
+     * @return list<string>
+     */
+    protected function destructiveActions(): array
+    {
+        return ['delete', 'force_delete'];
+    }
 
     /**
      * Describe what this tool does for the model.
