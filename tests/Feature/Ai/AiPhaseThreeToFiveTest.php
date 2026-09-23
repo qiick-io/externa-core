@@ -132,7 +132,8 @@ test('rollback soft deletes an item created in the latest ai turn', function () 
 
     $conversation = Conversation::query()->create([
         'id' => (string) Str::uuid(),
-        'user_id' => $user->id,
+        'participant_type' => $user->getMorphClass(),
+        'participant_id' => $user->id,
         'title' => 'Rollback',
     ]);
     $collection = Collection::factory()->create();

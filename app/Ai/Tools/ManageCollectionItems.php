@@ -5,6 +5,7 @@ namespace App\Ai\Tools;
 use App\Ai\Concerns\ChecksAiPermissions;
 use App\Ai\Concerns\EnforcesAiCollectionPermissions;
 use App\Ai\Concerns\LogsAiToolUse;
+use App\Ai\Concerns\RequiresDestructiveApproval;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
@@ -17,6 +18,7 @@ use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\Collections\FieldConditionEvaluator;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -24,11 +26,20 @@ use Stringable;
 /**
  * AI tool for listing and mutating items within a content collection.
  */
-class ManageCollectionItems implements Tool
+class ManageCollectionItems implements Approvable, Tool
 {
     use ChecksAiPermissions;
     use EnforcesAiCollectionPermissions;
     use LogsAiToolUse;
+    use RequiresDestructiveApproval;
+
+    /**
+     * @return list<string>
+     */
+    protected function destructiveActions(): array
+    {
+        return ['delete', 'force_delete', 'bulk_delete'];
+    }
 
     /**
      * Describe what this tool does for the model.

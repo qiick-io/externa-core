@@ -13,7 +13,7 @@ import {
     MessageContent,
     MessageFooter,
 } from '@/components/ui/message';
-import type { AiChatAttachment } from '@/lib/ai-chat';
+import type { AiChatAttachment, AiPendingApproval } from '@/lib/ai-chat';
 import { suggestedActionsForTools } from '@/lib/ai-suggested-actions';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +26,7 @@ export type AiChatMessageView = {
     fileCards?: AiFileCardItem[];
     toolNames?: string[];
     tool_calls?: Array<{ name?: string; function?: { name?: string } }>;
+    pending_approvals?: AiPendingApproval[];
 };
 
 type AiChatMessagesProps = {
@@ -44,6 +45,7 @@ type AiChatMessagesProps = {
         options?: { asRetry?: boolean },
     ) => void;
     onSuggestedAction?: (prompt: string) => void;
+    onResolveApprovals?: (messageId: string, approved: boolean) => void;
 };
 
 /**
@@ -62,6 +64,7 @@ export function AiChatMessages({
     onResendEdited,
     onRegenerate,
     onSuggestedAction,
+    onResolveApprovals,
 }: AiChatMessagesProps) {
     if (messages.length === 0) {
         return <>{emptyState}</>;
@@ -203,6 +206,74 @@ export function AiChatMessages({
                                                 <AiFileCards
                                                     files={message.fileCards}
                                                 />
+                                            ) : null}
+                                            {onResolveApprovals &&
+                                            isLastMessage &&
+                                            (message.pending_approvals
+                                                ?.length ?? 0) > 0 ? (
+                                                <div className="flex flex-col gap-2 rounded-md border border-border p-3 whitespace-normal">
+                                                    <ul className="flex flex-col gap-1 text-xs">
+                                                        {message.pending_approvals?.map(
+                                                            (approval) => (
+                                                                <li
+                                                                    key={
+                                                                        approval.id
+                                                                    }
+                                                                    className="break-all text-muted-foreground"
+                                                                >
+                                                                    <span className="font-medium text-foreground">
+                                                                        {
+                                                                            approval.tool
+                                                                        }
+                                                                    </span>{' '}
+                                                                    <code>
+                                                                        {JSON.stringify(
+                                                                            approval.arguments ??
+                                                                                {},
+                                                                        )}
+                                                                    </code>
+                                                                    {approval.reason
+                                                                        ? ` — ${approval.reason}`
+                                                                        : null}
+                                                                </li>
+                                                            ),
+                                                        )}
+                                                    </ul>
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            variant="destructive"
+                                                            disabled={
+                                                                actionsLocked
+                                                            }
+                                                            onClick={() =>
+                                                                onResolveApprovals(
+                                                                    message.id,
+                                                                    true,
+                                                                )
+                                                            }
+                                                        >
+                                                            Approve
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            variant="outline"
+                                                            disabled={
+                                                                actionsLocked
+                                                            }
+                                                            onClick={() =>
+                                                                onResolveApprovals(
+                                                                    message.id,
+                                                                    false,
+                                                                )
+                                                            }
+                                                        >
+                                                            Reject
+                                                        </Button>
+                                                    </div>
+                                                </div>
                                             ) : null}
                                             {isLastMessage && onSuggestedAction
                                                 ? (() => {

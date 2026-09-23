@@ -8,8 +8,10 @@ use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Laravel\Ai\Approvals\Approval;
+use Laravel\Ai\Concerns\InteractsWithApprovals;
+use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
-use Laravel\Ai\Models\Conversation;
 use Laravel\Ai\Tools\Request;
 use Spatie\Activitylog\Models\Activity;
 use Stringable;
@@ -17,9 +19,10 @@ use Stringable;
 /**
  * AI tool that rolls back side effects from the previous AI assistant turn.
  */
-class RollbackLastAiTurn implements Tool
+class RollbackLastAiTurn implements Approvable, Tool
 {
     use ChecksAiPermissions;
+    use InteractsWithApprovals;
     use LogsAiToolUse;
 
     /**
@@ -47,9 +50,8 @@ class RollbackLastAiTurn implements Tool
                 return 'Error: conversation_id is required.';
             }
 
-            $ownsConversation = Conversation::query()
+            $ownsConversation = $user->conversations()
                 ->whereKey($conversationId)
-                ->where('user_id', $user->id)
                 ->exists();
 
             if (! $ownsConversation) {
@@ -104,6 +106,14 @@ class RollbackLastAiTurn implements Tool
                 'note' => 'Force-deletes cannot be undone.',
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '{}';
         });
+    }
+
+    /**
+     * Rolling back soft-deletes records, so every call waits for the user's approval.
+     */
+    protected function needsApproval(Request $request): Approval|bool
+    {
+        return Approval::required('RollbackLastAiTurn soft-deletes records created in the latest AI turn.');
     }
 
     /**
