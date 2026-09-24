@@ -90,7 +90,10 @@ class OutboundWebhookDispatcher
         }
     }
 
-    public function dispatchItem(string $type, CollectionItem $item, ?Collection $collection = null): void
+    /**
+     * @param  array<string, mixed>  $extra
+     */
+    public function dispatchItem(string $type, CollectionItem $item, ?Collection $collection = null, array $extra = []): void
     {
         $collection ??= $item->relationLoaded('collection')
             ? $item->collection
@@ -100,6 +103,7 @@ class OutboundWebhookDispatcher
             'collection_id' => $item->collection_id,
             'collection_slug' => $collection?->slug,
             'item_id' => $item->id,
+            ...$extra,
         ]);
     }
 

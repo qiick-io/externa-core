@@ -21,6 +21,7 @@ use App\Services\Authorization\EffectivePermissionResolver;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemExportService;
 use App\Services\Collections\CollectionItemOptionsService;
+use App\Services\Collections\CollectionItemPublisher;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Services\Collections\CollectionItemRevisionRecorder;
 use App\Services\Collections\CollectionItemValuesAssembler;
@@ -59,6 +60,7 @@ class ItemController extends Controller
         private CollectionItemExportService $itemExportService,
         private ItemRolePreviewService $itemRolePreviewService,
         private LivePreviewUrlBuilder $livePreviewUrlBuilder,
+        private CollectionItemPublisher $itemPublisher,
         private CollectionItemRevisionRecorder $revisionRecorder,
         private EffectivePermissionResolver $permissionResolver,
         private FieldConditionEvaluator $fieldConditionEvaluator,
@@ -325,6 +327,8 @@ class ItemController extends Controller
         $itemPayload = (new CollectionItemResource($item))->toArray($request);
         $itemPayload['has_draft'] = $draftData !== null;
         $itemPayload['draft_data'] = $draftData;
+        $itemPayload['publish_at'] = $item->publish_at?->toIso8601String();
+        $itemPayload['unpublish_at'] = $item->unpublish_at?->toIso8601String();
 
         return Inertia::render('collections/items/form', [
             'collection' => $collection,
@@ -520,8 +524,7 @@ class ItemController extends Controller
         $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
         abort_unless($collection->versioning, 422);
 
-        $draft = is_array($item->draft_data) ? $item->draft_data : null;
-        if ($draft === null) {
+        if (! is_array($item->draft_data)) {
             return redirect()
                 ->route('collections.items.show', [
                     'collection' => $collection,
@@ -531,24 +534,70 @@ class ItemController extends Controller
                 ->with('error', __('No draft changes to publish.'));
         }
 
-        $normalized = $this->itemDataNormalizer->normalize($collection, $draft, false);
-        $this->collectionItemValuesWriter->sync(
-            $item->fresh(),
-            $collection,
-            $normalized,
-            created: false,
-            revisionMeta: ['source' => 'publish'],
-        );
-
-        // Keep draft in sync with published after promote (empty workspace again).
-        $item->draft_data = null;
-        $item->save();
+        $this->itemPublisher->promote($item, $collection, scheduled: false);
 
         return redirect()->route('collections.items.show', [
             'collection' => $collection,
             'item' => $item,
             'version' => 'published',
         ])->with('success', __('Published.'));
+    }
+
+    /**
+     * Schedule publish and/or unpublish for a versioned item.
+     */
+    public function schedule(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
+    {
+        $this->assertItemBelongsToCollection($collection, $item);
+        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+        abort_unless($collection->versioning, 422);
+
+        $validated = $request->validate([
+            'publish_at' => ['nullable', 'date'],
+            'unpublish_at' => ['nullable', 'date'],
+            'clear' => ['sometimes', 'boolean'],
+        ]);
+
+        if ($request->boolean('clear')) {
+            $item->publish_at = null;
+            $item->unpublish_at = null;
+            $item->save();
+
+            return redirect()->route('collections.items.show', [
+                'collection' => $collection,
+                'item' => $item,
+                'version' => $request->query('version', 'draft'),
+            ])->with('success', __('Schedule cleared.'));
+        }
+
+        $publishAt = $validated['publish_at'] ?? null;
+        $unpublishAt = $validated['unpublish_at'] ?? null;
+
+        if ($publishAt !== null && $unpublishAt !== null && strtotime((string) $unpublishAt) <= strtotime((string) $publishAt)) {
+            return redirect()
+                ->back()
+                ->with('error', __('Unpublish time must be after publish time.'));
+        }
+
+        if ($publishAt !== null && ! is_array($item->draft_data)) {
+            return redirect()
+                ->route('collections.items.show', [
+                    'collection' => $collection,
+                    'item' => $item,
+                    'version' => 'draft',
+                ])
+                ->with('error', __('Save a draft before scheduling publish.'));
+        }
+
+        $item->publish_at = $publishAt;
+        $item->unpublish_at = $unpublishAt;
+        $item->save();
+
+        return redirect()->route('collections.items.show', [
+            'collection' => $collection,
+            'item' => $item,
+            'version' => $request->query('version', 'draft'),
+        ])->with('success', __('Schedule saved.'));
     }
 
     /**
@@ -571,6 +620,7 @@ class ItemController extends Controller
         }
 
         $item->draft_data = null;
+        $item->publish_at = null;
         $item->save();
 
         $this->revisionRecorder->record($item, [

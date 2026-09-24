@@ -132,12 +132,37 @@ type ItemPayload = {
     user_updated?: { id: number; name: string; email?: string | null } | null;
     has_draft?: boolean;
     draft_data?: Record<string, unknown> | null;
+    publish_at?: string | null;
+    unpublish_at?: string | null;
 };
 
 /**
  * Create or edit a collection item.
  * @returns {JSX.Element}
  */
+
+function toDatetimeLocalValue(iso: string | null | undefined): string {
+    if (!iso) {
+        return '';
+    }
+
+    const date = new Date(iso);
+
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function fromDatetimeLocalValue(local: string): string {
+    const date = new Date(local);
+
+    return Number.isNaN(date.getTime()) ? local : date.toISOString();
+}
+
 export default function ItemsForm({
     collection,
     item,
@@ -225,12 +250,21 @@ export default function ItemsForm({
     const [publishOpen, setPublishOpen] = useState(false);
     const [discardDraftOpen, setDiscardDraftOpen] = useState(false);
     const [discardingDraft, setDiscardingDraft] = useState(false);
+    const [scheduling, setScheduling] = useState(false);
+    const [publishAtLocal, setPublishAtLocal] = useState(() =>
+        toDatetimeLocalValue(item?.publish_at ?? null),
+    );
+    const [unpublishAtLocal, setUnpublishAtLocal] = useState(() =>
+        toDatetimeLocalValue(item?.unpublish_at ?? null),
+    );
     const draftTimer = useRef<number | null>(null);
 
     const versioningEnabled = Boolean(collection.versioning);
     const viewingPublished =
         versioningEnabled && contentVersion === 'published';
     const hasServerDraft = Boolean(item?.has_draft);
+    // ponytail: treat any set publish_at as Scheduled; due rows clear via scheduler
+    const isScheduled = Boolean(item?.publish_at);
     const showRevisionsEntry = !isNew && item !== null;
     const latestForCompare = publishedData ?? rawData;
     const canCreateItem = can(PermissionEnum.CanCreateCollections);
@@ -245,6 +279,11 @@ export default function ItemsForm({
     useEffect(() => {
         setChatCount(chatCountProp);
     }, [chatCountProp]);
+
+    useEffect(() => {
+        setPublishAtLocal(toDatetimeLocalValue(item?.publish_at ?? null));
+        setUnpublishAtLocal(toDatetimeLocalValue(item?.unpublish_at ?? null));
+    }, [item?.publish_at, item?.unpublish_at]);
 
     useEffect(() => {
         if (isNew || item === null) {
@@ -709,9 +748,11 @@ export default function ItemsForm({
                                     className="px-2 text-xs"
                                 >
                                     {contentVersion === 'draft'
-                                        ? hasServerDraft
-                                            ? 'Draft'
-                                            : 'Draft (empty)'
+                                        ? isScheduled
+                                            ? 'Scheduled'
+                                            : hasServerDraft
+                                              ? 'Draft'
+                                              : 'Draft (empty)'
                                         : 'Published'}
                                 </Badge>
                                 <Select
@@ -921,6 +962,100 @@ export default function ItemsForm({
                         </Button>
                     </div>
                 )}
+
+                {!isNew &&
+                    item !== null &&
+                    versioningEnabled &&
+                    canEditItem && (
+                        <div
+                            className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-sidebar-border/70 bg-muted/20 px-3 py-2.5 text-sm dark:border-sidebar-border"
+                            data-test="item-schedule-panel"
+                        >
+                            <label className="flex flex-col gap-1">
+                                <span className="text-xs text-muted-foreground">
+                                    Publish at
+                                </span>
+                                <input
+                                    type="datetime-local"
+                                    className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+                                    value={publishAtLocal}
+                                    data-test="schedule-publish-at"
+                                    onChange={(event) =>
+                                        setPublishAtLocal(event.target.value)
+                                    }
+                                />
+                            </label>
+                            <label className="flex flex-col gap-1">
+                                <span className="text-xs text-muted-foreground">
+                                    Unpublish at
+                                </span>
+                                <input
+                                    type="datetime-local"
+                                    className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+                                    value={unpublishAtLocal}
+                                    data-test="schedule-unpublish-at"
+                                    onChange={(event) =>
+                                        setUnpublishAtLocal(event.target.value)
+                                    }
+                                />
+                            </label>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                className="text-xs"
+                                disabled={scheduling}
+                                data-test="schedule-save"
+                                onClick={() => {
+                                    setScheduling(true);
+                                    router.post(
+                                        `/collections/${collection.id}/items/${item.id}/schedule`,
+                                        {
+                                            publish_at: publishAtLocal
+                                                ? fromDatetimeLocalValue(
+                                                      publishAtLocal,
+                                                  )
+                                                : null,
+                                            unpublish_at: unpublishAtLocal
+                                                ? fromDatetimeLocalValue(
+                                                      unpublishAtLocal,
+                                                  )
+                                                : null,
+                                        },
+                                        {
+                                            onFinish: () =>
+                                                setScheduling(false),
+                                        },
+                                    );
+                                }}
+                            >
+                                Save schedule
+                            </Button>
+                            {(item.publish_at || item.unpublish_at) && (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-xs"
+                                    disabled={scheduling}
+                                    data-test="schedule-clear"
+                                    onClick={() => {
+                                        setScheduling(true);
+                                        router.post(
+                                            `/collections/${collection.id}/items/${item.id}/schedule`,
+                                            { clear: true },
+                                            {
+                                                onFinish: () =>
+                                                    setScheduling(false),
+                                            },
+                                        );
+                                    }}
+                                >
+                                    Cancel schedule
+                                </Button>
+                            )}
+                        </div>
+                    )}
 
                 {!hasFields && (
                     <p className="rounded-xl border border-dashed border-sidebar-border/70 p-6 text-sm text-muted-foreground dark:border-sidebar-border">

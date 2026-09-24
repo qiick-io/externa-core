@@ -15,6 +15,7 @@ final class OutboundWebhookCatalog
     public const EVENTS = [
         'item.created' => 'A collection item was created.',
         'item.updated' => 'A collection item\'s values were saved.',
+        'item.published' => 'A draft was promoted to published values (manual or scheduled).',
         'item.deleted' => 'A collection item was moved to trash or permanently deleted.',
         'item.restored' => 'A trashed collection item was restored.',
         'collection.created' => 'A collection was created.',
