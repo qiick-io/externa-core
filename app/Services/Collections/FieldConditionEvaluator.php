@@ -264,11 +264,11 @@ class FieldConditionEvaluator
             return (float) $value;
         }
 
-        if (! is_string($value) && ! is_numeric($value)) {
+        if (! is_string($value)) {
             return null;
         }
 
-        $trimmed = trim((string) $value);
+        $trimmed = trim($value);
 
         if ($trimmed === '') {
             return null;
