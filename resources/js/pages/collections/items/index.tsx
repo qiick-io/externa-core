@@ -17,6 +17,7 @@ import {
     useRef,
     useState,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
@@ -266,6 +267,7 @@ export default function ItemsIndex({
     related_fields_catalog?: Record<string, RelatedFieldEntry[]>;
     filters: ItemsFilters;
 }) {
+    const { t } = useTranslation();
     const { can } = useCan();
     const isTrashed = filters.trashed === true;
     const versioningEnabled = Boolean(collection.versioning);
@@ -621,7 +623,9 @@ export default function ItemsIndex({
                                         </Button>
                                     </DropdownMenuTrigger>
                                 </TooltipTrigger>
-                                <TooltipContent>Export</TooltipContent>
+                                <TooltipContent>
+                                    {t('common.export')}
+                                </TooltipContent>
                             </Tooltip>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>

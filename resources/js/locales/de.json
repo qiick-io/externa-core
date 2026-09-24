@@ -14,7 +14,8 @@
         "firstName": "Vorname",
         "lastName": "Nachname",
         "hide": "Ausblenden",
-        "view": "Anzeigen"
+        "view": "Anzeigen",
+        "export": "Exportieren"
     },
     "roles": {
         "names": {
@@ -91,7 +92,12 @@
         "skipToContent": "Zum Inhalt springen",
         "mainNav": "Hauptnavigation",
         "openMenu": "Menü öffnen",
-        "search": "Suchen"
+        "search": "Suchen",
+        "removeConditionRule": "Bedingungsregel entfernen",
+        "dismissUpload": "Upload verwerfen",
+        "clearSelection": "Auswahl löschen",
+        "removeTab": "Tab entfernen",
+        "removeSection": "Abschnitt entfernen"
     },
     "auth": {
         "login": {
@@ -175,7 +181,8 @@
             "roles": "Rollen",
             "permissions": "Berechtigungen",
             "apiKeys": "API-Schlüssel",
-            "reportBug": "Bug melden"
+            "reportBug": "Bug melden",
+            "performance": "Leistung"
         },
         "profile": {
             "breadcrumb": "Profileinstellungen",
@@ -361,7 +368,11 @@
                 "apiKeys": "API-Schlüssel",
                 "permissions": "Berechtigungen",
                 "settings": "Einstellungen"
-            }
+            },
+            "publicApiAllowedOrigins": "Erlaubte Origins",
+            "publicApiAllowedOriginsHint": "Eine Origin pro Zeile (z. B. https://www.example.com). Leer = alle Origins erlaubt.",
+            "publicApiDescription": "CORS / Origin-Allowlist für die Public CMS API.",
+            "publicApiTitle": "Public CMS API"
         },
         "appearance": {
             "breadcrumb": "Darstellungseinstellungen",
@@ -412,6 +423,49 @@
             "codesAria": "Wiederherstellungscodes",
             "loadingAria": "Wiederherstellungscodes werden geladen",
             "regenerateWarning": "Jeder Wiederherstellungscode kann einmal verwendet werden und wird danach entfernt. Wenn Sie mehr benötigen, klicken Sie oben auf <bold>Codes neu generieren</bold>."
+        },
+        "performance": {
+            "appDebug": "APP_DEBUG",
+            "appEnv": "APP_ENV",
+            "bootstrapDescription": "Status der Laravel-Bootstrap-Caches (config, routes, events, packages).",
+            "bootstrapTitle": "Bootstrap-Caches",
+            "breadcrumb": "Leistung",
+            "cacheStore": "Cache-Store",
+            "configCached": "Config gecacht",
+            "epoch": "Epoche",
+            "eventsCached": "Events gecacht",
+            "flushDashboardMetricsButton": "Dashboard-Metriken leeren",
+            "flushDashboardMetricsDescription": "Löscht gecachte Dashboard-Zähler und Diagrammdaten.",
+            "flushDashboardMetricsTitle": "Dashboard-Metriken",
+            "flushDescription": "Gezielte Cache-Invalidierung ohne vollständigen config:clear.",
+            "flushPermissionMatricesButton": "Berechtigungsmatrizen leeren",
+            "flushPermissionMatricesDescription": "Löscht gecachte effektive Berechtigungsmatrizen.",
+            "flushPermissionMatricesTitle": "Berechtigungsmatrizen",
+            "flushPublicApiButton": "Public-API-Cache leeren",
+            "flushPublicApiDescription": "Löscht Public-CMS-API-Antwortcaches.",
+            "flushPublicApiTitle": "Public API",
+            "flushSpatiePermissionsButton": "Spatie-Permission-Cache leeren",
+            "flushSpatiePermissionsDescription": "Leert den Spatie laravel-permission Cache.",
+            "flushSpatiePermissionsTitle": "Spatie Permissions",
+            "flushTitle": "Caches leeren",
+            "flushing": "Wird geleert…",
+            "head": "Leistung",
+            "linkHorizon": "Horizon öffnen",
+            "linkJobs": "Jobs öffnen",
+            "linkPulse": "Pulse öffnen",
+            "no": "Nein",
+            "observabilityDescription": "Links zu Horizon, Pulse und Job-Monitor.",
+            "observabilityTitle": "Observability",
+            "packagesCached": "Packages gecacht",
+            "publicApiDescription": "TTL und Epoch für Public-CMS-API-Caches.",
+            "publicApiTitle": "Public-API-Cache",
+            "queueConnection": "Queue-Connection",
+            "redisReachable": "Redis erreichbar",
+            "routesCached": "Routes gecacht",
+            "statusDescription": "Laufzeitumgebung und Cache-Backend.",
+            "statusTitle": "Status",
+            "ttlSeconds": "TTL (Sekunden)",
+            "yes": "Ja"
         }
     },
     "collections": {
@@ -1244,7 +1298,10 @@
             "ai": "KI",
             "chat": "Chat",
             "settings": "Einstellungen"
-        }
+        },
+        "exportCsv": "CSV exportieren",
+        "exportHint": "Exportiert die aktuellen Filter (max. {{limit}} Zeilen).",
+        "exportJson": "JSON exportieren"
     },
     "files": {
         "title": "Dateien",

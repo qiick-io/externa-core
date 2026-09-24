@@ -22,6 +22,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Field conditions: `contains`, `gt`/`gte`/`lt`/`lte`, `in`/`not_in`, and flat OR logic; PHP↔TS parity fixtures (#45)
 - Accessibility: keyboard-reachable password toggle, aria-labels on critical search/OTP/icon controls; Pest Browser axe on login + profile (#26)
 - Activity log CSV/JSON export with current filters (streamed, 10k row cap) (#28)
+- Admin i18n: sync `de` missing keys, `common.export` / `a11y.*` labels, locale key parity test (#27)
 
 ### Changed
 

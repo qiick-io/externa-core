@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ export function CollectionFormLayoutEditor({
     formLayout,
     locales = ['en'],
 }: CollectionFormLayoutEditorProps) {
+    const { t } = useTranslation();
     const initial = useMemo(
         () =>
             parseCollectionFormLayout(formLayout) ?? {
@@ -177,7 +179,7 @@ export function CollectionFormLayoutEditor({
                             type="button"
                             size="sm"
                             variant="ghost"
-                            aria-label="Remove tab"
+                            aria-label={t('a11y.removeTab')}
                             onClick={clearLayout}
                             disabled={saving}
                         >
@@ -327,7 +329,7 @@ export function CollectionFormLayoutEditor({
                                     type="button"
                                     size="icon"
                                     variant="ghost"
-                                    aria-label="Remove section"
+                                    aria-label={t('a11y.removeSection')}
                                     onClick={() => removeSection(section.id)}
                                 >
                                     <Trash2 className="size-4" />

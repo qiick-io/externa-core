@@ -1,4 +1,5 @@
 import { Loader2, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { FileUploadProgress } from '@/types/files';
@@ -19,6 +20,8 @@ export function FileUploadManager({
     onDismiss,
     className,
 }: FileUploadManagerProps) {
+    const { t } = useTranslation();
+
     if (uploads.length === 0) {
         return null;
     }
@@ -64,7 +67,7 @@ export function FileUploadManager({
                                     variant="ghost"
                                     size="icon"
                                     className="size-7 shrink-0"
-                                    aria-label="Dismiss upload"
+                                    aria-label={t('a11y.dismissUpload')}
                                     onClick={() => onDismiss(upload.uploadId)}
                                 >
                                     <X className="size-4" />
