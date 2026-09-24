@@ -9,15 +9,6 @@ namespace App\Services\Collections;
  */
 class LivePreviewToken
 {
-    /**
-     * @return array{
-     *     collection_id: int,
-     *     item_id: int,
-     *     version: 'draft'|'published',
-     *     locale: string|null,
-     *     exp: int
-     * }
-     */
     public function mint(
         int $collectionId,
         int $itemId,
