@@ -14,7 +14,8 @@
         "firstName": "Nome",
         "lastName": "Cognome",
         "hide": "Nascondi",
-        "view": "Mostra"
+        "view": "Mostra",
+        "export": "Esporta"
     },
     "roles": {
         "names": {
@@ -91,7 +92,12 @@
         "skipToContent": "Vai al contenuto",
         "mainNav": "Navigazione principale",
         "openMenu": "Apri menu",
-        "search": "Cerca"
+        "search": "Cerca",
+        "removeConditionRule": "Rimuovi regola di condizione",
+        "dismissUpload": "Chiudi caricamento",
+        "clearSelection": "Cancella selezione",
+        "removeTab": "Rimuovi scheda",
+        "removeSection": "Rimuovi sezione"
     },
     "auth": {
         "login": {

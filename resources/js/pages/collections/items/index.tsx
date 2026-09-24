@@ -621,7 +621,9 @@ export default function ItemsIndex({
                                         </Button>
                                     </DropdownMenuTrigger>
                                 </TooltipTrigger>
-                                <TooltipContent>Export</TooltipContent>
+                                <TooltipContent>
+                                    {t('common.export')}
+                                </TooltipContent>
                             </Tooltip>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>

@@ -1,4 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +42,7 @@ export function FieldConditionsSettings({
     value,
     onChange,
 }: FieldConditionsSettingsProps) {
+    const { t } = useTranslation();
     const conditions = value ??
         parseFieldConditions(settings) ?? {
             logic: 'and' as const,
@@ -211,7 +213,7 @@ export function FieldConditionsSettings({
                             size="icon"
                             variant="ghost"
                             className="self-end"
-                            aria-label="Remove condition rule"
+                            aria-label={t('a11y.removeConditionRule')}
                             onClick={() => {
                                 const rules = conditions.rules.filter(
                                     (_, entryIndex) => entryIndex !== index,

@@ -14,7 +14,8 @@
         "firstName": "First name",
         "lastName": "Last name",
         "hide": "Hide",
-        "view": "View"
+        "view": "View",
+        "export": "Export"
     },
     "roles": {
         "names": {
@@ -91,7 +92,12 @@
         "skipToContent": "Skip to content",
         "mainNav": "Main navigation",
         "openMenu": "Open menu",
-        "search": "Search"
+        "search": "Search",
+        "removeConditionRule": "Remove condition rule",
+        "dismissUpload": "Dismiss upload",
+        "clearSelection": "Clear selection",
+        "removeTab": "Remove tab",
+        "removeSection": "Remove section"
     },
     "auth": {
         "login": {
