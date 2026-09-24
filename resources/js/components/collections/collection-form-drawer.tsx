@@ -369,6 +369,27 @@ export function CollectionFormDrawer({
                             </p>
                             <InputError message={form.errors.versioning} />
                         </div>
+                        <div className="grid gap-2 border-t pt-3">
+                            <Label htmlFor="collection_drawer_preview_url">
+                                {t('collections.meta.previewUrl')}
+                            </Label>
+                            <Input
+                                id="collection_drawer_preview_url"
+                                type="url"
+                                value={form.data.preview_url ?? ''}
+                                placeholder={t(
+                                    'collections.meta.previewUrlPlaceholder',
+                                )}
+                                onChange={(e) =>
+                                    form.setData('preview_url', e.target.value)
+                                }
+                                data-test="collection-preview-url"
+                            />
+                            <p className="text-sm text-muted-foreground">
+                                {t('collections.meta.previewUrlHint')}
+                            </p>
+                            <InputError message={form.errors.preview_url} />
+                        </div>
                         <div className="grid gap-3 border-t pt-3">
                             <div className="grid gap-1">
                                 <p className="text-sm font-medium">

@@ -20,6 +20,7 @@ const EMPTY_COLLECTION_FORM = {
     versioning: false,
     revision_retention_count: null as number | null,
     revision_retention_days: null as number | null,
+    preview_url: '',
 };
 
 /** Empty / invalid → null (unlimited). */
@@ -86,6 +87,7 @@ export function useCollections(options?: { onClosed?: () => void }) {
                     editing.revision_retention_count ?? null,
                 revision_retention_days:
                     editing.revision_retention_days ?? null,
+                preview_url: editing.preview_url ?? '',
             };
             form.setData(payload);
             form.setDefaults({ ...payload });
@@ -140,6 +142,7 @@ export function useCollections(options?: { onClosed?: () => void }) {
                 revision_retention_days: retentionOrNull(
                     data.revision_retention_days,
                 ),
+                preview_url: data.preview_url || null,
             }));
             form.put(
                 ContentCollectionController.update.url({
@@ -158,6 +161,7 @@ export function useCollections(options?: { onClosed?: () => void }) {
                 description: data.description || null,
                 icon: data.icon || null,
                 color: data.color || null,
+                preview_url: data.preview_url || null,
                 revision_retention_count: retentionOrNull(
                     data.revision_retention_count,
                 ),
