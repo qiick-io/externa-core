@@ -268,6 +268,7 @@ export function PaginatedMultiSelect({
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search…"
+                        aria-label="Search"
                         className="h-8"
                     />
                     {value.length > 0 && (
@@ -276,6 +277,7 @@ export function PaginatedMultiSelect({
                             variant="ghost"
                             size="icon"
                             className="size-8 shrink-0"
+                            aria-label="Clear selection"
                             onClick={() => onChange?.([])}
                         >
                             <X className="size-4" />

@@ -88,6 +88,7 @@ export function FileUrlImportDialog({
                     type="url"
                     value={url}
                     placeholder="https://"
+                    aria-label={t('collections.fileField.importFromUrl')}
                     autoFocus
                     disabled={busy}
                     onChange={(event) => setUrl(event.target.value)}

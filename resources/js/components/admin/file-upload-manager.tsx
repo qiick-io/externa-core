@@ -64,6 +64,7 @@ export function FileUploadManager({
                                     variant="ghost"
                                     size="icon"
                                     className="size-7 shrink-0"
+                                    aria-label="Dismiss upload"
                                     onClick={() => onDismiss(upload.uploadId)}
                                 >
                                     <X className="size-4" />

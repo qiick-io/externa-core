@@ -177,6 +177,7 @@ export function CollectionFormLayoutEditor({
                             type="button"
                             size="sm"
                             variant="ghost"
+                            aria-label="Remove tab"
                             onClick={clearLayout}
                             disabled={saving}
                         >
@@ -326,6 +327,7 @@ export function CollectionFormLayoutEditor({
                                     type="button"
                                     size="icon"
                                     variant="ghost"
+                                    aria-label="Remove section"
                                     onClick={() => removeSection(section.id)}
                                 >
                                     <Trash2 className="size-4" />
