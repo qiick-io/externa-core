@@ -14,7 +14,8 @@
         "firstName": "Nome",
         "lastName": "Cognome",
         "hide": "Nascondi",
-        "view": "Mostra"
+        "view": "Mostra",
+        "export": "Esporta"
     },
     "roles": {
         "names": {
@@ -91,7 +92,12 @@
         "skipToContent": "Vai al contenuto",
         "mainNav": "Navigazione principale",
         "openMenu": "Apri menu",
-        "search": "Cerca"
+        "search": "Cerca",
+        "removeConditionRule": "Rimuovi regola di condizione",
+        "dismissUpload": "Chiudi caricamento",
+        "clearSelection": "Cancella selezione",
+        "removeTab": "Rimuovi scheda",
+        "removeSection": "Rimuovi sezione"
     },
     "auth": {
         "login": {
@@ -339,6 +345,20 @@
             "webhookSecretGenerate": "Genera secret",
             "webhookSendTest": "Invia evento di test",
             "webhookSendTestHint": "Salva prima l'URL del webhook, poi accoda un ping firmato. Serve un worker della coda (o QUEUE_CONNECTION=sync).",
+            "previewUrlDefault": "URL Live Preview (default)",
+            "previewUrlDefaultHint": "Template di fallback se la collection non ha un URL proprio. Token: {{id}}, {{slug}}, {{collection}}, {{locale}}, {{version}}, {{token}}.",
+            "webhookDeliveryTitle": "Stato consegne",
+            "webhookLastSuccess": "Ultima consegna riuscita",
+            "webhookLastError": "Ultima consegna fallita",
+            "webhookDeliveryNone": "Nessuna finora.",
+            "webhookDeliveryAttempts": "Tentativi: {{count}}",
+            "webhookDeliveryWhen": "Quando",
+            "webhookDeliveryOutcome": "Esito",
+            "webhookOutcomeSuccess": "Consegnato",
+            "webhookOutcomeFailed": "Fallito",
+            "webhookEventsTitle": "Catalogo eventi",
+            "webhookEventType": "Evento",
+            "webhookEventDescription": "Descrizione",
             "modules": {
                 "dashboard": "Dashboard",
                 "ai": "Assistente",
@@ -473,6 +493,9 @@
             "singletonHint": "Usalo per collection con una sola voce fissa (es. homepage o impostazioni sito). Questa scelta non si può cambiare dopo la creazione.",
             "versioning": "Versioning contenuti",
             "versioningHint": "Abilita bozza / pubblicato. Modifica in Bozza, poi Pubblica.",
+            "previewUrl": "URL Live Preview",
+            "previewUrlHint": "Template frontend con token: {{id}}, {{slug}}, {{collection}}, {{locale}}, {{version}}, {{token}}. Vuoto = default in Impostazioni progetto.",
+            "previewUrlPlaceholder": "https://example.com/preview/{{collection}}/{{id}}?version={{version}}&token={{token}}",
             "revisionRetention": "Conservazione revisioni",
             "revisionRetentionHint": "Lascia vuoto per usare il default di progetto (Impostazioni → Progetto → Conservazione revisioni). Vuoto a entrambi i livelli conserva le revisioni per sempre. I limiti valgono sugli snapshot della cronologia (anche se Bozza/Pubblica è disattivato).",
             "revisionRetentionCount": "Revisioni massime",
@@ -530,6 +553,8 @@
         },
         "itemToolbar": {
             "previewAs": "Anteprima come…",
+            "livePreview": "Live Preview",
+            "livePreviewError": "Impossibile aprire Live Preview. Controlla l’URL di anteprima della collection.",
             "chat": "Chat",
             "revisions": "Revisioni",
             "editFields": "Modifica campi",
@@ -1273,7 +1298,10 @@
             "ai": "AI",
             "chat": "Chat",
             "settings": "Impostazioni"
-        }
+        },
+        "exportCsv": "Esporta CSV",
+        "exportJson": "Esporta JSON",
+        "exportHint": "Esporta i filtri attuali (max {{limit}} righe)."
     },
     "files": {
         "title": "File",

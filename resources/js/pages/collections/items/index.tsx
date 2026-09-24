@@ -17,6 +17,7 @@ import {
     useRef,
     useState,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
@@ -33,6 +34,7 @@ import {
     TablePagination,
     TablePanel,
 } from '@/components/layout/page-layout';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -92,6 +94,7 @@ type ItemRow = {
     user_updated?: { id: number; name: string; email?: string | null } | null;
     displays?: Record<string, string | null>;
     thumbs?: Record<string, string | null>;
+    has_draft?: boolean;
 };
 
 type Paginator<T> = {
@@ -107,6 +110,7 @@ type ItemsFilters = Record<string, unknown> & {
     sort?: string;
     direction?: string;
     trashed?: boolean;
+    has_draft?: boolean;
 };
 
 function titleContainsFromFilters(filters: ItemsFilters): string {
@@ -263,8 +267,11 @@ export default function ItemsIndex({
     related_fields_catalog?: Record<string, RelatedFieldEntry[]>;
     filters: ItemsFilters;
 }) {
+    const { t } = useTranslation();
     const { can } = useCan();
     const isTrashed = filters.trashed === true;
+    const versioningEnabled = Boolean(collection.versioning);
+    const hasDraftFilter = filters.has_draft === true;
     const [filterTitle, setFilterTitle] = useState(() =>
         titleContainsFromFilters(filters),
     );
@@ -355,6 +362,7 @@ export default function ItemsIndex({
                 sort?: string;
                 direction?: 'asc' | 'desc';
                 trashed?: boolean;
+                has_draft?: boolean;
             } = {},
         ) => {
             const nextRules =
@@ -368,6 +376,10 @@ export default function ItemsIndex({
                 (filters.direction === 'asc' ? 'asc' : 'desc');
             const nextTrashed =
                 overrides.trashed !== undefined ? overrides.trashed : isTrashed;
+            const nextHasDraft =
+                overrides.has_draft !== undefined
+                    ? overrides.has_draft
+                    : hasDraftFilter;
 
             const filterPayload = serializeFilterRules(nextRules);
 
@@ -386,6 +398,10 @@ export default function ItemsIndex({
                 query.trashed = true;
             }
 
+            if (nextHasDraft) {
+                query.has_draft = true;
+            }
+
             router.get(
                 collections.items.index.url(collection.id, { query }),
                 {},
@@ -397,6 +413,7 @@ export default function ItemsIndex({
             filterRules,
             filters.direction,
             filters.sort,
+            hasDraftFilter,
             isTrashed,
         ],
     );
@@ -606,7 +623,9 @@ export default function ItemsIndex({
                                         </Button>
                                     </DropdownMenuTrigger>
                                 </TooltipTrigger>
-                                <TooltipContent>Export</TooltipContent>
+                                <TooltipContent>
+                                    {t('common.export')}
+                                </TooltipContent>
                             </Tooltip>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
@@ -729,32 +748,53 @@ export default function ItemsIndex({
                 }
                 filtersRight={
                     hasSelection ? null : (
-                        <ToggleGroup
-                            type="single"
-                            value={isTrashed ? 'trashed' : 'active'}
-                            onValueChange={(value) => {
-                                if (!value) {
-                                    return;
-                                }
+                        <div className="flex items-center gap-1.5">
+                            {versioningEnabled ? (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant={
+                                        hasDraftFilter ? 'secondary' : 'outline'
+                                    }
+                                    className="h-9 px-2.5 text-xs"
+                                    data-test="filter-has-draft"
+                                    aria-pressed={hasDraftFilter}
+                                    onClick={() =>
+                                        visit({
+                                            has_draft: !hasDraftFilter,
+                                        })
+                                    }
+                                >
+                                    Has draft
+                                </Button>
+                            ) : null}
+                            <ToggleGroup
+                                type="single"
+                                value={isTrashed ? 'trashed' : 'active'}
+                                onValueChange={(value) => {
+                                    if (!value) {
+                                        return;
+                                    }
 
-                                visit({ trashed: value === 'trashed' });
-                            }}
-                        >
-                            <ToggleGroupItem
-                                value="active"
-                                aria-label="Active items"
-                                className="px-2.5"
+                                    visit({ trashed: value === 'trashed' });
+                                }}
                             >
-                                <FolderOpen className="size-4" />
-                            </ToggleGroupItem>
-                            <ToggleGroupItem
-                                value="trashed"
-                                aria-label="Trash"
-                                className="px-2.5"
-                            >
-                                <Trash2 className="size-4" />
-                            </ToggleGroupItem>
-                        </ToggleGroup>
+                                <ToggleGroupItem
+                                    value="active"
+                                    aria-label="Active items"
+                                    className="px-2.5"
+                                >
+                                    <FolderOpen className="size-4" />
+                                </ToggleGroupItem>
+                                <ToggleGroupItem
+                                    value="trashed"
+                                    aria-label="Trash"
+                                    className="px-2.5"
+                                >
+                                    <Trash2 className="size-4" />
+                                </ToggleGroupItem>
+                            </ToggleGroup>
+                        </div>
                     )
                 }
                 footer={
@@ -931,6 +971,16 @@ export default function ItemsIndex({
                                                         event.stopPropagation()
                                                     }
                                                 >
+                                                    {versioningEnabled &&
+                                                    row.has_draft ? (
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className="mr-1 text-xs"
+                                                            data-test={`item-draft-badge-${row.id}`}
+                                                        >
+                                                            Draft
+                                                        </Badge>
+                                                    ) : null}
                                                     <AskAiButton
                                                         stopPropagation
                                                         prompt={seedItemPrompt({

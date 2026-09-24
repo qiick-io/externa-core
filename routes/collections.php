@@ -166,9 +166,21 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.items.publish');
 
+        Route::post('collections/{collection}/items/{item}/discard-draft', [ItemController::class, 'discardDraft'])
+            ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
+            ->name('collections.items.discard-draft');
+
+        Route::post('collections/{collection}/items/{item}/schedule', [ItemController::class, 'schedule'])
+            ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
+            ->name('collections.items.schedule');
+
         Route::get('collections/{collection}/items/{item}/preview-as-role', [ItemController::class, 'previewAsRole'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.preview-as-role');
+
+        Route::get('collections/{collection}/items/{item}/live-preview-url', [ItemController::class, 'livePreviewUrl'])
+            ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+            ->name('collections.items.live-preview-url');
 
         Route::put('collections/{collection}/list-columns', [ItemController::class, 'updateListColumns'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)

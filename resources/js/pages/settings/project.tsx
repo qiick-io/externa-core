@@ -8,6 +8,10 @@ import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { ContentLocalesField } from '@/components/settings/content-locales-field';
 import { TransformPresetsField } from '@/components/settings/transform-presets-field';
+import {
+    WebhookDeliveryStatus,
+    WebhookEventCatalog,
+} from '@/components/settings/webhook-deliveries-panel';
 import { SettingsFormActions } from '@/components/settings-form-actions';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -35,6 +39,8 @@ import type {
     ProjectSettingsForm,
     SidebarModuleSetting,
     TransformPreset,
+    WebhookDeliverySummary,
+    WebhookEventCatalogEntry,
 } from '@/types';
 
 type Props = {
@@ -46,6 +52,8 @@ type Props = {
     transformationOptions: string[];
     transformFits: TransformPreset['fit'][];
     transformFormats: TransformPreset['format'][];
+    webhookEvents: WebhookEventCatalogEntry[];
+    webhookDeliveries: WebhookDeliverySummary;
 };
 
 /** Matches config('settings.project.sidebar_pinned_module_ids'). */
@@ -68,6 +76,7 @@ function buildProjectFormState(project: ProjectSettingsForm) {
         report_error_url: project.report_error_url ?? '',
         webhook_url: project.webhook_url ?? '',
         webhook_secret: '',
+        preview_url_default: project.preview_url_default ?? '',
         revision_retention_count: project.revision_retention_count ?? null,
         revision_retention_days: project.revision_retention_days ?? null,
         files_max_upload_bytes: project.files_max_upload_bytes ?? null,
@@ -217,6 +226,8 @@ export default function ProjectSettingsPage({
     transformationOptions,
     transformFits,
     transformFormats,
+    webhookEvents,
+    webhookDeliveries,
 }: Props) {
     const { t } = useTranslation();
     const initialForm = useMemo(
@@ -1340,6 +1351,40 @@ export default function ProjectSettingsPage({
                                 </div>
 
                                 <div className="grid gap-2">
+                                    <Label htmlFor="preview_url_default">
+                                        {t(
+                                            'settings.project.previewUrlDefault',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="preview_url_default"
+                                        name="preview_url_default"
+                                        type="url"
+                                        autoComplete="off"
+                                        data-1p-ignore
+                                        data-lpignore="true"
+                                        value={form.preview_url_default}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                preview_url_default:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder="https://example.com/preview/{{collection}}/{{id}}?token={{token}}"
+                                        data-test="project-preview-url-default"
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.previewUrlDefaultHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={errors.preview_url_default}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
                                     <Label htmlFor="webhook_secret">
                                         {t('settings.project.webhookSecret')}
                                     </Label>
@@ -1409,6 +1454,12 @@ export default function ProjectSettingsPage({
                                         )}
                                     </p>
                                 </div>
+
+                                <WebhookDeliveryStatus
+                                    deliveries={webhookDeliveries}
+                                />
+
+                                <WebhookEventCatalog events={webhookEvents} />
                             </div>
 
                             <SettingsFormActions

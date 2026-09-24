@@ -337,6 +337,9 @@ export default function Appearance({
                                                     event.target.value,
                                                 )
                                             }
+                                            aria-label={t(
+                                                'settings.appearance.projectColorDark',
+                                            )}
                                             className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono shadow-none focus-visible:ring-0"
                                             placeholder="#0f172a"
                                         />

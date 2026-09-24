@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Ai;
 
+use App\Ai\Support\AiPendingApprovals;
 use App\Ai\Support\AiToolTurnSummary;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -34,9 +35,8 @@ class AiPageController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $owned = Conversation::query()
+        $owned = $user->conversations()
             ->where('id', $conversation)
-            ->where('user_id', $user->id)
             ->exists();
 
         abort_unless($owned, HttpResponse::HTTP_NOT_FOUND);
@@ -65,26 +65,37 @@ class AiPageController extends Controller
         $messages = [];
 
         if (is_string($selectedId) && $selectedId !== '') {
-            $selected = Conversation::query()
+            $selected = $user->conversations()
                 ->where('id', $selectedId)
-                ->where('user_id', $user->id)
                 ->first(['id', 'title', 'pinned_at', 'created_at', 'updated_at']);
 
             abort_if($selected === null, HttpResponse::HTTP_NOT_FOUND);
 
-            $messages = ConversationMessage::query()
+            $rows = ConversationMessage::query()
                 ->where('conversation_id', $selected->id)
                 ->orderBy('created_at')
                 ->orderBy('id')
-                ->get(['id', 'role', 'content', 'attachments', 'tool_calls', 'tool_results', 'created_at'])
-                ->map(function (ConversationMessage $message): array {
+                ->get(['id', 'role', 'content', 'attachments', 'steps', 'status', 'created_at']);
+
+            $lastMessageId = $rows->last()?->id;
+
+            $messages = $rows
+                ->map(function (ConversationMessage $message) use ($lastMessageId): array {
                     $content = $this->normalizeMessageContent($message->content);
-                    $toolCalls = $this->normalizeMessageArray($message->tool_calls);
-                    $toolResults = $this->normalizeMessageArray($message->tool_results);
+                    $toolCalls = $message->tool_calls;
+                    $toolResults = $message->tool_results;
+                    $pendingApprovals = AiPendingApprovals::fromMessage($message);
+                    $approvalOpen = $message->id === $lastMessageId;
                     $attachments = $this->normalizeMessageAttachments($message->attachments);
 
-                    if ($message->role === 'assistant' && trim($content) === '' && ($toolCalls !== [] || $toolResults !== [])) {
-                        $content = AiToolTurnSummary::fromTools($toolCalls, $toolResults);
+                    if ($message->role === 'assistant' && trim($content) === '') {
+                        if ($pendingApprovals !== []) {
+                            $content = $approvalOpen
+                                ? AiToolTurnSummary::awaitingApproval($pendingApprovals)
+                                : AiToolTurnSummary::approvalAbandoned($pendingApprovals);
+                        } elseif ($toolCalls !== [] || $toolResults !== []) {
+                            $content = AiToolTurnSummary::fromTools($toolCalls, $toolResults);
+                        }
                     }
 
                     return [
@@ -94,6 +105,7 @@ class AiPageController extends Controller
                         'attachments' => $attachments,
                         'tool_calls' => $toolCalls,
                         'tool_results' => $toolResults,
+                        'pending_approvals' => $approvalOpen ? $pendingApprovals : [],
                         'created_at' => $message->created_at?->toIso8601String(),
                     ];
                 })

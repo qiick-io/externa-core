@@ -87,6 +87,8 @@ const adminRoutes = {
     },
     activityLogs: {
         index: (options?: RouteQueryOptions) => url('/activity-logs', options),
+        export: (options?: RouteQueryOptions) =>
+            url('/activity-logs/export', options),
     },
     files: {
         index: (

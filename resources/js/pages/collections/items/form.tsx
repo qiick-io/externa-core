@@ -22,6 +22,7 @@ import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
+import { ItemLivePreviewButton } from '@/components/collections/item-live-preview-button';
 import type { PreviewRoleOption } from '@/components/collections/item-preview-as-role-dialog';
 import { ItemPreviewAsRoleDialog } from '@/components/collections/item-preview-as-role-dialog';
 import { ItemRevisionCompareModal } from '@/components/collections/item-revision-compare-modal';
@@ -131,12 +132,37 @@ type ItemPayload = {
     user_updated?: { id: number; name: string; email?: string | null } | null;
     has_draft?: boolean;
     draft_data?: Record<string, unknown> | null;
+    publish_at?: string | null;
+    unpublish_at?: string | null;
 };
 
 /**
  * Create or edit a collection item.
  * @returns {JSX.Element}
  */
+
+function toDatetimeLocalValue(iso: string | null | undefined): string {
+    if (!iso) {
+        return '';
+    }
+
+    const date = new Date(iso);
+
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function fromDatetimeLocalValue(local: string): string {
+    const date = new Date(local);
+
+    return Number.isNaN(date.getTime()) ? local : date.toISOString();
+}
+
 export default function ItemsForm({
     collection,
     item,
@@ -149,6 +175,7 @@ export default function ItemsForm({
     previewRoles = [],
     activityLogs: activityLogsProp = null,
     chat_count: chatCountProp = 0,
+    livePreviewConfigured = false,
 }: {
     collection: CollectionView;
     item: ItemPayload | null;
@@ -165,6 +192,7 @@ export default function ItemsForm({
         | Paginated<AdminActivityLogRow>
         | null;
     chat_count?: number;
+    livePreviewConfigured?: boolean;
 }) {
     const { t } = useTranslation();
     const page = usePage();
@@ -219,11 +247,25 @@ export default function ItemsForm({
         values: Record<string, unknown>;
     } | null>(null);
     const [publishing, setPublishing] = useState(false);
+    const [publishOpen, setPublishOpen] = useState(false);
+    const [discardDraftOpen, setDiscardDraftOpen] = useState(false);
+    const [discardingDraft, setDiscardingDraft] = useState(false);
+    const [scheduling, setScheduling] = useState(false);
+    const [publishAtLocal, setPublishAtLocal] = useState(() =>
+        toDatetimeLocalValue(item?.publish_at ?? null),
+    );
+    const [unpublishAtLocal, setUnpublishAtLocal] = useState(() =>
+        toDatetimeLocalValue(item?.unpublish_at ?? null),
+    );
     const draftTimer = useRef<number | null>(null);
 
     const versioningEnabled = Boolean(collection.versioning);
     const viewingPublished =
         versioningEnabled && contentVersion === 'published';
+    const hasServerDraft = Boolean(item?.has_draft);
+    // ponytail: treat any set publish_at as Scheduled; due rows clear via scheduler
+    const isScheduled = Boolean(item?.publish_at);
+    const showRevisionsEntry = !isNew && item !== null;
     const latestForCompare = publishedData ?? rawData;
     const canCreateItem = can(PermissionEnum.CanCreateCollections);
     const canEditItem = can(PermissionEnum.CanEditCollections);
@@ -237,6 +279,11 @@ export default function ItemsForm({
     useEffect(() => {
         setChatCount(chatCountProp);
     }, [chatCountProp]);
+
+    useEffect(() => {
+        setPublishAtLocal(toDatetimeLocalValue(item?.publish_at ?? null));
+        setUnpublishAtLocal(toDatetimeLocalValue(item?.unpublish_at ?? null));
+    }, [item?.publish_at, item?.unpublish_at]);
 
     useEffect(() => {
         if (isNew || item === null) {
@@ -535,6 +582,15 @@ export default function ItemsForm({
                             roles={previewRoles}
                         />
                     )}
+                    {!isNew && item !== null && livePreviewConfigured && (
+                        <ItemLivePreviewButton
+                            collectionId={collection.id}
+                            itemId={item.id}
+                            version={
+                                versioningEnabled ? contentVersion : 'published'
+                            }
+                        />
+                    )}
                     {!isNew && item !== null && (
                         <HeaderIconButton
                             type="button"
@@ -551,7 +607,7 @@ export default function ItemsForm({
                             ) : null}
                         </HeaderIconButton>
                     )}
-                    {!isNew && item !== null && (
+                    {showRevisionsEntry && (
                         <HeaderIconButton
                             type="button"
                             label={t('collections.itemToolbar.revisions')}
@@ -681,75 +737,101 @@ export default function ItemsForm({
                 filtersRight={
                     <div className="flex items-center gap-1.5">
                         {!isNew && item !== null && versioningEnabled && (
-                            <Select
-                                value={contentVersion}
-                                onValueChange={(value) => {
-                                    if (
-                                        value !== 'published' &&
-                                        value !== 'draft'
-                                    ) {
-                                        return;
+                            <>
+                                <Badge
+                                    variant={
+                                        contentVersion === 'draft'
+                                            ? 'secondary'
+                                            : 'outline'
                                     }
-
-                                    void requestLeave().then((ok) => {
-                                        if (!ok) {
+                                    data-test="content-version-badge"
+                                    className="px-2 text-xs"
+                                >
+                                    {contentVersion === 'draft'
+                                        ? isScheduled
+                                            ? 'Scheduled'
+                                            : hasServerDraft
+                                              ? 'Draft'
+                                              : 'Draft (empty)'
+                                        : 'Published'}
+                                </Badge>
+                                <Select
+                                    value={contentVersion}
+                                    onValueChange={(value) => {
+                                        if (
+                                            value !== 'published' &&
+                                            value !== 'draft'
+                                        ) {
                                             return;
                                         }
 
-                                        router.get(
-                                            collections.items.show.url({
-                                                collection: collection.id,
-                                                item: item.id,
-                                            }),
-                                            { version: value },
-                                            { preserveScroll: true },
-                                        );
-                                    });
-                                }}
-                            >
-                                <SelectTrigger
-                                    size="sm"
-                                    className="w-auto min-w-0 gap-1 px-2 text-xs"
-                                    data-test="content-version-select"
+                                        void requestLeave().then((ok) => {
+                                            if (!ok) {
+                                                return;
+                                            }
+
+                                            router.get(
+                                                collections.items.show.url({
+                                                    collection: collection.id,
+                                                    item: item.id,
+                                                }),
+                                                { version: value },
+                                                { preserveScroll: true },
+                                            );
+                                        });
+                                    }}
                                 >
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="published">
-                                        Published
-                                    </SelectItem>
-                                    <SelectItem value="draft">
-                                        Draft
-                                        {item.has_draft ? '' : ' (empty)'}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                                    <SelectTrigger
+                                        size="sm"
+                                        className="w-auto min-w-0 gap-1 px-2 text-xs"
+                                        data-test="content-version-select"
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="published">
+                                            Published
+                                        </SelectItem>
+                                        <SelectItem value="draft">
+                                            Draft
+                                            {hasServerDraft ? '' : ' (empty)'}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </>
                         )}
                         {!isNew &&
                             item !== null &&
                             versioningEnabled &&
-                            contentVersion === 'draft' && (
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="secondary"
-                                    className="px-2.5 text-xs"
-                                    disabled={publishing || !item.has_draft}
-                                    data-test="publish-item"
-                                    onClick={() => {
-                                        setPublishing(true);
-                                        router.post(
-                                            `/collections/${collection.id}/items/${item.id}/publish`,
-                                            {},
-                                            {
-                                                onFinish: () =>
-                                                    setPublishing(false),
-                                            },
-                                        );
-                                    }}
-                                >
-                                    Publish
-                                </Button>
+                            contentVersion === 'draft' &&
+                            hasServerDraft &&
+                            canEditItem && (
+                                <>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="secondary"
+                                        className="px-2.5 text-xs"
+                                        disabled={publishing}
+                                        data-test="publish-item"
+                                        onClick={() => setPublishOpen(true)}
+                                    >
+                                        Publish
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="px-2.5 text-xs"
+                                        disabled={discardingDraft}
+                                        data-test="discard-server-draft"
+                                        onClick={() =>
+                                            setDiscardDraftOpen(true)
+                                        }
+                                    >
+                                        Discard draft
+                                    </Button>
+                                </>
                             )}
                         {hasFields && locales.length > 1 && (
                             <DropdownMenu>
@@ -863,7 +945,7 @@ export default function ItemsForm({
                         className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
                         data-test="item-draft-banner"
                     >
-                        <span>Restored unsaved draft from this browser.</span>
+                        <span>Restored unsaved browser draft.</span>
                         <Button
                             type="button"
                             size="sm"
@@ -876,10 +958,104 @@ export default function ItemsForm({
                                 setFormKey((key) => key + 1);
                             }}
                         >
-                            Discard draft
+                            Discard browser draft
                         </Button>
                     </div>
                 )}
+
+                {!isNew &&
+                    item !== null &&
+                    versioningEnabled &&
+                    canEditItem && (
+                        <div
+                            className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-sidebar-border/70 bg-muted/20 px-3 py-2.5 text-sm dark:border-sidebar-border"
+                            data-test="item-schedule-panel"
+                        >
+                            <label className="flex flex-col gap-1">
+                                <span className="text-xs text-muted-foreground">
+                                    Publish at
+                                </span>
+                                <input
+                                    type="datetime-local"
+                                    className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+                                    value={publishAtLocal}
+                                    data-test="schedule-publish-at"
+                                    onChange={(event) =>
+                                        setPublishAtLocal(event.target.value)
+                                    }
+                                />
+                            </label>
+                            <label className="flex flex-col gap-1">
+                                <span className="text-xs text-muted-foreground">
+                                    Unpublish at
+                                </span>
+                                <input
+                                    type="datetime-local"
+                                    className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+                                    value={unpublishAtLocal}
+                                    data-test="schedule-unpublish-at"
+                                    onChange={(event) =>
+                                        setUnpublishAtLocal(event.target.value)
+                                    }
+                                />
+                            </label>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                className="text-xs"
+                                disabled={scheduling}
+                                data-test="schedule-save"
+                                onClick={() => {
+                                    setScheduling(true);
+                                    router.post(
+                                        `/collections/${collection.id}/items/${item.id}/schedule`,
+                                        {
+                                            publish_at: publishAtLocal
+                                                ? fromDatetimeLocalValue(
+                                                      publishAtLocal,
+                                                  )
+                                                : null,
+                                            unpublish_at: unpublishAtLocal
+                                                ? fromDatetimeLocalValue(
+                                                      unpublishAtLocal,
+                                                  )
+                                                : null,
+                                        },
+                                        {
+                                            onFinish: () =>
+                                                setScheduling(false),
+                                        },
+                                    );
+                                }}
+                            >
+                                Save schedule
+                            </Button>
+                            {(item.publish_at || item.unpublish_at) && (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-xs"
+                                    disabled={scheduling}
+                                    data-test="schedule-clear"
+                                    onClick={() => {
+                                        setScheduling(true);
+                                        router.post(
+                                            `/collections/${collection.id}/items/${item.id}/schedule`,
+                                            { clear: true },
+                                            {
+                                                onFinish: () =>
+                                                    setScheduling(false),
+                                            },
+                                        );
+                                    }}
+                                >
+                                    Cancel schedule
+                                </Button>
+                            )}
+                        </div>
+                    )}
 
                 {!hasFields && (
                     <p className="rounded-xl border border-dashed border-sidebar-border/70 p-6 text-sm text-muted-foreground dark:border-sidebar-border">
@@ -1240,6 +1416,60 @@ export default function ItemsForm({
                             {
                                 onFinish: () => setDeleting(false),
                                 onError: () => setDeleteOpen(false),
+                            },
+                        );
+                    }}
+                />
+            )}
+
+            {!isNew && item !== null && versioningEnabled && (
+                <ConfirmDestructiveDialog
+                    open={publishOpen}
+                    onOpenChange={setPublishOpen}
+                    title="Publish draft?"
+                    description="Promote unpublished draft into published values. Draft workspace will clear."
+                    confirmLabel="Publish"
+                    confirming={publishing}
+                    onConfirm={() => {
+                        setPublishing(true);
+                        router.post(
+                            ItemController.publish.url({
+                                collection: collection.id,
+                                item: item.id,
+                            }),
+                            {},
+                            {
+                                onFinish: () => {
+                                    setPublishing(false);
+                                    setPublishOpen(false);
+                                },
+                            },
+                        );
+                    }}
+                />
+            )}
+
+            {!isNew && item !== null && versioningEnabled && (
+                <ConfirmDestructiveDialog
+                    open={discardDraftOpen}
+                    onOpenChange={setDiscardDraftOpen}
+                    title="Discard draft?"
+                    description="Drop unpublished draft. Published values stay unchanged."
+                    confirmLabel="Discard draft"
+                    confirming={discardingDraft}
+                    onConfirm={() => {
+                        setDiscardingDraft(true);
+                        router.post(
+                            ItemController.discardDraft.url({
+                                collection: collection.id,
+                                item: item.id,
+                            }),
+                            {},
+                            {
+                                onFinish: () => {
+                                    setDiscardingDraft(false);
+                                    setDiscardDraftOpen(false);
+                                },
                             },
                         );
                     }}

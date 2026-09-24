@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Services\Settings\ProjectSettings;
+use App\Services\Webhooks\OutboundWebhookDeliveryLog;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Http;
@@ -86,6 +87,13 @@ class DeliverOutboundWebhookJob implements ShouldQueue
                 $response->status(),
             ));
         }
+
+        $this->recordOutcome(fn (OutboundWebhookDeliveryLog $log) => $log->recordSuccess(
+            $this->eventId,
+            $this->type,
+            $response->status(),
+            $this->attempts(),
+        ));
     }
 
     public function failed(?Throwable $exception): void
@@ -95,5 +103,30 @@ class DeliverOutboundWebhookJob implements ShouldQueue
             'type' => $this->type,
             'message' => $exception?->getMessage(),
         ]);
+
+        $this->recordOutcome(fn (OutboundWebhookDeliveryLog $log) => $log->recordFailure(
+            $this->eventId,
+            $this->type,
+            $exception?->getMessage(),
+            $this->attempts(),
+        ));
+    }
+
+    /**
+     * Never let status bookkeeping fail (and retry) an already-delivered event.
+     *
+     * @param  callable(OutboundWebhookDeliveryLog): void  $record
+     */
+    private function recordOutcome(callable $record): void
+    {
+        try {
+            $record(app(OutboundWebhookDeliveryLog::class));
+        } catch (Throwable $exception) {
+            Log::warning('Outbound webhook delivery status not recorded', [
+                'event_id' => $this->eventId,
+                'type' => $this->type,
+                'message' => $exception->getMessage(),
+            ]);
+        }
     }
 }

@@ -26,7 +26,12 @@ export type FilterRule = {
 };
 
 /** Keys mixed into Inertia `filters` that are not field filters. */
-export const FILTER_META_KEYS = new Set(['trashed', 'sort', 'direction']);
+export const FILTER_META_KEYS = new Set([
+    'trashed',
+    'has_draft',
+    'sort',
+    'direction',
+]);
 
 const NON_FILTERABLE_TYPES = new Set([
     'image',
