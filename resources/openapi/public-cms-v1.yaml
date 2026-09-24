@@ -1,848 +1,848 @@
 openapi: 3.0.3
 info:
-  title: Externa Public CMS API
-  description: |
-    Headless Public CMS REST API under `/api/v1`.
-    Aligned with CollectionItemResource, Api\V1\FileResource, and V1 controllers.
-    Auth: anonymous (`public` role) or `Authorization: Bearer ek_…`.
-    Item list/show are lean by default; expand with `?include=` (`files`, `users`, relation field names).
-    Runtime JSON: `GET /api/v1/openapi.json` on any Externa Core instance (no API key).
-    Keep this file identical to externa-docs `public/client-types/openapi.yaml`.
-  version: '1.0.0'
+    title: Externa Public CMS API
+    description: |
+        Headless Public CMS REST API under `/api/v1`.
+        Aligned with CollectionItemResource, Api\V1\FileResource, and V1 controllers.
+        Auth: anonymous (`public` role) or `Authorization: Bearer ek_…`.
+        Item list/show are lean by default; expand with `?include=` (`files`, `users`, relation field names).
+        Runtime JSON: `GET /api/v1/openapi.json` on any Externa Core instance (no API key).
+        Keep this file identical to externa-docs `public/client-types/openapi.yaml`.
+    version: '1.0.0'
 servers:
-  - url: '{baseUrl}/api/v1'
-    variables:
-      baseUrl:
-        default: http://externa-core.test
-        description: Externa app origin (no trailing slash)
+    - url: '{baseUrl}/api/v1'
+      variables:
+          baseUrl:
+              default: http://externa-core.test
+              description: Externa app origin (no trailing slash)
 tags:
-  - name: Collections
-  - name: Items
-  - name: Files
+    - name: Collections
+    - name: Items
+    - name: Files
 paths:
-  /collections:
-    get:
-      tags: [Collections]
-      summary: List collections the actor may read
-      operationId: listCollections
-      security:
-        - ApiKeyBearer: []
-        - {}
-      responses:
-        '200':
-          description: Collection summaries (empty array when no read grants)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CollectionsListResponse'
-  /collections/{slug}:
-    get:
-      tags: [Collections]
-      summary: Get collection with field schema
-      operationId: getCollection
-      security:
-        - ApiKeyBearer: []
-        - {}
-      parameters:
-        - $ref: '#/components/parameters/CollectionSlug'
-      responses:
-        '200':
-          description: Collection with fields
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CollectionShowResponse'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /collections/{slug}/items:
-    get:
-      tags: [Items]
-      summary: List items
-      operationId: listItems
-      security:
-        - ApiKeyBearer: []
-        - {}
-      parameters:
-        - $ref: '#/components/parameters/CollectionSlug'
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PerPage'
-        - $ref: '#/components/parameters/Locale'
-        - $ref: '#/components/parameters/IncludeAllTranslations'
-        - $ref: '#/components/parameters/Include'
-        - name: filter
-          in: query
-          style: deepObject
-          explode: true
-          schema:
-            type: object
-            additionalProperties: true
-          description: Advanced field filters (same dialect as admin/GraphQL)
-      responses:
-        '200':
-          description: Paginated items
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ItemsListResponse'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-    post:
-      tags: [Items]
-      summary: Create item
-      operationId: createItem
-      security:
-        - ApiKeyBearer: []
-        - {}
-      parameters:
-        - $ref: '#/components/parameters/CollectionSlug'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateCollectionItemRequest'
-      responses:
-        '201':
-          description: Created item
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ItemShowResponse'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-  /collections/{slug}/items/{id}:
-    get:
-      tags: [Items]
-      summary: Get item
-      operationId: getItem
-      security:
-        - ApiKeyBearer: []
-        - {}
-      parameters:
-        - $ref: '#/components/parameters/CollectionSlug'
-        - $ref: '#/components/parameters/ItemId'
-        - $ref: '#/components/parameters/Locale'
-        - $ref: '#/components/parameters/IncludeAllTranslations'
-        - $ref: '#/components/parameters/Include'
-      responses:
-        '200':
-          description: Item
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ItemShowResponse'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    patch:
-      tags: [Items]
-      summary: Update item
-      operationId: updateItem
-      security:
-        - ApiKeyBearer: []
-        - {}
-      parameters:
-        - $ref: '#/components/parameters/CollectionSlug'
-        - $ref: '#/components/parameters/ItemId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateCollectionItemRequest'
-      responses:
-        '200':
-          description: Updated item
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ItemShowResponse'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-    delete:
-      tags: [Items]
-      summary: Soft-delete item
-      operationId: deleteItem
-      security:
-        - ApiKeyBearer: []
-        - {}
-      parameters:
-        - $ref: '#/components/parameters/CollectionSlug'
-        - $ref: '#/components/parameters/ItemId'
-      responses:
-        '204':
-          description: Deleted (empty body)
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /files:
-    get:
-      tags: [Files]
-      summary: List files/folders
-      operationId: listFiles
-      security:
-        - ApiKeyBearer: []
-        - {}
-      parameters:
-        - name: parent_id
-          in: query
-          schema:
-            type: integer
-            nullable: true
-        - name: search
-          in: query
-          schema:
-            type: string
-            maxLength: 255
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PerPage'
-      responses:
-        '200':
-          description: Paginated files
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FilesListResponse'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-    post:
-      tags: [Files]
-      summary: Upload file
-      operationId: uploadFile
-      security:
-        - ApiKeyBearer: []
-        - {}
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [file]
-              properties:
-                file:
-                  type: string
-                  format: binary
-                parent_id:
-                  type: integer
-                  nullable: true
-                name:
-                  type: string
-                  nullable: true
-      responses:
-        '201':
-          description: Uploaded file
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FileShowResponse'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-  /files/{id}:
-    get:
-      tags: [Files]
-      summary: Get file metadata
-      operationId: getFile
-      security:
-        - ApiKeyBearer: []
-        - {}
-      parameters:
-        - $ref: '#/components/parameters/FileId'
-      responses:
-        '200':
-          description: File resource
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FileShowResponse'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    patch:
-      tags: [Files]
-      summary: Update file metadata
-      operationId: updateFile
-      security:
-        - ApiKeyBearer: []
-        - {}
-      parameters:
-        - $ref: '#/components/parameters/FileId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateFileRequest'
-      responses:
-        '200':
-          description: Updated file
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FileShowResponse'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-    delete:
-      tags: [Files]
-      summary: Soft-delete file
-      operationId: deleteFile
-      security:
-        - ApiKeyBearer: []
-        - {}
-      parameters:
-        - $ref: '#/components/parameters/FileId'
-      responses:
-        '204':
-          description: Deleted (empty body)
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /files/{id}/content:
-    get:
-      tags: [Files]
-      summary: Stream original file bytes
-      operationId: getFileContent
-      security:
-        - ApiKeyBearer: []
-        - {}
-      parameters:
-        - $ref: '#/components/parameters/FileId'
-      responses:
-        '200':
-          description: Binary stream
-          content:
-            application/octet-stream:
-              schema:
-                type: string
-                format: binary
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /files/{id}/transforms/{key}:
-    get:
-      tags: [Files]
-      summary: Stream image transform (preset key or size-N)
-      operationId: getFileTransform
-      security:
-        - ApiKeyBearer: []
-        - {}
-      parameters:
-        - $ref: '#/components/parameters/FileId'
-        - name: key
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Transformed image bytes
-          content:
-            application/octet-stream:
-              schema:
-                type: string
-                format: binary
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+    /collections:
+        get:
+            tags: [Collections]
+            summary: List collections the actor may read
+            operationId: listCollections
+            security:
+                - ApiKeyBearer: []
+                - {}
+            responses:
+                '200':
+                    description: Collection summaries (empty array when no read grants)
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/CollectionsListResponse'
+    /collections/{slug}:
+        get:
+            tags: [Collections]
+            summary: Get collection with field schema
+            operationId: getCollection
+            security:
+                - ApiKeyBearer: []
+                - {}
+            parameters:
+                - $ref: '#/components/parameters/CollectionSlug'
+            responses:
+                '200':
+                    description: Collection with fields
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/CollectionShowResponse'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+    /collections/{slug}/items:
+        get:
+            tags: [Items]
+            summary: List items
+            operationId: listItems
+            security:
+                - ApiKeyBearer: []
+                - {}
+            parameters:
+                - $ref: '#/components/parameters/CollectionSlug'
+                - $ref: '#/components/parameters/Page'
+                - $ref: '#/components/parameters/PerPage'
+                - $ref: '#/components/parameters/Locale'
+                - $ref: '#/components/parameters/IncludeAllTranslations'
+                - $ref: '#/components/parameters/Include'
+                - name: filter
+                  in: query
+                  style: deepObject
+                  explode: true
+                  schema:
+                      type: object
+                      additionalProperties: true
+                  description: Advanced field filters (same dialect as admin/GraphQL)
+            responses:
+                '200':
+                    description: Paginated items
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ItemsListResponse'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '422':
+                    $ref: '#/components/responses/ValidationError'
+        post:
+            tags: [Items]
+            summary: Create item
+            operationId: createItem
+            security:
+                - ApiKeyBearer: []
+                - {}
+            parameters:
+                - $ref: '#/components/parameters/CollectionSlug'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateCollectionItemRequest'
+            responses:
+                '201':
+                    description: Created item
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ItemShowResponse'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '422':
+                    $ref: '#/components/responses/ValidationError'
+    /collections/{slug}/items/{id}:
+        get:
+            tags: [Items]
+            summary: Get item
+            operationId: getItem
+            security:
+                - ApiKeyBearer: []
+                - {}
+            parameters:
+                - $ref: '#/components/parameters/CollectionSlug'
+                - $ref: '#/components/parameters/ItemId'
+                - $ref: '#/components/parameters/Locale'
+                - $ref: '#/components/parameters/IncludeAllTranslations'
+                - $ref: '#/components/parameters/Include'
+            responses:
+                '200':
+                    description: Item
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ItemShowResponse'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+        patch:
+            tags: [Items]
+            summary: Update item
+            operationId: updateItem
+            security:
+                - ApiKeyBearer: []
+                - {}
+            parameters:
+                - $ref: '#/components/parameters/CollectionSlug'
+                - $ref: '#/components/parameters/ItemId'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateCollectionItemRequest'
+            responses:
+                '200':
+                    description: Updated item
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ItemShowResponse'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '422':
+                    $ref: '#/components/responses/ValidationError'
+        delete:
+            tags: [Items]
+            summary: Soft-delete item
+            operationId: deleteItem
+            security:
+                - ApiKeyBearer: []
+                - {}
+            parameters:
+                - $ref: '#/components/parameters/CollectionSlug'
+                - $ref: '#/components/parameters/ItemId'
+            responses:
+                '204':
+                    description: Deleted (empty body)
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+    /files:
+        get:
+            tags: [Files]
+            summary: List files/folders
+            operationId: listFiles
+            security:
+                - ApiKeyBearer: []
+                - {}
+            parameters:
+                - name: parent_id
+                  in: query
+                  schema:
+                      type: integer
+                      nullable: true
+                - name: search
+                  in: query
+                  schema:
+                      type: string
+                      maxLength: 255
+                - $ref: '#/components/parameters/Page'
+                - $ref: '#/components/parameters/PerPage'
+            responses:
+                '200':
+                    description: Paginated files
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/FilesListResponse'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+        post:
+            tags: [Files]
+            summary: Upload file
+            operationId: uploadFile
+            security:
+                - ApiKeyBearer: []
+                - {}
+            requestBody:
+                required: true
+                content:
+                    multipart/form-data:
+                        schema:
+                            type: object
+                            required: [file]
+                            properties:
+                                file:
+                                    type: string
+                                    format: binary
+                                parent_id:
+                                    type: integer
+                                    nullable: true
+                                name:
+                                    type: string
+                                    nullable: true
+            responses:
+                '201':
+                    description: Uploaded file
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/FileShowResponse'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '422':
+                    $ref: '#/components/responses/ValidationError'
+    /files/{id}:
+        get:
+            tags: [Files]
+            summary: Get file metadata
+            operationId: getFile
+            security:
+                - ApiKeyBearer: []
+                - {}
+            parameters:
+                - $ref: '#/components/parameters/FileId'
+            responses:
+                '200':
+                    description: File resource
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/FileShowResponse'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+        patch:
+            tags: [Files]
+            summary: Update file metadata
+            operationId: updateFile
+            security:
+                - ApiKeyBearer: []
+                - {}
+            parameters:
+                - $ref: '#/components/parameters/FileId'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateFileRequest'
+            responses:
+                '200':
+                    description: Updated file
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/FileShowResponse'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '422':
+                    $ref: '#/components/responses/ValidationError'
+        delete:
+            tags: [Files]
+            summary: Soft-delete file
+            operationId: deleteFile
+            security:
+                - ApiKeyBearer: []
+                - {}
+            parameters:
+                - $ref: '#/components/parameters/FileId'
+            responses:
+                '204':
+                    description: Deleted (empty body)
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+    /files/{id}/content:
+        get:
+            tags: [Files]
+            summary: Stream original file bytes
+            operationId: getFileContent
+            security:
+                - ApiKeyBearer: []
+                - {}
+            parameters:
+                - $ref: '#/components/parameters/FileId'
+            responses:
+                '200':
+                    description: Binary stream
+                    content:
+                        application/octet-stream:
+                            schema:
+                                type: string
+                                format: binary
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+    /files/{id}/transforms/{key}:
+        get:
+            tags: [Files]
+            summary: Stream image transform (preset key or size-N)
+            operationId: getFileTransform
+            security:
+                - ApiKeyBearer: []
+                - {}
+            parameters:
+                - $ref: '#/components/parameters/FileId'
+                - name: key
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Transformed image bytes
+                    content:
+                        application/octet-stream:
+                            schema:
+                                type: string
+                                format: binary
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
 components:
-  securitySchemes:
-    ApiKeyBearer:
-      type: http
-      scheme: bearer
-      bearerFormat: ek_
-      description: API key secret (`ek_…`). Omit for anonymous `public` role.
-  parameters:
-    CollectionSlug:
-      name: slug
-      in: path
-      required: true
-      schema:
-        type: string
-    ItemId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: integer
-    FileId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: integer
-    Page:
-      name: page
-      in: query
-      schema:
-        type: integer
-        minimum: 1
-        default: 1
-    PerPage:
-      name: per_page
-      in: query
-      schema:
-        type: integer
-        minimum: 1
-        maximum: 100
-        default: 15
-    Locale:
-      name: locale
-      in: query
-      schema:
-        type: string
-      description: Enabled project content locale for flattened translatable fields
-    IncludeAllTranslations:
-      name: include_all_translations
-      in: query
-      schema:
-        type: boolean
-        default: false
-    Include:
-      name: include
-      in: query
-      schema:
-        type: string
-      description: |
-        CSV opt-in expand (case-sensitive). Special tokens: `files` (expand image/file/files fields),
-        `users` (populate user_created / user_updated mini-objects). Any other token matching a
-        relation field name hydrates related items at depth 1. Unknown tokens ignored.
-        Example: `files,users,author`. Breaking: without `files`, file fields remain raw IDs.
-      example: files,users
-  responses:
-    Forbidden:
-      description: Missing collection/file permission or origin gate failure
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiErrorEnvelope'
-    NotFound:
-      description: Unknown collection, item, or file
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiErrorEnvelope'
-    ValidationError:
-      description: Validation failed
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiErrorEnvelope'
-  schemas:
-    PaginationMeta:
-      type: object
-      required: [current_page, last_page, per_page, total]
-      properties:
-        current_page:
-          type: integer
-        last_page:
-          type: integer
-        per_page:
-          type: integer
-        total:
-          type: integer
-    MiniUser:
-      type: object
-      required: [id, name, email]
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        email:
-          type: string
-          nullable: true
-    CollectionSummary:
-      type: object
-      required: [id, name, slug, is_singleton]
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        slug:
-          type: string
-        is_singleton:
-          type: boolean
-    CollectionFieldSummary:
-      type: object
-      required: [id, name, type, settings]
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        type:
-          type: string
-        settings:
-          type: object
-          nullable: true
-          additionalProperties: true
-    CollectionResource:
-      allOf:
-        - $ref: '#/components/schemas/CollectionSummary'
-        - type: object
-          required: [fields]
-          properties:
-            fields:
-              type: array
-              items:
-                $ref: '#/components/schemas/CollectionFieldSummary'
-    NestedCollectionItemResource:
-      type: object
-      description: |
-        Depth-1 hydrated related item (`?include=<relationField>`). Nested relations are not
-        re-expanded; nested files/users follow the same include list.
-      required:
-        - id
-        - collection_id
-        - data
-        - created_at
-        - updated_at
-        - user_created_id
-        - user_updated_id
-        - user_created
-        - user_updated
-      properties:
-        id:
-          type: integer
-        collection_id:
-          type: integer
-        data:
-          type: object
-          additionalProperties: true
-        created_at:
-          type: string
-          format: date-time
-          nullable: true
-        updated_at:
-          type: string
-          format: date-time
-          nullable: true
-        user_created_id:
-          type: integer
-          nullable: true
-        user_updated_id:
-          type: integer
-          nullable: true
-        user_created:
-          allOf:
-            - $ref: '#/components/schemas/MiniUser'
-          nullable: true
-        user_updated:
-          allOf:
-            - $ref: '#/components/schemas/MiniUser'
-          nullable: true
-    ExpandedM2mRelationEntry:
-      type: object
-      description: M2M / multi-relation entry after include when related item is readable
-      required: [item, meta]
-      properties:
-        item:
-          $ref: '#/components/schemas/NestedCollectionItemResource'
-        meta:
-          type: object
-          additionalProperties: true
-    ExpandedM2aRelationEntry:
-      type: object
-      description: Many-to-any entry after include when related item is readable
-      required: [related_collection_id, related_item_id, item]
-      properties:
-        related_collection_id:
-          type: integer
-        related_item_id:
-          type: integer
-        item:
-          $ref: '#/components/schemas/NestedCollectionItemResource'
-    CollectionItemResource:
-      type: object
-      required:
-        - id
-        - collection_id
-        - data
-        - created_at
-        - updated_at
-        - user_created_id
-        - user_updated_id
-        - user_created
-        - user_updated
-      properties:
-        id:
-          type: integer
-        collection_id:
-          type: integer
-        data:
-          type: object
-          additionalProperties: true
-          description: |
-            Flattened field values for the resolved locale. Lean by default (file IDs, relation links).
-            With `include=files`, file fields may be ExpandedFileField objects.
-            With `include=<relationField>`, M2O becomes NestedCollectionItemResource; M2M becomes
-            ExpandedM2mRelationEntry; m2a becomes ExpandedM2aRelationEntry (unreadable stays lean link).
-        created_at:
-          type: string
-          format: date-time
-          nullable: true
-        updated_at:
-          type: string
-          format: date-time
-          nullable: true
-        user_created_id:
-          type: integer
-          nullable: true
-        user_updated_id:
-          type: integer
-          nullable: true
-        user_created:
-          allOf:
-            - $ref: '#/components/schemas/MiniUser'
-          nullable: true
-          description: Null unless `include=users`
-        user_updated:
-          allOf:
-            - $ref: '#/components/schemas/MiniUser'
-          nullable: true
-          description: Null unless `include=users`
-    CreateCollectionItemRequest:
-      type: object
-      required: [data]
-      properties:
-        data:
-          type: object
-          additionalProperties: true
-          description: Field values keyed by collection field name
-    UpdateCollectionItemRequest:
-      type: object
-      required: [data]
-      properties:
-        data:
-          type: object
-          additionalProperties: true
-          description: Partial field values to update
-    ExpandedFileField:
-      type: object
-      required:
-        [
-          id,
-          filename,
-          title,
-          mime_type,
-          width,
-          height,
-          filesize,
-          url,
-          transforms,
-        ]
-      properties:
-        id:
-          type: integer
-        filename:
-          type: string
-        title:
-          type: string
-          nullable: true
-        mime_type:
-          type: string
-          nullable: true
-        width:
-          type: integer
-          nullable: true
-        height:
-          type: integer
-          nullable: true
-        filesize:
-          type: integer
-          nullable: true
-        url:
-          type: string
-        transforms:
-          type: object
-          additionalProperties:
-            type: string
-    FileResource:
-      type: object
-      required:
-        - id
-        - parent_id
-        - type
-        - access
-        - filename
-        - title
-        - description
-        - mime_type
-        - extension
-        - filesize
-        - width
-        - height
-        - focal_point_x
-        - focal_point_y
-        - url
-        - transforms
-        - created_at
-        - updated_at
-      properties:
-        id:
-          type: integer
-        parent_id:
-          type: integer
-          nullable: true
-        type:
-          type: string
-          enum: [file, folder]
-        access:
-          type: string
-          enum: [public, private]
-        filename:
-          type: string
-        title:
-          type: string
-          nullable: true
-        description:
-          type: string
-          nullable: true
-        mime_type:
-          type: string
-          nullable: true
-        extension:
-          type: string
-          nullable: true
-        filesize:
-          type: integer
-          nullable: true
-        width:
-          type: integer
-          nullable: true
-        height:
-          type: integer
-          nullable: true
-        focal_point_x:
-          type: number
-          nullable: true
-        focal_point_y:
-          type: number
-          nullable: true
-        url:
-          type: string
-          nullable: true
-        transforms:
-          type: object
-          additionalProperties:
-            type: string
-        created_at:
-          type: string
-          format: date-time
-          nullable: true
-        updated_at:
-          type: string
-          format: date-time
-          nullable: true
-    UpdateFileRequest:
-      type: object
-      properties:
-        title:
-          type: string
-          nullable: true
-        description:
-          type: string
-          nullable: true
-        location:
-          type: string
-          nullable: true
-        download_name:
-          type: string
-          nullable: true
-        focal_point_x:
-          type: number
-          minimum: 0
-          maximum: 1
-          nullable: true
-        focal_point_y:
-          type: number
-          minimum: 0
-          maximum: 1
-          nullable: true
-        name:
-          type: string
-    ApiErrorEnvelope:
-      type: object
-      required: [message]
-      properties:
-        message:
-          type: string
-        errors:
-          type: object
-          additionalProperties:
-            type: array
-            items:
-              type: string
-    CollectionsListResponse:
-      type: object
-      required: [data]
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/CollectionSummary'
-    CollectionShowResponse:
-      type: object
-      required: [data]
-      properties:
-        data:
-          $ref: '#/components/schemas/CollectionResource'
-    ItemsListResponse:
-      type: object
-      required: [data, meta]
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/CollectionItemResource'
-        meta:
-          $ref: '#/components/schemas/PaginationMeta'
-    ItemShowResponse:
-      type: object
-      required: [data]
-      properties:
-        data:
-          $ref: '#/components/schemas/CollectionItemResource'
-    FilesListResponse:
-      type: object
-      required: [data, meta]
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/FileResource'
-        meta:
-          $ref: '#/components/schemas/PaginationMeta'
-    FileShowResponse:
-      type: object
-      required: [data]
-      properties:
-        data:
-          $ref: '#/components/schemas/FileResource'
+    securitySchemes:
+        ApiKeyBearer:
+            type: http
+            scheme: bearer
+            bearerFormat: ek_
+            description: API key secret (`ek_…`). Omit for anonymous `public` role.
+    parameters:
+        CollectionSlug:
+            name: slug
+            in: path
+            required: true
+            schema:
+                type: string
+        ItemId:
+            name: id
+            in: path
+            required: true
+            schema:
+                type: integer
+        FileId:
+            name: id
+            in: path
+            required: true
+            schema:
+                type: integer
+        Page:
+            name: page
+            in: query
+            schema:
+                type: integer
+                minimum: 1
+                default: 1
+        PerPage:
+            name: per_page
+            in: query
+            schema:
+                type: integer
+                minimum: 1
+                maximum: 100
+                default: 15
+        Locale:
+            name: locale
+            in: query
+            schema:
+                type: string
+            description: Enabled project content locale for flattened translatable fields
+        IncludeAllTranslations:
+            name: include_all_translations
+            in: query
+            schema:
+                type: boolean
+                default: false
+        Include:
+            name: include
+            in: query
+            schema:
+                type: string
+            description: |
+                CSV opt-in expand (case-sensitive). Special tokens: `files` (expand image/file/files fields),
+                `users` (populate user_created / user_updated mini-objects). Any other token matching a
+                relation field name hydrates related items at depth 1. Unknown tokens ignored.
+                Example: `files,users,author`. Breaking: without `files`, file fields remain raw IDs.
+            example: files,users
+    responses:
+        Forbidden:
+            description: Missing collection/file permission or origin gate failure
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ApiErrorEnvelope'
+        NotFound:
+            description: Unknown collection, item, or file
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ApiErrorEnvelope'
+        ValidationError:
+            description: Validation failed
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ApiErrorEnvelope'
+    schemas:
+        PaginationMeta:
+            type: object
+            required: [current_page, last_page, per_page, total]
+            properties:
+                current_page:
+                    type: integer
+                last_page:
+                    type: integer
+                per_page:
+                    type: integer
+                total:
+                    type: integer
+        MiniUser:
+            type: object
+            required: [id, name, email]
+            properties:
+                id:
+                    type: integer
+                name:
+                    type: string
+                email:
+                    type: string
+                    nullable: true
+        CollectionSummary:
+            type: object
+            required: [id, name, slug, is_singleton]
+            properties:
+                id:
+                    type: integer
+                name:
+                    type: string
+                slug:
+                    type: string
+                is_singleton:
+                    type: boolean
+        CollectionFieldSummary:
+            type: object
+            required: [id, name, type, settings]
+            properties:
+                id:
+                    type: integer
+                name:
+                    type: string
+                type:
+                    type: string
+                settings:
+                    type: object
+                    nullable: true
+                    additionalProperties: true
+        CollectionResource:
+            allOf:
+                - $ref: '#/components/schemas/CollectionSummary'
+                - type: object
+                  required: [fields]
+                  properties:
+                      fields:
+                          type: array
+                          items:
+                              $ref: '#/components/schemas/CollectionFieldSummary'
+        NestedCollectionItemResource:
+            type: object
+            description: |
+                Depth-1 hydrated related item (`?include=<relationField>`). Nested relations are not
+                re-expanded; nested files/users follow the same include list.
+            required:
+                - id
+                - collection_id
+                - data
+                - created_at
+                - updated_at
+                - user_created_id
+                - user_updated_id
+                - user_created
+                - user_updated
+            properties:
+                id:
+                    type: integer
+                collection_id:
+                    type: integer
+                data:
+                    type: object
+                    additionalProperties: true
+                created_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                updated_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                user_created_id:
+                    type: integer
+                    nullable: true
+                user_updated_id:
+                    type: integer
+                    nullable: true
+                user_created:
+                    allOf:
+                        - $ref: '#/components/schemas/MiniUser'
+                    nullable: true
+                user_updated:
+                    allOf:
+                        - $ref: '#/components/schemas/MiniUser'
+                    nullable: true
+        ExpandedM2mRelationEntry:
+            type: object
+            description: M2M / multi-relation entry after include when related item is readable
+            required: [item, meta]
+            properties:
+                item:
+                    $ref: '#/components/schemas/NestedCollectionItemResource'
+                meta:
+                    type: object
+                    additionalProperties: true
+        ExpandedM2aRelationEntry:
+            type: object
+            description: Many-to-any entry after include when related item is readable
+            required: [related_collection_id, related_item_id, item]
+            properties:
+                related_collection_id:
+                    type: integer
+                related_item_id:
+                    type: integer
+                item:
+                    $ref: '#/components/schemas/NestedCollectionItemResource'
+        CollectionItemResource:
+            type: object
+            required:
+                - id
+                - collection_id
+                - data
+                - created_at
+                - updated_at
+                - user_created_id
+                - user_updated_id
+                - user_created
+                - user_updated
+            properties:
+                id:
+                    type: integer
+                collection_id:
+                    type: integer
+                data:
+                    type: object
+                    additionalProperties: true
+                    description: |
+                        Flattened field values for the resolved locale. Lean by default (file IDs, relation links).
+                        With `include=files`, file fields may be ExpandedFileField objects.
+                        With `include=<relationField>`, M2O becomes NestedCollectionItemResource; M2M becomes
+                        ExpandedM2mRelationEntry; m2a becomes ExpandedM2aRelationEntry (unreadable stays lean link).
+                created_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                updated_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                user_created_id:
+                    type: integer
+                    nullable: true
+                user_updated_id:
+                    type: integer
+                    nullable: true
+                user_created:
+                    allOf:
+                        - $ref: '#/components/schemas/MiniUser'
+                    nullable: true
+                    description: Null unless `include=users`
+                user_updated:
+                    allOf:
+                        - $ref: '#/components/schemas/MiniUser'
+                    nullable: true
+                    description: Null unless `include=users`
+        CreateCollectionItemRequest:
+            type: object
+            required: [data]
+            properties:
+                data:
+                    type: object
+                    additionalProperties: true
+                    description: Field values keyed by collection field name
+        UpdateCollectionItemRequest:
+            type: object
+            required: [data]
+            properties:
+                data:
+                    type: object
+                    additionalProperties: true
+                    description: Partial field values to update
+        ExpandedFileField:
+            type: object
+            required:
+                [
+                    id,
+                    filename,
+                    title,
+                    mime_type,
+                    width,
+                    height,
+                    filesize,
+                    url,
+                    transforms,
+                ]
+            properties:
+                id:
+                    type: integer
+                filename:
+                    type: string
+                title:
+                    type: string
+                    nullable: true
+                mime_type:
+                    type: string
+                    nullable: true
+                width:
+                    type: integer
+                    nullable: true
+                height:
+                    type: integer
+                    nullable: true
+                filesize:
+                    type: integer
+                    nullable: true
+                url:
+                    type: string
+                transforms:
+                    type: object
+                    additionalProperties:
+                        type: string
+        FileResource:
+            type: object
+            required:
+                - id
+                - parent_id
+                - type
+                - access
+                - filename
+                - title
+                - description
+                - mime_type
+                - extension
+                - filesize
+                - width
+                - height
+                - focal_point_x
+                - focal_point_y
+                - url
+                - transforms
+                - created_at
+                - updated_at
+            properties:
+                id:
+                    type: integer
+                parent_id:
+                    type: integer
+                    nullable: true
+                type:
+                    type: string
+                    enum: [file, folder]
+                access:
+                    type: string
+                    enum: [public, private]
+                filename:
+                    type: string
+                title:
+                    type: string
+                    nullable: true
+                description:
+                    type: string
+                    nullable: true
+                mime_type:
+                    type: string
+                    nullable: true
+                extension:
+                    type: string
+                    nullable: true
+                filesize:
+                    type: integer
+                    nullable: true
+                width:
+                    type: integer
+                    nullable: true
+                height:
+                    type: integer
+                    nullable: true
+                focal_point_x:
+                    type: number
+                    nullable: true
+                focal_point_y:
+                    type: number
+                    nullable: true
+                url:
+                    type: string
+                    nullable: true
+                transforms:
+                    type: object
+                    additionalProperties:
+                        type: string
+                created_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                updated_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+        UpdateFileRequest:
+            type: object
+            properties:
+                title:
+                    type: string
+                    nullable: true
+                description:
+                    type: string
+                    nullable: true
+                location:
+                    type: string
+                    nullable: true
+                download_name:
+                    type: string
+                    nullable: true
+                focal_point_x:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+                    nullable: true
+                focal_point_y:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+                    nullable: true
+                name:
+                    type: string
+        ApiErrorEnvelope:
+            type: object
+            required: [message]
+            properties:
+                message:
+                    type: string
+                errors:
+                    type: object
+                    additionalProperties:
+                        type: array
+                        items:
+                            type: string
+        CollectionsListResponse:
+            type: object
+            required: [data]
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/CollectionSummary'
+        CollectionShowResponse:
+            type: object
+            required: [data]
+            properties:
+                data:
+                    $ref: '#/components/schemas/CollectionResource'
+        ItemsListResponse:
+            type: object
+            required: [data, meta]
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/CollectionItemResource'
+                meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        ItemShowResponse:
+            type: object
+            required: [data]
+            properties:
+                data:
+                    $ref: '#/components/schemas/CollectionItemResource'
+        FilesListResponse:
+            type: object
+            required: [data, meta]
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/FileResource'
+                meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        FileShowResponse:
+            type: object
+            required: [data]
+            properties:
+                data:
+                    $ref: '#/components/schemas/FileResource'
