@@ -289,3 +289,116 @@ test('restore is blocked when field ACL denies update', function () {
     expect($assembled['title'])->toBe('now')
         ->and($assembled['secret'])->toBe('live');
 });
+
+test('discard draft clears draft_data and leaves published values', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['versioning' => true]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    $item = $collection->items()->create([]);
+    $writer = app(CollectionItemValuesWriter::class);
+    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer->sync($item, $collection, $normalizer->normalize($collection, ['title' => 'live'], true));
+
+    $item->draft_data = ['title' => 'staging'];
+    $item->save();
+
+    $this->post(route('collections.items.discard-draft', [$collection, $item]))
+        ->assertRedirect();
+
+    $item->refresh();
+    expect($item->draft_data)->toBeNull();
+    expect(app(CollectionItemValuesAssembler::class)->assemble($item)['title'])->toBe('live');
+});
+
+test('discard draft requires edit permission and versioning', function () {
+    $user = grantCollectionPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowCollections->value,
+    ]);
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['versioning' => true]);
+    $item = $collection->items()->create(['draft_data' => ['title' => 'x']]);
+
+    $this->post(route('collections.items.discard-draft', [$collection, $item]))
+        ->assertForbidden();
+
+    $editor = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($editor);
+
+    $noVersioning = Collection::factory()->create(['versioning' => false]);
+    $item2 = $noVersioning->items()->create(['draft_data' => ['title' => 'x']]);
+
+    $this->post(route('collections.items.discard-draft', [$noVersioning, $item2]))
+        ->assertStatus(422);
+});
+
+test('items list exposes has_draft and filters unpublished drafts', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['versioning' => true]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    $withDraft = $collection->items()->create(['draft_data' => ['title' => 'wip']]);
+    $without = $collection->items()->create([]);
+
+    $this->get(route('collections.items.index', [
+        'collection' => $collection,
+        'sort' => 'id',
+        'direction' => 'asc',
+    ]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('items.data', 2)
+            ->where('items.data.0.id', $withDraft->id)
+            ->where('items.data.0.has_draft', true)
+            ->where('items.data.1.id', $without->id)
+            ->where('items.data.1.has_draft', false)
+        );
+
+    $this->get(route('collections.items.index', ['collection' => $collection, 'has_draft' => 1]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('items.data', 1)
+            ->where('items.data.0.id', $withDraft->id)
+            ->where('filters.has_draft', true)
+        );
+});
+
+test('publish records revision meta source publish', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['versioning' => true]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    $item = $collection->items()->create([]);
+    $writer = app(CollectionItemValuesWriter::class);
+    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer->sync($item, $collection, $normalizer->normalize($collection, ['title' => 'live'], true));
+
+    $item->draft_data = ['title' => 'staging'];
+    $item->save();
+
+    $this->post(route('collections.items.publish', [$collection, $item]))
+        ->assertRedirect();
+
+    $rev = CollectionItemRevision::query()->where('item_id', $item->id)->latest('id')->first();
+    expect($rev)->not->toBeNull();
+    expect($rev->meta['source'] ?? null)->toBe('publish');
+});

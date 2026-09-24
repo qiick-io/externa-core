@@ -99,8 +99,10 @@ class ItemController extends Controller
         }
 
         $trashed = $request->boolean('trashed');
+        $hasDraft = $collection->versioning && $request->boolean('has_draft');
         $query = CollectionItem::query()
             ->when($trashed, fn ($query) => $query->onlyTrashed())
+            ->when($hasDraft, fn ($query) => $query->whereNotNull('draft_data'))
             ->where('collection_id', $collection->id)
             ->with([
                 'fieldValues',
@@ -125,8 +127,16 @@ class ItemController extends Controller
         $this->permissionEnforcer->applyItemFilterToQuery($request, $collection, $query);
 
         $paginator = $query->paginate(15)->withQueryString();
+        $versioning = (bool) $collection->versioning;
         $rows = $paginator->getCollection()
-            ->map(fn (CollectionItem $item): array => (new CollectionItemResource($item))->toArray($request))
+            ->map(function (CollectionItem $item) use ($request, $versioning): array {
+                $row = (new CollectionItemResource($item))->toArray($request);
+                if ($versioning) {
+                    $row['has_draft'] = is_array($item->draft_data);
+                }
+
+                return $row;
+            })
             ->all();
         $rows = $this->listDisplayEnricher->enrich($collection, $rows, $listColumns);
         $paginator->setCollection(collect($rows));
@@ -140,6 +150,7 @@ class ItemController extends Controller
             'filters' => [
                 ...$stringFilters,
                 'trashed' => $trashed,
+                'has_draft' => $hasDraft,
                 'sort' => $sortState['sort'],
                 'direction' => $sortState['direction'],
             ],
@@ -521,7 +532,13 @@ class ItemController extends Controller
         }
 
         $normalized = $this->itemDataNormalizer->normalize($collection, $draft, false);
-        $this->collectionItemValuesWriter->sync($item->fresh(), $collection, $normalized);
+        $this->collectionItemValuesWriter->sync(
+            $item->fresh(),
+            $collection,
+            $normalized,
+            created: false,
+            revisionMeta: ['source' => 'publish'],
+        );
 
         // Keep draft in sync with published after promote (empty workspace again).
         $item->draft_data = null;
@@ -532,6 +549,39 @@ class ItemController extends Controller
             'item' => $item,
             'version' => 'published',
         ])->with('success', __('Published.'));
+    }
+
+    /**
+     * Discard unpublished draft_data (content versioning). Published values untouched.
+     */
+    public function discardDraft(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
+    {
+        $this->assertItemBelongsToCollection($collection, $item);
+        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+        abort_unless($collection->versioning, 422);
+
+        if (! is_array($item->draft_data)) {
+            return redirect()
+                ->route('collections.items.show', [
+                    'collection' => $collection,
+                    'item' => $item,
+                    'version' => 'draft',
+                ])
+                ->with('error', __('No draft to discard.'));
+        }
+
+        $item->draft_data = null;
+        $item->save();
+
+        $this->revisionRecorder->record($item, [
+            'source' => 'discard_draft',
+        ]);
+
+        return redirect()->route('collections.items.show', [
+            'collection' => $collection,
+            'item' => $item,
+            'version' => 'draft',
+        ])->with('success', __('Draft discarded.'));
     }
 
     /**

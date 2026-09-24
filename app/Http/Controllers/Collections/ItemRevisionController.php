@@ -124,6 +124,9 @@ class ItemRevisionController extends Controller
         if ($source === 'draft') {
             return 'Draft saved';
         }
+        if ($source === 'discard_draft') {
+            return 'Draft discarded';
+        }
         if ($source === 'restore') {
             return 'Hard restore';
         }
