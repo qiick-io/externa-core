@@ -11,7 +11,6 @@ use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\Webhooks\OutboundWebhookCatalog;
 use Database\Seeders\PermissionSeeder;
-use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
