@@ -127,7 +127,6 @@ export default function PasswordInput({
                     aria-label={
                         showPassword ? t('common.hide') : t('common.view')
                     }
-                    tabIndex={-1}
                 >
                     {showPassword ? (
                         <EyeOff className="size-4" />

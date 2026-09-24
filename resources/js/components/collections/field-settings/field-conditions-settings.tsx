@@ -211,6 +211,7 @@ export function FieldConditionsSettings({
                             size="icon"
                             variant="ghost"
                             className="self-end"
+                            aria-label="Remove condition rule"
                             onClick={() => {
                                 const rules = conditions.rules.filter(
                                     (_, entryIndex) => entryIndex !== index,

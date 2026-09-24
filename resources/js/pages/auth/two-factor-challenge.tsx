@@ -69,6 +69,9 @@ export default function TwoFactorChallenge() {
                                     <Input
                                         name="recovery_code"
                                         type="text"
+                                        aria-label={t(
+                                            'auth.twoFactorChallenge.recoveryPlaceholder',
+                                        )}
                                         placeholder={t(
                                             'auth.twoFactorChallenge.recoveryPlaceholder',
                                         )}
@@ -89,6 +92,9 @@ export default function TwoFactorChallenge() {
                                             onChange={(value) => setCode(value)}
                                             disabled={processing}
                                             pattern={REGEXP_ONLY_DIGITS}
+                                            aria-label={t(
+                                                'auth.twoFactorChallenge.authTitle',
+                                            )}
                                         >
                                             <InputOTPGroup>
                                                 {Array.from(

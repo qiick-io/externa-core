@@ -227,6 +227,7 @@ export default function CollectionsFields({
                                 setSearchQuery(event.target.value)
                             }
                             placeholder={t('collections.searchFields')}
+                            aria-label={t('collections.searchFields')}
                             maxLength={STRING_LIMITS.SEARCH}
                             className="pl-9"
                         />
