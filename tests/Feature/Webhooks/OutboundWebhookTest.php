@@ -193,6 +193,7 @@ test('catalog covers every event type emitted in app code', function () {
     expect(OutboundWebhookCatalog::types())->toContain(
         'item.created',
         'item.updated',
+        'item.published',
         'item.deleted',
         'item.restored',
         'collection.created',
