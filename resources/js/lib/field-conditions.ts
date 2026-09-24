@@ -1,7 +1,31 @@
-/** Simple field form conditions (mirrors PHP FieldConditionEvaluator). */
+/** Field form conditions (mirrors PHP FieldConditionEvaluator). */
 
 export type FieldConditionOperator =
-    'equals' | 'not_equals' | 'empty' | 'not_empty';
+    | 'equals'
+    | 'not_equals'
+    | 'empty'
+    | 'not_empty'
+    | 'contains'
+    | 'gt'
+    | 'gte'
+    | 'lt'
+    | 'lte'
+    | 'in'
+    | 'not_in';
+
+export const FIELD_CONDITION_OPERATORS: FieldConditionOperator[] = [
+    'equals',
+    'not_equals',
+    'empty',
+    'not_empty',
+    'contains',
+    'gt',
+    'gte',
+    'lt',
+    'lte',
+    'in',
+    'not_in',
+];
 
 export type FieldConditionRule = {
     field: string;
@@ -10,7 +34,7 @@ export type FieldConditionRule = {
 };
 
 export type FieldConditions = {
-    logic: 'and';
+    logic: 'and' | 'or';
     rules: FieldConditionRule[];
     hidden?: boolean;
     readonly?: boolean;
@@ -97,6 +121,123 @@ function valuesEqual(actual: unknown, expected: unknown): boolean {
     return String(actual) === String(expected);
 }
 
+function contains(actual: unknown, expected: unknown): boolean {
+    if (expected === null || expected === undefined || expected === '') {
+        return false;
+    }
+
+    if (Array.isArray(actual)) {
+        return actual.map(String).includes(String(expected));
+    }
+
+    if (actual === null || actual === undefined) {
+        return false;
+    }
+
+    return String(actual).includes(String(expected));
+}
+
+function toComparable(value: unknown): number | string | null {
+    if (typeof value === 'boolean') {
+        return null;
+    }
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+    }
+
+    if (typeof value !== 'string' && typeof value !== 'number') {
+        return null;
+    }
+
+    const trimmed = String(value).trim();
+
+    if (trimmed === '') {
+        return null;
+    }
+
+    if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
+        return Number(trimmed);
+    }
+
+    // ISO date / datetime prefixes sort lexicographically for gt/lt.
+    if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+        return trimmed;
+    }
+
+    return trimmed;
+}
+
+function compareOrdered(
+    actual: unknown,
+    expected: unknown,
+    operator: 'gt' | 'gte' | 'lt' | 'lte',
+): boolean {
+    if (
+        isEmpty(actual) ||
+        expected === null ||
+        expected === undefined ||
+        expected === ''
+    ) {
+        return false;
+    }
+
+    let left = toComparable(actual);
+    let right = toComparable(expected);
+
+    if (left === null || right === null) {
+        return false;
+    }
+
+    if (typeof left !== typeof right) {
+        left = String(actual);
+        right = String(expected);
+    }
+
+    switch (operator) {
+        case 'gt':
+            return left > right;
+        case 'gte':
+            return left >= right;
+        case 'lt':
+            return left < right;
+        case 'lte':
+            return left <= right;
+    }
+}
+
+function normalizeList(expected: unknown): string[] {
+    if (Array.isArray(expected)) {
+        return expected.map(String);
+    }
+
+    if (expected === null || expected === undefined || expected === '') {
+        return [];
+    }
+
+    return String(expected)
+        .split(/\s*,\s*/)
+        .filter((part) => part !== '');
+}
+
+function inList(actual: unknown, expected: unknown): boolean {
+    const haystack = normalizeList(expected);
+
+    if (haystack.length === 0) {
+        return false;
+    }
+
+    if (Array.isArray(actual)) {
+        return actual.some((item) => haystack.includes(String(item)));
+    }
+
+    if (actual === null || actual === undefined) {
+        return false;
+    }
+
+    return haystack.includes(String(actual));
+}
+
 function singleRuleMatches(
     rule: FieldConditionRule,
     data: Record<string, unknown>,
@@ -110,9 +251,36 @@ function singleRuleMatches(
             return !isEmpty(actual);
         case 'not_equals':
             return !valuesEqual(actual, rule.value);
+        case 'contains':
+            return contains(actual, rule.value);
+        case 'gt':
+        case 'gte':
+        case 'lt':
+        case 'lte':
+            return compareOrdered(actual, rule.value, rule.operator);
+        case 'in':
+            return inList(actual, rule.value);
+        case 'not_in':
+            return !inList(actual, rule.value);
         default:
             return valuesEqual(actual, rule.value);
     }
+}
+
+function rulesMatch(
+    rules: FieldConditionRule[],
+    data: Record<string, unknown>,
+    logic: 'and' | 'or',
+): boolean {
+    if (rules.length === 0) {
+        return true;
+    }
+
+    if (logic === 'or') {
+        return rules.some((rule) => singleRuleMatches(rule, data));
+    }
+
+    return rules.every((rule) => singleRuleMatches(rule, data));
 }
 
 /**
@@ -144,14 +312,12 @@ export function parseFieldConditions(
         }
 
         const operatorRaw = String(rule.operator ?? 'equals');
-        const operator: FieldConditionOperator = [
-            'equals',
-            'not_equals',
-            'empty',
-            'not_empty',
-        ].includes(operatorRaw)
-            ? (operatorRaw as FieldConditionOperator)
-            : 'equals';
+        const operator: FieldConditionOperator =
+            FIELD_CONDITION_OPERATORS.includes(
+                operatorRaw as FieldConditionOperator,
+            )
+                ? (operatorRaw as FieldConditionOperator)
+                : 'equals';
 
         const normalized: FieldConditionRule = { field, operator };
 
@@ -166,8 +332,9 @@ export function parseFieldConditions(
         return null;
     }
 
+    const logicRaw = String(record.logic ?? 'and').toLowerCase();
     const conditions: FieldConditions = {
-        logic: 'and',
+        logic: logicRaw === 'or' ? 'or' : 'and',
         rules,
     };
 
@@ -186,7 +353,7 @@ export function parseFieldConditions(
  * When rules match: apply optional hidden/readonly/required overrides.
  * When rules do not match and hidden is explicitly false (show-when): force hidden.
  *
- * ponytail: AND-only equality/emptiness — no OR / nested groups.
+ * ponytail: flat and/or only — nested groups later if needed.
  */
 export function evaluateFieldFlags(
     settings: Record<string, unknown> | null | undefined,
@@ -214,9 +381,7 @@ export function evaluateFieldFlags(
         return flags;
     }
 
-    const matches = conditions.rules.every((rule) =>
-        singleRuleMatches(rule, data),
-    );
+    const matches = rulesMatch(conditions.rules, data, conditions.logic);
 
     if (!matches) {
         // Show-when: explicit hidden:false means visible only while rules match.

@@ -5,15 +5,31 @@ namespace App\Services\Collections;
 use App\Models\CollectionField;
 
 /**
- * Evaluate simple per-field form conditions (equals / not_equals / empty / not_empty + AND).
+ * Evaluate per-field form conditions (operators + AND/OR).
  *
  * Show-when: conditions.hidden === false means visible only while rules match.
  *
- * ponytail: AND-only, no nested groups / OR / comparisons beyond equality — upgrade path is a
- * small expression AST if product needs nested rule trees.
+ * ponytail: flat rules + top-level and/or only — nested groups / expression AST if product needs trees.
  */
 class FieldConditionEvaluator
 {
+    /**
+     * @var list<string>
+     */
+    public const OPERATORS = [
+        'equals',
+        'not_equals',
+        'empty',
+        'not_empty',
+        'contains',
+        'gt',
+        'gte',
+        'lt',
+        'lte',
+        'in',
+        'not_in',
+    ];
+
     /**
      * @param  array<string, mixed>  $data  Item `data` payload keyed by field name
      * @return array{hidden: bool, readonly: bool, required: bool}
@@ -47,7 +63,12 @@ class FieldConditionEvaluator
             return $flags;
         }
 
-        if (! $this->rulesMatch($rules, $data)) {
+        $logic = strtolower((string) data_get($conditions, 'logic', 'and'));
+        if ($logic !== 'or') {
+            $logic = 'and';
+        }
+
+        if (! $this->rulesMatch($rules, $data, $logic)) {
             // Show-when: explicit hidden=false means visible only while rules match.
             if (array_key_exists('hidden', $conditions)
                 && ! CollectionField::settingsFlagIsEnabled($conditions['hidden'])) {
@@ -70,8 +91,24 @@ class FieldConditionEvaluator
      * @param  list<mixed>  $rules
      * @param  array<string, mixed>  $data
      */
-    public function rulesMatch(array $rules, array $data): bool
+    public function rulesMatch(array $rules, array $data, string $logic = 'and'): bool
     {
+        if ($rules === []) {
+            return true;
+        }
+
+        $logic = strtolower($logic) === 'or' ? 'or' : 'and';
+
+        if ($logic === 'or') {
+            foreach ($rules as $rule) {
+                if (is_array($rule) && $this->singleRuleMatches($rule, $data)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         foreach ($rules as $rule) {
             if (! is_array($rule)) {
                 return false;
@@ -104,6 +141,10 @@ class FieldConditionEvaluator
             'empty' => $this->isEmpty($actual),
             'not_empty' => ! $this->isEmpty($actual),
             'not_equals' => ! $this->valuesEqual($actual, $expected),
+            'contains' => $this->contains($actual, $expected),
+            'gt', 'gte', 'lt', 'lte' => $this->compareOrdered($actual, $expected, $operator),
+            'in' => $this->inList($actual, $expected),
+            'not_in' => ! $this->inList($actual, $expected),
             default => $this->valuesEqual($actual, $expected),
         };
     }
@@ -140,7 +181,152 @@ class FieldConditionEvaluator
             return $expected === null || $expected === '';
         }
 
+        $actualBool = $this->asLooseBoolean($actual);
+        $expectedBool = $this->asLooseBoolean($expected);
+
+        if ($actualBool !== null && $expectedBool !== null) {
+            return $actualBool === $expectedBool;
+        }
+
         return (string) $actual === (string) $expected;
+    }
+
+    private function asLooseBoolean(mixed $value): ?bool
+    {
+        if ($value === true || $value === 1 || $value === '1' || $value === 'true' || $value === 'on') {
+            return true;
+        }
+
+        if ($value === false || $value === 0 || $value === '0' || $value === 'false' || $value === 'off') {
+            return false;
+        }
+
+        return null;
+    }
+
+    private function contains(mixed $actual, mixed $expected): bool
+    {
+        if ($expected === null || $expected === '') {
+            return false;
+        }
+
+        if (is_array($actual)) {
+            return in_array((string) $expected, array_map('strval', $actual), true);
+        }
+
+        if ($actual === null) {
+            return false;
+        }
+
+        return str_contains((string) $actual, (string) $expected);
+    }
+
+    /**
+     * @param  'gt'|'gte'|'lt'|'lte'  $operator
+     */
+    private function compareOrdered(mixed $actual, mixed $expected, string $operator): bool
+    {
+        if ($this->isEmpty($actual) || $expected === null || $expected === '') {
+            return false;
+        }
+
+        $left = $this->toComparable($actual);
+        $right = $this->toComparable($expected);
+
+        if ($left === null || $right === null) {
+            return false;
+        }
+
+        // Mixed numeric vs string date: fall back to string compare of originals.
+        if (is_float($left) !== is_float($right)) {
+            $left = (string) $actual;
+            $right = (string) $expected;
+        }
+
+        return match ($operator) {
+            'gt' => $left > $right,
+            'gte' => $left >= $right,
+            'lt' => $left < $right,
+            'lte' => $left <= $right,
+        };
+    }
+
+    /**
+     * @return float|string|null float for numbers; string for date-like / fallback
+     */
+    private function toComparable(mixed $value): float|string|null
+    {
+        if (is_bool($value)) {
+            return null;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (float) $value;
+        }
+
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        if (is_numeric($trimmed)) {
+            return (float) $trimmed;
+        }
+
+        // ISO date / datetime prefixes sort lexicographically for gt/lt.
+        if (preg_match('/^\d{4}-\d{2}-\d{2}/', $trimmed) === 1) {
+            return $trimmed;
+        }
+
+        return $trimmed;
+    }
+
+    private function inList(mixed $actual, mixed $expected): bool
+    {
+        $haystack = $this->normalizeList($expected);
+
+        if ($haystack === []) {
+            return false;
+        }
+
+        if (is_array($actual)) {
+            foreach ($actual as $item) {
+                if (in_array((string) $item, $haystack, true)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if ($actual === null) {
+            return false;
+        }
+
+        return in_array((string) $actual, $haystack, true);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeList(mixed $expected): array
+    {
+        if (is_array($expected)) {
+            return array_values(array_map('strval', $expected));
+        }
+
+        if ($expected === null || $expected === '') {
+            return [];
+        }
+
+        $parts = preg_split('/\s*,\s*/', (string) $expected) ?: [];
+
+        return array_values(array_filter($parts, static fn (string $part): bool => $part !== ''));
     }
 
     /**
@@ -189,7 +375,7 @@ class FieldConditionEvaluator
             }
 
             $operator = (string) data_get($rawRule, 'operator', 'equals');
-            if (! in_array($operator, ['equals', 'not_equals', 'empty', 'not_empty'], true)) {
+            if (! in_array($operator, self::OPERATORS, true)) {
                 $operator = 'equals';
             }
 
@@ -199,7 +385,12 @@ class FieldConditionEvaluator
             ];
 
             if (! in_array($operator, ['empty', 'not_empty'], true)) {
-                $entry['value'] = data_get($rawRule, 'value');
+                $value = data_get($rawRule, 'value');
+                if (in_array($operator, ['in', 'not_in'], true)) {
+                    $entry['value'] = $this->normalizeListValueForStorage($value);
+                } else {
+                    $entry['value'] = $value;
+                }
             }
 
             $rules[] = $entry;
@@ -209,8 +400,9 @@ class FieldConditionEvaluator
             return null;
         }
 
+        $logic = strtolower((string) data_get($conditions, 'logic', 'and'));
         $normalized = [
-            'logic' => 'and',
+            'logic' => $logic === 'or' ? 'or' : 'and',
             'rules' => $rules,
         ];
 
@@ -221,5 +413,17 @@ class FieldConditionEvaluator
         }
 
         return $normalized;
+    }
+
+    /**
+     * Store in/not_in as comma-separated string (UI-friendly) when array given.
+     */
+    private function normalizeListValueForStorage(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            return implode(', ', array_map('strval', $value));
+        }
+
+        return $value;
     }
 }

@@ -19,12 +19,21 @@ type FieldConditionsSettingsProps = {
 const OPERATORS: { value: FieldConditionOperator; label: string }[] = [
     { value: 'equals', label: 'Equals' },
     { value: 'not_equals', label: 'Not equals' },
+    { value: 'contains', label: 'Contains' },
     { value: 'empty', label: 'Is empty' },
     { value: 'not_empty', label: 'Is not empty' },
+    { value: 'gt', label: 'Greater than' },
+    { value: 'gte', label: 'Greater or equal' },
+    { value: 'lt', label: 'Less than' },
+    { value: 'lte', label: 'Less or equal' },
+    { value: 'in', label: 'In list' },
+    { value: 'not_in', label: 'Not in list' },
 ];
 
+const VALUELESS: FieldConditionOperator[] = ['empty', 'not_empty'];
+
 /**
- * Per-field condition rules: when rules match (AND), apply optional hidden/readonly/required.
+ * Per-field condition rules: when rules match (AND/OR), apply optional hidden/readonly/required.
  */
 export function FieldConditionsSettings({
     settings,
@@ -45,7 +54,7 @@ export function FieldConditionsSettings({
             <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
                     Optionally show, lock, or require this field based on other
-                    field values (AND rules only).
+                    field values (AND or OR).
                 </p>
                 <Button
                     type="button"
@@ -74,9 +83,27 @@ export function FieldConditionsSettings({
     return (
         <div className="space-y-5">
             <p className="text-sm text-muted-foreground">
-                When all rules match, apply the flags below. Simple AND only —
-                no OR groups yet.
+                When rules match, apply the flags below. Flat AND / OR only — no
+                nested groups.
             </p>
+
+            <div className="grid gap-1 sm:max-w-xs">
+                <Label htmlFor="condition_logic">Match</Label>
+                <select
+                    id="condition_logic"
+                    className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    value={conditions.logic}
+                    onChange={(event) =>
+                        onChange({
+                            ...conditions,
+                            logic: event.target.value === 'or' ? 'or' : 'and',
+                        })
+                    }
+                >
+                    <option value="and">All rules (AND)</option>
+                    <option value="or">Any rule (OR)</option>
+                </select>
+            </div>
 
             <div className="space-y-3">
                 {conditions.rules.map((rule, index) => (
@@ -124,14 +151,11 @@ export function FieldConditionsSettings({
                                                 ? {
                                                       ...entry,
                                                       operator,
-                                                      value:
-                                                          operator ===
-                                                              'empty' ||
-                                                          operator ===
-                                                              'not_empty'
-                                                              ? undefined
-                                                              : (entry.value ??
-                                                                ''),
+                                                      value: VALUELESS.includes(
+                                                          operator,
+                                                      )
+                                                          ? undefined
+                                                          : (entry.value ?? ''),
                                                   }
                                                 : entry,
                                     );
@@ -148,14 +172,24 @@ export function FieldConditionsSettings({
                                 ))}
                             </select>
                         </div>
-                        {rule.operator === 'empty' ||
-                        rule.operator === 'not_empty' ? (
+                        {VALUELESS.includes(rule.operator) ? (
                             <div />
                         ) : (
                             <div className="grid gap-1">
-                                <Label>Value</Label>
+                                <Label>
+                                    {rule.operator === 'in' ||
+                                    rule.operator === 'not_in'
+                                        ? 'Values (comma-separated)'
+                                        : 'Value'}
+                                </Label>
                                 <Input
                                     value={String(rule.value ?? '')}
+                                    placeholder={
+                                        rule.operator === 'in' ||
+                                        rule.operator === 'not_in'
+                                            ? 'draft, published'
+                                            : undefined
+                                    }
                                     onChange={(event) => {
                                         const rules = conditions.rules.map(
                                             (entry, entryIndex) =>

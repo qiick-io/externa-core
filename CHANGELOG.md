@@ -19,6 +19,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Draft / publish UX: form/list badges, discard endpoint, `has_draft` filter, revision empty copy (#43)
 - Scheduled publish/unpublish for versioned items: `publish_at` / `unpublish_at`, `collections:process-schedules`, item form UI, `item.published` webhook (#44)
 - Public CMS OpenAPI 3 at `GET /api/v1/openapi.json` (YAML source of truth in `resources/openapi/public-cms-v1.yaml`; keep docs `client-types/openapi.yaml` in sync) (#25)
+- Field conditions: `contains`, `gt`/`gte`/`lt`/`lte`, `in`/`not_in`, and flat OR logic; PHP↔TS parity fixtures (#45)
 
 ### Changed
 
