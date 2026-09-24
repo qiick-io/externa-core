@@ -1292,7 +1292,10 @@
             "ai": "AI",
             "chat": "Chat",
             "settings": "Impostazioni"
-        }
+        },
+        "exportCsv": "Esporta CSV",
+        "exportJson": "Esporta JSON",
+        "exportHint": "Esporta i filtri attuali (max {{limit}} righe)."
     },
     "files": {
         "title": "File",
