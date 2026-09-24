@@ -70,6 +70,13 @@ class OutboundWebhookDispatcher
             return;
         }
 
+        // Forward-compat: still deliver, but flag drift from the frozen catalog.
+        if (! OutboundWebhookCatalog::has($type)) {
+            Log::warning('Outbound webhook type missing from catalog', [
+                'type' => $type,
+            ]);
+        }
+
         $pending = DeliverOutboundWebhookJob::dispatch(
             'evt_'.Str::lower((string) Str::ulid()),
             $type,

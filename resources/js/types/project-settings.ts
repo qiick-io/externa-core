@@ -44,6 +44,27 @@ export type ProjectSettingsForm = {
     chat_max_upload_bytes: number | null;
 };
 
+export type WebhookEventCatalogEntry = {
+    type: string;
+    description: string;
+};
+
+export type WebhookDeliveryEntry = {
+    event_id: string;
+    type: string;
+    outcome: 'success' | 'failed';
+    status: number | null;
+    message: string | null;
+    attempts: number;
+    at: string;
+};
+
+export type WebhookDeliverySummary = {
+    last_success: WebhookDeliveryEntry | null;
+    last_error: WebhookDeliveryEntry | null;
+    recent: WebhookDeliveryEntry[];
+};
+
 export type SharedProjectSettings = {
     name: string | null;
     defaultLanguage: string;
