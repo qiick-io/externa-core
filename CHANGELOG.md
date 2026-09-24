@@ -21,6 +21,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Public CMS OpenAPI 3 at `GET /api/v1/openapi.json` (YAML source of truth in `resources/openapi/public-cms-v1.yaml`; keep docs `client-types/openapi.yaml` in sync) (#25)
 - Field conditions: `contains`, `gt`/`gte`/`lt`/`lte`, `in`/`not_in`, and flat OR logic; PHP↔TS parity fixtures (#45)
 - Accessibility: keyboard-reachable password toggle, aria-labels on critical search/OTP/icon controls; Pest Browser axe on login + profile (#26)
+- Activity log CSV/JSON export with current filters (streamed, 10k row cap) (#28)
 
 ### Changed
 
