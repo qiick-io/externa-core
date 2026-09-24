@@ -8,6 +8,10 @@ import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { ContentLocalesField } from '@/components/settings/content-locales-field';
 import { TransformPresetsField } from '@/components/settings/transform-presets-field';
+import {
+    WebhookDeliveryStatus,
+    WebhookEventCatalog,
+} from '@/components/settings/webhook-deliveries-panel';
 import { SettingsFormActions } from '@/components/settings-form-actions';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -35,6 +39,8 @@ import type {
     ProjectSettingsForm,
     SidebarModuleSetting,
     TransformPreset,
+    WebhookDeliverySummary,
+    WebhookEventCatalogEntry,
 } from '@/types';
 
 type Props = {
@@ -46,6 +52,8 @@ type Props = {
     transformationOptions: string[];
     transformFits: TransformPreset['fit'][];
     transformFormats: TransformPreset['format'][];
+    webhookEvents: WebhookEventCatalogEntry[];
+    webhookDeliveries: WebhookDeliverySummary;
 };
 
 /** Matches config('settings.project.sidebar_pinned_module_ids'). */
@@ -217,6 +225,8 @@ export default function ProjectSettingsPage({
     transformationOptions,
     transformFits,
     transformFormats,
+    webhookEvents,
+    webhookDeliveries,
 }: Props) {
     const { t } = useTranslation();
     const initialForm = useMemo(
@@ -1409,6 +1419,12 @@ export default function ProjectSettingsPage({
                                         )}
                                     </p>
                                 </div>
+
+                                <WebhookDeliveryStatus
+                                    deliveries={webhookDeliveries}
+                                />
+
+                                <WebhookEventCatalog events={webhookEvents} />
                             </div>
 
                             <SettingsFormActions
