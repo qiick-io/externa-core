@@ -4,9 +4,17 @@ use App\Http\Controllers\Api\V1\CollectionController;
 use App\Http\Controllers\Api\V1\CollectionItemController;
 use App\Http\Controllers\Api\V1\FileController;
 use App\Http\Controllers\Api\V1\LivePreviewController;
+use App\Http\Controllers\Api\V1\OpenApiController;
 use App\Http\Middleware\EnforcePublicApiOrigin;
 use App\Http\Middleware\ResolveApiAccess;
 use Illuminate\Support\Facades\Route;
+
+Route::prefix('v1')
+    ->middleware(['throttle:api'])
+    ->group(function (): void {
+        // Machine-readable Public CMS API contract — no API key / origin gate.
+        Route::get('openapi.json', OpenApiController::class);
+    });
 
 Route::prefix('v1')
     ->middleware(['throttle:api', EnforcePublicApiOrigin::class])
