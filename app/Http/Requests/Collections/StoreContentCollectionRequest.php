@@ -51,6 +51,7 @@ class StoreContentCollectionRequest extends FormRequest
             'versioning' => ['sometimes', 'boolean'],
             'revision_retention_count' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'revision_retention_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
+            'preview_url' => ['nullable', 'string', 'max:2048', 'regex:/^https?:\/\/.+/i'],
         ];
     }
 
@@ -83,6 +84,10 @@ class StoreContentCollectionRequest extends FormRequest
 
         if (! $this->filled('revision_retention_days')) {
             $this->merge(['revision_retention_days' => null]);
+        }
+
+        if ($this->has('preview_url') && ! $this->filled('preview_url')) {
+            $this->merge(['preview_url' => null]);
         }
     }
 

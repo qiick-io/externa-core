@@ -76,6 +76,7 @@ function buildProjectFormState(project: ProjectSettingsForm) {
         report_error_url: project.report_error_url ?? '',
         webhook_url: project.webhook_url ?? '',
         webhook_secret: '',
+        preview_url_default: project.preview_url_default ?? '',
         revision_retention_count: project.revision_retention_count ?? null,
         revision_retention_days: project.revision_retention_days ?? null,
         files_max_upload_bytes: project.files_max_upload_bytes ?? null,
@@ -1347,6 +1348,40 @@ export default function ProjectSettingsPage({
                                         {t('settings.project.webhookUrlHint')}
                                     </p>
                                     <InputError message={errors.webhook_url} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="preview_url_default">
+                                        {t(
+                                            'settings.project.previewUrlDefault',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="preview_url_default"
+                                        name="preview_url_default"
+                                        type="url"
+                                        autoComplete="off"
+                                        data-1p-ignore
+                                        data-lpignore="true"
+                                        value={form.preview_url_default}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                preview_url_default:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder="https://example.com/preview/{{collection}}/{{id}}?token={{token}}"
+                                        data-test="project-preview-url-default"
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.previewUrlDefaultHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={errors.preview_url_default}
+                                    />
                                 </div>
 
                                 <div className="grid gap-2">

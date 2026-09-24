@@ -22,6 +22,7 @@ import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
+import { ItemLivePreviewButton } from '@/components/collections/item-live-preview-button';
 import type { PreviewRoleOption } from '@/components/collections/item-preview-as-role-dialog';
 import { ItemPreviewAsRoleDialog } from '@/components/collections/item-preview-as-role-dialog';
 import { ItemRevisionCompareModal } from '@/components/collections/item-revision-compare-modal';
@@ -149,6 +150,7 @@ export default function ItemsForm({
     previewRoles = [],
     activityLogs: activityLogsProp = null,
     chat_count: chatCountProp = 0,
+    livePreviewConfigured = false,
 }: {
     collection: CollectionView;
     item: ItemPayload | null;
@@ -165,6 +167,7 @@ export default function ItemsForm({
         | Paginated<AdminActivityLogRow>
         | null;
     chat_count?: number;
+    livePreviewConfigured?: boolean;
 }) {
     const { t } = useTranslation();
     const page = usePage();
@@ -533,6 +536,15 @@ export default function ItemsForm({
                             collectionId={collection.id}
                             itemId={item.id}
                             roles={previewRoles}
+                        />
+                    )}
+                    {!isNew && item !== null && livePreviewConfigured && (
+                        <ItemLivePreviewButton
+                            collectionId={collection.id}
+                            itemId={item.id}
+                            version={
+                                versioningEnabled ? contentVersion : 'published'
+                            }
                         />
                     )}
                     {!isNew && item !== null && (

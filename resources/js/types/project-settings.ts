@@ -38,6 +38,7 @@ export type ProjectSettingsForm = {
     report_error_url: string | null;
     webhook_url: string | null;
     webhook_secret_configured: boolean;
+    preview_url_default: string | null;
     revision_retention_count: number | null;
     revision_retention_days: number | null;
     files_max_upload_bytes: number | null;

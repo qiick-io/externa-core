@@ -29,6 +29,7 @@ use App\Services\Collections\CollectionListColumnsNormalizer;
 use App\Services\Collections\CollectionListDisplayEnricher;
 use App\Services\Collections\FieldConditionEvaluator;
 use App\Services\Collections\ItemRolePreviewService;
+use App\Services\Collections\LivePreviewUrlBuilder;
 use App\Services\Settings\SettingsRepository;
 use App\Support\Validation\SearchQueryRules;
 use Illuminate\Http\JsonResponse;
@@ -36,6 +37,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -56,6 +58,7 @@ class ItemController extends Controller
         private CollectionPermissionEnforcer $permissionEnforcer,
         private CollectionItemExportService $itemExportService,
         private ItemRolePreviewService $itemRolePreviewService,
+        private LivePreviewUrlBuilder $livePreviewUrlBuilder,
         private CollectionItemRevisionRecorder $revisionRecorder,
         private EffectivePermissionResolver $permissionResolver,
         private FieldConditionEvaluator $fieldConditionEvaluator,
@@ -324,6 +327,7 @@ class ItemController extends Controller
             'previewRoles' => $this->previewRoles($request),
             'activityLogs' => ActivityLogResource::collection($activityLogs),
             'chat_count' => $item->chat?->messages()->count() ?? 0,
+            'livePreviewConfigured' => $this->livePreviewUrlBuilder->templateFor($collection) !== null,
         ]);
     }
 
@@ -356,6 +360,39 @@ class ItemController extends Controller
         return response()->json(
             $this->itemRolePreviewService->preview($request, $collection, $item, $role),
         );
+    }
+
+    /**
+     * Build a Live Preview frontend URL (signed token; no API key in the link).
+     */
+    public function livePreviewUrl(Request $request, Collection $collection, CollectionItem $item): JsonResponse
+    {
+        $this->assertItemBelongsToCollection($collection, $item);
+        $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
+
+        if ($this->livePreviewUrlBuilder->templateFor($collection) === null) {
+            return response()->json([
+                'message' => 'Configure a Live Preview URL on this collection (or Project settings default).',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'version' => ['nullable', 'string', 'in:draft,published'],
+            'locale' => ['nullable', 'string', 'max:16'],
+        ]);
+
+        $version = (string) ($validated['version'] ?? 'published');
+        $locale = isset($validated['locale']) && is_string($validated['locale']) && $validated['locale'] !== ''
+            ? $validated['locale']
+            : null;
+
+        try {
+            $built = $this->livePreviewUrlBuilder->build($collection, $item, $version, $locale);
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return response()->json($built);
     }
 
     /**
