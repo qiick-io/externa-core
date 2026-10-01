@@ -14,7 +14,8 @@
         "firstName": "Vorname",
         "lastName": "Nachname",
         "hide": "Ausblenden",
-        "view": "Anzeigen"
+        "view": "Anzeigen",
+        "export": "Exportieren"
     },
     "roles": {
         "names": {
@@ -91,7 +92,12 @@
         "skipToContent": "Zum Inhalt springen",
         "mainNav": "Hauptnavigation",
         "openMenu": "Menü öffnen",
-        "search": "Suchen"
+        "search": "Suchen",
+        "removeConditionRule": "Bedingungsregel entfernen",
+        "dismissUpload": "Upload verwerfen",
+        "clearSelection": "Auswahl löschen",
+        "removeTab": "Tab entfernen",
+        "removeSection": "Abschnitt entfernen"
     },
     "auth": {
         "login": {
@@ -175,7 +181,8 @@
             "roles": "Rollen",
             "permissions": "Berechtigungen",
             "apiKeys": "API-Schlüssel",
-            "reportBug": "Bug melden"
+            "reportBug": "Bug melden",
+            "performance": "Leistung"
         },
         "profile": {
             "breadcrumb": "Profileinstellungen",
@@ -334,6 +341,20 @@
             "webhookSecretGenerate": "Geheimnis erzeugen",
             "webhookSendTest": "Test-Event senden",
             "webhookSendTestHint": "Zuerst Webhook-URL speichern, dann signiertes Ping einreihen. Erfordert einen Queue-Worker (oder QUEUE_CONNECTION=sync).",
+            "previewUrlDefault": "Live-Preview-URL (Standard)",
+            "previewUrlDefaultHint": "Fallback-Vorlage, wenn die Collection keine eigene URL hat. Tokens: {{id}}, {{slug}}, {{collection}}, {{locale}}, {{version}}, {{token}}.",
+            "webhookDeliveryTitle": "Zustellstatus",
+            "webhookLastSuccess": "Letzte erfolgreiche Zustellung",
+            "webhookLastError": "Letzte fehlgeschlagene Zustellung",
+            "webhookDeliveryNone": "Noch keine.",
+            "webhookDeliveryAttempts": "Versuche: {{count}}",
+            "webhookDeliveryWhen": "Wann",
+            "webhookDeliveryOutcome": "Ergebnis",
+            "webhookOutcomeSuccess": "Zugestellt",
+            "webhookOutcomeFailed": "Fehlgeschlagen",
+            "webhookEventsTitle": "Ereigniskatalog",
+            "webhookEventType": "Ereignis",
+            "webhookEventDescription": "Beschreibung",
             "modules": {
                 "dashboard": "Dashboard",
                 "ai": "Assistent",
@@ -347,7 +368,11 @@
                 "apiKeys": "API-Schlüssel",
                 "permissions": "Berechtigungen",
                 "settings": "Einstellungen"
-            }
+            },
+            "publicApiAllowedOrigins": "Erlaubte Origins",
+            "publicApiAllowedOriginsHint": "Eine Origin pro Zeile (z. B. https://www.example.com). Leer = alle Origins erlaubt.",
+            "publicApiDescription": "CORS / Origin-Allowlist für die Public CMS API.",
+            "publicApiTitle": "Public CMS API"
         },
         "appearance": {
             "breadcrumb": "Darstellungseinstellungen",
@@ -398,6 +423,49 @@
             "codesAria": "Wiederherstellungscodes",
             "loadingAria": "Wiederherstellungscodes werden geladen",
             "regenerateWarning": "Jeder Wiederherstellungscode kann einmal verwendet werden und wird danach entfernt. Wenn Sie mehr benötigen, klicken Sie oben auf <bold>Codes neu generieren</bold>."
+        },
+        "performance": {
+            "appDebug": "APP_DEBUG",
+            "appEnv": "APP_ENV",
+            "bootstrapDescription": "Status der Laravel-Bootstrap-Caches (config, routes, events, packages).",
+            "bootstrapTitle": "Bootstrap-Caches",
+            "breadcrumb": "Leistung",
+            "cacheStore": "Cache-Store",
+            "configCached": "Config gecacht",
+            "epoch": "Epoche",
+            "eventsCached": "Events gecacht",
+            "flushDashboardMetricsButton": "Dashboard-Metriken leeren",
+            "flushDashboardMetricsDescription": "Löscht gecachte Dashboard-Zähler und Diagrammdaten.",
+            "flushDashboardMetricsTitle": "Dashboard-Metriken",
+            "flushDescription": "Gezielte Cache-Invalidierung ohne vollständigen config:clear.",
+            "flushPermissionMatricesButton": "Berechtigungsmatrizen leeren",
+            "flushPermissionMatricesDescription": "Löscht gecachte effektive Berechtigungsmatrizen.",
+            "flushPermissionMatricesTitle": "Berechtigungsmatrizen",
+            "flushPublicApiButton": "Public-API-Cache leeren",
+            "flushPublicApiDescription": "Löscht Public-CMS-API-Antwortcaches.",
+            "flushPublicApiTitle": "Public API",
+            "flushSpatiePermissionsButton": "Spatie-Permission-Cache leeren",
+            "flushSpatiePermissionsDescription": "Leert den Spatie laravel-permission Cache.",
+            "flushSpatiePermissionsTitle": "Spatie Permissions",
+            "flushTitle": "Caches leeren",
+            "flushing": "Wird geleert…",
+            "head": "Leistung",
+            "linkHorizon": "Horizon öffnen",
+            "linkJobs": "Jobs öffnen",
+            "linkPulse": "Pulse öffnen",
+            "no": "Nein",
+            "observabilityDescription": "Links zu Horizon, Pulse und Job-Monitor.",
+            "observabilityTitle": "Observability",
+            "packagesCached": "Packages gecacht",
+            "publicApiDescription": "TTL und Epoch für Public-CMS-API-Caches.",
+            "publicApiTitle": "Public-API-Cache",
+            "queueConnection": "Queue-Connection",
+            "redisReachable": "Redis erreichbar",
+            "routesCached": "Routes gecacht",
+            "statusDescription": "Laufzeitumgebung und Cache-Backend.",
+            "statusTitle": "Status",
+            "ttlSeconds": "TTL (Sekunden)",
+            "yes": "Ja"
         }
     },
     "collections": {
@@ -425,6 +493,9 @@
             "singletonHint": "Für Collections mit einem festen Eintrag (z. B. Startseite oder Site-Einstellungen). Diese Wahl kann nach der Erstellung nicht geändert werden.",
             "versioning": "Inhaltsversionierung",
             "versioningHint": "Entwurf / Veröffentlicht aktivieren. Im Entwurf bearbeiten, dann Veröffentlichen.",
+            "previewUrl": "Live-Preview-URL",
+            "previewUrlHint": "Frontend-Vorlage mit Tokens: {{id}}, {{slug}}, {{collection}}, {{locale}}, {{version}}, {{token}}. Leer = Projekt-Standard.",
+            "previewUrlPlaceholder": "https://example.com/preview/{{collection}}/{{id}}?version={{version}}&token={{token}}",
             "revisionRetention": "Revisionsaufbewahrung",
             "revisionRetentionHint": "Leer lassen, um den Projektstandard zu nutzen (Einstellungen → Projekt → Revisionsaufbewahrung). Leer auf beiden Ebenen behält Revisionen unbegrenzt. Limits gelten für Verlaufs-Snapshots (auch wenn Entwurf/Veröffentlichen aus ist).",
             "revisionRetentionCount": "Max. Revisionen",
@@ -482,6 +553,8 @@
         },
         "itemToolbar": {
             "previewAs": "Vorschau als…",
+            "livePreview": "Live Preview",
+            "livePreviewError": "Live Preview konnte nicht geöffnet werden. Prüfe die Vorschau-URL der Collection.",
             "chat": "Chat",
             "revisions": "Revisionen",
             "editFields": "Felder bearbeiten",
@@ -1225,7 +1298,10 @@
             "ai": "KI",
             "chat": "Chat",
             "settings": "Einstellungen"
-        }
+        },
+        "exportCsv": "CSV exportieren",
+        "exportHint": "Exportiert die aktuellen Filter (max. {{limit}} Zeilen).",
+        "exportJson": "JSON exportieren"
     },
     "files": {
         "title": "Dateien",

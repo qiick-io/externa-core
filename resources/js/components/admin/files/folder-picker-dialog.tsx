@@ -219,6 +219,7 @@ export function FolderPickerDialog({
                 <div className="grid gap-3">
                     <Input
                         placeholder={t('files.folderPicker.search')}
+                        aria-label={t('files.folderPicker.search')}
                         value={search}
                         disabled={submitting}
                         onChange={(event) => setSearch(event.target.value)}

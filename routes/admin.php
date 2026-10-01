@@ -151,6 +151,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('activity-logs', [ActivityLogController::class, 'index'])
         ->middleware('permission:'.PermissionEnum::CanShowActivityLogs->value)
         ->name('activity-logs.index');
+    Route::get('activity-logs/export', [ActivityLogController::class, 'export'])
+        ->middleware('permission:'.PermissionEnum::CanShowActivityLogs->value)
+        ->name('activity-logs.export');
 
     Route::prefix('settings')->group(function () {
         Route::get('jobs', [JobMonitorController::class, 'index'])

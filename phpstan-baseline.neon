@@ -121,51 +121,15 @@ parameters:
 			path: app/Http/Controllers/Admin/UserGroupController.php
 
 		-
-			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$attachments\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Ai/AiChatController.php
-
-		-
-			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$content\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Ai/AiChatController.php
-
-		-
 			message: '#^Access to an undefined property Laravel\\Ai\\Models\\Conversation\:\:\$pinned_at\.$#'
 			identifier: property.notFound
 			count: 2
 			path: app/Http/Controllers/Ai/AiConversationController.php
 
 		-
-			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$content\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Ai/AiConversationController.php
-
-		-
 			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$created_at\.$#'
 			identifier: property.notFound
 			count: 3
-			path: app/Http/Controllers/Ai/AiConversationController.php
-
-		-
-			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$role\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/Ai/AiConversationController.php
-
-		-
-			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$tool_calls\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Ai/AiConversationController.php
-
-		-
-			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$tool_results\.$#'
-			identifier: property.notFound
-			count: 1
 			path: app/Http/Controllers/Ai/AiConversationController.php
 
 		-
@@ -199,44 +163,8 @@ parameters:
 			path: app/Http/Controllers/Ai/AiPageController.php
 
 		-
-			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$attachments\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Ai/AiPageController.php
-
-		-
-			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$content\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Ai/AiPageController.php
-
-		-
 			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$created_at\.$#'
 			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Ai/AiPageController.php
-
-		-
-			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$role\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/Ai/AiPageController.php
-
-		-
-			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$tool_calls\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Ai/AiPageController.php
-
-		-
-			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$tool_results\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Ai/AiPageController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Laravel\\Ai\\Models\\ConversationMessage\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
 			count: 1
 			path: app/Http/Controllers/Ai/AiPageController.php
 
@@ -261,12 +189,6 @@ parameters:
 		-
 			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
 			identifier: method.nonObject
-			count: 1
-			path: app/Http/Controllers/Chat/ChatMessageController.php
-
-		-
-			message: '#^Offset 1 on array\{list\<string\>, list\<numeric\-string\>\} on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
 			count: 1
 			path: app/Http/Controllers/Chat/ChatMessageController.php
 

@@ -70,6 +70,13 @@ class OutboundWebhookDispatcher
             return;
         }
 
+        // Forward-compat: still deliver, but flag drift from the frozen catalog.
+        if (! OutboundWebhookCatalog::has($type)) {
+            Log::warning('Outbound webhook type missing from catalog', [
+                'type' => $type,
+            ]);
+        }
+
         $pending = DeliverOutboundWebhookJob::dispatch(
             'evt_'.Str::lower((string) Str::ulid()),
             $type,
@@ -83,7 +90,10 @@ class OutboundWebhookDispatcher
         }
     }
 
-    public function dispatchItem(string $type, CollectionItem $item, ?Collection $collection = null): void
+    /**
+     * @param  array<string, mixed>  $extra
+     */
+    public function dispatchItem(string $type, CollectionItem $item, ?Collection $collection = null, array $extra = []): void
     {
         $collection ??= $item->relationLoaded('collection')
             ? $item->collection
@@ -93,6 +103,7 @@ class OutboundWebhookDispatcher
             'collection_id' => $item->collection_id,
             'collection_slug' => $collection?->slug,
             'item_id' => $item->id,
+            ...$extra,
         ]);
     }
 

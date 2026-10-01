@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Ai;
 
+use App\Ai\Support\AiPendingApprovals;
 use App\Ai\Support\AiToolTurnSummary;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -48,17 +49,27 @@ class AiConversationController extends Controller
             ->where('conversation_id', $owned->id)
             ->orderBy('created_at')
             ->orderBy('id')
-            ->get(['id', 'role', 'content', 'tool_calls', 'tool_results', 'created_at']);
+            ->get(['id', 'role', 'content', 'steps', 'status', 'created_at']);
+
+        $lastMessageId = $messages->last()?->id;
 
         return response()->json([
             'conversation' => $owned->only(['id', 'title', 'pinned_at', 'created_at', 'updated_at']),
-            'messages' => $messages->map(function (ConversationMessage $message): array {
+            'messages' => $messages->map(function (ConversationMessage $message) use ($lastMessageId): array {
                 $content = $this->normalizeMessageContent($message->content);
-                $toolCalls = $this->normalizeMessageArray($message->tool_calls);
-                $toolResults = $this->normalizeMessageArray($message->tool_results);
+                $toolCalls = $message->tool_calls;
+                $toolResults = $message->tool_results;
+                $pendingApprovals = AiPendingApprovals::fromMessage($message);
+                $approvalOpen = $message->id === $lastMessageId;
 
-                if ($message->role === 'assistant' && trim($content) === '' && ($toolCalls !== [] || $toolResults !== [])) {
-                    $content = AiToolTurnSummary::fromTools($toolCalls, $toolResults);
+                if ($message->role === 'assistant' && trim($content) === '') {
+                    if ($pendingApprovals !== []) {
+                        $content = $approvalOpen
+                            ? AiToolTurnSummary::awaitingApproval($pendingApprovals)
+                            : AiToolTurnSummary::approvalAbandoned($pendingApprovals);
+                    } elseif ($toolCalls !== [] || $toolResults !== []) {
+                        $content = AiToolTurnSummary::fromTools($toolCalls, $toolResults);
+                    }
                 }
 
                 return [
@@ -67,6 +78,7 @@ class AiConversationController extends Controller
                     'content' => $content,
                     'tool_calls' => $toolCalls,
                     'tool_results' => $toolResults,
+                    'pending_approvals' => $approvalOpen ? $pendingApprovals : [],
                     'created_at' => $message->created_at,
                 ];
             }),
@@ -90,9 +102,8 @@ class AiConversationController extends Controller
             ? (string) $validated['title']
             : 'Nuova chat';
 
-        Conversation::query()->create([
+        $user->conversations()->create([
             'id' => $conversationId,
-            'user_id' => $user->id,
             'title' => $title,
         ]);
 
@@ -136,8 +147,7 @@ class AiConversationController extends Controller
 
         $ids = array_values(array_unique($validated['ids']));
 
-        $ownedIds = Conversation::query()
-            ->where('user_id', $user->id)
+        $ownedIds = $user->conversations()
             ->whereIn('id', $ids)
             ->pluck('id')
             ->all();
@@ -223,9 +233,8 @@ class AiConversationController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $conversation = Conversation::query()
+        $conversation = $user->conversations()
             ->where('id', $conversationId)
-            ->where('user_id', $user->id)
             ->first();
 
         abort_if($conversation === null, Response::HTTP_NOT_FOUND);
@@ -275,23 +284,5 @@ class AiConversationController extends Controller
         }
 
         return json_encode($content, JSON_UNESCAPED_UNICODE) ?: '';
-    }
-
-    /**
-     * Decode tool call/result payloads stored as JSON strings.
-     *
-     * @return array<int|string, mixed>
-     */
-    private function normalizeMessageArray(mixed $value): array
-    {
-        if (is_array($value)) {
-            return $value;
-        }
-
-        if (is_string($value) && $value !== '') {
-            return json_decode($value, true) ?: [];
-        }
-
-        return [];
     }
 }

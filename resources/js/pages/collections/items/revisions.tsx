@@ -313,8 +313,8 @@ export default function ItemRevisions({
                         {!loading && revisions.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
                                 {filterActive
-                                    ? 'No revisions for this date range.'
-                                    : 'No revisions yet.'}
+                                    ? 'No revisions for this date range. Clear the filter or widen dates.'
+                                    : 'No revisions yet. Saves, draft edits, publish, and restores appear here.'}
                             </p>
                         ) : (
                             <>

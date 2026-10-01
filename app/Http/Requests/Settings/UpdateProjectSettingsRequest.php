@@ -95,6 +95,8 @@ class UpdateProjectSettingsRequest extends FormRequest
             'webhook_url' => ['nullable', 'url', 'max:2048'],
             // Empty = keep existing secret; never required on every save
             'webhook_secret' => ['nullable', 'string', 'max:512'],
+            // Template may include {{id}} etc. — not a strict Laravel url
+            'preview_url_default' => ['nullable', 'string', 'max:2048', 'regex:/^https?:\/\/.+/i'],
             'revision_retention_count' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'revision_retention_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
             'files_max_upload_bytes' => ['nullable', 'integer', 'min:1', 'max:'.UploadSizeLimiter::SETTING_MAX_BYTES],
@@ -222,6 +224,7 @@ class UpdateProjectSettingsRequest extends FormRequest
             'report_bug_url' => $validated['report_bug_url'] ?? null,
             'report_error_url' => $validated['report_error_url'] ?? null,
             'webhook_url' => $validated['webhook_url'] ?? null,
+            'preview_url_default' => $validated['preview_url_default'] ?? null,
             'revision_retention_count' => isset($validated['revision_retention_count'])
                 ? (int) $validated['revision_retention_count']
                 : null,
@@ -268,6 +271,7 @@ class UpdateProjectSettingsRequest extends FormRequest
             'report_error_url',
             'webhook_url',
             'webhook_secret',
+            'preview_url_default',
             'revision_retention_count',
             'revision_retention_days',
             'files_max_upload_bytes',

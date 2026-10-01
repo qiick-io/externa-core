@@ -41,7 +41,6 @@ export default function Register() {
                                     type="text"
                                     required
                                     autoFocus
-                                    tabIndex={1}
                                     autoComplete="given-name"
                                     name="first_name"
                                     placeholder={t('common.firstName')}
@@ -60,7 +59,6 @@ export default function Register() {
                                     id="last_name"
                                     type="text"
                                     required
-                                    tabIndex={2}
                                     autoComplete="family-name"
                                     name="last_name"
                                     placeholder={t('common.lastName')}
@@ -79,7 +77,6 @@ export default function Register() {
                                     id="email"
                                     type="email"
                                     required
-                                    tabIndex={3}
                                     autoComplete="email"
                                     name="email"
                                     placeholder="email@example.com"
@@ -94,7 +91,6 @@ export default function Register() {
                                 <PasswordInput
                                     id="password"
                                     required
-                                    tabIndex={4}
                                     autoComplete="new-password"
                                     name="password"
                                     placeholder={t('common.password')}
@@ -109,7 +105,6 @@ export default function Register() {
                                 <PasswordInput
                                     id="password_confirmation"
                                     required
-                                    tabIndex={5}
                                     autoComplete="new-password"
                                     name="password_confirmation"
                                     placeholder={t('common.confirmPassword')}
@@ -122,7 +117,6 @@ export default function Register() {
                             <Button
                                 type="submit"
                                 className="mt-2 w-full"
-                                tabIndex={6}
                                 data-test="register-user-button"
                             >
                                 {processing && <Spinner />}

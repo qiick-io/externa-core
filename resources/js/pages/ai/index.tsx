@@ -25,6 +25,7 @@ import AppLayout from '@/layouts/app-layout';
 import {
     AI_CHAT_ATTACHMENT_ACCEPT,
     AI_CHAT_ATTACHMENT_MAX_COUNT,
+    awaitingApprovalContent,
     bulkDeleteAiConversations,
     createAiConversation,
     deleteAiConversation,
@@ -41,9 +42,11 @@ import {
     uploadAiAttachment,
 } from '@/lib/ai-chat';
 import type {
+    AiApprovalDecision,
     AiChatAttachment,
     AiConversationSummary,
     AiImportJobStatus,
+    AiPendingApproval,
 } from '@/lib/ai-chat';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
@@ -70,6 +73,7 @@ type ChatMessage = {
         tool_name?: string;
         result?: unknown;
     }>;
+    pending_approvals?: AiPendingApproval[];
 };
 
 type InFlightTurn = {
@@ -723,9 +727,13 @@ export default function AiIndexPage({
             conversationIdForStream: string | null;
             baseMessages: ChatMessage[];
             attachments?: AiChatAttachment[];
+            approvals?: AiApprovalDecision[];
         },
     ): Promise<boolean> => {
         const attachmentsForMessage = options.attachments ?? [];
+        const approvalDecisions = options.approvals ?? [];
+        const isResume = approvalDecisions.length > 0;
+        let approvalsRequested: AiPendingApproval[] = [];
         const userMessageId = createLocalMessageId('local-user');
         const assistantMessageId = createLocalMessageId('local-assistant');
         const userMessage: ChatMessage = {
@@ -738,16 +746,19 @@ export default function AiIndexPage({
         let toolsCalled = false;
         const toolsUsed: string[] = [];
 
-        inFlightTurnRef.current = {
-            prompt: message,
-            attachments: attachmentsForMessage,
-            userMessageId,
-            assistantMessageId,
-        };
+        // A resume has no user turn of its own, so Stop only drops the empty assistant bubble.
+        inFlightTurnRef.current = isResume
+            ? null
+            : {
+                  prompt: message,
+                  attachments: attachmentsForMessage,
+                  userMessageId,
+                  assistantMessageId,
+              };
 
         setMessages([
             ...options.baseMessages,
-            userMessage,
+            ...(isResume ? [] : [userMessage]),
             { id: assistantMessageId, role: 'assistant', content: '' },
         ]);
         isStreamingRef.current = true;
@@ -827,6 +838,26 @@ export default function AiIndexPage({
                             }),
                         );
                     },
+                    onApprovalRequest: (approvals) => {
+                        if (abortController.signal.aborted) {
+                            return;
+                        }
+
+                        approvalsRequested = [
+                            ...approvalsRequested,
+                            ...approvals,
+                        ];
+                        setMessages((current) =>
+                            current.map((entry) =>
+                                entry.id === assistantMessageId
+                                    ? {
+                                          ...entry,
+                                          pending_approvals: approvalsRequested,
+                                      }
+                                    : entry,
+                            ),
+                        );
+                    },
                     onConversationId: (id) => {
                         // Keep conversation id even after stop so truncate cleanup can run.
                         conversationIdRef.current = id;
@@ -846,6 +877,30 @@ export default function AiIndexPage({
                         setIsStreaming(false);
 
                         const trimmed = fullText.trim();
+
+                        if (approvalsRequested.length > 0) {
+                            setMessages((current) =>
+                                current.map((entry) =>
+                                    entry.id === assistantMessageId
+                                        ? {
+                                              ...entry,
+                                              content:
+                                                  trimmed !== ''
+                                                      ? fullText
+                                                      : awaitingApprovalContent(
+                                                            approvalsRequested,
+                                                        ),
+                                              isError: false,
+                                              pending_approvals:
+                                                  approvalsRequested,
+                                          }
+                                        : entry,
+                                ),
+                            );
+                            reloadConversation(conversationIdRef.current);
+
+                            return;
+                        }
 
                         if (trimmed === '') {
                             // Tool-only turns often end with no final text tokens from local models.
@@ -912,6 +967,7 @@ export default function AiIndexPage({
                     },
                 },
                 attachmentsForMessage.map((attachment) => attachment.id),
+                approvalDecisions,
             );
 
             // Stop: streamAiChat swallows AbortError; handleStop already rolled back UI.
@@ -1084,6 +1140,31 @@ export default function AiIndexPage({
                 error instanceof Error ? error.message : 'Error while sending';
             toast.error(messageText);
         }
+    };
+
+    const handleResolveApprovals = async (
+        messageId: string,
+        approved: boolean,
+    ): Promise<void> => {
+        const pausedMessage = messages.find((entry) => entry.id === messageId);
+        const pending = pausedMessage?.pending_approvals ?? [];
+
+        if (isStreamingRef.current || pending.length === 0) {
+            return;
+        }
+
+        await runStream('', {
+            conversationIdForStream: conversationIdRef.current,
+            baseMessages: messages.map((entry) =>
+                entry.id === messageId
+                    ? { ...entry, pending_approvals: [] }
+                    : entry,
+            ),
+            approvals: pending.map((approval) => ({
+                id: approval.id,
+                approved,
+            })),
+        });
     };
 
     const findPrecedingUserMessage = (
@@ -1493,6 +1574,12 @@ export default function AiIndexPage({
                                     void handleRegenerate(messageId, options)
                                 }
                                 onSuggestedAction={setComposer}
+                                onResolveApprovals={(messageId, approved) =>
+                                    void handleResolveApprovals(
+                                        messageId,
+                                        approved,
+                                    )
+                                }
                                 emptyState={
                                     <div className="m-auto max-w-md text-center text-sm text-muted-foreground">
                                         Ask the assistant to list collections,

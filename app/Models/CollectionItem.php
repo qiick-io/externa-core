@@ -25,6 +25,8 @@ use Illuminate\Support\Carbon;
  * @property int|null $user_created_id
  * @property int|null $user_updated_id
  * @property array<string, mixed>|null $draft_data
+ * @property Carbon|null $publish_at
+ * @property Carbon|null $unpublish_at
  * @property Carbon|null $deleted_at
  */
 class CollectionItem extends Model
@@ -39,6 +41,8 @@ class CollectionItem extends Model
         'user_created_id',
         'user_updated_id',
         'draft_data',
+        'publish_at',
+        'unpublish_at',
     ];
 
     /**
@@ -48,6 +52,8 @@ class CollectionItem extends Model
     {
         return [
             'draft_data' => 'array',
+            'publish_at' => 'datetime',
+            'unpublish_at' => 'datetime',
         ];
     }
 

@@ -4,11 +4,13 @@ namespace App\Ai\Tools;
 
 use App\Ai\Concerns\ChecksAiPermissions;
 use App\Ai\Concerns\LogsAiToolUse;
+use App\Ai\Concerns\RequiresDestructiveApproval;
 use App\Ai\Support\AiToolJsonDecoder;
 use App\Enums\PermissionEnum;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Spatie\Permission\Models\Role;
@@ -17,10 +19,19 @@ use Stringable;
 /**
  * AI tool for listing and mutating application users (CRUD, restore, force-delete).
  */
-class ManageUsers implements Tool
+class ManageUsers implements Approvable, Tool
 {
     use ChecksAiPermissions;
     use LogsAiToolUse;
+    use RequiresDestructiveApproval;
+
+    /**
+     * @return list<string>
+     */
+    protected function destructiveActions(): array
+    {
+        return ['delete', 'force_delete'];
+    }
 
     /**
      * Describe what this tool does for the model.

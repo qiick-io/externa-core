@@ -4,15 +4,17 @@ namespace App\Http\Controllers\Ai;
 
 use App\Ai\Agents\AppAssistant;
 use App\Ai\Support\AiActivityLogger;
+use App\Ai\Support\AiPendingApprovals;
 use App\Ai\Support\AiToolTurnSummary;
 use App\Http\Controllers\Controller;
 use App\Models\AiChatAttachment;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
+use Laravel\Ai\Approvals\Decisions;
 use Laravel\Ai\Files\File;
-use Laravel\Ai\Models\Conversation;
 use Laravel\Ai\Models\ConversationMessage;
+use Laravel\Ai\Responses\StreamableAgentResponse;
 use Laravel\Ai\Responses\StreamedAgentResponse;
 use Spatie\Activitylog\Models\Activity;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,10 +37,12 @@ class AiChatController extends Controller
         /** @var User $user */
         $user = $request->user();
 
+        $isResume = $request->filled('approvals');
         $dailyPromptLimit = (int) config('ai.daily_prompt_limit', 0);
 
         if (
-            $dailyPromptLimit > 0
+            ! $isResume
+            && $dailyPromptLimit > 0
             && Activity::query()
                 ->where('log_name', 'ai')
                 ->where('event', 'ai_prompt')
@@ -53,24 +57,24 @@ class AiChatController extends Controller
         }
 
         $validated = $request->validate([
-            'message' => ['required', 'string', 'max:20000'],
-            'conversation_id' => ['nullable', 'string', 'uuid'],
+            'message' => [$isResume ? 'nullable' : 'required', 'string', 'max:20000'],
+            'conversation_id' => [$isResume ? 'required' : 'nullable', 'string', 'uuid'],
             'attachment_ids' => ['nullable', 'array', 'max:5'],
             'attachment_ids.*' => ['uuid'],
+            'approvals' => ['nullable', 'array', 'max:20'],
+            'approvals.*.id' => ['required', 'string', 'max:255'],
+            'approvals.*.approved' => ['required', 'boolean'],
         ]);
 
         $conversationId = $validated['conversation_id'] ?? null;
 
         if (is_string($conversationId) && $conversationId !== '') {
-            $owned = Conversation::query()
+            $owned = $user->conversations()
                 ->where('id', $conversationId)
-                ->where('user_id', $user->id)
                 ->exists();
 
             abort_unless($owned, Response::HTTP_NOT_FOUND);
         }
-
-        $attachments = $this->resolveAttachments($user, $validated['attachment_ids'] ?? []);
 
         if (! app()->runningUnitTests()) {
             // ponytail: FPM defaults to 30s; tool loops + Xdebug burn CPU even while LM I/O waits.
@@ -78,6 +82,14 @@ class AiChatController extends Controller
             @ini_set('max_execution_time', '0');
             set_time_limit(0);
         }
+
+        if ($isResume) {
+            return $this->streamResponse(
+                $this->resumeStream($user, (string) $conversationId, $validated['approvals']),
+            );
+        }
+
+        $attachments = $this->resolveAttachments($user, $validated['attachment_ids'] ?? []);
 
         $displayMessage = $validated['message'];
         $prompt = $this->promptWithAttachmentContext($displayMessage, $attachments);
@@ -107,21 +119,7 @@ class AiChatController extends Controller
         $stream = $agent
             ->stream($prompt, $providerAttachments)
             ->then(function (StreamedAgentResponse $response) use ($user, $displayMessage, $displayAttachmentMeta): void {
-                $text = trim((string) ($response->text ?? ''));
-
-                if ($text === '' && $response->toolResults->isNotEmpty()) {
-                    $text = AiToolTurnSummary::fromResponse($response);
-
-                    if ($response->conversationId !== null && $text !== '') {
-                        ConversationMessage::query()
-                            ->where('conversation_id', $response->conversationId)
-                            ->where('role', 'assistant')
-                            ->orderByDesc('created_at')
-                            ->orderByDesc('id')
-                            ->limit(1)
-                            ->update(['content' => $text]);
-                    }
-                }
+                $text = $this->finishTurn($response);
 
                 if ($response->conversationId !== null) {
                     $userMessage = ConversationMessage::query()
@@ -147,6 +145,93 @@ class AiChatController extends Controller
                 );
             });
 
+        return $this->streamResponse($stream);
+    }
+
+    /**
+     * Resume a turn paused on destructive tool approvals with the user's decisions.
+     *
+     * ponytail: a resume adds no user message and no ai_prompt activity, so the daily limit and
+     * RollbackLastAiTurn keep treating the approved tool calls as part of the original turn.
+     *
+     * @param  list<array{id: string, approved: bool}>  $approvals
+     */
+    private function resumeStream(User $user, string $conversationId, array $approvals): StreamableAgentResponse
+    {
+        $paused = ConversationMessage::query()
+            ->where('conversation_id', $conversationId)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->first(['id', 'role', 'steps', 'status']);
+
+        $pendingIds = $paused === null
+            ? []
+            : array_column(AiPendingApprovals::fromMessage($paused), 'id');
+
+        $decisions = [];
+
+        foreach ($approvals as $approval) {
+            $decisions[(string) $approval['id']] = (bool) $approval['approved'];
+        }
+
+        abort_if(
+            $pendingIds === [] || array_diff(array_keys($decisions), $pendingIds) !== [],
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'No pending tool approval matches this request.',
+        );
+
+        return (new AppAssistant($user))
+            ->continue($conversationId, as: $user)
+            ->stream(Decisions::from($decisions))
+            ->then(function (StreamedAgentResponse $response) use ($user): void {
+                AiActivityLogger::response(
+                    $user,
+                    $this->finishTurn($response),
+                    $response->conversationId,
+                    $response->meta->provider ?? null,
+                    $response->meta->model ?? null,
+                );
+            });
+    }
+
+    /**
+     * Backfill tool-only turns with a short summary and return the text to log for the turn.
+     *
+     * ponytail: paused turns are left untouched — a resume keeps the paused row's content when the
+     * model adds no text, so a stored "waiting" notice would outlive the approval.
+     */
+    private function finishTurn(StreamedAgentResponse $response): string
+    {
+        $text = trim((string) ($response->text ?? ''));
+
+        if ($response->hasPendingApprovals()) {
+            return $text !== ''
+                ? $text
+                : AiToolTurnSummary::awaitingApproval($response->pendingApprovals->map->toArray()->all());
+        }
+
+        if ($text === '' && $response->toolResults->isNotEmpty()) {
+            $text = AiToolTurnSummary::fromResponse($response);
+
+            if ($response->conversationId !== null && $text !== '') {
+                ConversationMessage::query()
+                    ->where('conversation_id', $response->conversationId)
+                    ->where('role', 'assistant')
+                    ->orderByDesc('created_at')
+                    ->orderByDesc('id')
+                    ->limit(1)
+                    ->update(['content' => $text]);
+            }
+        }
+
+        return $text;
+    }
+
+    /**
+     * Emit the agent stream to the client as SSE, closing with the conversation id and [DONE].
+     */
+    private function streamResponse(StreamableAgentResponse $stream): Response
+    {
         return response()->stream(function () use ($stream): void {
             if (! app()->runningUnitTests()) {
                 while (ob_get_level() > 0) {

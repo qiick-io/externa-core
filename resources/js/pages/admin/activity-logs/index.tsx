@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TruncatedText } from '@/components/admin/truncated-text';
@@ -15,6 +15,7 @@ import {
     TablePanel,
 } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     Table,
@@ -68,6 +69,7 @@ export default function AdminActivityLogsIndex({
     events = [],
     logNames = ['default', 'auth', 'ai', 'chat', 'settings'],
     filters = {},
+    exportRowLimit = 10000,
 }: {
     activityLogs:
         LaravelPaginated<AdminActivityLogRow> | Paginated<AdminActivityLogRow>;
@@ -77,10 +79,11 @@ export default function AdminActivityLogsIndex({
     events?: string[];
     logNames?: string[];
     filters?: Filters;
+    exportRowLimit?: number;
 }) {
     const { t } = useTranslation();
     const activityLogs = normalizePaginated(activityLogsProp);
-    const users = usersProp ?? [];
+    const users = useMemo(() => usersProp ?? [], [usersProp]);
     const [search, setSearch] = useState(filters.search ?? '');
     const [userIds, setUserIds] = useState<number[]>(() =>
         resolveInitialUserIds(filters),
@@ -136,6 +139,23 @@ export default function AdminActivityLogsIndex({
                 { preserveState: true, preserveScroll: true },
             );
         },
+        [search, userIds, event, logName, dateFrom, dateTo],
+    );
+
+    const exportHref = useCallback(
+        (format: 'csv' | 'json') =>
+            adminRoutes.activityLogs.export({
+                query: {
+                    format,
+                    search: search || undefined,
+                    user_ids:
+                        userIds && userIds.length > 0 ? userIds : undefined,
+                    event: event || undefined,
+                    log_name: logName || undefined,
+                    date_from: dateFrom || undefined,
+                    date_to: dateTo || undefined,
+                },
+            }),
         [search, userIds, event, logName, dateFrom, dateTo],
     );
 
@@ -312,6 +332,27 @@ export default function AdminActivityLogsIndex({
                             aria-label={t('activityLog.dateTo')}
                         />
                     </>
+                }
+                filtersRight={
+                    <div className="flex shrink-0 items-center gap-2">
+                        <span className="hidden text-xs text-muted-foreground sm:inline">
+                            {t('activityLog.exportHint', {
+                                limit: exportRowLimit,
+                            })}
+                        </span>
+                        <Button variant="outline" size="sm" asChild>
+                            <a href={exportHref('csv')}>
+                                <Download className="size-4" />
+                                {t('activityLog.exportCsv')}
+                            </a>
+                        </Button>
+                        <Button variant="outline" size="sm" asChild>
+                            <a href={exportHref('json')}>
+                                <Download className="size-4" />
+                                {t('activityLog.exportJson')}
+                            </a>
+                        </Button>
+                    </div>
                 }
             >
                 <TablePanel

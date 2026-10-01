@@ -32,6 +32,7 @@ use Spatie\EloquentSortable\SortableTrait;
  * @property int|null $revision_retention_count
  * @property int|null $revision_retention_days
  * @property array<string, mixed>|null $form_layout
+ * @property string|null $preview_url
  * @property int $sort_order
  * @property Carbon|null $deleted_at
  */
@@ -64,6 +65,7 @@ class Collection extends Model implements Sortable
         'revision_retention_count',
         'revision_retention_days',
         'form_layout',
+        'preview_url',
         'sort_order',
     ];
 

@@ -54,6 +54,7 @@ class UpdateContentCollectionRequest extends FormRequest
             'versioning' => ['sometimes', 'boolean'],
             'revision_retention_count' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:10000'],
             'revision_retention_days' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:3650'],
+            'preview_url' => ['sometimes', 'nullable', 'string', 'max:2048', 'regex:/^https?:\/\/.+/i'],
         ];
     }
 
@@ -83,6 +84,10 @@ class UpdateContentCollectionRequest extends FormRequest
 
         if ($this->has('revision_retention_days') && ! $this->filled('revision_retention_days')) {
             $this->merge(['revision_retention_days' => null]);
+        }
+
+        if ($this->has('preview_url') && ! $this->filled('preview_url')) {
+            $this->merge(['preview_url' => null]);
         }
     }
 

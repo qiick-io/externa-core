@@ -268,3 +268,48 @@ test('role permission sync writes permissions_synced activity', function () {
     expect($activity)->not->toBeNull()
         ->and($activity->properties['permission_ids'] ?? [])->toContain($permission->id);
 });
+
+test('activity log export requires permission', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $this->get(route('activity-logs.export', ['format' => 'csv']))->assertForbidden();
+});
+
+test('authorized users can export activity logs as csv and json with filters', function () {
+    $actor = grantActivityLogPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowActivityLogs->value,
+    ]);
+    $other = User::factory()->create();
+    $this->actingAs($actor);
+
+    Activity::query()->delete();
+
+    activity()->causedBy($actor)->event('created')->log('Export me');
+    activity()->causedBy($other)->event('created')->log('Skip me');
+
+    $csv = $this->get(route('activity-logs.export', [
+        'format' => 'csv',
+        'user_id' => $actor->id,
+    ]));
+
+    $csv->assertOk();
+    expect($csv->headers->get('content-disposition'))->toContain('activity-logs-')
+        ->and($csv->headers->get('content-disposition'))->toContain('.csv');
+    $csvBody = $csv->streamedContent();
+    expect($csvBody)->toContain('Export me')
+        ->and($csvBody)->not->toContain('Skip me')
+        ->and($csvBody)->toContain('causer_email');
+
+    $json = $this->get(route('activity-logs.export', [
+        'format' => 'json',
+        'user_id' => $actor->id,
+    ]));
+
+    $json->assertOk();
+    $decoded = json_decode($json->streamedContent(), true);
+    expect($decoded)->toBeArray()
+        ->and($decoded)->toHaveCount(1)
+        ->and($decoded[0]['description'])->toBe('Export me')
+        ->and($decoded[0]['causer_id'])->toBe($actor->id);
+});

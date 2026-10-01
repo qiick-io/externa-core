@@ -149,7 +149,6 @@ export default function Login({
                                     name="email"
                                     required
                                     autoFocus
-                                    tabIndex={1}
                                     autoComplete="email"
                                     placeholder="email@example.com"
                                 />
@@ -165,7 +164,6 @@ export default function Login({
                                         <TextLink
                                             href={request()}
                                             className="ml-auto text-sm"
-                                            tabIndex={5}
                                         >
                                             {t('auth.login.forgotPassword')}
                                         </TextLink>
@@ -175,7 +173,6 @@ export default function Login({
                                     id="password"
                                     name="password"
                                     required
-                                    tabIndex={2}
                                     autoComplete="current-password"
                                     placeholder={t('common.password')}
                                 />
@@ -183,11 +180,7 @@ export default function Login({
                             </div>
 
                             <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
+                                <Checkbox id="remember" name="remember" />
                                 <Label htmlFor="remember">
                                     {t('auth.login.rememberMe')}
                                 </Label>
@@ -196,7 +189,6 @@ export default function Login({
                             <Button
                                 type="submit"
                                 className="mt-4 w-full"
-                                tabIndex={4}
                                 disabled={processing}
                                 data-test="login-button"
                             >
@@ -208,7 +200,7 @@ export default function Login({
                         {canRegister && (
                             <div className="text-center text-sm text-muted-foreground">
                                 {t('auth.login.noAccount')}{' '}
-                                <TextLink href={register()} tabIndex={5}>
+                                <TextLink href={register()}>
                                     {t('auth.login.signUp')}
                                 </TextLink>
                             </div>

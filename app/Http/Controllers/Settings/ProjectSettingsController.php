@@ -7,6 +7,8 @@ use App\Http\Requests\Settings\UpdateProjectSettingsRequest;
 use App\Models\Role;
 use App\Services\Settings\ProjectSettings;
 use App\Services\Settings\SettingsRepository;
+use App\Services\Webhooks\OutboundWebhookCatalog;
+use App\Services\Webhooks\OutboundWebhookDeliveryLog;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 use App\Support\Collections\ContentLocaleCatalog;
 use Illuminate\Http\RedirectResponse;
@@ -26,7 +28,7 @@ class ProjectSettingsController extends Controller
     /**
      * Render the project settings form.
      */
-    public function edit(): Response
+    public function edit(OutboundWebhookDeliveryLog $deliveryLog): Response
     {
         $guard = config('auth.defaults.guard', 'web');
 
@@ -49,6 +51,8 @@ class ProjectSettingsController extends Controller
             'transformationOptions' => config('settings.project.allowed_transformations', ['thumbnail']),
             'transformFits' => config('settings.project.transform_fits', ['contain']),
             'transformFormats' => config('settings.project.transform_formats', ['auto']),
+            'webhookEvents' => OutboundWebhookCatalog::all(),
+            'webhookDeliveries' => $deliveryLog->summary(),
         ]);
     }
 

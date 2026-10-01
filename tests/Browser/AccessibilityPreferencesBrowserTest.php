@@ -19,6 +19,7 @@ it('toggles accessibility preferences onto html and cookies from the user menu',
 
     $page->assertSee('Skip to content')
         ->assertPresent('#main-content')
+        ->assertNoAccessibilityIssues(1)
         ->assertNoJavaScriptErrors()
         ->click('[data-test="sidebar-menu-button"]')
         ->wait(0.3)
@@ -47,5 +48,14 @@ it('toggles accessibility preferences onto html and cookies from the user menu',
             "document.cookie.includes('accessibility_reduce_motion=1')",
             true,
         )
+        ->assertNoJavaScriptErrors();
+});
+
+it('has no critical/serious axe issues on login', function () {
+    $page = visit('/login');
+
+    $page->assertSee('Skip to content')
+        ->assertPresent('#main-content')
+        ->assertNoAccessibilityIssues(1)
         ->assertNoJavaScriptErrors();
 });

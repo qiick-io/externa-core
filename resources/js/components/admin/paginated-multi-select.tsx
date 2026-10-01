@@ -1,5 +1,6 @@
 import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -103,6 +104,7 @@ export function PaginatedMultiSelect({
     className,
     showUserDetails = false,
 }: PaginatedMultiSelectProps) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -268,6 +270,7 @@ export function PaginatedMultiSelect({
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search…"
+                        aria-label={t('a11y.search')}
                         className="h-8"
                     />
                     {value.length > 0 && (
@@ -276,6 +279,7 @@ export function PaginatedMultiSelect({
                             variant="ghost"
                             size="icon"
                             className="size-8 shrink-0"
+                            aria-label={t('a11y.clearSelection')}
                             onClick={() => onChange?.([])}
                         >
                             <X className="size-4" />

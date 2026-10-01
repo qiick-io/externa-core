@@ -295,6 +295,14 @@ class ProjectSettings
     }
 
     /**
+     * Project-level Live Preview URL template (tokens allowed). Null = unset.
+     */
+    public function previewUrlDefault(): ?string
+    {
+        return $this->raw()['preview_url_default'];
+    }
+
+    /**
      * Project default max revision count (null = unlimited until a collection overrides).
      */
     public function revisionRetentionCount(): ?int
@@ -415,6 +423,7 @@ class ProjectSettings
             'webhook_secret' => is_string($raw['webhook_secret'] ?? null) && $raw['webhook_secret'] !== ''
                 ? $raw['webhook_secret']
                 : null,
+            'preview_url_default' => $this->nullablePreviewTemplate($raw['preview_url_default'] ?? null),
             'revision_retention_count' => $this->nullablePositiveInt(
                 $raw['revision_retention_count'] ?? null,
                 1,
@@ -827,6 +836,23 @@ class ProjectSettings
         }
 
         return trim($value);
+    }
+
+    /**
+     * HTTP(S) URL template that may contain `{{token}}` placeholders.
+     */
+    private function nullablePreviewTemplate(mixed $value): ?string
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        if (! preg_match('/^https?:\/\/.+/i', $trimmed)) {
+            return null;
+        }
+
+        return $trimmed;
     }
 
     private function nullablePositiveInt(mixed $value, int $min, int $max): ?int

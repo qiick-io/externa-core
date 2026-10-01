@@ -21,4 +21,5 @@ Schedule::command('files:cleanup-zips')->hourly();
 Schedule::command('ai:cleanup-attachments')->daily();
 Schedule::command('chat:cleanup-attachments')->daily();
 Schedule::command('ai:run-sync-sources')->everyMinute();
+Schedule::command('collections:process-schedules')->everyMinute();
 Schedule::command('collections:prune-revisions')->daily();

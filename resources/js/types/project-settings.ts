@@ -38,10 +38,32 @@ export type ProjectSettingsForm = {
     report_error_url: string | null;
     webhook_url: string | null;
     webhook_secret_configured: boolean;
+    preview_url_default: string | null;
     revision_retention_count: number | null;
     revision_retention_days: number | null;
     files_max_upload_bytes: number | null;
     chat_max_upload_bytes: number | null;
+};
+
+export type WebhookEventCatalogEntry = {
+    type: string;
+    description: string;
+};
+
+export type WebhookDeliveryEntry = {
+    event_id: string;
+    type: string;
+    outcome: 'success' | 'failed';
+    status: number | null;
+    message: string | null;
+    attempts: number;
+    at: string;
+};
+
+export type WebhookDeliverySummary = {
+    last_success: WebhookDeliveryEntry | null;
+    last_error: WebhookDeliveryEntry | null;
+    recent: WebhookDeliveryEntry[];
 };
 
 export type SharedProjectSettings = {

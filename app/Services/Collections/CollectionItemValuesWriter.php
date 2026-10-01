@@ -24,6 +24,7 @@ class CollectionItemValuesWriter
      * Persist normalized field data as rows in `collections_items_values`.
      *
      * @param  array<string, mixed>  $normalizedData
+     * @param  array<string, mixed>|null  $revisionMeta  Override revision meta (default source:sync)
      * @param  bool|null  $created  Explicit create vs update; defaults to wasRecentlyCreated
      */
     public function sync(
@@ -31,6 +32,7 @@ class CollectionItemValuesWriter
         Collection $collection,
         array $normalizedData,
         ?bool $created = null,
+        ?array $revisionMeta = null,
     ): void {
         $collection->loadMissing('fields');
 
@@ -56,7 +58,7 @@ class CollectionItemValuesWriter
             $this->syncNonTranslatable($item, $field, $value);
         }
 
-        $this->revisionRecorder->record($item, ['source' => 'sync']);
+        $this->revisionRecorder->record($item, $revisionMeta ?? ['source' => 'sync']);
 
         // Values live on related rows — bump parent audit + updated_at.
         // Set user_updated_id first so save is dirty even when touch lands in the same second.

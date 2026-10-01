@@ -11,9 +11,12 @@ use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\Settings\ProjectSettings;
 use App\Services\Settings\SettingsRepository;
+use App\Services\Webhooks\OutboundWebhookCatalog;
+use App\Services\Webhooks\OutboundWebhookDeliveryLog;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia;
 
@@ -91,6 +94,152 @@ test('deliver job posts signed payload', function () {
             && $request->header('Content-Type')[0] === 'application/json'
             && str_contains($body, '"type":"item.updated"');
     });
+});
+
+test('deliver job records last success and recent entry', function () {
+    configureOutboundWebhook();
+    Http::fake([
+        'hooks.example.test/*' => Http::response(['ok' => true], 202),
+    ]);
+
+    $job = new DeliverOutboundWebhookJob('evt_01ok', 'item.created', '2026-07-24T12:00:00Z', ['item_id' => 1]);
+    $job->handle(app(ProjectSettings::class));
+
+    $summary = app(OutboundWebhookDeliveryLog::class)->summary();
+
+    expect($summary['last_success'])->toMatchArray([
+        'event_id' => 'evt_01ok',
+        'type' => 'item.created',
+        'outcome' => 'success',
+        'status' => 202,
+        'attempts' => 1,
+    ])
+        ->and($summary['last_success']['at'])->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/')
+        ->and($summary['last_error'])->toBeNull()
+        ->and($summary['recent'])->toHaveCount(1)
+        ->and($summary['recent'][0]['event_id'])->toBe('evt_01ok');
+});
+
+test('deliver job does not record success on non-2xx response', function () {
+    configureOutboundWebhook();
+    Http::fake([
+        'hooks.example.test/*' => Http::response('nope', 500),
+    ]);
+
+    $job = new DeliverOutboundWebhookJob('evt_01bad', 'ping', '2026-07-24T12:00:00Z', []);
+
+    expect(fn () => $job->handle(app(ProjectSettings::class)))
+        ->toThrow(RuntimeException::class, 'HTTP 500');
+
+    expect(app(OutboundWebhookDeliveryLog::class)->summary()['last_success'])->toBeNull();
+});
+
+test('failed job records last error with message', function () {
+    $job = new DeliverOutboundWebhookJob('evt_01fail', 'file.deleted', '2026-07-24T12:00:00Z', []);
+    $job->failed(new RuntimeException('Outbound webhook delivery failed (evt_01fail): HTTP 503'));
+
+    $summary = app(OutboundWebhookDeliveryLog::class)->summary();
+
+    expect($summary['last_error'])->toMatchArray([
+        'event_id' => 'evt_01fail',
+        'type' => 'file.deleted',
+        'outcome' => 'failed',
+        'message' => 'Outbound webhook delivery failed (evt_01fail): HTTP 503',
+    ])
+        ->and($summary['last_success'])->toBeNull()
+        ->and($summary['recent'][0]['outcome'])->toBe('failed');
+});
+
+test('recent deliveries keep only the newest entries', function () {
+    $log = app(OutboundWebhookDeliveryLog::class);
+
+    for ($i = 1; $i <= OutboundWebhookDeliveryLog::RECENT_LIMIT + 3; $i++) {
+        $log->recordSuccess("evt_{$i}", 'ping', 200, 1);
+    }
+
+    $recent = $log->summary()['recent'];
+
+    expect($recent)->toHaveCount(OutboundWebhookDeliveryLog::RECENT_LIMIT)
+        ->and($recent[0]['event_id'])->toBe('evt_'.(OutboundWebhookDeliveryLog::RECENT_LIMIT + 3))
+        ->and(end($recent)['event_id'])->toBe('evt_4');
+});
+
+test('catalog covers every event type emitted in app code', function () {
+    $emitted = [];
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(app_path()));
+
+    foreach ($files as $file) {
+        if ($file->getExtension() !== 'php') {
+            continue;
+        }
+        preg_match_all(
+            "/dispatch(?:Item|Collection|File)\(\s*'([a-z_]+\.[a-z_]+)'/",
+            (string) file_get_contents($file->getPathname()),
+            $matches,
+        );
+        array_push($emitted, ...$matches[1]);
+        preg_match_all("/(?:\\\$(?:this->)?dispatch|->dispatch)\(\s*'([a-z_.]+)'/", (string) file_get_contents($file->getPathname()), $direct);
+        array_push($emitted, ...$direct[1]);
+    }
+
+    $emitted = array_values(array_unique([...$emitted, 'item.created', 'item.updated']));
+    sort($emitted);
+
+    expect($emitted)->not->toBeEmpty();
+    foreach ($emitted as $type) {
+        expect(OutboundWebhookCatalog::has($type))->toBeTrue("Missing catalog entry: {$type}");
+    }
+
+    expect(OutboundWebhookCatalog::types())->toContain(
+        'item.created',
+        'item.updated',
+        'item.published',
+        'item.deleted',
+        'item.restored',
+        'collection.created',
+        'collection.updated',
+        'collection.deleted',
+        'file.created',
+        'file.updated',
+        'file.deleted',
+        'ping',
+    );
+});
+
+test('dispatcher still queues unknown event types for forward compatibility', function () {
+    Queue::fake();
+    Log::spy();
+    configureOutboundWebhook();
+
+    app(OutboundWebhookDispatcher::class)->dispatch('custom.thing', []);
+
+    Queue::assertPushed(DeliverOutboundWebhookJob::class, fn (DeliverOutboundWebhookJob $job): bool => $job->type === 'custom.thing');
+    Log::shouldHaveReceived('warning')
+        ->withArgs(fn (string $message): bool => str_contains($message, 'missing from catalog'))
+        ->once();
+});
+
+test('project settings page exposes webhook catalog and delivery status', function () {
+    app(OutboundWebhookDeliveryLog::class)->recordSuccess('evt_01page', 'ping', 200, 1);
+    app(OutboundWebhookDeliveryLog::class)->recordFailure('evt_01err', 'item.updated', 'HTTP 500', 3);
+
+    $user = grantProjectSettingsPermissions(User::factory()->create(), [
+        PermissionEnum::CanManageProjectSettings->value,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('project.edit'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('settings/project')
+            ->has('webhookEvents', count(OutboundWebhookCatalog::EVENTS))
+            ->where('webhookEvents.0.type', 'item.created')
+            ->where('webhookDeliveries.last_success.event_id', 'evt_01page')
+            ->where('webhookDeliveries.last_error.message', 'HTTP 500')
+            ->where('webhookDeliveries.last_error.attempts', 3)
+            ->has('webhookDeliveries.recent', 2)
+            ->missing('projectSettings.webhookDeliveries')
+        );
 });
 
 test('deliver job refuses when signing secret is empty', function () {

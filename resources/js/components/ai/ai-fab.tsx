@@ -28,6 +28,7 @@ import { useCan } from '@/hooks/use-can';
 import {
     AI_CHAT_ATTACHMENT_ACCEPT,
     AI_CHAT_ATTACHMENT_MAX_COUNT,
+    awaitingApprovalContent,
     fetchAiStatus,
     getSpeechRecognitionConstructor,
     isAbortError,
@@ -37,7 +38,12 @@ import {
     truncateLastUserMessageIfMatches,
     uploadAiAttachment,
 } from '@/lib/ai-chat';
-import type { AiChatAttachment, AiStatus } from '@/lib/ai-chat';
+import type {
+    AiApprovalDecision,
+    AiChatAttachment,
+    AiPendingApproval,
+    AiStatus,
+} from '@/lib/ai-chat';
 import { AI_OPEN_EVENT } from '@/lib/ai-open';
 import type { AiOpenDetail } from '@/lib/ai-open';
 import { toast } from '@/lib/toast';
@@ -248,26 +254,35 @@ export function AiFab() {
         message: string,
         baseMessages: ChatLine[],
         attachments: AiChatAttachment[] = [],
+        approvals: AiApprovalDecision[] = [],
     ): Promise<boolean> => {
         const userMessageId = `user-${Date.now()}`;
         const assistantId = `assistant-${Date.now()}`;
+        const isResume = approvals.length > 0;
         let completed = false;
+        let approvalsRequested: AiPendingApproval[] = [];
 
-        inFlightTurnRef.current = {
-            prompt: message,
-            attachments,
-            userMessageId,
-            assistantMessageId: assistantId,
-        };
+        inFlightTurnRef.current = isResume
+            ? null
+            : {
+                  prompt: message,
+                  attachments,
+                  userMessageId,
+                  assistantMessageId: assistantId,
+              };
 
         setMessages([
             ...baseMessages,
-            {
-                id: userMessageId,
-                role: 'user',
-                content: message,
-                attachments,
-            },
+            ...(isResume
+                ? []
+                : [
+                      {
+                          id: userMessageId,
+                          role: 'user' as const,
+                          content: message,
+                          attachments,
+                      },
+                  ]),
             { id: assistantId, role: 'assistant', content: '' },
         ]);
         setIsStreaming(true);
@@ -307,13 +322,43 @@ export function AiFab() {
 
                         setToolHint(`Chiamata ${toolName}…`);
                     },
+                    onApprovalRequest: (pending) => {
+                        if (abortController.signal.aborted) {
+                            return;
+                        }
+
+                        approvalsRequested = [
+                            ...approvalsRequested,
+                            ...pending,
+                        ];
+                    },
                     onConversationId: (id) => {
                         conversationIdRef.current = id;
                         setConversationId(id);
                     },
-                    onDone: () => {
+                    onDone: (fullText) => {
                         if (abortController.signal.aborted) {
                             return;
+                        }
+
+                        if (approvalsRequested.length > 0) {
+                            setMessages((current) =>
+                                current.map((entry) =>
+                                    entry.id === assistantId
+                                        ? {
+                                              ...entry,
+                                              content:
+                                                  fullText.trim() !== ''
+                                                      ? fullText
+                                                      : awaitingApprovalContent(
+                                                            approvalsRequested,
+                                                        ),
+                                              pending_approvals:
+                                                  approvalsRequested,
+                                          }
+                                        : entry,
+                                ),
+                            );
                         }
 
                         completed = true;
@@ -334,6 +379,7 @@ export function AiFab() {
                     },
                 },
                 attachments.map((attachment) => attachment.id),
+                approvals,
             );
 
             if (abortController.signal.aborted) {
@@ -369,6 +415,30 @@ export function AiFab() {
 
             return false;
         }
+    };
+
+    const handleResolveApprovals = async (
+        messageId: string,
+        approved: boolean,
+    ): Promise<void> => {
+        const pending =
+            messages.find((entry) => entry.id === messageId)
+                ?.pending_approvals ?? [];
+
+        if (isStreaming || pending.length === 0) {
+            return;
+        }
+
+        await runStream(
+            '',
+            messages.map((entry) =>
+                entry.id === messageId
+                    ? { ...entry, pending_approvals: [] }
+                    : entry,
+            ),
+            [],
+            pending.map((approval) => ({ id: approval.id, approved })),
+        );
     };
 
     const handleAttachmentFiles = async (files: FileList | File[]) => {
@@ -657,6 +727,12 @@ export function AiFab() {
                                     void handleRegenerate(messageId, options)
                                 }
                                 onSuggestedAction={setComposer}
+                                onResolveApprovals={(messageId, approved) =>
+                                    void handleResolveApprovals(
+                                        messageId,
+                                        approved,
+                                    )
+                                }
                                 emptyState={
                                     <p className="text-sm text-muted-foreground">
                                         {t('ai.fabEmpty')}

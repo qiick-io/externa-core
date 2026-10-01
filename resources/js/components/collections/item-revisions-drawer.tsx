@@ -274,10 +274,13 @@ export function ItemRevisionsDrawer({
                             <p className="text-sm text-destructive">{error}</p>
                         ) : null}
                         {!loading && !error && revisions.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
+                            <p
+                                className="text-sm text-muted-foreground"
+                                data-test="revisions-empty"
+                            >
                                 {filterActive
-                                    ? 'No revisions for this date range.'
-                                    : 'No revisions yet.'}
+                                    ? 'No revisions for this date range. Clear the filter or widen dates.'
+                                    : 'No revisions yet. Saves, draft edits, publish, and restores appear here.'}
                             </p>
                         ) : null}
                         <ul className="divide-y rounded-xl border border-sidebar-border/70">

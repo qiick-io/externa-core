@@ -48,6 +48,40 @@ final class AiToolTurnSummary
         return self::fromTools($response->toolCalls, $response->toolResults);
     }
 
+    /**
+     * Build a short English notice for a turn paused on destructive tool approvals.
+     *
+     * @param  list<array{tool?: string}>  $pendingApprovals
+     */
+    public static function awaitingApproval(array $pendingApprovals): string
+    {
+        return 'Waiting for your approval to run '.self::approvalToolLabel($pendingApprovals).'.';
+    }
+
+    /**
+     * Build a short English notice for a paused turn the user moved past without deciding.
+     *
+     * @param  list<array{tool?: string}>  $pendingApprovals
+     */
+    public static function approvalAbandoned(array $pendingApprovals): string
+    {
+        return 'Not run: '.self::approvalToolLabel($pendingApprovals).' was not approved.';
+    }
+
+    /**
+     * @param  list<array{tool?: string}>  $pendingApprovals
+     */
+    private static function approvalToolLabel(array $pendingApprovals): string
+    {
+        $names = Collection::make($pendingApprovals)
+            ->map(fn (array $approval): string => (string) ($approval['tool'] ?? ''))
+            ->filter(fn (string $name): bool => $name !== '')
+            ->unique()
+            ->values();
+
+        return $names->isEmpty() ? 'a tool' : $names->implode(', ');
+    }
+
     private static function toolName(mixed $item): string
     {
         if (is_object($item) && isset($item->name) && is_string($item->name)) {

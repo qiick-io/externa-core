@@ -34,6 +34,8 @@ export type CollectionRow = {
     revision_retention_count?: number | null;
     /** null = unlimited */
     revision_retention_days?: number | null;
+    /** Live Preview frontend URL template (tokens allowed) */
+    preview_url?: string | null;
     sort_order: number;
     deleted_at?: string | null;
 };
@@ -63,6 +65,7 @@ export type CollectionView = {
     revision_retention_count?: number | null;
     /** null = unlimited */
     revision_retention_days?: number | null;
+    preview_url?: string | null;
     sort_order: number;
     form_layout?: Record<string, unknown> | null;
     fields: CollectionFieldRow[];
@@ -87,6 +90,7 @@ export function collectionToFormRow(collection: CollectionView): CollectionRow {
         versioning: Boolean(collection.versioning),
         revision_retention_count: collection.revision_retention_count ?? null,
         revision_retention_days: collection.revision_retention_days ?? null,
+        preview_url: collection.preview_url ?? null,
         sort_order: collection.sort_order,
     };
 }

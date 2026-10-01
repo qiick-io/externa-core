@@ -19,6 +19,7 @@ use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Laravel\Ai\Enums\MessageStatus;
 use Laravel\Ai\Models\Conversation;
 use Laravel\Ai\Models\ConversationMessage;
 use Laravel\Ai\Tools\Request;
@@ -91,12 +92,14 @@ test('users only see their own conversations', function () {
 
     Conversation::query()->create([
         'id' => $ownedId,
-        'user_id' => $owner->id,
+        'participant_type' => $owner->getMorphClass(),
+        'participant_id' => $owner->id,
         'title' => 'Mine',
     ]);
     Conversation::query()->create([
         'id' => $foreignId,
-        'user_id' => $other->id,
+        'participant_type' => $other->getMorphClass(),
+        'participant_id' => $other->id,
         'title' => 'Theirs',
     ]);
 
@@ -571,14 +574,16 @@ test('ai page normalizes array message content parts to plain text', function ()
 
     Conversation::query()->create([
         'id' => $conversationId,
-        'user_id' => $user->id,
+        'participant_type' => $user->getMorphClass(),
+        'participant_id' => $user->id,
         'title' => 'Parts chat',
     ]);
 
     ConversationMessage::query()->create([
         'id' => $messageId,
         'conversation_id' => $conversationId,
-        'user_id' => $user->id,
+        'participant_type' => $user->getMorphClass(),
+        'participant_id' => $user->id,
         'agent' => AppAssistant::class,
         'role' => 'assistant',
         'content' => json_encode([
@@ -586,8 +591,8 @@ test('ai page normalizes array message content parts to plain text', function ()
             ['type' => 'output_text', 'text' => 'world'],
         ], JSON_THROW_ON_ERROR),
         'attachments' => [],
-        'tool_calls' => [],
-        'tool_results' => [],
+        'steps' => [],
+        'status' => MessageStatus::Completed,
         'usage' => [],
         'meta' => [],
     ]);
@@ -610,31 +615,44 @@ test('ai page loads conversation with array tool_calls without error', function 
 
     Conversation::query()->create([
         'id' => $conversationId,
-        'user_id' => $user->id,
+        'participant_type' => $user->getMorphClass(),
+        'participant_id' => $user->id,
         'title' => 'Tool chat',
     ]);
 
     ConversationMessage::query()->create([
         'id' => $messageId,
         'conversation_id' => $conversationId,
-        'user_id' => $user->id,
+        'participant_type' => $user->getMorphClass(),
+        'participant_id' => $user->id,
         'agent' => AppAssistant::class,
         'role' => 'assistant',
         'content' => 'Used a tool',
         'attachments' => [],
-        'tool_calls' => [
+        'steps' => [
             [
-                'id' => 'call_1',
-                'type' => 'function',
-                'function' => [
-                    'name' => 'manage_files',
-                    'arguments' => '{"action":"list"}',
+                'content' => '',
+                'tool_calls' => [
+                    [
+                        'id' => 'call_1',
+                        'name' => 'ManageFiles',
+                        'arguments' => ['action' => 'list'],
+                        'result' => '{"ok":true}',
+                    ],
                 ],
+                'reasoning' => '',
+                'replay_blocks' => [],
+                'provider_tool_calls' => [],
+            ],
+            [
+                'content' => 'Used a tool',
+                'tool_calls' => [],
+                'reasoning' => '',
+                'replay_blocks' => [],
+                'provider_tool_calls' => [],
             ],
         ],
-        'tool_results' => [
-            ['tool_call_id' => 'call_1', 'content' => '{"ok":true}'],
-        ],
+        'status' => MessageStatus::Completed,
         'usage' => [],
         'meta' => [],
     ]);
@@ -654,7 +672,8 @@ test('ai page loads conversation with array tool_calls without error', function 
         ->assertOk()
         ->assertJsonPath('messages.0.content', 'Used a tool')
         ->assertJsonPath('messages.0.tool_calls.0.id', 'call_1')
-        ->assertJsonPath('messages.0.tool_results.0.tool_call_id', 'call_1');
+        ->assertJsonPath('messages.0.tool_results.0.id', 'call_1')
+        ->assertJsonPath('messages.0.tool_results.0.result', '{"ok":true}');
 });
 
 test('ai show route returns 404 for foreign conversations', function () {
@@ -669,7 +688,8 @@ test('ai show route returns 404 for foreign conversations', function () {
 
     Conversation::query()->create([
         'id' => $conversationId,
-        'user_id' => $owner->id,
+        'participant_type' => $owner->getMorphClass(),
+        'participant_id' => $owner->id,
         'title' => 'Private',
     ]);
 
@@ -687,7 +707,8 @@ test('users can pin and unpin their conversations', function () {
 
     Conversation::query()->create([
         'id' => $conversationId,
-        'user_id' => $user->id,
+        'participant_type' => $user->getMorphClass(),
+        'participant_id' => $user->id,
         'title' => 'Pin me',
     ]);
 
@@ -717,7 +738,8 @@ test('pin is forbidden for foreign conversations', function () {
 
     Conversation::query()->create([
         'id' => $conversationId,
-        'user_id' => $owner->id,
+        'participant_type' => $owner->getMorphClass(),
+        'participant_id' => $owner->id,
         'title' => 'Not yours',
     ]);
 
@@ -740,17 +762,20 @@ test('users can bulk delete owned conversations only', function () {
 
     Conversation::query()->create([
         'id' => $firstId,
-        'user_id' => $owner->id,
+        'participant_type' => $owner->getMorphClass(),
+        'participant_id' => $owner->id,
         'title' => 'One',
     ]);
     Conversation::query()->create([
         'id' => $secondId,
-        'user_id' => $owner->id,
+        'participant_type' => $owner->getMorphClass(),
+        'participant_id' => $owner->id,
         'title' => 'Two',
     ]);
     Conversation::query()->create([
         'id' => $foreignId,
-        'user_id' => $other->id,
+        'participant_type' => $other->getMorphClass(),
+        'participant_id' => $other->id,
         'title' => 'Foreign',
     ]);
 
@@ -784,7 +809,8 @@ test('chat stream with existing conversation id continues owned chat', function 
 
     Conversation::query()->create([
         'id' => $conversationId,
-        'user_id' => $user->id,
+        'participant_type' => $user->getMorphClass(),
+        'participant_id' => $user->id,
         'title' => 'Ongoing',
     ]);
 
@@ -819,7 +845,8 @@ test('chat stream rejects foreign conversation id', function () {
 
     Conversation::query()->create([
         'id' => $conversationId,
-        'user_id' => $owner->id,
+        'participant_type' => $owner->getMorphClass(),
+        'participant_id' => $owner->id,
         'title' => 'Secret',
     ]);
 
@@ -856,7 +883,8 @@ test('ai conversations index is paginated', function () {
     foreach (range(1, 30) as $index) {
         Conversation::query()->create([
             'id' => (string) Str::uuid7(),
-            'user_id' => $user->id,
+            'participant_type' => $user->getMorphClass(),
+            'participant_id' => $user->id,
             'title' => "Chat {$index}",
         ]);
     }
@@ -898,17 +926,19 @@ test('conversation truncate deletes message and subsequent turns', function () {
 
     Conversation::query()->create([
         'id' => $conversationId,
-        'user_id' => $user->id,
+        'participant_type' => $user->getMorphClass(),
+        'participant_id' => $user->id,
         'title' => 'Truncate chat',
     ]);
 
     $base = [
         'conversation_id' => $conversationId,
-        'user_id' => $user->id,
+        'participant_type' => $user->getMorphClass(),
+        'participant_id' => $user->id,
         'agent' => AppAssistant::class,
         'attachments' => [],
-        'tool_calls' => [],
-        'tool_results' => [],
+        'steps' => [],
+        'status' => MessageStatus::Completed,
         'usage' => [],
         'meta' => [],
     ];
@@ -963,17 +993,19 @@ test('stop cancel truncates last matching user message via show then truncate', 
 
     Conversation::query()->create([
         'id' => $conversationId,
-        'user_id' => $user->id,
+        'participant_type' => $user->getMorphClass(),
+        'participant_id' => $user->id,
         'title' => 'Stop cancel chat',
     ]);
 
     $base = [
         'conversation_id' => $conversationId,
-        'user_id' => $user->id,
+        'participant_type' => $user->getMorphClass(),
+        'participant_id' => $user->id,
         'agent' => AppAssistant::class,
         'attachments' => [],
-        'tool_calls' => [],
-        'tool_results' => [],
+        'steps' => [],
+        'status' => MessageStatus::Completed,
         'usage' => [],
         'meta' => [],
     ];
@@ -1101,20 +1133,22 @@ test('conversation truncate is forbidden for foreign conversations', function ()
 
     Conversation::query()->create([
         'id' => $conversationId,
-        'user_id' => $owner->id,
+        'participant_type' => $owner->getMorphClass(),
+        'participant_id' => $owner->id,
         'title' => 'Private',
     ]);
 
     ConversationMessage::query()->create([
         'id' => $messageId,
         'conversation_id' => $conversationId,
-        'user_id' => $owner->id,
+        'participant_type' => $owner->getMorphClass(),
+        'participant_id' => $owner->id,
         'agent' => AppAssistant::class,
         'role' => 'user',
         'content' => 'Secret',
         'attachments' => [],
-        'tool_calls' => [],
-        'tool_results' => [],
+        'steps' => [],
+        'status' => MessageStatus::Completed,
         'usage' => [],
         'meta' => [],
     ]);
@@ -1144,32 +1178,37 @@ test('empty assistant message with tool results gets a settled summary on the ai
 
     Conversation::query()->create([
         'id' => $conversationId,
-        'user_id' => $user->id,
+        'participant_type' => $user->getMorphClass(),
+        'participant_id' => $user->id,
         'title' => 'Empty tool turn',
     ]);
 
     ConversationMessage::query()->create([
         'id' => $messageId,
         'conversation_id' => $conversationId,
-        'user_id' => $user->id,
+        'participant_type' => $user->getMorphClass(),
+        'participant_id' => $user->id,
         'agent' => AppAssistant::class,
         'role' => 'assistant',
         'content' => '',
         'attachments' => [],
-        'tool_calls' => [
+        'steps' => [
             [
-                'id' => 'call_1',
-                'name' => 'ManageCollections',
-                'arguments' => ['action' => 'create', 'name' => 'test campi'],
+                'content' => '',
+                'tool_calls' => [
+                    [
+                        'id' => 'call_1',
+                        'name' => 'ManageCollections',
+                        'arguments' => ['action' => 'create', 'name' => 'test campi'],
+                        'result' => '{"ok": true, "collection": {"id": 1}}',
+                    ],
+                ],
+                'reasoning' => '',
+                'replay_blocks' => [],
+                'provider_tool_calls' => [],
             ],
         ],
-        'tool_results' => [
-            [
-                'id' => 'call_1',
-                'name' => 'ManageCollections',
-                'result' => '{"ok": true, "collection": {"id": 1}}',
-            ],
-        ],
+        'status' => MessageStatus::Completed,
         'usage' => [],
         'meta' => [],
     ]);
