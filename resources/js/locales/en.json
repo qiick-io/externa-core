@@ -982,6 +982,14 @@
                 "title": "Import JSON from URL",
                 "description": "Remote JSON fetch → collection"
             },
+            "import-directus": {
+                "title": "Import from Directus URL",
+                "description": "Directus items JSON \u2192 collection (dry-run first)"
+            },
+            "import-wordpress": {
+                "title": "Import from WordPress REST",
+                "description": "WP posts JSON \u2192 collection (unwrap rendered)"
+            },
             "import-dry-run": {
                 "title": "Import preview (dry-run)",
                 "description": "Simulate without writing data"
