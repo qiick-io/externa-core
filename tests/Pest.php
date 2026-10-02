@@ -260,6 +260,8 @@ function baseProjectPayload(array $overrides = []): array
         'registration_enabled' => true,
         'email_verification_required' => false,
         'two_factor_required' => false,
+        'oidc_enabled' => false,
+        'oidc_jit_provisioning' => false,
         'sidebar_modules' => config('settings.project.defaults.sidebar_modules'),
         'preset_transformations' => sampleTransformPresets(),
     ], $overrides);

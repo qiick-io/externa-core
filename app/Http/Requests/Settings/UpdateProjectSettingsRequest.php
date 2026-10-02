@@ -98,6 +98,12 @@ class UpdateProjectSettingsRequest extends FormRequest
             'notifier_slack_webhook_url' => ['nullable', 'url', 'max:2048'],
             'notifier_telegram_bot_token' => ['nullable', 'string', 'max:512'],
             'notifier_telegram_chat_id' => ['nullable', 'string', 'max:64'],
+            'oidc_enabled' => ['required', 'boolean'],
+            'oidc_issuer' => ['nullable', 'url', 'max:2048'],
+            'oidc_client_id' => ['nullable', 'string', 'max:255'],
+            'oidc_client_secret' => ['nullable', 'string', 'max:512'],
+            'oidc_button_label' => ['nullable', 'string', 'max:64'],
+            'oidc_jit_provisioning' => ['required', 'boolean'],
             // Template may include {{id}} etc. — not a strict Laravel url
             'preview_url_default' => ['nullable', 'string', 'max:2048', 'regex:/^https?:\/\/.+/i'],
             'revision_retention_count' => ['nullable', 'integer', 'min:1', 'max:10000'],
@@ -229,6 +235,11 @@ class UpdateProjectSettingsRequest extends FormRequest
             'webhook_url' => $validated['webhook_url'] ?? null,
             'notifier_slack_webhook_url' => $validated['notifier_slack_webhook_url'] ?? null,
             'notifier_telegram_chat_id' => $validated['notifier_telegram_chat_id'] ?? null,
+            'oidc_enabled' => (bool) $validated['oidc_enabled'],
+            'oidc_issuer' => $validated['oidc_issuer'] ?? null,
+            'oidc_client_id' => $validated['oidc_client_id'] ?? null,
+            'oidc_button_label' => $validated['oidc_button_label'] ?? null,
+            'oidc_jit_provisioning' => (bool) $validated['oidc_jit_provisioning'],
             'preview_url_default' => $validated['preview_url_default'] ?? null,
             'revision_retention_count' => isset($validated['revision_retention_count'])
                 ? (int) $validated['revision_retention_count']
@@ -244,6 +255,7 @@ class UpdateProjectSettingsRequest extends FormRequest
                 : null,
             ...$this->webhookSecretValue($validated),
             ...$this->notifierTelegramBotTokenValue($validated),
+            ...$this->oidcClientSecretValue($validated),
         ];
     }
 
@@ -279,6 +291,22 @@ class UpdateProjectSettingsRequest extends FormRequest
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array{oidc_client_secret?: string}
+     */
+    private function oidcClientSecretValue(array $validated): array
+    {
+        $secret = $validated['oidc_client_secret'] ?? null;
+        if (! is_string($secret) || trim($secret) === '') {
+            return [];
+        }
+
+        return [
+            'oidc_client_secret' => ProjectSettings::encryptOidcClientSecret(trim($secret)),
+        ];
+    }
+
     protected function prepareForValidation(): void
     {
         $merge = [];
@@ -296,6 +324,10 @@ class UpdateProjectSettingsRequest extends FormRequest
             'notifier_slack_webhook_url',
             'notifier_telegram_bot_token',
             'notifier_telegram_chat_id',
+            'oidc_issuer',
+            'oidc_client_id',
+            'oidc_client_secret',
+            'oidc_button_label',
             'preview_url_default',
             'revision_retention_count',
             'revision_retention_days',
@@ -311,6 +343,8 @@ class UpdateProjectSettingsRequest extends FormRequest
             'registration_enabled',
             'email_verification_required',
             'two_factor_required',
+            'oidc_enabled',
+            'oidc_jit_provisioning',
         ] as $boolField) {
             if ($this->has($boolField)) {
                 $merge[$boolField] = filter_var($this->input($boolField), FILTER_VALIDATE_BOOLEAN);

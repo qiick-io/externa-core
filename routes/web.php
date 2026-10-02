@@ -8,6 +8,7 @@
  */
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Auth\OidcController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Support\Auth\HomePath;
@@ -19,6 +20,13 @@ Route::get('/', function () {
         ? redirect(HomePath::for(auth()->user()))
         : redirect()->route('login');
 })->name('home');
+
+Route::middleware('guest')->group(function () {
+    Route::get('auth/oidc/redirect', [OidcController::class, 'redirect'])
+        ->name('auth.oidc.redirect');
+    Route::get('auth/oidc/callback', [OidcController::class, 'callback'])
+        ->name('auth.oidc.callback');
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])

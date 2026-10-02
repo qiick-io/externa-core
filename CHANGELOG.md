@@ -12,6 +12,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ### Added
 
 - Editorial approvals for versioned collections: `approvals_required`, submit/approve/reject, promote gate, review list filter, webhook events `item.submitted`/`item.approved`/`item.rejected`, Spatie `can-submit-collections` / `can-approve-collections` (#48)
+- Optional OIDC/SSO login (Socialite + issuer discovery): project settings for issuer/client/secret, link-by-verified-email (JIT off by default), login CTA alongside password/passkey (#29)
 
 
 ## [1.1.0] - 2026-09-24
