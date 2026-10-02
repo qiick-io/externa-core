@@ -58,18 +58,11 @@ test('project settings reject empty content locales', function () {
     $user = grantContentLocaleSettingsUser();
 
     $this->actingAs($user)
-        ->put(route('project.update'), [
-            'default_language' => 'en',
+        ->put(route('project.update'), baseProjectPayload([
             'content_locales' => [],
             'default_content_locale' => 'en',
-            'password_policy' => 'weak',
-            'login_max_attempts' => 5,
-            'registration_enabled' => true,
-            'email_verification_required' => false,
-            'two_factor_required' => false,
-            'sidebar_modules' => config('settings.project.defaults.sidebar_modules'),
             'preset_transformations' => contentLocalesSamplePresets(),
-        ])
+        ]))
         ->assertSessionHasErrors('content_locales');
 });
 
@@ -77,18 +70,11 @@ test('project settings require default content locale to be selected', function 
     $user = grantContentLocaleSettingsUser();
 
     $this->actingAs($user)
-        ->put(route('project.update'), [
-            'default_language' => 'en',
+        ->put(route('project.update'), baseProjectPayload([
             'content_locales' => ['en', 'it'],
             'default_content_locale' => 'de-DE',
-            'password_policy' => 'weak',
-            'login_max_attempts' => 5,
-            'registration_enabled' => true,
-            'email_verification_required' => false,
-            'two_factor_required' => false,
-            'sidebar_modules' => config('settings.project.defaults.sidebar_modules'),
             'preset_transformations' => contentLocalesSamplePresets(),
-        ])
+        ]))
         ->assertSessionHasErrors('default_content_locale');
 });
 
@@ -96,19 +82,12 @@ test('project settings persist content locales and resolver reads them', functio
     $user = grantContentLocaleSettingsUser();
 
     $this->actingAs($user)
-        ->put(route('project.update'), [
-            'default_language' => 'en',
+        ->put(route('project.update'), baseProjectPayload([
             'content_locales' => ['it', 'en', 'de-DE'],
             'default_content_locale' => 'it',
             'fallback_content_locales' => ['it', 'en'],
-            'password_policy' => 'weak',
-            'login_max_attempts' => 5,
-            'registration_enabled' => true,
-            'email_verification_required' => false,
-            'two_factor_required' => false,
-            'sidebar_modules' => config('settings.project.defaults.sidebar_modules'),
             'preset_transformations' => contentLocalesSamplePresets(),
-        ])
+        ]))
         ->assertSessionHasNoErrors();
 
     $settings = app(ProjectSettings::class);
