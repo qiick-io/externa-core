@@ -4,6 +4,7 @@ namespace App\Services\Collections;
 
 use App\Models\Collection;
 use App\Models\CollectionItem;
+use App\Services\GitExport\GitExportDispatcher;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 use RuntimeException;
 
@@ -16,6 +17,7 @@ class CollectionItemPublisher
         private CollectionItemDataNormalizer $normalizer,
         private CollectionItemValuesWriter $writer,
         private OutboundWebhookDispatcher $webhooks,
+        private GitExportDispatcher $gitExport,
         private CollectionItemApprovalService $approvals,
     ) {}
 
@@ -52,8 +54,10 @@ class CollectionItemPublisher
         $this->approvals->clearAfterPromote($item);
         $item->save();
 
-        $this->webhooks->dispatchItem('item.published', $item->fresh(), $collection, [
+        $published = $item->fresh();
+        $this->webhooks->dispatchItem('item.published', $published, $collection, [
             'scheduled' => $scheduled,
         ]);
+        $this->gitExport->dispatchItem($published);
     }
 }
