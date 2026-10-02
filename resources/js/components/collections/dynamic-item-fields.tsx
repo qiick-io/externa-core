@@ -774,7 +774,11 @@ function TranslatableItemField({
             HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
         >(`[name="${targetName}"]`);
 
-        if (!sourceInput || !targetInput || targetInput.readOnly) {
+        if (
+            !sourceInput ||
+            !targetInput ||
+            ('readOnly' in targetInput && targetInput.readOnly)
+        ) {
             return;
         }
 

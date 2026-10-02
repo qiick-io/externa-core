@@ -418,7 +418,11 @@ export default function ItemsForm({
                 HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
             >(`[name="data[${field.name}][${target}]"]`);
 
-            if (!sourceInput || !targetInput || targetInput.readOnly) {
+            if (
+                !sourceInput ||
+                !targetInput ||
+                ('readOnly' in targetInput && targetInput.readOnly)
+            ) {
                 continue;
             }
 
