@@ -52,6 +52,8 @@ enum PermissionEnum: string
     case CanDeleteCollections = 'can-delete-collections';
     case CanRestoreCollections = 'can-restore-collections';
     case CanForceDeleteCollections = 'can-force-delete-collections';
+    case CanSubmitCollections = 'can-submit-collections';
+    case CanApproveCollections = 'can-approve-collections';
 
     case CanShowActivityLogs = 'can-show-activity-logs';
 

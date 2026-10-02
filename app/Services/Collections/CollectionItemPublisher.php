@@ -4,6 +4,7 @@ namespace App\Services\Collections;
 
 use App\Models\Collection;
 use App\Models\CollectionItem;
+use App\Services\GitExport\GitExportDispatcher;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 use RuntimeException;
 
@@ -16,10 +17,12 @@ class CollectionItemPublisher
         private CollectionItemDataNormalizer $normalizer,
         private CollectionItemValuesWriter $writer,
         private OutboundWebhookDispatcher $webhooks,
+        private GitExportDispatcher $gitExport,
+        private CollectionItemApprovalService $approvals,
     ) {}
 
     /**
-     * @throws RuntimeException when no draft or versioning off
+     * @throws RuntimeException when no draft, versioning off, or approvals block promote
      */
     public function promote(CollectionItem $item, Collection $collection, bool $scheduled = false): void
     {
@@ -31,6 +34,8 @@ class CollectionItemPublisher
         if ($draft === null) {
             throw new RuntimeException('No draft changes to publish.');
         }
+
+        $this->approvals->assertPromotable($item, $collection);
 
         $normalized = $this->normalizer->normalize($collection, $draft, false);
         $this->writer->sync(
@@ -46,10 +51,13 @@ class CollectionItemPublisher
 
         $item->draft_data = null;
         $item->publish_at = null;
+        $this->approvals->clearAfterPromote($item);
         $item->save();
 
-        $this->webhooks->dispatchItem('item.published', $item->fresh(), $collection, [
+        $published = $item->fresh();
+        $this->webhooks->dispatchItem('item.published', $published, $collection, [
             'scheduled' => $scheduled,
         ]);
+        $this->gitExport->dispatchItem($published);
     }
 }

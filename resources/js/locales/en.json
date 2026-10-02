@@ -112,6 +112,7 @@
             "passkeysUnsupported": "Passkeys are not supported in this browser.",
             "passkeysNeedHttps": "Passkeys need HTTPS.",
             "orContinueWithEmail": "or continue with email",
+            "oidc": "Sign in with SSO",
             "noAccount": "Don't have an account?",
             "signUp": "Sign up"
         },
@@ -268,6 +269,20 @@
             "loginMaxAttempts": "Max login attempts per minute",
             "twoFactorRequired": "Require two-factor authentication for all users",
             "twoFactorRequiredHint": "When enabled, users must enable TOTP 2FA or register a passkey on the Security page before using the app.",
+            "oidcTitle": "SSO / OIDC",
+            "oidcDescription": "Optional enterprise login via a standards-compliant OpenID Connect identity provider",
+            "oidcEnabled": "Enable OIDC login",
+            "oidcIssuer": "Issuer URL",
+            "oidcIssuerHint": "Base issuer (discovery at /.well-known/openid-configuration). Example: https://idp.example.com/realms/externa",
+            "oidcClientId": "Client ID",
+            "oidcClientSecret": "Client secret",
+            "oidcSecretConfiguredHint": "A client secret is already configured. Leave blank to keep it.",
+            "oidcSecretEmptyHint": "Required when enabling OIDC. Stored encrypted.",
+            "oidcButtonLabel": "Login button label",
+            "oidcButtonLabelPlaceholder": "Sign in with SSO",
+            "oidcJitProvisioning": "Allow JIT user provisioning",
+            "oidcJitProvisioningHint": "When off (default), only existing users can sign in via SSO (link by verified email). When on, unknown verified emails create users using allowed domains and the default role.",
+            "oidcRedirectHint": "Register this redirect URI on the IdP: {{url}}",
             "registrationTitle": "User registration",
             "registrationDescription": "Control public sign-up and defaults for new accounts",
             "registrationEnabled": "Registration enabled",
@@ -359,6 +374,19 @@
             "webhookEventsTitle": "Event catalog",
             "webhookEventType": "Event",
             "webhookEventDescription": "Description",
+            "notifiersTitle": "Outbound notifiers (Slack & Telegram)",
+            "notifiersDescription": "Optional human-readable alerts for the same domain events as outbound webhooks. Outbound only — not a chat backend.",
+            "notifierSlackWebhookUrl": "Slack incoming webhook URL",
+            "notifierSlackWebhookUrlHint": "Create an Incoming Webhook in your Slack workspace. Leave empty to disable Slack notifications.",
+            "notifierSlackSendTest": "Send Slack test",
+            "notifierSlackSendTestHint": "Save settings first, then queue a ping message. Requires a queue worker unless QUEUE_CONNECTION=sync.",
+            "notifierTelegramChatId": "Telegram chat ID",
+            "notifierTelegramBotToken": "Telegram bot token",
+            "notifierTelegramBotTokenHint": "From @BotFather. Leave blank to keep the current token.",
+            "notifierTelegramBotTokenConfigured": "A bot token is already configured.",
+            "notifierTelegramSendTest": "Send Telegram test",
+            "notifierTelegramSendTestHint": "Save chat ID and token first, then queue a ping message.",
+            "notifiersPrivacyNote": "Event metadata is sent to Slack or Telegram when configured. Review your provider’s data handling for self-hosted deployments.",
             "modules": {
                 "dashboard": "Dashboard",
                 "ai": "Assistant",
@@ -493,6 +521,8 @@
             "singletonHint": "Use this for collections with a single fixed entry (e.g. homepage or site settings). This choice cannot be changed after the collection is created.",
             "versioning": "Content versioning",
             "versioningHint": "Enable Draft / Published workspaces. Edit in Draft, then Publish to promote.",
+            "approvalsRequired": "Approvals required",
+            "approvalsRequiredHint": "Editors submit drafts for review. Publish is blocked until a reviewer approves. Requires versioning.",
             "previewUrl": "Live Preview URL",
             "previewUrlHint": "Frontend template with tokens: {{id}}, {{slug}}, {{collection}}, {{locale}}, {{version}}, {{token}}. Leave empty to use Project settings default.",
             "previewUrlPlaceholder": "https://example.com/preview/{{collection}}/{{id}}?version={{version}}&token={{token}}",
@@ -559,6 +589,16 @@
             "revisions": "Revisions",
             "editFields": "Edit fields",
             "delete": "Delete"
+        },
+        "itemPresence": {
+            "viewing": "{{count}} other editor(s) viewing",
+            "degraded": "Realtime off — presence and live overwrite hints are limited.",
+            "lockedBy": "{{name}} is editing (read-only for you).",
+            "takeOver": "Take over editing",
+            "staleTitle": "Item changed on the server",
+            "staleDescription": "Another save updated this item while you were editing. Save anyway or reload to see the latest version.",
+            "staleSave": "Save anyway",
+            "staleReload": "Reload page"
         },
         "itemChat": {
             "title": "Chat",
@@ -956,6 +996,14 @@
             "import-url-json": {
                 "title": "Import JSON from URL",
                 "description": "Remote JSON fetch → collection"
+            },
+            "import-directus": {
+                "title": "Import from Directus URL",
+                "description": "Directus items JSON \u2192 collection (dry-run first)"
+            },
+            "import-wordpress": {
+                "title": "Import from WordPress REST",
+                "description": "WP posts JSON \u2192 collection (unwrap rendered)"
             },
             "import-dry-run": {
                 "title": "Import preview (dry-run)",

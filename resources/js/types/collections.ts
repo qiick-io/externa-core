@@ -30,6 +30,7 @@ export type CollectionRow = {
     color?: string | null;
     is_singleton: boolean;
     versioning?: boolean;
+    approvals_required?: boolean;
     /** null = unlimited */
     revision_retention_count?: number | null;
     /** null = unlimited */
@@ -61,6 +62,7 @@ export type CollectionView = {
     color?: string | null;
     is_singleton: boolean;
     versioning?: boolean;
+    approvals_required?: boolean;
     /** null = unlimited */
     revision_retention_count?: number | null;
     /** null = unlimited */
@@ -88,6 +90,7 @@ export function collectionToFormRow(collection: CollectionView): CollectionRow {
         color: collection.color ?? null,
         is_singleton: collection.is_singleton,
         versioning: Boolean(collection.versioning),
+        approvals_required: Boolean(collection.approvals_required),
         revision_retention_count: collection.revision_retention_count ?? null,
         revision_retention_days: collection.revision_retention_days ?? null,
         preview_url: collection.preview_url ?? null,

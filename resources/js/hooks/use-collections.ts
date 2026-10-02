@@ -18,6 +18,7 @@ const EMPTY_COLLECTION_FORM = {
     color: '',
     is_singleton: false,
     versioning: false,
+    approvals_required: false,
     revision_retention_count: null as number | null,
     revision_retention_days: null as number | null,
     preview_url: '',
@@ -83,6 +84,7 @@ export function useCollections(options?: { onClosed?: () => void }) {
                 color: editing.color ?? '',
                 is_singleton: Boolean(editing.is_singleton),
                 versioning: Boolean(editing.versioning),
+                approvals_required: Boolean(editing.approvals_required),
                 revision_retention_count:
                     editing.revision_retention_count ?? null,
                 revision_retention_days:
@@ -136,6 +138,7 @@ export function useCollections(options?: { onClosed?: () => void }) {
                 icon: data.icon || null,
                 color: data.color || null,
                 versioning: Boolean(data.versioning),
+                approvals_required: Boolean(data.approvals_required),
                 revision_retention_count: retentionOrNull(
                     data.revision_retention_count,
                 ),

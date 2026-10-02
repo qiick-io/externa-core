@@ -7,6 +7,7 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
 use App\Services\Api\PublicApiResponseCache;
+use App\Services\Search\MeilisearchSyncDispatcher;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 
 /**
@@ -17,6 +18,7 @@ class CollectionItemValuesWriter
     public function __construct(
         private CollectionItemRevisionRecorder $revisionRecorder,
         private OutboundWebhookDispatcher $webhooks,
+        private MeilisearchSyncDispatcher $meilisearch,
         private PublicApiResponseCache $responseCache,
     ) {}
 
@@ -74,6 +76,7 @@ class CollectionItemValuesWriter
             $item,
             $collection,
         );
+        $this->meilisearch->dispatchUpsert($item);
 
         // Synchronous: next public GET must miss and reassemble fresh JSON.
         $this->responseCache->bump((int) $collection->id);
