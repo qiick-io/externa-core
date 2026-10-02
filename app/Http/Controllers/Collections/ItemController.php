@@ -18,6 +18,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Collections\CollectionItemApprovalService;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemExportService;
 use App\Services\Collections\CollectionItemOptionsService;
@@ -62,6 +63,7 @@ class ItemController extends Controller
         private LivePreviewUrlBuilder $livePreviewUrlBuilder,
         private CollectionItemPublisher $itemPublisher,
         private CollectionItemRevisionRecorder $revisionRecorder,
+        private CollectionItemApprovalService $itemApprovals,
         private EffectivePermissionResolver $permissionResolver,
         private FieldConditionEvaluator $fieldConditionEvaluator,
     ) {}
@@ -102,9 +104,11 @@ class ItemController extends Controller
 
         $trashed = $request->boolean('trashed');
         $hasDraft = $collection->versioning && $request->boolean('has_draft');
+        $inReview = $collection->approvals_required && $request->boolean('in_review');
         $query = CollectionItem::query()
             ->when($trashed, fn ($query) => $query->onlyTrashed())
             ->when($hasDraft, fn ($query) => $query->whereNotNull('draft_data'))
+            ->when($inReview, fn ($query) => $query->where('approval_status', 'in_review'))
             ->where('collection_id', $collection->id)
             ->with([
                 'fieldValues',
@@ -130,11 +134,15 @@ class ItemController extends Controller
 
         $paginator = $query->paginate(15)->withQueryString();
         $versioning = (bool) $collection->versioning;
+        $approvalsRequired = (bool) $collection->approvals_required;
         $rows = $paginator->getCollection()
-            ->map(function (CollectionItem $item) use ($request, $versioning): array {
+            ->map(function (CollectionItem $item) use ($request, $versioning, $approvalsRequired): array {
                 $row = (new CollectionItemResource($item))->toArray($request);
                 if ($versioning) {
                     $row['has_draft'] = is_array($item->draft_data);
+                }
+                if ($approvalsRequired) {
+                    $row['approval_status'] = $item->approval_status ?? 'draft';
                 }
 
                 return $row;
@@ -153,6 +161,7 @@ class ItemController extends Controller
                 ...$stringFilters,
                 'trashed' => $trashed,
                 'has_draft' => $hasDraft,
+                'in_review' => $inReview,
                 'sort' => $sortState['sort'],
                 'direction' => $sortState['direction'],
             ],
@@ -329,6 +338,11 @@ class ItemController extends Controller
         $itemPayload['draft_data'] = $draftData;
         $itemPayload['publish_at'] = $item->publish_at?->toIso8601String();
         $itemPayload['unpublish_at'] = $item->unpublish_at?->toIso8601String();
+        $itemPayload['approval_status'] = $item->approval_status ?? 'draft';
+        $itemPayload['rejection_note'] = $item->rejection_note;
+        $itemPayload['submitted_by'] = $item->submitted_by;
+        $itemPayload['reviewed_by'] = $item->reviewed_by;
+        $itemPayload['reviewed_at'] = $item->reviewed_at?->toIso8601String();
 
         return Inertia::render('collections/items/form', [
             'collection' => $collection,
@@ -490,6 +504,17 @@ class ItemController extends Controller
 
         if ($version === 'draft') {
             $item->draft_data = $normalized;
+            // Editing an approved/rejected draft invalidates approval.
+            if (
+                $collection->approvals_required
+                && in_array((string) $item->approval_status, ['approved', 'rejected', 'in_review'], true)
+            ) {
+                $item->approval_status = 'draft';
+                $item->rejection_note = null;
+                $item->submitted_by = null;
+                $item->reviewed_by = null;
+                $item->reviewed_at = null;
+            }
             $item->save();
             $this->revisionRecorder->record($item, [
                 'source' => 'draft',
@@ -534,13 +559,84 @@ class ItemController extends Controller
                 ->with('error', __('No draft changes to publish.'));
         }
 
-        $this->itemPublisher->promote($item, $collection, scheduled: false);
+        try {
+            $this->itemPublisher->promote($item, $collection, scheduled: false);
+        } catch (RuntimeException $e) {
+            return redirect()
+                ->route('collections.items.show', [
+                    'collection' => $collection,
+                    'item' => $item,
+                    'version' => 'draft',
+                ])
+                ->with('error', __($e->getMessage()));
+        }
 
         return redirect()->route('collections.items.show', [
             'collection' => $collection,
             'item' => $item,
             'version' => 'published',
         ])->with('success', __('Published.'));
+    }
+
+    /**
+     * Submit draft for editorial review.
+     */
+    public function submitForReview(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
+    {
+        $this->assertItemBelongsToCollection($collection, $item);
+        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+
+        /** @var User $user */
+        $user = $request->user();
+        $this->itemApprovals->submit($item, $collection, $user);
+
+        return redirect()->route('collections.items.show', [
+            'collection' => $collection,
+            'item' => $item,
+            'version' => 'draft',
+        ])->with('success', __('Submitted for review.'));
+    }
+
+    /**
+     * Approve a draft that is in review.
+     */
+    public function approve(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
+    {
+        $this->assertItemBelongsToCollection($collection, $item);
+        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+
+        /** @var User $user */
+        $user = $request->user();
+        $this->itemApprovals->approve($item, $collection, $user);
+
+        return redirect()->route('collections.items.show', [
+            'collection' => $collection,
+            'item' => $item,
+            'version' => 'draft',
+        ])->with('success', __('Approved.'));
+    }
+
+    /**
+     * Reject a draft that is in review (note required).
+     */
+    public function reject(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
+    {
+        $this->assertItemBelongsToCollection($collection, $item);
+        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+
+        $validated = $request->validate([
+            'rejection_note' => ['required', 'string', 'max:5000'],
+        ]);
+
+        /** @var User $user */
+        $user = $request->user();
+        $this->itemApprovals->reject($item, $collection, $user, $validated['rejection_note']);
+
+        return redirect()->route('collections.items.show', [
+            'collection' => $collection,
+            'item' => $item,
+            'version' => 'draft',
+        ])->with('success', __('Rejected.'));
     }
 
     /**
@@ -589,6 +685,16 @@ class ItemController extends Controller
                 ->with('error', __('Save a draft before scheduling publish.'));
         }
 
+        if (
+            $publishAt !== null
+            && $collection->approvals_required
+            && (string) $item->approval_status !== 'approved'
+        ) {
+            return redirect()
+                ->back()
+                ->with('error', __('Item must be approved before scheduling publish.'));
+        }
+
         $item->publish_at = $publishAt;
         $item->unpublish_at = $unpublishAt;
         $item->save();
@@ -621,7 +727,11 @@ class ItemController extends Controller
 
         $item->draft_data = null;
         $item->publish_at = null;
-        $item->save();
+        if ($collection->approvals_required) {
+            $this->itemApprovals->resetToDraft($item);
+        } else {
+            $item->save();
+        }
 
         $this->revisionRecorder->record($item, [
             'source' => 'discard_draft',

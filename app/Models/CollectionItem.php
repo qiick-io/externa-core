@@ -25,6 +25,11 @@ use Illuminate\Support\Carbon;
  * @property int|null $user_created_id
  * @property int|null $user_updated_id
  * @property array<string, mixed>|null $draft_data
+ * @property string $approval_status
+ * @property string|null $rejection_note
+ * @property int|null $submitted_by
+ * @property int|null $reviewed_by
+ * @property Carbon|null $reviewed_at
  * @property Carbon|null $publish_at
  * @property Carbon|null $unpublish_at
  * @property Carbon|null $deleted_at
@@ -41,6 +46,11 @@ class CollectionItem extends Model
         'user_created_id',
         'user_updated_id',
         'draft_data',
+        'approval_status',
+        'rejection_note',
+        'submitted_by',
+        'reviewed_by',
+        'reviewed_at',
         'publish_at',
         'unpublish_at',
     ];
@@ -52,6 +62,7 @@ class CollectionItem extends Model
     {
         return [
             'draft_data' => 'array',
+            'reviewed_at' => 'datetime',
             'publish_at' => 'datetime',
             'unpublish_at' => 'datetime',
         ];

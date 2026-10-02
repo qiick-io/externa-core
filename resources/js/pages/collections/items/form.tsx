@@ -134,6 +134,11 @@ type ItemPayload = {
     draft_data?: Record<string, unknown> | null;
     publish_at?: string | null;
     unpublish_at?: string | null;
+    approval_status?: string | null;
+    rejection_note?: string | null;
+    submitted_by?: number | null;
+    reviewed_by?: number | null;
+    reviewed_at?: string | null;
 };
 
 /**
@@ -251,6 +256,11 @@ export default function ItemsForm({
     const [discardDraftOpen, setDiscardDraftOpen] = useState(false);
     const [discardingDraft, setDiscardingDraft] = useState(false);
     const [scheduling, setScheduling] = useState(false);
+    const [submittingReview, setSubmittingReview] = useState(false);
+    const [approving, setApproving] = useState(false);
+    const [rejectOpen, setRejectOpen] = useState(false);
+    const [rejecting, setRejecting] = useState(false);
+    const [rejectNote, setRejectNote] = useState('');
     const [publishAtLocal, setPublishAtLocal] = useState(() =>
         toDatetimeLocalValue(item?.publish_at ?? null),
     );
@@ -260,6 +270,8 @@ export default function ItemsForm({
     const draftTimer = useRef<number | null>(null);
 
     const versioningEnabled = Boolean(collection.versioning);
+    const approvalsRequired = Boolean(collection.approvals_required);
+    const approvalStatus = item?.approval_status ?? 'draft';
     const viewingPublished =
         versioningEnabled && contentVersion === 'published';
     const hasServerDraft = Boolean(item?.has_draft);
@@ -270,6 +282,10 @@ export default function ItemsForm({
     const canCreateItem = can(PermissionEnum.CanCreateCollections);
     const canEditItem = can(PermissionEnum.CanEditCollections);
     const canDeleteItem = can(PermissionEnum.CanDeleteCollections);
+    const canSubmitItem = can(PermissionEnum.CanSubmitCollections);
+    const canApproveItem = can(PermissionEnum.CanApproveCollections);
+    const publishBlockedByApproval =
+        approvalsRequired && approvalStatus !== 'approved';
     // View-only users (e.g. reader) must not see Save / editable controls — BE already 403s.
     const formReadonly =
         viewingPublished || (isNew ? !canCreateItem : !canEditItem);
@@ -738,6 +754,27 @@ export default function ItemsForm({
                     <div className="flex items-center gap-1.5">
                         {!isNew && item !== null && versioningEnabled && (
                             <>
+                                {approvalsRequired ? (
+                                    <Badge
+                                        variant={
+                                            approvalStatus === 'approved'
+                                                ? 'default'
+                                                : approvalStatus === 'rejected'
+                                                  ? 'destructive'
+                                                  : 'secondary'
+                                        }
+                                        data-test="approval-status-badge"
+                                        className="px-2 text-xs"
+                                    >
+                                        {approvalStatus === 'in_review'
+                                            ? 'In review'
+                                            : approvalStatus === 'approved'
+                                              ? 'Approved'
+                                              : approvalStatus === 'rejected'
+                                                ? 'Rejected'
+                                                : 'Draft'}
+                                    </Badge>
+                                ) : null}
                                 <Badge
                                     variant={
                                         contentVersion === 'draft'
@@ -807,12 +844,105 @@ export default function ItemsForm({
                             hasServerDraft &&
                             canEditItem && (
                                 <>
+                                    {approvalsRequired &&
+                                    canSubmitItem &&
+                                    (approvalStatus === 'draft' ||
+                                        approvalStatus === 'rejected') ? (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="secondary"
+                                            className="px-2.5 text-xs"
+                                            disabled={submittingReview}
+                                            data-test="submit-for-review"
+                                            onClick={() => {
+                                                setSubmittingReview(true);
+                                                router.post(
+                                                    ItemController.submitForReview.url(
+                                                        {
+                                                            collection:
+                                                                collection.id,
+                                                            item: item.id,
+                                                        },
+                                                    ),
+                                                    {},
+                                                    {
+                                                        onFinish: () =>
+                                                            setSubmittingReview(
+                                                                false,
+                                                            ),
+                                                    },
+                                                );
+                                            }}
+                                        >
+                                            Submit for review
+                                        </Button>
+                                    ) : null}
+                                    {approvalsRequired &&
+                                    canApproveItem &&
+                                    approvalStatus === 'in_review' ? (
+                                        <>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="secondary"
+                                                className="px-2.5 text-xs"
+                                                disabled={approving}
+                                                data-test="approve-item"
+                                                onClick={() => {
+                                                    setApproving(true);
+                                                    router.post(
+                                                        ItemController.approve.url(
+                                                            {
+                                                                collection:
+                                                                    collection.id,
+                                                                item: item.id,
+                                                            },
+                                                        ),
+                                                        {},
+                                                        {
+                                                            onFinish: () =>
+                                                                setApproving(
+                                                                    false,
+                                                                ),
+                                                        },
+                                                    );
+                                                }}
+                                            >
+                                                Approve
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                className="px-2.5 text-xs"
+                                                data-test="reject-item"
+                                                onClick={() => {
+                                                    setRejectNote(
+                                                        item.rejection_note ??
+                                                            '',
+                                                    );
+                                                    setRejectOpen(true);
+                                                }}
+                                            >
+                                                Reject
+                                            </Button>
+                                        </>
+                                    ) : null}
                                     <Button
                                         type="button"
                                         size="sm"
                                         variant="secondary"
                                         className="px-2.5 text-xs"
-                                        disabled={publishing}
+                                        disabled={
+                                            publishing ||
+                                            publishBlockedByApproval
+                                        }
+                                        title={
+                                            publishBlockedByApproval
+                                                ? 'Approve before publishing'
+                                                : undefined
+                                        }
                                         data-test="publish-item"
                                         onClick={() => setPublishOpen(true)}
                                     >
@@ -1416,6 +1546,59 @@ export default function ItemsForm({
                             {
                                 onFinish: () => setDeleting(false),
                                 onError: () => setDeleteOpen(false),
+                            },
+                        );
+                    }}
+                />
+            )}
+
+            {!isNew && item !== null && versioningEnabled && (
+                <ConfirmDestructiveDialog
+                    open={rejectOpen}
+                    onOpenChange={setRejectOpen}
+                    title="Reject draft?"
+                    description={
+                        <div className="grid gap-2 pt-1 text-left">
+                            <p className="text-sm text-muted-foreground">
+                                Explain what the editor should fix before
+                                resubmitting.
+                            </p>
+                            <textarea
+                                className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                                value={rejectNote}
+                                onChange={(event) =>
+                                    setRejectNote(event.target.value)
+                                }
+                                data-test="rejection-note"
+                                placeholder="Rejection note"
+                            />
+                            {item.rejection_note &&
+                            approvalStatus === 'rejected' ? (
+                                <p className="text-xs text-muted-foreground">
+                                    Previous note: {item.rejection_note}
+                                </p>
+                            ) : null}
+                        </div>
+                    }
+                    confirmLabel="Reject"
+                    confirming={rejecting}
+                    onConfirm={() => {
+                        if (rejectNote.trim() === '') {
+                            return;
+                        }
+
+                        setRejecting(true);
+                        router.post(
+                            ItemController.reject.url({
+                                collection: collection.id,
+                                item: item.id,
+                            }),
+                            { rejection_note: rejectNote.trim() },
+                            {
+                                onFinish: () => {
+                                    setRejecting(false);
+                                    setRejectOpen(false);
+                                },
                             },
                         );
                     }}

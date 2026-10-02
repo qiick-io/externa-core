@@ -493,6 +493,8 @@
             "singletonHint": "Use this for collections with a single fixed entry (e.g. homepage or site settings). This choice cannot be changed after the collection is created.",
             "versioning": "Content versioning",
             "versioningHint": "Enable Draft / Published workspaces. Edit in Draft, then Publish to promote.",
+            "approvalsRequired": "Approvals required",
+            "approvalsRequiredHint": "Editors submit drafts for review. Publish is blocked until a reviewer approves. Requires versioning.",
             "previewUrl": "Live Preview URL",
             "previewUrlHint": "Frontend template with tokens: {{id}}, {{slug}}, {{collection}}, {{locale}}, {{version}}, {{token}}. Leave empty to use Project settings default.",
             "previewUrlPlaceholder": "https://example.com/preview/{{collection}}/{{id}}?version={{version}}&token={{token}}",

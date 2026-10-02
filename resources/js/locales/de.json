@@ -493,6 +493,8 @@
             "singletonHint": "Für Collections mit einem festen Eintrag (z. B. Startseite oder Site-Einstellungen). Diese Wahl kann nach der Erstellung nicht geändert werden.",
             "versioning": "Inhaltsversionierung",
             "versioningHint": "Entwurf / Veröffentlicht aktivieren. Im Entwurf bearbeiten, dann Veröffentlichen.",
+            "approvalsRequired": "Freigaben erforderlich",
+            "approvalsRequiredHint": "Redakteure reichen Entwürfe zur Prüfung ein. Veröffentlichen ist gesperrt, bis ein Prüfer freigibt. Erfordert Versionierung.",
             "previewUrl": "Live-Preview-URL",
             "previewUrlHint": "Frontend-Vorlage mit Tokens: {{id}}, {{slug}}, {{collection}}, {{locale}}, {{version}}, {{token}}. Leer = Projekt-Standard.",
             "previewUrlPlaceholder": "https://example.com/preview/{{collection}}/{{id}}?version={{version}}&token={{token}}",
