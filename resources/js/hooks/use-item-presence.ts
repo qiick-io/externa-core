@@ -8,8 +8,8 @@ import {
     releaseItemEditLock,
     subscribeItemPresence,
     takeOverItemEditLock,
-    type ItemPresenceSnapshot,
 } from '@/lib/item-presence';
+import type { ItemPresenceSnapshot } from '@/lib/item-presence';
 
 const emptySnapshot: ItemPresenceSnapshot = {
     editors: [],

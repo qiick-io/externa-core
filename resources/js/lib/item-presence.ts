@@ -4,9 +4,9 @@ import {
     buildLockClaim,
     isLockActive,
     ITEM_LOCK_TTL_MS,
-    type ItemLockState,
     lockHeldByOther,
 } from '@/lib/item-presence-lock';
+import type { ItemLockState } from '@/lib/item-presence-lock';
 
 export type ItemPresenceUser = {
     id: number;
