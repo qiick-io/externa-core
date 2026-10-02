@@ -1,10 +1,21 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+} from 'react';
 import type { ReactNode } from 'react';
 
 type ContentLocaleContextValue = {
     locales: string[];
     activeLocale: string;
     setActiveLocale: (locale: string) => void;
+    /** Side-by-side translation workspace (#49). */
+    workspaceEnabled: boolean;
+    sourceLocale: string;
+    setSourceLocale: (locale: string) => void;
 };
 
 const ContentLocaleContext = createContext<ContentLocaleContextValue | null>(
@@ -17,10 +28,16 @@ const ContentLocaleContext = createContext<ContentLocaleContextValue | null>(
 export function ContentLocaleProvider({
     locales,
     defaultLocale,
+    workspaceEnabled = false,
+    sourceLocale: sourceLocaleProp,
+    onSourceLocaleChange,
     children,
 }: {
     locales: string[];
     defaultLocale?: string;
+    workspaceEnabled?: boolean;
+    sourceLocale?: string;
+    onSourceLocaleChange?: (locale: string) => void;
     children: ReactNode;
 }) {
     const initial =
@@ -28,6 +45,15 @@ export function ContentLocaleProvider({
             ? defaultLocale
             : (locales[0] ?? 'en');
     const [activeLocale, setActiveLocale] = useState(initial);
+    const [sourceLocaleState, setSourceLocaleState] = useState(() => {
+        if (sourceLocaleProp && locales.includes(sourceLocaleProp)) {
+            return sourceLocaleProp;
+        }
+
+        const fallback = locales.find((code) => code !== initial);
+
+        return fallback ?? initial;
+    });
 
     useEffect(() => {
         if (defaultLocale && locales.includes(defaultLocale)) {
@@ -35,15 +61,42 @@ export function ContentLocaleProvider({
         }
     }, [defaultLocale, locales]);
 
+    useEffect(() => {
+        if (sourceLocaleProp && locales.includes(sourceLocaleProp)) {
+            setSourceLocaleState(sourceLocaleProp);
+        }
+    }, [sourceLocaleProp, locales]);
+
+    const setSourceLocale = useCallback(
+        (locale: string): void => {
+            setSourceLocaleState(locale);
+            onSourceLocaleChange?.(locale);
+        },
+        [onSourceLocaleChange],
+    );
+
+    const active = locales.includes(activeLocale)
+        ? activeLocale
+        : (locales[0] ?? activeLocale);
+    let source = locales.includes(sourceLocaleState)
+        ? sourceLocaleState
+        : (locales.find((code) => code !== active) ?? active);
+
+    // Keep source ≠ target when possible.
+    if (workspaceEnabled && source === active && locales.length > 1) {
+        source = locales.find((code) => code !== active) ?? source;
+    }
+
     const value = useMemo(
         () => ({
             locales,
-            activeLocale: locales.includes(activeLocale)
-                ? activeLocale
-                : (locales[0] ?? activeLocale),
+            activeLocale: active,
             setActiveLocale,
+            workspaceEnabled,
+            sourceLocale: source,
+            setSourceLocale,
         }),
-        [locales, activeLocale],
+        [locales, active, workspaceEnabled, source, setSourceLocale],
     );
 
     return (
@@ -60,6 +113,9 @@ export function useContentLocale(localesFallback: string[] = ['en']): {
     locale: string;
     setLocale: (locale: string) => void;
     locales: string[];
+    workspaceEnabled: boolean;
+    sourceLocale: string;
+    setSourceLocale: (locale: string) => void;
 } {
     const ctx = useContext(ContentLocaleContext);
     const [localLocale, setLocalLocale] = useState(localesFallback[0] ?? 'en');
@@ -69,6 +125,9 @@ export function useContentLocale(localesFallback: string[] = ['en']): {
             locale: ctx.activeLocale,
             setLocale: ctx.setActiveLocale,
             locales: ctx.locales,
+            workspaceEnabled: ctx.workspaceEnabled,
+            sourceLocale: ctx.sourceLocale,
+            setSourceLocale: ctx.setSourceLocale,
         };
     }
 
@@ -80,5 +139,8 @@ export function useContentLocale(localesFallback: string[] = ['en']): {
             : (locales[0] ?? 'en'),
         setLocale: setLocalLocale,
         locales,
+        workspaceEnabled: false,
+        sourceLocale: locales[0] ?? 'en',
+        setSourceLocale: () => undefined,
     };
 }

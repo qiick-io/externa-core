@@ -714,6 +714,7 @@ function TranslatableItemField({
     ) : undefined;
 
     const shared = useContentLocale(locales);
+    const workspaceOn = shared.workspaceEnabled && locales.length > 1;
     const [fieldLocale, setFieldLocale] = useState(
         locales.includes(shared.locale) ? shared.locale : (locales[0] ?? 'en'),
     );
@@ -722,6 +723,13 @@ function TranslatableItemField({
     );
     const note = getFieldNote(field.settings, locales);
     const isMarkdown = field.type === 'markdown';
+
+    // Sync field locale with global target when not in per-field override thrash.
+    useEffect(() => {
+        if (locales.includes(shared.locale)) {
+            setFieldLocale(shared.locale);
+        }
+    }, [shared.locale, locales]);
 
     const resolveCurrent = (): unknown => {
         const form = document.getElementById(
@@ -743,6 +751,173 @@ function TranslatableItemField({
         const full = defaults?.[field.name];
         onApplyValue(withLocaleSlice(full, fieldLocale, slice));
     };
+
+    const copyFromSource = (): void => {
+        if (!workspaceOn) {
+            return;
+        }
+
+        const form = document.getElementById(
+            ITEM_FORM_ID,
+        ) as HTMLFormElement | null;
+
+        if (!form) {
+            return;
+        }
+
+        const sourceName = `data[${field.name}][${shared.sourceLocale}]`;
+        const targetName = `data[${field.name}][${fieldLocale}]`;
+        const sourceInput = form.querySelector<
+            HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+        >(`[name="${sourceName}"]`);
+        const targetInput = form.querySelector<
+            HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+        >(`[name="${targetName}"]`);
+
+        if (
+            !sourceInput ||
+            !targetInput ||
+            ('readOnly' in targetInput && targetInput.readOnly)
+        ) {
+            return;
+        }
+
+        if (sourceInput.type === 'checkbox' || sourceInput.type === 'radio') {
+            (targetInput as HTMLInputElement).checked = (
+                sourceInput as HTMLInputElement
+            ).checked;
+        } else {
+            targetInput.value = sourceInput.value;
+        }
+
+        targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+        onMarkDirty();
+    };
+
+    const renderLocaleControl = (
+        code: string,
+        options?: { locked?: boolean; label?: string },
+    ): ReactNode => {
+        const inputId = `data_${field.name}_${code}`;
+        // ponytail: lock source with pointer-events (not disabled) so values still submit
+        const locked = options?.locked === true;
+
+        return (
+            <div className="grid gap-2" data-locale-pane={code}>
+                {options?.label ? (
+                    <p className="text-xs font-medium text-muted-foreground">
+                        {options.label}
+                    </p>
+                ) : null}
+                <div
+                    className={
+                        locked
+                            ? 'pointer-events-none rounded-md bg-muted/40'
+                            : undefined
+                    }
+                    aria-readonly={locked || undefined}
+                >
+                    {renderFieldControl({
+                        field,
+                        name: `data[${field.name}][${code}]`,
+                        id: inputId,
+                        collectionId,
+                        locales,
+                        readonly,
+                        relatedCollections,
+                        defaultValue: getDefaultLocale(
+                            defaults,
+                            field.name,
+                            code,
+                        ),
+                        hasError: !!errorMessage && code === fieldLocale,
+                        markdownMode,
+                        onMarkdownModeChange: setMarkdownMode,
+                        showMarkdownModeToggle: false,
+                    })}
+                </div>
+            </div>
+        );
+    };
+
+    if (workspaceOn) {
+        const source = shared.sourceLocale;
+        const target = fieldLocale;
+
+        return (
+            <div
+                className="space-y-2"
+                data-test={`translation-field-${field.name}`}
+            >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    {labelText ? (
+                        <div className="text-sm font-medium">{labelText}</div>
+                    ) : (
+                        <span />
+                    )}
+                    <div className="flex items-center gap-1.5">
+                        {!readonly ? (
+                            <button
+                                type="button"
+                                className="rounded-md border px-2 py-1 text-xs"
+                                data-test={`copy-from-source-${field.name}`}
+                                onClick={copyFromSource}
+                            >
+                                Copy from {source}
+                            </button>
+                        ) : null}
+                        {showFieldNameHeading ? (
+                            <ItemFieldLabelMenu
+                                getCurrentValue={resolveCurrent}
+                                isDirty={isDirty}
+                                readonly={readonly}
+                                canEditFieldSchema={canEditFieldSchema}
+                                onApplyValue={applyLocaleSlice}
+                                onUndo={onUndo}
+                                onClear={() => {
+                                    applyLocaleSlice(
+                                        clearFieldRawValue(resolveCurrent()),
+                                    );
+                                }}
+                                onEditField={onEditField}
+                            />
+                        ) : null}
+                    </div>
+                </div>
+                {note ? (
+                    <p className="text-sm text-muted-foreground">{note}</p>
+                ) : null}
+                <div
+                    className="grid gap-3 md:grid-cols-2"
+                    onChange={onMarkDirty}
+                    onInput={onMarkDirty}
+                >
+                    {renderLocaleControl(source, {
+                        locked: true,
+                        label: `Source (${source})`,
+                    })}
+                    {renderLocaleControl(target, {
+                        label: `Target (${target})`,
+                    })}
+                    {/* Keep inactive locale inputs mounted for save payload. */}
+                    {locales.map((code) => {
+                        if (code === source || code === target) {
+                            return null;
+                        }
+
+                        return (
+                            <div key={code} className="hidden" aria-hidden>
+                                {renderLocaleControl(code)}
+                            </div>
+                        );
+                    })}
+                </div>
+                {errorMessage ? (
+                    <p className="text-sm text-destructive">{errorMessage}</p>
+                ) : null}
+            </div>
+        );
+    }
 
     return (
         <LocalizedField
@@ -791,7 +966,6 @@ function TranslatableItemField({
                     onInput={onMarkDirty}
                 >
                     {locales.map((code) => {
-                        const inputId = `data_${field.name}_${code}`;
                         const isActive = code === locale;
 
                         return (
@@ -800,24 +974,7 @@ function TranslatableItemField({
                                 className={isActive ? 'grid gap-2' : 'hidden'}
                                 aria-hidden={!isActive}
                             >
-                                {renderFieldControl({
-                                    field,
-                                    name: `data[${field.name}][${code}]`,
-                                    id: inputId,
-                                    collectionId,
-                                    locales,
-                                    readonly,
-                                    relatedCollections,
-                                    defaultValue: getDefaultLocale(
-                                        defaults,
-                                        field.name,
-                                        code,
-                                    ),
-                                    hasError: !!errorMessage,
-                                    markdownMode,
-                                    onMarkdownModeChange: setMarkdownMode,
-                                    showMarkdownModeToggle: false,
-                                })}
+                                {renderLocaleControl(code)}
                             </div>
                         );
                     })}
@@ -1002,6 +1159,9 @@ export function DynamicItemFields({
     highlightFields = null,
     selectDiffFields = null,
     onToggleDiffField,
+    translationWorkspace = false,
+    sourceLocale,
+    onSourceLocaleChange,
 }: {
     fields: FieldDef[];
     locales: string[];
@@ -1029,6 +1189,10 @@ export function DynamicItemFields({
     /** When set, differing fields show a checkbox; selection lives in this set. */
     selectDiffFields?: ReadonlySet<string> | null;
     onToggleDiffField?: (fieldName: string) => void;
+    /** Side-by-side source/target editing for translatable fields (#49). */
+    translationWorkspace?: boolean;
+    sourceLocale?: string;
+    onSourceLocaleChange?: (locale: string) => void;
 }) {
     const { can } = useCan();
     const canEditFieldSchema = can(PermissionEnum.CanEditCollections);
@@ -1366,7 +1530,13 @@ export function DynamicItemFields({
               });
 
     return (
-        <ContentLocaleProvider locales={locales} defaultLocale={defaultLocale}>
+        <ContentLocaleProvider
+            locales={locales}
+            defaultLocale={defaultLocale}
+            workspaceEnabled={translationWorkspace}
+            sourceLocale={sourceLocale}
+            onSourceLocaleChange={onSourceLocaleChange}
+        >
             <div className="space-y-4">
                 {tabs.length > 0 ? (
                     <div className="flex flex-wrap gap-2 border-b pb-2">
