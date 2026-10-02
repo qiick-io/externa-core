@@ -1,8 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
+    CalendarDays,
+    Columns3,
     Download,
     FolderOpen,
     GripVertical,
+    LayoutList,
     Pencil,
     Plus,
     RotateCcw,
@@ -44,6 +47,13 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
     Table,
     TableBody,
     TableCell,
@@ -83,6 +93,10 @@ import { ColumnPickerPopover } from './column-picker-popover';
 import type { RelatedFieldEntry } from './column-picker-popover';
 import { ItemFiltersBuilder } from './item-filters-builder';
 import { columnHeaderLabel, ItemTableCell } from './item-table-cell';
+import { ItemsCalendar } from './items-calendar';
+import { ItemsKanban } from './items-kanban';
+
+type ListLayout = 'table' | 'kanban' | 'calendar';
 
 type ItemRow = {
     id: number;
@@ -259,6 +273,9 @@ export default function ItemsIndex({
     items,
     list_columns: listColumnsProp,
     column_aligns: columnAlignsProp = {},
+    list_layout: listLayoutProp = 'table',
+    kanban_field: kanbanFieldProp = null,
+    calendar_field: calendarFieldProp = null,
     related_fields_catalog: relatedFieldsCatalog = {},
     filters,
 }: {
@@ -266,6 +283,9 @@ export default function ItemsIndex({
     items: Paginator<ItemRow>;
     list_columns: string[];
     column_aligns?: Record<string, ColumnAlign>;
+    list_layout?: ListLayout;
+    kanban_field?: string | null;
+    calendar_field?: string | null;
     related_fields_catalog?: Record<string, RelatedFieldEntry[]>;
     filters: ItemsFilters;
 }) {
@@ -284,6 +304,17 @@ export default function ItemsIndex({
     );
     const [listColumns, setListColumns] = useState(listColumnsProp);
     const [columnAligns, setColumnAligns] = useState(columnAlignsProp);
+    const [listLayout, setListLayout] = useState<ListLayout>(
+        listLayoutProp === 'kanban' || listLayoutProp === 'calendar'
+            ? listLayoutProp
+            : 'table',
+    );
+    const [kanbanField, setKanbanField] = useState<string | null>(
+        kanbanFieldProp,
+    );
+    const [calendarField, setCalendarField] = useState<string | null>(
+        calendarFieldProp,
+    );
     const [deleteItemId, setDeleteItemId] = useState<number | null>(null);
     const [pendingBulkAction, setPendingBulkAction] = useState<
         'delete' | 'force_delete' | null
@@ -302,6 +333,22 @@ export default function ItemsIndex({
     useEffect(() => {
         setColumnAligns(columnAlignsProp);
     }, [columnAlignsProp]);
+
+    useEffect(() => {
+        setListLayout(
+            listLayoutProp === 'kanban' || listLayoutProp === 'calendar'
+                ? listLayoutProp
+                : 'table',
+        );
+    }, [listLayoutProp]);
+
+    useEffect(() => {
+        setKanbanField(kanbanFieldProp);
+    }, [kanbanFieldProp]);
+
+    useEffect(() => {
+        setCalendarField(calendarFieldProp);
+    }, [calendarFieldProp]);
 
     useEffect(() => {
         setFilterTitle(titleContainsFromFilters(filters));
@@ -333,17 +380,60 @@ export default function ItemsIndex({
         return map;
     }, [collection.fields]);
 
+    const kanbanFields = useMemo(
+        () =>
+            (collection.fields ?? []).filter(
+                (field) =>
+                    field.type === 'select' || field.type === 'radio_group',
+            ),
+        [collection.fields],
+    );
+
+    const calendarFields = useMemo(
+        () =>
+            (collection.fields ?? []).filter((field) => field.type === 'date'),
+        [collection.fields],
+    );
+
     const persistPrefs = useCallback(
-        (columns: string[], aligns: Record<string, ColumnAlign>) => {
+        (
+            columns: string[],
+            aligns: Record<string, ColumnAlign>,
+            extras?: {
+                layout?: ListLayout;
+                kanban_field?: string | null;
+                calendar_field?: string | null;
+            },
+        ) => {
             setListColumns(columns);
             setColumnAligns(aligns);
             router.put(
                 ItemController.updateListColumns.url(collection.id),
-                { columns, aligns },
+                {
+                    columns,
+                    aligns,
+                    layout: extras?.layout ?? listLayout,
+                    kanban_field:
+                        extras && 'kanban_field' in extras
+                            ? extras.kanban_field
+                            : kanbanField,
+                    calendar_field:
+                        extras && 'calendar_field' in extras
+                            ? extras.calendar_field
+                            : calendarField,
+                },
                 { preserveScroll: true, preserveState: true },
             );
         },
-        [collection.id],
+        [calendarField, collection.id, kanbanField, listLayout],
+    );
+
+    const setLayout = useCallback(
+        (layout: ListLayout) => {
+            setListLayout(layout);
+            persistPrefs(listColumns, columnAligns, { layout });
+        },
+        [columnAligns, listColumns, persistPrefs],
     );
 
     const persistColumns = useCallback(
@@ -762,7 +852,109 @@ export default function ItemsIndex({
                 }
                 filtersRight={
                     hasSelection ? null : (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <ToggleGroup
+                                type="single"
+                                value={listLayout}
+                                data-test="list-layout-toggle"
+                                onValueChange={(value) => {
+                                    if (
+                                        value === 'table' ||
+                                        value === 'kanban' ||
+                                        value === 'calendar'
+                                    ) {
+                                        setLayout(value);
+                                    }
+                                }}
+                            >
+                                <ToggleGroupItem
+                                    value="table"
+                                    aria-label="Table layout"
+                                    className="px-2.5"
+                                >
+                                    <LayoutList className="size-4" />
+                                </ToggleGroupItem>
+                                <ToggleGroupItem
+                                    value="kanban"
+                                    aria-label="Kanban layout"
+                                    className="px-2.5"
+                                    disabled={kanbanFields.length === 0}
+                                >
+                                    <Columns3 className="size-4" />
+                                </ToggleGroupItem>
+                                <ToggleGroupItem
+                                    value="calendar"
+                                    aria-label="Calendar layout"
+                                    className="px-2.5"
+                                    disabled={calendarFields.length === 0}
+                                >
+                                    <CalendarDays className="size-4" />
+                                </ToggleGroupItem>
+                            </ToggleGroup>
+                            {listLayout === 'kanban' &&
+                            kanbanFields.length > 0 ? (
+                                <Select
+                                    value={kanbanField ?? undefined}
+                                    onValueChange={(value) => {
+                                        setKanbanField(value);
+                                        persistPrefs(
+                                            listColumns,
+                                            columnAligns,
+                                            { kanban_field: value },
+                                        );
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        size="sm"
+                                        className="w-auto min-w-28 text-xs"
+                                        data-test="kanban-field-select"
+                                    >
+                                        <SelectValue placeholder="Status field" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {kanbanFields.map((field) => (
+                                            <SelectItem
+                                                key={field.id}
+                                                value={field.name}
+                                            >
+                                                {field.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : null}
+                            {listLayout === 'calendar' &&
+                            calendarFields.length > 0 ? (
+                                <Select
+                                    value={calendarField ?? undefined}
+                                    onValueChange={(value) => {
+                                        setCalendarField(value);
+                                        persistPrefs(
+                                            listColumns,
+                                            columnAligns,
+                                            { calendar_field: value },
+                                        );
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        size="sm"
+                                        className="w-auto min-w-28 text-xs"
+                                        data-test="calendar-field-select"
+                                    >
+                                        <SelectValue placeholder="Date field" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {calendarFields.map((field) => (
+                                            <SelectItem
+                                                key={field.id}
+                                                value={field.name}
+                                            >
+                                                {field.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : null}
                             {versioningEnabled ? (
                                 <Button
                                     type="button"
@@ -836,313 +1028,343 @@ export default function ItemsIndex({
                     ) : undefined
                 }
             >
-                <TablePanel>
-                    <Table>
-                        <TableHeader>
-                            <TableRow ref={headerRowRef}>
-                                <TableHead className="w-10">
-                                    <Checkbox
-                                        checked={
-                                            items.data.length > 0 &&
-                                            selected.length ===
-                                                items.data.length
-                                        }
-                                        onCheckedChange={(c) =>
-                                            toggleAll(c === true)
-                                        }
-                                        aria-label="Select all"
-                                    />
-                                </TableHead>
-                                {listColumns.map((path) => (
-                                    <SortableHeader
-                                        key={path}
-                                        id={path}
-                                        label={columnHeaderLabel(
-                                            path,
-                                            fieldsByName,
-                                            relatedFieldsCatalog,
-                                        )}
-                                        sortActive={activeSort === path}
-                                        sortDirection={
-                                            activeSort === path
-                                                ? activeDirection
-                                                : undefined
-                                        }
-                                        align={columnAligns[path] ?? 'left'}
-                                        canHide={canHideColumn && !hasSelection}
-                                        onSort={(direction) =>
-                                            visit({
-                                                sort: path,
-                                                direction,
-                                            })
-                                        }
-                                        onAlign={(align) =>
-                                            persistPrefs(listColumns, {
-                                                ...columnAligns,
-                                                [path]: align,
-                                            })
-                                        }
-                                        onHide={() => {
-                                            if (
-                                                !canHideColumn ||
-                                                hasSelection
-                                            ) {
-                                                return;
+                {listLayout === 'kanban' ? (
+                    <ItemsKanban
+                        collection={collection}
+                        items={items.data}
+                        fieldName={kanbanField}
+                        canEdit={can(PermissionEnum.CanEditCollections)}
+                        isTrashed={isTrashed}
+                    />
+                ) : null}
+                {listLayout === 'calendar' ? (
+                    <ItemsCalendar
+                        collection={collection}
+                        items={items.data}
+                        fieldName={calendarField}
+                    />
+                ) : null}
+                {listLayout === 'table' ? (
+                    <TablePanel>
+                        <Table>
+                            <TableHeader>
+                                <TableRow ref={headerRowRef}>
+                                    <TableHead className="w-10">
+                                        <Checkbox
+                                            checked={
+                                                items.data.length > 0 &&
+                                                selected.length ===
+                                                    items.data.length
                                             }
-
-                                            persistColumns(
-                                                listColumns.filter(
-                                                    (column) => column !== path,
-                                                ),
-                                            );
-                                        }}
-                                    />
-                                ))}
-                                <TableHead className="w-[1%] text-right whitespace-nowrap">
-                                    <div className="flex items-center justify-end gap-1">
-                                        {!hasSelection ? (
-                                            <ColumnPickerPopover
-                                                fields={collection.fields ?? []}
-                                                listColumns={listColumns}
-                                                relatedFieldsCatalog={
-                                                    relatedFieldsCatalog
-                                                }
-                                                onChange={persistColumns}
-                                            />
-                                        ) : null}
-                                        <span>Actions</span>
-                                    </div>
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {items.data.length === 0 ? (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={colSpan}
-                                        className="text-muted-foreground"
-                                    >
-                                        No items yet.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                items.data.map((row) => {
-                                    const editUrl = itemEditUrl(row.id);
-
-                                    return (
-                                        <TableRow
-                                            key={row.id}
-                                            className={
-                                                isTrashed
-                                                    ? undefined
-                                                    : 'cursor-pointer'
+                                            onCheckedChange={(c) =>
+                                                toggleAll(c === true)
                                             }
-                                            tabIndex={isTrashed ? undefined : 0}
-                                            role={
-                                                isTrashed ? undefined : 'link'
+                                            aria-label="Select all"
+                                        />
+                                    </TableHead>
+                                    {listColumns.map((path) => (
+                                        <SortableHeader
+                                            key={path}
+                                            id={path}
+                                            label={columnHeaderLabel(
+                                                path,
+                                                fieldsByName,
+                                                relatedFieldsCatalog,
+                                            )}
+                                            sortActive={activeSort === path}
+                                            sortDirection={
+                                                activeSort === path
+                                                    ? activeDirection
+                                                    : undefined
                                             }
-                                            aria-label={
-                                                isTrashed
-                                                    ? undefined
-                                                    : `Edit item ${row.id}`
+                                            align={columnAligns[path] ?? 'left'}
+                                            canHide={
+                                                canHideColumn && !hasSelection
                                             }
-                                            onClick={() => {
-                                                if (!isTrashed) {
-                                                    router.visit(editUrl);
-                                                }
-                                            }}
-                                            onKeyDown={(event) => {
-                                                if (isTrashed) {
+                                            onSort={(direction) =>
+                                                visit({
+                                                    sort: path,
+                                                    direction,
+                                                })
+                                            }
+                                            onAlign={(align) =>
+                                                persistPrefs(listColumns, {
+                                                    ...columnAligns,
+                                                    [path]: align,
+                                                })
+                                            }
+                                            onHide={() => {
+                                                if (
+                                                    !canHideColumn ||
+                                                    hasSelection
+                                                ) {
                                                     return;
                                                 }
 
-                                                if (
-                                                    event.key === 'Enter' ||
-                                                    event.key === ' '
-                                                ) {
-                                                    event.preventDefault();
-                                                    router.visit(editUrl);
-                                                }
+                                                persistColumns(
+                                                    listColumns.filter(
+                                                        (column) =>
+                                                            column !== path,
+                                                    ),
+                                                );
                                             }}
-                                        >
-                                            <TableCell
-                                                onClick={(event) =>
-                                                    event.stopPropagation()
-                                                }
-                                            >
-                                                <Checkbox
-                                                    checked={selected.includes(
-                                                        row.id,
-                                                    )}
-                                                    onCheckedChange={() =>
-                                                        toggleRow(row.id)
+                                        />
+                                    ))}
+                                    <TableHead className="w-[1%] text-right whitespace-nowrap">
+                                        <div className="flex items-center justify-end gap-1">
+                                            {!hasSelection ? (
+                                                <ColumnPickerPopover
+                                                    fields={
+                                                        collection.fields ?? []
                                                     }
-                                                    aria-label={`Select item ${row.id}`}
+                                                    listColumns={listColumns}
+                                                    relatedFieldsCatalog={
+                                                        relatedFieldsCatalog
+                                                    }
+                                                    onChange={persistColumns}
                                                 />
-                                            </TableCell>
-                                            {listColumns.map((path) => (
+                                            ) : null}
+                                            <span>Actions</span>
+                                        </div>
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {items.data.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={colSpan}
+                                            className="text-muted-foreground"
+                                        >
+                                            No items yet.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    items.data.map((row) => {
+                                        const editUrl = itemEditUrl(row.id);
+
+                                        return (
+                                            <TableRow
+                                                key={row.id}
+                                                className={
+                                                    isTrashed
+                                                        ? undefined
+                                                        : 'cursor-pointer'
+                                                }
+                                                tabIndex={
+                                                    isTrashed ? undefined : 0
+                                                }
+                                                role={
+                                                    isTrashed
+                                                        ? undefined
+                                                        : 'link'
+                                                }
+                                                aria-label={
+                                                    isTrashed
+                                                        ? undefined
+                                                        : `Edit item ${row.id}`
+                                                }
+                                                onClick={() => {
+                                                    if (!isTrashed) {
+                                                        router.visit(editUrl);
+                                                    }
+                                                }}
+                                                onKeyDown={(event) => {
+                                                    if (isTrashed) {
+                                                        return;
+                                                    }
+
+                                                    if (
+                                                        event.key === 'Enter' ||
+                                                        event.key === ' '
+                                                    ) {
+                                                        event.preventDefault();
+                                                        router.visit(editUrl);
+                                                    }
+                                                }}
+                                            >
                                                 <TableCell
-                                                    key={path}
-                                                    className={alignClass(
-                                                        columnAligns[path] ??
-                                                            'left',
-                                                    )}
-                                                >
-                                                    <ItemTableCell
-                                                        path={path}
-                                                        row={row}
-                                                        fieldsByName={
-                                                            fieldsByName
-                                                        }
-                                                    />
-                                                </TableCell>
-                                            ))}
-                                            <TableCell className="w-[1%] text-right whitespace-nowrap">
-                                                <div
-                                                    className="flex items-center justify-end gap-1"
                                                     onClick={(event) =>
                                                         event.stopPropagation()
                                                     }
                                                 >
-                                                    {versioningEnabled &&
-                                                    row.has_draft ? (
-                                                        <Badge
-                                                            variant="secondary"
-                                                            className="mr-1 text-xs"
-                                                            data-test={`item-draft-badge-${row.id}`}
-                                                        >
-                                                            Draft
-                                                        </Badge>
-                                                    ) : null}
-                                                    {approvalsRequired &&
-                                                    row.approval_status &&
-                                                    row.approval_status !==
-                                                        'draft' ? (
-                                                        <Badge
-                                                            variant={
-                                                                row.approval_status ===
-                                                                'rejected'
-                                                                    ? 'destructive'
-                                                                    : 'outline'
-                                                            }
-                                                            className="mr-1 text-xs"
-                                                            data-test={`item-approval-badge-${row.id}`}
-                                                        >
-                                                            {row.approval_status ===
-                                                            'in_review'
-                                                                ? 'In review'
-                                                                : row.approval_status ===
-                                                                    'approved'
-                                                                  ? 'Approved'
-                                                                  : 'Rejected'}
-                                                        </Badge>
-                                                    ) : null}
-                                                    <AskAiButton
-                                                        stopPropagation
-                                                        prompt={seedItemPrompt({
-                                                            id: row.id,
-                                                            collection_id:
-                                                                collection.id,
-                                                            label: itemLabel(
-                                                                row,
-                                                            ),
-                                                        })}
+                                                    <Checkbox
+                                                        checked={selected.includes(
+                                                            row.id,
+                                                        )}
+                                                        onCheckedChange={() =>
+                                                            toggleRow(row.id)
+                                                        }
+                                                        aria-label={`Select item ${row.id}`}
                                                     />
-                                                    {isTrashed ? (
-                                                        <>
-                                                            {can(
-                                                                PermissionEnum.CanRestoreCollections,
-                                                            ) && (
+                                                </TableCell>
+                                                {listColumns.map((path) => (
+                                                    <TableCell
+                                                        key={path}
+                                                        className={alignClass(
+                                                            columnAligns[
+                                                                path
+                                                            ] ?? 'left',
+                                                        )}
+                                                    >
+                                                        <ItemTableCell
+                                                            path={path}
+                                                            row={row}
+                                                            fieldsByName={
+                                                                fieldsByName
+                                                            }
+                                                        />
+                                                    </TableCell>
+                                                ))}
+                                                <TableCell className="w-[1%] text-right whitespace-nowrap">
+                                                    <div
+                                                        className="flex items-center justify-end gap-1"
+                                                        onClick={(event) =>
+                                                            event.stopPropagation()
+                                                        }
+                                                    >
+                                                        {versioningEnabled &&
+                                                        row.has_draft ? (
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="mr-1 text-xs"
+                                                                data-test={`item-draft-badge-${row.id}`}
+                                                            >
+                                                                Draft
+                                                            </Badge>
+                                                        ) : null}
+                                                        {approvalsRequired &&
+                                                        row.approval_status &&
+                                                        row.approval_status !==
+                                                            'draft' ? (
+                                                            <Badge
+                                                                variant={
+                                                                    row.approval_status ===
+                                                                    'rejected'
+                                                                        ? 'destructive'
+                                                                        : 'outline'
+                                                                }
+                                                                className="mr-1 text-xs"
+                                                                data-test={`item-approval-badge-${row.id}`}
+                                                            >
+                                                                {row.approval_status ===
+                                                                'in_review'
+                                                                    ? 'In review'
+                                                                    : row.approval_status ===
+                                                                        'approved'
+                                                                      ? 'Approved'
+                                                                      : 'Rejected'}
+                                                            </Badge>
+                                                        ) : null}
+                                                        <AskAiButton
+                                                            stopPropagation
+                                                            prompt={seedItemPrompt(
+                                                                {
+                                                                    id: row.id,
+                                                                    collection_id:
+                                                                        collection.id,
+                                                                    label: itemLabel(
+                                                                        row,
+                                                                    ),
+                                                                },
+                                                            )}
+                                                        />
+                                                        {isTrashed ? (
+                                                            <>
+                                                                {can(
+                                                                    PermissionEnum.CanRestoreCollections,
+                                                                ) && (
+                                                                    <HeaderIconButton
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        size="icon"
+                                                                        className="size-8"
+                                                                        label="Restore"
+                                                                        onClick={() =>
+                                                                            router.post(
+                                                                                ItemController.restore.url(
+                                                                                    {
+                                                                                        collection:
+                                                                                            collection.id,
+                                                                                        item: row.id,
+                                                                                    },
+                                                                                ),
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <RotateCcw className="size-3.5" />
+                                                                    </HeaderIconButton>
+                                                                )}
+                                                                {can(
+                                                                    PermissionEnum.CanForceDeleteCollections,
+                                                                ) && (
+                                                                    <HeaderIconButton
+                                                                        type="button"
+                                                                        variant="destructive"
+                                                                        size="icon"
+                                                                        className="size-8"
+                                                                        label="Delete permanently"
+                                                                        onClick={() =>
+                                                                            setPendingForceDeleteItemId(
+                                                                                row.id,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Trash2 className="size-3.5" />
+                                                                    </HeaderIconButton>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <HeaderIconButton
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                    className="size-8"
+                                                                    label="Edit"
+                                                                    asChild
+                                                                >
+                                                                    <Link
+                                                                        href={
+                                                                            editUrl
+                                                                        }
+                                                                        onClick={(
+                                                                            event,
+                                                                        ) =>
+                                                                            event.stopPropagation()
+                                                                        }
+                                                                    >
+                                                                        <Pencil className="size-3.5" />
+                                                                    </Link>
+                                                                </HeaderIconButton>
                                                                 <HeaderIconButton
                                                                     type="button"
                                                                     variant="outline"
                                                                     size="icon"
-                                                                    className="size-8"
-                                                                    label="Restore"
-                                                                    onClick={() =>
-                                                                        router.post(
-                                                                            ItemController.restore.url(
-                                                                                {
-                                                                                    collection:
-                                                                                        collection.id,
-                                                                                    item: row.id,
-                                                                                },
-                                                                            ),
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <RotateCcw className="size-3.5" />
-                                                                </HeaderIconButton>
-                                                            )}
-                                                            {can(
-                                                                PermissionEnum.CanForceDeleteCollections,
-                                                            ) && (
-                                                                <HeaderIconButton
-                                                                    type="button"
-                                                                    variant="destructive"
-                                                                    size="icon"
-                                                                    className="size-8"
-                                                                    label="Delete permanently"
-                                                                    onClick={() =>
-                                                                        setPendingForceDeleteItemId(
+                                                                    className="size-8 text-destructive hover:text-destructive"
+                                                                    label="Delete"
+                                                                    onClick={(
+                                                                        event,
+                                                                    ) => {
+                                                                        event.stopPropagation();
+                                                                        setDeleteItemId(
                                                                             row.id,
-                                                                        )
-                                                                    }
+                                                                        );
+                                                                    }}
                                                                 >
                                                                     <Trash2 className="size-3.5" />
                                                                 </HeaderIconButton>
-                                                            )}
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <HeaderIconButton
-                                                                variant="outline"
-                                                                size="icon"
-                                                                className="size-8"
-                                                                label="Edit"
-                                                                asChild
-                                                            >
-                                                                <Link
-                                                                    href={
-                                                                        editUrl
-                                                                    }
-                                                                    onClick={(
-                                                                        event,
-                                                                    ) =>
-                                                                        event.stopPropagation()
-                                                                    }
-                                                                >
-                                                                    <Pencil className="size-3.5" />
-                                                                </Link>
-                                                            </HeaderIconButton>
-                                                            <HeaderIconButton
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="icon"
-                                                                className="size-8 text-destructive hover:text-destructive"
-                                                                label="Delete"
-                                                                onClick={(
-                                                                    event,
-                                                                ) => {
-                                                                    event.stopPropagation();
-                                                                    setDeleteItemId(
-                                                                        row.id,
-                                                                    );
-                                                                }}
-                                                            >
-                                                                <Trash2 className="size-3.5" />
-                                                            </HeaderIconButton>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })
-                            )}
-                        </TableBody>
-                    </Table>
-                </TablePanel>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
+                                )}
+                            </TableBody>
+                        </Table>
+                    </TablePanel>
+                ) : null}
             </PageLayout>
 
             <ConfirmDestructiveDialog

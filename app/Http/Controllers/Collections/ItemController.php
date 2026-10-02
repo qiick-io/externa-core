@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Collections;
 
+use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
@@ -33,6 +34,7 @@ use App\Services\Collections\FieldConditionEvaluator;
 use App\Services\Collections\ItemRolePreviewService;
 use App\Services\Collections\LivePreviewUrlBuilder;
 use App\Services\Settings\SettingsRepository;
+use App\Support\Http\SafeReturnUrl;
 use App\Support\Validation\SearchQueryRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -129,10 +131,15 @@ class ItemController extends Controller
 
         $listColumns = $this->resolveListColumns($request, $collection);
         $columnAligns = $this->resolveColumnAligns($request, $collection, $listColumns);
+        $listLayout = $this->resolveListLayout($request, $collection);
+        $kanbanField = $this->resolveKanbanField($request, $collection);
+        $calendarField = $this->resolveCalendarField($request, $collection);
 
         $this->permissionEnforcer->applyItemFilterToQuery($request, $collection, $query);
 
-        $paginator = $query->paginate(15)->withQueryString();
+        // ponytail: board/calendar need a wider page than table; hard cap 100.
+        $perPage = in_array($listLayout, ['kanban', 'calendar'], true) ? 100 : 15;
+        $paginator = $query->paginate($perPage)->withQueryString();
         $versioning = (bool) $collection->versioning;
         $approvalsRequired = (bool) $collection->approvals_required;
         $rows = $paginator->getCollection()
@@ -156,6 +163,9 @@ class ItemController extends Controller
             'items' => $paginator,
             'list_columns' => $listColumns,
             'column_aligns' => $columnAligns,
+            'list_layout' => $listLayout,
+            'kanban_field' => $kanbanField,
+            'calendar_field' => $calendarField,
             'related_fields_catalog' => $this->listColumnsNormalizer->relatedFieldsCatalog($collection),
             'filters' => [
                 ...$stringFilters,
@@ -236,6 +246,36 @@ class ItemController extends Controller
             $request->input('aligns', []),
             $user->id,
         );
+
+        if ($request->exists('layout')) {
+            $this->settingsRepository->set(
+                SettingsRepository::SCOPE_USER,
+                'collection_list',
+                'collection_'.$collection->id.'_layout',
+                $request->input('layout') ?? 'table',
+                $user->id,
+            );
+        }
+
+        if ($request->exists('kanban_field')) {
+            $this->settingsRepository->set(
+                SettingsRepository::SCOPE_USER,
+                'collection_list',
+                'collection_'.$collection->id.'_kanban_field',
+                $request->input('kanban_field'),
+                $user->id,
+            );
+        }
+
+        if ($request->exists('calendar_field')) {
+            $this->settingsRepository->set(
+                SettingsRepository::SCOPE_USER,
+                'collection_list',
+                'collection_'.$collection->id.'_calendar_field',
+                $request->input('calendar_field'),
+                $user->id,
+            );
+        }
 
         return redirect()->back();
     }
@@ -893,6 +933,13 @@ class ItemController extends Controller
                 ->with('success', $success);
         }
 
+        if ($action === 'stay') {
+            $return = SafeReturnUrl::from(request()->input('return'));
+            if ($return !== null) {
+                return redirect()->to($return)->with('success', $success);
+            }
+        }
+
         $parameters = [
             'collection' => $collection,
             'item' => $item,
@@ -941,6 +988,94 @@ class ItemController extends Controller
             : null;
 
         return $this->listColumnsNormalizer->normalize($stored, $collection);
+    }
+
+    /**
+     * @return 'table'|'kanban'|'calendar'
+     */
+    private function resolveListLayout(Request $request, Collection $collection): string
+    {
+        $queryLayout = $request->query('layout');
+        if (in_array($queryLayout, ['table', 'kanban', 'calendar'], true)) {
+            return $queryLayout;
+        }
+
+        $user = $request->user();
+        $stored = $user !== null
+            ? $this->settingsRepository->get(
+                SettingsRepository::SCOPE_USER,
+                'collection_list',
+                'collection_'.$collection->id.'_layout',
+                $user->id,
+            )
+            : null;
+
+        return in_array($stored, ['table', 'kanban', 'calendar'], true) ? $stored : 'table';
+    }
+
+    private function resolveKanbanField(Request $request, Collection $collection): ?string
+    {
+        $user = $request->user();
+        $stored = $user !== null
+            ? $this->settingsRepository->get(
+                SettingsRepository::SCOPE_USER,
+                'collection_list',
+                'collection_'.$collection->id.'_kanban_field',
+                $user->id,
+            )
+            : null;
+
+        $candidate = is_string($stored) && $stored !== '' ? $stored : null;
+        $fields = $collection->fields ?? collect();
+
+        if ($candidate !== null) {
+            $field = $fields->firstWhere('name', $candidate);
+            if (
+                $field instanceof CollectionField
+                && in_array($field->type, [FieldTypeEnum::Select, FieldTypeEnum::RadioGroup], true)
+            ) {
+                return $candidate;
+            }
+        }
+
+        $first = $fields->first(
+            fn (CollectionField $field): bool => in_array(
+                $field->type,
+                [FieldTypeEnum::Select, FieldTypeEnum::RadioGroup],
+                true,
+            ),
+        );
+
+        return $first instanceof CollectionField ? $first->name : null;
+    }
+
+    private function resolveCalendarField(Request $request, Collection $collection): ?string
+    {
+        $user = $request->user();
+        $stored = $user !== null
+            ? $this->settingsRepository->get(
+                SettingsRepository::SCOPE_USER,
+                'collection_list',
+                'collection_'.$collection->id.'_calendar_field',
+                $user->id,
+            )
+            : null;
+
+        $candidate = is_string($stored) && $stored !== '' ? $stored : null;
+        $fields = $collection->fields ?? collect();
+
+        if ($candidate !== null) {
+            $field = $fields->firstWhere('name', $candidate);
+            if ($field instanceof CollectionField && $field->type === FieldTypeEnum::Date) {
+                return $candidate;
+            }
+        }
+
+        $first = $fields->first(
+            fn (CollectionField $field): bool => $field->type === FieldTypeEnum::Date,
+        );
+
+        return $first instanceof CollectionField ? $first->name : null;
     }
 
     /**
