@@ -16,10 +16,11 @@ class CollectionItemPublisher
         private CollectionItemDataNormalizer $normalizer,
         private CollectionItemValuesWriter $writer,
         private OutboundWebhookDispatcher $webhooks,
+        private CollectionItemApprovalService $approvals,
     ) {}
 
     /**
-     * @throws RuntimeException when no draft or versioning off
+     * @throws RuntimeException when no draft, versioning off, or approvals block promote
      */
     public function promote(CollectionItem $item, Collection $collection, bool $scheduled = false): void
     {
@@ -31,6 +32,8 @@ class CollectionItemPublisher
         if ($draft === null) {
             throw new RuntimeException('No draft changes to publish.');
         }
+
+        $this->approvals->assertPromotable($item, $collection);
 
         $normalized = $this->normalizer->normalize($collection, $draft, false);
         $this->writer->sync(
@@ -46,6 +49,7 @@ class CollectionItemPublisher
 
         $item->draft_data = null;
         $item->publish_at = null;
+        $this->approvals->clearAfterPromote($item);
         $item->save();
 
         $this->webhooks->dispatchItem('item.published', $item->fresh(), $collection, [

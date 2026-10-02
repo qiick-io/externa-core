@@ -493,6 +493,8 @@
             "singletonHint": "Usalo per collection con una sola voce fissa (es. homepage o impostazioni sito). Questa scelta non si può cambiare dopo la creazione.",
             "versioning": "Versioning contenuti",
             "versioningHint": "Abilita bozza / pubblicato. Modifica in Bozza, poi Pubblica.",
+            "approvalsRequired": "Approvazioni richieste",
+            "approvalsRequiredHint": "Gli editor inviano le bozze in revisione. Pubblica resta bloccato finché un revisore non approva. Richiede versioning.",
             "previewUrl": "URL Live Preview",
             "previewUrlHint": "Template frontend con token: {{id}}, {{slug}}, {{collection}}, {{locale}}, {{version}}, {{token}}. Vuoto = default in Impostazioni progetto.",
             "previewUrlPlaceholder": "https://example.com/preview/{{collection}}/{{id}}?version={{version}}&token={{token}}",

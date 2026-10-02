@@ -95,6 +95,7 @@ type ItemRow = {
     displays?: Record<string, string | null>;
     thumbs?: Record<string, string | null>;
     has_draft?: boolean;
+    approval_status?: string | null;
 };
 
 type Paginator<T> = {
@@ -111,6 +112,7 @@ type ItemsFilters = Record<string, unknown> & {
     direction?: string;
     trashed?: boolean;
     has_draft?: boolean;
+    in_review?: boolean;
 };
 
 function titleContainsFromFilters(filters: ItemsFilters): string {
@@ -271,7 +273,9 @@ export default function ItemsIndex({
     const { can } = useCan();
     const isTrashed = filters.trashed === true;
     const versioningEnabled = Boolean(collection.versioning);
+    const approvalsRequired = Boolean(collection.approvals_required);
     const hasDraftFilter = filters.has_draft === true;
+    const inReviewFilter = filters.in_review === true;
     const [filterTitle, setFilterTitle] = useState(() =>
         titleContainsFromFilters(filters),
     );
@@ -363,6 +367,7 @@ export default function ItemsIndex({
                 direction?: 'asc' | 'desc';
                 trashed?: boolean;
                 has_draft?: boolean;
+                in_review?: boolean;
             } = {},
         ) => {
             const nextRules =
@@ -380,6 +385,10 @@ export default function ItemsIndex({
                 overrides.has_draft !== undefined
                     ? overrides.has_draft
                     : hasDraftFilter;
+            const nextInReview =
+                overrides.in_review !== undefined
+                    ? overrides.in_review
+                    : inReviewFilter;
 
             const filterPayload = serializeFilterRules(nextRules);
 
@@ -402,6 +411,10 @@ export default function ItemsIndex({
                 query.has_draft = true;
             }
 
+            if (nextInReview) {
+                query.in_review = true;
+            }
+
             router.get(
                 collections.items.index.url(collection.id, { query }),
                 {},
@@ -414,6 +427,7 @@ export default function ItemsIndex({
             filters.direction,
             filters.sort,
             hasDraftFilter,
+            inReviewFilter,
             isTrashed,
         ],
     );
@@ -768,6 +782,25 @@ export default function ItemsIndex({
                                     Has draft
                                 </Button>
                             ) : null}
+                            {approvalsRequired ? (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant={
+                                        inReviewFilter ? 'secondary' : 'outline'
+                                    }
+                                    className="h-9 px-2.5 text-xs"
+                                    data-test="filter-in-review"
+                                    aria-pressed={inReviewFilter}
+                                    onClick={() =>
+                                        visit({
+                                            in_review: !inReviewFilter,
+                                        })
+                                    }
+                                >
+                                    In review
+                                </Button>
+                            ) : null}
                             <ToggleGroup
                                 type="single"
                                 value={isTrashed ? 'trashed' : 'active'}
@@ -979,6 +1012,29 @@ export default function ItemsIndex({
                                                             data-test={`item-draft-badge-${row.id}`}
                                                         >
                                                             Draft
+                                                        </Badge>
+                                                    ) : null}
+                                                    {approvalsRequired &&
+                                                    row.approval_status &&
+                                                    row.approval_status !==
+                                                        'draft' ? (
+                                                        <Badge
+                                                            variant={
+                                                                row.approval_status ===
+                                                                'rejected'
+                                                                    ? 'destructive'
+                                                                    : 'outline'
+                                                            }
+                                                            className="mr-1 text-xs"
+                                                            data-test={`item-approval-badge-${row.id}`}
+                                                        >
+                                                            {row.approval_status ===
+                                                            'in_review'
+                                                                ? 'In review'
+                                                                : row.approval_status ===
+                                                                    'approved'
+                                                                  ? 'Approved'
+                                                                  : 'Rejected'}
                                                         </Badge>
                                                     ) : null}
                                                     <AskAiButton

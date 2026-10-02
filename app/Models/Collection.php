@@ -29,6 +29,7 @@ use Spatie\EloquentSortable\SortableTrait;
  * @property string|null $color
  * @property bool $is_singleton
  * @property bool $versioning
+ * @property bool $approvals_required
  * @property int|null $revision_retention_count
  * @property int|null $revision_retention_days
  * @property array<string, mixed>|null $form_layout
@@ -62,6 +63,7 @@ class Collection extends Model implements Sortable
         'color',
         'is_singleton',
         'versioning',
+        'approvals_required',
         'revision_retention_count',
         'revision_retention_days',
         'form_layout',
@@ -172,6 +174,7 @@ class Collection extends Model implements Sortable
             'status' => CollectionStatusEnum::class,
             'is_singleton' => 'boolean',
             'versioning' => 'boolean',
+            'approvals_required' => 'boolean',
             'revision_retention_count' => 'integer',
             'revision_retention_days' => 'integer',
             'form_layout' => 'array',

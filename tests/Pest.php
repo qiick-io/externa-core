@@ -159,6 +159,8 @@ function allCollectionPermissions(): array
         PermissionEnum::CanDeleteCollections->value,
         PermissionEnum::CanRestoreCollections->value,
         PermissionEnum::CanForceDeleteCollections->value,
+        PermissionEnum::CanSubmitCollections->value,
+        PermissionEnum::CanApproveCollections->value,
     ];
 }
 

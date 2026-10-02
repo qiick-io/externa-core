@@ -52,6 +52,7 @@ class UpdateContentCollectionRequest extends FormRequest
             'icon' => ['sometimes', 'nullable', 'string', 'max:64'],
             'color' => ['sometimes', 'nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'versioning' => ['sometimes', 'boolean'],
+            'approvals_required' => ['sometimes', 'boolean'],
             'revision_retention_count' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:10000'],
             'revision_retention_days' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:3650'],
             'preview_url' => ['sometimes', 'nullable', 'string', 'max:2048', 'regex:/^https?:\/\/.+/i'],
@@ -104,6 +105,21 @@ class UpdateContentCollectionRequest extends FormRequest
 
         if ($this->has('versioning')) {
             $this->merge(['versioning' => $this->boolean('versioning')]);
+        }
+
+        if ($this->has('approvals_required')) {
+            $approvals = $this->boolean('approvals_required');
+            $versioning = $this->has('versioning')
+                ? $this->boolean('versioning')
+                : (bool) $collection->versioning;
+
+            if ($approvals && ! $versioning) {
+                throw ValidationException::withMessages([
+                    'approvals_required' => __('Approvals require content versioning.'),
+                ]);
+            }
+
+            $this->merge(['approvals_required' => $approvals]);
         }
     }
 }
