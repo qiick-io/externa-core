@@ -9,6 +9,7 @@ use App\Models\CollectionItem;
 use App\Models\User;
 use App\Notifications\ItemApprovalNotification;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -63,7 +64,7 @@ class CollectionItemApprovalService
         $item->approval_status = ItemApprovalStatus::Approved->value;
         $item->rejection_note = null;
         $item->reviewed_by = $actor->id;
-        $item->reviewed_at = now();
+        $item->reviewed_at = Carbon::now();
         $item->save();
 
         $this->webhooks->dispatchItem('item.approved', $item->fresh(), $collection);
@@ -90,7 +91,7 @@ class CollectionItemApprovalService
         $item->approval_status = ItemApprovalStatus::Rejected->value;
         $item->rejection_note = $note;
         $item->reviewed_by = $actor->id;
-        $item->reviewed_at = now();
+        $item->reviewed_at = Carbon::now();
         $item->save();
 
         $this->webhooks->dispatchItem('item.rejected', $item->fresh(), $collection, [
