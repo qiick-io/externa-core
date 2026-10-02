@@ -17,22 +17,42 @@ test('lock claim and expiry', () => {
     assert.equal(lockHeldByOther(claim, 3, now), true);
 });
 
-test('applyLockWhisper keeps the newest lock', () => {
+test('applyLockWhisper keeps the longer-lived lock', () => {
     const now = 2_000_000;
     const first = buildLockClaim(1, 'A', now);
-    const second = applyLockWhisper(first, {
-        userId: 2,
-        name: 'B',
-        until: now + 5_000,
-    });
+    const shorter = applyLockWhisper(
+        first,
+        {
+            userId: 2,
+            name: 'B',
+            until: now + 5_000,
+        },
+        now,
+    );
 
-    assert.equal(second?.userId, 2);
+    assert.equal(shorter?.userId, 1);
 
-    const stale = applyLockWhisper(second, {
-        userId: 2,
-        name: 'B',
-        until: now - 1,
-    });
+    const longer = applyLockWhisper(
+        first,
+        {
+            userId: 2,
+            name: 'B',
+            until: now + 60_000,
+        },
+        now,
+    );
+
+    assert.equal(longer?.userId, 2);
+
+    const stale = applyLockWhisper(
+        longer,
+        {
+            userId: 2,
+            name: 'B',
+            until: now - 1,
+        },
+        now,
+    );
 
     assert.equal(stale, null);
 });

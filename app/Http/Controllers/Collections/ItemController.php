@@ -477,8 +477,8 @@ class ItemController extends Controller
 
         $expectedUpdatedAt = $request->validated('expected_updated_at');
         if (is_string($expectedUpdatedAt) && $expectedUpdatedAt !== '' && $item->updated_at !== null) {
-            $expected = Carbon::parse($expectedUpdatedAt);
-            if (! $item->updated_at->equalTo($expected)) {
+            // Compare at second precision — ISO8601 round-trips can differ in microseconds.
+            if ($item->updated_at->getTimestamp() !== Carbon::parse($expectedUpdatedAt)->getTimestamp()) {
                 throw ValidationException::withMessages([
                     'expected_updated_at' => [
                         __('Someone else saved this item while you were editing. Reload the page and try again.'),

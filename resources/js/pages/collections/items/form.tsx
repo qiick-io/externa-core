@@ -39,6 +39,14 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
@@ -61,20 +69,13 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
-import { useItemPresence } from '@/hooks/use-item-presence';
 import { useCollection } from '@/hooks/use-collection';
+import { formatUserDisplayName } from '@/hooks/use-initials';
+import { useItemPresence } from '@/hooks/use-item-presence';
 import {
     useRegisterUnsavedChanges,
     useRequestLeave,
@@ -90,10 +91,10 @@ import {
     serializeItemForm,
     writeItemDraft,
 } from '@/lib/item-draft-storage';
+import { isRemoteUpdatedAtStale } from '@/lib/item-presence';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { readReturnParam } from '@/lib/safe-return-url';
-import { isRemoteUpdatedAtStale } from '@/lib/item-presence';
 import { toast } from '@/lib/toast';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import collections from '@/routes/collections';
@@ -319,14 +320,16 @@ export default function ItemsForm({
         collectionId: collection.id,
         itemId: item?.id ?? 0,
         viewerId: auth.user?.id ?? 0,
-        viewerName: auth.user?.name ?? '',
+        viewerName: auth.user
+            ? formatUserDisplayName(auth.user.first_name, auth.user.last_name)
+            : '',
         loadedUpdatedAt: item?.updated_at ?? null,
         canClaimLock: !isNew && !baseFormReadonly,
     });
 
     const formReadonly = baseFormReadonly || presence.lockedByOther;
     const remoteStale = isRemoteUpdatedAtStale(
-        loadedUpdatedAtRef.current,
+        expectedUpdatedAt || null,
         presence.remoteUpdatedAt,
     );
     const showCreateNew = !collection.is_singleton;
@@ -1673,11 +1676,24 @@ export default function ItemsForm({
                                                 {formReadonly ? (
                                                     <p
                                                         className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
-                                                        data-test="published-readonly-banner"
+                                                        data-test={
+                                                            presence.lockedByOther
+                                                                ? 'item-soft-lock-banner'
+                                                                : 'published-readonly-banner'
+                                                        }
                                                     >
-                                                        Published is read-only.
-                                                        Switch to Draft to edit,
-                                                        then Publish.
+                                                        {presence.lockedByOther
+                                                            ? t(
+                                                                  'collections.itemPresence.lockedBy',
+                                                                  {
+                                                                      name:
+                                                                          presence
+                                                                              .lock
+                                                                              ?.name ??
+                                                                          '…',
+                                                                  },
+                                                              )
+                                                            : 'Published is read-only. Switch to Draft to edit, then Publish.'}
                                                     </p>
                                                 ) : null}
                                                 <DynamicItemFields
@@ -1912,11 +1928,10 @@ export default function ItemsForm({
                                     allowStaleSaveRef.current = true;
                                     setStaleSaveOpen(false);
                                     queueMicrotask(() => {
-                                        document
-                                            .getElementById(
-                                                COLLECTION_ITEM_FORM_ID,
-                                            )
-                                            ?.requestSubmit();
+                                        const form = document.getElementById(
+                                            COLLECTION_ITEM_FORM_ID,
+                                        ) as HTMLFormElement | null;
+                                        form?.requestSubmit();
                                     });
                                 }}
                             >
