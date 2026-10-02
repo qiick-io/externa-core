@@ -24,6 +24,7 @@ use Spatie\Permission\Traits\HasRoles;
     'last_name',
     'username',
     'email',
+    'oidc_sub',
     'phone',
     'locale',
     'timezone',

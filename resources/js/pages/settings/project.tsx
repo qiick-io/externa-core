@@ -79,6 +79,12 @@ function buildProjectFormState(project: ProjectSettingsForm) {
         notifier_slack_webhook_url: project.notifier_slack_webhook_url ?? '',
         notifier_telegram_bot_token: '',
         notifier_telegram_chat_id: project.notifier_telegram_chat_id ?? '',
+        oidc_enabled: project.oidc_enabled ?? false,
+        oidc_issuer: project.oidc_issuer ?? '',
+        oidc_client_id: project.oidc_client_id ?? '',
+        oidc_client_secret: '',
+        oidc_button_label: project.oidc_button_label ?? '',
+        oidc_jit_provisioning: project.oidc_jit_provisioning ?? false,
         preview_url_default: project.preview_url_default ?? '',
         revision_retention_count: project.revision_retention_count ?? null,
         revision_retention_days: project.revision_retention_days ?? null,
@@ -814,6 +820,191 @@ export default function ProjectSettingsPage({
                                         message={errors.two_factor_required}
                                     />
                                 </div>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t('settings.project.oidcTitle')}
+                                    description={t(
+                                        'settings.project.oidcDescription',
+                                    )}
+                                />
+
+                                <input
+                                    type="hidden"
+                                    name="oidc_enabled"
+                                    value={form.oidc_enabled ? '1' : '0'}
+                                />
+                                <input
+                                    type="hidden"
+                                    name="oidc_jit_provisioning"
+                                    value={
+                                        form.oidc_jit_provisioning ? '1' : '0'
+                                    }
+                                />
+
+                                <div className="flex items-center gap-3">
+                                    <Checkbox
+                                        id="oidc_enabled"
+                                        checked={form.oidc_enabled}
+                                        onCheckedChange={(checked) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                oidc_enabled: checked === true,
+                                            }))
+                                        }
+                                    />
+                                    <Label htmlFor="oidc_enabled">
+                                        {t('settings.project.oidcEnabled')}
+                                    </Label>
+                                </div>
+                                <InputError message={errors.oidc_enabled} />
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="oidc_issuer">
+                                        {t('settings.project.oidcIssuer')}
+                                    </Label>
+                                    <Input
+                                        id="oidc_issuer"
+                                        name="oidc_issuer"
+                                        type="url"
+                                        placeholder="https://idp.example.com/realms/externa"
+                                        value={form.oidc_issuer}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                oidc_issuer: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {t('settings.project.oidcIssuerHint')}
+                                    </p>
+                                    <InputError message={errors.oidc_issuer} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="oidc_client_id">
+                                        {t('settings.project.oidcClientId')}
+                                    </Label>
+                                    <Input
+                                        id="oidc_client_id"
+                                        name="oidc_client_id"
+                                        value={form.oidc_client_id}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                oidc_client_id:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                    />
+                                    <InputError
+                                        message={errors.oidc_client_id}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="oidc_client_secret">
+                                        {t('settings.project.oidcClientSecret')}
+                                    </Label>
+                                    <Input
+                                        id="oidc_client_secret"
+                                        name="oidc_client_secret"
+                                        type="password"
+                                        autoComplete="new-password"
+                                        value={form.oidc_client_secret}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                oidc_client_secret:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder={
+                                            project.oidc_client_secret_configured
+                                                ? '••••••••'
+                                                : undefined
+                                        }
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {project.oidc_client_secret_configured
+                                            ? t(
+                                                  'settings.project.oidcSecretConfiguredHint',
+                                              )
+                                            : t(
+                                                  'settings.project.oidcSecretEmptyHint',
+                                              )}
+                                    </p>
+                                    <InputError
+                                        message={errors.oidc_client_secret}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="oidc_button_label">
+                                        {t('settings.project.oidcButtonLabel')}
+                                    </Label>
+                                    <Input
+                                        id="oidc_button_label"
+                                        name="oidc_button_label"
+                                        value={form.oidc_button_label}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                oidc_button_label:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder={t(
+                                            'settings.project.oidcButtonLabelPlaceholder',
+                                        )}
+                                    />
+                                    <InputError
+                                        message={errors.oidc_button_label}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-3">
+                                        <Checkbox
+                                            id="oidc_jit_provisioning"
+                                            checked={form.oidc_jit_provisioning}
+                                            onCheckedChange={(checked) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    oidc_jit_provisioning:
+                                                        checked === true,
+                                                }))
+                                            }
+                                        />
+                                        <Label htmlFor="oidc_jit_provisioning">
+                                            {t(
+                                                'settings.project.oidcJitProvisioning',
+                                            )}
+                                        </Label>
+                                    </div>
+                                    <p className="pl-7 text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.oidcJitProvisioningHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={errors.oidc_jit_provisioning}
+                                    />
+                                </div>
+
+                                <p className="text-sm text-muted-foreground">
+                                    {t('settings.project.oidcRedirectHint', {
+                                        url:
+                                            typeof window !== 'undefined'
+                                                ? `${window.location.origin}/auth/oidc/callback`
+                                                : '/auth/oidc/callback',
+                                    })}
+                                </p>
                             </div>
 
                             <Separator />
