@@ -6,6 +6,7 @@ use App\Jobs\DeliverOutboundWebhookJob;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\File;
+use App\Services\Notifiers\OutboundNotifierFanout;
 use App\Services\Settings\ProjectSettings;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -21,6 +22,7 @@ class OutboundWebhookDispatcher
 
     public function __construct(
         private readonly ProjectSettings $projectSettings,
+        private readonly OutboundNotifierFanout $notifierFanout,
     ) {}
 
     /**
@@ -56,6 +58,15 @@ class OutboundWebhookDispatcher
             return;
         }
 
+        $this->queueSignedWebhook($type, $data);
+        $this->notifierFanout->dispatch($type, $data);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function queueSignedWebhook(string $type, array $data): void
+    {
         $url = $this->projectSettings->webhookUrl();
         if ($url === null) {
             return;

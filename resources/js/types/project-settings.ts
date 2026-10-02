@@ -38,6 +38,9 @@ export type ProjectSettingsForm = {
     report_error_url: string | null;
     webhook_url: string | null;
     webhook_secret_configured: boolean;
+    notifier_slack_webhook_url: string | null;
+    notifier_telegram_chat_id: string | null;
+    notifier_telegram_bot_token_configured: boolean;
     preview_url_default: string | null;
     revision_retention_count: number | null;
     revision_retention_days: number | null;

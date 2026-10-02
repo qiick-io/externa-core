@@ -58,6 +58,9 @@ return [
             'report_error_url',
             'webhook_url',
             'webhook_secret',
+            'notifier_slack_webhook_url',
+            'notifier_telegram_bot_token',
+            'notifier_telegram_chat_id',
             'preview_url_default',
             'revision_retention_count',
             'revision_retention_days',
@@ -142,6 +145,9 @@ return [
             'webhook_url' => null,
             // Stored encrypted via Crypt; never share plaintext on Inertia shared()
             'webhook_secret' => null,
+            'notifier_slack_webhook_url' => null,
+            'notifier_telegram_bot_token' => null,
+            'notifier_telegram_chat_id' => null,
             // Live Preview URL template fallback (tokens: {{id}} {{slug}} {{collection}} {{locale}} {{version}} {{token}})
             'preview_url_default' => null,
             // Null = unlimited; collections can override per axis

@@ -76,6 +76,9 @@ function buildProjectFormState(project: ProjectSettingsForm) {
         report_error_url: project.report_error_url ?? '',
         webhook_url: project.webhook_url ?? '',
         webhook_secret: '',
+        notifier_slack_webhook_url: project.notifier_slack_webhook_url ?? '',
+        notifier_telegram_bot_token: '',
+        notifier_telegram_chat_id: project.notifier_telegram_chat_id ?? '',
         preview_url_default: project.preview_url_default ?? '',
         revision_retention_count: project.revision_retention_count ?? null,
         revision_retention_days: project.revision_retention_days ?? null,
@@ -237,6 +240,10 @@ export default function ProjectSettingsPage({
     const [form, setFormState] = useState(initialForm);
     const [isDirty, setIsDirty] = useState(false);
     const [sendingTestWebhook, setSendingTestWebhook] = useState(false);
+    const [sendingTestSlackNotifier, setSendingTestSlackNotifier] =
+        useState(false);
+    const [sendingTestTelegramNotifier, setSendingTestTelegramNotifier] =
+        useState(false);
 
     const setForm: Dispatch<SetStateAction<typeof initialForm>> = (action) => {
         setIsDirty(true);
@@ -366,6 +373,30 @@ export default function ProjectSettingsPage({
             {
                 preserveScroll: true,
                 onFinish: () => setSendingTestWebhook(false),
+            },
+        );
+    };
+
+    const sendTestSlackNotifier = (): void => {
+        setSendingTestSlackNotifier(true);
+        router.post(
+            ProjectSettingsController.sendTestSlackNotifier.url(),
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setSendingTestSlackNotifier(false),
+            },
+        );
+    };
+
+    const sendTestTelegramNotifier = (): void => {
+        setSendingTestTelegramNotifier(true);
+        router.post(
+            ProjectSettingsController.sendTestTelegramNotifier.url(),
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setSendingTestTelegramNotifier(false),
             },
         );
     };
@@ -1460,6 +1491,176 @@ export default function ProjectSettingsPage({
                                 />
 
                                 <WebhookEventCatalog events={webhookEvents} />
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t('settings.project.notifiersTitle')}
+                                    description={t(
+                                        'settings.project.notifiersDescription',
+                                    )}
+                                />
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="notifier_slack_webhook_url">
+                                        {t(
+                                            'settings.project.notifierSlackWebhookUrl',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="notifier_slack_webhook_url"
+                                        name="notifier_slack_webhook_url"
+                                        type="url"
+                                        autoComplete="off"
+                                        data-1p-ignore
+                                        data-lpignore="true"
+                                        value={form.notifier_slack_webhook_url}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                notifier_slack_webhook_url:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder="https://hooks.slack.com/services/…"
+                                        data-test="project-notifier-slack-url"
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.notifierSlackWebhookUrlHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={
+                                            errors.notifier_slack_webhook_url
+                                        }
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        disabled={
+                                            sendingTestSlackNotifier ||
+                                            !project.notifier_slack_webhook_url
+                                        }
+                                        onClick={sendTestSlackNotifier}
+                                        data-test="project-slack-notifier-test"
+                                    >
+                                        {t(
+                                            'settings.project.notifierSlackSendTest',
+                                        )}
+                                    </Button>
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.notifierSlackSendTestHint',
+                                        )}
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="notifier_telegram_chat_id">
+                                        {t(
+                                            'settings.project.notifierTelegramChatId',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="notifier_telegram_chat_id"
+                                        name="notifier_telegram_chat_id"
+                                        autoComplete="off"
+                                        data-1p-ignore
+                                        data-lpignore="true"
+                                        value={form.notifier_telegram_chat_id}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                notifier_telegram_chat_id:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder="-1001234567890"
+                                        data-test="project-notifier-telegram-chat-id"
+                                    />
+                                    <InputError
+                                        message={
+                                            errors.notifier_telegram_chat_id
+                                        }
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="notifier_telegram_bot_token">
+                                        {t(
+                                            'settings.project.notifierTelegramBotToken',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="notifier_telegram_bot_token"
+                                        name="notifier_telegram_bot_token"
+                                        type="password"
+                                        autoComplete="new-password"
+                                        value={form.notifier_telegram_bot_token}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                notifier_telegram_bot_token:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder={
+                                            project.notifier_telegram_bot_token_configured
+                                                ? '••••••••'
+                                                : undefined
+                                        }
+                                        data-test="project-notifier-telegram-token"
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {project.notifier_telegram_bot_token_configured
+                                            ? t(
+                                                  'settings.project.notifierTelegramBotTokenConfigured',
+                                              )
+                                            : null}{' '}
+                                        {t(
+                                            'settings.project.notifierTelegramBotTokenHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={
+                                            errors.notifier_telegram_bot_token
+                                        }
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        disabled={
+                                            sendingTestTelegramNotifier ||
+                                            !project.notifier_telegram_chat_id ||
+                                            !project.notifier_telegram_bot_token_configured
+                                        }
+                                        onClick={sendTestTelegramNotifier}
+                                        data-test="project-telegram-notifier-test"
+                                    >
+                                        {t(
+                                            'settings.project.notifierTelegramSendTest',
+                                        )}
+                                    </Button>
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.notifierTelegramSendTestHint',
+                                        )}
+                                    </p>
+                                </div>
+
+                                <p className="text-sm text-muted-foreground">
+                                    {t('settings.project.notifiersPrivacyNote')}
+                                </p>
                             </div>
 
                             <SettingsFormActions
