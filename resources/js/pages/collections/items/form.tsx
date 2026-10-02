@@ -241,6 +241,13 @@ export default function ItemsForm({
     const [activeTab, setActiveTab] = useState<'fields' | 'activity'>('fields');
     const [fieldSearch, setFieldSearch] = useState('');
     const [globalLocale, setGlobalLocale] = useState(locales[0] ?? 'en');
+    const [translationWorkspace, setTranslationWorkspace] = useState(false);
+    const [sourceLocale, setSourceLocale] = useState(
+        () =>
+            locales.find((code) => code !== (locales[0] ?? 'en')) ??
+            locales[0] ??
+            'en',
+    );
     const [revisionsOpen, setRevisionsOpen] = useState(false);
     const [chatOpen, setChatOpen] = useState(false);
     const [chatCount, setChatCount] = useState(chatCountProp);
@@ -326,6 +333,112 @@ export default function ItemsForm({
     const submitSave = useCallback((action: ItemSaveAction) => {
         setItemSaveAction(action)?.requestSubmit();
     }, []);
+
+    const hasTranslatableFields = useMemo(
+        () => (collection.fields ?? []).some((field) => field.translatable),
+        [collection.fields],
+    );
+
+    const canUseTranslationWorkspace =
+        locales.length > 1 && hasTranslatableFields;
+
+    const translationCompleteness = useMemo(() => {
+        if (!canUseTranslationWorkspace) {
+            return null;
+        }
+
+        const translatable = (collection.fields ?? []).filter(
+            (field) => field.translatable,
+        );
+        const scores: Record<string, { filled: number; total: number }> = {};
+
+        for (const code of locales) {
+            scores[code] = { filled: 0, total: translatable.length };
+        }
+
+        for (const field of translatable) {
+            const bag = contentDefaults?.[field.name];
+
+            if (!bag || typeof bag !== 'object' || Array.isArray(bag)) {
+                continue;
+            }
+
+            const map = bag as Record<string, unknown>;
+
+            for (const code of locales) {
+                const value = map[code];
+                const filled =
+                    value !== null &&
+                    value !== undefined &&
+                    !(typeof value === 'string' && value.trim() === '');
+
+                if (filled && scores[code]) {
+                    scores[code].filled += 1;
+                }
+            }
+        }
+
+        return scores;
+    }, [
+        canUseTranslationWorkspace,
+        collection.fields,
+        contentDefaults,
+        locales,
+    ]);
+
+    /**
+     * Copy source locale values into the active (target) locale for all
+     * translatable fields (ponytail: DOM manipulation).
+     */
+    const handleCopyAllFromSource = (): void => {
+        const form = document.getElementById(
+            COLLECTION_ITEM_FORM_ID,
+        ) as HTMLFormElement | null;
+
+        if (!form || !translationWorkspace) {
+            return;
+        }
+
+        const target = globalLocale;
+        const source = sourceLocale;
+
+        if (source === target) {
+            return;
+        }
+
+        for (const field of collection.fields ?? []) {
+            if (!field.translatable) {
+                continue;
+            }
+
+            const sourceInput = form.querySelector<
+                HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+            >(`[name="data[${field.name}][${source}]"]`);
+            const targetInput = form.querySelector<
+                HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+            >(`[name="data[${field.name}][${target}]"]`);
+
+            if (!sourceInput || !targetInput || targetInput.readOnly) {
+                continue;
+            }
+
+            if (
+                sourceInput.type === 'checkbox' ||
+                sourceInput.type === 'radio'
+            ) {
+                (targetInput as HTMLInputElement).checked = (
+                    sourceInput as HTMLInputElement
+                ).checked;
+            } else {
+                targetInput.value = sourceInput.value;
+            }
+
+            targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        setIsDirty(true);
+        scheduleDraftSave();
+    };
 
     /**
      * Apply current locale values to all locales (ponytail: DOM manipulation).
@@ -1034,6 +1147,111 @@ export default function ItemsForm({
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         )}
+                        {canUseTranslationWorkspace ? (
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant={
+                                    translationWorkspace
+                                        ? 'secondary'
+                                        : 'outline'
+                                }
+                                className="h-9 px-2.5 text-xs"
+                                data-test="toggle-translation-workspace"
+                                aria-pressed={translationWorkspace}
+                                onClick={() =>
+                                    setTranslationWorkspace((open) => !open)
+                                }
+                            >
+                                Translate
+                            </Button>
+                        ) : null}
+                        {translationWorkspace && canUseTranslationWorkspace ? (
+                            <>
+                                <Select
+                                    value={sourceLocale}
+                                    onValueChange={(value) => {
+                                        if (locales.includes(value)) {
+                                            setSourceLocale(value);
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        size="sm"
+                                        className="w-auto min-w-0 gap-1 px-2 text-xs"
+                                        data-test="translation-source-locale"
+                                    >
+                                        <SelectValue placeholder="Source" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {locales.map((code) => (
+                                            <SelectItem
+                                                key={code}
+                                                value={code}
+                                                disabled={code === globalLocale}
+                                            >
+                                                Src {code}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Select
+                                    value={globalLocale}
+                                    onValueChange={(value) => {
+                                        if (locales.includes(value)) {
+                                            setGlobalLocale(value);
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        size="sm"
+                                        className="w-auto min-w-0 gap-1 px-2 text-xs"
+                                        data-test="translation-target-locale"
+                                    >
+                                        <SelectValue placeholder="Target" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {locales.map((code) => (
+                                            <SelectItem
+                                                key={code}
+                                                value={code}
+                                                disabled={code === sourceLocale}
+                                            >
+                                                Tgt {code}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-9 px-2.5 text-xs"
+                                    data-test="copy-all-from-source"
+                                    disabled={formReadonly}
+                                    onClick={handleCopyAllFromSource}
+                                >
+                                    Copy all from {sourceLocale}
+                                </Button>
+                                {translationCompleteness ? (
+                                    <span
+                                        className="hidden text-xs text-muted-foreground sm:inline"
+                                        data-test="translation-completeness"
+                                    >
+                                        {locales
+                                            .map((code) => {
+                                                const score =
+                                                    translationCompleteness[
+                                                        code
+                                                    ];
+
+                                                return `${code} ${score?.filled ?? 0}/${score?.total ?? 0}`;
+                                            })
+                                            .join(' · ')}
+                                    </span>
+                                ) : null}
+                            </>
+                        ) : null}
                         {!isNew && item !== null && (
                             <ToggleGroup
                                 type="single"
@@ -1269,6 +1487,13 @@ export default function ItemsForm({
                                             defaultLocale={globalLocale}
                                             forceReadonly={formReadonly}
                                             revisionApply={revisionApply}
+                                            translationWorkspace={
+                                                translationWorkspace
+                                            }
+                                            sourceLocale={sourceLocale}
+                                            onSourceLocaleChange={
+                                                setSourceLocale
+                                            }
                                         />
                                     </>
                                 )}
@@ -1368,6 +1593,13 @@ export default function ItemsForm({
                                                     forceReadonly={formReadonly}
                                                     revisionApply={
                                                         revisionApply
+                                                    }
+                                                    translationWorkspace={
+                                                        translationWorkspace
+                                                    }
+                                                    sourceLocale={sourceLocale}
+                                                    onSourceLocaleChange={
+                                                        setSourceLocale
                                                     }
                                                 />
                                             </>
