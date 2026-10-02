@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Concerns\LogsApplicationActivity;
 use App\Jobs\Ai\GenerateCollectionItemEmbeddingJob;
 use App\Services\Api\PublicApiResponseCache;
+use App\Services\Search\MeilisearchSyncDispatcher;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 use App\Support\Collections\CollectionItemDataAccessor;
 use Database\Factories\CollectionItemFactory;
@@ -99,16 +100,19 @@ class CollectionItem extends Model
 
         static::deleted(function (CollectionItem $item): void {
             app(OutboundWebhookDispatcher::class)->dispatchItem('item.deleted', $item);
+            app(MeilisearchSyncDispatcher::class)->dispatchDelete($item);
             app(PublicApiResponseCache::class)->bump((int) $item->collection_id);
         });
 
         static::restored(function (CollectionItem $item): void {
             app(OutboundWebhookDispatcher::class)->dispatchItem('item.restored', $item);
+            app(MeilisearchSyncDispatcher::class)->dispatchUpsert($item);
             app(PublicApiResponseCache::class)->bump((int) $item->collection_id);
         });
 
         static::forceDeleted(function (CollectionItem $item): void {
             app(OutboundWebhookDispatcher::class)->dispatchItem('item.deleted', $item);
+            app(MeilisearchSyncDispatcher::class)->dispatchDelete($item);
             app(PublicApiResponseCache::class)->bump((int) $item->collection_id);
         });
     }
