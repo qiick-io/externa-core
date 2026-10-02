@@ -575,6 +575,16 @@
             "editFields": "Felder bearbeiten",
             "delete": "Löschen"
         },
+        "itemPresence": {
+            "viewing": "{{count}} weitere(r) Bearbeiter sieht zu",
+            "degraded": "Realtime aus — Präsenz und Live-Hinweise sind eingeschränkt.",
+            "lockedBy": "{{name}} bearbeitet (für dich nur Lesen).",
+            "takeOver": "Bearbeitung übernehmen",
+            "staleTitle": "Eintrag auf dem Server geändert",
+            "staleDescription": "Ein anderer Speichervorgang hat diesen Eintrag aktualisiert. Trotzdem speichern oder Seite neu laden.",
+            "staleSave": "Trotzdem speichern",
+            "staleReload": "Seite neu laden"
+        },
         "itemChat": {
             "title": "Chat",
             "notify": "Bei neuen Nachrichten in dieser Collection benachrichtigen",

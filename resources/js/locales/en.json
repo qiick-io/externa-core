@@ -575,6 +575,16 @@
             "editFields": "Edit fields",
             "delete": "Delete"
         },
+        "itemPresence": {
+            "viewing": "{{count}} other editor(s) viewing",
+            "degraded": "Realtime off — presence and live overwrite hints are limited.",
+            "lockedBy": "{{name}} is editing (read-only for you).",
+            "takeOver": "Take over editing",
+            "staleTitle": "Item changed on the server",
+            "staleDescription": "Another save updated this item while you were editing. Save anyway or reload to see the latest version.",
+            "staleSave": "Save anyway",
+            "staleReload": "Reload page"
+        },
         "itemChat": {
             "title": "Chat",
             "notify": "Notify me of new messages in this collection",
