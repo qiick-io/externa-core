@@ -9,14 +9,12 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
-### Added
-
-- Official headless starter conventions: multi-repo preferred, naming/env/TS/CI/Dependabot checklist in `docs/starters.md` (#156)
-
 ## [1.2.0] - 2026-10-02
 
 ### Added
 
+- Official headless starter conventions: multi-repo preferred, naming/env/TS/CI/Dependabot checklist in `docs/starters.md` (#156)
+- Official Nuxt headless starter: [qiick-io/externa-nuxt-starter](https://github.com/qiick-io/externa-nuxt-starter) + docs [Headless starter](https://docs.externa.qiick.io/docs/headless-starter) (#152)
 - Editorial approvals for versioned collections: `approvals_required`, submit/approve/reject, promote gate, review list filter, webhook events `item.submitted`/`item.approved`/`item.rejected`, Spatie `can-submit-collections` / `can-approve-collections` (#48)
 - Side-by-side translation workspace on the item form (source/target locales, copy helpers, completeness) (#49)
 - Collection list layouts: optional kanban (select/radio) and calendar (date); table remains default (#47)
