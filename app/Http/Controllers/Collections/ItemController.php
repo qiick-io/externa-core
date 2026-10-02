@@ -39,6 +39,8 @@ use App\Support\Validation\SearchQueryRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -472,6 +474,18 @@ class ItemController extends Controller
     {
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+
+        $expectedUpdatedAt = $request->validated('expected_updated_at');
+        if (is_string($expectedUpdatedAt) && $expectedUpdatedAt !== '' && $item->updated_at !== null) {
+            $expected = Carbon::parse($expectedUpdatedAt);
+            if (! $item->updated_at->equalTo($expected)) {
+                throw ValidationException::withMessages([
+                    'expected_updated_at' => [
+                        __('Someone else saved this item while you were editing. Reload the page and try again.'),
+                    ],
+                ]);
+            }
+        }
 
         $version = (string) ($request->validated('version') ?? 'published');
         if (! $collection->versioning) {

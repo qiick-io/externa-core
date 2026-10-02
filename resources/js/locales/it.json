@@ -575,6 +575,16 @@
             "editFields": "Modifica campi",
             "delete": "Elimina"
         },
+        "itemPresence": {
+            "viewing": "{{count}} altro/i editor in visualizzazione",
+            "degraded": "Realtime disattivato — presenza e avvisi live limitati.",
+            "lockedBy": "{{name}} sta modificando (sola lettura per te).",
+            "takeOver": "Riprendi la modifica",
+            "staleTitle": "Elemento modificato sul server",
+            "staleDescription": "Un altro salvataggio ha aggiornato questo elemento. Salva comunque o ricarica la pagina.",
+            "staleSave": "Salva comunque",
+            "staleReload": "Ricarica pagina"
+        },
         "itemChat": {
             "title": "Chat",
             "notify": "Notificami i nuovi messaggi in questa collection",

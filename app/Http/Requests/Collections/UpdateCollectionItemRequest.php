@@ -40,6 +40,7 @@ class UpdateCollectionItemRequest extends FormRequest
         return [
             'version' => ['sometimes', 'string', Rule::in(['published', 'draft'])],
             'save_action' => ['sometimes', 'string', Rule::in(['stay', 'create_new', 'copy'])],
+            'expected_updated_at' => ['sometimes', 'nullable', 'date'],
             ...app(CollectionItemDataRuleBuilder::class)->rules(
                 $collection,
                 false,

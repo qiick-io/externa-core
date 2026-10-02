@@ -22,6 +22,7 @@ import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
+import { ItemEditingPresence } from '@/components/collections/item-editing-presence';
 import { ItemLivePreviewButton } from '@/components/collections/item-live-preview-button';
 import type { PreviewRoleOption } from '@/components/collections/item-preview-as-role-dialog';
 import { ItemPreviewAsRoleDialog } from '@/components/collections/item-preview-as-role-dialog';
@@ -60,10 +61,19 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
+import { useItemPresence } from '@/hooks/use-item-presence';
 import { useCollection } from '@/hooks/use-collection';
 import {
     useRegisterUnsavedChanges,
@@ -83,6 +93,7 @@ import {
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { readReturnParam } from '@/lib/safe-return-url';
+import { isRemoteUpdatedAtStale } from '@/lib/item-presence';
 import { toast } from '@/lib/toast';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import collections from '@/routes/collections';
@@ -201,7 +212,7 @@ export default function ItemsForm({
 }) {
     const { t } = useTranslation();
     const page = usePage();
-    const { can } = useCan();
+    const { can, auth } = useCan();
     const requestLeave = useRequestLeave();
     const activityLogs = activityLogsProp
         ? normalizePaginated(activityLogsProp)
@@ -275,6 +286,12 @@ export default function ItemsForm({
         toDatetimeLocalValue(item?.unpublish_at ?? null),
     );
     const draftTimer = useRef<number | null>(null);
+    const loadedUpdatedAtRef = useRef<string | null>(item?.updated_at ?? null);
+    const [expectedUpdatedAt, setExpectedUpdatedAt] = useState(
+        item?.updated_at ?? '',
+    );
+    const allowStaleSaveRef = useRef(false);
+    const [staleSaveOpen, setStaleSaveOpen] = useState(false);
 
     const versioningEnabled = Boolean(collection.versioning);
     const approvalsRequired = Boolean(collection.approvals_required);
@@ -294,14 +311,72 @@ export default function ItemsForm({
     const publishBlockedByApproval =
         approvalsRequired && approvalStatus !== 'approved';
     // View-only users (e.g. reader) must not see Save / editable controls — BE already 403s.
-    const formReadonly =
+    const baseFormReadonly =
         viewingPublished || (isNew ? !canCreateItem : !canEditItem);
+
+    const presence = useItemPresence({
+        enabled: !isNew && item !== null,
+        collectionId: collection.id,
+        itemId: item?.id ?? 0,
+        viewerId: auth.user?.id ?? 0,
+        viewerName: auth.user?.name ?? '',
+        loadedUpdatedAt: item?.updated_at ?? null,
+        canClaimLock: !isNew && !baseFormReadonly,
+    });
+
+    const formReadonly = baseFormReadonly || presence.lockedByOther;
+    const remoteStale = isRemoteUpdatedAtStale(
+        loadedUpdatedAtRef.current,
+        presence.remoteUpdatedAt,
+    );
     const showCreateNew = !collection.is_singleton;
     const showCopy = !isNew && !collection.is_singleton && canCreateItem;
 
     useEffect(() => {
         setChatCount(chatCountProp);
     }, [chatCountProp]);
+
+    useEffect(() => {
+        if (!isDirty) {
+            loadedUpdatedAtRef.current = item?.updated_at ?? null;
+            setExpectedUpdatedAt(item?.updated_at ?? '');
+        }
+    }, [item?.updated_at, isDirty]);
+
+    useEffect(() => {
+        const form = document.getElementById(COLLECTION_ITEM_FORM_ID);
+
+        if (!form) {
+            return;
+        }
+
+        const onSubmit = (event: SubmitEvent) => {
+            if (allowStaleSaveRef.current) {
+                allowStaleSaveRef.current = false;
+
+                return;
+            }
+
+            const stale = isRemoteUpdatedAtStale(
+                loadedUpdatedAtRef.current,
+                presence.remoteUpdatedAt,
+            );
+
+            if (!stale) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            setStaleSaveOpen(true);
+        };
+
+        form.addEventListener('submit', onSubmit, true);
+
+        return () => {
+            form.removeEventListener('submit', onSubmit, true);
+        };
+    }, [presence.remoteUpdatedAt]);
 
     useEffect(() => {
         setPublishAtLocal(toDatetimeLocalValue(item?.publish_at ?? null));
@@ -772,6 +847,14 @@ export default function ItemsForm({
                             <Trash2 className="size-4" />
                         </HeaderIconButton>
                     )}
+                    {!isNew && item !== null ? (
+                        <ItemEditingPresence
+                            editors={presence.editors}
+                            lockedByOther={presence.lockedByOther}
+                            lockHolderName={presence.lock?.name ?? null}
+                            onTakeOver={presence.takeOverLock}
+                        />
+                    ) : null}
                     <UnsavedChangesToolbar
                         isDirty={isDirty && !formReadonly}
                         className="flex items-center gap-2"
@@ -1315,6 +1398,26 @@ export default function ItemsForm({
                     </div>
                 )}
 
+                {!isNew && item !== null && remoteStale ? (
+                    <div
+                        className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+                        data-test="item-stale-banner"
+                    >
+                        <span>
+                            {t('collections.itemPresence.staleDescription')}
+                        </span>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            data-test="item-stale-reload"
+                            onClick={() => router.reload()}
+                        >
+                            {t('collections.itemPresence.staleReload')}
+                        </Button>
+                    </div>
+                ) : null}
+
                 {!isNew &&
                     item !== null &&
                     versioningEnabled &&
@@ -1562,6 +1665,11 @@ export default function ItemsForm({
                                                         value={contentVersion}
                                                     />
                                                 ) : null}
+                                                <input
+                                                    type="hidden"
+                                                    name="expected_updated_at"
+                                                    value={expectedUpdatedAt}
+                                                />
                                                 {formReadonly ? (
                                                     <p
                                                         className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
@@ -1764,6 +1872,60 @@ export default function ItemsForm({
                     </>
                 )}
             </PageLayout>
+
+            {!isNew && item !== null && (
+                <Dialog open={staleSaveOpen} onOpenChange={setStaleSaveOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>
+                                {t('collections.itemPresence.staleTitle')}
+                            </DialogTitle>
+                            <DialogDescription>
+                                {t('collections.itemPresence.staleDescription')}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setStaleSaveOpen(false);
+                                    router.reload();
+                                }}
+                            >
+                                {t('collections.itemPresence.staleReload')}
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={() => {
+                                    // Align expected token with remote so server overwrite is intentional.
+                                    if (presence.remoteUpdatedAt) {
+                                        setExpectedUpdatedAt(
+                                            presence.remoteUpdatedAt,
+                                        );
+                                        loadedUpdatedAtRef.current =
+                                            presence.remoteUpdatedAt;
+                                    } else {
+                                        setExpectedUpdatedAt('');
+                                    }
+
+                                    allowStaleSaveRef.current = true;
+                                    setStaleSaveOpen(false);
+                                    queueMicrotask(() => {
+                                        document
+                                            .getElementById(
+                                                COLLECTION_ITEM_FORM_ID,
+                                            )
+                                            ?.requestSubmit();
+                                    });
+                                }}
+                            >
+                                {t('collections.itemPresence.staleSave')}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
 
             {!isNew && item !== null && (
                 <ConfirmDestructiveDialog
