@@ -80,7 +80,10 @@ class ProjectSettingsController extends Controller
                 'scope' => SettingsRepository::SCOPE_PROJECT,
                 'group' => 'project',
                 'keys' => $keys,
-                'secret_keys_updated' => in_array('webhook_secret', $keys, true),
+                'secret_keys_updated' => count(array_intersect(
+                    $keys,
+                    ['webhook_secret', 'notifier_telegram_bot_token'],
+                )) > 0,
             ])
             ->log('Project settings updated');
 
@@ -106,5 +109,37 @@ class ProjectSettingsController extends Controller
 
         return to_route('project.edit')
             ->with('success', __('Test webhook event queued.'));
+    }
+
+    /**
+     * Queue a `ping` notifier message to Slack when configured.
+     */
+    public function sendTestSlackNotifier(OutboundWebhookDispatcher $dispatcher): RedirectResponse
+    {
+        if ($this->projectSettings->notifierSlackWebhookUrl() === null) {
+            return to_route('project.edit')
+                ->with('error', __('Configure a Slack incoming webhook URL before sending a test message.'));
+        }
+
+        $dispatcher->dispatchPing();
+
+        return to_route('project.edit')
+            ->with('success', __('Test Slack notifier queued.'));
+    }
+
+    /**
+     * Queue a `ping` notifier message to Telegram when configured.
+     */
+    public function sendTestTelegramNotifier(OutboundWebhookDispatcher $dispatcher): RedirectResponse
+    {
+        if (! $this->projectSettings->notifierTelegramConfigured()) {
+            return to_route('project.edit')
+                ->with('error', __('Configure a Telegram bot token and chat ID before sending a test message.'));
+        }
+
+        $dispatcher->dispatchPing();
+
+        return to_route('project.edit')
+            ->with('success', __('Test Telegram notifier queued.'));
     }
 }

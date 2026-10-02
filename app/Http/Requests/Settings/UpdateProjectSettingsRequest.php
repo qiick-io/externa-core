@@ -95,6 +95,9 @@ class UpdateProjectSettingsRequest extends FormRequest
             'webhook_url' => ['nullable', 'url', 'max:2048'],
             // Empty = keep existing secret; never required on every save
             'webhook_secret' => ['nullable', 'string', 'max:512'],
+            'notifier_slack_webhook_url' => ['nullable', 'url', 'max:2048'],
+            'notifier_telegram_bot_token' => ['nullable', 'string', 'max:512'],
+            'notifier_telegram_chat_id' => ['nullable', 'string', 'max:64'],
             // Template may include {{id}} etc. — not a strict Laravel url
             'preview_url_default' => ['nullable', 'string', 'max:2048', 'regex:/^https?:\/\/.+/i'],
             'revision_retention_count' => ['nullable', 'integer', 'min:1', 'max:10000'],
@@ -224,6 +227,8 @@ class UpdateProjectSettingsRequest extends FormRequest
             'report_bug_url' => $validated['report_bug_url'] ?? null,
             'report_error_url' => $validated['report_error_url'] ?? null,
             'webhook_url' => $validated['webhook_url'] ?? null,
+            'notifier_slack_webhook_url' => $validated['notifier_slack_webhook_url'] ?? null,
+            'notifier_telegram_chat_id' => $validated['notifier_telegram_chat_id'] ?? null,
             'preview_url_default' => $validated['preview_url_default'] ?? null,
             'revision_retention_count' => isset($validated['revision_retention_count'])
                 ? (int) $validated['revision_retention_count']
@@ -238,6 +243,7 @@ class UpdateProjectSettingsRequest extends FormRequest
                 ? (int) $validated['chat_max_upload_bytes']
                 : null,
             ...$this->webhookSecretValue($validated),
+            ...$this->notifierTelegramBotTokenValue($validated),
         ];
     }
 
@@ -257,6 +263,22 @@ class UpdateProjectSettingsRequest extends FormRequest
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array{notifier_telegram_bot_token?: string}
+     */
+    private function notifierTelegramBotTokenValue(array $validated): array
+    {
+        $token = $validated['notifier_telegram_bot_token'] ?? null;
+        if (! is_string($token) || trim($token) === '') {
+            return [];
+        }
+
+        return [
+            'notifier_telegram_bot_token' => ProjectSettings::encryptNotifierTelegramBotToken(trim($token)),
+        ];
+    }
+
     protected function prepareForValidation(): void
     {
         $merge = [];
@@ -271,6 +293,9 @@ class UpdateProjectSettingsRequest extends FormRequest
             'report_error_url',
             'webhook_url',
             'webhook_secret',
+            'notifier_slack_webhook_url',
+            'notifier_telegram_bot_token',
+            'notifier_telegram_chat_id',
             'preview_url_default',
             'revision_retention_count',
             'revision_retention_days',
