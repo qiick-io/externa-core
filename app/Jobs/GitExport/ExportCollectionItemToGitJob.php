@@ -55,7 +55,7 @@ class ExportCollectionItemToGitJob implements ShouldQueue
         $repository->writeFile($document['path'], $document['contents']);
         $repository->commitAndPush(sprintf(
             'export: %s#%d',
-            $item->collection?->slug ?? 'collection',
+            $item->collection->slug,
             $item->id,
         ));
     }
