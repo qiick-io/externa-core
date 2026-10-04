@@ -46,7 +46,28 @@ class GitExportRepository
         $remote = (string) config('git_export.remote_url');
         $branch = (string) config('git_export.branch', 'main');
         // Empty template skips sample hooks (some sandboxed/locked FS reject .git/hooks writes).
-        $this->git(['clone', '--template=', '--branch', $branch, '--single-branch', $remote, '.'], $dir);
+        try {
+            $this->git(['clone', '--template=', '--branch', $branch, '--single-branch', $remote, '.'], $dir);
+        } catch (RuntimeException $exception) {
+            // Empty bare remotes have no branch yet — clone --branch fails. Init + first push creates it.
+            $this->resetWorkDir($dir);
+            $this->git(['init', '-b', $branch], $dir);
+            $this->git(['remote', 'add', 'origin', $remote], $dir);
+        }
+    }
+
+    /**
+     * Wipe a partial failed clone so init can start clean.
+     */
+    private function resetWorkDir(string $dir): void
+    {
+        if (! is_dir($dir)) {
+            File::ensureDirectoryExists($dir);
+
+            return;
+        }
+
+        File::cleanDirectory($dir);
     }
 
     public function writeFile(string $relativePath, string $contents): string

@@ -142,6 +142,37 @@ test('export job writes file and commits with dry-run (no push)', function () {
     });
 });
 
+test('ensureRepository bootstraps empty bare remote without existing branch', function () {
+    $bare = storage_path('framework/testing/git-export-bare-'.uniqid().'.git');
+    $work = storage_path('framework/testing/git-export-work-'.uniqid());
+    File::ensureDirectoryExists($bare);
+    Process::path($bare)->run(['git', 'init', '--bare', '-b', 'main'])->throw();
+
+    config([
+        'git_export.remote_url' => 'file://'.$bare,
+        'git_export.work_dir' => $work,
+        'git_export.branch' => 'main',
+        'git_export.dry_run' => false,
+        'git_export.commit_name' => 'Externa Test',
+        'git_export.commit_email' => 'git-export@externa.test',
+    ]);
+
+    $repo = app(GitExportRepository::class);
+    $repo->ensureRepository();
+
+    expect(is_dir($work.'/.git'))->toBeTrue();
+
+    $repo->writeFile('content/posts/1.json', '{"title":"Hello"}');
+    $repo->commitAndPush('export: posts#1');
+
+    $log = Process::path($bare)->run(['git', 'log', '--oneline', '-1']);
+    expect($log->successful())->toBeTrue()
+        ->and($log->output())->toContain('export: posts#1');
+
+    File::deleteDirectory($work);
+    File::deleteDirectory($bare);
+});
+
 test('artisan git-export:sync --dry-run writes files without remote', function () {
     config([
         'git_export.remote_url' => null,
