@@ -45,7 +45,8 @@ class GitExportRepository
 
         $remote = (string) config('git_export.remote_url');
         $branch = (string) config('git_export.branch', 'main');
-        $this->git(['clone', '--branch', $branch, '--single-branch', $remote, '.'], $dir);
+        // Empty template skips sample hooks (some sandboxed/locked FS reject .git/hooks writes).
+        $this->git(['clone', '--template=', '--branch', $branch, '--single-branch', $remote, '.'], $dir);
     }
 
     public function writeFile(string $relativePath, string $contents): string
