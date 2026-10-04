@@ -36,8 +36,15 @@ class MeilisearchClient
             return;
         }
 
+        $this->ensureIndex();
+
         $index = rawurlencode($this->indexUid());
-        $response = $this->http()->post("/indexes/{$index}/documents", $documents);
+        // Documents also carry collection_id — Meili cannot infer the primary key
+        // without an explicit primaryKey=id (query or ensureIndex).
+        $response = $this->http()->post(
+            "/indexes/{$index}/documents?".http_build_query(['primaryKey' => 'id']),
+            $documents,
+        );
 
         if (! $response->successful()) {
             throw new RuntimeException(sprintf(
@@ -46,6 +53,32 @@ class MeilisearchClient
                 $response->body(),
             ));
         }
+    }
+
+    /**
+     * Create the index with primaryKey=id when missing (idempotent).
+     */
+    public function ensureIndex(): void
+    {
+        if (! $this->enabled()) {
+            return;
+        }
+
+        $response = $this->http()->post('/indexes', [
+            'uid' => $this->indexUid(),
+            'primaryKey' => 'id',
+        ]);
+
+        // 201 created, 202 accepted, 409 already exists — all fine.
+        if ($response->successful() || $response->status() === 409) {
+            return;
+        }
+
+        throw new RuntimeException(sprintf(
+            'Meilisearch ensureIndex failed: HTTP %s — %s',
+            $response->status(),
+            $response->body(),
+        ));
     }
 
     public function deleteDocument(string $documentId): void

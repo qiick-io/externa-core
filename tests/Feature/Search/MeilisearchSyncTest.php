@@ -109,6 +109,7 @@ test('sync job upserts published documents and deletes ineligible status', funct
     Http::assertSent(function ($request): bool {
         return $request->method() === 'POST'
             && str_contains($request->url(), '/indexes/externa-test/documents')
+            && str_contains($request->url(), 'primaryKey=id')
             && ($request['0']['title'] ?? null) === 'Hello';
     });
 
