@@ -96,7 +96,8 @@ class UpdateProjectSettingsRequest extends FormRequest
             // Empty = keep existing secret; never required on every save
             'webhook_secret' => ['nullable', 'string', 'max:512'],
             'notifier_slack_webhook_url' => ['nullable', 'url', 'max:2048'],
-            'notifier_telegram_bot_token' => ['nullable', 'string', 'max:512'],
+            // BotFather token shape: "<bot_id>:<secret>" — rejects usernames like "MyBot"
+            'notifier_telegram_bot_token' => ['nullable', 'string', 'max:512', 'regex:/^\d+:[A-Za-z0-9_-]+$/'],
             'notifier_telegram_chat_id' => ['nullable', 'string', 'max:64'],
             'oidc_enabled' => ['required', 'boolean'],
             'oidc_issuer' => ['nullable', 'url', 'max:2048'],
