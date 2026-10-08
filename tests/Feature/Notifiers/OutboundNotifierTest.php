@@ -100,6 +100,22 @@ test('telegram job posts sendMessage', function () {
     });
 });
 
+test('telegram job exception includes bot api description', function () {
+    configureTelegramNotifier('123456:ABC', '99');
+    Http::fake([
+        'api.telegram.org/*' => Http::response([
+            'ok' => false,
+            'error_code' => 404,
+            'description' => 'Not Found',
+        ], 404),
+    ]);
+
+    $job = new DeliverTelegramOutboundNotifierJob('ping', 'test');
+
+    expect(fn () => $job->handle(app(ProjectSettings::class)))
+        ->toThrow(RuntimeException::class, 'HTTP 404 — Not Found');
+});
+
 test('notifiers respect withoutWebhooks suppression', function () {
     Queue::fake();
     configureSlackNotifier();

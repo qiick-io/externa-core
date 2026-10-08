@@ -54,10 +54,16 @@ class DeliverTelegramOutboundNotifierJob implements ShouldQueue
             ]);
 
         if (! $response->successful()) {
+            $description = $response->json('description');
+            $detail = is_string($description) && $description !== ''
+                ? ' — '.$description
+                : '';
+
             throw new RuntimeException(sprintf(
-                'Telegram notifier delivery failed (%s): HTTP %s',
+                'Telegram notifier delivery failed (%s): HTTP %s%s',
                 $this->type,
                 $response->status(),
+                $detail,
             ));
         }
     }

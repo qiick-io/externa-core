@@ -378,10 +378,10 @@
             "notifierSlackSendTestHint": "Einstellungen speichern, dann Ping in die Warteschlange. Queue-Worker erforderlich, außer QUEUE_CONNECTION=sync.",
             "notifierTelegramChatId": "Telegram-Chat-ID",
             "notifierTelegramBotToken": "Telegram-Bot-Token",
-            "notifierTelegramBotTokenHint": "Von @BotFather. Leer lassen, um den aktuellen Token zu behalten.",
+            "notifierTelegramBotTokenHint": "Von @BotFather (Format 123456:ABC…). Nicht der @Bot-Username. Leer lassen, um den aktuellen Token zu behalten.",
             "notifierTelegramBotTokenConfigured": "Ein Bot-Token ist bereits konfiguriert.",
             "notifierTelegramSendTest": "Telegram-Test senden",
-            "notifierTelegramSendTestHint": "Chat-ID und Token speichern, dann Ping in die Warteschlange.",
+            "notifierTelegramSendTestHint": "Chat-ID und Token speichern, dann Ping sofort senden (kein Queue-Worker nötig).",
             "notifiersPrivacyNote": "Event-Metadaten werden bei Konfiguration an Slack oder Telegram gesendet. Datenschutz des Anbieters bei Self-Hosting prüfen.",
             "modules": {
                 "dashboard": "Dashboard",
