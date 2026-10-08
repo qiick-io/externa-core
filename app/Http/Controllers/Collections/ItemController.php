@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Collections;
 
+use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
@@ -18,6 +19,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Collections\CollectionItemApprovalService;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemExportService;
 use App\Services\Collections\CollectionItemOptionsService;
@@ -32,10 +34,13 @@ use App\Services\Collections\FieldConditionEvaluator;
 use App\Services\Collections\ItemRolePreviewService;
 use App\Services\Collections\LivePreviewUrlBuilder;
 use App\Services\Settings\SettingsRepository;
+use App\Support\Http\SafeReturnUrl;
 use App\Support\Validation\SearchQueryRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -62,6 +67,7 @@ class ItemController extends Controller
         private LivePreviewUrlBuilder $livePreviewUrlBuilder,
         private CollectionItemPublisher $itemPublisher,
         private CollectionItemRevisionRecorder $revisionRecorder,
+        private CollectionItemApprovalService $itemApprovals,
         private EffectivePermissionResolver $permissionResolver,
         private FieldConditionEvaluator $fieldConditionEvaluator,
     ) {}
@@ -102,9 +108,11 @@ class ItemController extends Controller
 
         $trashed = $request->boolean('trashed');
         $hasDraft = $collection->versioning && $request->boolean('has_draft');
+        $inReview = $collection->approvals_required && $request->boolean('in_review');
         $query = CollectionItem::query()
             ->when($trashed, fn ($query) => $query->onlyTrashed())
             ->when($hasDraft, fn ($query) => $query->whereNotNull('draft_data'))
+            ->when($inReview, fn ($query) => $query->where('approval_status', 'in_review'))
             ->where('collection_id', $collection->id)
             ->with([
                 'fieldValues',
@@ -125,16 +133,25 @@ class ItemController extends Controller
 
         $listColumns = $this->resolveListColumns($request, $collection);
         $columnAligns = $this->resolveColumnAligns($request, $collection, $listColumns);
+        $listLayout = $this->resolveListLayout($request, $collection);
+        $kanbanField = $this->resolveKanbanField($request, $collection);
+        $calendarField = $this->resolveCalendarField($request, $collection);
 
         $this->permissionEnforcer->applyItemFilterToQuery($request, $collection, $query);
 
-        $paginator = $query->paginate(15)->withQueryString();
+        // ponytail: board/calendar need a wider page than table; hard cap 100.
+        $perPage = in_array($listLayout, ['kanban', 'calendar'], true) ? 100 : 15;
+        $paginator = $query->paginate($perPage)->withQueryString();
         $versioning = (bool) $collection->versioning;
+        $approvalsRequired = (bool) $collection->approvals_required;
         $rows = $paginator->getCollection()
-            ->map(function (CollectionItem $item) use ($request, $versioning): array {
+            ->map(function (CollectionItem $item) use ($request, $versioning, $approvalsRequired): array {
                 $row = (new CollectionItemResource($item))->toArray($request);
                 if ($versioning) {
                     $row['has_draft'] = is_array($item->draft_data);
+                }
+                if ($approvalsRequired) {
+                    $row['approval_status'] = $item->approval_status ?? 'draft';
                 }
 
                 return $row;
@@ -148,11 +165,15 @@ class ItemController extends Controller
             'items' => $paginator,
             'list_columns' => $listColumns,
             'column_aligns' => $columnAligns,
+            'list_layout' => $listLayout,
+            'kanban_field' => $kanbanField,
+            'calendar_field' => $calendarField,
             'related_fields_catalog' => $this->listColumnsNormalizer->relatedFieldsCatalog($collection),
             'filters' => [
                 ...$stringFilters,
                 'trashed' => $trashed,
                 'has_draft' => $hasDraft,
+                'in_review' => $inReview,
                 'sort' => $sortState['sort'],
                 'direction' => $sortState['direction'],
             ],
@@ -227,6 +248,36 @@ class ItemController extends Controller
             $request->input('aligns', []),
             $user->id,
         );
+
+        if ($request->exists('layout')) {
+            $this->settingsRepository->set(
+                SettingsRepository::SCOPE_USER,
+                'collection_list',
+                'collection_'.$collection->id.'_layout',
+                $request->input('layout') ?? 'table',
+                $user->id,
+            );
+        }
+
+        if ($request->exists('kanban_field')) {
+            $this->settingsRepository->set(
+                SettingsRepository::SCOPE_USER,
+                'collection_list',
+                'collection_'.$collection->id.'_kanban_field',
+                $request->input('kanban_field'),
+                $user->id,
+            );
+        }
+
+        if ($request->exists('calendar_field')) {
+            $this->settingsRepository->set(
+                SettingsRepository::SCOPE_USER,
+                'collection_list',
+                'collection_'.$collection->id.'_calendar_field',
+                $request->input('calendar_field'),
+                $user->id,
+            );
+        }
 
         return redirect()->back();
     }
@@ -329,6 +380,11 @@ class ItemController extends Controller
         $itemPayload['draft_data'] = $draftData;
         $itemPayload['publish_at'] = $item->publish_at?->toIso8601String();
         $itemPayload['unpublish_at'] = $item->unpublish_at?->toIso8601String();
+        $itemPayload['approval_status'] = $item->approval_status ?? 'draft';
+        $itemPayload['rejection_note'] = $item->rejection_note;
+        $itemPayload['submitted_by'] = $item->submitted_by;
+        $itemPayload['reviewed_by'] = $item->reviewed_by;
+        $itemPayload['reviewed_at'] = $item->reviewed_at?->toIso8601String();
 
         return Inertia::render('collections/items/form', [
             'collection' => $collection,
@@ -419,6 +475,18 @@ class ItemController extends Controller
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
 
+        $expectedUpdatedAt = $request->validated('expected_updated_at');
+        if (is_string($expectedUpdatedAt) && $expectedUpdatedAt !== '' && $item->updated_at !== null) {
+            // Compare at second precision — ISO8601 round-trips can differ in microseconds.
+            if ($item->updated_at->getTimestamp() !== Carbon::parse($expectedUpdatedAt)->getTimestamp()) {
+                throw ValidationException::withMessages([
+                    'expected_updated_at' => [
+                        __('Someone else saved this item while you were editing. Reload the page and try again.'),
+                    ],
+                ]);
+            }
+        }
+
         $version = (string) ($request->validated('version') ?? 'published');
         if (! $collection->versioning) {
             $version = 'published';
@@ -490,6 +558,17 @@ class ItemController extends Controller
 
         if ($version === 'draft') {
             $item->draft_data = $normalized;
+            // Editing an approved/rejected draft invalidates approval.
+            if (
+                $collection->approvals_required
+                && in_array((string) $item->approval_status, ['approved', 'rejected', 'in_review'], true)
+            ) {
+                $item->approval_status = 'draft';
+                $item->rejection_note = null;
+                $item->submitted_by = null;
+                $item->reviewed_by = null;
+                $item->reviewed_at = null;
+            }
             $item->save();
             $this->revisionRecorder->record($item, [
                 'source' => 'draft',
@@ -534,13 +613,84 @@ class ItemController extends Controller
                 ->with('error', __('No draft changes to publish.'));
         }
 
-        $this->itemPublisher->promote($item, $collection, scheduled: false);
+        try {
+            $this->itemPublisher->promote($item, $collection, scheduled: false);
+        } catch (RuntimeException $e) {
+            return redirect()
+                ->route('collections.items.show', [
+                    'collection' => $collection,
+                    'item' => $item,
+                    'version' => 'draft',
+                ])
+                ->with('error', __($e->getMessage()));
+        }
 
         return redirect()->route('collections.items.show', [
             'collection' => $collection,
             'item' => $item,
             'version' => 'published',
         ])->with('success', __('Published.'));
+    }
+
+    /**
+     * Submit draft for editorial review.
+     */
+    public function submitForReview(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
+    {
+        $this->assertItemBelongsToCollection($collection, $item);
+        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+
+        /** @var User $user */
+        $user = $request->user();
+        $this->itemApprovals->submit($item, $collection, $user);
+
+        return redirect()->route('collections.items.show', [
+            'collection' => $collection,
+            'item' => $item,
+            'version' => 'draft',
+        ])->with('success', __('Submitted for review.'));
+    }
+
+    /**
+     * Approve a draft that is in review.
+     */
+    public function approve(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
+    {
+        $this->assertItemBelongsToCollection($collection, $item);
+        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+
+        /** @var User $user */
+        $user = $request->user();
+        $this->itemApprovals->approve($item, $collection, $user);
+
+        return redirect()->route('collections.items.show', [
+            'collection' => $collection,
+            'item' => $item,
+            'version' => 'draft',
+        ])->with('success', __('Approved.'));
+    }
+
+    /**
+     * Reject a draft that is in review (note required).
+     */
+    public function reject(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
+    {
+        $this->assertItemBelongsToCollection($collection, $item);
+        $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
+
+        $validated = $request->validate([
+            'rejection_note' => ['required', 'string', 'max:5000'],
+        ]);
+
+        /** @var User $user */
+        $user = $request->user();
+        $this->itemApprovals->reject($item, $collection, $user, $validated['rejection_note']);
+
+        return redirect()->route('collections.items.show', [
+            'collection' => $collection,
+            'item' => $item,
+            'version' => 'draft',
+        ])->with('success', __('Rejected.'));
     }
 
     /**
@@ -589,6 +739,16 @@ class ItemController extends Controller
                 ->with('error', __('Save a draft before scheduling publish.'));
         }
 
+        if (
+            $publishAt !== null
+            && $collection->approvals_required
+            && (string) $item->approval_status !== 'approved'
+        ) {
+            return redirect()
+                ->back()
+                ->with('error', __('Item must be approved before scheduling publish.'));
+        }
+
         $item->publish_at = $publishAt;
         $item->unpublish_at = $unpublishAt;
         $item->save();
@@ -621,7 +781,11 @@ class ItemController extends Controller
 
         $item->draft_data = null;
         $item->publish_at = null;
-        $item->save();
+        if ($collection->approvals_required) {
+            $this->itemApprovals->resetToDraft($item);
+        } else {
+            $item->save();
+        }
 
         $this->revisionRecorder->record($item, [
             'source' => 'discard_draft',
@@ -783,6 +947,13 @@ class ItemController extends Controller
                 ->with('success', $success);
         }
 
+        if ($action === 'stay') {
+            $return = SafeReturnUrl::from(request()->input('return'));
+            if ($return !== null) {
+                return redirect()->to($return)->with('success', $success);
+            }
+        }
+
         $parameters = [
             'collection' => $collection,
             'item' => $item,
@@ -831,6 +1002,94 @@ class ItemController extends Controller
             : null;
 
         return $this->listColumnsNormalizer->normalize($stored, $collection);
+    }
+
+    /**
+     * @return 'table'|'kanban'|'calendar'
+     */
+    private function resolveListLayout(Request $request, Collection $collection): string
+    {
+        $queryLayout = $request->query('layout');
+        if (in_array($queryLayout, ['table', 'kanban', 'calendar'], true)) {
+            return $queryLayout;
+        }
+
+        $user = $request->user();
+        $stored = $user !== null
+            ? $this->settingsRepository->get(
+                SettingsRepository::SCOPE_USER,
+                'collection_list',
+                'collection_'.$collection->id.'_layout',
+                $user->id,
+            )
+            : null;
+
+        return in_array($stored, ['table', 'kanban', 'calendar'], true) ? $stored : 'table';
+    }
+
+    private function resolveKanbanField(Request $request, Collection $collection): ?string
+    {
+        $user = $request->user();
+        $stored = $user !== null
+            ? $this->settingsRepository->get(
+                SettingsRepository::SCOPE_USER,
+                'collection_list',
+                'collection_'.$collection->id.'_kanban_field',
+                $user->id,
+            )
+            : null;
+
+        $candidate = is_string($stored) && $stored !== '' ? $stored : null;
+        $fields = $collection->fields ?? collect();
+
+        if ($candidate !== null) {
+            $field = $fields->firstWhere('name', $candidate);
+            if (
+                $field instanceof CollectionField
+                && in_array($field->type, [FieldTypeEnum::Select, FieldTypeEnum::RadioGroup], true)
+            ) {
+                return $candidate;
+            }
+        }
+
+        $first = $fields->first(
+            fn (CollectionField $field): bool => in_array(
+                $field->type,
+                [FieldTypeEnum::Select, FieldTypeEnum::RadioGroup],
+                true,
+            ),
+        );
+
+        return $first instanceof CollectionField ? $first->name : null;
+    }
+
+    private function resolveCalendarField(Request $request, Collection $collection): ?string
+    {
+        $user = $request->user();
+        $stored = $user !== null
+            ? $this->settingsRepository->get(
+                SettingsRepository::SCOPE_USER,
+                'collection_list',
+                'collection_'.$collection->id.'_calendar_field',
+                $user->id,
+            )
+            : null;
+
+        $candidate = is_string($stored) && $stored !== '' ? $stored : null;
+        $fields = $collection->fields ?? collect();
+
+        if ($candidate !== null) {
+            $field = $fields->firstWhere('name', $candidate);
+            if ($field instanceof CollectionField && $field->type === FieldTypeEnum::Date) {
+                return $candidate;
+            }
+        }
+
+        $first = $fields->first(
+            fn (CollectionField $field): bool => $field->type === FieldTypeEnum::Date,
+        );
+
+        return $first instanceof CollectionField ? $first->name : null;
     }
 
     /**

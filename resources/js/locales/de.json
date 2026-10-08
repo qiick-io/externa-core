@@ -112,6 +112,7 @@
             "passkeysUnsupported": "Passkeys werden in diesem Browser nicht unterstützt.",
             "passkeysNeedHttps": "Passkeys benötigen HTTPS.",
             "orContinueWithEmail": "oder mit E-Mail fortfahren",
+            "oidc": "Mit SSO anmelden",
             "noAccount": "Noch kein Konto?",
             "signUp": "Registrieren"
         },
@@ -268,6 +269,20 @@
             "loginMaxAttempts": "Max. Login-Versuche pro Minute",
             "twoFactorRequired": "Zwei-Faktor-Authentifizierung für alle Benutzer verlangen",
             "twoFactorRequiredHint": "Wenn aktiv, müssen Benutzer TOTP-2FA aktivieren oder einen Passkey auf der Sicherheitsseite registrieren, bevor sie die App nutzen.",
+            "oidcTitle": "SSO / OIDC",
+            "oidcDescription": "Optionale Enterprise-Anmeldung über einen OpenID-Connect-konformen Identity Provider",
+            "oidcEnabled": "OIDC-Login aktivieren",
+            "oidcIssuer": "Issuer-URL",
+            "oidcIssuerHint": "Basis-Issuer (Discovery unter /.well-known/openid-configuration). Beispiel: https://idp.example.com/realms/externa",
+            "oidcClientId": "Client-ID",
+            "oidcClientSecret": "Client-Secret",
+            "oidcSecretConfiguredHint": "Ein Client-Secret ist bereits konfiguriert. Leer lassen, um es zu behalten.",
+            "oidcSecretEmptyHint": "Erforderlich, wenn OIDC aktiv ist. Verschlüsselt gespeichert.",
+            "oidcButtonLabel": "Login-Button-Beschriftung",
+            "oidcButtonLabelPlaceholder": "Mit SSO anmelden",
+            "oidcJitProvisioning": "JIT-Benutzerbereitstellung erlauben",
+            "oidcJitProvisioningHint": "Wenn aus (Standard), können nur vorhandene Benutzer sich per SSO anmelden (Verknüpfung über verifizierte E-Mail). Wenn an, erstellen unbekannte verifizierte E-Mails Benutzer gemäß erlaubten Domains und Standardrolle.",
+            "oidcRedirectHint": "Diese Redirect-URI beim IdP registrieren: {{url}}",
             "registrationTitle": "Benutzerregistrierung",
             "registrationDescription": "Öffentliche Registrierung und Standardwerte für neue Konten steuern",
             "registrationEnabled": "Registrierung aktiviert",
@@ -355,6 +370,19 @@
             "webhookEventsTitle": "Ereigniskatalog",
             "webhookEventType": "Ereignis",
             "webhookEventDescription": "Beschreibung",
+            "notifiersTitle": "Ausgehende Benachrichtigungen (Slack & Telegram)",
+            "notifiersDescription": "Optionale lesbare Hinweise zu denselben Domain-Events wie ausgehende Webhooks. Nur ausgehend — kein Chat-Backend.",
+            "notifierSlackWebhookUrl": "Slack-Incoming-Webhook-URL",
+            "notifierSlackWebhookUrlHint": "Incoming Webhook im Slack-Workspace anlegen. Leer lassen zum Deaktivieren.",
+            "notifierSlackSendTest": "Slack-Test senden",
+            "notifierSlackSendTestHint": "Einstellungen speichern, dann Ping in die Warteschlange. Queue-Worker erforderlich, außer QUEUE_CONNECTION=sync.",
+            "notifierTelegramChatId": "Telegram-Chat-ID",
+            "notifierTelegramBotToken": "Telegram-Bot-Token",
+            "notifierTelegramBotTokenHint": "Von @BotFather (Format 123456:ABC…). Nicht der @Bot-Username. Leer lassen, um den aktuellen Token zu behalten.",
+            "notifierTelegramBotTokenConfigured": "Ein Bot-Token ist bereits konfiguriert.",
+            "notifierTelegramSendTest": "Telegram-Test senden",
+            "notifierTelegramSendTestHint": "Chat-ID und Token speichern, dann Ping sofort senden (kein Queue-Worker nötig).",
+            "notifiersPrivacyNote": "Event-Metadaten werden bei Konfiguration an Slack oder Telegram gesendet. Datenschutz des Anbieters bei Self-Hosting prüfen.",
             "modules": {
                 "dashboard": "Dashboard",
                 "ai": "Assistent",
@@ -493,6 +521,8 @@
             "singletonHint": "Für Collections mit einem festen Eintrag (z. B. Startseite oder Site-Einstellungen). Diese Wahl kann nach der Erstellung nicht geändert werden.",
             "versioning": "Inhaltsversionierung",
             "versioningHint": "Entwurf / Veröffentlicht aktivieren. Im Entwurf bearbeiten, dann Veröffentlichen.",
+            "approvalsRequired": "Freigaben erforderlich",
+            "approvalsRequiredHint": "Redakteure reichen Entwürfe zur Prüfung ein. Veröffentlichen ist gesperrt, bis ein Prüfer freigibt. Erfordert Versionierung.",
             "previewUrl": "Live-Preview-URL",
             "previewUrlHint": "Frontend-Vorlage mit Tokens: {{id}}, {{slug}}, {{collection}}, {{locale}}, {{version}}, {{token}}. Leer = Projekt-Standard.",
             "previewUrlPlaceholder": "https://example.com/preview/{{collection}}/{{id}}?version={{version}}&token={{token}}",
@@ -559,6 +589,16 @@
             "revisions": "Revisionen",
             "editFields": "Felder bearbeiten",
             "delete": "Löschen"
+        },
+        "itemPresence": {
+            "viewing": "{{count}} weitere(r) Bearbeiter sieht zu",
+            "degraded": "Realtime aus — Präsenz und Live-Hinweise sind eingeschränkt.",
+            "lockedBy": "{{name}} bearbeitet (für dich nur Lesen).",
+            "takeOver": "Bearbeitung übernehmen",
+            "staleTitle": "Eintrag auf dem Server geändert",
+            "staleDescription": "Ein anderer Speichervorgang hat diesen Eintrag aktualisiert. Trotzdem speichern oder Seite neu laden.",
+            "staleSave": "Trotzdem speichern",
+            "staleReload": "Seite neu laden"
         },
         "itemChat": {
             "title": "Chat",
@@ -956,6 +996,14 @@
             "import-url-json": {
                 "title": "JSON von URL importieren",
                 "description": "Remote-JSON → Collection"
+            },
+            "import-directus": {
+                "title": "Aus Directus-URL importieren",
+                "description": "Directus-Items-JSON \u2192 Collection (zuerst dry-run)"
+            },
+            "import-wordpress": {
+                "title": "Aus WordPress REST importieren",
+                "description": "WP-Posts-JSON \u2192 Collection (rendered entpacken)"
             },
             "import-dry-run": {
                 "title": "Import-Vorschau (Dry-Run)",

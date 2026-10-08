@@ -3,6 +3,7 @@
 #   cp .env.docker.example .env
 #   docker compose up --build
 # Optional MinIO: docker compose --profile minio up --build
+# Optional Meilisearch: docker compose --profile meilisearch up --build
 # MySQL swap (keeps host Herd .env untouched — overrides only):
 #   docker compose --profile mysql -f compose.yaml -f compose.mysql.yaml up --build
 # MariaDB (host 3307 like Herd): 
@@ -292,6 +293,25 @@ services:
     networks:
       - externa
 
+  meilisearch:
+    profiles: ["meilisearch"]
+    image: getmeili/meilisearch:v1.11
+    ports:
+      - "${FORWARD_MEILISEARCH_PORT:-7700}:7700"
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: "${MEILISEARCH_API_KEY:-masterKey}"
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - externa_meilisearch:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+    networks:
+      - externa
+
   minio:
     profiles: ["minio"]
     image: quay.io/minio/minio:latest
@@ -341,6 +361,7 @@ volumes:
   externa_vendor:
   externa_node_modules:
   externa_minio:
+  externa_meilisearch:
 
 networks:
   externa:

@@ -9,6 +9,22 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-02
+
+### Added
+
+- Official headless starter conventions: multi-repo preferred, naming/env/TS/CI/Dependabot checklist in `docs/starters.md` (#156)
+- Official Nuxt headless starter: [qiick-io/externa-nuxt-starter](https://github.com/qiick-io/externa-nuxt-starter) + docs [Headless starter](https://docs.externa.qiick.io/docs/headless-starter) (#152)
+- Editorial approvals for versioned collections: `approvals_required`, submit/approve/reject, promote gate, review list filter, webhook events `item.submitted`/`item.approved`/`item.rejected`, Spatie `can-submit-collections` / `can-approve-collections` (#48)
+- Side-by-side translation workspace on the item form (source/target locales, copy helpers, completeness) (#49)
+- Collection list layouts: optional kanban (select/radio) and calendar (date); table remains default (#47)
+- Outbound Slack (incoming webhook) and Telegram (`sendMessage`) notifiers on the domain event bus; encrypted Telegram token (#39)
+- Collaborative item presence + soft lock via Echo (avatars, whisper lock, stale-save / `expected_updated_at`) (#50)
+- Optional Meilisearch sync for published collection items (queue jobs; no Scout/Algolia) (#40)
+- Optional git export sync of published items to a remote (JSON/Markdown, deploy-key SSH, dry-run) (#41)
+- CMS import profiles on `ImportRemoteJson`: `directus` and `wordpress` reshape before flatten/import (#30)
+- Optional OIDC/SSO login (Socialite + issuer discovery): project settings for issuer/client/secret, link-by-verified-email (JIT off by default), login CTA alongside password/passkey (#29)
+
 ## [1.1.0] - 2026-09-24
 
 ### Added

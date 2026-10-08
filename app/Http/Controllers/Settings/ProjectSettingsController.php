@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\UpdateProjectSettingsRequest;
+use App\Jobs\DeliverTelegramOutboundNotifierJob;
 use App\Models\Role;
+use App\Services\Notifiers\OutboundNotifierMessageFormatter;
 use App\Services\Settings\ProjectSettings;
 use App\Services\Settings\SettingsRepository;
 use App\Services\Webhooks\OutboundWebhookCatalog;
@@ -14,6 +16,7 @@ use App\Support\Collections\ContentLocaleCatalog;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 /**
  * Project-level configuration (general, security, registration, files, reporting, webhooks).
@@ -80,7 +83,10 @@ class ProjectSettingsController extends Controller
                 'scope' => SettingsRepository::SCOPE_PROJECT,
                 'group' => 'project',
                 'keys' => $keys,
-                'secret_keys_updated' => in_array('webhook_secret', $keys, true),
+                'secret_keys_updated' => count(array_intersect(
+                    $keys,
+                    ['webhook_secret', 'notifier_telegram_bot_token'],
+                )) > 0,
             ])
             ->log('Project settings updated');
 
@@ -106,5 +112,49 @@ class ProjectSettingsController extends Controller
 
         return to_route('project.edit')
             ->with('success', __('Test webhook event queued.'));
+    }
+
+    /**
+     * Queue a `ping` notifier message to Slack when configured.
+     */
+    public function sendTestSlackNotifier(OutboundWebhookDispatcher $dispatcher): RedirectResponse
+    {
+        if ($this->projectSettings->notifierSlackWebhookUrl() === null) {
+            return to_route('project.edit')
+                ->with('error', __('Configure a Slack incoming webhook URL before sending a test message.'));
+        }
+
+        $dispatcher->dispatchPing();
+
+        return to_route('project.edit')
+            ->with('success', __('Test Slack notifier queued.'));
+    }
+
+    /**
+     * Send a `ping` notifier message to Telegram immediately when configured.
+     *
+     * Runs synchronously so settings UI can surface Bot API errors without a queue worker.
+     */
+    public function sendTestTelegramNotifier(): RedirectResponse
+    {
+        if (! $this->projectSettings->notifierTelegramConfigured()) {
+            return to_route('project.edit')
+                ->with('error', __('Configure a Telegram bot token and chat ID before sending a test message.'));
+        }
+
+        $message = OutboundNotifierMessageFormatter::format('ping');
+
+        try {
+            (new DeliverTelegramOutboundNotifierJob('ping', $message))
+                ->handle($this->projectSettings);
+        } catch (Throwable $exception) {
+            return to_route('project.edit')
+                ->with('error', __('Telegram test failed: :error', [
+                    'error' => $exception->getMessage(),
+                ]));
+        }
+
+        return to_route('project.edit')
+            ->with('success', __('Test Telegram message sent.'));
     }
 }

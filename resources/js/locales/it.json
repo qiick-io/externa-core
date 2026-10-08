@@ -112,6 +112,7 @@
             "passkeysUnsupported": "Le passkey non sono supportate in questo browser.",
             "passkeysNeedHttps": "Le passkey richiedono HTTPS.",
             "orContinueWithEmail": "oppure continua con email",
+            "oidc": "Accedi con SSO",
             "noAccount": "Non hai un account?",
             "signUp": "Registrati"
         },
@@ -268,6 +269,20 @@
             "loginMaxAttempts": "Tentativi di login massimi al minuto",
             "twoFactorRequired": "Richiedi autenticazione a due fattori per tutti gli utenti",
             "twoFactorRequiredHint": "Se attiva, gli utenti devono abilitare la 2FA TOTP o registrare una passkey nella pagina Sicurezza prima di usare l'app.",
+            "oidcTitle": "SSO / OIDC",
+            "oidcDescription": "Accesso enterprise opzionale tramite un identity provider OpenID Connect conforme",
+            "oidcEnabled": "Abilita login OIDC",
+            "oidcIssuer": "URL issuer",
+            "oidcIssuerHint": "Issuer di base (discovery su /.well-known/openid-configuration). Esempio: https://idp.example.com/realms/externa",
+            "oidcClientId": "Client ID",
+            "oidcClientSecret": "Client secret",
+            "oidcSecretConfiguredHint": "Un client secret è già configurato. Lascia vuoto per mantenerlo.",
+            "oidcSecretEmptyHint": "Obbligatorio quando OIDC è attivo. Salvato cifrato.",
+            "oidcButtonLabel": "Etichetta pulsante login",
+            "oidcButtonLabelPlaceholder": "Accedi con SSO",
+            "oidcJitProvisioning": "Consenti provisioning JIT utenti",
+            "oidcJitProvisioningHint": "Se disattivo (default), solo utenti esistenti possono accedere via SSO (collegamento per email verificata). Se attivo, email verificate sconosciute creano utenti rispettando i domini consentiti e il ruolo predefinito.",
+            "oidcRedirectHint": "Registra questo redirect URI sull'IdP: {{url}}",
             "registrationTitle": "Registrazione utenti",
             "registrationDescription": "Controlla la registrazione pubblica e i default dei nuovi account",
             "registrationEnabled": "Registrazione abilitata",
@@ -359,6 +374,19 @@
             "webhookEventsTitle": "Catalogo eventi",
             "webhookEventType": "Evento",
             "webhookEventDescription": "Descrizione",
+            "notifiersTitle": "Notifiche in uscita (Slack e Telegram)",
+            "notifiersDescription": "Avvisi leggibili per gli stessi eventi dei webhook in uscita. Solo in uscita — non è un backend chat.",
+            "notifierSlackWebhookUrl": "URL webhook in entrata Slack",
+            "notifierSlackWebhookUrlHint": "Crea un Incoming Webhook nel workspace Slack. Lascia vuoto per disattivare.",
+            "notifierSlackSendTest": "Invia test Slack",
+            "notifierSlackSendTestHint": "Salva prima le impostazioni, poi accoda un ping. Richiede un worker di coda salvo QUEUE_CONNECTION=sync.",
+            "notifierTelegramChatId": "Chat ID Telegram",
+            "notifierTelegramBotToken": "Token bot Telegram",
+            "notifierTelegramBotTokenHint": "Da @BotFather (formato 123456:ABC…). Non lo username @bot. Lascia vuoto per mantenere il token attuale.",
+            "notifierTelegramBotTokenConfigured": "Un token bot è già configurato.",
+            "notifierTelegramSendTest": "Invia test Telegram",
+            "notifierTelegramSendTestHint": "Salva chat ID e token, poi invia un ping subito (non serve un worker di coda).",
+            "notifiersPrivacyNote": "I metadati degli eventi vengono inviati a Slack o Telegram quando configurato. Valuta la gestione dati del provider in self-host.",
             "modules": {
                 "dashboard": "Dashboard",
                 "ai": "Assistente",
@@ -493,6 +521,8 @@
             "singletonHint": "Usalo per collection con una sola voce fissa (es. homepage o impostazioni sito). Questa scelta non si può cambiare dopo la creazione.",
             "versioning": "Versioning contenuti",
             "versioningHint": "Abilita bozza / pubblicato. Modifica in Bozza, poi Pubblica.",
+            "approvalsRequired": "Approvazioni richieste",
+            "approvalsRequiredHint": "Gli editor inviano le bozze in revisione. Pubblica resta bloccato finché un revisore non approva. Richiede versioning.",
             "previewUrl": "URL Live Preview",
             "previewUrlHint": "Template frontend con token: {{id}}, {{slug}}, {{collection}}, {{locale}}, {{version}}, {{token}}. Vuoto = default in Impostazioni progetto.",
             "previewUrlPlaceholder": "https://example.com/preview/{{collection}}/{{id}}?version={{version}}&token={{token}}",
@@ -559,6 +589,16 @@
             "revisions": "Revisioni",
             "editFields": "Modifica campi",
             "delete": "Elimina"
+        },
+        "itemPresence": {
+            "viewing": "{{count}} altro/i editor in visualizzazione",
+            "degraded": "Realtime disattivato — presenza e avvisi live limitati.",
+            "lockedBy": "{{name}} sta modificando (sola lettura per te).",
+            "takeOver": "Riprendi la modifica",
+            "staleTitle": "Elemento modificato sul server",
+            "staleDescription": "Un altro salvataggio ha aggiornato questo elemento. Salva comunque o ricarica la pagina.",
+            "staleSave": "Salva comunque",
+            "staleReload": "Ricarica pagina"
         },
         "itemChat": {
             "title": "Chat",
@@ -956,6 +996,14 @@
             "import-url-json": {
                 "title": "Importa JSON da URL",
                 "description": "Fetch JSON remoto → collection"
+            },
+            "import-directus": {
+                "title": "Importa da URL Directus",
+                "description": "JSON items Directus \u2192 collection (prima dry-run)"
+            },
+            "import-wordpress": {
+                "title": "Importa da WordPress REST",
+                "description": "JSON post WP \u2192 collection (unwrap rendered)"
             },
             "import-dry-run": {
                 "title": "Anteprima import (dry-run)",
