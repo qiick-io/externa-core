@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
  * A single record within a collection; field values live in related rows.
  *
  * @property-read int $id
+ * @property int|null $board_sort
  * @property int $collection_id
  * @property int|null $user_created_id
  * @property int|null $user_updated_id
@@ -44,6 +45,7 @@ class CollectionItem extends Model
 
     protected $fillable = [
         'collection_id',
+        'board_sort',
         'user_created_id',
         'user_updated_id',
         'draft_data',
@@ -62,6 +64,7 @@ class CollectionItem extends Model
     protected function casts(): array
     {
         return [
+            'board_sort' => 'integer',
             'draft_data' => 'array',
             'reviewed_at' => 'datetime',
             'publish_at' => 'datetime',

@@ -71,6 +71,7 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import { seedItemPrompt, seedItemsBulkPrompt } from '@/lib/ai-open';
+import { getFieldDisplayName } from '@/lib/collection-field-types';
 import { createSortableList } from '@/lib/create-sortable-list';
 import {
     emptyFilterRule,
@@ -94,7 +95,9 @@ import type { RelatedFieldEntry } from './column-picker-popover';
 import { ItemFiltersBuilder } from './item-filters-builder';
 import { columnHeaderLabel, ItemTableCell } from './item-table-cell';
 import { ItemsCalendar } from './items-calendar';
+import type { CalendarMonthPayload } from './items-calendar';
 import { ItemsKanban } from './items-kanban';
+import type { KanbanBoard } from './items-kanban';
 
 type ListLayout = 'table' | 'kanban' | 'calendar';
 
@@ -275,7 +278,9 @@ export default function ItemsIndex({
     column_aligns: columnAlignsProp = {},
     list_layout: listLayoutProp = 'table',
     kanban_field: kanbanFieldProp = null,
+    kanban: kanbanBoardProp = null,
     calendar_field: calendarFieldProp = null,
+    calendar: calendarProp = null,
     related_fields_catalog: relatedFieldsCatalog = {},
     filters,
 }: {
@@ -285,7 +290,9 @@ export default function ItemsIndex({
     column_aligns?: Record<string, ColumnAlign>;
     list_layout?: ListLayout;
     kanban_field?: string | null;
+    kanban?: KanbanBoard | null;
     calendar_field?: string | null;
+    calendar?: CalendarMonthPayload | null;
     related_fields_catalog?: Record<string, RelatedFieldEntry[]>;
     filters: ItemsFilters;
 }) {
@@ -505,6 +512,19 @@ export default function ItemsIndex({
                 query.in_review = true;
             }
 
+            // Keep board/calendar across search/filter visits (prefs alone lag URL).
+            if (listLayout === 'kanban' || listLayout === 'calendar') {
+                query.layout = listLayout;
+            }
+
+            if (listLayout === 'kanban' && kanbanField) {
+                query.kanban_field = kanbanField;
+            }
+
+            if (listLayout === 'calendar' && calendarField) {
+                query.calendar_field = calendarField;
+            }
+
             router.get(
                 collections.items.index.url(collection.id, { query }),
                 {},
@@ -512,6 +532,7 @@ export default function ItemsIndex({
             );
         },
         [
+            calendarField,
             collection.id,
             filterRules,
             filters.direction,
@@ -519,6 +540,8 @@ export default function ItemsIndex({
             hasDraftFilter,
             inReviewFilter,
             isTrashed,
+            kanbanField,
+            listLayout,
         ],
     );
 
@@ -546,7 +569,7 @@ export default function ItemsIndex({
     const clearFilters = useCallback(() => {
         setFilterTitle('');
         setFilterRules([]);
-        visit({ rules: [] });
+        visit({ rules: [], has_draft: false, in_review: false });
     }, [visit]);
 
     const applyFilterRules = useCallback(() => {
@@ -773,7 +796,9 @@ export default function ItemsIndex({
                         search={filterTitle}
                         onSearchChange={setFilterTitle}
                         searchPlaceholder={
-                            isTrashed ? 'Search trash…' : 'Search title…'
+                            isTrashed
+                                ? t('collections.itemsList.searchTrash')
+                                : t('collections.itemsList.searchTitle')
                         }
                         selectedCount={selected.length}
                         onClearSelection={() => setSelected([])}
@@ -846,6 +871,16 @@ export default function ItemsIndex({
                                 onChange={setFilterRules}
                                 onApply={applyFilterRules}
                                 onClear={clearFilters}
+                                showHasDraft={versioningEnabled}
+                                hasDraft={hasDraftFilter}
+                                onHasDraftChange={(value) =>
+                                    visit({ has_draft: value })
+                                }
+                                showInReview={approvalsRequired}
+                                inReview={inReviewFilter}
+                                onInReviewChange={(value) =>
+                                    visit({ in_review: value })
+                                }
                             />
                         }
                     />
@@ -853,10 +888,8 @@ export default function ItemsIndex({
                 filtersRight={
                     hasSelection ? null : (
                         <div className="flex flex-wrap items-center gap-1.5">
-                            <ToggleGroup
-                                type="single"
+                            <Select
                                 value={listLayout}
-                                data-test="list-layout-toggle"
                                 onValueChange={(value) => {
                                     if (
                                         value === 'table' ||
@@ -867,30 +900,56 @@ export default function ItemsIndex({
                                     }
                                 }}
                             >
-                                <ToggleGroupItem
-                                    value="table"
-                                    aria-label="Table layout"
-                                    className="px-2.5"
+                                <SelectTrigger
+                                    size="sm"
+                                    className="w-auto min-w-28 text-xs"
+                                    data-test="list-layout-select"
+                                    aria-label={t(
+                                        'collections.itemsList.layout',
+                                    )}
                                 >
-                                    <LayoutList className="size-4" />
-                                </ToggleGroupItem>
-                                <ToggleGroupItem
-                                    value="kanban"
-                                    aria-label="Kanban layout"
-                                    className="px-2.5"
-                                    disabled={kanbanFields.length === 0}
-                                >
-                                    <Columns3 className="size-4" />
-                                </ToggleGroupItem>
-                                <ToggleGroupItem
-                                    value="calendar"
-                                    aria-label="Calendar layout"
-                                    className="px-2.5"
-                                    disabled={calendarFields.length === 0}
-                                >
-                                    <CalendarDays className="size-4" />
-                                </ToggleGroupItem>
-                            </ToggleGroup>
+                                    <SelectValue
+                                        placeholder={t(
+                                            'collections.itemsList.layout',
+                                        )}
+                                    />
+                                </SelectTrigger>
+                                <SelectContent align="end">
+                                    <SelectItem
+                                        value="table"
+                                        textValue={t(
+                                            'collections.itemsList.layoutTable',
+                                        )}
+                                    >
+                                        <LayoutList className="size-4" />
+                                        {t('collections.itemsList.layoutTable')}
+                                    </SelectItem>
+                                    <SelectItem
+                                        value="kanban"
+                                        textValue={t(
+                                            'collections.itemsList.layoutKanban',
+                                        )}
+                                        disabled={kanbanFields.length === 0}
+                                    >
+                                        <Columns3 className="size-4" />
+                                        {t(
+                                            'collections.itemsList.layoutKanban',
+                                        )}
+                                    </SelectItem>
+                                    <SelectItem
+                                        value="calendar"
+                                        textValue={t(
+                                            'collections.itemsList.layoutCalendar',
+                                        )}
+                                        disabled={calendarFields.length === 0}
+                                    >
+                                        <CalendarDays className="size-4" />
+                                        {t(
+                                            'collections.itemsList.layoutCalendar',
+                                        )}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
                             {listLayout === 'kanban' &&
                             kanbanFields.length > 0 ? (
                                 <Select
@@ -906,20 +965,43 @@ export default function ItemsIndex({
                                 >
                                     <SelectTrigger
                                         size="sm"
-                                        className="w-auto min-w-28 text-xs"
+                                        className="w-auto min-w-36 text-xs"
                                         data-test="kanban-field-select"
+                                        aria-label={t(
+                                            'collections.itemsList.kanbanField',
+                                        )}
                                     >
-                                        <SelectValue placeholder="Status field" />
+                                        {kanbanField ? (
+                                            <span className="text-muted-foreground">
+                                                {t(
+                                                    'collections.itemsList.kanbanField',
+                                                )}
+                                                :
+                                            </span>
+                                        ) : null}
+                                        <SelectValue
+                                            placeholder={t(
+                                                'collections.itemsList.kanbanField',
+                                            )}
+                                        />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {kanbanFields.map((field) => (
-                                            <SelectItem
-                                                key={field.id}
-                                                value={field.name}
-                                            >
-                                                {field.name}
-                                            </SelectItem>
-                                        ))}
+                                        {kanbanFields.map((field) => {
+                                            const label = getFieldDisplayName(
+                                                field.settings,
+                                                field.name,
+                                            );
+
+                                            return (
+                                                <SelectItem
+                                                    key={field.id}
+                                                    value={field.name}
+                                                    textValue={label}
+                                                >
+                                                    {label}
+                                                </SelectItem>
+                                            );
+                                        })}
                                     </SelectContent>
                                 </Select>
                             ) : null}
@@ -938,60 +1020,45 @@ export default function ItemsIndex({
                                 >
                                     <SelectTrigger
                                         size="sm"
-                                        className="w-auto min-w-28 text-xs"
+                                        className="w-auto min-w-36 text-xs"
                                         data-test="calendar-field-select"
+                                        aria-label={t(
+                                            'collections.itemsList.calendarField',
+                                        )}
                                     >
-                                        <SelectValue placeholder="Date field" />
+                                        {calendarField ? (
+                                            <span className="text-muted-foreground">
+                                                {t(
+                                                    'collections.itemsList.calendarField',
+                                                )}
+                                                :
+                                            </span>
+                                        ) : null}
+                                        <SelectValue
+                                            placeholder={t(
+                                                'collections.itemsList.calendarField',
+                                            )}
+                                        />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {calendarFields.map((field) => (
-                                            <SelectItem
-                                                key={field.id}
-                                                value={field.name}
-                                            >
-                                                {field.name}
-                                            </SelectItem>
-                                        ))}
+                                        {calendarFields.map((field) => {
+                                            const label = getFieldDisplayName(
+                                                field.settings,
+                                                field.name,
+                                            );
+
+                                            return (
+                                                <SelectItem
+                                                    key={field.id}
+                                                    value={field.name}
+                                                    textValue={label}
+                                                >
+                                                    {label}
+                                                </SelectItem>
+                                            );
+                                        })}
                                     </SelectContent>
                                 </Select>
-                            ) : null}
-                            {versioningEnabled ? (
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant={
-                                        hasDraftFilter ? 'secondary' : 'outline'
-                                    }
-                                    className="h-9 px-2.5 text-xs"
-                                    data-test="filter-has-draft"
-                                    aria-pressed={hasDraftFilter}
-                                    onClick={() =>
-                                        visit({
-                                            has_draft: !hasDraftFilter,
-                                        })
-                                    }
-                                >
-                                    Has draft
-                                </Button>
-                            ) : null}
-                            {approvalsRequired ? (
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant={
-                                        inReviewFilter ? 'secondary' : 'outline'
-                                    }
-                                    className="h-9 px-2.5 text-xs"
-                                    data-test="filter-in-review"
-                                    aria-pressed={inReviewFilter}
-                                    onClick={() =>
-                                        visit({
-                                            in_review: !inReviewFilter,
-                                        })
-                                    }
-                                >
-                                    In review
-                                </Button>
                             ) : null}
                             <ToggleGroup
                                 type="single"
@@ -1006,14 +1073,18 @@ export default function ItemsIndex({
                             >
                                 <ToggleGroupItem
                                     value="active"
-                                    aria-label="Active items"
+                                    aria-label={t(
+                                        'collections.itemsList.activeItems',
+                                    )}
                                     className="px-2.5"
                                 >
                                     <FolderOpen className="size-4" />
                                 </ToggleGroupItem>
                                 <ToggleGroupItem
                                     value="trashed"
-                                    aria-label="Trash"
+                                    aria-label={t(
+                                        'collections.itemsList.trash',
+                                    )}
                                     className="px-2.5"
                                 >
                                     <Trash2 className="size-4" />
@@ -1023,7 +1094,7 @@ export default function ItemsIndex({
                     )
                 }
                 footer={
-                    items.last_page > 1 ? (
+                    listLayout === 'table' && items.last_page > 1 ? (
                         <TablePagination links={items.links} />
                     ) : undefined
                 }
@@ -1031,8 +1102,13 @@ export default function ItemsIndex({
                 {listLayout === 'kanban' ? (
                     <ItemsKanban
                         collection={collection}
-                        items={items.data}
-                        fieldName={kanbanField}
+                        board={
+                            kanbanBoardProp &&
+                            kanbanBoardProp.field === kanbanField
+                                ? kanbanBoardProp
+                                : null
+                        }
+                        filters={filters as Record<string, unknown>}
                         canEdit={can(PermissionEnum.CanEditCollections)}
                         isTrashed={isTrashed}
                     />
@@ -1040,8 +1116,15 @@ export default function ItemsIndex({
                 {listLayout === 'calendar' ? (
                     <ItemsCalendar
                         collection={collection}
-                        items={items.data}
                         fieldName={calendarField}
+                        filters={filters as Record<string, unknown>}
+                        initial={
+                            calendarProp && calendarProp.field === calendarField
+                                ? calendarProp
+                                : null
+                        }
+                        canEdit={can(PermissionEnum.CanEditCollections)}
+                        isTrashed={isTrashed}
                     />
                 ) : null}
                 {listLayout === 'table' ? (

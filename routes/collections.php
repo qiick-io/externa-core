@@ -74,6 +74,14 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.field-options');
 
+        Route::get('collections/{collection}/items/kanban-column', [ItemController::class, 'kanbanColumn'])
+            ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+            ->name('collections.items.kanban-column');
+
+        Route::get('collections/{collection}/items/calendar-month', [ItemController::class, 'calendarMonth'])
+            ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+            ->name('collections.items.calendar-month');
+
         Route::get('collections/{collection}/items/{item}/revisions', [ItemRevisionController::class, 'index'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.revisions.index');

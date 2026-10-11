@@ -1,5 +1,6 @@
 import { Filter, Plus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -7,6 +8,13 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import {
     countActiveFilterRules,
     emptyFilterRule,
@@ -24,6 +32,12 @@ type ItemFiltersBuilderProps = {
     onChange: (rules: FilterRule[]) => void;
     onApply: () => void;
     onClear: () => void;
+    showHasDraft?: boolean;
+    hasDraft?: boolean;
+    onHasDraftChange?: (value: boolean) => void;
+    showInReview?: boolean;
+    inReview?: boolean;
+    onInReviewChange?: (value: boolean) => void;
 };
 
 /**
@@ -35,7 +49,14 @@ export function ItemFiltersBuilder({
     onChange,
     onApply,
     onClear,
+    showHasDraft = false,
+    hasDraft = false,
+    onHasDraftChange,
+    showInReview = false,
+    inReview = false,
+    onInReviewChange,
 }: ItemFiltersBuilderProps) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
 
     const filterableFields = useMemo(
@@ -43,7 +64,10 @@ export function ItemFiltersBuilder({
         [fields],
     );
 
-    const activeCount = countActiveFilterRules(rules);
+    const statusActiveCount =
+        (showHasDraft && hasDraft ? 1 : 0) + (showInReview && inReview ? 1 : 0);
+    const activeCount = countActiveFilterRules(rules) + statusActiveCount;
+    const showStatusFilters = showHasDraft || showInReview;
 
     const updateRule = (id: string, patch: Partial<FilterRule>): void => {
         onChange(
@@ -70,7 +94,7 @@ export function ItemFiltersBuilder({
                     variant="outline"
                     size="sm"
                     className="h-9 gap-1.5"
-                    aria-label="Field filters"
+                    aria-label="Filters"
                 >
                     <Filter className="size-4" />
                     Filters
@@ -86,7 +110,7 @@ export function ItemFiltersBuilder({
                 align="start"
             >
                 <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">Field filters</p>
+                    <p className="text-sm font-medium">Filters</p>
                     {activeCount > 0 ? (
                         <Button
                             type="button"
@@ -103,120 +127,201 @@ export function ItemFiltersBuilder({
                         </Button>
                     ) : null}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                    Rules are AND-combined and written to the URL (
-                    <code className="text-[10px]">filter[field][_eq]=…</code>
-                    ).
-                </p>
 
-                {filterableFields.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                        No filterable fields on this collection.
-                    </p>
-                ) : (
-                    <div className="space-y-2">
-                        {rules.map((rule) => (
-                            <div
-                                key={rule.id}
-                                className="flex flex-wrap items-center gap-1.5"
+                {showStatusFilters ? (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        {showHasDraft ? (
+                            <Select
+                                value={hasDraft ? 'yes' : 'all'}
+                                onValueChange={(value) =>
+                                    onHasDraftChange?.(value === 'yes')
+                                }
                             >
-                                <select
-                                    className="h-8 min-w-24 flex-1 rounded-md border bg-background px-2 text-xs"
-                                    value={rule.field}
-                                    aria-label="Filter field"
-                                    onChange={(e) =>
-                                        updateRule(rule.id, {
-                                            field: e.target.value,
-                                        })
-                                    }
+                                <SelectTrigger
+                                    size="sm"
+                                    className="w-auto min-w-28 text-xs"
+                                    data-test="filter-has-draft"
+                                    aria-label={t(
+                                        'collections.itemsList.hasDraft',
+                                    )}
                                 >
-                                    {filterableFields.map((field) => (
-                                        <option
-                                            key={field.name}
-                                            value={field.name}
-                                        >
-                                            {field.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                <select
-                                    className="h-8 min-w-28 rounded-md border bg-background px-2 text-xs"
-                                    value={rule.operator}
-                                    aria-label="Filter operator"
-                                    onChange={(e) =>
-                                        updateRule(rule.id, {
-                                            operator: e.target
-                                                .value as FilterOperator,
-                                        })
-                                    }
+                                    <SelectValue>
+                                        {hasDraft
+                                            ? t(
+                                                  'collections.itemsList.hasDraft',
+                                              )
+                                            : t(
+                                                  'collections.itemsList.hasDraftAny',
+                                              )}
+                                    </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        {t('collections.itemsList.filterAll')}
+                                    </SelectItem>
+                                    <SelectItem value="yes">
+                                        {t('collections.itemsList.hasDraft')}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        ) : null}
+                        {showInReview ? (
+                            <Select
+                                value={inReview ? 'yes' : 'all'}
+                                onValueChange={(value) =>
+                                    onInReviewChange?.(value === 'yes')
+                                }
+                            >
+                                <SelectTrigger
+                                    size="sm"
+                                    className="w-auto min-w-28 text-xs"
+                                    data-test="filter-in-review"
+                                    aria-label={t(
+                                        'collections.itemsList.inReview',
+                                    )}
                                 >
-                                    {FILTER_OPERATORS.map((op) => (
-                                        <option key={op} value={op}>
-                                            {OPERATOR_LABELS[op]}
-                                        </option>
-                                    ))}
-                                </select>
-                                {operatorNeedsValue(rule.operator) ? (
-                                    <Input
-                                        className="h-8 min-w-24 flex-1 text-xs"
-                                        value={rule.value}
-                                        placeholder={
-                                            rule.operator === '_in'
-                                                ? 'a, b, c'
-                                                : 'Value'
-                                        }
-                                        aria-label="Filter value"
+                                    <SelectValue>
+                                        {inReview
+                                            ? t(
+                                                  'collections.itemsList.inReview',
+                                              )
+                                            : t(
+                                                  'collections.itemsList.inReviewAny',
+                                              )}
+                                    </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        {t('collections.itemsList.filterAll')}
+                                    </SelectItem>
+                                    <SelectItem value="yes">
+                                        {t('collections.itemsList.inReview')}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        ) : null}
+                    </div>
+                ) : null}
+
+                <div className="space-y-2">
+                    <p className="text-sm font-medium">Field filters</p>
+                    <p className="text-xs text-muted-foreground">
+                        Rules are AND-combined and written to the URL (
+                        <code className="text-[10px]">
+                            filter[field][_eq]=…
+                        </code>
+                        ).
+                    </p>
+
+                    {filterableFields.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                            No filterable fields on this collection.
+                        </p>
+                    ) : (
+                        <div className="space-y-2">
+                            {rules.map((rule) => (
+                                <div
+                                    key={rule.id}
+                                    className="flex flex-wrap items-center gap-1.5"
+                                >
+                                    <select
+                                        className="h-8 min-w-24 flex-1 rounded-md border bg-background px-2 text-xs"
+                                        value={rule.field}
+                                        aria-label="Filter field"
                                         onChange={(e) =>
                                             updateRule(rule.id, {
-                                                value: e.target.value,
+                                                field: e.target.value,
                                             })
                                         }
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault();
-                                                onApply();
-                                                setOpen(false);
+                                    >
+                                        {filterableFields.map((field) => (
+                                            <option
+                                                key={field.name}
+                                                value={field.name}
+                                            >
+                                                {field.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        className="h-8 min-w-28 rounded-md border bg-background px-2 text-xs"
+                                        value={rule.operator}
+                                        aria-label="Filter operator"
+                                        onChange={(e) =>
+                                            updateRule(rule.id, {
+                                                operator: e.target
+                                                    .value as FilterOperator,
+                                            })
+                                        }
+                                    >
+                                        {FILTER_OPERATORS.map((op) => (
+                                            <option key={op} value={op}>
+                                                {OPERATOR_LABELS[op]}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {operatorNeedsValue(rule.operator) ? (
+                                        <Input
+                                            className="h-8 min-w-24 flex-1 text-xs"
+                                            value={rule.value}
+                                            placeholder={
+                                                rule.operator === '_in'
+                                                    ? 'a, b, c'
+                                                    : 'Value'
                                             }
-                                        }}
-                                    />
-                                ) : null}
+                                            aria-label="Filter value"
+                                            onChange={(e) =>
+                                                updateRule(rule.id, {
+                                                    value: e.target.value,
+                                                })
+                                            }
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    onApply();
+                                                    setOpen(false);
+                                                }
+                                            }}
+                                        />
+                                    ) : null}
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 px-2"
+                                        aria-label="Remove filter"
+                                        onClick={() => removeRule(rule.id)}
+                                    >
+                                        <X className="size-3.5" />
+                                    </Button>
+                                </div>
+                            ))}
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
                                 <Button
                                     type="button"
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
-                                    className="h-8 px-2"
-                                    aria-label="Remove filter"
-                                    onClick={() => removeRule(rule.id)}
+                                    className="h-8 text-xs"
+                                    onClick={addRule}
                                 >
-                                    <X className="size-3.5" />
+                                    <Plus className="mr-1 size-3.5" />
+                                    Add rule
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    className="h-8 text-xs"
+                                    onClick={() => {
+                                        onApply();
+                                        setOpen(false);
+                                    }}
+                                >
+                                    Apply
                                 </Button>
                             </div>
-                        ))}
-                        <div className="flex flex-wrap items-center gap-2 pt-1">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-xs"
-                                onClick={addRule}
-                            >
-                                <Plus className="mr-1 size-3.5" />
-                                Add rule
-                            </Button>
-                            <Button
-                                type="button"
-                                size="sm"
-                                className="h-8 text-xs"
-                                onClick={() => {
-                                    onApply();
-                                    setOpen(false);
-                                }}
-                            >
-                                Apply
-                            </Button>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </PopoverContent>
         </Popover>
     );

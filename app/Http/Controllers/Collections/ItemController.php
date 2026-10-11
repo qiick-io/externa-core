@@ -36,9 +36,11 @@ use App\Services\Collections\LivePreviewUrlBuilder;
 use App\Services\Settings\SettingsRepository;
 use App\Support\Http\SafeReturnUrl;
 use App\Support\Validation\SearchQueryRules;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -52,6 +54,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class ItemController extends Controller
 {
+    /** First page size per kanban column (scroll fetches the next page). */
+    private const KANBAN_PER_PAGE = 30;
+
+    /** Hard cap for one calendar month fetch (visible grid + overflow notice). */
+    private const CALENDAR_MAX_PER_PAGE = 500;
+
     public function __construct(
         private CollectionItemQueryService $itemQueryService,
         private CollectionItemDataNormalizer $itemDataNormalizer,
@@ -90,46 +98,10 @@ class ItemController extends Controller
             return redirect()->route('collections.show', $collection);
         }
 
-        $filters = $request->query('filter', []);
-        if (! is_array($filters)) {
-            $filters = [];
-        }
-
-        /** @var array<string, mixed> $stringFilters */
-        $stringFilters = [];
-        foreach ($filters as $key => $value) {
-            if (! is_string($key) || $key === '') {
-                continue;
-            }
-            if (is_string($value) || is_numeric($value) || is_bool($value) || is_array($value) || $value === null) {
-                $stringFilters[$key] = $value;
-            }
-        }
-
+        $stringFilters = $this->parseStringFilters($request);
         $trashed = $request->boolean('trashed');
         $hasDraft = $collection->versioning && $request->boolean('has_draft');
         $inReview = $collection->approvals_required && $request->boolean('in_review');
-        $query = CollectionItem::query()
-            ->when($trashed, fn ($query) => $query->onlyTrashed())
-            ->when($hasDraft, fn ($query) => $query->whereNotNull('draft_data'))
-            ->when($inReview, fn ($query) => $query->where('approval_status', 'in_review'))
-            ->where('collection_id', $collection->id)
-            ->with([
-                'fieldValues',
-                'userCreated:id,first_name,last_name,email',
-                'userUpdated:id,first_name,last_name,email',
-                'collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()]),
-            ]);
-        $this->itemQueryService->applyFilters($query, $collection, $stringFilters);
-
-        $sortParam = $request->query('sort');
-        $directionParam = $request->query('direction');
-        $sortState = $this->itemQueryService->applySort(
-            $query,
-            $collection,
-            is_string($sortParam) ? $sortParam : null,
-            is_string($directionParam) ? $directionParam : null,
-        );
 
         $listColumns = $this->resolveListColumns($request, $collection);
         $columnAligns = $this->resolveColumnAligns($request, $collection, $listColumns);
@@ -137,28 +109,103 @@ class ItemController extends Controller
         $kanbanField = $this->resolveKanbanField($request, $collection);
         $calendarField = $this->resolveCalendarField($request, $collection);
 
-        $this->permissionEnforcer->applyItemFilterToQuery($request, $collection, $query);
+        $sortParam = $request->query('sort');
+        $directionParam = $request->query('direction');
+        $sort = is_string($sortParam) ? $sortParam : null;
+        $direction = is_string($directionParam) ? $directionParam : null;
 
-        // ponytail: board/calendar need a wider page than table; hard cap 100.
-        $perPage = in_array($listLayout, ['kanban', 'calendar'], true) ? 100 : 15;
-        $paginator = $query->paginate($perPage)->withQueryString();
-        $versioning = (bool) $collection->versioning;
-        $approvalsRequired = (bool) $collection->approvals_required;
-        $rows = $paginator->getCollection()
-            ->map(function (CollectionItem $item) use ($request, $versioning, $approvalsRequired): array {
-                $row = (new CollectionItemResource($item))->toArray($request);
-                if ($versioning) {
-                    $row['has_draft'] = is_array($item->draft_data);
-                }
-                if ($approvalsRequired) {
-                    $row['approval_status'] = $item->approval_status ?? 'draft';
-                }
+        $kanban = null;
+        $calendar = null;
+        if ($listLayout === 'kanban' && is_string($kanbanField) && $kanbanField !== '') {
+            // Default board order: manual board_sort, then newest id.
+            if ($sort === null || $sort === '') {
+                $sort = 'board_sort';
+                $direction = $direction ?? 'asc';
+            }
+            $sortProbe = $this->baseItemListQuery(
+                $request,
+                $collection,
+                $stringFilters,
+                $trashed,
+                $hasDraft,
+                $inReview,
+            );
+            $sortState = $this->itemQueryService->applySort($sortProbe, $collection, $sort, $direction);
+            $kanban = $this->buildKanbanBoard(
+                $request,
+                $collection,
+                $kanbanField,
+                $stringFilters,
+                $trashed,
+                $hasDraft,
+                $inReview,
+                $sort,
+                $direction,
+                $listColumns,
+            );
+            // ponytail: table paginator unused in kanban; keep empty shell for shared props.
+            $paginator = new LengthAwarePaginator([], 0, self::KANBAN_PER_PAGE);
+        } elseif ($listLayout === 'calendar' && is_string($calendarField) && $calendarField !== '') {
+            $monthParam = $request->query('calendar_month');
+            $month = is_string($monthParam) && preg_match('/^\d{4}-\d{2}$/', $monthParam) === 1
+                ? $monthParam
+                : now()->format('Y-m');
+            $range = $this->calendarVisibleRange($month);
+            $sortState = $this->itemQueryService->applySort(
+                $this->baseItemListQuery(
+                    $request,
+                    $collection,
+                    $stringFilters,
+                    $trashed,
+                    $hasDraft,
+                    $inReview,
+                ),
+                $collection,
+                $sort,
+                $direction,
+            );
+            $calendar = $this->paginateCalendarMonth(
+                $request,
+                $collection,
+                $calendarField,
+                $range['from'],
+                $range['to'],
+                $stringFilters,
+                $trashed,
+                $hasDraft,
+                $inReview,
+                $sort,
+                $direction,
+                $listColumns,
+                self::CALENDAR_MAX_PER_PAGE,
+                1,
+            );
+            $calendar['field'] = $calendarField;
+            $calendar['month'] = $month;
+            $calendar['from'] = $range['from'];
+            $calendar['to'] = $range['to'];
+            // ponytail: table paginator unused in calendar; keep empty shell for shared props.
+            $paginator = new LengthAwarePaginator([], 0, self::CALENDAR_MAX_PER_PAGE);
+        } else {
+            $query = $this->baseItemListQuery(
+                $request,
+                $collection,
+                $stringFilters,
+                $trashed,
+                $hasDraft,
+                $inReview,
+            );
+            $sortState = $this->itemQueryService->applySort($query, $collection, $sort, $direction);
 
-                return $row;
-            })
-            ->all();
-        $rows = $this->listDisplayEnricher->enrich($collection, $rows, $listColumns);
-        $paginator->setCollection(collect($rows));
+            $paginator = $query->paginate(15)->withQueryString();
+            $rows = $this->mapItemRows(
+                $request,
+                $collection,
+                $paginator->getCollection()->all(),
+                $listColumns,
+            );
+            $paginator->setCollection(collect($rows));
+        }
 
         return Inertia::render('collections/items/index', [
             'collection' => $collection,
@@ -167,7 +214,9 @@ class ItemController extends Controller
             'column_aligns' => $columnAligns,
             'list_layout' => $listLayout,
             'kanban_field' => $kanbanField,
+            'kanban' => $kanban,
             'calendar_field' => $calendarField,
+            'calendar' => $calendar,
             'related_fields_catalog' => $this->listColumnsNormalizer->relatedFieldsCatalog($collection),
             'filters' => [
                 ...$stringFilters,
@@ -178,6 +227,127 @@ class ItemController extends Controller
                 'direction' => $sortState['direction'],
             ],
         ]);
+    }
+
+    /**
+     * Items for one calendar date range (same filters/search/permissions as the list).
+     */
+    public function calendarMonth(Request $request, Collection $collection): JsonResponse
+    {
+        abort_if($collection->is_singleton, 404);
+
+        $collection->load(['fields' => fn ($q) => $q->ordered()]);
+
+        $validated = $request->validate([
+            'field' => ['required', 'string', 'max:64'],
+            'from' => ['required', 'date_format:Y-m-d'],
+            'to' => ['required', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:'.self::CALENDAR_MAX_PER_PAGE],
+        ]);
+
+        $fieldName = $validated['field'];
+        $field = $collection->fields->firstWhere('name', $fieldName);
+        abort_unless(
+            $field instanceof CollectionField && $field->type === FieldTypeEnum::Date,
+            422,
+            'field must be a date field.',
+        );
+
+        $stringFilters = $this->parseStringFilters($request);
+        $trashed = $request->boolean('trashed');
+        $hasDraft = $collection->versioning && $request->boolean('has_draft');
+        $inReview = $collection->approvals_required && $request->boolean('in_review');
+        $sortParam = $request->query('sort');
+        $directionParam = $request->query('direction');
+        $sort = is_string($sortParam) && $sortParam !== '' ? $sortParam : null;
+        $direction = is_string($directionParam) && $directionParam !== ''
+            ? $directionParam
+            : null;
+
+        $perPage = (int) ($validated['per_page'] ?? self::CALENDAR_MAX_PER_PAGE);
+        $page = (int) ($validated['page'] ?? 1);
+
+        $payload = $this->paginateCalendarMonth(
+            $request,
+            $collection,
+            $fieldName,
+            $validated['from'],
+            $validated['to'],
+            $stringFilters,
+            $trashed,
+            $hasDraft,
+            $inReview,
+            $sort,
+            $direction,
+            $this->resolveListColumns($request, $collection),
+            $perPage,
+            $page,
+        );
+        $payload['from'] = $validated['from'];
+        $payload['to'] = $validated['to'];
+        $payload['field'] = $fieldName;
+
+        return response()->json($payload);
+    }
+
+    /**
+     * Paginate one kanban column (same filters/search/permissions as the list).
+     */
+    public function kanbanColumn(Request $request, Collection $collection): JsonResponse
+    {
+        abort_if($collection->is_singleton, 404);
+
+        $collection->load(['fields' => fn ($q) => $q->ordered()]);
+
+        $validated = $request->validate([
+            'field' => ['required', 'string', 'max:64'],
+            'value' => ['nullable', 'string', 'max:255'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        $fieldName = $validated['field'];
+        $field = $collection->fields->firstWhere('name', $fieldName);
+        abort_unless(
+            $field instanceof CollectionField
+            && in_array($field->type, [FieldTypeEnum::Select, FieldTypeEnum::RadioGroup], true),
+            422,
+            'field must be a select or radio field.',
+        );
+
+        $stringFilters = $this->parseStringFilters($request);
+        $trashed = $request->boolean('trashed');
+        $hasDraft = $collection->versioning && $request->boolean('has_draft');
+        $inReview = $collection->approvals_required && $request->boolean('in_review');
+        $sortParam = $request->query('sort');
+        $directionParam = $request->query('direction');
+        $sort = is_string($sortParam) && $sortParam !== '' ? $sortParam : 'board_sort';
+        $direction = is_string($directionParam) && $directionParam !== ''
+            ? $directionParam
+            : 'asc';
+
+        $perPage = (int) ($validated['per_page'] ?? self::KANBAN_PER_PAGE);
+        $page = (int) ($validated['page'] ?? 1);
+        $columnValue = isset($validated['value']) ? (string) $validated['value'] : '';
+
+        $payload = $this->paginateKanbanColumn(
+            $request,
+            $collection,
+            $fieldName,
+            $columnValue,
+            $stringFilters,
+            $trashed,
+            $hasDraft,
+            $inReview,
+            $sort,
+            $direction,
+            $this->resolveListColumns($request, $collection),
+            $perPage,
+            $page,
+        );
+
+        return response()->json($payload);
     }
 
     /**
@@ -469,6 +639,7 @@ class ItemController extends Controller
     /**
      * Update a collection item while preserving readonly field values.
      * When collection versioning is on and version=draft, writes draft_data only.
+     * Kanban board_move / calendar_move write the moved field to published values (Directus-like).
      */
     public function update(UpdateCollectionItemRequest $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
@@ -485,6 +656,14 @@ class ItemController extends Controller
                     ],
                 ]);
             }
+        }
+
+        if ($request->boolean('board_move')) {
+            return $this->updateBoardMove($request, $collection, $item);
+        }
+
+        if ($request->boolean('calendar_move')) {
+            return $this->updateCalendarMove($request, $collection, $item);
         }
 
         $version = (string) ($request->validated('version') ?? 'published');
@@ -592,6 +771,253 @@ class ItemController extends Controller
             $action,
             __('Item updated.'),
         );
+    }
+
+    /**
+     * Kanban drag: persist group field on published values + board_sort.
+     * Versioned collections still update published so the board (which groups by
+     * published values) reflects the drop; draft_data is patched when present.
+     */
+    private function updateBoardMove(
+        UpdateCollectionItemRequest $request,
+        Collection $collection,
+        CollectionItem $item,
+    ): RedirectResponse {
+        $collection->loadMissing('fields');
+        $incoming = $request->validated('data') ?? [];
+        if (! is_array($incoming) || $incoming === []) {
+            throw ValidationException::withMessages([
+                'data' => [__('Board move requires a group field value.')],
+            ]);
+        }
+
+        foreach (array_keys($incoming) as $key) {
+            $field = $collection->fields->firstWhere('name', $key);
+            if (
+                ! $field instanceof CollectionField
+                || ! in_array($field->type, [FieldTypeEnum::Select, FieldTypeEnum::RadioGroup], true)
+            ) {
+                throw ValidationException::withMessages([
+                    "data.{$key}" => [__('Board move only allows select or radio group fields.')],
+                ]);
+            }
+        }
+
+        $this->permissionEnforcer->assertWritableFields($request, $collection, $incoming, 'update');
+
+        $published = $this->collectionItemValuesAssembler->assemble($item);
+        $preview = array_replace($published, $incoming);
+        $incoming = $this->fieldConditionEvaluator->withoutReadonlyFields(
+            $collection->fields,
+            $preview,
+            $incoming,
+        );
+
+        $data = $published;
+        foreach ($incoming as $key => $value) {
+            $data[$key] = $value;
+        }
+
+        $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
+        $this->collectionItemValuesWriter->sync(
+            $item->fresh(),
+            $collection,
+            $normalized,
+            revisionMeta: ['source' => 'board_move'],
+        );
+
+        $item->refresh();
+
+        if (is_array($item->draft_data)) {
+            $draft = $item->draft_data;
+            foreach ($incoming as $key => $value) {
+                $draft[$key] = $value;
+            }
+            $item->draft_data = $this->itemDataNormalizer->normalize($collection, $draft, false);
+        }
+
+        $this->assignBoardSort(
+            $item,
+            $collection,
+            $request->validated('after_item_id') !== null
+                ? (int) $request->validated('after_item_id')
+                : null,
+            $request->validated('before_item_id') !== null
+                ? (int) $request->validated('before_item_id')
+                : null,
+        );
+        $item->save();
+
+        return $this->redirectAfterItemSave(
+            $collection,
+            $item,
+            $this->itemSaveAction($request),
+            __('Item updated.'),
+        );
+    }
+
+    /**
+     * Calendar drag: persist date field on published values.
+     * Versioned collections still update published so the calendar (which buckets
+     * by published values) reflects the drop; draft_data is patched when present.
+     * Datetime fields keep the existing clock when the client sends a bare Y-m-d.
+     */
+    private function updateCalendarMove(
+        UpdateCollectionItemRequest $request,
+        Collection $collection,
+        CollectionItem $item,
+    ): RedirectResponse {
+        $collection->loadMissing('fields');
+        $incoming = $request->validated('data') ?? [];
+        if (! is_array($incoming) || $incoming === []) {
+            throw ValidationException::withMessages([
+                'data' => [__('Calendar move requires a date field value.')],
+            ]);
+        }
+
+        foreach (array_keys($incoming) as $key) {
+            $field = $collection->fields->firstWhere('name', $key);
+            if (
+                ! $field instanceof CollectionField
+                || $field->type !== FieldTypeEnum::Date
+            ) {
+                throw ValidationException::withMessages([
+                    "data.{$key}" => [__('Calendar move only allows date fields.')],
+                ]);
+            }
+        }
+
+        $this->permissionEnforcer->assertWritableFields($request, $collection, $incoming, 'update');
+
+        $published = $this->collectionItemValuesAssembler->assemble($item);
+        foreach ($incoming as $key => $value) {
+            if (! is_string($value)) {
+                continue;
+            }
+            $incoming[$key] = $this->calendarMoveDateValue(
+                is_string($published[$key] ?? null) ? $published[$key] : null,
+                $value,
+            );
+        }
+
+        $preview = array_replace($published, $incoming);
+        $incoming = $this->fieldConditionEvaluator->withoutReadonlyFields(
+            $collection->fields,
+            $preview,
+            $incoming,
+        );
+
+        $data = $published;
+        foreach ($incoming as $key => $value) {
+            $data[$key] = $value;
+        }
+
+        $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
+        $this->collectionItemValuesWriter->sync(
+            $item->fresh(),
+            $collection,
+            $normalized,
+            revisionMeta: ['source' => 'calendar_move'],
+        );
+
+        $item->refresh();
+
+        if (is_array($item->draft_data)) {
+            $draft = $item->draft_data;
+            foreach ($incoming as $key => $value) {
+                $draft[$key] = $value;
+            }
+            $item->draft_data = $this->itemDataNormalizer->normalize($collection, $draft, false);
+            $item->save();
+        }
+
+        return $this->redirectAfterItemSave(
+            $collection,
+            $item,
+            $this->itemSaveAction($request),
+            __('Item updated.'),
+        );
+    }
+
+    /**
+     * Keep datetime clock when client sends a bare calendar day (Y-m-d).
+     */
+    private function calendarMoveDateValue(?string $existing, string $incoming): string
+    {
+        $trimmed = trim($incoming);
+        if (
+            preg_match('/^\d{4}-\d{2}-\d{2}$/', $trimmed) === 1
+            && is_string($existing)
+            && preg_match('/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/', $existing, $match) === 1
+        ) {
+            return $trimmed.'T'.$match[2];
+        }
+
+        return $trimmed;
+    }
+
+    /**
+     * Place item immediately after `after_item_id` (or before `before_item_id`
+     * when dropping at the top). Increments later ranks so equal/null neighbor
+     * sorts cannot collapse the intended position.
+     */
+    private function assignBoardSort(
+        CollectionItem $item,
+        Collection $collection,
+        ?int $afterItemId,
+        ?int $beforeItemId,
+    ): void {
+        $after = null;
+        if ($afterItemId !== null && $afterItemId !== $item->id) {
+            $after = CollectionItem::query()
+                ->where('collection_id', $collection->id)
+                ->whereKey($afterItemId)
+                ->first();
+        }
+
+        $before = null;
+        if ($beforeItemId !== null && $beforeItemId !== $item->id) {
+            $before = CollectionItem::query()
+                ->where('collection_id', $collection->id)
+                ->whereKey($beforeItemId)
+                ->first();
+        }
+
+        if ($after !== null) {
+            if ($after->board_sort === null) {
+                $after->board_sort = 1000;
+                $after->save();
+            }
+            $afterSort = (int) $after->board_sort;
+            CollectionItem::query()
+                ->where('collection_id', $collection->id)
+                ->whereKeyNot($item->id)
+                ->whereNotNull('board_sort')
+                ->where('board_sort', '>', $afterSort)
+                ->increment('board_sort', 1000);
+            $item->board_sort = $afterSort + 1000;
+
+            return;
+        }
+
+        if ($before !== null) {
+            if ($before->board_sort === null) {
+                $before->board_sort = 2000;
+                $before->save();
+            }
+            $beforeSort = (int) $before->board_sort;
+            CollectionItem::query()
+                ->where('collection_id', $collection->id)
+                ->whereKeyNot($item->id)
+                ->whereNotNull('board_sort')
+                ->where('board_sort', '>=', $beforeSort)
+                ->increment('board_sort', 1000);
+            $item->board_sort = $beforeSort;
+
+            return;
+        }
+
+        $item->board_sort = 1000;
     }
 
     /**
@@ -984,6 +1410,321 @@ class ItemController extends Controller
     private function relatedCollectionsForSelect(): array
     {
         return $this->collectionItemOptionsService->collectionsForSelect();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function parseStringFilters(Request $request): array
+    {
+        $filters = $request->query('filter', []);
+        if (! is_array($filters)) {
+            return [];
+        }
+
+        /** @var array<string, mixed> $stringFilters */
+        $stringFilters = [];
+        foreach ($filters as $key => $value) {
+            if (! is_string($key) || $key === '') {
+                continue;
+            }
+            if (is_string($value) || is_numeric($value) || is_bool($value) || is_array($value) || $value === null) {
+                $stringFilters[$key] = $value;
+            }
+        }
+
+        return $stringFilters;
+    }
+
+    /**
+     * @param  array<string, mixed>  $stringFilters
+     * @return Builder<CollectionItem>
+     */
+    private function baseItemListQuery(
+        Request $request,
+        Collection $collection,
+        array $stringFilters,
+        bool $trashed,
+        bool $hasDraft,
+        bool $inReview,
+    ): Builder {
+        $query = CollectionItem::query()
+            ->when($trashed, fn ($query) => $query->onlyTrashed())
+            ->when($hasDraft, fn ($query) => $query->whereNotNull('draft_data'))
+            ->when($inReview, fn ($query) => $query->where('approval_status', 'in_review'))
+            ->where('collection_id', $collection->id)
+            ->with([
+                'fieldValues',
+                'userCreated:id,first_name,last_name,email',
+                'userUpdated:id,first_name,last_name,email',
+                'collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()]),
+            ]);
+        $this->itemQueryService->applyFilters($query, $collection, $stringFilters);
+        $this->permissionEnforcer->applyItemFilterToQuery($request, $collection, $query);
+
+        return $query;
+    }
+
+    /**
+     * @param  list<CollectionItem>  $items
+     * @param  list<string>  $listColumns
+     * @return list<array<string, mixed>>
+     */
+    private function mapItemRows(
+        Request $request,
+        Collection $collection,
+        array $items,
+        array $listColumns,
+    ): array {
+        $versioning = (bool) $collection->versioning;
+        $approvalsRequired = (bool) $collection->approvals_required;
+        $rows = array_map(function (CollectionItem $item) use ($request, $versioning, $approvalsRequired): array {
+            $row = (new CollectionItemResource($item))->toArray($request);
+            if ($versioning) {
+                $row['has_draft'] = is_array($item->draft_data);
+            }
+            if ($approvalsRequired) {
+                $row['approval_status'] = $item->approval_status ?? 'draft';
+            }
+
+            return $row;
+        }, $items);
+
+        return $this->listDisplayEnricher->enrich($collection, $rows, $listColumns);
+    }
+
+    /**
+     * @param  array<string, mixed>  $stringFilters
+     * @param  list<string>  $listColumns
+     * @return array{
+     *     field: string,
+     *     per_page: int,
+     *     columns: list<array{value: string, label: string, total: int, current_page: int, last_page: int, items: list<array<string, mixed>>}>
+     * }
+     */
+    private function buildKanbanBoard(
+        Request $request,
+        Collection $collection,
+        string $fieldName,
+        array $stringFilters,
+        bool $trashed,
+        bool $hasDraft,
+        bool $inReview,
+        ?string $sort,
+        ?string $direction,
+        array $listColumns,
+    ): array {
+        $field = $collection->fields->firstWhere('name', $fieldName);
+        abort_unless($field instanceof CollectionField, 422);
+
+        $columns = [];
+        foreach ($this->kanbanColumnDefs($field) as $def) {
+            $page = $this->paginateKanbanColumn(
+                $request,
+                $collection,
+                $fieldName,
+                $def['value'],
+                $stringFilters,
+                $trashed,
+                $hasDraft,
+                $inReview,
+                $sort,
+                $direction,
+                $listColumns,
+                self::KANBAN_PER_PAGE,
+                1,
+            );
+            $columns[] = [
+                'value' => $def['value'],
+                'label' => $def['label'],
+                'total' => $page['total'],
+                'current_page' => $page['current_page'],
+                'last_page' => $page['last_page'],
+                'items' => $page['data'],
+            ];
+        }
+
+        return [
+            'field' => $fieldName,
+            'per_page' => self::KANBAN_PER_PAGE,
+            'columns' => $columns,
+        ];
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    private function kanbanColumnDefs(CollectionField $field): array
+    {
+        $settings = is_array($field->settings) ? $field->settings : [];
+        $rawOptions = $settings['options'] ?? [];
+        $options = [];
+        if (is_array($rawOptions)) {
+            foreach ($rawOptions as $option) {
+                if (! is_array($option)) {
+                    continue;
+                }
+                $value = isset($option['value']) ? trim((string) $option['value']) : '';
+                if ($value === '') {
+                    continue;
+                }
+                $label = isset($option['label']) ? trim((string) $option['label']) : '';
+                $options[] = [
+                    'value' => $value,
+                    'label' => $label !== '' ? $label : $value,
+                ];
+            }
+        }
+
+        $allowNone = ($settings['allow_none'] ?? false) === true
+            || ($settings['allow_none'] ?? null) === 1
+            || ($settings['allow_none'] ?? null) === '1';
+
+        $columns = [];
+        if ($allowNone || $options === []) {
+            $columns[] = ['value' => '', 'label' => 'No value'];
+        }
+
+        return [...$columns, ...$options];
+    }
+
+    /**
+     * @param  array<string, mixed>  $stringFilters
+     * @param  list<string>  $listColumns
+     * @return array{
+     *     data: list<array<string, mixed>>,
+     *     current_page: int,
+     *     last_page: int,
+     *     per_page: int,
+     *     total: int
+     * }
+     */
+    private function paginateKanbanColumn(
+        Request $request,
+        Collection $collection,
+        string $fieldName,
+        string $columnValue,
+        array $stringFilters,
+        bool $trashed,
+        bool $hasDraft,
+        bool $inReview,
+        ?string $sort,
+        ?string $direction,
+        array $listColumns,
+        int $perPage,
+        int $page,
+    ): array {
+        $query = $this->baseItemListQuery(
+            $request,
+            $collection,
+            $stringFilters,
+            $trashed,
+            $hasDraft,
+            $inReview,
+        );
+
+        $columnFilter = $columnValue === ''
+            ? [$fieldName => ['_null' => true]]
+            : [$fieldName => ['_eq' => $columnValue]];
+        $this->itemQueryService->applyFilters($query, $collection, $columnFilter);
+        $this->itemQueryService->applySort($query, $collection, $sort, $direction);
+
+        $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+        $rows = $this->mapItemRows(
+            $request,
+            $collection,
+            $paginator->getCollection()->all(),
+            $listColumns,
+        );
+
+        return [
+            'data' => $rows,
+            'current_page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->total(),
+        ];
+    }
+
+    /**
+     * Visible Sunday–Saturday grid covering `$month` (Y-m), including adjacent-month padding days.
+     *
+     * @return array{from: string, to: string}
+     */
+    private function calendarVisibleRange(string $month): array
+    {
+        abort_unless(preg_match('/^\d{4}-\d{2}$/', $month) === 1, 422, 'Invalid calendar month.');
+
+        $start = Carbon::parse($month.'-01')->startOfMonth();
+        $gridStart = $start->copy()->startOfWeek(Carbon::SUNDAY);
+        $gridEnd = $start->copy()->endOfMonth()->endOfWeek(Carbon::SATURDAY);
+
+        return [
+            'from' => $gridStart->format('Y-m-d'),
+            'to' => $gridEnd->format('Y-m-d'),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $stringFilters
+     * @param  list<string>  $listColumns
+     * @return array{
+     *     data: list<array<string, mixed>>,
+     *     current_page: int,
+     *     last_page: int,
+     *     per_page: int,
+     *     total: int
+     * }
+     */
+    private function paginateCalendarMonth(
+        Request $request,
+        Collection $collection,
+        string $fieldName,
+        string $from,
+        string $to,
+        array $stringFilters,
+        bool $trashed,
+        bool $hasDraft,
+        bool $inReview,
+        ?string $sort,
+        ?string $direction,
+        array $listColumns,
+        int $perPage,
+        int $page,
+    ): array {
+        $field = $collection->fields->firstWhere('name', $fieldName);
+        abort_unless(
+            $field instanceof CollectionField && $field->type === FieldTypeEnum::Date,
+            422,
+            'field must be a date field.',
+        );
+
+        $query = $this->baseItemListQuery(
+            $request,
+            $collection,
+            $stringFilters,
+            $trashed,
+            $hasDraft,
+            $inReview,
+        );
+        $this->itemQueryService->applyDateFieldRange($query, $field, $from, $to);
+        $this->itemQueryService->applySort($query, $collection, $sort, $direction);
+
+        $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+        $rows = $this->mapItemRows(
+            $request,
+            $collection,
+            $paginator->getCollection()->all(),
+            $listColumns,
+        );
+
+        return [
+            'data' => $rows,
+            'current_page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->total(),
+        ];
     }
 
     /**

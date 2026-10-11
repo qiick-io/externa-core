@@ -29,6 +29,7 @@ export type FilterRule = {
 export const FILTER_META_KEYS = new Set([
     'trashed',
     'has_draft',
+    'in_review',
     'sort',
     'direction',
 ]);
