@@ -51,6 +51,7 @@ class CollectionItemPublisher
 
         $item->draft_data = null;
         $item->publish_at = null;
+        $item->published_at = now();
         $this->approvals->clearAfterPromote($item);
         $item->save();
 

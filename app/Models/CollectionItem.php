@@ -34,6 +34,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $reviewed_at
  * @property Carbon|null $publish_at
  * @property Carbon|null $unpublish_at
+ * @property Carbon|null $published_at
  * @property Carbon|null $deleted_at
  */
 class CollectionItem extends Model
@@ -56,6 +57,7 @@ class CollectionItem extends Model
         'reviewed_at',
         'publish_at',
         'unpublish_at',
+        'published_at',
     ];
 
     /**
@@ -69,6 +71,7 @@ class CollectionItem extends Model
             'reviewed_at' => 'datetime',
             'publish_at' => 'datetime',
             'unpublish_at' => 'datetime',
+            'published_at' => 'datetime',
         ];
     }
 

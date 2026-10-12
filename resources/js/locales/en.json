@@ -587,7 +587,16 @@
         },
         "localized": {
             "applyAll": "Apply to all locales",
-            "applyEmpty": "Apply to empty locales"
+            "applyEmpty": "Apply to empty locales",
+            "copyFrom": "Copy from {{locale}}",
+            "copyFromMenu": "Copy from…",
+            "translateWithAiFrom": "Translate with AI from {{locale}}",
+            "translateWithAiFromMenu": "Translate with AI from…",
+            "translateWithAiBusy": "Translating…",
+            "translateWithAiDone": "Translated",
+            "translateWithAiEmpty": "No source text to translate",
+            "translateWithAiError": "AI translation failed",
+            "translateWithAiOffline": "AI is offline"
         },
         "fieldMenu": {
             "open": "Field actions",
@@ -623,7 +632,24 @@
             "chat": "Chat",
             "revisions": "Revisions",
             "editFields": "Edit fields",
-            "delete": "Delete"
+            "delete": "Delete",
+            "published": "Published",
+            "draft": "Draft",
+            "draftEmpty": "Draft (no changes)",
+            "scheduled": "Scheduled",
+            "publish": "Publish",
+            "discardDraft": "Discard draft",
+            "submitForReview": "Submit for review",
+            "review": "Review",
+            "approve": "Approve",
+            "approveDescription": "Accept draft and unlock publishing",
+            "reject": "Reject",
+            "rejectDescription": "Send back with a note",
+            "inReview": "In review",
+            "approved": "Approved",
+            "rejected": "Rejected",
+            "approveBeforePublish": "Approve before publishing",
+            "actions": "Actions"
         },
         "itemPresence": {
             "viewing": "{{count}} other editor(s) viewing",
@@ -634,6 +660,16 @@
             "staleDescription": "Another save updated this item while you were editing. Save anyway or reload to see the latest version.",
             "staleSave": "Save anyway",
             "staleReload": "Reload page"
+        },
+        "itemSchedule": {
+            "publishAt": "Publish at",
+            "publishedAt": "Published at",
+            "alreadyPublished": "Already published",
+            "unpublishAt": "Unpublish at",
+            "pickDateTime": "Pick date & time",
+            "clearField": "Clear",
+            "save": "Save schedule",
+            "cancel": "Cancel schedule"
         },
         "itemChat": {
             "title": "Chat",

@@ -550,6 +550,7 @@ class ItemController extends Controller
         $itemPayload['draft_data'] = $draftData;
         $itemPayload['publish_at'] = $item->publish_at?->toIso8601String();
         $itemPayload['unpublish_at'] = $item->unpublish_at?->toIso8601String();
+        $itemPayload['published_at'] = $this->resolvePublishedAtIso($item);
         $itemPayload['approval_status'] = $item->approval_status ?? 'draft';
         $itemPayload['rejection_note'] = $item->rejection_note;
         $itemPayload['submitted_by'] = $item->submitted_by;
@@ -1134,28 +1135,47 @@ class ItemController extends Controller
             'clear' => ['sometimes', 'boolean'],
         ]);
 
+        $version = $request->query('version', 'draft');
+        if (! in_array($version, ['published', 'draft'], true)) {
+            $version = 'draft';
+        }
+
         if ($request->boolean('clear')) {
-            $item->publish_at = null;
-            $item->unpublish_at = null;
+            // Published workspace: only clear unpublish; keep draft promote schedule.
+            if ($version === 'published') {
+                $item->unpublish_at = null;
+            } else {
+                $item->publish_at = null;
+                $item->unpublish_at = null;
+            }
             $item->save();
 
             return redirect()->route('collections.items.show', [
                 'collection' => $collection,
                 'item' => $item,
-                'version' => $request->query('version', 'draft'),
+                'version' => $version,
             ])->with('success', __('Schedule cleared.'));
         }
 
-        $publishAt = $validated['publish_at'] ?? null;
-        $unpublishAt = $validated['unpublish_at'] ?? null;
+        $touchPublish = $request->exists('publish_at');
+        $touchUnpublish = $request->exists('unpublish_at');
 
-        if ($publishAt !== null && $unpublishAt !== null && strtotime((string) $unpublishAt) <= strtotime((string) $publishAt)) {
+        $publishAt = $touchPublish ? ($validated['publish_at'] ?? null) : $item->publish_at?->toIso8601String();
+        $unpublishAt = $touchUnpublish ? ($validated['unpublish_at'] ?? null) : $item->unpublish_at?->toIso8601String();
+
+        // Draft promote+unpublish pair only; published view schedules soft-delete alone.
+        if (
+            $version !== 'published'
+            && $publishAt !== null
+            && $unpublishAt !== null
+            && strtotime((string) $unpublishAt) <= strtotime((string) $publishAt)
+        ) {
             return redirect()
                 ->back()
                 ->with('error', __('Unpublish time must be after publish time.'));
         }
 
-        if ($publishAt !== null && ! is_array($item->draft_data)) {
+        if ($touchPublish && $publishAt !== null && ! is_array($item->draft_data)) {
             return redirect()
                 ->route('collections.items.show', [
                     'collection' => $collection,
@@ -1166,7 +1186,8 @@ class ItemController extends Controller
         }
 
         if (
-            $publishAt !== null
+            $touchPublish
+            && $publishAt !== null
             && $collection->approvals_required
             && (string) $item->approval_status !== 'approved'
         ) {
@@ -1175,14 +1196,28 @@ class ItemController extends Controller
                 ->with('error', __('Item must be approved before scheduling publish.'));
         }
 
-        $item->publish_at = $publishAt;
-        $item->unpublish_at = $unpublishAt;
+        // Published workspace never reschedules promote; only soft-delete unpublish.
+        if ($version === 'published') {
+            $item->unpublish_at = $touchUnpublish ? ($validated['unpublish_at'] ?? null) : $item->unpublish_at;
+        } else {
+            if ($touchPublish) {
+                $item->publish_at = $validated['publish_at'] ?? null;
+            }
+            if ($touchUnpublish) {
+                $item->unpublish_at = $validated['unpublish_at'] ?? null;
+            }
+            // Legacy clients that always send both keys.
+            if (! $touchPublish && ! $touchUnpublish) {
+                $item->publish_at = $validated['publish_at'] ?? null;
+                $item->unpublish_at = $validated['unpublish_at'] ?? null;
+            }
+        }
         $item->save();
 
         return redirect()->route('collections.items.show', [
             'collection' => $collection,
             'item' => $item,
-            'version' => $request->query('version', 'draft'),
+            'version' => $version,
         ])->with('success', __('Schedule saved.'));
     }
 
@@ -1911,5 +1946,26 @@ class ItemController extends Controller
 
         return in_array(RoleEnum::SuperAdmin->value, $names, true)
             || in_array(RoleEnum::Admin->value, $names, true);
+    }
+
+    /**
+     * Last promote time: published_at column, else legacy publish revision.
+     */
+    private function resolvePublishedAtIso(CollectionItem $item): ?string
+    {
+        if ($item->published_at !== null) {
+            return $item->published_at->toIso8601String();
+        }
+
+        $fromRevision = $item->revisions()
+            ->where('meta->source', 'publish')
+            ->latest('id')
+            ->value('created_at');
+
+        if ($fromRevision === null) {
+            return null;
+        }
+
+        return Carbon::parse($fromRevision)->toIso8601String();
     }
 }

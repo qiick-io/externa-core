@@ -587,7 +587,16 @@
         },
         "localized": {
             "applyAll": "Auf alle Locales anwenden",
-            "applyEmpty": "Auf leere Locales anwenden"
+            "applyEmpty": "Auf leere Locales anwenden",
+            "copyFrom": "Kopieren von {{locale}}",
+            "copyFromMenu": "Kopieren von…",
+            "translateWithAiFrom": "Mit KI übersetzen von {{locale}}",
+            "translateWithAiFromMenu": "Mit KI übersetzen von…",
+            "translateWithAiBusy": "Übersetze…",
+            "translateWithAiDone": "Übersetzt",
+            "translateWithAiEmpty": "Kein Quelltext zum Übersetzen",
+            "translateWithAiError": "KI-Übersetzung fehlgeschlagen",
+            "translateWithAiOffline": "KI offline"
         },
         "fieldMenu": {
             "open": "Feldaktionen",
@@ -623,7 +632,24 @@
             "chat": "Chat",
             "revisions": "Revisionen",
             "editFields": "Felder bearbeiten",
-            "delete": "Löschen"
+            "delete": "Löschen",
+            "published": "Veröffentlicht",
+            "draft": "Entwurf",
+            "draftEmpty": "Entwurf (keine Änderungen)",
+            "scheduled": "Geplant",
+            "publish": "Veröffentlichen",
+            "discardDraft": "Entwurf verwerfen",
+            "submitForReview": "Zur Prüfung einreichen",
+            "review": "Prüfung",
+            "approve": "Freigeben",
+            "approveDescription": "Entwurf annehmen und Veröffentlichung freischalten",
+            "reject": "Ablehnen",
+            "rejectDescription": "Mit Hinweis zurücksenden",
+            "inReview": "In Prüfung",
+            "approved": "Freigegeben",
+            "rejected": "Abgelehnt",
+            "approveBeforePublish": "Vor dem Veröffentlichen freigeben",
+            "actions": "Aktionen"
         },
         "itemPresence": {
             "viewing": "{{count}} weitere(r) Bearbeiter sieht zu",
@@ -634,6 +660,16 @@
             "staleDescription": "Ein anderer Speichervorgang hat diesen Eintrag aktualisiert. Trotzdem speichern oder Seite neu laden.",
             "staleSave": "Trotzdem speichern",
             "staleReload": "Seite neu laden"
+        },
+        "itemSchedule": {
+            "publishAt": "Veröffentlichen am",
+            "publishedAt": "Veröffentlicht am",
+            "alreadyPublished": "Bereits veröffentlicht",
+            "unpublishAt": "Zurückziehen am",
+            "pickDateTime": "Datum & Uhrzeit wählen",
+            "clearField": "Löschen",
+            "save": "Zeitplan speichern",
+            "cancel": "Zeitplan abbrechen"
         },
         "itemChat": {
             "title": "Chat",
