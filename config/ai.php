@@ -167,6 +167,9 @@ return [
             'models' => [
                 'text' => [
                     'default' => env('LOCAL_AI_MODEL', 'local-model'),
+                    // Field translate is a blocking POST (no SSE). Prefer a non-thinking
+                    // instruct model so nginx fastcgi_read_timeout (~60s default) does not 504.
+                    'translate' => env('LOCAL_AI_TRANSLATE_MODEL'),
                 ],
             ],
         ],

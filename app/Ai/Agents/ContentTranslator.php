@@ -16,11 +16,12 @@ class ContentTranslator implements Agent
     use Promptable;
 
     /**
-     * Keep translate calls shorter than the tool-heavy assistant.
+     * Blocking translate (no SSE). Local thinking models often need >60s.
+     * Keep under nginx/Herd fastcgi_read_timeout (see site nginx / docker 600s).
      */
     public function timeout(): int
     {
-        return 120;
+        return 300;
     }
 
     /**
@@ -32,9 +33,10 @@ class ContentTranslator implements Agent
 You translate CMS content field values between locales.
 
 Rules:
-- Reply with JSON only. No markdown fences, no commentary.
-- Shape: {"fields":{"field_key":"translated value",...}}
-- Keep the same keys as the input. Do not invent or drop keys.
+- Reply with JSON only. No markdown fences, no commentary, no chain-of-thought in the reply.
+- Output shape: {"fields":{...}} using the exact same keys listed in input "field_keys" / "fields".
+- Never invent placeholder keys. Copy each input key character-for-character.
+- Example: input fields {"title":"Ciao","body":"Mondo"} → {"fields":{"title":"Hello","body":"World"}}.
 - Preserve HTML tags, markdown syntax, placeholders, and URLs.
 - Empty string stays empty string.
 - Match the tone of the source text.

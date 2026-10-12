@@ -491,31 +491,37 @@ export function LocalizedField({
                   ))
                 : null}
 
-            {children ? (
-                children({
-                    locale,
-                    value: currentValue,
-                    setValue,
-                })
-            ) : inputType === 'textarea' ? (
-                <Textarea
-                    id={idPrefix ? `${idPrefix}_${locale}` : undefined}
-                    value={currentValue}
-                    onChange={(event) => setValue(event.target.value)}
-                    placeholder={placeholder}
-                    disabled={disabled}
-                    aria-invalid={!!errorMessage}
-                />
-            ) : (
-                <Input
-                    id={idPrefix ? `${idPrefix}_${locale}` : undefined}
-                    value={currentValue}
-                    onChange={(event) => setValue(event.target.value)}
-                    placeholder={placeholder}
-                    disabled={disabled}
-                    aria-invalid={!!errorMessage}
-                />
-            )}
+            <div
+                className={cn(aiTranslating && 'ai-field-translating')}
+                aria-busy={aiTranslating || undefined}
+                data-ai-translating={aiTranslating ? 'true' : undefined}
+            >
+                {children ? (
+                    children({
+                        locale,
+                        value: currentValue,
+                        setValue,
+                    })
+                ) : inputType === 'textarea' ? (
+                    <Textarea
+                        id={idPrefix ? `${idPrefix}_${locale}` : undefined}
+                        value={currentValue}
+                        onChange={(event) => setValue(event.target.value)}
+                        placeholder={placeholder}
+                        disabled={disabled || aiTranslating}
+                        aria-invalid={!!errorMessage}
+                    />
+                ) : (
+                    <Input
+                        id={idPrefix ? `${idPrefix}_${locale}` : undefined}
+                        value={currentValue}
+                        onChange={(event) => setValue(event.target.value)}
+                        placeholder={placeholder}
+                        disabled={disabled || aiTranslating}
+                        aria-invalid={!!errorMessage}
+                    />
+                )}
+            </div>
 
             {reserveDescriptionSpace || description ? (
                 <p

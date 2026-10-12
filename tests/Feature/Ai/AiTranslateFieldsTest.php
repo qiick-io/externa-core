@@ -76,3 +76,57 @@ test('translate fields rejects same source and target locale', function () {
         'fields' => ['title' => 'Hello'],
     ])->assertUnprocessable();
 });
+
+test('translate fields remaps placeholder keys from small models', function () {
+    ContentTranslator::fake([
+        json_encode([
+            'fields' => [
+                'field_key' => 'Hello',
+            ],
+        ], JSON_THROW_ON_ERROR),
+    ]);
+
+    $user = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+    ]);
+    $this->actingAs($user);
+
+    $this->postJson(route('ai.translate-fields'), [
+        'source_locale' => 'it',
+        'target_locale' => 'en',
+        'fields' => [
+            'excerpt' => 'Ciao',
+        ],
+    ])
+        ->assertOk()
+        ->assertJson([
+            'fields' => [
+                'excerpt' => 'Hello',
+            ],
+        ]);
+});
+
+test('translate fields rejects empty output for non-empty source', function () {
+    ContentTranslator::fake([
+        json_encode([
+            'fields' => [
+                'excerpt' => '',
+            ],
+        ], JSON_THROW_ON_ERROR),
+    ]);
+
+    $user = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+    ]);
+    $this->actingAs($user);
+
+    $this->postJson(route('ai.translate-fields'), [
+        'source_locale' => 'it',
+        'target_locale' => 'en',
+        'fields' => [
+            'excerpt' => 'Ciao',
+        ],
+    ])
+        ->assertStatus(502)
+        ->assertJsonPath('message', 'AI returned empty translations for non-empty fields.');
+});

@@ -35,7 +35,10 @@ export async function translateFieldsWithAi(
             const body = (await response.json()) as { message?: string };
             detail = body.message ?? detail;
         } catch {
-            /* keep default */
+            if (response.status === 504 || response.status === 502) {
+                detail =
+                    'AI translation timed out. Use a faster LOCAL_AI_TRANSLATE_MODEL or raise nginx fastcgi_read_timeout (Herd default ~60s).';
+            }
         }
 
         throw new Error(detail);

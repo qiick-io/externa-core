@@ -780,23 +780,18 @@ function TranslatableItemField({
             return;
         }
 
-        const sourceInput = form.querySelector<
-            HTMLInputElement | HTMLTextAreaElement
-        >(`[name="data[${field.name}][${fromLocale}]"]`);
-        const targetInput = form.querySelector<
-            HTMLInputElement | HTMLTextAreaElement
-        >(`[name="data[${field.name}][${fieldLocale}]"]`);
-
-        if (
-            !sourceInput ||
-            !targetInput ||
-            sourceInput.type === 'checkbox' ||
-            ('readOnly' in targetInput && targetInput.readOnly)
-        ) {
-            return;
-        }
-
-        const sourceText = sourceInput.value ?? '';
+        const liveSource = readFieldRawFromForm(form, field.name, fromLocale);
+        const defaultSource = getDefaultLocale(
+            defaults,
+            field.name,
+            fromLocale,
+        );
+        const sourceText =
+            typeof liveSource === 'string'
+                ? liveSource
+                : typeof defaultSource === 'string'
+                  ? defaultSource
+                  : '';
 
         if (sourceText.trim() === '') {
             toast.error(t('collections.localized.translateWithAiEmpty'));
@@ -823,15 +818,18 @@ function TranslatableItemField({
 
             const translated = result.fields[field.name];
 
-            if (typeof translated !== 'string') {
+            if (typeof translated !== 'string' || translated.trim() === '') {
                 toast.error(t('collections.localized.translateWithAiError'));
 
                 return;
             }
 
-            targetInput.value = translated;
-            targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-            onMarkDirty();
+            // Remount via valueOverrides — DOM .value alone fails for TipTap /
+            // markdown (controlled hidden/textarea state); draft saw DOM, UI not.
+            applyLocaleSlice(translated);
+            queueMicrotask(() => {
+                form.dispatchEvent(new Event('input', { bubbles: true }));
+            });
             toast.success(t('collections.localized.translateWithAiDone'));
         } catch (error) {
             toast.error(
