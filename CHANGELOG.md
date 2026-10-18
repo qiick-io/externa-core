@@ -9,7 +9,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
-## [1.2.0] - 2026-10-02
+## [1.2.0] - 2026-10-18
 
 ### Added
 
