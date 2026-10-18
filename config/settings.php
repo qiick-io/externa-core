@@ -61,6 +61,7 @@ return [
             'notifier_slack_webhook_url',
             'notifier_telegram_bot_token',
             'notifier_telegram_chat_id',
+            'notifier_event_types',
             'oidc_enabled',
             'oidc_issuer',
             'oidc_client_id',
@@ -154,6 +155,8 @@ return [
             'notifier_slack_webhook_url' => null,
             'notifier_telegram_bot_token' => null,
             'notifier_telegram_chat_id' => null,
+            // null = all selectable domain events (legacy default)
+            'notifier_event_types' => null,
             'oidc_enabled' => false,
             'oidc_issuer' => null,
             'oidc_client_id' => null,

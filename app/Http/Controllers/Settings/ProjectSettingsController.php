@@ -142,7 +142,11 @@ class ProjectSettingsController extends Controller
                 ->with('error', __('Configure a Telegram bot token and chat ID before sending a test message.'));
         }
 
-        $message = OutboundNotifierMessageFormatter::format('ping');
+        $message = OutboundNotifierMessageFormatter::format(
+            'ping',
+            [],
+            OutboundNotifierMessageFormatter::CHANNEL_TELEGRAM,
+        );
 
         try {
             (new DeliverTelegramOutboundNotifierJob('ping', $message))

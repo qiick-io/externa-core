@@ -50,6 +50,7 @@ class DeliverTelegramOutboundNotifierJob implements ShouldQueue
             ->post($endpoint, [
                 'chat_id' => $chatId,
                 'text' => $this->message,
+                'parse_mode' => 'HTML',
                 'disable_web_page_preview' => true,
             ]);
 

@@ -38,6 +38,19 @@ final class OutboundWebhookCatalog
         return array_keys(self::EVENTS);
     }
 
+    /**
+     * Domain events selectable for Slack/Telegram fan-out (`ping` always allowed for Send test).
+     *
+     * @return list<string>
+     */
+    public static function notifierSelectableTypes(): array
+    {
+        return array_values(array_filter(
+            self::types(),
+            static fn (string $type): bool => $type !== 'ping',
+        ));
+    }
+
     public static function has(string $type): bool
     {
         return array_key_exists($type, self::EVENTS);
@@ -54,5 +67,16 @@ final class OutboundWebhookCatalog
         }
 
         return $events;
+    }
+
+    /**
+     * @return list<array{type: string, description: string}>
+     */
+    public static function notifierSelectable(): array
+    {
+        return array_values(array_filter(
+            self::all(),
+            static fn (array $event): bool => $event['type'] !== 'ping',
+        ));
     }
 }
