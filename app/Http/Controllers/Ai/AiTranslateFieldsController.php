@@ -59,7 +59,10 @@ class AiTranslateFieldsController extends Controller
 
         try {
             // Herd/nginx often caps idle FastCGI at ~60s; thinking models exceed that on sync POST.
-            set_time_limit(320);
+            // Skip in Pest: set_time_limit caps the whole PHPUnit process and kills the suite.
+            if (! app()->runningUnitTests()) {
+                set_time_limit(320);
+            }
 
             $translateModel = config('ai.providers.local.models.text.translate');
             $model = is_string($translateModel) && $translateModel !== ''
