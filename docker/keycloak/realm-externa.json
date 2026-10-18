@@ -1,0 +1,79 @@
+{
+  "realm": "externa",
+  "enabled": true,
+  "displayName": "Externa QA",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "verifyEmail": false,
+  "clients": [
+    {
+      "clientId": "externa-app",
+      "name": "Externa App",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "externa-oidc-qa-secret",
+      "redirectUris": [
+        "http://localhost:8000/auth/oidc/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:8000"
+      ],
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "fullScopeAllowed": true,
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "oidc-qa",
+      "email": "oidc-qa@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "OIDC",
+      "lastName": "QA",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "oidc-unverified",
+      "email": "oidc-unverified@example.com",
+      "emailVerified": false,
+      "enabled": true,
+      "firstName": "OIDC",
+      "lastName": "Unverified",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

@@ -5,6 +5,7 @@ namespace App\Http\Requests\Settings;
 use App\Enums\PermissionEnum;
 use App\Services\Authorization\EffectivePermissionResolver;
 use App\Services\Settings\ProjectSettings;
+use App\Services\Webhooks\OutboundWebhookCatalog;
 use App\Support\Api\PublicApiOrigin;
 use App\Support\Collections\ContentLocaleCatalog;
 use App\Support\Uploads\UploadSizeLimiter;
@@ -99,6 +100,11 @@ class UpdateProjectSettingsRequest extends FormRequest
             // BotFather token shape: "<bot_id>:<secret>" — rejects usernames like "MyBot"
             'notifier_telegram_bot_token' => ['nullable', 'string', 'max:512', 'regex:/^\d+:[A-Za-z0-9_-]+$/'],
             'notifier_telegram_chat_id' => ['nullable', 'string', 'max:64'],
+            'notifier_event_types' => ['nullable', 'array'],
+            'notifier_event_types.*' => [
+                'string',
+                Rule::in(OutboundWebhookCatalog::notifierSelectableTypes()),
+            ],
             'oidc_enabled' => ['required', 'boolean'],
             'oidc_issuer' => ['nullable', 'url', 'max:2048'],
             'oidc_client_id' => ['nullable', 'string', 'max:255'],
@@ -236,6 +242,11 @@ class UpdateProjectSettingsRequest extends FormRequest
             'webhook_url' => $validated['webhook_url'] ?? null,
             'notifier_slack_webhook_url' => $validated['notifier_slack_webhook_url'] ?? null,
             'notifier_telegram_chat_id' => $validated['notifier_telegram_chat_id'] ?? null,
+            // Missing key (legacy payloads) → keep all; explicit [] → notify none.
+            'notifier_event_types' => array_values(
+                $validated['notifier_event_types']
+                    ?? OutboundWebhookCatalog::notifierSelectableTypes(),
+            ),
             'oidc_enabled' => (bool) $validated['oidc_enabled'],
             'oidc_issuer' => $validated['oidc_issuer'] ?? null,
             'oidc_client_id' => $validated['oidc_client_id'] ?? null,
@@ -423,6 +434,13 @@ class UpdateProjectSettingsRequest extends FormRequest
             $decoded = json_decode((string) $this->input('fallback_content_locales'), true);
             if (is_array($decoded)) {
                 $merge['fallback_content_locales'] = $decoded;
+            }
+        }
+
+        if ($this->has('notifier_event_types') && is_string($this->input('notifier_event_types'))) {
+            $decoded = json_decode((string) $this->input('notifier_event_types'), true);
+            if (is_array($decoded)) {
+                $merge['notifier_event_types'] = $decoded;
             }
         }
 

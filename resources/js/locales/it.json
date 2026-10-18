@@ -376,6 +376,8 @@
             "webhookEventDescription": "Descrizione",
             "notifiersTitle": "Notifiche in uscita (Slack e Telegram)",
             "notifiersDescription": "Avvisi leggibili per gli stessi eventi dei webhook in uscita. Solo in uscita — non è un backend chat.",
+            "notifierEventTypes": "Notifica per questi eventi",
+            "notifierEventTypesHint": "Eventi non selezionati restano silenziosi su Slack e Telegram. I webhook non cambiano. Invia test funziona sempre.",
             "notifierSlackWebhookUrl": "URL webhook in entrata Slack",
             "notifierSlackWebhookUrlHint": "Crea un Incoming Webhook nel workspace Slack. Lascia vuoto per disattivare.",
             "notifierSlackSendTest": "Invia test Slack",

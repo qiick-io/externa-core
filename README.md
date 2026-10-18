@@ -133,6 +133,8 @@ docker compose up --build
 # MinIO: docker compose --profile minio up --build
 # MySQL: docker compose --profile mysql -f compose.yaml -f compose.mysql.yaml up --build
 # MariaDB (host :3307): docker compose --profile mariadb -f compose.yaml -f compose.mariadb.yaml up --build
+# Keycloak OIDC QA: docker compose -f compose.yaml -f compose.oidc.yaml --profile oidc up --build
+#   → docker/keycloak/README.md (issuer http://localhost:8080/realms/externa)
 ```
 
 ### Docker (quick production deploy)

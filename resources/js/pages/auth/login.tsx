@@ -1,4 +1,4 @@
-import { Form, Head, router } from '@inertiajs/react';
+import { Form, Head, router, usePage } from '@inertiajs/react';
 import { UserCancelledError } from '@laravel/passkeys';
 import { usePasskeyVerify } from '@laravel/passkeys/react';
 import { KeyRound } from 'lucide-react';
@@ -47,6 +47,9 @@ export default function Login({
     oidcButtonLabel = null,
 }: Props) {
     const { t } = useTranslation();
+    // OIDC callback rejects redirect here with session errors; Form render-prop
+    // errors only cover password POST — surface page-level errors under SSO.
+    const pageEmailError = usePage().props.errors?.email;
 
     const {
         verify,
@@ -110,19 +113,25 @@ export default function Login({
             {showAltSignIn && (
                 <div className="mb-6 flex flex-col gap-3">
                     {canUseOidc && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full"
-                            data-test="oidc-login-button"
-                            asChild
-                        >
-                            <a href="/auth/oidc/redirect">
-                                {oidcButtonLabel?.trim()
-                                    ? oidcButtonLabel
-                                    : t('auth.login.oidc')}
-                            </a>
-                        </Button>
+                        <>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                data-test="oidc-login-button"
+                                asChild
+                            >
+                                <a href="/auth/oidc/redirect">
+                                    {oidcButtonLabel?.trim()
+                                        ? oidcButtonLabel
+                                        : t('auth.login.oidc')}
+                                </a>
+                            </Button>
+                            <InputError
+                                message={pageEmailError}
+                                data-test="oidc-login-error"
+                            />
+                        </>
                     )}
                     {canManagePasskeys &&
                         (passkeyUnavailableHint ? (

@@ -79,6 +79,7 @@ function buildProjectFormState(project: ProjectSettingsForm) {
         notifier_slack_webhook_url: project.notifier_slack_webhook_url ?? '',
         notifier_telegram_bot_token: '',
         notifier_telegram_chat_id: project.notifier_telegram_chat_id ?? '',
+        notifier_event_types: project.notifier_event_types ?? [],
         oidc_enabled: project.oidc_enabled ?? false,
         oidc_issuer: project.oidc_issuer ?? '',
         oidc_client_id: project.oidc_client_id ?? '',
@@ -480,6 +481,13 @@ export default function ProjectSettingsPage({
                                 name="fallback_content_locales"
                                 value={JSON.stringify(
                                     form.fallback_content_locales,
+                                )}
+                            />
+                            <input
+                                type="hidden"
+                                name="notifier_event_types"
+                                value={JSON.stringify(
+                                    form.notifier_event_types,
                                 )}
                             />
                             <input
@@ -1694,6 +1702,102 @@ export default function ProjectSettingsPage({
                                         'settings.project.notifiersDescription',
                                     )}
                                 />
+
+                                <div className="grid gap-3">
+                                    <div className="space-y-1">
+                                        <Label>
+                                            {t(
+                                                'settings.project.notifierEventTypes',
+                                            )}
+                                        </Label>
+                                        <p className="text-sm text-muted-foreground">
+                                            {t(
+                                                'settings.project.notifierEventTypesHint',
+                                            )}
+                                        </p>
+                                    </div>
+                                    <div
+                                        className="grid gap-2 sm:grid-cols-2"
+                                        data-test="project-notifier-event-types"
+                                    >
+                                        {webhookEvents
+                                            .filter(
+                                                (event) =>
+                                                    event.type !== 'ping',
+                                            )
+                                            .map((event) => {
+                                                const checked =
+                                                    form.notifier_event_types.includes(
+                                                        event.type,
+                                                    );
+
+                                                return (
+                                                    <label
+                                                        key={event.type}
+                                                        htmlFor={`notifier_event_${event.type}`}
+                                                        className="flex cursor-pointer items-start gap-3 rounded-md border border-border/60 p-3"
+                                                    >
+                                                        <Checkbox
+                                                            id={`notifier_event_${event.type}`}
+                                                            className="mt-0.5"
+                                                            checked={checked}
+                                                            onCheckedChange={(
+                                                                value,
+                                                            ) =>
+                                                                setForm(
+                                                                    (
+                                                                        current,
+                                                                    ) => {
+                                                                        const selected =
+                                                                            new Set(
+                                                                                current.notifier_event_types,
+                                                                            );
+
+                                                                        if (
+                                                                            value ===
+                                                                            true
+                                                                        ) {
+                                                                            selected.add(
+                                                                                event.type,
+                                                                            );
+                                                                        } else {
+                                                                            selected.delete(
+                                                                                event.type,
+                                                                            );
+                                                                        }
+
+                                                                        return {
+                                                                            ...current,
+                                                                            notifier_event_types:
+                                                                                Array.from(
+                                                                                    selected,
+                                                                                ),
+                                                                        };
+                                                                    },
+                                                                )
+                                                            }
+                                                        />
+                                                        <span className="min-w-0 space-y-0.5">
+                                                            <span className="block font-mono text-sm">
+                                                                {event.type}
+                                                            </span>
+                                                            <span className="block text-sm text-muted-foreground">
+                                                                {
+                                                                    event.description
+                                                                }
+                                                            </span>
+                                                        </span>
+                                                    </label>
+                                                );
+                                            })}
+                                    </div>
+                                    <InputError
+                                        message={
+                                            errors.notifier_event_types ??
+                                            errors['notifier_event_types.0']
+                                        }
+                                    />
+                                </div>
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="notifier_slack_webhook_url">

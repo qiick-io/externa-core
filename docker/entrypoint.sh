@@ -24,6 +24,10 @@ stop_nginx_daemon() {
 }
 
 if [[ "$role" == "app" ]]; then
+  # Dev bind-mount: keep site config in sync without rebuilding the image.
+  if [[ -f /var/www/html/docker/nginx/default.conf ]]; then
+    cp /var/www/html/docker/nginx/default.conf /etc/nginx/sites-available/default
+  fi
   nginx 2>/dev/null || true
 fi
 

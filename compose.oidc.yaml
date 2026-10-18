@@ -1,0 +1,42 @@
+# Optional OIDC QA — Keycloak (not part of default stack).
+#
+#   docker compose -f compose.yaml -f compose.oidc.yaml --profile oidc up --build
+#
+# Issuer (browser): http://localhost:${FORWARD_KEYCLOAK_PORT:-8080}/realms/externa
+# App container fetches discovery via keycloak service DNS and rewrites token/userinfo
+# (OIDC_DISCOVERY_BASE / OIDC_SERVER_ORIGIN). Authorization stays on localhost for the browser.
+# Details: docker/keycloak/README.md
+
+services:
+  app:
+    environment:
+      OIDC_DISCOVERY_BASE: "http://keycloak:8080/realms/externa"
+      OIDC_SERVER_ORIGIN: "http://keycloak:8080"
+
+  keycloak:
+    profiles: ["oidc"]
+    image: quay.io/keycloak/keycloak:26.2
+    command: ["start-dev", "--import-realm"]
+    ports:
+      - "${FORWARD_KEYCLOAK_PORT:-8080}:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: "${KEYCLOAK_ADMIN:-admin}"
+      KC_BOOTSTRAP_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin}"
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: "http://localhost:${FORWARD_KEYCLOAK_PORT:-8080}"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./docker/keycloak/realm-externa.json:/opt/keycloak/data/import/realm-externa.json:ro
+      - externa_keycloak:/opt/keycloak/data
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    networks:
+      - externa
+
+volumes:
+  externa_keycloak:
