@@ -41,6 +41,7 @@ export type ProjectSettingsForm = {
     notifier_slack_webhook_url: string | null;
     notifier_telegram_chat_id: string | null;
     notifier_telegram_bot_token_configured: boolean;
+    notifier_event_types: string[];
     oidc_enabled: boolean;
     oidc_issuer: string | null;
     oidc_client_id: string | null;

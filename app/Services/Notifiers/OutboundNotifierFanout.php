@@ -25,9 +25,16 @@ class OutboundNotifierFanout
             return;
         }
 
-        $message = OutboundNotifierMessageFormatter::format($type, $data);
+        if (! $this->projectSettings->notifierAllowsEvent($type)) {
+            return;
+        }
 
         if ($this->projectSettings->notifierSlackWebhookUrl() !== null) {
+            $message = OutboundNotifierMessageFormatter::format(
+                $type,
+                $data,
+                OutboundNotifierMessageFormatter::CHANNEL_SLACK,
+            );
             $pending = DeliverSlackOutboundNotifierJob::dispatch($type, $message);
             if (! app()->runningUnitTests()) {
                 $pending->afterCommit();
@@ -35,6 +42,11 @@ class OutboundNotifierFanout
         }
 
         if ($this->projectSettings->notifierTelegramConfigured()) {
+            $message = OutboundNotifierMessageFormatter::format(
+                $type,
+                $data,
+                OutboundNotifierMessageFormatter::CHANNEL_TELEGRAM,
+            );
             $pending = DeliverTelegramOutboundNotifierJob::dispatch($type, $message);
             if (! app()->runningUnitTests()) {
                 $pending->afterCommit();

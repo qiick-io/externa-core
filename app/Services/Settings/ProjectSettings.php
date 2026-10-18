@@ -2,6 +2,7 @@
 
 namespace App\Services\Settings;
 
+use App\Services\Webhooks\OutboundWebhookCatalog;
 use App\Support\Api\PublicApiOrigin;
 use App\Support\Collections\ContentLocaleCatalog;
 use App\Support\Uploads\UploadSizeLimiter;
@@ -388,6 +389,20 @@ class ProjectSettings
     }
 
     /**
+     * Whether Slack/Telegram fan-out should emit this event type.
+     *
+     * `ping` always allowed (Send test). Null setting = all domain events (legacy).
+     */
+    public function notifierAllowsEvent(string $type): bool
+    {
+        if ($type === 'ping') {
+            return true;
+        }
+
+        return in_array($type, $this->raw()['notifier_event_types'], true);
+    }
+
+    /**
      * Decrypted Telegram bot token, or null when unset/unreadable.
      */
     public function notifierTelegramBotToken(): ?string
@@ -552,6 +567,7 @@ class ProjectSettings
                 && trim($raw['notifier_telegram_chat_id']) !== ''
                 ? trim($raw['notifier_telegram_chat_id'])
                 : null,
+            'notifier_event_types' => $this->normalizeNotifierEventTypes($raw['notifier_event_types'] ?? null),
             'oidc_enabled' => (bool) ($raw['oidc_enabled'] ?? false),
             'oidc_issuer' => $this->nullableUrl($raw['oidc_issuer'] ?? null),
             'oidc_client_id' => is_string($raw['oidc_client_id'] ?? null) && trim($raw['oidc_client_id']) !== ''
@@ -587,6 +603,35 @@ class ProjectSettings
                 UploadSizeLimiter::SETTING_MAX_BYTES,
             ),
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeNotifierEventTypes(mixed $value): array
+    {
+        $allowed = OutboundWebhookCatalog::notifierSelectableTypes();
+
+        if ($value === null) {
+            return $allowed;
+        }
+
+        if (! is_array($value)) {
+            return $allowed;
+        }
+
+        $selected = [];
+        foreach ($value as $type) {
+            if (! is_string($type) || $type === '' || isset($selected[$type])) {
+                continue;
+            }
+            if (! in_array($type, $allowed, true)) {
+                continue;
+            }
+            $selected[$type] = $type;
+        }
+
+        return array_values($selected);
     }
 
     /**

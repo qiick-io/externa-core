@@ -376,6 +376,8 @@
             "webhookEventDescription": "Description",
             "notifiersTitle": "Outbound notifiers (Slack & Telegram)",
             "notifiersDescription": "Optional human-readable alerts for the same domain events as outbound webhooks. Outbound only — not a chat backend.",
+            "notifierEventTypes": "Notify on these events",
+            "notifierEventTypesHint": "Unchecked events stay silent on Slack and Telegram. Webhooks are unaffected. Send test always works.",
             "notifierSlackWebhookUrl": "Slack incoming webhook URL",
             "notifierSlackWebhookUrlHint": "Create an Incoming Webhook in your Slack workspace. Leave empty to disable Slack notifications.",
             "notifierSlackSendTest": "Send Slack test",
