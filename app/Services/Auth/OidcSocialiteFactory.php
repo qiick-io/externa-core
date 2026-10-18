@@ -34,6 +34,7 @@ class OidcSocialiteFactory
 
         $issuer = rtrim((string) $this->project->oidcIssuer(), '/');
         $discovery = $this->discover($issuer);
+        $discovery = $this->rewriteServerEndpoints($discovery);
 
         $authUrl = is_string($discovery['authorization_endpoint'] ?? null)
             ? $discovery['authorization_endpoint']
@@ -66,13 +67,15 @@ class OidcSocialiteFactory
      */
     private function discover(string $issuer): array
     {
-        $cacheKey = 'oidc.discovery.'.sha1($issuer);
+        $fetchBase = $this->dockerDiscoveryBase() ?? $issuer;
+
+        $cacheKey = 'oidc.discovery.'.sha1($issuer.'|'.$fetchBase);
 
         /** @var array<string, mixed> $cached */
-        $cached = Cache::remember($cacheKey, now()->addHours(6), function () use ($issuer): array {
+        $cached = Cache::remember($cacheKey, now()->addHours(6), function () use ($fetchBase): array {
             $response = Http::timeout(10)
                 ->acceptJson()
-                ->get($issuer.'/.well-known/openid-configuration');
+                ->get($fetchBase.'/.well-known/openid-configuration');
 
             if (! $response->successful()) {
                 throw new RuntimeException('OIDC discovery request failed.');
@@ -84,5 +87,55 @@ class OidcSocialiteFactory
         });
 
         return $cached;
+    }
+
+    /**
+     * Rewrite token/userinfo hosts for Docker (browser issuer ≠ container DNS).
+     *
+     * @param  array<string, mixed>  $discovery
+     * @return array<string, mixed>
+     */
+    private function rewriteServerEndpoints(array $discovery): array
+    {
+        $origin = $this->dockerServerOrigin();
+        if ($origin === null) {
+            return $discovery;
+        }
+
+        foreach (['token_endpoint', 'userinfo_endpoint'] as $key) {
+            $url = $discovery[$key] ?? null;
+            if (! is_string($url) || $url === '') {
+                continue;
+            }
+
+            $discovery[$key] = (string) preg_replace('#^https?://[^/]+#', $origin, $url);
+        }
+
+        return $discovery;
+    }
+
+    /**
+     * Optional Compose override; ignored under APP_ENV=testing so Pest Http::fake works.
+     */
+    private function dockerDiscoveryBase(): ?string
+    {
+        if (app()->environment('testing')) {
+            return null;
+        }
+
+        $base = config('services.oidc.discovery_base');
+
+        return is_string($base) && trim($base) !== '' ? rtrim(trim($base), '/') : null;
+    }
+
+    private function dockerServerOrigin(): ?string
+    {
+        if (app()->environment('testing')) {
+            return null;
+        }
+
+        $origin = config('services.oidc.server_origin');
+
+        return is_string($origin) && trim($origin) !== '' ? rtrim(trim($origin), '/') : null;
     }
 }

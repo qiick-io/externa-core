@@ -4,6 +4,9 @@
 #   docker compose up --build
 # Optional MinIO: docker compose --profile minio up --build
 # Optional Meilisearch: docker compose --profile meilisearch up --build
+# Optional Keycloak OIDC QA:
+#   docker compose -f compose.yaml -f compose.oidc.yaml --profile oidc up --build
+#   → docker/keycloak/README.md
 # MySQL swap (keeps host Herd .env untouched — overrides only):
 #   docker compose --profile mysql -f compose.yaml -f compose.mysql.yaml up --build
 # MariaDB (host 3307 like Herd): 
