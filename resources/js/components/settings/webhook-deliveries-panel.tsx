@@ -9,11 +9,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import type {
-    WebhookDeliveryEntry,
-    WebhookDeliverySummary,
-    WebhookEventCatalogEntry,
-} from '@/types';
+import type { WebhookDeliveryEntry, WebhookDeliverySummary } from '@/types';
 
 function formatAt(value: string): string {
     return new Date(value).toLocaleString();
@@ -141,47 +137,6 @@ export function WebhookDeliveryStatus({
                     </TableBody>
                 </Table>
             ) : null}
-        </div>
-    );
-}
-
-/**
- * Read-only table of the frozen outbound event catalog.
- */
-export function WebhookEventCatalog({
-    events,
-}: {
-    events: WebhookEventCatalogEntry[];
-}) {
-    const { t } = useTranslation();
-
-    return (
-        <div className="grid gap-2">
-            <Label>{t('settings.project.webhookEventsTitle')}</Label>
-            <Table data-test="project-webhook-events">
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>
-                            {t('settings.project.webhookEventType')}
-                        </TableHead>
-                        <TableHead>
-                            {t('settings.project.webhookEventDescription')}
-                        </TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {events.map((event) => (
-                        <TableRow key={event.type}>
-                            <TableCell className="whitespace-nowrap">
-                                <code className="font-mono">{event.type}</code>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
-                                {event.description}
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
         </div>
     );
 }

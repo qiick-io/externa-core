@@ -373,7 +373,7 @@
             "notifiersTitle": "Ausgehende Benachrichtigungen (Slack & Telegram)",
             "notifiersDescription": "Optionale lesbare Hinweise zu denselben Domain-Events wie ausgehende Webhooks. Nur ausgehend — kein Chat-Backend.",
             "notifierEventTypes": "Bei diesen Events benachrichtigen",
-            "notifierEventTypesHint": "Abgewählte Events bleiben auf Slack und Telegram still. Webhooks bleiben unverändert. Test senden funktioniert immer.",
+            "notifierEventTypesHint": "Dieselbe Domain-Event-Liste wie ausgehende Webhooks. Abgewählte Typen bleiben nur auf Slack und Telegram still — Webhooks unverändert. Test senden funktioniert immer.",
             "notifierSlackWebhookUrl": "Slack-Incoming-Webhook-URL",
             "notifierSlackWebhookUrlHint": "Incoming Webhook im Slack-Workspace anlegen. Leer lassen zum Deaktivieren.",
             "notifierSlackSendTest": "Slack-Test senden",
