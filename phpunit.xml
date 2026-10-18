@@ -36,5 +36,8 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- Compose oidc profile sets these on app; keep Pest on issuer-only discovery. -->
+        <env name="OIDC_DISCOVERY_BASE" value="" force="true"/>
+        <env name="OIDC_SERVER_ORIGIN" value="" force="true"/>
     </php>
 </phpunit>

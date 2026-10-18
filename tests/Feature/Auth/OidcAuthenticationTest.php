@@ -133,8 +133,10 @@ test('callback rejects unverified email', function () {
     User::factory()->create(['email' => 'sso@example.com']);
     bindOidcFactory(fakeSocialiteUser(emailVerified: false));
 
-    $this->from(route('login'))
+    // Referer is the IdP in real browsers — must still land on login, not back to IdP.
+    $this->from('http://localhost:8080/realms/externa/protocol/openid-connect/auth')
         ->get(route('auth.oidc.callback'))
+        ->assertRedirect(route('login'))
         ->assertSessionHasErrors('email');
 
     $this->assertGuest();
