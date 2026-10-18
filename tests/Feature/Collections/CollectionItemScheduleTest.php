@@ -104,6 +104,56 @@ test('scheduled unpublish soft-deletes when due', function () {
     expect(CollectionItem::withTrashed()->find($item->id)?->trashed())->toBeTrue();
 });
 
+test('published workspace can schedule unpublish without publish_at', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['versioning' => true]);
+    $scheduledPublish = now()->addDays(3);
+    $item = $collection->items()->create([
+        'published_at' => now()->subDay(),
+        'publish_at' => $scheduledPublish,
+        'draft_data' => ['title' => 'next'],
+    ]);
+
+    $unpublishAt = now()->addDay()->toIso8601String();
+
+    $this->post(
+        route('collections.items.schedule', [$collection, $item]).'?version=published',
+        ['unpublish_at' => $unpublishAt],
+    )->assertRedirect();
+
+    $item->refresh();
+    expect($item->unpublish_at)->not->toBeNull()
+        ->and($item->publish_at?->timestamp)->toBe($scheduledPublish->timestamp);
+});
+
+test('publish sets published_at timestamp', function () {
+    $user = grantCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $collection = Collection::factory()->create(['versioning' => true]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    $item = $collection->items()->create([]);
+    $writer = app(CollectionItemValuesWriter::class);
+    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer->sync($item, $collection, $normalizer->normalize($collection, ['title' => 'live'], true));
+
+    $item->draft_data = ['title' => 'staging'];
+    $item->save();
+
+    $this->post(route('collections.items.publish', [$collection, $item]))
+        ->assertRedirect();
+
+    $item->refresh();
+    expect($item->published_at)->not->toBeNull();
+});
+
 test('catalog includes item.published', function () {
     expect(OutboundWebhookCatalog::has('item.published'))->toBeTrue();
     expect(OutboundWebhookCatalog::types())->toContain('item.published');

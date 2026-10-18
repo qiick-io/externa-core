@@ -37,10 +37,29 @@ class UpdateCollectionItemRequest extends FormRequest
         $item = $this->route('item');
         $excludeItemId = $item?->id;
 
-        return [
+        $base = [
             'version' => ['sometimes', 'string', Rule::in(['published', 'draft'])],
             'save_action' => ['sometimes', 'string', Rule::in(['stay', 'create_new', 'copy'])],
             'expected_updated_at' => ['sometimes', 'nullable', 'date'],
+            // Kanban DnD: write group field to published (+ order), even when versioning is on.
+            'board_move' => ['sometimes', 'boolean'],
+            // Calendar DnD: write date field to published, even when versioning is on.
+            'calendar_move' => ['sometimes', 'boolean'],
+            'after_item_id' => ['sometimes', 'nullable', 'integer'],
+            'before_item_id' => ['sometimes', 'nullable', 'integer'],
+        ];
+
+        // Move patches send only the dragged field — skip full-form required siblings (e.g. title).
+        if ($this->boolean('board_move') || $this->boolean('calendar_move')) {
+            return [
+                ...$base,
+                'data' => ['required', 'array', 'min:1'],
+                'data.*' => ['nullable'],
+            ];
+        }
+
+        return [
+            ...$base,
             ...app(CollectionItemDataRuleBuilder::class)->rules(
                 $collection,
                 false,

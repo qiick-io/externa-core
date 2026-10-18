@@ -10,6 +10,7 @@ use App\Models\CollectionItemValue;
 use App\Support\Collections\CollectionLocaleResolver;
 use App\Support\Validation\FilterQueryLimits;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -26,7 +27,7 @@ use Illuminate\Support\Facades\DB;
 class CollectionItemQueryService
 {
     /** @var list<string> */
-    public const SYSTEM_SORT_COLUMNS = ['id', 'created_at', 'updated_at'];
+    public const SYSTEM_SORT_COLUMNS = ['id', 'created_at', 'updated_at', 'board_sort'];
 
     /** @var list<string> */
     public const OPERATORS = [
@@ -298,6 +299,53 @@ class CollectionItemQueryService
     }
 
     /**
+     * Restrict items whose date/datetime field value falls in [from, to] (inclusive days).
+     *
+     * Uses text compare so ISO date / datetime-local prefixes sort correctly
+     * (numeric cast would break "2026-10-11").
+     *
+     * @param  Builder<CollectionItem>  $query
+     */
+    public function applyDateFieldRange(
+        Builder $query,
+        CollectionField $field,
+        string $fromDate,
+        string $toDate,
+        ?string $locale = null,
+    ): Builder {
+        $locale ??= $this->localeResolver->resolve();
+        $from = substr($fromDate, 0, 10);
+        $to = substr($toDate, 0, 10);
+
+        // Exclusive upper bound: day after `to` so datetime values on that day stay in range.
+        $exclusiveEnd = Carbon::createFromFormat('Y-m-d', $to)
+            ?->startOfDay()
+            ->addDay()
+            ->format('Y-m-d');
+
+        if ($exclusiveEnd === null) {
+            return $query;
+        }
+
+        $textSql = $this->valueTextSql();
+
+        $query->whereHas('fieldValues', function (Builder $sub) use ($field, $locale, $textSql, $from, $exclusiveEnd): void {
+            $sub->where('field_id', $field->id)->where('position', 0);
+
+            if ($field->translatable) {
+                $sub->where('locale', $locale);
+            } else {
+                $sub->whereNull('locale');
+            }
+
+            $sub->whereRaw($textSql.' >= ?', [$from])
+                ->whereRaw($textSql.' < ?', [$exclusiveEnd]);
+        });
+
+        return $query;
+    }
+
+    /**
      * Apply listing sort. Supports system columns and simple scalar field names
      * (not nested `parent.child` paths). Defaults to latest id.
      *
@@ -316,7 +364,14 @@ class CollectionItemQueryService
         $locale ??= $this->localeResolver->resolve();
 
         if ($sort !== '' && in_array($sort, self::SYSTEM_SORT_COLUMNS, true)) {
-            $query->orderBy($sort, $direction);
+            if ($sort === 'board_sort') {
+                // Nulls last so untouched cards stay below manually ordered ones.
+                $query->orderByRaw('board_sort is null asc')
+                    ->orderBy('board_sort', $direction)
+                    ->orderByDesc('id');
+            } else {
+                $query->orderBy($sort, $direction);
+            }
 
             return ['sort' => $sort, 'direction' => $direction];
         }

@@ -1,6 +1,7 @@
 import { Asterisk, ChevronDown } from 'lucide-react';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CollectionFieldFormDrawer } from '@/components/collections/collection-field-form';
 import { useContentLocale } from '@/components/collections/content-locale-provider';
 import { ContentLocaleProvider } from '@/components/collections/content-locale-provider';
@@ -55,6 +56,8 @@ import { Label } from '@/components/ui/label';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
+import { fetchAiStatus } from '@/lib/ai-chat';
+import { translateFieldsWithAi } from '@/lib/ai-translate';
 import { getFieldError } from '@/lib/collection-data-errors';
 import {
     buildFieldTree,
@@ -87,6 +90,7 @@ import {
     readFieldRawFromForm,
     withLocaleSlice,
 } from '@/lib/item-field-raw-value';
+import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { CollectionFieldRow } from '@/types';
 
@@ -662,9 +666,9 @@ function DiffChangedMarker() {
 }
 
 /**
- * Translatable item field with per-field locale switcher (one control visible per field).
- * ponytail: uses hidden inputs for uncontrolled form submission; fill actions manipulate DOM.
- * Per-field locale state prevents switching one field from affecting others.
+ * Translatable item field: one visible control for active field locale.
+ * Flag menu: switch locale / copy from / AI translate from / apply out.
+ * ponytail: inactive locales stay mounted (hidden) for save payload.
  */
 function TranslatableItemField({
     field,
@@ -705,6 +709,9 @@ function TranslatableItemField({
     onUndo: () => void;
     onEditField?: () => void;
 }) {
+    const { t } = useTranslation();
+    const { can } = useCan();
+    const canUseAi = can(PermissionEnum.CanUseAi);
     const labelText = showFieldNameHeading ? (
         <>
             {displayName}
@@ -714,18 +721,26 @@ function TranslatableItemField({
     ) : undefined;
 
     const shared = useContentLocale(locales);
-    const workspaceOn = shared.workspaceEnabled && locales.length > 1;
     const [fieldLocale, setFieldLocale] = useState(
         locales.includes(shared.locale) ? shared.locale : (locales[0] ?? 'en'),
     );
     const [markdownMode, setMarkdownMode] = useState<'edit' | 'preview'>(
         'edit',
     );
+    const [aiTranslating, setAiTranslating] = useState(false);
     const note = getFieldNote(field.settings, locales);
     const isMarkdown = field.type === 'markdown';
 
-    // Sync field locale with global target when not in per-field override thrash.
+    // Sync per-field flag only when toolbar locale value changes —
+    // not when Inertia replaces `locales` array identity after draft save.
+    const prevSharedLocaleRef = useRef(shared.locale);
     useEffect(() => {
+        if (prevSharedLocaleRef.current === shared.locale) {
+            return;
+        }
+
+        prevSharedLocaleRef.current = shared.locale;
+
         if (locales.includes(shared.locale)) {
             setFieldLocale(shared.locale);
         }
@@ -752,8 +767,8 @@ function TranslatableItemField({
         onApplyValue(withLocaleSlice(full, fieldLocale, slice));
     };
 
-    const copyFromSource = (): void => {
-        if (!workspaceOn) {
+    const translateFromLocale = async (fromLocale: string): Promise<void> => {
+        if (readonly || fromLocale === fieldLocale || aiTranslating) {
             return;
         }
 
@@ -765,159 +780,90 @@ function TranslatableItemField({
             return;
         }
 
-        const sourceName = `data[${field.name}][${shared.sourceLocale}]`;
-        const targetName = `data[${field.name}][${fieldLocale}]`;
-        const sourceInput = form.querySelector<
-            HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-        >(`[name="${sourceName}"]`);
-        const targetInput = form.querySelector<
-            HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-        >(`[name="${targetName}"]`);
+        const liveSource = readFieldRawFromForm(form, field.name, fromLocale);
+        const defaultSource = getDefaultLocale(
+            defaults,
+            field.name,
+            fromLocale,
+        );
+        const sourceText =
+            typeof liveSource === 'string'
+                ? liveSource
+                : typeof defaultSource === 'string'
+                  ? defaultSource
+                  : '';
 
-        if (
-            !sourceInput ||
-            !targetInput ||
-            ('readOnly' in targetInput && targetInput.readOnly)
-        ) {
+        if (sourceText.trim() === '') {
+            toast.error(t('collections.localized.translateWithAiEmpty'));
+
             return;
         }
 
-        if (sourceInput.type === 'checkbox' || sourceInput.type === 'radio') {
-            (targetInput as HTMLInputElement).checked = (
-                sourceInput as HTMLInputElement
-            ).checked;
-        } else {
-            targetInput.value = sourceInput.value;
-        }
+        setAiTranslating(true);
 
-        targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-        onMarkDirty();
+        try {
+            const status = await fetchAiStatus();
+
+            if (status.online !== true) {
+                toast.error(t('collections.localized.translateWithAiOffline'));
+
+                return;
+            }
+
+            const result = await translateFieldsWithAi({
+                source_locale: fromLocale,
+                target_locale: fieldLocale,
+                fields: { [field.name]: sourceText },
+            });
+
+            const translated = result.fields[field.name];
+
+            if (typeof translated !== 'string' || translated.trim() === '') {
+                toast.error(t('collections.localized.translateWithAiError'));
+
+                return;
+            }
+
+            // Remount via valueOverrides — DOM .value alone fails for TipTap /
+            // markdown (controlled hidden/textarea state); draft saw DOM, UI not.
+            applyLocaleSlice(translated);
+            queueMicrotask(() => {
+                form.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+            toast.success(t('collections.localized.translateWithAiDone'));
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t('collections.localized.translateWithAiError'),
+            );
+        } finally {
+            setAiTranslating(false);
+        }
     };
 
-    const renderLocaleControl = (
-        code: string,
-        options?: { locked?: boolean; label?: string },
-    ): ReactNode => {
+    const renderLocaleControl = (code: string): ReactNode => {
         const inputId = `data_${field.name}_${code}`;
-        // ponytail: lock source with pointer-events (not disabled) so values still submit
-        const locked = options?.locked === true;
 
         return (
             <div className="grid gap-2" data-locale-pane={code}>
-                {options?.label ? (
-                    <p className="text-xs font-medium text-muted-foreground">
-                        {options.label}
-                    </p>
-                ) : null}
-                <div
-                    className={
-                        locked
-                            ? 'pointer-events-none rounded-md bg-muted/40'
-                            : undefined
-                    }
-                    aria-readonly={locked || undefined}
-                >
-                    {renderFieldControl({
-                        field,
-                        name: `data[${field.name}][${code}]`,
-                        id: inputId,
-                        collectionId,
-                        locales,
-                        readonly,
-                        relatedCollections,
-                        defaultValue: getDefaultLocale(
-                            defaults,
-                            field.name,
-                            code,
-                        ),
-                        hasError: !!errorMessage && code === fieldLocale,
-                        markdownMode,
-                        onMarkdownModeChange: setMarkdownMode,
-                        showMarkdownModeToggle: false,
-                    })}
-                </div>
+                {renderFieldControl({
+                    field,
+                    name: `data[${field.name}][${code}]`,
+                    id: inputId,
+                    collectionId,
+                    locales,
+                    readonly,
+                    relatedCollections,
+                    defaultValue: getDefaultLocale(defaults, field.name, code),
+                    hasError: !!errorMessage && code === fieldLocale,
+                    markdownMode,
+                    onMarkdownModeChange: setMarkdownMode,
+                    showMarkdownModeToggle: false,
+                })}
             </div>
         );
     };
-
-    if (workspaceOn) {
-        const source = shared.sourceLocale;
-        const target = fieldLocale;
-
-        return (
-            <div
-                className="space-y-2"
-                data-test={`translation-field-${field.name}`}
-            >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    {labelText ? (
-                        <div className="text-sm font-medium">{labelText}</div>
-                    ) : (
-                        <span />
-                    )}
-                    <div className="flex items-center gap-1.5">
-                        {!readonly ? (
-                            <button
-                                type="button"
-                                className="rounded-md border px-2 py-1 text-xs"
-                                data-test={`copy-from-source-${field.name}`}
-                                onClick={copyFromSource}
-                            >
-                                Copy from {source}
-                            </button>
-                        ) : null}
-                        {showFieldNameHeading ? (
-                            <ItemFieldLabelMenu
-                                getCurrentValue={resolveCurrent}
-                                isDirty={isDirty}
-                                readonly={readonly}
-                                canEditFieldSchema={canEditFieldSchema}
-                                onApplyValue={applyLocaleSlice}
-                                onUndo={onUndo}
-                                onClear={() => {
-                                    applyLocaleSlice(
-                                        clearFieldRawValue(resolveCurrent()),
-                                    );
-                                }}
-                                onEditField={onEditField}
-                            />
-                        ) : null}
-                    </div>
-                </div>
-                {note ? (
-                    <p className="text-sm text-muted-foreground">{note}</p>
-                ) : null}
-                <div
-                    className="grid gap-3 md:grid-cols-2"
-                    onChange={onMarkDirty}
-                    onInput={onMarkDirty}
-                >
-                    {renderLocaleControl(source, {
-                        locked: true,
-                        label: `Source (${source})`,
-                    })}
-                    {renderLocaleControl(target, {
-                        label: `Target (${target})`,
-                    })}
-                    {/* Keep inactive locale inputs mounted for save payload. */}
-                    {locales.map((code) => {
-                        if (code === source || code === target) {
-                            return null;
-                        }
-
-                        return (
-                            <div key={code} className="hidden" aria-hidden>
-                                {renderLocaleControl(code)}
-                            </div>
-                        );
-                    })}
-                </div>
-                {errorMessage ? (
-                    <p className="text-sm text-destructive">{errorMessage}</p>
-                ) : null}
-            </div>
-        );
-    }
 
     return (
         <LocalizedField
@@ -945,6 +891,9 @@ function TranslatableItemField({
             description={note}
             reserveDescriptionSpace
             showCopyActions={!readonly}
+            canTranslateWithAi={!readonly && canUseAi}
+            onTranslateFromLocale={translateFromLocale}
+            aiTranslating={aiTranslating}
             errorMessage={errorMessage}
             namePrefix={`data[${field.name}]`}
             locale={fieldLocale}
@@ -962,6 +911,7 @@ function TranslatableItemField({
             {({ locale }) => (
                 <div
                     className="space-y-2"
+                    data-test={`translation-field-${field.name}`}
                     onChange={onMarkDirty}
                     onInput={onMarkDirty}
                 >
@@ -1159,9 +1109,6 @@ export function DynamicItemFields({
     highlightFields = null,
     selectDiffFields = null,
     onToggleDiffField,
-    translationWorkspace = false,
-    sourceLocale,
-    onSourceLocaleChange,
 }: {
     fields: FieldDef[];
     locales: string[];
@@ -1189,10 +1136,6 @@ export function DynamicItemFields({
     /** When set, differing fields show a checkbox; selection lives in this set. */
     selectDiffFields?: ReadonlySet<string> | null;
     onToggleDiffField?: (fieldName: string) => void;
-    /** Side-by-side source/target editing for translatable fields (#49). */
-    translationWorkspace?: boolean;
-    sourceLocale?: string;
-    onSourceLocaleChange?: (locale: string) => void;
 }) {
     const { can } = useCan();
     const canEditFieldSchema = can(PermissionEnum.CanEditCollections);
@@ -1530,13 +1473,7 @@ export function DynamicItemFields({
               });
 
     return (
-        <ContentLocaleProvider
-            locales={locales}
-            defaultLocale={defaultLocale}
-            workspaceEnabled={translationWorkspace}
-            sourceLocale={sourceLocale}
-            onSourceLocaleChange={onSourceLocaleChange}
-        >
+        <ContentLocaleProvider locales={locales} defaultLocale={defaultLocale}>
             <div className="space-y-4">
                 {tabs.length > 0 ? (
                     <div className="flex flex-wrap gap-2 border-b pb-2">

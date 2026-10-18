@@ -153,6 +153,142 @@ function applyTimeToDate(
 const hideNativePicker =
     'appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none';
 
+/**
+ * Controlled datetime-local wire picker (YYYY-MM-DDTHH:mm).
+ * Same Calendar + time chrome as DateFieldInput datetime mode.
+ */
+export function DatetimeLocalPicker({
+    id,
+    value,
+    onChange,
+    disabled = false,
+    placeholder = 'Pick date & time',
+    clearLabel = 'Clear',
+    'data-test': dataTest,
+    className,
+}: {
+    id?: string;
+    value: string;
+    onChange: (next: string) => void;
+    disabled?: boolean;
+    placeholder?: string;
+    clearLabel?: string;
+    'data-test'?: string;
+    className?: string;
+}) {
+    const includeSeconds = false;
+    const [open, setOpen] = useState(false);
+    const selected = parseWireDate(value, 'datetime');
+
+    const commitDate = (next: Date | undefined): void => {
+        onChange(next ? toWire(next, 'datetime', includeSeconds) : '');
+    };
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    type="button"
+                    id={id}
+                    variant="outline"
+                    disabled={disabled}
+                    data-test={dataTest}
+                    className={cn(
+                        fieldControlHeight,
+                        'w-full min-w-[12.5rem] justify-between font-normal',
+                        !selected && 'text-muted-foreground',
+                        className,
+                    )}
+                >
+                    <span className="truncate">
+                        {selected
+                            ? formatDisplay(
+                                  selected,
+                                  'datetime',
+                                  includeSeconds,
+                              )
+                            : placeholder}
+                    </span>
+                    <CalendarIcon className="size-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent
+                className="w-auto overflow-hidden p-0"
+                align="start"
+            >
+                <Calendar
+                    mode="single"
+                    selected={selected}
+                    defaultMonth={selected}
+                    onSelect={(next) => {
+                        if (!next) {
+                            commitDate(undefined);
+
+                            return;
+                        }
+
+                        if (selected) {
+                            next = applyTimeToDate(
+                                next,
+                                timePartFromDate(selected, includeSeconds),
+                                includeSeconds,
+                            );
+                        } else {
+                            next.setHours(0, 0, 0, 0);
+                        }
+
+                        commitDate(next);
+                    }}
+                />
+                <div className="flex items-center gap-2 border-t p-3">
+                    <ClockIcon className="size-4 shrink-0 text-muted-foreground" />
+                    <Input
+                        type="time"
+                        step={60}
+                        value={
+                            selected
+                                ? timePartFromDate(selected, includeSeconds)
+                                : '00:00'
+                        }
+                        disabled={disabled || !selected}
+                        className={cn('bg-background', hideNativePicker)}
+                        onChange={(event) => {
+                            if (!selected) {
+                                return;
+                            }
+
+                            commitDate(
+                                applyTimeToDate(
+                                    selected,
+                                    event.target.value,
+                                    includeSeconds,
+                                ),
+                            );
+                        }}
+                    />
+                </div>
+                {value ? (
+                    <div className="border-t p-2">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="w-full"
+                            disabled={disabled}
+                            onClick={() => {
+                                commitDate(undefined);
+                                setOpen(false);
+                            }}
+                        >
+                            {clearLabel}
+                        </Button>
+                    </div>
+                ) : null}
+            </PopoverContent>
+        </Popover>
+    );
+}
+
 export function DateFieldInput({
     id,
     name,
