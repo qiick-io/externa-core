@@ -13,7 +13,7 @@ Externa is a **Laravel-native headless CMS**: operators manage structured conten
 | --- | --- |
 | **Docs** | [docs.externa.qiick.io](https://docs.externa.qiick.io) |
 | **Install** | `composer create-project qiick/externa-core` · [Installation](https://docs.externa.qiick.io/docs/installation) · [Upgrade](https://docs.externa.qiick.io/docs/upgrade) · [Minimal vs full stack](https://docs.externa.qiick.io/docs/minimal-vs-full-stack) |
-| **API** | [Public CMS API](https://docs.externa.qiick.io/docs/public-cms-api) · [GraphQL](https://docs.externa.qiick.io/docs/graphql) · [Headless starter (Next.js)](https://docs.externa.qiick.io/docs/headless-starter) · [1.x compatibility](https://docs.externa.qiick.io/docs/api-compatibility) |
+| **API** | [Public CMS API](https://docs.externa.qiick.io/docs/public-cms-api) · [GraphQL](https://docs.externa.qiick.io/docs/graphql) · [Headless starter (Next.js + Nuxt)](https://docs.externa.qiick.io/docs/headless-starter) · [Starter conventions](./docs/starters.md) · [1.x compatibility](https://docs.externa.qiick.io/docs/api-compatibility) |
 | **Security** | [SECURITY.md](./SECURITY.md) · [Threat model](https://docs.externa.qiick.io/docs/threat-model) |
 | **Issues** | [GitHub Issues](https://github.com/qiick-io/externa-core/issues) |
 
@@ -133,6 +133,8 @@ docker compose up --build
 # MinIO: docker compose --profile minio up --build
 # MySQL: docker compose --profile mysql -f compose.yaml -f compose.mysql.yaml up --build
 # MariaDB (host :3307): docker compose --profile mariadb -f compose.yaml -f compose.mariadb.yaml up --build
+# Keycloak OIDC QA: docker compose -f compose.yaml -f compose.oidc.yaml --profile oidc up --build
+#   → docker/keycloak/README.md (issuer http://localhost:8080/realms/externa)
 ```
 
 ### Docker (quick production deploy)

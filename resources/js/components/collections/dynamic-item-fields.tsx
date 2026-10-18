@@ -1,6 +1,7 @@
 import { Asterisk, ChevronDown } from 'lucide-react';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CollectionFieldFormDrawer } from '@/components/collections/collection-field-form';
 import { useContentLocale } from '@/components/collections/content-locale-provider';
 import { ContentLocaleProvider } from '@/components/collections/content-locale-provider';
@@ -55,6 +56,8 @@ import { Label } from '@/components/ui/label';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
+import { fetchAiStatus } from '@/lib/ai-chat';
+import { translateFieldsWithAi } from '@/lib/ai-translate';
 import { getFieldError } from '@/lib/collection-data-errors';
 import {
     buildFieldTree,
@@ -87,6 +90,7 @@ import {
     readFieldRawFromForm,
     withLocaleSlice,
 } from '@/lib/item-field-raw-value';
+import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { CollectionFieldRow } from '@/types';
 
@@ -662,9 +666,9 @@ function DiffChangedMarker() {
 }
 
 /**
- * Translatable item field with per-field locale switcher (one control visible per field).
- * ponytail: uses hidden inputs for uncontrolled form submission; fill actions manipulate DOM.
- * Per-field locale state prevents switching one field from affecting others.
+ * Translatable item field: one visible control for active field locale.
+ * Flag menu: switch locale / copy from / AI translate from / apply out.
+ * ponytail: inactive locales stay mounted (hidden) for save payload.
  */
 function TranslatableItemField({
     field,
@@ -705,6 +709,9 @@ function TranslatableItemField({
     onUndo: () => void;
     onEditField?: () => void;
 }) {
+    const { t } = useTranslation();
+    const { can } = useCan();
+    const canUseAi = can(PermissionEnum.CanUseAi);
     const labelText = showFieldNameHeading ? (
         <>
             {displayName}
@@ -720,8 +727,24 @@ function TranslatableItemField({
     const [markdownMode, setMarkdownMode] = useState<'edit' | 'preview'>(
         'edit',
     );
+    const [aiTranslating, setAiTranslating] = useState(false);
     const note = getFieldNote(field.settings, locales);
     const isMarkdown = field.type === 'markdown';
+
+    // Sync per-field flag only when toolbar locale value changes —
+    // not when Inertia replaces `locales` array identity after draft save.
+    const prevSharedLocaleRef = useRef(shared.locale);
+    useEffect(() => {
+        if (prevSharedLocaleRef.current === shared.locale) {
+            return;
+        }
+
+        prevSharedLocaleRef.current = shared.locale;
+
+        if (locales.includes(shared.locale)) {
+            setFieldLocale(shared.locale);
+        }
+    }, [shared.locale, locales]);
 
     const resolveCurrent = (): unknown => {
         const form = document.getElementById(
@@ -742,6 +765,104 @@ function TranslatableItemField({
     const applyLocaleSlice = (slice: unknown): void => {
         const full = defaults?.[field.name];
         onApplyValue(withLocaleSlice(full, fieldLocale, slice));
+    };
+
+    const translateFromLocale = async (fromLocale: string): Promise<void> => {
+        if (readonly || fromLocale === fieldLocale || aiTranslating) {
+            return;
+        }
+
+        const form = document.getElementById(
+            ITEM_FORM_ID,
+        ) as HTMLFormElement | null;
+
+        if (!form) {
+            return;
+        }
+
+        const liveSource = readFieldRawFromForm(form, field.name, fromLocale);
+        const defaultSource = getDefaultLocale(
+            defaults,
+            field.name,
+            fromLocale,
+        );
+        const sourceText =
+            typeof liveSource === 'string'
+                ? liveSource
+                : typeof defaultSource === 'string'
+                  ? defaultSource
+                  : '';
+
+        if (sourceText.trim() === '') {
+            toast.error(t('collections.localized.translateWithAiEmpty'));
+
+            return;
+        }
+
+        setAiTranslating(true);
+
+        try {
+            const status = await fetchAiStatus();
+
+            if (status.online !== true) {
+                toast.error(t('collections.localized.translateWithAiOffline'));
+
+                return;
+            }
+
+            const result = await translateFieldsWithAi({
+                source_locale: fromLocale,
+                target_locale: fieldLocale,
+                fields: { [field.name]: sourceText },
+            });
+
+            const translated = result.fields[field.name];
+
+            if (typeof translated !== 'string' || translated.trim() === '') {
+                toast.error(t('collections.localized.translateWithAiError'));
+
+                return;
+            }
+
+            // Remount via valueOverrides — DOM .value alone fails for TipTap /
+            // markdown (controlled hidden/textarea state); draft saw DOM, UI not.
+            applyLocaleSlice(translated);
+            queueMicrotask(() => {
+                form.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+            toast.success(t('collections.localized.translateWithAiDone'));
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t('collections.localized.translateWithAiError'),
+            );
+        } finally {
+            setAiTranslating(false);
+        }
+    };
+
+    const renderLocaleControl = (code: string): ReactNode => {
+        const inputId = `data_${field.name}_${code}`;
+
+        return (
+            <div className="grid gap-2" data-locale-pane={code}>
+                {renderFieldControl({
+                    field,
+                    name: `data[${field.name}][${code}]`,
+                    id: inputId,
+                    collectionId,
+                    locales,
+                    readonly,
+                    relatedCollections,
+                    defaultValue: getDefaultLocale(defaults, field.name, code),
+                    hasError: !!errorMessage && code === fieldLocale,
+                    markdownMode,
+                    onMarkdownModeChange: setMarkdownMode,
+                    showMarkdownModeToggle: false,
+                })}
+            </div>
+        );
     };
 
     return (
@@ -770,6 +891,9 @@ function TranslatableItemField({
             description={note}
             reserveDescriptionSpace
             showCopyActions={!readonly}
+            canTranslateWithAi={!readonly && canUseAi}
+            onTranslateFromLocale={translateFromLocale}
+            aiTranslating={aiTranslating}
             errorMessage={errorMessage}
             namePrefix={`data[${field.name}]`}
             locale={fieldLocale}
@@ -787,11 +911,11 @@ function TranslatableItemField({
             {({ locale }) => (
                 <div
                     className="space-y-2"
+                    data-test={`translation-field-${field.name}`}
                     onChange={onMarkDirty}
                     onInput={onMarkDirty}
                 >
                     {locales.map((code) => {
-                        const inputId = `data_${field.name}_${code}`;
                         const isActive = code === locale;
 
                         return (
@@ -800,24 +924,7 @@ function TranslatableItemField({
                                 className={isActive ? 'grid gap-2' : 'hidden'}
                                 aria-hidden={!isActive}
                             >
-                                {renderFieldControl({
-                                    field,
-                                    name: `data[${field.name}][${code}]`,
-                                    id: inputId,
-                                    collectionId,
-                                    locales,
-                                    readonly,
-                                    relatedCollections,
-                                    defaultValue: getDefaultLocale(
-                                        defaults,
-                                        field.name,
-                                        code,
-                                    ),
-                                    hasError: !!errorMessage,
-                                    markdownMode,
-                                    onMarkdownModeChange: setMarkdownMode,
-                                    showMarkdownModeToggle: false,
-                                })}
+                                {renderLocaleControl(code)}
                             </div>
                         );
                     })}

@@ -353,12 +353,19 @@ export function CollectionFormDrawer({
                                     type="checkbox"
                                     className="size-4 rounded border"
                                     checked={Boolean(form.data.versioning)}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
                                         form.setData(
                                             'versioning',
                                             e.target.checked,
-                                        )
-                                    }
+                                        );
+
+                                        if (!e.target.checked) {
+                                            form.setData(
+                                                'approvals_required',
+                                                false,
+                                            );
+                                        }
+                                    }}
                                 />
                                 <Label htmlFor="collection_drawer_versioning">
                                     {t('collections.meta.versioning')}
@@ -368,6 +375,35 @@ export function CollectionFormDrawer({
                                 {t('collections.meta.versioningHint')}
                             </p>
                             <InputError message={form.errors.versioning} />
+                        </div>
+                        <div className="grid gap-2 border-t pt-3">
+                            <div className="flex items-center gap-2">
+                                <input
+                                    id="collection_drawer_approvals"
+                                    type="checkbox"
+                                    className="size-4 rounded border"
+                                    checked={Boolean(
+                                        form.data.approvals_required,
+                                    )}
+                                    disabled={!form.data.versioning}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'approvals_required',
+                                            e.target.checked,
+                                        )
+                                    }
+                                    data-test="collection-approvals-required"
+                                />
+                                <Label htmlFor="collection_drawer_approvals">
+                                    {t('collections.meta.approvalsRequired')}
+                                </Label>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                {t('collections.meta.approvalsRequiredHint')}
+                            </p>
+                            <InputError
+                                message={form.errors.approvals_required}
+                            />
                         </div>
                         <div className="grid gap-2 border-t pt-3">
                             <Label htmlFor="collection_drawer_preview_url">

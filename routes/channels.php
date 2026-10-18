@@ -1,7 +1,11 @@
 <?php
 
+use App\Enums\PermissionEnum;
 use App\Models\Chat;
+use App\Models\Collection;
+use App\Models\CollectionItem;
 use App\Models\User;
+use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Chat\ChatService;
 use Illuminate\Support\Facades\Broadcast;
 
@@ -33,6 +37,39 @@ Broadcast::channel('chat.{chatId}', function ($user, $chatId): array|bool {
     try {
         app(ChatService::class)->assertAccessible(request(), $chat);
     } catch (Throwable) {
+        return false;
+    }
+
+    $name = trim($user->name);
+
+    return [
+        'id' => $user->id,
+        'name' => $name !== '' ? $name : $user->email,
+    ];
+});
+
+Broadcast::channel('collection-item.{collectionId}.{itemId}', function ($user, $collectionId, $itemId): array|bool {
+    if (! $user instanceof User || ! $user->is_active) {
+        return false;
+    }
+
+    if (! $user->can(PermissionEnum::CanShowCollections->value)) {
+        return false;
+    }
+
+    $collection = Collection::query()->find($collectionId);
+    if (! $collection instanceof Collection) {
+        return false;
+    }
+
+    $item = CollectionItem::query()
+        ->where('collection_id', $collection->id)
+        ->find($itemId);
+    if (! $item instanceof CollectionItem) {
+        return false;
+    }
+
+    if (! app(CollectionPermissionEnforcer::class)->isItemReadable(request(), $collection, $item)) {
         return false;
     }
 

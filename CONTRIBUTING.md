@@ -43,6 +43,10 @@ New PHPStan findings outside the baseline fail CI (`lint` workflow). Regenerate 
 
 Conventional Commits (`feat:`, `fix:`, `docs:`, `ci:`, …) — aligns with CHANGELOG / release process.
 
+## Official headless starters
+
+New framework starters are **separate public repos** under `qiick-io` (not a monorepo). Shared naming, env vars, TypeScript bar, CI, and update cadence: [`docs/starters.md`](./docs/starters.md) (#156).
+
 ## Release shipping (agents & maintainers)
 
 **Do not auto-ship to `main`.** Opening a `develop` → `main` release PR (full body + assignee + milestone) is fine. **Maintainers** merge that PR, create the `vX.Y.Z` tag, and publish the GitHub Release.

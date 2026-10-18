@@ -5,6 +5,7 @@ use App\Models\User;
 use App\Services\Settings\ProjectSettings;
 use App\Services\Settings\SettingsRepository;
 use Database\Seeders\PermissionSeeder;
+use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia;
 use Laravel\Fortify\Features;
 use Spatie\Permission\Models\Role;
@@ -195,6 +196,97 @@ test('ai sidebar module stays pinned first and locked', function () {
                 ),
             )
         );
+});
+
+test('telegram bot token must look like a BotFather token', function () {
+    $user = grantProjectSettingsPermissions(User::factory()->create(), [
+        PermissionEnum::CanManageProjectSettings->value,
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('project.update'), baseProjectPayload([
+            'notifier_telegram_bot_token' => 'BitelifeBot',
+            'notifier_telegram_chat_id' => '-1001234567890',
+        ]))
+        ->assertSessionHasErrors('notifier_telegram_bot_token');
+
+    $this->actingAs($user)
+        ->put(route('project.update'), baseProjectPayload([
+            'notifier_telegram_bot_token' => '123456789:AAExampleToken_Value-1',
+            'notifier_telegram_chat_id' => '-1001234567890',
+        ]))
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('project.edit'));
+
+    expect(app(ProjectSettings::class)->notifierTelegramBotToken())
+        ->toBe('123456789:AAExampleToken_Value-1');
+});
+
+test('telegram notifier test surfaces bot api errors immediately', function () {
+    $user = grantProjectSettingsPermissions(User::factory()->create(), [
+        PermissionEnum::CanManageProjectSettings->value,
+    ]);
+
+    $repository = app(SettingsRepository::class);
+    $repository->set(
+        SettingsRepository::SCOPE_PROJECT,
+        'project',
+        'notifier_telegram_bot_token',
+        ProjectSettings::encryptNotifierTelegramBotToken('123456:ABC'),
+    );
+    $repository->set(
+        SettingsRepository::SCOPE_PROJECT,
+        'project',
+        'notifier_telegram_chat_id',
+        '-100123',
+    );
+
+    Http::fake([
+        'api.telegram.org/*' => Http::response([
+            'ok' => false,
+            'error_code' => 404,
+            'description' => 'Not Found',
+        ], 404),
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('project.telegram-notifier-test'))
+        ->assertRedirect(route('project.edit'))
+        ->assertSessionHas('error');
+
+    expect(session('error'))->toContain('Not Found');
+});
+
+test('telegram notifier test reports success when bot api accepts the message', function () {
+    $user = grantProjectSettingsPermissions(User::factory()->create(), [
+        PermissionEnum::CanManageProjectSettings->value,
+    ]);
+
+    $repository = app(SettingsRepository::class);
+    $repository->set(
+        SettingsRepository::SCOPE_PROJECT,
+        'project',
+        'notifier_telegram_bot_token',
+        ProjectSettings::encryptNotifierTelegramBotToken('123456:ABC'),
+    );
+    $repository->set(
+        SettingsRepository::SCOPE_PROJECT,
+        'project',
+        'notifier_telegram_chat_id',
+        '-100123',
+    );
+
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('project.edit'))
+        ->post(route('project.telegram-notifier-test'))
+        ->assertRedirect(route('project.edit'))
+        ->assertSessionHas('success');
+
+    expect(session('success'))->toBe(__('Test Telegram message sent.'));
 });
 
 test('registration is blocked when disabled in project settings', function () {

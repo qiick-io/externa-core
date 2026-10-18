@@ -1,0 +1,17 @@
+[
+  {
+    "id": 21,
+    "slug": "hello-world",
+    "status": "publish",
+    "title": { "rendered": "Hello world", "protected": false },
+    "content": { "rendered": "<p>Hi</p>", "protected": false },
+    "excerpt": { "rendered": "Hi…", "protected": false }
+  },
+  {
+    "id": 22,
+    "slug": "second-post",
+    "status": "draft",
+    "title": { "rendered": "Second", "protected": false },
+    "content": { "rendered": "<p>Two</p>", "protected": false }
+  }
+]

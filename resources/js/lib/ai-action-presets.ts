@@ -137,6 +137,22 @@ export const AI_ACTION_PRESETS: AiActionPreset[] = [
         anyOf: [PermissionEnum.CanCreateCollections],
     },
     {
+        id: 'import-directus',
+        category: 'data',
+        title: 'Import from Directus URL',
+        description: 'Directus items JSON → collection (dry-run first)',
+        prompt: 'Import from a Directus items URL into collection «COLLECTION_NAME».\nURL: https://…/items/…\n\n1) First call ImportRemoteJson with profile=directus, dry_run=true, upsert_key=slug (or id).\n2) Show proposed schema / preview.\n3) After I confirm, re-run with dry_run=false. Ask for Bearer token if needed. Host must be in AI_REMOTE_IMPORT_HOSTS.',
+        anyOf: [PermissionEnum.CanCreateCollections],
+    },
+    {
+        id: 'import-wordpress',
+        category: 'data',
+        title: 'Import from WordPress REST',
+        description: 'WP posts JSON → collection (unwrap rendered)',
+        prompt: 'Import WordPress REST posts into collection «COLLECTION_NAME».\nURL: https://…/wp-json/wp/v2/posts\n\n1) First call ImportRemoteJson with profile=wordpress, dry_run=true, upsert_key=slug.\n2) Show proposed schema / preview (title/content should be plain strings, not {rendered}).\n3) After I confirm, re-run with dry_run=false. Use auth_header for Application Passwords if needed. Host must be in AI_REMOTE_IMPORT_HOSTS. Media URLs are not auto-hydrated.',
+        anyOf: [PermissionEnum.CanCreateCollections],
+    },
+    {
         id: 'import-dry-run',
         category: 'data',
         title: 'Import preview (dry-run)',

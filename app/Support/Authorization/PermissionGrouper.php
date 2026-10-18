@@ -49,7 +49,7 @@ class PermissionGrouper
                 continue;
             }
 
-            if (! preg_match('/^can-(create|edit|delete|restore|force-delete)-(.+)$/', $permission->name, $matches)) {
+            if (! preg_match('/^can-(create|edit|delete|restore|force-delete|submit|approve)-(.+)$/', $permission->name, $matches)) {
                 continue;
             }
 

@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import {
+    createContext,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import type { ReactNode } from 'react';
 
 type ContentLocaleContextValue = {
@@ -29,21 +36,32 @@ export function ContentLocaleProvider({
             : (locales[0] ?? 'en');
     const [activeLocale, setActiveLocale] = useState(initial);
 
+    // Sync only when defaultLocale value changes — not when Inertia
+    // replaces `locales` array identity after draft save.
+    const prevDefaultLocaleRef = useRef(defaultLocale);
     useEffect(() => {
+        if (prevDefaultLocaleRef.current === defaultLocale) {
+            return;
+        }
+
+        prevDefaultLocaleRef.current = defaultLocale;
+
         if (defaultLocale && locales.includes(defaultLocale)) {
             setActiveLocale(defaultLocale);
         }
     }, [defaultLocale, locales]);
 
+    const active = locales.includes(activeLocale)
+        ? activeLocale
+        : (locales[0] ?? activeLocale);
+
     const value = useMemo(
         () => ({
             locales,
-            activeLocale: locales.includes(activeLocale)
-                ? activeLocale
-                : (locales[0] ?? activeLocale),
+            activeLocale: active,
             setActiveLocale,
         }),
-        [locales, activeLocale],
+        [locales, active],
     );
 
     return (

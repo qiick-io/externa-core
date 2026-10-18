@@ -5,6 +5,7 @@ namespace App\Ai\Tools;
 use App\Ai\Concerns\ChecksAiPermissions;
 use App\Ai\Concerns\ImportsCollectionRecords;
 use App\Ai\Concerns\LogsAiToolUse;
+use App\Ai\Support\CmsImport\CmsImportProfiles;
 use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Enums\PermissionEnum;
 use App\Jobs\ImportCollectionJob;
@@ -45,6 +46,7 @@ class ImportRemoteJson implements Tool
     {
         return 'Import records from a public (or Bearer-authenticated) JSON/API URL into a collection. '
             .'Fetches JSON, extracts a list of objects (supports raw arrays, {data:[...]}, {items:[...]}, or a single object), '
+            .'optionally reshapes via profile=directus|wordpress, '
             .'flattens first-level keys (nested objects/arrays become JSON strings), creates the collection/fields when needed, then imports items. '
             .'Use when the user pastes an API URL. Optional auth_bearer or auth_header for Authorization.';
     }
@@ -70,6 +72,7 @@ class ImportRemoteJson implements Tool
             $authHeader = trim((string) $request->string('auth_header'));
             $upsertKey = trim((string) $request->string('upsert_key'));
             $dryRun = $request->boolean('dry_run');
+            $profile = CmsImportProfiles::normalize((string) $request->string('profile'));
             $limit = $request->integer('limit', self::DEFAULT_LIMIT);
 
             if ($limit <= 0) {
@@ -77,6 +80,10 @@ class ImportRemoteJson implements Tool
             }
 
             $limit = min($limit, self::MAX_LIMIT);
+
+            if (! CmsImportProfiles::isSupported($profile)) {
+                return 'Error: Unsupported CMS import profile "'.$profile.'". Use: '.implode(', ', CmsImportProfiles::SUPPORTED).'.';
+            }
 
             if ($ssrfError = SafeRemoteUrlValidator::validate($url)) {
                 return $ssrfError;
@@ -94,6 +101,8 @@ class ImportRemoteJson implements Tool
                     $collectionName,
                     $upsertKey,
                     $authBearer !== '' ? $authBearer : $authHeader,
+                    null,
+                    $profile,
                 );
             }
 
@@ -124,6 +133,7 @@ class ImportRemoteJson implements Tool
                     $upsertKey,
                     $authBearer !== '' ? $authBearer : $authHeader,
                     $totalFound,
+                    $profile,
                 );
             }
 
@@ -136,7 +146,8 @@ class ImportRemoteJson implements Tool
                     continue;
                 }
 
-                [$flat, $nested] = $this->flattenRecord($record);
+                $shaped = CmsImportProfiles::shape($profile, $record);
+                [$flat, $nested] = $this->flattenRecord($shaped);
                 $flattened[] = $flat;
 
                 foreach ($nested as $key) {
@@ -160,6 +171,7 @@ class ImportRemoteJson implements Tool
                 return json_encode([
                     ...$this->previewAssociativeRows($collection, $flattened),
                     'url' => $url,
+                    'profile' => $profile,
                     'records_found' => $totalFound,
                 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '{}';
             }
@@ -184,6 +196,7 @@ class ImportRemoteJson implements Tool
                 'ok' => true,
                 'url' => route('collections.show', $collection),
                 'source_url' => $url,
+                'profile' => $profile,
                 'collection_id' => $collection->id,
                 'collection_name' => $collection->name,
                 'collection_created' => $collectionCreated,
@@ -224,6 +237,9 @@ class ImportRemoteJson implements Tool
             'upsert_key' => $schema->string()->description('Optional field name used to update matching items'),
             'dry_run' => $schema->boolean()->description('Preview inferred schema and sample records with zero writes'),
             'async' => $schema->boolean()->description('Queue the import; imports over 200 records are queued automatically'),
+            'profile' => $schema->string()->description(
+                'Optional CMS connector profile: directus (strip system fields, promote translation scalars) or wordpress (unwrap *.rendered)'
+            ),
         ];
     }
 
@@ -235,6 +251,7 @@ class ImportRemoteJson implements Tool
         string $upsertKey,
         string $authBearer,
         ?int $total = null,
+        ?string $profile = null,
     ): string {
         $job = new ImportCollectionJob(
             userId: $userId,
@@ -245,6 +262,7 @@ class ImportRemoteJson implements Tool
             collectionName: $collectionName !== '' ? $collectionName : null,
             upsertKey: $upsertKey !== '' ? $upsertKey : null,
             authBearer: $authBearer !== '' ? $authBearer : null,
+            profile: $profile,
         );
         $job->setQueuedTotal($total);
         dispatch($job);

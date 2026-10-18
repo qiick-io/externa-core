@@ -8,6 +8,7 @@ use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Validates creating a content collection definition.
@@ -49,6 +50,7 @@ class StoreContentCollectionRequest extends FormRequest
             'color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'is_singleton' => ['sometimes', 'boolean'],
             'versioning' => ['sometimes', 'boolean'],
+            'approvals_required' => ['sometimes', 'boolean'],
             'revision_retention_count' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'revision_retention_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
             'preview_url' => ['nullable', 'string', 'max:2048', 'regex:/^https?:\/\/.+/i'],
@@ -96,9 +98,19 @@ class StoreContentCollectionRequest extends FormRequest
      */
     protected function passedValidation(): void
     {
+        $approvals = $this->boolean('approvals_required');
+        $versioning = $this->boolean('versioning');
+
+        if ($approvals && ! $versioning) {
+            throw ValidationException::withMessages([
+                'approvals_required' => __('Approvals require content versioning.'),
+            ]);
+        }
+
         $this->merge([
             'is_singleton' => $this->boolean('is_singleton'),
-            'versioning' => $this->boolean('versioning'),
+            'versioning' => $versioning,
+            'approvals_required' => $approvals,
             'status' => $this->input('status', CollectionStatusEnum::Active->value),
         ]);
     }

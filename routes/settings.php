@@ -48,6 +48,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:'.PermissionEnum::CanManageProjectSettings->value)
         ->name('project.webhook-test');
 
+    Route::post('settings/project/slack-notifier-test', [ProjectSettingsController::class, 'sendTestSlackNotifier'])
+        ->middleware('permission:'.PermissionEnum::CanManageProjectSettings->value)
+        ->name('project.slack-notifier-test');
+
+    Route::post('settings/project/telegram-notifier-test', [ProjectSettingsController::class, 'sendTestTelegramNotifier'])
+        ->middleware('permission:'.PermissionEnum::CanManageProjectSettings->value)
+        ->name('project.telegram-notifier-test');
+
     Route::get('settings/appearance', [AppearanceSettingsController::class, 'edit'])
         ->middleware('permission:'.PermissionEnum::CanManageProjectSettings->value)
         ->name('appearance.edit');

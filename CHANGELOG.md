@@ -9,6 +9,45 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-18
+
+### Added
+
+- Official headless starter conventions: multi-repo preferred, naming/env/TS/CI/Dependabot checklist in `docs/starters.md` (#156)
+- Official Nuxt headless starter: [qiick-io/externa-nuxt-starter](https://github.com/qiick-io/externa-nuxt-starter) + docs [Headless starter](https://docs.externa.qiick.io/docs/headless-starter) (#152)
+- Editorial approvals for versioned collections: `approvals_required`, submit/approve/reject, promote gate, review list filter, webhook events `item.submitted`/`item.approved`/`item.rejected`, Spatie `can-submit-collections` / `can-approve-collections` (#48)
+- Side-by-side translation workspace on the item form (source/target locales, copy helpers, completeness) (#49)
+- Collection list layouts: optional kanban (select/radio) and calendar (date); table remains default (#47)
+- Items list toolbar filters; kanban lazy-load columns + DnD persist via `board_sort`; calendar multi-view with drag-to-reschedule; dark-mode contrast polish (#193)
+- AI field translate on the item form (`ContentTranslator` + translate endpoint; TipTap/markdown remount via value overrides) (#193)
+- Outbound Slack (incoming webhook) and Telegram (`sendMessage`) notifiers on the domain event bus; encrypted Telegram token (#39)
+- Notifier messages enriched with title, actor, status, and admin link; Project settings can mute event types (`notifier_event_types`, null = all events)
+- Collaborative item presence + soft lock via Echo (avatars, whisper lock, stale-save / `expected_updated_at`) (#50)
+- Optional Meilisearch sync for published collection items (queue jobs; no Scout/Algolia; Compose profile `meilisearch`) (#40)
+- Optional git export sync of published items to a remote (JSON/Markdown, deploy-key SSH, dry-run) (#41)
+- CMS import profiles on `ImportRemoteJson`: `directus` and `wordpress` reshape before flatten/import (#30)
+- Optional OIDC/SSO login (Socialite + issuer discovery): project settings for issuer/client/secret, link-by-verified-email (JIT off by default), login CTA alongside password/passkey (#29)
+- Optional Keycloak Compose QA profile (`compose.oidc.yaml`) for local SSO round-trips without baking an IdP into the default stack
+
+### Changed
+
+- New dependency `laravel/socialite` `^5.31` (#29)
+- Telegram notifier test in Project settings runs synchronously and surfaces Bot API errors in flash; token must match BotFather format `123456:ABC…` (#183)
+- Telegram messages use `parse_mode=HTML`; Slack keeps mrkdwn
+- Project settings: single notifier/webhook event-type checklist (drop duplicate catalog table) (#199)
+
+### Fixed
+
+- Meilisearch: create index with `primaryKey=id` and pass `primaryKey` on upserts (documents were silently not indexed) (#179)
+- Git export: clone uses `--template=` (sandboxed filesystems) (#179); empty bare remotes bootstrapped with init + first push (#182)
+- OIDC: callback validation errors redirect to login instead of looping back to the IdP; SSO reject errors shown on the login page
+- AI field translate applies to React controlled state (TipTap/markdown), not DOM `.value` alone (#193)
+
+### Security
+
+- `package-lock.json` bump (`concurrently` / `shell-quote`, `source-map-js`) so `npm audit --omit=dev --audit-level=high` passes (#182)
+- OIDC client secret and Telegram bot token stored encrypted (#29, #39)
+
 ## [1.1.0] - 2026-09-24
 
 ### Added

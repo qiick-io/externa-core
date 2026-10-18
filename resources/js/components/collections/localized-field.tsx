@@ -1,4 +1,4 @@
-import { Copy, Languages } from 'lucide-react';
+import { Copy, Languages, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
@@ -9,6 +9,9 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -42,6 +45,10 @@ export type LocalizedFieldProps = {
         setValue: (next: string) => void;
     }) => ReactNode;
     showCopyActions?: boolean;
+    /** Show per-source-locale AI translate actions when provided. */
+    canTranslateWithAi?: boolean;
+    onTranslateFromLocale?: (fromLocale: string) => void | Promise<void>;
+    aiTranslating?: boolean;
     errorMessage?: string;
     /** Extra controls on the title row (right, beside locale) — e.g. markdown edit/preview. */
     headerActions?: ReactNode;
@@ -55,6 +62,20 @@ function normalizeLocales(
     return locales.map((entry) =>
         typeof entry === 'string' ? contentLocaleMeta(entry) : entry,
     );
+}
+
+function readNamedControl(
+    name: string,
+): HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null {
+    const form = document.querySelector('form');
+
+    if (!form) {
+        return null;
+    }
+
+    return form.querySelector<
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >(`[name="${name}"]`);
 }
 
 /**
@@ -77,6 +98,9 @@ export function LocalizedField({
     className,
     children,
     showCopyActions = true,
+    canTranslateWithAi = false,
+    onTranslateFromLocale,
+    aiTranslating = false,
     errorMessage,
     headerActions,
     labelAddon,
@@ -106,6 +130,50 @@ export function LocalizedField({
         onChange?.({ ...value, [locale]: next });
     };
 
+    const copyControlValue = (
+        from: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
+        to: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
+    ): void => {
+        if ('readOnly' in to && to.readOnly) {
+            return;
+        }
+
+        if (from.type === 'checkbox' || from.type === 'radio') {
+            (to as HTMLInputElement).checked = (
+                from as HTMLInputElement
+            ).checked;
+        } else {
+            to.value = from.value;
+        }
+
+        to.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+
+    const copyFromLocale = (fromLocale: string): void => {
+        if (fromLocale === locale) {
+            return;
+        }
+
+        if (onChange) {
+            onChange({ ...value, [locale]: value[fromLocale] ?? '' });
+
+            return;
+        }
+
+        if (!namePrefix) {
+            return;
+        }
+
+        const sourceInput = readNamedControl(`${namePrefix}[${fromLocale}]`);
+        const targetInput = readNamedControl(`${namePrefix}[${locale}]`);
+
+        if (!sourceInput || !targetInput) {
+            return;
+        }
+
+        copyControlValue(sourceInput, targetInput);
+    };
+
     const applyToAll = (): void => {
         if (onChange) {
             const updated: Partial<Record<string, string>> = { ...value };
@@ -117,30 +185,21 @@ export function LocalizedField({
             onChange(updated);
         } else if (namePrefix) {
             // ponytail: DOM manipulation fallback for uncontrolled forms
-            const form = document.querySelector('form');
-
-            if (!form) {
-                return;
-            }
-
-            const sourceInput = form.querySelector<
-                HTMLInputElement | HTMLTextAreaElement
-            >(`[name="${namePrefix}[${locale}]"]`);
+            const sourceInput = readNamedControl(`${namePrefix}[${locale}]`);
 
             if (!sourceInput) {
                 return;
             }
 
             for (const code of localeCodes) {
-                const targetInput = form.querySelector<
-                    HTMLInputElement | HTMLTextAreaElement
-                >(`[name="${namePrefix}[${code}]"]`);
+                if (code === locale) {
+                    continue;
+                }
+
+                const targetInput = readNamedControl(`${namePrefix}[${code}]`);
 
                 if (targetInput) {
-                    targetInput.value = sourceInput.value;
-                    targetInput.dispatchEvent(
-                        new Event('input', { bubbles: true }),
-                    );
+                    copyControlValue(sourceInput, targetInput);
                 }
             }
         }
@@ -159,39 +218,45 @@ export function LocalizedField({
             onChange(updated);
         } else if (namePrefix) {
             // ponytail: DOM manipulation fallback for uncontrolled forms
-            const form = document.querySelector('form');
-
-            if (!form) {
-                return;
-            }
-
-            const sourceInput = form.querySelector<
-                HTMLInputElement | HTMLTextAreaElement
-            >(`[name="${namePrefix}[${locale}]"]`);
+            const sourceInput = readNamedControl(`${namePrefix}[${locale}]`);
 
             if (!sourceInput) {
                 return;
             }
 
             for (const code of localeCodes) {
-                const targetInput = form.querySelector<
-                    HTMLInputElement | HTMLTextAreaElement
-                >(`[name="${namePrefix}[${code}]"]`);
+                if (code === locale) {
+                    continue;
+                }
 
-                if (targetInput && (targetInput.value ?? '').trim() === '') {
-                    targetInput.value = sourceInput.value;
-                    targetInput.dispatchEvent(
-                        new Event('input', { bubbles: true }),
-                    );
+                const targetInput = readNamedControl(`${namePrefix}[${code}]`);
+
+                if (!targetInput) {
+                    continue;
+                }
+
+                const isEmpty =
+                    targetInput.type === 'checkbox' ||
+                    targetInput.type === 'radio'
+                        ? !(targetInput as HTMLInputElement).checked
+                        : (targetInput.value ?? '').trim() === '';
+
+                if (isEmpty) {
+                    copyControlValue(sourceInput, targetInput);
                 }
             }
         }
     };
 
     const activeMeta = contentLocaleMeta(locale);
+    const otherLocales = localeEntries.filter((entry) => entry.code !== locale);
 
     const canCopy =
         showCopyActions && (Boolean(onChange) || Boolean(namePrefix));
+    const showAi =
+        canTranslateWithAi &&
+        Boolean(onTranslateFromLocale) &&
+        otherLocales.length > 0;
 
     return (
         <div className={cn('space-y-2', className)}>
@@ -212,6 +277,8 @@ export function LocalizedField({
                                     size="sm"
                                     className="gap-2"
                                     disabled={disabled}
+                                    data-test="localized-field-locale"
+                                    data-locale={locale}
                                 >
                                     <ContentLocaleFlag
                                         region={activeMeta.flag}
@@ -244,6 +311,145 @@ export function LocalizedField({
                                         </span>
                                     </DropdownMenuItem>
                                 ))}
+                                {canCopy && otherLocales.length > 0 ? (
+                                    <>
+                                        <DropdownMenuSeparator />
+                                        {otherLocales.length >= 2 ? (
+                                            <DropdownMenuSub>
+                                                <DropdownMenuSubTrigger className="gap-2">
+                                                    <Copy className="size-3.5" />
+                                                    {t(
+                                                        'collections.localized.copyFromMenu',
+                                                    )}
+                                                </DropdownMenuSubTrigger>
+                                                <DropdownMenuSubContent className="min-w-40">
+                                                    {otherLocales.map(
+                                                        (entry) => (
+                                                            <DropdownMenuItem
+                                                                key={`copy-${entry.code}`}
+                                                                onClick={() =>
+                                                                    copyFromLocale(
+                                                                        entry.code,
+                                                                    )
+                                                                }
+                                                                className="gap-2"
+                                                            >
+                                                                <ContentLocaleFlag
+                                                                    region={
+                                                                        entry.flag
+                                                                    }
+                                                                />
+                                                                <span className="flex-1">
+                                                                    {entry.name}
+                                                                </span>
+                                                                <span className="font-mono text-xs text-muted-foreground">
+                                                                    {entry.code}
+                                                                </span>
+                                                            </DropdownMenuItem>
+                                                        ),
+                                                    )}
+                                                </DropdownMenuSubContent>
+                                            </DropdownMenuSub>
+                                        ) : (
+                                            otherLocales.map((entry) => (
+                                                <DropdownMenuItem
+                                                    key={`copy-${entry.code}`}
+                                                    onClick={() =>
+                                                        copyFromLocale(
+                                                            entry.code,
+                                                        )
+                                                    }
+                                                    className="gap-2"
+                                                >
+                                                    <Copy className="size-3.5" />
+                                                    {t(
+                                                        'collections.localized.copyFrom',
+                                                        {
+                                                            locale: entry.name,
+                                                        },
+                                                    )}
+                                                </DropdownMenuItem>
+                                            ))
+                                        )}
+                                    </>
+                                ) : null}
+                                {showAi ? (
+                                    <>
+                                        <DropdownMenuSeparator />
+                                        {otherLocales.length >= 2 ? (
+                                            <DropdownMenuSub>
+                                                <DropdownMenuSubTrigger
+                                                    className="gap-2"
+                                                    disabled={aiTranslating}
+                                                >
+                                                    <Sparkles className="size-3.5" />
+                                                    {aiTranslating
+                                                        ? t(
+                                                              'collections.localized.translateWithAiBusy',
+                                                          )
+                                                        : t(
+                                                              'collections.localized.translateWithAiFromMenu',
+                                                          )}
+                                                </DropdownMenuSubTrigger>
+                                                <DropdownMenuSubContent className="min-w-40">
+                                                    {otherLocales.map(
+                                                        (entry) => (
+                                                            <DropdownMenuItem
+                                                                key={`ai-${entry.code}`}
+                                                                disabled={
+                                                                    aiTranslating
+                                                                }
+                                                                onClick={() => {
+                                                                    void onTranslateFromLocale?.(
+                                                                        entry.code,
+                                                                    );
+                                                                }}
+                                                                className="gap-2"
+                                                            >
+                                                                <ContentLocaleFlag
+                                                                    region={
+                                                                        entry.flag
+                                                                    }
+                                                                />
+                                                                <span className="flex-1">
+                                                                    {entry.name}
+                                                                </span>
+                                                                <span className="font-mono text-xs text-muted-foreground">
+                                                                    {entry.code}
+                                                                </span>
+                                                            </DropdownMenuItem>
+                                                        ),
+                                                    )}
+                                                </DropdownMenuSubContent>
+                                            </DropdownMenuSub>
+                                        ) : (
+                                            otherLocales.map((entry) => (
+                                                <DropdownMenuItem
+                                                    key={`ai-${entry.code}`}
+                                                    disabled={aiTranslating}
+                                                    onClick={() => {
+                                                        void onTranslateFromLocale?.(
+                                                            entry.code,
+                                                        );
+                                                    }}
+                                                    className="gap-2"
+                                                >
+                                                    <Sparkles className="size-3.5" />
+                                                    {aiTranslating
+                                                        ? t(
+                                                              'collections.localized.translateWithAiBusy',
+                                                          )
+                                                        : t(
+                                                              'collections.localized.translateWithAiFrom',
+                                                              {
+                                                                  locale: entry.name,
+                                                              },
+                                                          )}
+                                                </DropdownMenuItem>
+                                            ))
+                                        )}
+                                    </>
+                                ) : null}
                                 {canCopy ? (
                                     <>
                                         <DropdownMenuSeparator />
@@ -285,31 +491,37 @@ export function LocalizedField({
                   ))
                 : null}
 
-            {children ? (
-                children({
-                    locale,
-                    value: currentValue,
-                    setValue,
-                })
-            ) : inputType === 'textarea' ? (
-                <Textarea
-                    id={idPrefix ? `${idPrefix}_${locale}` : undefined}
-                    value={currentValue}
-                    onChange={(event) => setValue(event.target.value)}
-                    placeholder={placeholder}
-                    disabled={disabled}
-                    aria-invalid={!!errorMessage}
-                />
-            ) : (
-                <Input
-                    id={idPrefix ? `${idPrefix}_${locale}` : undefined}
-                    value={currentValue}
-                    onChange={(event) => setValue(event.target.value)}
-                    placeholder={placeholder}
-                    disabled={disabled}
-                    aria-invalid={!!errorMessage}
-                />
-            )}
+            <div
+                className={cn(aiTranslating && 'ai-field-translating')}
+                aria-busy={aiTranslating || undefined}
+                data-ai-translating={aiTranslating ? 'true' : undefined}
+            >
+                {children ? (
+                    children({
+                        locale,
+                        value: currentValue,
+                        setValue,
+                    })
+                ) : inputType === 'textarea' ? (
+                    <Textarea
+                        id={idPrefix ? `${idPrefix}_${locale}` : undefined}
+                        value={currentValue}
+                        onChange={(event) => setValue(event.target.value)}
+                        placeholder={placeholder}
+                        disabled={disabled || aiTranslating}
+                        aria-invalid={!!errorMessage}
+                    />
+                ) : (
+                    <Input
+                        id={idPrefix ? `${idPrefix}_${locale}` : undefined}
+                        value={currentValue}
+                        onChange={(event) => setValue(event.target.value)}
+                        placeholder={placeholder}
+                        disabled={disabled || aiTranslating}
+                        aria-invalid={!!errorMessage}
+                    />
+                )}
+            </div>
 
             {reserveDescriptionSpace || description ? (
                 <p

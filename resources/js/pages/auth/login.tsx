@@ -1,4 +1,4 @@
-import { Form, Head, router } from '@inertiajs/react';
+import { Form, Head, router, usePage } from '@inertiajs/react';
 import { UserCancelledError } from '@laravel/passkeys';
 import { usePasskeyVerify } from '@laravel/passkeys/react';
 import { KeyRound } from 'lucide-react';
@@ -26,10 +26,12 @@ type Props = {
     canResetPassword: boolean;
     canRegister: boolean;
     canManagePasskeys?: boolean;
+    canUseOidc?: boolean;
+    oidcButtonLabel?: string | null;
 };
 
 /**
- * User login form with optional passkey sign-in.
+ * User login form with optional passkey + OIDC sign-in.
  *
  * Conditional WebAuthn autofill (`autofill: true` + `autocomplete="… webauthn"`) is
  * intentionally off. @laravel/passkeys sets shared `isLoading` for the whole autofill
@@ -41,8 +43,13 @@ export default function Login({
     canResetPassword,
     canRegister,
     canManagePasskeys = false,
+    canUseOidc = false,
+    oidcButtonLabel = null,
 }: Props) {
     const { t } = useTranslation();
+    // OIDC callback rejects redirect here with session errors; Form render-prop
+    // errors only cover password POST — surface page-level errors under SSO.
+    const pageEmailError = usePage().props.errors?.email;
 
     const {
         verify,
@@ -75,6 +82,8 @@ export default function Login({
             : t('auth.login.passkeysUnsupported')
         : undefined;
 
+    const showAltSignIn = canManagePasskeys || canUseOidc;
+
     const passkeyButton = (
         <Button
             type="button"
@@ -101,23 +110,47 @@ export default function Login({
         >
             <Head title={t('auth.login.head')} />
 
-            {canManagePasskeys && (
+            {showAltSignIn && (
                 <div className="mb-6 flex flex-col gap-3">
-                    {passkeyUnavailableHint ? (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <span className="inline-flex w-full">
-                                    {passkeyButton}
-                                </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                {passkeyUnavailableHint}
-                            </TooltipContent>
-                        </Tooltip>
-                    ) : (
-                        passkeyButton
+                    {canUseOidc && (
+                        <>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                data-test="oidc-login-button"
+                                asChild
+                            >
+                                <a href="/auth/oidc/redirect">
+                                    {oidcButtonLabel?.trim()
+                                        ? oidcButtonLabel
+                                        : t('auth.login.oidc')}
+                                </a>
+                            </Button>
+                            <InputError
+                                message={pageEmailError}
+                                data-test="oidc-login-error"
+                            />
+                        </>
                     )}
-                    <InputError message={passkeyErrorMessage} />
+                    {canManagePasskeys &&
+                        (passkeyUnavailableHint ? (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span className="inline-flex w-full">
+                                        {passkeyButton}
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    {passkeyUnavailableHint}
+                                </TooltipContent>
+                            </Tooltip>
+                        ) : (
+                            passkeyButton
+                        ))}
+                    {canManagePasskeys && (
+                        <InputError message={passkeyErrorMessage} />
+                    )}
                     <div className="relative py-1">
                         <div className="absolute inset-0 flex items-center">
                             <span className="w-full border-t" />

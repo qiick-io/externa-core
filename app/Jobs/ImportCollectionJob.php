@@ -36,6 +36,7 @@ class ImportCollectionJob implements ShouldQueue
         public readonly bool $dryRun = false,
         public readonly ?string $authBearer = null,
         public readonly ?int $syncSourceId = null,
+        public readonly ?string $profile = null,
     ) {
         $this->jobId = (string) Str::uuid();
 
@@ -150,6 +151,7 @@ class ImportCollectionJob implements ShouldQueue
             'upsert_key' => $this->upsertKey,
             'dry_run' => $this->dryRun,
             'auth_bearer' => $this->authBearer,
+            'profile' => $this->profile,
             'limit' => 500,
             'force_sync' => true,
         ];

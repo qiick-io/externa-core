@@ -74,6 +74,14 @@ Route::middleware(['auth', 'verified'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.field-options');
 
+        Route::get('collections/{collection}/items/kanban-column', [ItemController::class, 'kanbanColumn'])
+            ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+            ->name('collections.items.kanban-column');
+
+        Route::get('collections/{collection}/items/calendar-month', [ItemController::class, 'calendarMonth'])
+            ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+            ->name('collections.items.calendar-month');
+
         Route::get('collections/{collection}/items/{item}/revisions', [ItemRevisionController::class, 'index'])
             ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
             ->name('collections.items.revisions.index');
@@ -165,6 +173,18 @@ Route::middleware(['auth', 'verified'])
         Route::post('collections/{collection}/items/{item}/publish', [ItemController::class, 'publish'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)
             ->name('collections.items.publish');
+
+        Route::post('collections/{collection}/items/{item}/submit-for-review', [ItemController::class, 'submitForReview'])
+            ->middleware('permission:'.PermissionEnum::CanSubmitCollections->value)
+            ->name('collections.items.submit-for-review');
+
+        Route::post('collections/{collection}/items/{item}/approve', [ItemController::class, 'approve'])
+            ->middleware('permission:'.PermissionEnum::CanApproveCollections->value)
+            ->name('collections.items.approve');
+
+        Route::post('collections/{collection}/items/{item}/reject', [ItemController::class, 'reject'])
+            ->middleware('permission:'.PermissionEnum::CanApproveCollections->value)
+            ->name('collections.items.reject');
 
         Route::post('collections/{collection}/items/{item}/discard-draft', [ItemController::class, 'discardDraft'])
             ->middleware('permission:'.PermissionEnum::CanEditCollections->value)

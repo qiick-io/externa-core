@@ -2,6 +2,7 @@
 
 namespace App\Services\Settings;
 
+use App\Services\Webhooks\OutboundWebhookCatalog;
 use App\Support\Api\PublicApiOrigin;
 use App\Support\Collections\ContentLocaleCatalog;
 use App\Support\Uploads\UploadSizeLimiter;
@@ -47,8 +48,10 @@ class ProjectSettings
     public function forEdit(): array
     {
         $raw = $this->raw();
-        unset($raw['webhook_secret']);
+        unset($raw['webhook_secret'], $raw['notifier_telegram_bot_token'], $raw['oidc_client_secret']);
         $raw['webhook_secret_configured'] = $this->webhookSecret() !== null;
+        $raw['notifier_telegram_bot_token_configured'] = $this->notifierTelegramBotToken() !== null;
+        $raw['oidc_client_secret_configured'] = $this->oidcClientSecret() !== null;
 
         return $raw;
     }
@@ -367,6 +370,138 @@ class ProjectSettings
         return Crypt::encryptString($plain);
     }
 
+    public function notifierSlackWebhookUrl(): ?string
+    {
+        return $this->raw()['notifier_slack_webhook_url'];
+    }
+
+    public function notifierTelegramChatId(): ?string
+    {
+        $chatId = $this->raw()['notifier_telegram_chat_id'];
+
+        return is_string($chatId) && $chatId !== '' ? $chatId : null;
+    }
+
+    public function notifierTelegramConfigured(): bool
+    {
+        return $this->notifierTelegramBotToken() !== null
+            && $this->notifierTelegramChatId() !== null;
+    }
+
+    /**
+     * Whether Slack/Telegram fan-out should emit this event type.
+     *
+     * `ping` always allowed (Send test). Null setting = all domain events (legacy).
+     */
+    public function notifierAllowsEvent(string $type): bool
+    {
+        if ($type === 'ping') {
+            return true;
+        }
+
+        return in_array($type, $this->raw()['notifier_event_types'], true);
+    }
+
+    /**
+     * Decrypted Telegram bot token, or null when unset/unreadable.
+     */
+    public function notifierTelegramBotToken(): ?string
+    {
+        $stored = $this->settings->get(
+            SettingsRepository::SCOPE_PROJECT,
+            'project',
+            'notifier_telegram_bot_token',
+        );
+
+        if (! is_string($stored) || $stored === '') {
+            return null;
+        }
+
+        try {
+            $plain = Crypt::decryptString($stored);
+
+            return $plain !== '' ? $plain : null;
+        } catch (DecryptException) {
+            return null;
+        }
+    }
+
+    public static function encryptNotifierTelegramBotToken(string $plain): string
+    {
+        return Crypt::encryptString($plain);
+    }
+
+    public function oidcEnabled(): bool
+    {
+        return (bool) $this->raw()['oidc_enabled'];
+    }
+
+    public function oidcIssuer(): ?string
+    {
+        $issuer = $this->raw()['oidc_issuer'];
+
+        return is_string($issuer) && $issuer !== '' ? $issuer : null;
+    }
+
+    public function oidcClientId(): ?string
+    {
+        $id = $this->raw()['oidc_client_id'];
+
+        return is_string($id) && $id !== '' ? $id : null;
+    }
+
+    public function oidcButtonLabel(): ?string
+    {
+        $label = $this->raw()['oidc_button_label'];
+
+        return is_string($label) && trim($label) !== '' ? trim($label) : null;
+    }
+
+    public function oidcJitProvisioning(): bool
+    {
+        return (bool) $this->raw()['oidc_jit_provisioning'];
+    }
+
+    /**
+     * True when OIDC is enabled and credentials are present (login CTA).
+     */
+    public function oidcLoginAvailable(): bool
+    {
+        return $this->oidcEnabled()
+            && $this->oidcIssuer() !== null
+            && $this->oidcClientId() !== null
+            && $this->oidcClientSecret() !== null;
+    }
+
+    /**
+     * Decrypted OIDC client secret, or null when unset/unreadable.
+     */
+    public function oidcClientSecret(): ?string
+    {
+        $stored = $this->settings->get(
+            SettingsRepository::SCOPE_PROJECT,
+            'project',
+            'oidc_client_secret',
+        );
+
+        if (! is_string($stored) || $stored === '') {
+            return null;
+        }
+
+        try {
+            $plain = Crypt::decryptString($stored);
+
+            return $plain !== '' ? $plain : null;
+        } catch (DecryptException) {
+            return null;
+        }
+    }
+
+    public static function encryptOidcClientSecret(string $plain): string
+    {
+        return Crypt::encryptString($plain);
+    }
+
     /**
      * @param  array<string, mixed>  $raw
      * @return array<string, mixed>
@@ -423,6 +558,29 @@ class ProjectSettings
             'webhook_secret' => is_string($raw['webhook_secret'] ?? null) && $raw['webhook_secret'] !== ''
                 ? $raw['webhook_secret']
                 : null,
+            'notifier_slack_webhook_url' => $this->nullableUrl($raw['notifier_slack_webhook_url'] ?? null),
+            'notifier_telegram_bot_token' => is_string($raw['notifier_telegram_bot_token'] ?? null)
+                && $raw['notifier_telegram_bot_token'] !== ''
+                ? $raw['notifier_telegram_bot_token']
+                : null,
+            'notifier_telegram_chat_id' => is_string($raw['notifier_telegram_chat_id'] ?? null)
+                && trim($raw['notifier_telegram_chat_id']) !== ''
+                ? trim($raw['notifier_telegram_chat_id'])
+                : null,
+            'notifier_event_types' => $this->normalizeNotifierEventTypes($raw['notifier_event_types'] ?? null),
+            'oidc_enabled' => (bool) ($raw['oidc_enabled'] ?? false),
+            'oidc_issuer' => $this->nullableUrl($raw['oidc_issuer'] ?? null),
+            'oidc_client_id' => is_string($raw['oidc_client_id'] ?? null) && trim($raw['oidc_client_id']) !== ''
+                ? trim($raw['oidc_client_id'])
+                : null,
+            'oidc_client_secret' => is_string($raw['oidc_client_secret'] ?? null)
+                && $raw['oidc_client_secret'] !== ''
+                ? $raw['oidc_client_secret']
+                : null,
+            'oidc_button_label' => is_string($raw['oidc_button_label'] ?? null) && trim($raw['oidc_button_label']) !== ''
+                ? trim($raw['oidc_button_label'])
+                : null,
+            'oidc_jit_provisioning' => (bool) ($raw['oidc_jit_provisioning'] ?? false),
             'preview_url_default' => $this->nullablePreviewTemplate($raw['preview_url_default'] ?? null),
             'revision_retention_count' => $this->nullablePositiveInt(
                 $raw['revision_retention_count'] ?? null,
@@ -445,6 +603,35 @@ class ProjectSettings
                 UploadSizeLimiter::SETTING_MAX_BYTES,
             ),
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeNotifierEventTypes(mixed $value): array
+    {
+        $allowed = OutboundWebhookCatalog::notifierSelectableTypes();
+
+        if ($value === null) {
+            return $allowed;
+        }
+
+        if (! is_array($value)) {
+            return $allowed;
+        }
+
+        $selected = [];
+        foreach ($value as $type) {
+            if (! is_string($type) || $type === '' || isset($selected[$type])) {
+                continue;
+            }
+            if (! in_array($type, $allowed, true)) {
+                continue;
+            }
+            $selected[$type] = $type;
+        }
+
+        return array_values($selected);
     }
 
     /**

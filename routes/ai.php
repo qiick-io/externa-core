@@ -13,6 +13,7 @@ use App\Http\Controllers\Ai\AiChatController;
 use App\Http\Controllers\Ai\AiConversationController;
 use App\Http\Controllers\Ai\AiPageController;
 use App\Http\Controllers\Ai\AiStatusController;
+use App\Http\Controllers\Ai\AiTranslateFieldsController;
 use App\Http\Controllers\Ai\CollectionImportWebhookController;
 use App\Http\Controllers\Ai\ImportJobStatusController;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +29,9 @@ Route::middleware([
 ])->prefix('ai')->name('ai.')->group(function (): void {
     Route::get('/', [AiPageController::class, 'index'])->name('index');
     Route::get('/status', AiStatusController::class)->name('status');
+    Route::post('/translate-fields', AiTranslateFieldsController::class)
+        ->middleware('throttle:20,1')
+        ->name('translate-fields');
 
     Route::get('/conversations', [AiConversationController::class, 'index'])->name('conversations.index');
     Route::post('/conversations', [AiConversationController::class, 'store'])->name('conversations.store');

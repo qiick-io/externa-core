@@ -3,17 +3,26 @@ import {
     Check,
     CheckCheck,
     ChevronDown,
+    CircleX,
+    ClipboardList,
+    Clock,
     Copy,
+    File,
+    FilePen,
+    Globe,
     History,
     Languages,
+    ListChecks,
     MessageCircle,
     Plus,
     RotateCcw,
     Rows3,
     Save,
     ScrollText,
+    Send,
     Trash2,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
@@ -22,6 +31,8 @@ import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
+import { ItemEditingPresence } from '@/components/collections/item-editing-presence';
+import { DatetimeLocalPicker } from '@/components/collections/item-field-date-input';
 import { ItemLivePreviewButton } from '@/components/collections/item-live-preview-button';
 import type { PreviewRoleOption } from '@/components/collections/item-preview-as-role-dialog';
 import { ItemPreviewAsRoleDialog } from '@/components/collections/item-preview-as-role-dialog';
@@ -37,6 +48,14 @@ import {
 } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -65,6 +84,8 @@ import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useCollection } from '@/hooks/use-collection';
+import { formatUserDisplayName } from '@/hooks/use-initials';
+import { useItemPresence } from '@/hooks/use-item-presence';
 import {
     useRegisterUnsavedChanges,
     useRequestLeave,
@@ -80,6 +101,7 @@ import {
     serializeItemForm,
     writeItemDraft,
 } from '@/lib/item-draft-storage';
+import { isRemoteUpdatedAtStale } from '@/lib/item-presence';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { readReturnParam } from '@/lib/safe-return-url';
@@ -134,6 +156,12 @@ type ItemPayload = {
     draft_data?: Record<string, unknown> | null;
     publish_at?: string | null;
     unpublish_at?: string | null;
+    published_at?: string | null;
+    approval_status?: string | null;
+    rejection_note?: string | null;
+    submitted_by?: number | null;
+    reviewed_by?: number | null;
+    reviewed_at?: string | null;
 };
 
 /**
@@ -196,7 +224,7 @@ export default function ItemsForm({
 }) {
     const { t } = useTranslation();
     const page = usePage();
-    const { can } = useCan();
+    const { can, auth } = useCan();
     const requestLeave = useRequestLeave();
     const activityLogs = activityLogsProp
         ? normalizePaginated(activityLogsProp)
@@ -251,6 +279,11 @@ export default function ItemsForm({
     const [discardDraftOpen, setDiscardDraftOpen] = useState(false);
     const [discardingDraft, setDiscardingDraft] = useState(false);
     const [scheduling, setScheduling] = useState(false);
+    const [submittingReview, setSubmittingReview] = useState(false);
+    const [approving, setApproving] = useState(false);
+    const [rejectOpen, setRejectOpen] = useState(false);
+    const [rejecting, setRejecting] = useState(false);
+    const [rejectNote, setRejectNote] = useState('');
     const [publishAtLocal, setPublishAtLocal] = useState(() =>
         toDatetimeLocalValue(item?.publish_at ?? null),
     );
@@ -258,27 +291,168 @@ export default function ItemsForm({
         toDatetimeLocalValue(item?.unpublish_at ?? null),
     );
     const draftTimer = useRef<number | null>(null);
+    const loadedUpdatedAtRef = useRef<string | null>(item?.updated_at ?? null);
+    const [expectedUpdatedAt, setExpectedUpdatedAt] = useState(
+        item?.updated_at ?? '',
+    );
+    const allowStaleSaveRef = useRef(false);
+    const [staleSaveOpen, setStaleSaveOpen] = useState(false);
 
     const versioningEnabled = Boolean(collection.versioning);
+    const approvalsRequired = Boolean(collection.approvals_required);
+    const approvalStatus = item?.approval_status ?? 'draft';
     const viewingPublished =
         versioningEnabled && contentVersion === 'published';
     const hasServerDraft = Boolean(item?.has_draft);
     // ponytail: treat any set publish_at as Scheduled; due rows clear via scheduler
     const isScheduled = Boolean(item?.publish_at);
+    const draftVersionOption = useMemo((): {
+        label: string;
+        Icon: LucideIcon;
+    } => {
+        if (contentVersion === 'draft' && isScheduled) {
+            return {
+                label: t('collections.itemToolbar.scheduled'),
+                Icon: Clock,
+            };
+        }
+
+        if (approvalsRequired && approvalStatus === 'in_review') {
+            return {
+                label: t('collections.itemToolbar.inReview'),
+                Icon: ClipboardList,
+            };
+        }
+
+        if (approvalsRequired && approvalStatus === 'approved') {
+            return {
+                label: t('collections.itemToolbar.approved'),
+                Icon: CheckCheck,
+            };
+        }
+
+        if (approvalsRequired && approvalStatus === 'rejected') {
+            return {
+                label: t('collections.itemToolbar.rejected'),
+                Icon: CircleX,
+            };
+        }
+
+        if (hasServerDraft) {
+            return {
+                label: t('collections.itemToolbar.draft'),
+                Icon: FilePen,
+            };
+        }
+
+        return {
+            label: t('collections.itemToolbar.draftEmpty'),
+            Icon: File,
+        };
+    }, [
+        approvalStatus,
+        approvalsRequired,
+        contentVersion,
+        hasServerDraft,
+        isScheduled,
+        t,
+    ]);
+    const DraftVersionIcon = draftVersionOption.Icon;
     const showRevisionsEntry = !isNew && item !== null;
     const latestForCompare = publishedData ?? rawData;
     const canCreateItem = can(PermissionEnum.CanCreateCollections);
     const canEditItem = can(PermissionEnum.CanEditCollections);
     const canDeleteItem = can(PermissionEnum.CanDeleteCollections);
+    const canSubmitItem = can(PermissionEnum.CanSubmitCollections);
+    const canApproveItem = can(PermissionEnum.CanApproveCollections);
+    const publishBlockedByApproval =
+        approvalsRequired && approvalStatus !== 'approved';
+    const showDraftVersionActions =
+        !isNew &&
+        item !== null &&
+        versioningEnabled &&
+        contentVersion === 'draft' &&
+        hasServerDraft &&
+        canEditItem;
+    const canApproveNow =
+        showDraftVersionActions &&
+        approvalsRequired &&
+        canApproveItem &&
+        approvalStatus === 'in_review';
+    const canSubmitNow =
+        showDraftVersionActions &&
+        approvalsRequired &&
+        canSubmitItem &&
+        (approvalStatus === 'draft' || approvalStatus === 'rejected');
     // View-only users (e.g. reader) must not see Save / editable controls — BE already 403s.
-    const formReadonly =
+    const baseFormReadonly =
         viewingPublished || (isNew ? !canCreateItem : !canEditItem);
+
+    const presence = useItemPresence({
+        enabled: !isNew && item !== null,
+        collectionId: collection.id,
+        itemId: item?.id ?? 0,
+        viewerId: auth.user?.id ?? 0,
+        viewerName: auth.user
+            ? formatUserDisplayName(auth.user.first_name, auth.user.last_name)
+            : '',
+        loadedUpdatedAt: item?.updated_at ?? null,
+        canClaimLock: !isNew && !baseFormReadonly,
+    });
+
+    const formReadonly = baseFormReadonly || presence.lockedByOther;
+    const remoteStale = isRemoteUpdatedAtStale(
+        expectedUpdatedAt || null,
+        presence.remoteUpdatedAt,
+    );
     const showCreateNew = !collection.is_singleton;
     const showCopy = !isNew && !collection.is_singleton && canCreateItem;
 
     useEffect(() => {
         setChatCount(chatCountProp);
     }, [chatCountProp]);
+
+    useEffect(() => {
+        if (!isDirty) {
+            loadedUpdatedAtRef.current = item?.updated_at ?? null;
+            setExpectedUpdatedAt(item?.updated_at ?? '');
+        }
+    }, [item?.updated_at, isDirty]);
+
+    useEffect(() => {
+        const form = document.getElementById(COLLECTION_ITEM_FORM_ID);
+
+        if (!form) {
+            return;
+        }
+
+        const onSubmit = (event: SubmitEvent) => {
+            if (allowStaleSaveRef.current) {
+                allowStaleSaveRef.current = false;
+
+                return;
+            }
+
+            const stale = isRemoteUpdatedAtStale(
+                loadedUpdatedAtRef.current,
+                presence.remoteUpdatedAt,
+            );
+
+            if (!stale) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            setStaleSaveOpen(true);
+        };
+
+        form.addEventListener('submit', onSubmit, true);
+
+        return () => {
+            form.removeEventListener('submit', onSubmit, true);
+        };
+    }, [presence.remoteUpdatedAt]);
 
     useEffect(() => {
         setPublishAtLocal(toDatetimeLocalValue(item?.publish_at ?? null));
@@ -310,6 +484,50 @@ export default function ItemsForm({
     const submitSave = useCallback((action: ItemSaveAction) => {
         setItemSaveAction(action)?.requestSubmit();
     }, []);
+
+    const hasTranslatableFields = useMemo(
+        () => (collection.fields ?? []).some((field) => field.translatable),
+        [collection.fields],
+    );
+
+    const translationCompleteness = useMemo(() => {
+        if (locales.length < 2 || !hasTranslatableFields) {
+            return null;
+        }
+
+        const translatable = (collection.fields ?? []).filter(
+            (field) => field.translatable,
+        );
+        const scores: Record<string, { filled: number; total: number }> = {};
+
+        for (const code of locales) {
+            scores[code] = { filled: 0, total: translatable.length };
+        }
+
+        for (const field of translatable) {
+            const bag = contentDefaults?.[field.name];
+
+            if (!bag || typeof bag !== 'object' || Array.isArray(bag)) {
+                continue;
+            }
+
+            const map = bag as Record<string, unknown>;
+
+            for (const code of locales) {
+                const value = map[code];
+                const filled =
+                    value !== null &&
+                    value !== undefined &&
+                    !(typeof value === 'string' && value.trim() === '');
+
+                if (filled && scores[code]) {
+                    scores[code].filled += 1;
+                }
+            }
+        }
+
+        return scores;
+    }, [hasTranslatableFields, collection.fields, contentDefaults, locales]);
 
     /**
      * Apply current locale values to all locales (ponytail: DOM manipulation).
@@ -639,6 +857,14 @@ export default function ItemsForm({
                             <Trash2 className="size-4" />
                         </HeaderIconButton>
                     )}
+                    {!isNew && item !== null ? (
+                        <ItemEditingPresence
+                            editors={presence.editors}
+                            lockedByOther={presence.lockedByOther}
+                            lockHolderName={presence.lock?.name ?? null}
+                            onTakeOver={presence.takeOverLock}
+                        />
+                    ) : null}
                     <UnsavedChangesToolbar
                         isDirty={isDirty && !formReadonly}
                         className="flex items-center gap-2"
@@ -738,23 +964,34 @@ export default function ItemsForm({
                     <div className="flex items-center gap-1.5">
                         {!isNew && item !== null && versioningEnabled && (
                             <>
-                                <Badge
-                                    variant={
-                                        contentVersion === 'draft'
-                                            ? 'secondary'
-                                            : 'outline'
-                                    }
-                                    data-test="content-version-badge"
-                                    className="px-2 text-xs"
-                                >
-                                    {contentVersion === 'draft'
-                                        ? isScheduled
-                                            ? 'Scheduled'
-                                            : hasServerDraft
-                                              ? 'Draft'
-                                              : 'Draft (empty)'
-                                        : 'Published'}
-                                </Badge>
+                                {/* Status on published view only — on draft, select label carries it. */}
+                                {approvalsRequired &&
+                                approvalStatus !== 'draft' &&
+                                contentVersion === 'published' ? (
+                                    <Badge
+                                        variant={
+                                            approvalStatus === 'approved'
+                                                ? 'default'
+                                                : approvalStatus === 'rejected'
+                                                  ? 'destructive'
+                                                  : 'secondary'
+                                        }
+                                        data-test="approval-status-badge"
+                                        className="px-2 text-xs"
+                                    >
+                                        {approvalStatus === 'in_review'
+                                            ? t(
+                                                  'collections.itemToolbar.inReview',
+                                              )
+                                            : approvalStatus === 'approved'
+                                              ? t(
+                                                    'collections.itemToolbar.approved',
+                                                )
+                                              : t(
+                                                    'collections.itemToolbar.rejected',
+                                                )}
+                                    </Badge>
+                                ) : null}
                                 <Select
                                     value={contentVersion}
                                     onValueChange={(value) => {
@@ -783,56 +1020,220 @@ export default function ItemsForm({
                                 >
                                     <SelectTrigger
                                         size="sm"
-                                        className="w-auto min-w-0 gap-1 px-2 text-xs"
+                                        className="h-9 w-auto min-w-0 gap-1 px-2.5 text-xs"
                                         data-test="content-version-select"
                                     >
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="published">
-                                            Published
+                                        <SelectItem
+                                            value="published"
+                                            textValue={t(
+                                                'collections.itemToolbar.published',
+                                            )}
+                                        >
+                                            <Globe className="size-4" />
+                                            {t(
+                                                'collections.itemToolbar.published',
+                                            )}
                                         </SelectItem>
-                                        <SelectItem value="draft">
-                                            Draft
-                                            {hasServerDraft ? '' : ' (empty)'}
+                                        <SelectItem
+                                            value="draft"
+                                            textValue={draftVersionOption.label}
+                                        >
+                                            <DraftVersionIcon className="size-4" />
+                                            {draftVersionOption.label}
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </>
                         )}
-                        {!isNew &&
-                            item !== null &&
-                            versioningEnabled &&
-                            contentVersion === 'draft' &&
-                            hasServerDraft &&
-                            canEditItem && (
-                                <>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="secondary"
-                                        className="px-2.5 text-xs"
-                                        disabled={publishing}
-                                        data-test="publish-item"
-                                        onClick={() => setPublishOpen(true)}
-                                    >
-                                        Publish
-                                    </Button>
+                        {showDraftVersionActions && item !== null ? (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
                                     <Button
                                         type="button"
                                         size="sm"
                                         variant="outline"
-                                        className="px-2.5 text-xs"
+                                        className="h-9 gap-1 px-2.5 text-xs"
+                                        data-test="item-version-actions"
+                                    >
+                                        <ListChecks className="size-4" />
+                                        {t('collections.itemToolbar.actions')}
+                                        <ChevronDown className="size-3.5 opacity-80" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    align="end"
+                                    className="min-w-52"
+                                >
+                                    {canApproveNow ? (
+                                        <>
+                                            <DropdownMenuItem
+                                                disabled={approving}
+                                                className="items-start"
+                                                data-test="approve-item"
+                                                onClick={() => {
+                                                    setApproving(true);
+                                                    router.post(
+                                                        ItemController.approve.url(
+                                                            {
+                                                                collection:
+                                                                    collection.id,
+                                                                item: item.id,
+                                                            },
+                                                        ),
+                                                        {},
+                                                        {
+                                                            onFinish: () =>
+                                                                setApproving(
+                                                                    false,
+                                                                ),
+                                                        },
+                                                    );
+                                                }}
+                                            >
+                                                <Check className="mt-0.5" />
+                                                <span className="flex flex-col gap-0.5">
+                                                    <span>
+                                                        {t(
+                                                            'collections.itemToolbar.approve',
+                                                        )}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {t(
+                                                            'collections.itemToolbar.approveDescription',
+                                                        )}
+                                                    </span>
+                                                </span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                className="items-start"
+                                                data-test="reject-item"
+                                                onClick={() => {
+                                                    setRejectNote(
+                                                        item.rejection_note ??
+                                                            '',
+                                                    );
+                                                    setRejectOpen(true);
+                                                }}
+                                            >
+                                                <CircleX className="mt-0.5" />
+                                                <span className="flex flex-col gap-0.5">
+                                                    <span>
+                                                        {t(
+                                                            'collections.itemToolbar.reject',
+                                                        )}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {t(
+                                                            'collections.itemToolbar.rejectDescription',
+                                                        )}
+                                                    </span>
+                                                </span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                        </>
+                                    ) : null}
+                                    {canSubmitNow ? (
+                                        <>
+                                            <DropdownMenuItem
+                                                disabled={submittingReview}
+                                                data-test="submit-for-review"
+                                                onClick={() => {
+                                                    setSubmittingReview(true);
+                                                    router.post(
+                                                        ItemController.submitForReview.url(
+                                                            {
+                                                                collection:
+                                                                    collection.id,
+                                                                item: item.id,
+                                                            },
+                                                        ),
+                                                        {},
+                                                        {
+                                                            onFinish: () =>
+                                                                setSubmittingReview(
+                                                                    false,
+                                                                ),
+                                                        },
+                                                    );
+                                                }}
+                                            >
+                                                <Send />
+                                                {t(
+                                                    'collections.itemToolbar.submitForReview',
+                                                )}
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                        </>
+                                    ) : null}
+                                    <DropdownMenuItem
+                                        disabled={
+                                            publishing ||
+                                            publishBlockedByApproval
+                                        }
+                                        className={
+                                            publishBlockedByApproval
+                                                ? 'items-start'
+                                                : undefined
+                                        }
+                                        title={
+                                            publishBlockedByApproval
+                                                ? t(
+                                                      'collections.itemToolbar.approveBeforePublish',
+                                                  )
+                                                : undefined
+                                        }
+                                        data-test="publish-item"
+                                        onClick={() => {
+                                            if (publishBlockedByApproval) {
+                                                return;
+                                            }
+
+                                            setPublishOpen(true);
+                                        }}
+                                    >
+                                        <Globe
+                                            className={
+                                                publishBlockedByApproval
+                                                    ? 'mt-0.5'
+                                                    : undefined
+                                            }
+                                        />
+                                        {publishBlockedByApproval ? (
+                                            <span className="flex flex-col gap-0.5">
+                                                <span>
+                                                    {t(
+                                                        'collections.itemToolbar.publish',
+                                                    )}
+                                                </span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {t(
+                                                        'collections.itemToolbar.approveBeforePublish',
+                                                    )}
+                                                </span>
+                                            </span>
+                                        ) : (
+                                            t('collections.itemToolbar.publish')
+                                        )}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
                                         disabled={discardingDraft}
+                                        variant="destructive"
                                         data-test="discard-server-draft"
                                         onClick={() =>
                                             setDiscardDraftOpen(true)
                                         }
                                     >
-                                        Discard draft
-                                    </Button>
-                                </>
-                            )}
+                                        <RotateCcw />
+                                        {t(
+                                            'collections.itemToolbar.discardDraft',
+                                        )}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        ) : null}
                         {hasFields && locales.length > 1 && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -841,6 +1242,8 @@ export default function ItemsForm({
                                         variant="outline"
                                         size="default"
                                         className="h-9 min-h-9 gap-1.5 px-2"
+                                        data-test="item-form-locale"
+                                        data-locale={globalLocale}
                                     >
                                         <ContentLocaleFlag
                                             region={
@@ -865,6 +1268,8 @@ export default function ItemsForm({
                                 >
                                     {locales.map((code) => {
                                         const meta = contentLocaleMeta(code);
+                                        const score =
+                                            translationCompleteness?.[code];
 
                                         return (
                                             <DropdownMenuItem
@@ -880,27 +1285,45 @@ export default function ItemsForm({
                                                 <span className="flex-1">
                                                     {meta.name}
                                                 </span>
-                                                <span className="font-mono text-xs text-muted-foreground">
-                                                    {code}
-                                                </span>
+                                                {score ? (
+                                                    <span
+                                                        className="font-mono text-xs text-muted-foreground"
+                                                        data-test="translation-completeness"
+                                                    >
+                                                        {score.filled}/
+                                                        {score.total}
+                                                    </span>
+                                                ) : (
+                                                    <span className="font-mono text-xs text-muted-foreground">
+                                                        {code}
+                                                    </span>
+                                                )}
                                             </DropdownMenuItem>
                                         );
                                     })}
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                        onClick={handleApplyToAll}
-                                        className="gap-2"
-                                    >
-                                        <Copy className="size-3.5" />
-                                        {t('collections.localized.applyAll')}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onClick={handleApplyToEmpty}
-                                        className="gap-2"
-                                    >
-                                        <Copy className="size-3.5" />
-                                        {t('collections.localized.applyEmpty')}
-                                    </DropdownMenuItem>
+                                    {!formReadonly ? (
+                                        <>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                onClick={handleApplyToAll}
+                                                className="gap-2"
+                                            >
+                                                <Copy className="size-3.5" />
+                                                {t(
+                                                    'collections.localized.applyAll',
+                                                )}
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={handleApplyToEmpty}
+                                                className="gap-2"
+                                            >
+                                                <Copy className="size-3.5" />
+                                                {t(
+                                                    'collections.localized.applyEmpty',
+                                                )}
+                                            </DropdownMenuItem>
+                                        </>
+                                    ) : null}
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         )}
@@ -963,6 +1386,26 @@ export default function ItemsForm({
                     </div>
                 )}
 
+                {!isNew && item !== null && remoteStale ? (
+                    <div
+                        className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+                        data-test="item-stale-banner"
+                    >
+                        <span>
+                            {t('collections.itemPresence.staleDescription')}
+                        </span>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            data-test="item-stale-reload"
+                            onClick={() => router.reload()}
+                        >
+                            {t('collections.itemPresence.staleReload')}
+                        </Button>
+                    </div>
+                ) : null}
+
                 {!isNew &&
                     item !== null &&
                     versioningEnabled &&
@@ -971,32 +1414,73 @@ export default function ItemsForm({
                             className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-sidebar-border/70 bg-muted/20 px-3 py-2.5 text-sm dark:border-sidebar-border"
                             data-test="item-schedule-panel"
                         >
+                            {viewingPublished ? (
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-xs text-muted-foreground">
+                                        {t(
+                                            'collections.itemSchedule.publishedAt',
+                                        )}
+                                    </span>
+                                    {item.published_at ? (
+                                        <DatetimeLocalPicker
+                                            value={toDatetimeLocalValue(
+                                                item.published_at,
+                                            )}
+                                            data-test="schedule-published-at"
+                                            disabled
+                                            placeholder={t(
+                                                'collections.itemSchedule.pickDateTime',
+                                            )}
+                                            clearLabel={t(
+                                                'collections.itemSchedule.clearField',
+                                            )}
+                                            onChange={() => {}}
+                                        />
+                                    ) : (
+                                        <span
+                                            className="flex h-9 min-w-[12.5rem] items-center text-sm text-muted-foreground"
+                                            data-test="schedule-already-published"
+                                        >
+                                            {t(
+                                                'collections.itemSchedule.alreadyPublished',
+                                            )}
+                                        </span>
+                                    )}
+                                </div>
+                            ) : (
+                                <label className="flex flex-col gap-1">
+                                    <span className="text-xs text-muted-foreground">
+                                        {t(
+                                            'collections.itemSchedule.publishAt',
+                                        )}
+                                    </span>
+                                    <DatetimeLocalPicker
+                                        value={publishAtLocal}
+                                        data-test="schedule-publish-at"
+                                        placeholder={t(
+                                            'collections.itemSchedule.pickDateTime',
+                                        )}
+                                        clearLabel={t(
+                                            'collections.itemSchedule.clearField',
+                                        )}
+                                        onChange={setPublishAtLocal}
+                                    />
+                                </label>
+                            )}
                             <label className="flex flex-col gap-1">
                                 <span className="text-xs text-muted-foreground">
-                                    Publish at
+                                    {t('collections.itemSchedule.unpublishAt')}
                                 </span>
-                                <input
-                                    type="datetime-local"
-                                    className="h-9 rounded-md border border-input bg-background px-2 text-xs"
-                                    value={publishAtLocal}
-                                    data-test="schedule-publish-at"
-                                    onChange={(event) =>
-                                        setPublishAtLocal(event.target.value)
-                                    }
-                                />
-                            </label>
-                            <label className="flex flex-col gap-1">
-                                <span className="text-xs text-muted-foreground">
-                                    Unpublish at
-                                </span>
-                                <input
-                                    type="datetime-local"
-                                    className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+                                <DatetimeLocalPicker
                                     value={unpublishAtLocal}
                                     data-test="schedule-unpublish-at"
-                                    onChange={(event) =>
-                                        setUnpublishAtLocal(event.target.value)
-                                    }
+                                    placeholder={t(
+                                        'collections.itemSchedule.pickDateTime',
+                                    )}
+                                    clearLabel={t(
+                                        'collections.itemSchedule.clearField',
+                                    )}
+                                    onChange={setUnpublishAtLocal}
                                 />
                             </label>
                             <Button
@@ -1008,30 +1492,37 @@ export default function ItemsForm({
                                 data-test="schedule-save"
                                 onClick={() => {
                                     setScheduling(true);
-                                    router.post(
-                                        `/collections/${collection.id}/items/${item.id}/schedule`,
-                                        {
-                                            publish_at: publishAtLocal
-                                                ? fromDatetimeLocalValue(
-                                                      publishAtLocal,
-                                                  )
-                                                : null,
-                                            unpublish_at: unpublishAtLocal
-                                                ? fromDatetimeLocalValue(
-                                                      unpublishAtLocal,
-                                                  )
-                                                : null,
-                                        },
-                                        {
-                                            onFinish: () =>
-                                                setScheduling(false),
-                                        },
-                                    );
+                                    const scheduleUrl = `/collections/${collection.id}/items/${item.id}/schedule?version=${contentVersion}`;
+                                    const payload = viewingPublished
+                                        ? {
+                                              unpublish_at: unpublishAtLocal
+                                                  ? fromDatetimeLocalValue(
+                                                        unpublishAtLocal,
+                                                    )
+                                                  : null,
+                                          }
+                                        : {
+                                              publish_at: publishAtLocal
+                                                  ? fromDatetimeLocalValue(
+                                                        publishAtLocal,
+                                                    )
+                                                  : null,
+                                              unpublish_at: unpublishAtLocal
+                                                  ? fromDatetimeLocalValue(
+                                                        unpublishAtLocal,
+                                                    )
+                                                  : null,
+                                          };
+                                    router.post(scheduleUrl, payload, {
+                                        onFinish: () => setScheduling(false),
+                                    });
                                 }}
                             >
-                                Save schedule
+                                {t('collections.itemSchedule.save')}
                             </Button>
-                            {(item.publish_at || item.unpublish_at) && (
+                            {(viewingPublished
+                                ? item.unpublish_at
+                                : item.publish_at || item.unpublish_at) && (
                                 <Button
                                     type="button"
                                     size="sm"
@@ -1042,7 +1533,7 @@ export default function ItemsForm({
                                     onClick={() => {
                                         setScheduling(true);
                                         router.post(
-                                            `/collections/${collection.id}/items/${item.id}/schedule`,
+                                            `/collections/${collection.id}/items/${item.id}/schedule?version=${contentVersion}`,
                                             { clear: true },
                                             {
                                                 onFinish: () =>
@@ -1051,7 +1542,7 @@ export default function ItemsForm({
                                         );
                                     }}
                                 >
-                                    Cancel schedule
+                                    {t('collections.itemSchedule.cancel')}
                                 </Button>
                             )}
                         </div>
@@ -1203,14 +1694,32 @@ export default function ItemsForm({
                                                         value={contentVersion}
                                                     />
                                                 ) : null}
+                                                <input
+                                                    type="hidden"
+                                                    name="expected_updated_at"
+                                                    value={expectedUpdatedAt}
+                                                />
                                                 {formReadonly ? (
                                                     <p
                                                         className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
-                                                        data-test="published-readonly-banner"
+                                                        data-test={
+                                                            presence.lockedByOther
+                                                                ? 'item-soft-lock-banner'
+                                                                : 'published-readonly-banner'
+                                                        }
                                                     >
-                                                        Published is read-only.
-                                                        Switch to Draft to edit,
-                                                        then Publish.
+                                                        {presence.lockedByOther
+                                                            ? t(
+                                                                  'collections.itemPresence.lockedBy',
+                                                                  {
+                                                                      name:
+                                                                          presence
+                                                                              .lock
+                                                                              ?.name ??
+                                                                          '…',
+                                                                  },
+                                                              )
+                                                            : 'Published is read-only. Switch to Draft to edit, then Publish.'}
                                                     </p>
                                                 ) : null}
                                                 <DynamicItemFields
@@ -1400,6 +1909,59 @@ export default function ItemsForm({
             </PageLayout>
 
             {!isNew && item !== null && (
+                <Dialog open={staleSaveOpen} onOpenChange={setStaleSaveOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>
+                                {t('collections.itemPresence.staleTitle')}
+                            </DialogTitle>
+                            <DialogDescription>
+                                {t('collections.itemPresence.staleDescription')}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setStaleSaveOpen(false);
+                                    router.reload();
+                                }}
+                            >
+                                {t('collections.itemPresence.staleReload')}
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={() => {
+                                    // Align expected token with remote so server overwrite is intentional.
+                                    if (presence.remoteUpdatedAt) {
+                                        setExpectedUpdatedAt(
+                                            presence.remoteUpdatedAt,
+                                        );
+                                        loadedUpdatedAtRef.current =
+                                            presence.remoteUpdatedAt;
+                                    } else {
+                                        setExpectedUpdatedAt('');
+                                    }
+
+                                    allowStaleSaveRef.current = true;
+                                    setStaleSaveOpen(false);
+                                    queueMicrotask(() => {
+                                        const form = document.getElementById(
+                                            COLLECTION_ITEM_FORM_ID,
+                                        ) as HTMLFormElement | null;
+                                        form?.requestSubmit();
+                                    });
+                                }}
+                            >
+                                {t('collections.itemPresence.staleSave')}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
+
+            {!isNew && item !== null && (
                 <ConfirmDestructiveDialog
                     open={deleteOpen}
                     onOpenChange={setDeleteOpen}
@@ -1416,6 +1978,59 @@ export default function ItemsForm({
                             {
                                 onFinish: () => setDeleting(false),
                                 onError: () => setDeleteOpen(false),
+                            },
+                        );
+                    }}
+                />
+            )}
+
+            {!isNew && item !== null && versioningEnabled && (
+                <ConfirmDestructiveDialog
+                    open={rejectOpen}
+                    onOpenChange={setRejectOpen}
+                    title="Reject draft?"
+                    description={
+                        <div className="grid gap-2 pt-1 text-left">
+                            <p className="text-sm text-muted-foreground">
+                                Explain what the editor should fix before
+                                resubmitting.
+                            </p>
+                            <textarea
+                                className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                                value={rejectNote}
+                                onChange={(event) =>
+                                    setRejectNote(event.target.value)
+                                }
+                                data-test="rejection-note"
+                                placeholder="Rejection note"
+                            />
+                            {item.rejection_note &&
+                            approvalStatus === 'rejected' ? (
+                                <p className="text-xs text-muted-foreground">
+                                    Previous note: {item.rejection_note}
+                                </p>
+                            ) : null}
+                        </div>
+                    }
+                    confirmLabel="Reject"
+                    confirming={rejecting}
+                    onConfirm={() => {
+                        if (rejectNote.trim() === '') {
+                            return;
+                        }
+
+                        setRejecting(true);
+                        router.post(
+                            ItemController.reject.url({
+                                collection: collection.id,
+                                item: item.id,
+                            }),
+                            { rejection_note: rejectNote.trim() },
+                            {
+                                onFinish: () => {
+                                    setRejecting(false);
+                                    setRejectOpen(false);
+                                },
                             },
                         );
                     }}
