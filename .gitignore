@@ -66,3 +66,6 @@ tests/Browser/*.png
 /database/seeders/KitchenSinkSeeder.php
 
 /backups
+
+# Accidental local/Swift build cache (never ship)
+.build/
