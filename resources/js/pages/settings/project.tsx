@@ -8,10 +8,7 @@ import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { ContentLocalesField } from '@/components/settings/content-locales-field';
 import { TransformPresetsField } from '@/components/settings/transform-presets-field';
-import {
-    WebhookDeliveryStatus,
-    WebhookEventCatalog,
-} from '@/components/settings/webhook-deliveries-panel';
+import { WebhookDeliveryStatus } from '@/components/settings/webhook-deliveries-panel';
 import { SettingsFormActions } from '@/components/settings-form-actions';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -1688,8 +1685,6 @@ export default function ProjectSettingsPage({
                                 <WebhookDeliveryStatus
                                     deliveries={webhookDeliveries}
                                 />
-
-                                <WebhookEventCatalog events={webhookEvents} />
                             </div>
 
                             <Separator />
