@@ -6,6 +6,7 @@ use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Services\GitExport\GitExportDispatcher;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
+use Illuminate\Support\Carbon;
 use RuntimeException;
 
 /**
@@ -51,7 +52,7 @@ class CollectionItemPublisher
 
         $item->draft_data = null;
         $item->publish_at = null;
-        $item->published_at = now();
+        $item->published_at = Carbon::now();
         $this->approvals->clearAfterPromote($item);
         $item->save();
 
