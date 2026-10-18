@@ -1,81 +1,81 @@
-# Issue da creare — Review Ottobre 2026
+# Issues to create — October 2026 Review
 
-**Stato creazione GitHub:** BLOCCATO (vedi §0).  
-**Branch report:** `cursor/review-2026-10-c1af`  
+**GitHub creation status:** BLOCKED (see §0).  
+**Report branch:** `cursor/review-2026-10-c1af`  
 **Report:** [`docs/review/2026-10-review.md`](./2026-10-review.md)
 
 ---
 
-## 0. Fallimenti di scrittura (errori esatti)
+## 0. Write failures (exact errors)
 
-| Operazione | Tool / comando | Errore | Permesso mancante |
+| Operation | Tool / command | Error | Missing permission |
 |------------|----------------|--------|-------------------|
-| Draft PR | `ManagePullRequest` | `Validation Failed: {"resource":"Issue","code":"custom","message":"must be a collaborator"}` | Collaboratore / Pull requests: write |
+| Draft PR | `ManagePullRequest` | `Validation Failed: {"resource":"Issue","code":"custom","message":"must be a collaborator"}` | Collaborator / Pull requests: write |
 | Draft PR | `gh pr create` | `GraphQL: Resource not accessible by integration (createPullRequest)` HTTP 403 | GitHub App: Pull requests write |
 | Issue | `gh issue create` | `GraphQL: Resource not accessible by integration (createIssue)` HTTP 403 | GitHub App: Issues write |
 | Label | `gh label create` | `HTTP 403: Resource not accessible by integration` | GitHub App: Issues write (labels) |
-| Repo ACL | `gh api .../collaborators/cursor/permission` | `permission: none`, `push/triage/pull: false` | Installazione App / collaborator Write |
+| Repo ACL | `gh api .../collaborators/cursor/permission` | `permission: none`, `push/triage/pull: false` | App installation / collaborator Write |
 
-**Nota:** le issue esistenti (#112–#125, #180–#181) sono state create dall’utente umano `LucaGiardi20`, non dal token di questo agent. Push del branch funziona; create PR/issue/label no.
+**Note:** the existing issues (#112–#125, #180–#181) were created by the human user `LucaGiardi20`, not by this agent's token. Pushing the branch works; creating PRs/issues/labels does not.
 
-**Projects:** nessun GitHub Project (Projects V2) trovato su `qiick-io`.
+**Projects:** no GitHub Project (Projects V2) found on `qiick-io`.
 
-**Retry dopo grant:** chiedere all’agent di rieseguire creazione PR + issue da questo file.
+**Retry after grant:** ask the agent to re-run PR + issue creation from this file.
 
 ---
 
-## 1. Razionale distribuzione milestone
+## 1. Milestone distribution rationale
 
-### Milestone esistenti
+### Existing milestones
 
-| Milestone | Scopo (da GitHub) | Cosa ci va da questa review |
+| Milestone | Purpose (from GitHub) | What goes there from this review |
 |-----------|-------------------|-----------------------------|
-| **1.2.0** | Product figate editoriali (kanban, approvals, …) | **Niente di nuovo** — #47 Kanban/Calendar già `COMPLETED` |
-| **1.3.0** | Platform hardening: rate limits, AuthZ suite, API key scopes, upload security, N+1 | **Solo hardening già in issue esistenti** + al massimo 1–2 micro-fix security critici non coperti |
-| **1.4.0** | Operator scale: workspaces, MCP, field ACL, transforms, deep filters, bulk API | Perf file library, security headers (defense-in-depth), storage adapters |
-| **1.5.0** *(da creare)* | AI & media intelligence (post–laravel/ai 1.1) | Classificazione file, moderation gate, feature AI prodotto |
+| **1.2.0** | Editorial product features (kanban, approvals, …) | **Nothing new** — #47 Kanban/Calendar already `COMPLETED` |
+| **1.3.0** | Platform hardening: rate limits, AuthZ suite, API key scopes, upload security, N+1 | **Only hardening already in existing issues** + at most 1–2 critical security micro-fixes not yet covered |
+| **1.4.0** | Operator scale: workspaces, MCP, field ACL, transforms, deep filters, bulk API | File library perf, security headers (defense-in-depth), storage adapters |
+| **1.5.0** *(to create)* | AI & media intelligence (post–laravel/ai 1.1) | File classification, moderation gate, AI product features |
 
-### Principio
+### Principle
 
-> **In 1.3.0 solo fix di sicurezza/hardening critici.** Feature AI, parity Directus non-security, tech-debt di scala → 1.4.0 o 1.5.0.
+> **1.3.0 gets only critical security/hardening fixes.** AI features, non-security Directus parity, scale tech-debt → 1.4.0 or 1.5.0.
 
-### Deduplicazione vs issue esistenti
+### Deduplication vs existing issues
 
-| Proposta report | Decisione | Motivo |
+| Report proposal | Decision | Reason |
 |-----------------|-----------|--------|
-| NEW-1 cost-based rate limit | **NON creare** | Coperta da **#113** |
-| NEW-2 MIME allowlist + magic bytes | **NON creare** | Coperta da **#118** (ampliare #118 in commento se serve magic bytes) |
-| NEW-3 GraphQL depth/complexity | **NON creare** | Coperta da **#113** (“include-depth caps”) |
-| NEW-4 `effective_access` denormalize | **Creare → 1.4.0** | Scala operatori, non hardening critico 1.3.0; correlata a #117 ma distinta |
-| NEW-5 security headers | **Creare → 1.4.0** | Defense-in-depth, priorità bassa; non blocca 1.3.0 |
-| NEW-6 AI file classification | **Creare → 1.5.0** | Dipende da #180; feature prodotto AI, non hardening |
-| NEW-7 AI moderation publish | **Creare → 1.5.0** | Feature AI; dopo #180 |
-| NEW-8 Kanban/Calendar | **NON creare** | Duplicato di **#47** (CLOSED/COMPLETED, milestone 1.2.0) |
-| NEW-9 GCS / Azure Blob | **Creare → 1.4.0** | Operator scale / storage; S3 già c’è |
-| NEW-10 Streaming SHA-256 upload | **Creare → 1.4.0** | Tech-debt memoria (`FileService` ponytail) |
-| NEW-11 CI `composer audit` + `npm audit` | **Creare → 1.3.0** | Hardening pipeline; unico nuovo item security per 1.3.0 non già in #112–#118 |
-| NEW-12 Webhook HMAC `hash_equals` audit | **Creare → 1.3.0** | Micro-fix security critico (timing-safe compare) |
+| NEW-1 cost-based rate limit | **DO NOT create** | Covered by **#113** |
+| NEW-2 MIME allowlist + magic bytes | **DO NOT create** | Covered by **#118** (extend #118 in a comment if magic bytes are needed) |
+| NEW-3 GraphQL depth/complexity | **DO NOT create** | Covered by **#113** (“include-depth caps”) |
+| NEW-4 `effective_access` denormalize | **Create → 1.4.0** | Operator scale, not critical 1.3.0 hardening; related to #117 but distinct |
+| NEW-5 security headers | **Create → 1.4.0** | Defense-in-depth, low priority; does not block 1.3.0 |
+| NEW-6 AI file classification | **Create → 1.5.0** | Depends on #180; AI product feature, not hardening |
+| NEW-7 AI moderation publish | **Create → 1.5.0** | AI feature; after #180 |
+| NEW-8 Kanban/Calendar | **DO NOT create** | Duplicate of **#47** (CLOSED/COMPLETED, milestone 1.2.0) |
+| NEW-9 GCS / Azure Blob | **Create → 1.4.0** | Operator scale / storage; S3 already exists |
+| NEW-10 Streaming SHA-256 upload | **Create → 1.4.0** | Memory tech-debt (`FileService` ponytail) |
+| NEW-11 CI `composer audit` + `npm audit` | **Create → 1.3.0** | Pipeline hardening; the only new security item for 1.3.0 not already in #112–#118 |
+| NEW-12 Webhook HMAC `hash_equals` audit | **Create → 1.3.0** | Critical security micro-fix (timing-safe compare) |
 
-### Mappa finale (da creare)
+### Final map (to create)
 
 ```
-1.3.0  →  NEW-11 (audit CI), NEW-12 (HMAC hash_equals)
+1.3.0  →  NEW-11 (CI audit), NEW-12 (HMAC hash_equals)
 1.4.0  →  NEW-4 (effective_access), NEW-5 (security headers), NEW-9 (GCS/Azure), NEW-10 (streaming hash)
-1.5.0  →  NEW-6 (AI classify), NEW-7 (AI moderate)   [creare milestone 1.5.0]
+1.5.0  →  NEW-6 (AI classify), NEW-7 (AI moderate)   [create milestone 1.5.0]
 SKIP   →  NEW-1, NEW-2, NEW-3, NEW-8
 ```
 
-**Nessun dump di tutto in 1.3.0.** Feature AI in 1.5.0 perché 1.4.0 è già pieno di operator-scale e AI non è “platform hardening”.
+**No dumping everything into 1.3.0.** AI features go to 1.5.0 because 1.4.0 is already full of operator-scale work and AI is not “platform hardening”.
 
 ---
 
-## 2. Label da creare (se mancanti)
+## 2. Labels to create (if missing)
 
-Esistenti: `bug`, `documentation`, `duplicate`, `enhancement`, `good first issue`, `help wanted`, `invalid`, `question`, `wontfix`, `UI`, `area:dx`.
+Existing: `bug`, `documentation`, `duplicate`, `enhancement`, `good first issue`, `help wanted`, `invalid`, `question`, `wontfix`, `UI`, `area:dx`.
 
-**Da creare:**
+**To create:**
 
-| Label | Colore | Uso |
+| Label | Color | Use |
 |-------|--------|-----|
 | `type:security` | `#B60205` | Security / AuthZ / upload |
 | `type:performance` | `#FBCA04` | Perf / N+1 / memory |
@@ -84,74 +84,74 @@ Esistenti: `bug`, `documentation`, `duplicate`, `enhancement`, `good first issue
 | `area:api` | `#1D76DB` | Public API / GraphQL |
 | `area:files` | `#0E8A16` | File manager / storage |
 | `area:authz` | `#D93F0B` | Permissions / RBAC |
-| `priority:P0` | `#B60205` | Critico |
-| `priority:P1` | `#D93F0B` | Alto |
-| `priority:P2` | `#FBCA04` | Medio |
-| `priority:P3` | `#C2E0C6` | Basso |
-| `severity:critical` | `#B60205` | Solo security |
+| `priority:P0` | `#B60205` | Critical |
+| `priority:P1` | `#D93F0B` | High |
+| `priority:P2` | `#FBCA04` | Medium |
+| `priority:P3` | `#C2E0C6` | Low |
+| `severity:critical` | `#B60205` | Security only |
 | `severity:high` | `#D93F0B` | |
 | `severity:medium` | `#FBCA04` | |
 | `severity:low` | `#C2E0C6` | |
-| `effort:S` | `#EDEDED` | ≤1 giorno |
-| `effort:M` | `#BFD4F2` | 2–3 giorni |
-| `effort:L` | `#D4C5F9` | 4–5+ giorni |
+| `effort:S` | `#EDEDED` | ≤1 day |
+| `effort:M` | `#BFD4F2` | 2–3 days |
+| `effort:L` | `#D4C5F9` | 4–5+ days |
 
 ---
 
-## 3. Spec issue (agent-ready, italiano)
+## 3. Issue specs (agent-ready, English)
 
-> Quando l’accesso write è disponibile, creare nell’ordine sotto. Ogni body è autosufficiente per un coding agent.
+> Once write access is available, create them in the order below. Each body is self-contained for a coding agent.
 
 ---
 
 ### ISSUE A — NEW-11 · Milestone **1.3.0** · effort:S · priority:P1 · severity:high
 
-**Title:** `ci(security): workflow settimanale composer audit + npm audit`
+**Title:** `ci(security): weekly composer audit + npm audit workflow`
 
 **Labels:** `type:chore`, `type:security`, `area:dx`, `priority:P1`, `severity:high`, `effort:S`, `enhancement`
 
 **Body:**
 
 ```markdown
-## Contesto
+## Context
 
-La review di ottobre 2026 (`docs/review/2026-10-review.md` §1.5) evidenzia che non c’è un job CI periodico per vulnerabilità dipendenze PHP/JS. La milestone **1.3.0** è “platform hardening”: questo è l’unico nuovo issue security di hardening pipeline non già coperto da #112–#118.
+The October 2026 review (`docs/review/2026-10-review.md` §1.5) highlights that there is no periodic CI job for PHP/JS dependency vulnerabilities. Milestone **1.3.0** is “platform hardening”: this is the only new pipeline-hardening security issue not already covered by #112–#118.
 
-## Obiettivo
+## Goal
 
-Aggiungere un workflow GitHub Actions che esegue `composer audit` e `npm audit --audit-level=moderate` su schedule settimanale + su push verso `main`/`develop`, e fallisce la CI se ci sono advisory sopra la soglia.
+Add a GitHub Actions workflow that runs `composer audit` and `npm audit --audit-level=moderate` on a weekly schedule + on pushes to `main`/`develop`, and fails CI if there are advisories above the threshold.
 
-## Riferimenti file
+## File references
 
-- Nuovo: `.github/workflows/security-audit.yml`
-- Esistenti: `composer.json`, `package.json`, eventuali workflow in `.github/workflows/`
+- New: `.github/workflows/security-audit.yml`
+- Existing: `composer.json`, `package.json`, any workflows in `.github/workflows/`
 
-## Passi di implementazione
+## Implementation steps
 
-1. Creare `.github/workflows/security-audit.yml` con:
-   - `on.schedule` (es. lunedì 00:00 UTC) e `on.push` su branch principali + `workflow_dispatch`
-   - Job Node 24 + PHP 8.4 (allineato a `.nvmrc` / `composer.json`)
+1. Create `.github/workflows/security-audit.yml` with:
+   - `on.schedule` (e.g. Monday 00:00 UTC) and `on.push` on the main branches + `workflow_dispatch`
+   - Node 24 + PHP 8.4 job (aligned with `.nvmrc` / `composer.json`)
    - Step: `composer install --no-interaction` → `composer audit`
    - Step: `npm ci` → `npm audit --audit-level=moderate`
-2. Documentare in `SECURITY.md` o docs ops come interpretare i failure.
-3. Se `composer audit` non è disponibile nella versione Composer del progetto, usare il comando equivalente documentato e fallire esplicitamente.
+2. Document in `SECURITY.md` or the ops docs how to interpret failures.
+3. If `composer audit` is not available in the project's Composer version, use the documented equivalent command and fail explicitly.
 
-## Criteri di accettazione
+## Acceptance criteria
 
-- [ ] Workflow presente e eseguibile con `workflow_dispatch`
-- [ ] Fallisce su advisory moderate+ (npm) / known vuln (composer)
-- [ ] Nessun secret hardcoded
-- [ ] Documentato dove leggere i risultati
+- [ ] Workflow present and runnable via `workflow_dispatch`
+- [ ] Fails on moderate+ advisories (npm) / known vulnerabilities (composer)
+- [ ] No hardcoded secrets
+- [ ] Documented where to read the results
 
-## Note di test
+## Testing notes
 
-- Eseguire `act` o `workflow_dispatch` su branch di prova.
-- Verificare che un advisory fittizio (se possibile in fork) falga il job.
+- Run `act` or `workflow_dispatch` on a test branch.
+- Verify that a fake advisory (if possible in a fork) fails the job.
 
-## Fuori scope
+## Out of scope
 
-- Auto-PR di bump dipendenze (Dependabot/Renovate).
-- Fix delle vulnerabilità trovate (issue separate).
+- Auto-PRs for dependency bumps (Dependabot/Renovate).
+- Fixing the vulnerabilities found (separate issues).
 
 ## Related
 
@@ -163,120 +163,120 @@ Aggiungere un workflow GitHub Actions che esegue `composer audit` e `npm audit -
 
 ### ISSUE B — NEW-12 · Milestone **1.3.0** · effort:S · priority:P0 · severity:critical
 
-**Title:** `security(ai): verificare HMAC webhook collection-import con hash_equals`
+**Title:** `security(ai): verify collection-import webhook HMAC with hash_equals`
 
 **Labels:** `type:security`, `area:api`, `priority:P0`, `severity:critical`, `effort:S`, `bug`
 
 **Body:**
 
 ```markdown
-## Contesto
+## Context
 
-Review ott 2026 §1.2.2: il webhook `POST /ai/webhooks/collection-import` usa `AI_WEBHOOK_TOKEN` / header `X-AI-Webhook-Signature`. Va garantito che il confronto della firma sia **timing-safe** (`hash_equals`), altrimenti rischio di leak timing su secret HMAC.
+Oct 2026 review §1.2.2: the `POST /ai/webhooks/collection-import` webhook uses `AI_WEBHOOK_TOKEN` / the `X-AI-Webhook-Signature` header. The signature comparison must be **timing-safe** (`hash_equals`), otherwise there is a risk of a timing leak of the HMAC secret.
 
-## Obiettivo
+## Goal
 
-Audit + fix (se necessario) della validazione firma in `CollectionImportWebhookRequest` (o middleware/controller correlato): HMAC SHA-256 sul raw body, confronto con `hash_equals`, 401 su mismatch, test feature.
+Audit + fix (if needed) the signature validation in `CollectionImportWebhookRequest` (or the related middleware/controller): HMAC SHA-256 over the raw body, comparison with `hash_equals`, 401 on mismatch, feature test.
 
-## Riferimenti file
+## File references
 
 - `app/Http/Requests/Ai/CollectionImportWebhookRequest.php`
 - `app/Http/Controllers/Ai/CollectionImportWebhookController.php`
 - `routes/ai.php`
 - `.env.example` (`AI_WEBHOOK_TOKEN`)
-- Test: `tests/Feature/Ai/*` (creare se assente)
+- Tests: `tests/Feature/Ai/*` (create if missing)
 
-## Passi di implementazione
+## Implementation steps
 
-1. Leggere l’implementazione attuale della verifica firma.
-2. Se usa `===` / `strcmp` / confronto stringa non costante → sostituire con `hash_equals($expected, $provided)`.
-3. Calcolare `$expected = hash_hmac('sha256', $request->getContent(), $token)`.
-4. Token vuoto in prod → fail closed (503/401), non accettare unsigned.
-5. Aggiungere feature test: firma valida → 2xx; firma invalida → 401; body alterato → 401.
+1. Read the current signature verification implementation.
+2. If it uses `===` / `strcmp` / a non-constant-time string comparison → replace with `hash_equals($expected, $provided)`.
+3. Compute `$expected = hash_hmac('sha256', $request->getContent(), $token)`.
+4. Empty token in production → fail closed (503/401), do not accept unsigned requests.
+5. Add feature tests: valid signature → 2xx; invalid signature → 401; tampered body → 401.
 
-## Criteri di accettazione
+## Acceptance criteria
 
-- [ ] Confronto firma solo via `hash_equals`
-- [ ] Nessuna accettazione di webhook senza token configurato (in ambiente non-local se applicabile)
-- [ ] Test Pest verdi per happy path + 2 failure modes
-- [ ] Nessun log del secret in chiaro
+- [ ] Signature comparison only via `hash_equals`
+- [ ] No webhook accepted without a configured token (in non-local environments if applicable)
+- [ ] Green Pest tests for happy path + 2 failure modes
+- [ ] The secret is never logged in clear text
 
-## Note di test
+## Testing notes
 
 ```bash
 php artisan test --compact --filter=CollectionImportWebhook
 ```
 
-## Fuori scope
+## Out of scope
 
-- Rotazione automatica token (`ai:rotate-webhook-token`) — issue separata se serve.
-- Auth diversa da HMAC (mTLS, OAuth).
+- Automatic token rotation (`ai:rotate-webhook-token`) — separate issue if needed.
+- Auth other than HMAC (mTLS, OAuth).
 
 ## Related
 
 - Report §1.2.2
-- Milestone **1.3.0** (unico micro-fix security critico oltre alle issue già aperte #113/#118)
+- Milestone **1.3.0** (the only critical security micro-fix besides the already open issues #113/#118)
 ```
 
 ---
 
 ### ISSUE C — NEW-4 · Milestone **1.4.0** · effort:M · priority:P1 · severity:medium
 
-**Title:** `perf(files): denormalizzare effective_access sulla tabella files`
+**Title:** `perf(files): denormalize effective_access on the files table`
 
 **Labels:** `type:performance`, `area:files`, `area:authz`, `priority:P1`, `severity:medium`, `effort:M`, `enhancement`
 
 **Body:**
 
 ```markdown
-## Contesto
+## Context
 
-`FilePermissionGuard::effectivelyPrivateIds()` carica `id/parent_id/access` di **tutti** i file in memoria e risolve l’ereditarietà parent→child (commento *ponytail* in `app/Services/Api/FilePermissionGuard.php` ~L70–115). Su librerie grandi → rischio OOM e list lente. Non è hardening critico 1.3.0: è **operator scale** → milestone **1.4.0**.
+`FilePermissionGuard::effectivelyPrivateIds()` loads `id/parent_id/access` of **all** files into memory and resolves parent→child inheritance (*ponytail* comment in `app/Services/Api/FilePermissionGuard.php` ~L70–115). On large libraries → OOM risk and slow listings. This is not critical 1.3.0 hardening: it is **operator scale** → milestone **1.4.0**.
 
-## Obiettivo
+## Goal
 
-Introdurre colonna denormalizzata `effective_access` (indicizzata), mantenuta da observer/service su create/move/update `access`/`parent_id`, e usarla in `constrainReadable` / listing al posto del full-tree scan.
+Introduce a denormalized (indexed) `effective_access` column, maintained by an observer/service on create/move/update of `access`/`parent_id`, and use it in `constrainReadable` / listings instead of the full-tree scan.
 
-## Riferimenti file
+## File references
 
-- `app/Services/Api/FilePermissionGuard.php` (L70–115 e `constrainReadable`)
+- `app/Services/Api/FilePermissionGuard.php` (L70–115 and `constrainReadable`)
 - `app/Models/File.php`
 - `app/Enums/FileAccess.php`
 - `app/Services/FileService.php` (`move`, `createFolder`, update access)
-- Migrazioni `database/migrations/*files*`
-- Test: `tests/Feature/Api/PublicFilesApiTest.php`, `tests/Feature/Files/*`
+- Migrations `database/migrations/*files*`
+- Tests: `tests/Feature/Api/PublicFilesApiTest.php`, `tests/Feature/Files/*`
 
-## Passi di implementazione
+## Implementation steps
 
-1. Migration: `files.effective_access` string nullable + index; backfill artisan command che cammina l’albero una volta.
-2. Observer o hook in `FileService` su save/move: ricalcola nodo + discendenti se cambia access/parent.
-3. `FilePermissionGuard::effectivelyPrivateIds()` → query `where('effective_access', private)` (o eliminare il metodo in favore di where diretto).
-4. Invalidare cache grants se necessario (`forget`).
-5. Feature test: file private per inheritance; move under private parent aggiorna effective; list API esclude correttamente.
+1. Migration: nullable string `files.effective_access` + index; artisan backfill command that walks the tree once.
+2. Observer or hook in `FileService` on save/move: recompute the node + descendants if access/parent changes.
+3. `FilePermissionGuard::effectivelyPrivateIds()` → query `where('effective_access', private)` (or remove the method in favor of a direct where).
+4. Invalidate the grants cache if needed (`forget`).
+5. Feature tests: file private by inheritance; moving under a private parent updates effective access; list API excludes correctly.
 
-## Criteri di accettazione
+## Acceptance criteria
 
-- [ ] Nessun full-table load in hot path list
-- [ ] Backfill command idempotente
-- [ ] Comportamento AuthZ invariato vs suite esistente (+ nuovi test)
-- [ ] Documentato il significato di `effective_access` vs `access`
+- [ ] No full-table load in the list hot path
+- [ ] Idempotent backfill command
+- [ ] AuthZ behavior unchanged vs the existing suite (+ new tests)
+- [ ] The meaning of `effective_access` vs `access` documented
 
-## Note di test
+## Testing notes
 
 ```bash
 php artisan test --compact tests/Feature/Api/PublicFilesApiTest.php
 php artisan test --compact --filter=FilePermission
 ```
 
-## Fuori scope
+## Out of scope
 
 - Field-level ACL (#122)
 - Workspaces (#120)
 
 ## Related
 
-- #117 (list query audit) — correlato ma non sostitutivo
-- #114 (AuthZ regression) — aggiornare suite dopo il change
+- #117 (list query audit) — related but not a replacement
+- #114 (AuthZ regression) — update the suite after the change
 - Report §2.1.1
 ```
 
@@ -284,43 +284,43 @@ php artisan test --compact --filter=FilePermission
 
 ### ISSUE D — NEW-5 · Milestone **1.4.0** · effort:S · priority:P3 · severity:low
 
-**Title:** `security: middleware SetSecurityHeaders (CSP, X-Frame-Options, Referrer-Policy)`
+**Title:** `security: SetSecurityHeaders middleware (CSP, X-Frame-Options, Referrer-Policy)`
 
 **Labels:** `type:security`, `priority:P3`, `severity:low`, `effort:S`, `enhancement`
 
 **Body:**
 
 ```markdown
-## Contesto
+## Context
 
-Review §1.7.1: mancano header di difesa (CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy) sul pannello admin. Non è bloccante per 1.3.0 → **1.4.0**.
+Review §1.7.1: defense headers (CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy) are missing on the admin panel. Not blocking for 1.3.0 → **1.4.0**.
 
-## Obiettivo
+## Goal
 
-Middleware `SetSecurityHeaders` registrato sul gruppo web (Inertia), con CSP pragmatica (Vite/Inertia), senza rompere Echo/Reverb o asset CDN.
+`SetSecurityHeaders` middleware registered on the web (Inertia) group, with a pragmatic CSP (Vite/Inertia), without breaking Echo/Reverb or CDN assets.
 
-## Riferimenti file
+## File references
 
-- Nuovo: `app/Http/Middleware/SetSecurityHeaders.php`
-- `bootstrap/app.php` (registrazione middleware)
-- Eventuale `config/security.php`
+- New: `app/Http/Middleware/SetSecurityHeaders.php`
+- `bootstrap/app.php` (middleware registration)
+- Optional `config/security.php`
 
-## Passi
+## Steps
 
-1. Implementare middleware con header: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` (o SAMEORIGIN se serve embed), `Referrer-Policy`, `Permissions-Policy` restrittiva.
-2. CSP baseline per admin; non applicare CSP aggressiva a `/api/*` se rompe client terzi.
-3. Feature/browser smoke: login + dashboard caricano; nessun blocco script Vite in local.
-4. Documentare override env se necessario.
+1. Implement the middleware with headers: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` (or SAMEORIGIN if embedding is needed), `Referrer-Policy`, restrictive `Permissions-Policy`.
+2. Baseline CSP for the admin; do not apply an aggressive CSP to `/api/*` if it breaks third-party clients.
+3. Feature/browser smoke test: login + dashboard load; no Vite script blocking locally.
+4. Document env overrides if needed.
 
-## Criteri di accettazione
+## Acceptance criteria
 
-- [ ] Header presenti sulle risposte HTML admin
-- [ ] API pubblica non rotta
-- [ ] Test o asserzione HTTP sui header principali
+- [ ] Headers present on admin HTML responses
+- [ ] Public API not broken
+- [ ] Test or HTTP assertion on the main headers
 
-## Fuori scope
+## Out of scope
 
-- HSTS (va sul reverse proxy)
+- HSTS (belongs on the reverse proxy)
 - CSP report-uri pipeline
 
 ## Related
@@ -332,101 +332,101 @@ Middleware `SetSecurityHeaders` registrato sul gruppo web (Inertia), con CSP pra
 
 ### ISSUE E — NEW-9 · Milestone **1.4.0** · effort:M · priority:P3 · severity:low
 
-**Title:** `feat(files): adapter storage Google Cloud Storage e Azure Blob`
+**Title:** `feat(files): Google Cloud Storage and Azure Blob storage adapters`
 
 **Labels:** `area:files`, `enhancement`, `priority:P3`, `severity:low`, `effort:M`
 
 **Body:**
 
 ```markdown
-## Contesto
+## Context
 
-Parity Directus (review §4 / NEW-9): oggi `FILES_DISK` supporta local `assets` e S3-compatible. Operatori enterprise chiedono GCS/Azure nativi senza gateway S3.
+Directus parity (review §4 / NEW-9): today `FILES_DISK` supports local `assets` and S3-compatible storage. Enterprise operators ask for native GCS/Azure without an S3 gateway.
 
-## Obiettivo
+## Goal
 
-Aggiungere dischi Flysystem per GCS e Azure Blob, documentati in `.env.example` + docs, con test di smoke (mock o container opzionale).
+Add Flysystem disks for GCS and Azure Blob, documented in `.env.example` + docs, with smoke tests (mock or optional container).
 
-## Riferimenti
+## References
 
 - `config/filesystems.php`
 - `app/Support/Files/FilesDisk.php`
 - `.env.example` / `.env.docker*.example`
-- `league/flysystem-aws-s3-v3` già presente — aggiungere adapter ufficiali **solo dopo approval dipendenze**
+- `league/flysystem-aws-s3-v3` already present — add the official adapters **only after dependency approval**
 
-## Passi
+## Steps
 
-1. Chiedere/ottenere OK per nuove dipendenze Composer (`flysystem-google-cloud-storage` / Azure).
-2. Config dischi + env keys.
-3. Verificare upload/move/transform path usano `FilesDisk` astratto.
-4. Docs installazione.
-5. Test unit su risoluzione disco + feature skippata senza credenziali.
+1. Request/obtain approval for new Composer dependencies (`flysystem-google-cloud-storage` / Azure).
+2. Disk config + env keys.
+3. Verify that upload/move/transform paths use the abstract `FilesDisk`.
+4. Installation docs.
+5. Unit tests on disk resolution + feature tests skipped without credentials.
 
-## Criteri di accettazione
+## Acceptance criteria
 
-- [ ] `FILES_DISK=gcs|azure` funziona in config
-- [ ] Docs complete
-- [ ] Nessuna regressione su `assets`/`s3`
+- [ ] `FILES_DISK=gcs|azure` works in config
+- [ ] Complete docs
+- [ ] No regressions on `assets`/`s3`
 
-## Fuori scope
+## Out of scope
 
-- Migrazione automatica tra dischi
+- Automatic migration between disks
 - CDN purge
 
 ## Related
 
-- #123 asset transforms (stesso area files, milestone 1.4.0)
+- #123 asset transforms (same files area, milestone 1.4.0)
 ```
 
 ---
 
 ### ISSUE F — NEW-10 · Milestone **1.4.0** · effort:S · priority:P2 · severity:medium
 
-**Title:** `perf(files): hashing SHA-256 in streaming su upload (no load intero in RAM)`
+**Title:** `perf(files): streaming SHA-256 hashing on upload (no full load into RAM)`
 
 **Labels:** `type:performance`, `area:files`, `priority:P2`, `severity:medium`, `effort:S`, `enhancement`
 
 **Body:**
 
 ```markdown
-## Contesto
+## Context
 
-`FileService::uploadFile` fa `$uploadedFile->getContent()` per meta + hash (ponytail ~L82–85): file grandi → picco memoria. Scala operatori → **1.4.0**.
+`FileService::uploadFile` calls `$uploadedFile->getContent()` for meta + hash (ponytail ~L82–85): large files → memory spikes. Operator scale → **1.4.0**.
 
-## Obiettivo
+## Goal
 
-Calcolare SHA-256 (e, se possibile, meta immagine) in streaming / path file, senza caricare l’intero blob in stringa PHP.
+Compute SHA-256 (and, if possible, image meta) via streaming / file path, without loading the whole blob into a PHP string.
 
-## Riferimenti
+## References
 
 - `app/Services/FileService.php` (`uploadFile`, `extractImageMeta`)
-- `app/Services/FileChunkUploadService.php` (allineare finalize)
-- Test: `tests/Feature/Files/FileChunkUploadServiceTest.php`, `tests/Feature/Admin/FileManagerTest.php`
+- `app/Services/FileChunkUploadService.php` (align finalize)
+- Tests: `tests/Feature/Files/FileChunkUploadServiceTest.php`, `tests/Feature/Admin/FileManagerTest.php`
 
-## Passi
+## Steps
 
-1. `hash_init` / `hash_update_stream` / `hash_final` su real path.
-2. Evitare doppio read dove possibile.
-3. Test con fixture > pochi MB (o mock) che verifica hash stabile.
-4. Commentare/rimuovere ponytail obsoleto.
+1. `hash_init` / `hash_update_stream` / `hash_final` on the real path.
+2. Avoid double reads where possible.
+3. Test with a fixture > a few MB (or a mock) verifying a stable hash.
+4. Comment/remove the obsolete ponytail.
 
-## Criteri di accettazione
+## Acceptance criteria
 
-- [ ] Hash identico al metodo precedente su fixture
-- [ ] Nessun `getContent()` sull’upload path principale
-- [ ] Test verdi
+- [ ] Hash identical to the previous method on the fixture
+- [ ] No `getContent()` on the main upload path
+- [ ] Green tests
 
-## Fuori scope
+## Out of scope
 
-- Dedup cross-disk
-- Virus scan
+- Cross-disk dedup
+- Virus scanning
 ```
 
 ---
 
-### ISSUE G — NEW-6 · Milestone **1.5.0** *(creare)* · effort:L · priority:P2 · severity:low
+### ISSUE G — NEW-6 · Milestone **1.5.0** *(to create)* · effort:L · priority:P2 · severity:low
 
-**Title:** `feat(ai): classificazione automatica file (vision) + riorganizzazione cartelle`
+**Title:** `feat(ai): automatic file classification (vision) + folder reorganization`
 
 **Labels:** `type:ai`, `area:files`, `enhancement`, `priority:P2`, `severity:low`, `effort:L`
 
@@ -435,43 +435,43 @@ Calcolare SHA-256 (e, se possibile, meta immagine) in streaming / path file, sen
 **Body:**
 
 ```markdown
-## Contesto
+## Context
 
-Design completo in `docs/review/2026-10-review.md` §3. Obiettivo: dopo upload di immagini/PDF, job asincrono classifica (categoria, tag, colori, OCR), scrive `ai_metadata`, opzionalmente sposta in cartelle (`Products`, `Documents`, …) e applica Spatie tags. Feature prodotto AI → **milestone 1.5.0** (non 1.3.0 hardening, non 1.4.0 operator-core).
+Full design in `docs/review/2026-10-review.md` §3. Goal: after uploading images/PDFs, an asynchronous job classifies them (category, tags, colors, OCR), writes `ai_metadata`, optionally moves them into folders (`Products`, `Documents`, …) and applies Spatie tags. AI product feature → **milestone 1.5.0** (not 1.3.0 hardening, not 1.4.0 operator core).
 
-## Obiettivo
+## Goal
 
-Ship end-to-end dietro flag `AI_AUTO_CLASSIFY_FILES=false` default off.
+Ship end-to-end behind the `AI_AUTO_CLASSIFY_FILES=false` flag, off by default.
 
-## Riferimenti design
+## Design references
 
-- Report §3.3 (migration, `ClassifyFileJob`, `FileClassificationService`, UI `FileAiMetadata`)
-- `app/Services/FileService.php` (hook post-upload)
-- `app/Ai/Tools/ManageFiles.php` (non sostituire: orchestrare via job)
+- Report §3.3 (migration, `ClassifyFileJob`, `FileClassificationService`, `FileAiMetadata` UI)
+- `app/Services/FileService.php` (post-upload hook)
+- `app/Ai/Tools/ManageFiles.php` (do not replace: orchestrate via the job)
 - Horizon queue
 
-## Passi
+## Steps
 
-1. Attendere merge #180.
+1. Wait for #180 to be merged.
 2. Migration `ai_metadata` JSON, `ai_processed`, `ai_processed_at`.
-3. Service + Job + config costi/modello.
-4. UI read-only metadata in file detail.
-5. Feature test con fake AI provider / Http::fake.
-6. Docs costi (~$34/1k upload GPT-4V) e opt-in.
+3. Service + Job + cost/model config.
+4. Read-only metadata UI in the file detail view.
+5. Feature tests with a fake AI provider / Http::fake.
+6. Cost docs (~$34/1k uploads GPT-4V) and opt-in.
 
-## Criteri di accettazione
+## Acceptance criteria
 
-- [ ] Default off; opt-in env
-- [ ] Solo mime classifiable
-- [ ] Permessi file rispettati (no leak private)
-- [ ] Job idempotente / retry safe
-- [ ] Test senza chiamate rete reali in CI
+- [ ] Off by default; opt-in via env
+- [ ] Only classifiable MIME types
+- [ ] File permissions respected (no private leaks)
+- [ ] Idempotent / retry-safe job
+- [ ] Tests without real network calls in CI
 
-## Fuori scope
+## Out of scope
 
-- Training modelli custom
-- Auto-delete duplicati (solo suggest)
-- MCP (#121) — separato
+- Training custom models
+- Auto-deleting duplicates (suggest only)
+- MCP (#121) — separate
 
 ## Related
 
@@ -482,7 +482,7 @@ Ship end-to-end dietro flag `AI_AUTO_CLASSIFY_FILES=false` default off.
 
 ### ISSUE H — NEW-7 · Milestone **1.5.0** · effort:M · priority:P3 · severity:low
 
-**Title:** `feat(ai): gate di moderazione contenuti prima del publish`
+**Title:** `feat(ai): content moderation gate before publish`
 
 **Labels:** `type:ai`, `enhancement`, `priority:P3`, `severity:low`, `effort:M`
 
@@ -491,43 +491,43 @@ Ship end-to-end dietro flag `AI_AUTO_CLASSIFY_FILES=false` default off.
 **Body:**
 
 ```markdown
-## Contesto
+## Context
 
-Report §3.4.3: opzionale check AI (NSFW / policy) in `CollectionItemPublisher` prima del publish. Milestone **1.5.0**.
+Report §3.4.3: optional AI check (NSFW / policy) in `CollectionItemPublisher` before publishing. Milestone **1.5.0**.
 
-## Obiettivo
+## Goal
 
-Setting per-collection `ai_moderation_on_publish`; se on, blocca publish con 422 e motivo; audit log.
+Per-collection setting `ai_moderation_on_publish`; if on, block publishing with a 422 and a reason; audit log.
 
-## Riferimenti
+## References
 
 - `app/Services/Collections/CollectionItemPublisher.php`
-- Impostazioni collection / project settings
-- Test collections publish/schedule
+- Collection settings / project settings
+- Collections publish/schedule tests
 
-## Passi
+## Steps
 
-1. Flag setting + UI minimale.
-2. Chiamata moderation API via laravel/ai (o provider configurato).
-3. Fail open vs fail closed documentato (consiglio: fail closed se AI down e flag on).
-4. Test con fake.
+1. Setting flag + minimal UI.
+2. Moderation API call via laravel/ai (or the configured provider).
+3. Fail open vs fail closed documented (recommendation: fail closed if the AI is down and the flag is on).
+4. Tests with a fake.
 
-## Criteri di accettazione
+## Acceptance criteria
 
-- [ ] Flag off = comportamento invariato
-- [ ] Flag on + contenuto flagged = no publish
+- [ ] Flag off = unchanged behavior
+- [ ] Flag on + flagged content = no publish
 - [ ] Activity log entry
 - [ ] Docs
 
-## Fuori scope
+## Out of scope
 
-- Moderazione immagini (coperta da classify)
-- Queue umana di review (approvals #48 già chiusa in 1.2.0)
+- Image moderation (covered by classify)
+- Human review queue (approvals #48 already closed in 1.2.0)
 ```
 
 ---
 
-## 4. Milestone 1.5.0 (da creare)
+## 4. Milestone 1.5.0 (to create)
 
 **Title:** `1.5.0`  
 **Description:**
@@ -540,26 +540,26 @@ Not for platform hardening (1.3.0) or workspaces/MCP/field-ACL (1.4.0). Depends 
 
 ---
 
-## 5. Commenti da lasciare su issue esistenti (invece di duplicati)
+## 5. Comments to leave on existing issues (instead of duplicates)
 
-### Su #113
-Aggiungere nota: implementare anche **cost-based** token bucket (mutations=5, include=2) e Lighthouse `max_query_depth` / `max_query_complexity` come in report §1.1.1–1.1.2. Non creare issue separate NEW-1/NEW-3.
+### On #113
+Add a note: also implement a **cost-based** token bucket (mutations=5, include=2) and Lighthouse `max_query_depth` / `max_query_complexity` as in report §1.1.1–1.1.2. Do not create separate issues NEW-1/NEW-3.
 
-### Su #118
-Aggiungere nota: oltre MIME allowlist, includere **magic bytes** per pdf/jpeg/png/gif come in report §1.3.1. Non creare NEW-2.
+### On #118
+Add a note: besides the MIME allowlist, include **magic bytes** for pdf/jpeg/png/gif as in report §1.3.1. Do not create NEW-2.
 
-### Su #47
-Nessuna azione — COMPLETED; Kanban/Calendar già shippati. NEW-8 scartata.
+### On #47
+No action — COMPLETED; Kanban/Calendar already shipped. NEW-8 discarded.
 
 ---
 
-## 6. Checklist post-grant accesso
+## 6. Post-grant checklist
 
-1. [ ] Creare labels (§2)
-2. [ ] Creare milestone `1.5.0` (§4)
-3. [ ] Creare issue A–H con milestone/label corretti
-4. [ ] Commentare #113 e #118 (§5)
-5. [ ] Aprire draft PR da `cursor/review-2026-10-c1af` → `main` (o `develop` se è la base ufficiale)
-6. [ ] Collegare PR al report; opzionale Project se ne verrà creato uno
+1. [ ] Create labels (§2)
+2. [ ] Create milestone `1.5.0` (§4)
+3. [ ] Create issues A–H with the correct milestone/labels
+4. [ ] Comment on #113 and #118 (§5)
+5. [ ] Open a draft PR from `cursor/review-2026-10-c1af` → `main` (or `develop` if that is the official base)
+6. [ ] Link the PR to the report; optionally a Project if one is created
 
-**Base branch PR:** verificare default (`main` vs `develop`). Cloud instructions indicano base `main` per questo agent; il repo usa anche workflow su develop — allineare alla pratica del team.
+**PR base branch:** verify the default (`main` vs `develop`). The cloud instructions indicate base `main` for this agent; the repo also uses workflows on develop — align with the team's practice.
