@@ -37,11 +37,12 @@ class OidcController extends Controller
             $socialiteUser = $factory->driver()->user();
             $user = $resolver->resolve($socialiteUser);
         } catch (ValidationException $e) {
-            throw $e;
+            // IdP is the Referer; back() would bounce Keycloak↔callback forever.
+            throw $e->redirectTo(route('login'));
         } catch (Throwable) {
             throw ValidationException::withMessages([
                 'email' => __('SSO login failed. Try again or use email and password.'),
-            ]);
+            ])->redirectTo(route('login'));
         }
 
         Auth::login($user, remember: true);
