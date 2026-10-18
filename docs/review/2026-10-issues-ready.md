@@ -1,6 +1,9 @@
-# Issues to create — October 2026 Review
+# Issues created — October 2026 Review
 
-**GitHub creation status:** BLOCKED (see §0).  
+**GitHub creation status:** ✅ CREATED (§0 is kept for history).  
+
+> ✅ **Status (2026-10-18):** labels, milestone [1.5.0](https://github.com/qiick-io/externa-core/milestone/10) and issues [#184–#191](https://github.com/qiick-io/externa-core/issues?q=is%3Aissue+184..191) (milestones [1.3.0](https://github.com/qiick-io/externa-core/milestone/8), [1.4.0](https://github.com/qiick-io/externa-core/milestone/9), [1.5.0](https://github.com/qiick-io/externa-core/milestone/10)) have been created; draft PR [#192](https://github.com/qiick-io/externa-core/pull/192) is open.
+
 **Report branch:** `cursor/review-2026-10-c1af`  
 **Report:** [`docs/review/2026-10-review.md`](./2026-10-review.md)
 
@@ -33,7 +36,7 @@
 | **1.2.0** | Editorial product features (kanban, approvals, …) | **Nothing new** — #47 Kanban/Calendar already `COMPLETED` |
 | **1.3.0** | Platform hardening: rate limits, AuthZ suite, API key scopes, upload security, N+1 | **Only hardening already in existing issues** + at most 1–2 critical security micro-fixes not yet covered |
 | **1.4.0** | Operator scale: workspaces, MCP, field ACL, transforms, deep filters, bulk API | File library perf, security headers (defense-in-depth), storage adapters |
-| **1.5.0** *(to create)* | AI & media intelligence (post–laravel/ai 1.1) | File classification, moderation gate, AI product features |
+| **1.5.0** *(created)* | AI & media intelligence (post–laravel/ai 1.1) | File classification, moderation gate, AI product features |
 
 ### Principle
 
@@ -56,7 +59,7 @@
 | NEW-11 CI `composer audit` + `npm audit` | **Create → 1.3.0** | Pipeline hardening; the only new security item for 1.3.0 not already in #112–#118 |
 | NEW-12 Webhook HMAC `hash_equals` audit | **Create → 1.3.0** | Critical security micro-fix (timing-safe compare) |
 
-### Final map (to create)
+### Final map (created)
 
 ```
 1.3.0  →  NEW-11 (CI audit), NEW-12 (HMAC hash_equals)
@@ -424,7 +427,7 @@ Compute SHA-256 (and, if possible, image meta) via streaming / file path, withou
 
 ---
 
-### ISSUE G — NEW-6 · Milestone **1.5.0** *(to create)* · effort:L · priority:P2 · severity:low
+### ISSUE G — NEW-6 · Milestone **1.5.0** *(created)* · effort:L · priority:P2 · severity:low
 
 **Title:** `feat(ai): automatic file classification (vision) + folder reorganization`
 
@@ -527,7 +530,7 @@ Per-collection setting `ai_moderation_on_publish`; if on, block publishing with 
 
 ---
 
-## 4. Milestone 1.5.0 (to create)
+## 4. Milestone 1.5.0 (created)
 
 **Title:** `1.5.0`  
 **Description:**
