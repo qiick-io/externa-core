@@ -18,25 +18,11 @@ class CollectionImportWebhookController extends Controller
     use ImportsCollectionRecords;
 
     /**
-     * Verify HMAC over body+collection_id, then import associative record rows.
+     * Import associative record rows after FormRequest HMAC verification.
      */
     public function __invoke(CollectionImportWebhookRequest $request): Response
     {
-        $configuredToken = (string) config('ai.webhook_token', '');
-        $rawBody = $request->getContent();
         $validated = $request->validated();
-        $collectionId = (string) $validated['collection_id'];
-        $providedSignature = (string) $request->header('X-AI-Webhook-Signature', '');
-
-        abort_if(
-            $configuredToken === '' || ! hash_equals(
-                self::sign($rawBody, $collectionId, $configuredToken),
-                $providedSignature,
-            ),
-            Response::HTTP_FORBIDDEN,
-            'Invalid webhook signature.',
-        );
-
         $collection = Collection::query()->with('fields')->findOrFail($validated['collection_id']);
         $records = array_map(fn (array $record): array => array_map(
             fn (mixed $value): string => is_scalar($value) || $value === null
@@ -65,11 +51,11 @@ class CollectionImportWebhookController extends Controller
     }
 
     /**
-     * HMAC-SHA256 over raw body + collection_id, keyed by AI_WEBHOOK_TOKEN.
+     * HMAC-SHA256 over the raw request body, keyed by AI_WEBHOOK_TOKEN.
      */
-    public static function sign(string $rawBody, string $collectionId, string $secret): string
+    public static function sign(string $rawBody, string $secret): string
     {
-        return 'sha256='.hash_hmac('sha256', $rawBody."\n".$collectionId, $secret);
+        return 'sha256='.hash_hmac('sha256', $rawBody, $secret);
     }
 
     /**
