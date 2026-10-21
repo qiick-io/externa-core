@@ -15,6 +15,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 - Renaming a field no longer drops its value from pending drafts and older revisions (#218)
 
+### Security
+
+- `package-lock.json` bump: `follow-redirects` 1.16.0 → 1.16.1 ([GHSA-q3jh-wrc6-jgq8](https://github.com/advisories/GHSA-q3jh-wrc6-jgq8), [GHSA-8r9p-f939-6h3c](https://github.com/advisories/GHSA-8r9p-f939-6h3c)); `vite` 8.3.0 → 8.3.5 (via `launch-editor`: [GHSA-698v-4r3x-3vcv](https://github.com/advisories/GHSA-698v-4r3x-3vcv), [GHSA-r825-w8mm-5pxw](https://github.com/advisories/GHSA-r825-w8mm-5pxw), [GHSA-587h-7wmj-h5pm](https://github.com/advisories/GHSA-587h-7wmj-h5pm)) so `npm audit --omit=dev --audit-level=high` passes
+
 ### Upgrade notes
 
 - After deploying 1.2.1, repair drafts/revisions still holding a pre-rename field key (from renames before this fix):
