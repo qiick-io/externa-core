@@ -9,6 +9,12 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-21
+
+### Fixed
+
+- Renaming a field no longer drops its value from pending drafts and older revisions (#218)
+
 ## [1.2.0] - 2026-10-18
 
 ### Added

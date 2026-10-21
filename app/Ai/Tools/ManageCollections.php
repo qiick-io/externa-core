@@ -12,6 +12,7 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Services\Collections\ApplyCollectionPackService;
 use App\Services\Collections\ApplyFieldPackService;
+use App\Services\Collections\CollectionFieldRenamer;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
@@ -622,9 +623,15 @@ class ManageCollections implements Approvable, Tool
             $attributes['translatable'] = false;
         }
 
-        $field->update($attributes);
+        $collection = $field->collection
+            ?? Collection::query()->find($field->collection_id);
+
+        if ($collection === null) {
+            return 'Error: Collection not found for field.';
+        }
+
+        $field = app(CollectionFieldRenamer::class)->update($collection, $field, $attributes);
         $this->logAiMutation($field, 'update_field');
-        $field = $field->fresh();
 
         return json_encode([
             'ok' => true,
