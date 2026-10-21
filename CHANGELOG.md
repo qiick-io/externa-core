@@ -15,6 +15,13 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 - Renaming a field no longer drops its value from pending drafts and older revisions (#218)
 
+### Upgrade notes
+
+- After deploying 1.2.1, repair drafts/revisions still holding a pre-rename field key (from renames before this fix):
+  1. Dry-run (default): `php artisan externa:repair-renamed-field-drafts`
+  2. Apply: `php artisan externa:repair-renamed-field-drafts --apply`
+  - Mappings come from CollectionField activity-log rename history; pass `--map=collection:old=new` (slug or id; repeatable) for orphans with no history. Never overwrites a value already under the new key. Publish-time behavior is unchanged.
+
 ## [1.2.0] - 2026-10-18
 
 ### Added
