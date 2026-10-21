@@ -51,7 +51,7 @@ nvm use   # Node 24
 php artisan externa:install
 ```
 
-Pin a release if needed: `qiick/externa-core:1.0.0`. Pre-tag smoke from git: `composer create-project qiick/externa-core:dev-develop my-externa`.
+Pin a release if needed: `qiick/externa-core:1.2.1`. Pre-tag smoke from git: `composer create-project qiick/externa-core:dev-develop my-externa`.
 
 `create-project` only copies `.env` (if missing) and runs `key:generate` — **no** migrate, seed, or SQLite assumption. Interactive first-run is `externa:install` (DB, APP_NAME/URL, stack profile, optional seed / AI URL, npm build).
 
