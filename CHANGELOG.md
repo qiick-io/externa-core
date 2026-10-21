@@ -17,14 +17,15 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Security
 
-- `package-lock.json` bump: `follow-redirects` 1.16.0 → 1.16.1 ([GHSA-q3jh-wrc6-jgq8](https://github.com/advisories/GHSA-q3jh-wrc6-jgq8), [GHSA-8r9p-f939-6h3c](https://github.com/advisories/GHSA-8r9p-f939-6h3c)); `vite` 8.3.0 → 8.3.5 (via `launch-editor`: [GHSA-698v-4r3x-3vcv](https://github.com/advisories/GHSA-698v-4r3x-3vcv), [GHSA-r825-w8mm-5pxw](https://github.com/advisories/GHSA-r825-w8mm-5pxw), [GHSA-587h-7wmj-h5pm](https://github.com/advisories/GHSA-587h-7wmj-h5pm)) so `npm audit --omit=dev --audit-level=high` passes
+- `package-lock.json` bump: `follow-redirects` 1.16.0 → 1.16.1 ([GHSA-q3jh-wrc6-jgq8](https://github.com/advisories/GHSA-q3jh-wrc6-jgq8), [GHSA-8r9p-f939-6h3c](https://github.com/advisories/GHSA-8r9p-f939-6h3c)); `vite` 8.3.0 → 8.3.5 (`package.json` range `^8.3.5`; via `launch-editor`: [GHSA-698v-4r3x-3vcv](https://github.com/advisories/GHSA-698v-4r3x-3vcv), [GHSA-r825-w8mm-5pxw](https://github.com/advisories/GHSA-r825-w8mm-5pxw), [GHSA-587h-7wmj-h5pm](https://github.com/advisories/GHSA-587h-7wmj-h5pm)); `brace-expansion` 1.1.18 → 1.1.21 (dev/eslint path) so `npm audit --audit-level=high` reports 0 high/critical
 
 ### Upgrade notes
 
-- After deploying 1.2.1, repair drafts/revisions still holding a pre-rename field key (from renames before this fix):
-  1. Dry-run (default): `php artisan externa:repair-renamed-field-drafts`
-  2. Apply: `php artisan externa:repair-renamed-field-drafts --apply`
+- **Right after deploying 1.2.1**, and **before** the scheduler runs or anyone publishes, repair drafts/revisions that still hold a pre-rename field key (from renames before this fix):
+  1. Recommended dry-run first (default, no writes): `php artisan externa:repair-renamed-field-drafts`
+  2. Then apply: `php artisan externa:repair-renamed-field-drafts --apply`
   - Mappings come from CollectionField activity-log rename history; pass `--map=collection:old=new` (slug or id; repeatable) for orphans with no history. Never overwrites a value already under the new key. Publish-time behavior is unchanged.
+  - Keys reported as **unmappable** belong to deleted fields and can be ignored.
 
 ## [1.2.0] - 2026-10-18
 
