@@ -14,6 +14,7 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Services\Collections\ApplyFieldPackService;
 use App\Services\Collections\CollectionFieldGroupService;
+use App\Services\Collections\CollectionFieldRenamer;
 use App\Support\Collections\FieldPacks\FieldPackRegistry;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -109,7 +110,6 @@ class FieldController extends Controller
     {
         $this->assertFieldBelongsToCollection($collection, $field);
 
-        $oldName = $field->name;
         $validated = $request->validated();
         $type = isset($validated['type'])
             ? ($validated['type'] instanceof FieldTypeEnum
@@ -131,16 +131,10 @@ class FieldController extends Controller
                 ->forceFullWidthForGroup($type, $validated['settings']);
         }
 
-        $field->update([
+        app(CollectionFieldRenamer::class)->update($collection, $field, [
             ...$validated,
             'translatable' => $translatable,
         ]);
-
-        $newName = $field->fresh()->name;
-        if ($type->isLayoutGroup() && $oldName !== $newName) {
-            app(CollectionFieldGroupService::class)
-                ->rewriteGroupNameReferences($collection, $oldName, $newName);
-        }
 
         return redirect()
             ->to(url()->previous(route('collections.fields.index', $collection)))
