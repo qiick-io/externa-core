@@ -628,8 +628,11 @@ class ItemController extends Controller
             ? $validated['locale']
             : null;
 
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
         try {
-            $built = $this->livePreviewUrlBuilder->build($collection, $item, $version, $locale);
+            $built = $this->livePreviewUrlBuilder->build($collection, $item, $version, $locale, $user);
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }

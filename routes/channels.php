@@ -69,6 +69,9 @@ Broadcast::channel('collection-item.{collectionId}.{itemId}', function ($user, $
         return false;
     }
 
+    // Bind the channel user — broadcast auth request() may not carry session user.
+    request()->setUserResolver(static fn (): User => $user);
+
     if (! app(CollectionPermissionEnforcer::class)->isItemReadable(request(), $collection, $item)) {
         return false;
     }
