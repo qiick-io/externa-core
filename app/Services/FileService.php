@@ -12,6 +12,7 @@ use App\Services\Webhooks\OutboundWebhookDispatcher;
 use App\Support\Files\FilesDisk;
 use App\Support\Security\PlainTextSanitizer;
 use App\Support\Uploads\ForbiddenUploadExtension;
+use App\Support\Uploads\SafeUploadMime;
 use App\Traits\HasFiles;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\UploadedFile;
@@ -66,8 +67,10 @@ class FileService
     {
         $disk = $this->resolveUploadDisk($disk, $parentId);
         $fileName = PlainTextSanitizer::sanitize($name ?? $uploadedFile->getClientOriginalName()) ?? '';
-        ForbiddenUploadExtension::assertAllowed($fileName, $name !== null ? 'name' : 'file');
-        $mimeType = $uploadedFile->getMimeType();
+        $field = $name !== null ? 'name' : 'file';
+        // ponytail: single getContent() for sniff + meta + hash (ceiling: loads whole file into memory)
+        $bytes = $uploadedFile->getContent();
+        $mimeType = SafeUploadMime::assertFilePoolAllowed($fileName, SafeUploadMime::sniff($bytes), $field);
         $size = $uploadedFile->getSize() ?: 0;
         $storagePath = $this->generateStoragePath($fileName, $disk);
         $storedPath = null;
@@ -79,8 +82,6 @@ class FileService
                 basename($storagePath)
             );
 
-            // ponytail: single getContent() for meta + hash (ceiling: loads whole file into memory)
-            $bytes = $uploadedFile->getContent();
             [$width, $height, $meta] = $this->extractImageMeta($disk, $storedPath, $mimeType, $bytes);
             $fileHash = hash('sha256', $bytes);
 
@@ -413,11 +414,14 @@ class FileService
             throw new \InvalidArgumentException('Only files can be replaced.');
         }
 
-        ForbiddenUploadExtension::assertAllowed($uploadedFile->getClientOriginalName());
+        $bytes = $uploadedFile->getContent();
+        $mimeType = SafeUploadMime::assertFilePoolAllowed(
+            $uploadedFile->getClientOriginalName(),
+            SafeUploadMime::sniff($bytes),
+        );
 
         app(FileTransformService::class)->clearTransforms($file);
 
-        $mimeType = $uploadedFile->getMimeType();
         $size = $uploadedFile->getSize() ?: 0;
         $storagePath = $this->generateStoragePath($file->name, $file->disk);
         $storedPath = null;
@@ -429,8 +433,6 @@ class FileService
                 basename($storagePath)
             );
 
-            // ponytail: single getContent() for meta + hash (ceiling: loads whole file into memory)
-            $bytes = $uploadedFile->getContent();
             [$width, $height, $meta] = $this->extractImageMeta($file->disk, $storedPath, $mimeType, $bytes);
             $fileHash = hash('sha256', $bytes);
 
