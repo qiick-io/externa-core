@@ -6,6 +6,9 @@ namespace App\Services\Collections;
  * HMAC-signed Live Preview tokens (short-lived; query-param safe).
  *
  * Format: base64url(json).base64url(hmac_sha256)
+ *
+ * Claims: c (collection), i (item), v (version), l (locale), exp,
+ * u (issuing user id, required), h (optional content hash).
  */
 class LivePreviewToken
 {
@@ -15,6 +18,8 @@ class LivePreviewToken
         string $version,
         ?string $locale,
         int $expiresAt,
+        int $userId,
+        ?string $contentHash = null,
     ): string {
         $payload = [
             'c' => $collectionId,
@@ -22,7 +27,12 @@ class LivePreviewToken
             'v' => $version === 'draft' ? 'draft' : 'published',
             'l' => $locale !== null && $locale !== '' ? $locale : null,
             'exp' => $expiresAt,
+            'u' => $userId,
         ];
+
+        if ($contentHash !== null && $contentHash !== '') {
+            $payload['h'] = $contentHash;
+        }
 
         $body = $this->b64(json_encode($payload, JSON_THROW_ON_ERROR));
 
@@ -35,7 +45,9 @@ class LivePreviewToken
      *     item_id: int,
      *     version: 'draft'|'published',
      *     locale: string|null,
-     *     exp: int
+     *     exp: int,
+     *     user_id: int,
+     *     content_hash: string|null
      * }|null
      */
     public function verify(string $token): ?array
@@ -70,13 +82,17 @@ class LivePreviewToken
 
         $collectionId = isset($payload['c']) ? (int) $payload['c'] : 0;
         $itemId = isset($payload['i']) ? (int) $payload['i'] : 0;
-        if ($collectionId < 1 || $itemId < 1) {
+        $userId = isset($payload['u']) ? (int) $payload['u'] : 0;
+        if ($collectionId < 1 || $itemId < 1 || $userId < 1) {
             return null;
         }
 
         $version = ($payload['v'] ?? '') === 'draft' ? 'draft' : 'published';
         $locale = isset($payload['l']) && is_string($payload['l']) && $payload['l'] !== ''
             ? $payload['l']
+            : null;
+        $contentHash = isset($payload['h']) && is_string($payload['h']) && $payload['h'] !== ''
+            ? $payload['h']
             : null;
 
         return [
@@ -85,6 +101,8 @@ class LivePreviewToken
             'version' => $version,
             'locale' => $locale,
             'exp' => $exp,
+            'user_id' => $userId,
+            'content_hash' => $contentHash,
         ];
     }
 

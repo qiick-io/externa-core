@@ -31,6 +31,7 @@ use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\FileService;
 use App\Services\Settings\SettingsRepository;
 use App\Support\Collections\CollectionLocaleResolver;
+use App\Support\Http\UserContentResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -543,12 +544,11 @@ class ChatMessageController extends Controller
         abort_if($attachment->isExpired(), 404);
         abort_unless(Storage::disk($attachment->disk)->exists($attachment->path), 404);
 
-        return Storage::disk($attachment->disk)->response(
+        return UserContentResponse::fromDisk(
+            Storage::disk($attachment->disk),
             $attachment->path,
-            $attachment->original_name,
-            [
-                'Content-Type' => $attachment->mime_type,
-            ],
+            (string) $attachment->original_name,
+            $attachment->mime_type,
         );
     }
 
@@ -566,12 +566,11 @@ class ChatMessageController extends Controller
             ? $attachment->preview_mime
             : 'image/jpeg';
 
-        return Storage::disk($attachment->disk)->response(
+        return UserContentResponse::fromDisk(
+            Storage::disk($attachment->disk),
             $attachment->preview_path,
             'preview-'.$attachment->original_name,
-            [
-                'Content-Type' => $mime,
-            ],
+            $mime,
         );
     }
 

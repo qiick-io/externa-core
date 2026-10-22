@@ -3,6 +3,7 @@
 namespace App\Services\Api;
 
 use App\Enums\CollectionPermissionAction;
+use App\Enums\PermissionEnum;
 use App\Models\CollectionPermission;
 use App\Models\User;
 use App\Services\Authorization\EffectivePermissionResolver;
@@ -73,15 +74,15 @@ class CollectionPermissionGuard
         }
 
         $roleIds = $resolver->effectiveRoleIds($user);
-        if ($roleIds === []) {
-            return null;
-        }
-
         $sets = [];
         $hasGrant = false;
+        $hasAnyCollectionGrant = false;
 
         foreach ($roleIds as $roleId) {
             $bundle = $this->bundleForRole($roleId);
+            if ($bundle['matrix'] !== []) {
+                $hasAnyCollectionGrant = true;
+            }
             if (! isset($bundle['matrix'][$collectionId])) {
                 continue;
             }
@@ -92,6 +93,13 @@ class CollectionPermissionGuard
         }
 
         if (! $hasGrant) {
+            // Spatie-only admins (can-show-collections, no collection_permissions anywhere)
+            // stay unrestricted — includes users with direct permissions and no roles.
+            if (! $hasAnyCollectionGrant
+                && $resolver->hasPermission($user, PermissionEnum::CanShowCollections->value)) {
+                return $this->rulesService->normalize(null);
+            }
+
             return null;
         }
 

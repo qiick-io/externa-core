@@ -338,6 +338,20 @@ class ProjectSettings
     }
 
     /**
+     * Whether a sidebar module is enabled in project settings.
+     */
+    public function isSidebarModuleEnabled(string $moduleId): bool
+    {
+        foreach ($this->raw()['sidebar_modules'] as $module) {
+            if (($module['id'] ?? null) === $moduleId) {
+                return (bool) ($module['enabled'] ?? false);
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Decrypted webhook signing secret, or null when unset/unreadable.
      */
     public function webhookSecret(): ?string

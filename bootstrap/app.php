@@ -3,6 +3,7 @@
 use App\Http\Exceptions\RenderNotFoundResponse;
 use App\Http\Middleware\ConfigurePublicApiCors;
 use App\Http\Middleware\EnsureCanManageFiles;
+use App\Http\Middleware\EnsureSidebarModuleEnabled;
 use App\Http\Middleware\EnsureTwoFactorIsEnabled;
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\HandleAppearance;
@@ -32,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => EnsureUserHasPermission::class,
             'can.manage.files' => EnsureCanManageFiles::class,
+            'module' => EnsureSidebarModuleEnabled::class,
         ]);
 
         $middleware->redirectGuestsTo('/login');

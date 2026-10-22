@@ -7,6 +7,7 @@ use App\Models\File;
 use App\Models\FileUpload;
 use App\Support\Security\PlainTextSanitizer;
 use App\Support\Uploads\ForbiddenUploadExtension;
+use App\Support\Uploads\SafeUploadMime;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -138,10 +139,17 @@ class FileChunkUploadService
             $fileHash = hash('sha256', $fileContent);
             $storage->put($tempFilePath, $fileContent);
 
+            // Always re-sniff; client mime_type is a hint only.
+            $mimeType = SafeUploadMime::assertFilePoolAllowed(
+                (string) $fileUpload->file_name,
+                SafeUploadMime::sniff($fileContent),
+                'file_name',
+            );
+
             [$width, $height, $meta] = $files->extractImageMeta(
                 $fileUpload->disk,
                 $tempFilePath,
-                $fileUpload->mime_type,
+                $mimeType,
                 $fileContent
             );
 
@@ -149,7 +157,7 @@ class FileChunkUploadService
                 $fileUpload->disk,
                 $tempFilePath,
                 $fileHash,
-                $fileUpload->mime_type,
+                $mimeType,
                 $fileUpload->total_size,
                 $width,
                 $height,
@@ -158,7 +166,7 @@ class FileChunkUploadService
                 fileName: $fileUpload->file_name
             );
 
-            $file = DB::transaction(function () use ($fileUpload, $fileHash, $width, $height, $meta, $version, $files) {
+            $file = DB::transaction(function () use ($fileUpload, $fileHash, $width, $height, $meta, $version, $files, $mimeType) {
                 $file = File::query()->create([
                     'parent_id' => $fileUpload->parent_id,
                     'name' => $fileUpload->file_name,
@@ -166,7 +174,7 @@ class FileChunkUploadService
                     'path' => '/'.$fileUpload->file_name,
                     'disk' => $version->disk,
                     'storage_path' => $version->storage_path,
-                    'mime_type' => $fileUpload->mime_type,
+                    'mime_type' => $mimeType,
                     'extension' => pathinfo($fileUpload->file_name, PATHINFO_EXTENSION) ?: null,
                     'size' => $fileUpload->total_size,
                     'width' => $width,

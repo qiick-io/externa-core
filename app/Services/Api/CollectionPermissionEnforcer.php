@@ -3,9 +3,11 @@
 namespace App\Services\Api;
 
 use App\Enums\CollectionPermissionAction;
+use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
+use App\Services\Authorization\EffectivePermissionResolver;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Support\Api\ApiAccess;
@@ -81,20 +83,38 @@ class CollectionPermissionEnforcer
     }
 
     /**
+     * Soft collection Read check (API role grant or admin user Read / Spatie-only).
+     */
+    public function isCollectionReadable(Request $request, Collection $collection): bool
+    {
+        $access = $request->attributes->get('apiAccess');
+        if ($access instanceof ApiAccess) {
+            return $this->guard->allows($access->roleId(), (int) $collection->id, CollectionPermissionAction::Read);
+        }
+
+        $user = $request->user();
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return $this->userHasCollectionRead($user, $collection);
+    }
+
+    /**
      * Soft readability check (collection Read grant + item_filter). Does not abort.
      */
     public function isItemReadable(Request $request, Collection $collection, CollectionItem $item): bool
     {
-        $access = $request->attributes->get('apiAccess');
-        if ($access instanceof ApiAccess) {
-            if (! $this->guard->allows($access->roleId(), (int) $collection->id, CollectionPermissionAction::Read)) {
-                return false;
-            }
+        if (! $this->isCollectionReadable($request, $collection)) {
+            return false;
         }
 
         $rules = $this->resolveRules($request, $collection);
+        // No resolvable rules with an actor that passed collection Read:
+        // Spatie-only / super-admin get unrestricted rules from rulesForUser.
+        // Remaining null (no actor, or ACL user without grant) → deny.
         if ($rules === null) {
-            return true;
+            return false;
         }
 
         $data = $this->assembler->assemble($item);
@@ -150,5 +170,43 @@ class CollectionPermissionEnforcer
         /** @var array<string, mixed> $itemFilter */
         $itemFilter = $rules['item_filter'];
         $this->itemQueryService->applyPermissionItemFilter($query, $collection, $itemFilter);
+    }
+
+    /**
+     * Collection Read for an admin user: any role Read grant, or Spatie-only unrestricted.
+     */
+    private function userHasCollectionRead(User $user, Collection $collection): bool
+    {
+        $resolver = app(EffectivePermissionResolver::class);
+
+        if ($resolver->isSuperAdmin($user)) {
+            return true;
+        }
+
+        $roleIds = $resolver->effectiveRoleIds($user);
+        foreach ($roleIds as $roleId) {
+            if ($this->guard->allows($roleId, (int) $collection->id, CollectionPermissionAction::Read)) {
+                return true;
+            }
+        }
+
+        // Spatie-only (no collection_permissions on any role): can-show-collections is enough.
+        if (! $this->userHasAnyCollectionGrant($user) && $resolver->hasPermission($user, PermissionEnum::CanShowCollections->value)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function userHasAnyCollectionGrant(User $user): bool
+    {
+        $resolver = app(EffectivePermissionResolver::class);
+        foreach ($resolver->effectiveRoleIds($user) as $roleId) {
+            if ($this->guard->matrixForRole($roleId) !== []) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
