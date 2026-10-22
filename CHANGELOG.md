@@ -9,6 +9,11 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+### Security
+
+- AI collection-import webhook (`POST /ai/webhooks/collection-import`): HMAC-SHA256 over the raw body compared only with `hash_equals`; mismatch and missing `AI_WEBHOOK_TOKEN` outside `local` return 401 (fail closed); secret is never logged (#185)
+  - **Upgrade:** callers must sign the raw request body only (`sha256=` + HMAC-SHA256). The previous body + newline + `collection_id` payload from #86 is no longer accepted. Invalid signatures now return **401** (was 403).
+
 ## [1.2.1] - 2026-10-21
 
 ### Fixed
