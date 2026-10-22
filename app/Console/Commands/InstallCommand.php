@@ -105,7 +105,10 @@ class InstallCommand extends Command
         }
 
         if ($seed) {
-            $this->call('db:seed', ['--force' => true, '--database' => $db]);
+            $seedCode = $this->runArtisanProcess($db, ['db:seed', '--force', '--no-interaction', '--database='.$db]);
+            if ($seedCode !== self::SUCCESS) {
+                return $seedCode;
+            }
         }
 
         $this->call('storage:link');
@@ -331,60 +334,95 @@ class InstallCommand extends Command
 
     private function runMigrate(string $db, bool $force): int
     {
-        // Spatie permission migrations flush the permission cache store mid-run.
-        // Keep that on array so first migrate does not need Redis or the cache table.
-        $previousCache = config('cache.default');
-        $previousPermissionCache = config('permission.cache.store');
-        config([
-            'cache.default' => 'array',
-            'permission.cache.store' => 'array',
+        $code = $this->runArtisanProcess($db, [
+            'migrate',
+            '--force',
+            '--no-interaction',
+            '--database='.$db,
         ]);
-        if ($this->laravel->bound('cache')) {
-            $this->laravel->make('cache')->forgetDriver();
+
+        if ($code === self::SUCCESS) {
+            return self::SUCCESS;
         }
 
-        try {
-            $code = $this->migrateUsingConnection($db);
-            if ($code === self::SUCCESS) {
-                return self::SUCCESS;
-            }
-
-            if ($db !== 'sqlite' || ! $force) {
-                return $code;
-            }
-
-            // Clear reset path for a half-applied SQLite install (DDL is not transactional).
-            $this->warn('Migrate failed; resetting SQLite database and retrying…');
-            $sqlite = database_path('database.sqlite');
-            File::put($sqlite, '');
-            config(['database.connections.sqlite.database' => $sqlite]);
-            DB::purge('sqlite');
-
-            return $this->migrateUsingConnection('sqlite');
-        } finally {
-            config([
-                'cache.default' => $previousCache,
-                'permission.cache.store' => $previousPermissionCache,
-            ]);
-            if ($this->laravel->bound('cache')) {
-                $this->laravel->make('cache')->forgetDriver();
-            }
+        if ($db !== 'sqlite' || ! $force) {
+            return $code;
         }
+
+        // Clear reset path for a half-applied SQLite install (DDL is not transactional).
+        $this->warn('Migrate failed; resetting SQLite database and retrying…');
+        $sqlite = database_path('database.sqlite');
+        File::put($sqlite, '');
+        config(['database.connections.sqlite.database' => $sqlite]);
+        DB::purge('sqlite');
+
+        return $this->runArtisanProcess('sqlite', [
+            'migrate',
+            '--force',
+            '--no-interaction',
+            '--database=sqlite',
+        ]);
     }
 
-    private function migrateUsingConnection(string $connection): int
+    /**
+     * Run artisan in a subprocess so parent process env (e.g. PHPUnit/CI DB_*)
+     * cannot override the connection selected by this installer.
+     *
+     * @param  list<string>  $artisanArgs
+     */
+    private function runArtisanProcess(string $connection, array $artisanArgs): int
     {
-        try {
-            $code = self::FAILURE;
-            $this->laravel->make('migrator')->usingConnection($connection, function () use (&$code): void {
-                $code = $this->call('migrate', ['--force' => true]);
-            });
+        $result = Process::path(base_path())
+            ->timeout(600)
+            ->env($this->databaseProcessEnvironment($connection))
+            ->run([PHP_BINARY, 'artisan', ...$artisanArgs]);
 
-            return $code;
-        } catch (\Throwable $e) {
-            $this->error($e->getMessage());
+        if ($result->output() !== '') {
+            $this->output->write($result->output());
+        }
+
+        if (! $result->successful()) {
+            $this->error($result->errorOutput() !== '' ? $result->errorOutput() : $result->output());
 
             return self::FAILURE;
         }
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Explicit DB_* / cache env for installer subprocesses.
+     *
+     * @return array<string, string>
+     */
+    private function databaseProcessEnvironment(string $connection): array
+    {
+        $config = config('database.connections.'.$connection, []);
+        $appKey = (string) config('app.key');
+
+        $env = [
+            'DB_CONNECTION' => $connection,
+            'DB_URL' => '',
+            'CACHE_STORE' => 'array',
+            'QUEUE_CONNECTION' => (string) config('queue.default', 'database'),
+        ];
+
+        if ($appKey !== '') {
+            $env['APP_KEY'] = $appKey;
+        }
+
+        if ($connection === 'sqlite') {
+            $env['DB_DATABASE'] = (string) ($config['database'] ?? database_path('database.sqlite'));
+
+            return $env;
+        }
+
+        $env['DB_HOST'] = (string) ($config['host'] ?? '127.0.0.1');
+        $env['DB_PORT'] = (string) ($config['port'] ?? '');
+        $env['DB_DATABASE'] = (string) ($config['database'] ?? '');
+        $env['DB_USERNAME'] = (string) ($config['username'] ?? '');
+        $env['DB_PASSWORD'] = (string) ($config['password'] ?? '');
+
+        return $env;
     }
 }
