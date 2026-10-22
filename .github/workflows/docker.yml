@@ -17,6 +17,7 @@ on:
     paths:
       - Dockerfile
       - docker-bake.hcl
+      - docker/**
       - compose.yaml
       - compose.*.yaml
       - .env.docker*
@@ -75,6 +76,18 @@ jobs:
 
       - name: Build production target
         run: docker build --target production -t externa:prod .
+
+      - name: Assert patched PHP and hardened php.ini
+        run: |
+          set -euo pipefail
+          docker run --rm --entrypoint php externa:prod -v | tee /tmp/php-v.txt
+          grep -E 'PHP 8\.(4\.(2[7-9]|[3-9][0-9])|5\.(1[2-9]|[2-9][0-9]))' /tmp/php-v.txt
+          docker run --rm --entrypoint php externa:prod -i \
+            | tee /tmp/php-i.txt \
+            | grep -E 'session.upload_progress.enabled => (Off|0) => (Off|0)'
+          grep -E 'post_max_size => 100M => 100M' /tmp/php-i.txt
+          grep -E 'upload_max_filesize => 100M => 100M' /tmp/php-i.txt
+          grep -E 'session.use_strict_mode => On => On' /tmp/php-i.txt
 
   # Multi-arch bake is slow (~30 min QEMU). Keep on merge/release path only so
   # pecl/php-base regressions still fail before develop/main advances; PRs use

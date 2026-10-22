@@ -24,7 +24,7 @@
         "docs": "https://docs.externa.qiick.io"
     },
     "require": {
-        "php": "^8.4",
+        "php": "^8.4.27",
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/ai": "^1.0",
         "laravel/fortify": "^1.34",

@@ -2,7 +2,8 @@
 #   docker build --target development -t externa:dev .
 #   docker build --target production -t externa:prod .
 
-ARG PHP_VERSION=8.4
+# Pin to patched PHP (>= 8.4.27) for CVE-2026-109618 / CVE-2026-109619.
+ARG PHP_VERSION=8.4.27
 # Pin phpredis; install from GitHub tarball (bypass flaky pecl.php.net channel lookups).
 ARG PHPREDIS_VERSION=6.3.0
 
