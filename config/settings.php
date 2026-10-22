@@ -171,7 +171,8 @@ return [
             'revision_retention_days' => null,
             // Null = unlimited (infra PHP/nginx limits still apply to single-request uploads)
             'files_max_upload_bytes' => null,
-            'chat_max_upload_bytes' => null,
+            // Default chat attachment cap (25 MiB); null still allowed via settings UI for unlimited
+            'chat_max_upload_bytes' => 25 * 1024 * 1024,
         ],
         'sidebar_module_ids' => [
             'ai',
