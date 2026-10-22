@@ -9,6 +9,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+### Fixed
+
+- `externa:install`: preserve or generate `APP_KEY` after rewriting `.env`, apply the selected stack to runtime config before migrate (minimal profile no longer needs Redis), and retry SQLite migrate after a clean reset when `--force` hits a half-applied DB (#245).
+
 ## [1.2.1] - 2026-10-21
 
 ### Fixed
