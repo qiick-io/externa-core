@@ -331,22 +331,60 @@ class InstallCommand extends Command
 
     private function runMigrate(string $db, bool $force): int
     {
-        $code = $this->call('migrate', ['--force' => true, '--database' => $db]);
-        if ($code === self::SUCCESS) {
-            return self::SUCCESS;
+        // Spatie permission migrations flush the permission cache store mid-run.
+        // Keep that on array so first migrate does not need Redis or the cache table.
+        $previousCache = config('cache.default');
+        $previousPermissionCache = config('permission.cache.store');
+        config([
+            'cache.default' => 'array',
+            'permission.cache.store' => 'array',
+        ]);
+        if ($this->laravel->bound('cache')) {
+            $this->laravel->make('cache')->forgetDriver();
         }
 
-        if ($db !== 'sqlite' || ! $force) {
+        try {
+            $code = $this->migrateUsingConnection($db);
+            if ($code === self::SUCCESS) {
+                return self::SUCCESS;
+            }
+
+            if ($db !== 'sqlite' || ! $force) {
+                return $code;
+            }
+
+            // Clear reset path for a half-applied SQLite install (DDL is not transactional).
+            $this->warn('Migrate failed; resetting SQLite database and retrying…');
+            $sqlite = database_path('database.sqlite');
+            File::put($sqlite, '');
+            config(['database.connections.sqlite.database' => $sqlite]);
+            DB::purge('sqlite');
+
+            return $this->migrateUsingConnection('sqlite');
+        } finally {
+            config([
+                'cache.default' => $previousCache,
+                'permission.cache.store' => $previousPermissionCache,
+            ]);
+            if ($this->laravel->bound('cache')) {
+                $this->laravel->make('cache')->forgetDriver();
+            }
+        }
+    }
+
+    private function migrateUsingConnection(string $connection): int
+    {
+        try {
+            $code = self::FAILURE;
+            $this->laravel->make('migrator')->usingConnection($connection, function () use (&$code): void {
+                $code = $this->call('migrate', ['--force' => true]);
+            });
+
             return $code;
+        } catch (\Throwable $e) {
+            $this->error($e->getMessage());
+
+            return self::FAILURE;
         }
-
-        // Clear reset path for a half-applied SQLite install (DDL is not transactional).
-        $this->warn('Migrate failed; resetting SQLite database and retrying…');
-        $sqlite = database_path('database.sqlite');
-        File::put($sqlite, '');
-        config(['database.connections.sqlite.database' => $sqlite]);
-        DB::purge('sqlite');
-
-        return $this->call('migrate', ['--force' => true, '--database' => 'sqlite']);
     }
 }

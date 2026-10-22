@@ -45,7 +45,6 @@ it('preserves a valid in-memory APP_KEY into the rewritten .env', function () {
     putenv('APP_KEY='.$existingKey);
 
     File::put($envPath, "APP_ENV=local\nAPP_KEY=\nCACHE_STORE=redis\nQUEUE_CONNECTION=redis\n");
-    File::put($sqlite, '');
 
     try {
         expectInstallQuestions()->assertSuccessful();
@@ -70,7 +69,6 @@ it('generates APP_KEY when none is present in .env or config', function () {
     unset($_ENV['APP_KEY'], $_SERVER['APP_KEY']);
 
     File::delete($envPath);
-    File::put($sqlite, '');
 
     try {
         expectInstallQuestions()->assertSuccessful();
@@ -85,7 +83,6 @@ it('generates APP_KEY when none is present in .env or config', function () {
 it('migrates the minimal profile without Redis', function () {
     [$envPath, $envBackup, $sqlite, $sqliteBackup, $originalDefault] = beginInstallFixtures();
 
-    File::put($sqlite, '');
     config([
         'cache.default' => 'redis',
         'queue.default' => 'redis',
@@ -107,8 +104,6 @@ it('migrates the minimal profile without Redis', function () {
 
 it('is safely re-runnable with --force', function () {
     [$envPath, $envBackup, $sqlite, $sqliteBackup, $originalDefault] = beginInstallFixtures();
-
-    File::put($sqlite, '');
 
     try {
         expectInstallQuestions()->assertSuccessful();
@@ -135,11 +130,20 @@ function beginInstallFixtures(): array
     $envPath = base_path('.env');
     $sqlite = database_path('database.sqlite');
 
+    // Fresh empty SQLite file for each install test (installer always uses this path).
+    File::put($sqlite, '');
+    config([
+        'database.connections.sqlite.database' => $sqlite,
+        'cache.default' => 'array',
+        'permission.cache.store' => 'array',
+    ]);
+    DB::purge('sqlite');
+
     return [
         $envPath,
         File::exists($envPath) ? File::get($envPath) : null,
         $sqlite,
-        File::exists($sqlite) ? File::get($sqlite) : null,
+        null,
         (string) config('database.default'),
     ];
 }
@@ -185,12 +189,8 @@ function restoreInstallFixtures(
         File::put($envPath, $envBackup);
     }
 
-    if ($sqliteBackup === null) {
-        if (File::exists($sqlite)) {
-            File::delete($sqlite);
-        }
-    } else {
-        File::put($sqlite, $sqliteBackup);
+    if (File::exists($sqlite)) {
+        File::delete($sqlite);
     }
 
     putenv('APP_KEY');
