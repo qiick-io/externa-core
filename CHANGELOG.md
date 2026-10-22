@@ -9,6 +9,23 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-10-22
+
+### Fixed
+
+- `externa:install`: preserve or generate `APP_KEY` after rewriting `.env`, apply the selected stack to runtime config before migrate (minimal profile no longer needs Redis), and retry SQLite migrate after a clean reset when `--force` hits a half-applied DB (#245, #249)
+
+### Security
+
+- Official Docker image: pin base to `php:8.4.27-fpm-bookworm` and harden `docker/php/php.ini` (`session.upload_progress.enabled=0`, `session.use_strict_mode=1`, body/multipart limits matching nginx 100M) for CVE-2026-109618 / CVE-2026-109619 (#216). Composer `php` constraint raised to `^8.4.27` (#248). See the [security notice](https://github.com/qiick-io/externa-core/discussions/247).
+- AI collection-import webhook (`POST /ai/webhooks/collection-import`): HMAC-SHA256 over the raw body compared only with `hash_equals`; mismatch and missing `AI_WEBHOOK_TOKEN` outside `local` return 401 (fail closed); secret is never logged (#185, #214)
+  - **Upgrade:** callers must sign the raw request body only (`sha256=` + HMAC-SHA256). The previous body + newline + `collection_id` payload from #86 is no longer accepted. Invalid signatures now return **401** (was 403).
+
+### Upgrade notes
+
+- Docker: pull `ghcr.io/qiick-io/externa-core:1.2.2` (or `latest`) — built on PHP 8.4.27 with the hardened `php.ini`. Source installs: run PHP 8.4.27+ (or 8.5.12+) and disable `session.upload_progress` on your own runtime.
+- AI collection-import webhook signers must switch to HMAC over the raw body and set `AI_WEBHOOK_TOKEN` in every non-local environment (see Security above).
+
 ## [1.2.1] - 2026-10-21
 
 ### Fixed
@@ -34,7 +51,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Official headless starter conventions: multi-repo preferred, naming/env/TS/CI/Dependabot checklist in `docs/starters.md` (#156)
 - Official Nuxt headless starter: [qiick-io/externa-nuxt-starter](https://github.com/qiick-io/externa-nuxt-starter) + docs [Headless starter](https://docs.externa.qiick.io/docs/headless-starter) (#152)
 - Editorial approvals for versioned collections: `approvals_required`, submit/approve/reject, promote gate, review list filter, webhook events `item.submitted`/`item.approved`/`item.rejected`, Spatie `can-submit-collections` / `can-approve-collections` (#48)
-- Side-by-side translation workspace on the item form (source/target locales, copy helpers, completeness) (#49)
+- Translation helpers on the item form: locale switcher with per-locale completeness (filled/total), "Apply to all locales" / "Apply to empty locales", and per-field "Copy from {locale}" (#49)
 - Collection list layouts: optional kanban (select/radio) and calendar (date); table remains default (#47)
 - Items list toolbar filters; kanban lazy-load columns + DnD persist via `board_sort`; calendar multi-view with drag-to-reschedule; dark-mode contrast polish (#193)
 - AI field translate on the item form (`ContentTranslator` + translate endpoint; TipTap/markdown remount via value overrides) (#193)
@@ -178,7 +195,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 [GitHub Release](https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.1)
 
-[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/qiick-io/externa-core/releases/tag/v1.2.2
 [1.0.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0
 [1.0.0-beta.4]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.4
 [1.0.0-beta.2]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.2

@@ -197,19 +197,15 @@ test('collection import webhook rejects bad signature and accepts valid HMAC', f
         ],
     ];
     $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
-    $validSignature = CollectionImportWebhookController::sign(
-        $rawBody,
-        (string) $collection->id,
-        'signed-secret',
-    );
+    $validSignature = CollectionImportWebhookController::sign($rawBody, 'signed-secret');
 
     $this->withToken('signed-secret')
         ->postJson(route('ai.webhooks.collection-import'), $payload)
-        ->assertForbidden();
+        ->assertUnauthorized();
 
     $this->withHeaders(['X-AI-Webhook-Signature' => 'sha256=deadbeef'])
         ->postJson(route('ai.webhooks.collection-import'), $payload)
-        ->assertForbidden();
+        ->assertUnauthorized();
 
     $this->call(
         'POST',
@@ -245,11 +241,7 @@ test('collection import webhook signature for collection A cannot write collecti
         ],
     ];
     $rawBodyA = json_encode($payloadA, JSON_THROW_ON_ERROR);
-    $signatureForA = CollectionImportWebhookController::sign(
-        $rawBodyA,
-        (string) $collectionA->id,
-        'signed-secret',
-    );
+    $signatureForA = CollectionImportWebhookController::sign($rawBodyA, 'signed-secret');
 
     $payloadB = [
         'collection_id' => $collectionB->id,
@@ -271,7 +263,7 @@ test('collection import webhook signature for collection A cannot write collecti
             'HTTP_X_AI_WEBHOOK_SIGNATURE' => $signatureForA,
         ],
         $rawBodyB,
-    )->assertForbidden();
+    )->assertUnauthorized();
 
     expect($collectionA->items()->count())->toBe(0)
         ->and($collectionB->items()->count())->toBe(0);

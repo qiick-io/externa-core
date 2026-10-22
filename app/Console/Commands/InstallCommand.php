@@ -3,6 +3,8 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Encryption\Encrypter;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -68,6 +70,8 @@ class InstallCommand extends Command
             return self::FAILURE;
         }
 
+        $preservedAppKey = $this->resolvePreservedAppKey($envPath);
+
         $env = File::get(base_path('.env.example'));
         $env = $this->setEnv($env, 'APP_NAME', $appName);
         $env = $this->setEnv($env, 'APP_URL', $appUrl);
@@ -75,6 +79,10 @@ class InstallCommand extends Command
         $env = $this->applyStack($env, $stack);
         if (trim($aiUrl) !== '') {
             $env = $this->setEnv($env, 'LOCAL_AI_URL', trim($aiUrl));
+        }
+
+        if ($preservedAppKey !== null) {
+            $env = $this->setEnv($env, 'APP_KEY', $preservedAppKey);
         }
 
         File::put($envPath, $env);
@@ -88,11 +96,19 @@ class InstallCommand extends Command
             }
         }
 
-        $this->call('key:generate', ['--force' => true]);
-        $this->call('migrate', ['--force' => true]);
+        $this->ensureApplicationKey($envPath, $preservedAppKey);
+        $this->applyRuntimeConfig($db, $stack);
+
+        $migrate = $this->runMigrate($db, $force);
+        if ($migrate !== self::SUCCESS) {
+            return $migrate;
+        }
 
         if ($seed) {
-            $this->call('db:seed', ['--force' => true]);
+            $seedCode = $this->runArtisanProcess($db, ['db:seed', '--force', '--no-interaction', '--database='.$db]);
+            if ($seedCode !== self::SUCCESS) {
+                return $seedCode;
+            }
         }
 
         $this->call('storage:link');
@@ -202,6 +218,210 @@ class InstallCommand extends Command
         $env = $this->setEnv($env, 'SESSION_DRIVER', 'database');
         $env = $this->setEnv($env, 'BROADCAST_CONNECTION', 'reverb');
         $env = $this->setEnv($env, 'PULSE_ENABLED', 'true');
+
+        return $env;
+    }
+
+    /**
+     * Prefer an existing valid APP_KEY from the current .env (or boot config) so
+     * rewriting from .env.example does not blank a key already present in the process.
+     */
+    private function resolvePreservedAppKey(string $envPath): ?string
+    {
+        if (File::exists($envPath)) {
+            $existing = File::get($envPath);
+            if (preg_match('/^APP_KEY=(.*)$/m', $existing, $matches) === 1) {
+                $fromFile = $this->unwrapEnvValue(trim($matches[1]));
+                if ($this->isValidAppKey($fromFile)) {
+                    return $fromFile;
+                }
+            }
+        }
+
+        $fromConfig = (string) config('app.key');
+        if ($this->isValidAppKey($fromConfig)) {
+            return $fromConfig;
+        }
+
+        return null;
+    }
+
+    private function unwrapEnvValue(string $value): string
+    {
+        if ($value === '') {
+            return '';
+        }
+
+        if (
+            (str_starts_with($value, '"') && str_ends_with($value, '"'))
+            || (str_starts_with($value, "'") && str_ends_with($value, "'"))
+        ) {
+            return stripcslashes(substr($value, 1, -1));
+        }
+
+        return $value;
+    }
+
+    private function isValidAppKey(string $key): bool
+    {
+        return $key !== '' && str_starts_with($key, 'base64:');
+    }
+
+    /**
+     * Write a fresh APP_KEY when missing. Avoids key:generate failing when the
+     * in-memory key no longer matches the rewritten .env file.
+     */
+    private function ensureApplicationKey(string $envPath, ?string $preservedAppKey): void
+    {
+        if ($preservedAppKey !== null) {
+            config(['app.key' => $preservedAppKey]);
+            $this->line('Preserved existing APP_KEY');
+
+            return;
+        }
+
+        $key = 'base64:'.base64_encode(
+            Encrypter::generateKey((string) config('app.cipher'))
+        );
+
+        $env = File::get($envPath);
+        File::put($envPath, $this->setEnv($env, 'APP_KEY', $key));
+        config(['app.key' => $key]);
+        $this->info('Application key set successfully.');
+    }
+
+    /**
+     * Apply the selected profile to the already-booted config so migrate/seed
+     * do not keep .env.example defaults (e.g. CACHE_STORE=redis).
+     */
+    private function applyRuntimeConfig(string $db, string $stack): void
+    {
+        config(['database.default' => $db]);
+
+        if ($db === 'sqlite') {
+            config([
+                'database.connections.sqlite.database' => database_path('database.sqlite'),
+            ]);
+        }
+
+        if ($stack === 'minimal') {
+            config([
+                'queue.default' => 'database',
+                'cache.default' => 'database',
+                'session.driver' => 'database',
+                'broadcasting.default' => 'log',
+                'pulse.enabled' => false,
+            ]);
+        } else {
+            config([
+                'queue.default' => 'redis',
+                'cache.default' => 'redis',
+                'session.driver' => 'database',
+                'broadcasting.default' => 'reverb',
+                'pulse.enabled' => true,
+            ]);
+        }
+
+        // Drop boot-time drivers that may still point at Redis / the previous DB.
+        if ($this->laravel->bound('cache')) {
+            $this->laravel->make('cache')->forgetDriver();
+        }
+
+        // Re-resolve only the selected connection so migrate does not reuse a
+        // boot-time PDO (e.g. still on Redis-backed defaults or another driver).
+        DB::purge($db);
+    }
+
+    private function runMigrate(string $db, bool $force): int
+    {
+        $code = $this->runArtisanProcess($db, [
+            'migrate',
+            '--force',
+            '--no-interaction',
+            '--database='.$db,
+        ]);
+
+        if ($code === self::SUCCESS) {
+            return self::SUCCESS;
+        }
+
+        if ($db !== 'sqlite' || ! $force) {
+            return $code;
+        }
+
+        // Clear reset path for a half-applied SQLite install (DDL is not transactional).
+        $this->warn('Migrate failed; resetting SQLite database and retrying…');
+        $sqlite = database_path('database.sqlite');
+        File::put($sqlite, '');
+        config(['database.connections.sqlite.database' => $sqlite]);
+        DB::purge('sqlite');
+
+        return $this->runArtisanProcess('sqlite', [
+            'migrate',
+            '--force',
+            '--no-interaction',
+            '--database=sqlite',
+        ]);
+    }
+
+    /**
+     * Run artisan in a subprocess so parent process env (e.g. PHPUnit/CI DB_*)
+     * cannot override the connection selected by this installer.
+     *
+     * @param  list<string>  $artisanArgs
+     */
+    private function runArtisanProcess(string $connection, array $artisanArgs): int
+    {
+        $result = Process::path(base_path())
+            ->timeout(600)
+            ->env($this->databaseProcessEnvironment($connection))
+            ->run([PHP_BINARY, 'artisan', ...$artisanArgs]);
+
+        if ($result->output() !== '') {
+            $this->output->write($result->output());
+        }
+
+        if (! $result->successful()) {
+            $this->error($result->errorOutput() !== '' ? $result->errorOutput() : $result->output());
+
+            return self::FAILURE;
+        }
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Explicit DB_* / cache env for installer subprocesses.
+     *
+     * @return array<string, string>
+     */
+    private function databaseProcessEnvironment(string $connection): array
+    {
+        $config = config('database.connections.'.$connection, []);
+        $appKey = (string) config('app.key');
+
+        $env = [
+            'DB_CONNECTION' => $connection,
+            'DB_URL' => '',
+            'CACHE_STORE' => 'array',
+            'QUEUE_CONNECTION' => (string) config('queue.default', 'database'),
+        ];
+
+        if ($appKey !== '') {
+            $env['APP_KEY'] = $appKey;
+        }
+
+        if ($connection === 'sqlite') {
+            $env['DB_DATABASE'] = (string) ($config['database'] ?? database_path('database.sqlite'));
+
+            return $env;
+        }
+
+        $env['DB_HOST'] = (string) ($config['host'] ?? '127.0.0.1');
+        $env['DB_PORT'] = (string) ($config['port'] ?? '');
+        $env['DB_DATABASE'] = (string) ($config['database'] ?? '');
+        $env['DB_USERNAME'] = (string) ($config['username'] ?? '');
+        $env['DB_PASSWORD'] = (string) ($config['password'] ?? '');
 
         return $env;
     }

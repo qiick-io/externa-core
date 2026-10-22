@@ -1,9 +1,17 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/header-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset=".github/assets/header-light.svg">
+    <img alt="Externa: Self-hosted headless CMS built on Laravel" src=".github/assets/header-light.svg" width="100%">
+  </picture>
+</p>
+
 # Externa
 
 [![Docs](https://img.shields.io/badge/docs-docs.externa.qiick.io-0f766e)](https://docs.externa.qiick.io)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-**Version:** `1.2.1` (from `composer.json`; mirrored in `package.json`). See [CHANGELOG.md](./CHANGELOG.md) and [Releasing docs](https://docs.externa.qiick.io/docs/releasing).
+**Version:** `1.2.2` (from `composer.json`; mirrored in `package.json`). See [CHANGELOG.md](./CHANGELOG.md) and [Releasing docs](https://docs.externa.qiick.io/docs/releasing).
 
 Externa is a **Laravel-native headless CMS**: operators manage structured content in a full admin UI; websites and apps consume it through the **Public CMS API** (`/api/v1`) and **GraphQL** (`/api/graphql`). Optional in-app AI tools respect the signed-in user’s permissions — you own the code, so automation is Jobs/listeners, not a locked Flow canvas.
 
@@ -32,7 +40,7 @@ Stack: **Laravel 13**, **Inertia + React 19**, Vite, Spatie Permission / Activit
 
 | Requirement | Notes |
 | --- | --- |
-| **PHP 8.4+** | Pinned in `.php-version` / `composer.json` (`^8.4`). Herd PHP 8.4 recommended on macOS. |
+| **PHP 8.4.27+** | Pinned in `.php-version` / `composer.json` (`^8.4.27`). Herd PHP 8.4 recommended on macOS. Required for CVE-2026-109618 / CVE-2026-109619. |
 | **Composer 2** | PHP dependencies and `composer setup` / `composer run dev`. |
 | **Node.js 24** | Pinned in `.nvmrc` and `package.json` `engines`. Use `nvm use` (or equivalent). |
 | **Database** | **SQLite** 3.x (local/CI default); **PostgreSQL** 14+ (16 preferred, production recommended); **MySQL** 8.0+; **MariaDB** 10.6+ (10.11+ preferred). MySQL/MariaDB: `utf8mb4` / `utf8mb4_unicode_ci`. Matrix: [Supported databases](https://docs.externa.qiick.io/docs/supported-databases). |
@@ -51,7 +59,7 @@ nvm use   # Node 24
 php artisan externa:install
 ```
 
-Pin a release if needed: `qiick/externa-core:1.2.1`. Pre-tag smoke from git: `composer create-project qiick/externa-core:dev-develop my-externa`.
+Pin a release if needed: `qiick/externa-core:1.2.2`. Pre-tag smoke from git: `composer create-project qiick/externa-core:dev-develop my-externa`.
 
 `create-project` only copies `.env` (if missing) and runs `key:generate` — **no** migrate, seed, or SQLite assumption. Interactive first-run is `externa:install` (DB, APP_NAME/URL, stack profile, optional seed / AI URL, npm build).
 
@@ -124,6 +132,8 @@ Open the repo in VS Code **Reopen in Container** or GitHub Codespaces — `.devc
 ### Docker (local full stack)
 
 Official local path is **Compose** (`compose.yaml`) — Sail stays in `require-dev` but is not required. Stack: app (nginx+php-fpm) + Vite + Postgres + Redis + Horizon + Reverb + scheduler + Pulse + Mailpit. Optional MinIO profile for `FILES_DISK=s3`.
+
+Image base is pinned to **`php:8.4.27-fpm-bookworm`**. Runtime hardening lives in `docker/php/php.ini` (copied as `zz-externa.ini`): `session.upload_progress.enabled=0`, `session.use_strict_mode=1`, and body/multipart limits aligned with nginx `client_max_body_size` (`post_max_size` / `upload_max_filesize` 100M, `max_input_vars=3000`, `max_input_nesting_level=64`, `max_file_uploads=20`). Multipart admin uploads still work within those limits. `memory_limit` stays `512M` (not `-1`). Nginx must not set `PHP_VALUE` / `PHP_ADMIN_VALUE` (`docker/nginx/default.conf`).
 
 ```bash
 cp .env.docker.example .env
