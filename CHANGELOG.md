@@ -9,6 +9,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+### Fixed
+
+- `externa:install`: preserve or generate `APP_KEY` after rewriting `.env`, apply the selected stack to runtime config before migrate (minimal profile no longer needs Redis), and retry SQLite migrate after a clean reset when `--force` hits a half-applied DB (#245).
+
 ### Security
 
 - Official Docker image: pin base to `php:8.4.27-fpm-bookworm` and harden `docker/php/php.ini` (`session.upload_progress.enabled=0`, `session.use_strict_mode=1`, body/multipart limits matching nginx 100M) for CVE-2026-109618 / CVE-2026-109619 (#216). Composer `php` constraint raised to `^8.4.27`.
