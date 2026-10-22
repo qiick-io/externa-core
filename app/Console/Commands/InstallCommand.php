@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Encryption\Encrypter;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -104,7 +105,7 @@ class InstallCommand extends Command
         }
 
         if ($seed) {
-            $this->call('db:seed', ['--force' => true]);
+            $this->call('db:seed', ['--force' => true, '--database' => $db]);
         }
 
         $this->call('storage:link');
@@ -318,15 +319,19 @@ class InstallCommand extends Command
             ]);
         }
 
-        // Drop boot-time drivers that may still point at Redis from .env.example.
+        // Drop boot-time drivers that may still point at Redis / the previous DB.
         if ($this->laravel->bound('cache')) {
             $this->laravel->make('cache')->forgetDriver();
         }
+
+        // Re-resolve only the selected connection so migrate does not reuse a
+        // boot-time PDO (e.g. still on Redis-backed defaults or another driver).
+        DB::purge($db);
     }
 
     private function runMigrate(string $db, bool $force): int
     {
-        $code = $this->call('migrate', ['--force' => true]);
+        $code = $this->call('migrate', ['--force' => true, '--database' => $db]);
         if ($code === self::SUCCESS) {
             return self::SUCCESS;
         }
@@ -340,7 +345,8 @@ class InstallCommand extends Command
         $sqlite = database_path('database.sqlite');
         File::put($sqlite, '');
         config(['database.connections.sqlite.database' => $sqlite]);
+        DB::purge('sqlite');
 
-        return $this->call('migrate', ['--force' => true]);
+        return $this->call('migrate', ['--force' => true, '--database' => 'sqlite']);
     }
 }
