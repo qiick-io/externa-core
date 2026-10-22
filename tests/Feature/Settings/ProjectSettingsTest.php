@@ -55,7 +55,7 @@ test('authorized users can view and update project settings', function () {
             ->where('project.revision_retention_count', null)
             ->where('project.revision_retention_days', null)
             ->where('project.files_max_upload_bytes', null)
-            ->where('project.chat_max_upload_bytes', null)
+            ->where('project.chat_max_upload_bytes', 25 * 1024 * 1024)
         );
 
     $modules = config('settings.project.defaults.sidebar_modules');

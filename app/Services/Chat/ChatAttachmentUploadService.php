@@ -7,11 +7,14 @@ use App\Models\CollectionItemChatAttachment;
 use App\Models\User;
 use App\Services\FileTransformService;
 use App\Services\Settings\ProjectSettings;
+use App\Support\Uploads\ForbiddenUploadExtension;
+use App\Support\Uploads\SafeUploadMime;
 use App\Support\Uploads\UploadSizeLimiter;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 /**
@@ -37,10 +40,13 @@ class ChatAttachmentUploadService
         UploadSizeLimiter::assertWithinCap($this->projectSettings->chatMaxUploadBytes(), $size);
         UploadSizeLimiter::assertFitsPhpSingleUpload($size);
 
-        $extension = strtolower((string) $uploaded->getClientOriginalExtension());
-        $mimeType = $this->resolveMime($uploaded, $extension);
+        $clientName = $uploaded->getClientOriginalName();
+        $originalName = $clientName !== '' ? $clientName : 'attachment.bin';
+        $contents = $uploaded->getContent();
+        $mimeType = SafeUploadMime::assertChatAllowed($originalName, SafeUploadMime::sniff($contents));
+        $extension = SafeUploadMime::extensionOf($originalName);
         $attachmentId = (string) Str::uuid7();
-        $safeName = Str::slug(pathinfo($uploaded->getClientOriginalName(), PATHINFO_FILENAME)) ?: 'attachment';
+        $safeName = Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) ?: 'attachment';
         $storagePath = sprintf(
             'chat-attachments/%d/%s.%s',
             $user->id,
@@ -48,7 +54,6 @@ class ChatAttachmentUploadService
             $extension !== '' ? $extension : 'bin',
         );
 
-        $contents = $uploaded->getContent();
         Storage::disk(CollectionItemChatAttachment::DISK)->put($storagePath, $contents);
 
         $preview = $this->maybeWritePreview($user->id, $attachmentId, $mimeType, $contents);
@@ -56,9 +61,7 @@ class ChatAttachmentUploadService
         return CollectionItemChatAttachment::query()->create([
             'id' => $attachmentId,
             'user_id' => $user->id,
-            'original_name' => $uploaded->getClientOriginalName() !== ''
-                ? $uploaded->getClientOriginalName()
-                : "{$safeName}.{$extension}",
+            'original_name' => $clientName !== '' ? $originalName : "{$safeName}.{$extension}",
             'mime_type' => $mimeType,
             'disk' => CollectionItemChatAttachment::DISK,
             'path' => $storagePath,
@@ -85,12 +88,22 @@ class ChatAttachmentUploadService
             'total_size',
         );
 
+        // Reject forbidden / non-allowlisted names at init (content re-checked on complete).
+        $extension = SafeUploadMime::extensionOf($fileName);
+        if ($extension === '' || ! isset(SafeUploadMime::CHAT_EXTENSION_MIMES[$extension])) {
+            throw ValidationException::withMessages([
+                'file_name' => ['This file type is not allowed.'],
+            ]);
+        }
+        ForbiddenUploadExtension::assertAllowed($fileName, 'file_name');
+
         $uploadId = bin2hex(random_bytes(32));
 
         return ChatAttachmentUpload::query()->create([
             'upload_id' => $uploadId,
             'user_id' => $user->id,
             'file_name' => $fileName,
+            // Client mime is a hint only; complete() re-sniffs and ignores this.
             'mime_type' => $mimeType,
             'total_size' => $totalSize,
             'total_chunks' => $totalChunks,
@@ -184,10 +197,13 @@ class ChatAttachmentUploadService
             throw new RuntimeException('Assembled size does not match declared total_size.');
         }
 
-        $extension = strtolower((string) pathinfo($fileUpload->file_name, PATHINFO_EXTENSION));
-        $mimeType = is_string($fileUpload->mime_type) && $fileUpload->mime_type !== ''
-            ? strtolower($fileUpload->mime_type)
-            : $this->mimeFromExtension($extension);
+        // Always re-sniff assembled bytes; never trust client mime_type.
+        $mimeType = SafeUploadMime::assertChatAllowed(
+            (string) $fileUpload->file_name,
+            SafeUploadMime::sniff($assembled),
+            'file_name',
+        );
+        $extension = SafeUploadMime::extensionOf((string) $fileUpload->file_name);
 
         $attachmentId = (string) Str::uuid7();
         $storagePath = sprintf(
@@ -204,7 +220,7 @@ class ChatAttachmentUploadService
             'id' => $attachmentId,
             'user_id' => $user->id,
             'original_name' => $fileUpload->file_name,
-            'mime_type' => $mimeType !== '' ? $mimeType : 'application/octet-stream',
+            'mime_type' => $mimeType,
             'disk' => CollectionItemChatAttachment::DISK,
             'path' => $storagePath,
             'preview_path' => $preview['path'] ?? null,
@@ -259,44 +275,12 @@ class ChatAttachmentUploadService
         return $count;
     }
 
-    private function resolveMime(UploadedFile $uploaded, string $extension): string
-    {
-        $mimeType = strtolower((string) ($uploaded->getMimeType() ?: $uploaded->getClientMimeType() ?: ''));
-
-        if ($mimeType !== '') {
-            return $mimeType;
-        }
-
-        return $this->mimeFromExtension($extension);
-    }
-
-    private function mimeFromExtension(string $extension): string
-    {
-        return match ($extension) {
-            'jpg', 'jpeg' => 'image/jpeg',
-            'png' => 'image/png',
-            'gif' => 'image/gif',
-            'webp' => 'image/webp',
-            'mp4' => 'video/mp4',
-            'webm' => 'video/webm',
-            'mov' => 'video/quicktime',
-            'pdf' => 'application/pdf',
-            'doc' => 'application/msword',
-            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'xls' => 'application/vnd.ms-excel',
-            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'txt' => 'text/plain',
-            'csv' => 'text/csv',
-            default => 'application/octet-stream',
-        };
-    }
-
     /**
      * @return array{path: string, mime: string}|null
      */
     private function maybeWritePreview(int $userId, string $attachmentId, string $mimeType, string $contents): ?array
     {
-        if (! str_starts_with($mimeType, 'image/') || $mimeType === 'image/svg+xml') {
+        if (! SafeUploadMime::isInlineImage($mimeType)) {
             return null;
         }
 
