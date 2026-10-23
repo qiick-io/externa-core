@@ -135,7 +135,7 @@ class ProjectAppearance
         $shared = $this->shared();
         $primary = is_string($shared['projectColor'] ?? null) && $shared['projectColor'] !== ''
             ? $shared['projectColor']
-            : '#18181b';
+            : '#0E7C86';
         $foreground = ContrastingForeground::forHex($primary) ?? ContrastingForeground::WHITE;
 
         return [
