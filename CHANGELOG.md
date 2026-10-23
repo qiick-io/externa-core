@@ -9,6 +9,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+### Changed
+
+- Externa mark v3 (bow-tie) assets and admin colour defaults: primary `#0E7C86` (light) / `#1A95A2` (dark), focus rings and chart accents from the v3 teal scale; favicon links cache-busted with `?v=3` (#258)
+
 ## [1.2.2] - 2026-10-22
 
 ### Fixed
