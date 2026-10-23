@@ -5,6 +5,7 @@ namespace App\Services\Collections;
 use App\Http\Controllers\Api\V1\LivePreviewController;
 use App\Models\Collection;
 use App\Models\CollectionItem;
+use App\Models\User;
 use App\Services\Settings\ProjectSettings;
 use RuntimeException;
 
@@ -15,7 +16,7 @@ use RuntimeException;
  */
 class LivePreviewUrlBuilder
 {
-    public const TTL_SECONDS = 900;
+    public const TTL_SECONDS = 300;
 
     /**
      * @var list<string>
@@ -45,6 +46,20 @@ class LivePreviewUrlBuilder
     }
 
     /**
+     * Content fingerprint so draft/published edits can invalidate outstanding tokens.
+     */
+    public function contentHash(CollectionItem $item, string $version): string
+    {
+        $stamp = $item->updated_at?->getTimestamp() ?? 0;
+
+        if ($version === 'draft') {
+            return hash('sha256', $stamp.'|'.json_encode($item->draft_data ?? [], JSON_THROW_ON_ERROR));
+        }
+
+        return hash('sha256', (string) $stamp);
+    }
+
+    /**
      * @param  'draft'|'published'  $version
      * @return array{url: string, expires_at: string}
      */
@@ -53,10 +68,15 @@ class LivePreviewUrlBuilder
         CollectionItem $item,
         string $version = 'published',
         ?string $locale = null,
+        ?User $user = null,
     ): array {
         $template = $this->templateFor($collection);
         if ($template === null) {
             throw new RuntimeException('No Live Preview URL configured for this collection.');
+        }
+
+        if ($user === null) {
+            throw new RuntimeException('Live Preview tokens require an issuing user.');
         }
 
         $version = $version === 'draft' ? 'draft' : 'published';
@@ -71,6 +91,8 @@ class LivePreviewUrlBuilder
             version: $version,
             locale: $locale,
             expiresAt: $expiresAt->getTimestamp(),
+            userId: (int) $user->id,
+            contentHash: $this->contentHash($item, $version),
         );
 
         $replacements = [

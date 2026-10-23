@@ -241,9 +241,11 @@ test('authorized users can import a file from a mocked remote url', function () 
     ]);
     $this->actingAs($user);
 
+    // Real 1×1 PNG so server-side finfo agrees with the .png extension.
+    $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', true);
     Http::fake([
         'https://example.com/photo.png' => Http::response(
-            'fake-png-bytes',
+            $png,
             200,
             ['Content-Type' => 'image/png'],
         ),

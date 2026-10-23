@@ -12,6 +12,7 @@ use App\Services\Api\FilePermissionGuard;
 use App\Services\FileService;
 use App\Services\FileTransformService;
 use App\Support\Files\FilesDisk;
+use App\Support\Http\UserContentResponse;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -94,11 +95,12 @@ class FileController extends Controller
             abort(404);
         }
 
-        return Storage::disk($file->disk)->response(
+        return UserContentResponse::fromDisk(
+            Storage::disk($file->disk),
             $file->storage_path,
             $file->downloadFilename(),
+            $file->mime_type,
             [
-                'Content-Type' => $file->mime_type ?? 'application/octet-stream',
                 'Cache-Control' => 'private, max-age=3600',
             ],
         );
@@ -123,10 +125,17 @@ class FileController extends Controller
             abort(404);
         }
 
-        return Storage::disk($file->disk)->response($cachePath, null, [
-            'Content-Type' => $this->fileTransformService->mimeForPath($cachePath),
-            'Cache-Control' => 'private, max-age=86400',
-        ]);
+        $transformMime = $this->fileTransformService->mimeForPath($cachePath);
+
+        return UserContentResponse::fromDisk(
+            Storage::disk($file->disk),
+            $cachePath,
+            basename($cachePath),
+            $transformMime,
+            [
+                'Cache-Control' => 'private, max-age=86400',
+            ],
+        );
     }
 
     public function store(Request $request): JsonResponse

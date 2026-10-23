@@ -107,31 +107,59 @@ Route::middleware(['auth', 'verified'])
             ->name('collections.items.chat.stop-viewing');
 
         Route::post('collections/{collection}/items/{item}/chat/attachments', [ItemChatController::class, 'storeAttachment'])
-            ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+            ->middleware([
+                'permission:'.PermissionEnum::CanShowCollections->value,
+                'permission:'.PermissionEnum::CanShowChat->value,
+                'module:chat',
+            ])
             ->name('collections.items.chat.attachments.store');
 
         Route::post('collections/{collection}/items/{item}/chat/attachments/uploads/init', [ItemChatController::class, 'initAttachmentUpload'])
-            ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+            ->middleware([
+                'permission:'.PermissionEnum::CanShowCollections->value,
+                'permission:'.PermissionEnum::CanShowChat->value,
+                'module:chat',
+            ])
             ->name('collections.items.chat.attachments.uploads.init');
 
         Route::post('collections/{collection}/items/{item}/chat/attachments/uploads/chunk', [ItemChatController::class, 'uploadAttachmentChunk'])
-            ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+            ->middleware([
+                'permission:'.PermissionEnum::CanShowCollections->value,
+                'permission:'.PermissionEnum::CanShowChat->value,
+                'module:chat',
+            ])
             ->name('collections.items.chat.attachments.uploads.chunk');
 
         Route::post('collections/{collection}/items/{item}/chat/attachments/uploads/complete', [ItemChatController::class, 'completeAttachmentUpload'])
-            ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+            ->middleware([
+                'permission:'.PermissionEnum::CanShowCollections->value,
+                'permission:'.PermissionEnum::CanShowChat->value,
+                'module:chat',
+            ])
             ->name('collections.items.chat.attachments.uploads.complete');
 
         Route::get('collections/{collection}/items/{item}/chat/attachments/uploads/status', [ItemChatController::class, 'attachmentUploadStatus'])
-            ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+            ->middleware([
+                'permission:'.PermissionEnum::CanShowCollections->value,
+                'permission:'.PermissionEnum::CanShowChat->value,
+                'module:chat',
+            ])
             ->name('collections.items.chat.attachments.uploads.status');
 
         Route::get('collections/{collection}/items/{item}/chat/attachments/{attachment}', [ItemChatController::class, 'showAttachment'])
-            ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+            ->middleware([
+                'permission:'.PermissionEnum::CanShowCollections->value,
+                'permission:'.PermissionEnum::CanShowChat->value,
+                'module:chat',
+            ])
             ->name('collections.items.chat.attachments.show');
 
         Route::get('collections/{collection}/items/{item}/chat/attachments/{attachment}/preview', [ItemChatController::class, 'showAttachmentPreview'])
-            ->middleware('permission:'.PermissionEnum::CanShowCollections->value)
+            ->middleware([
+                'permission:'.PermissionEnum::CanShowCollections->value,
+                'permission:'.PermissionEnum::CanShowChat->value,
+                'module:chat',
+            ])
             ->name('collections.items.chat.attachments.preview');
 
         Route::delete('collections/{collection}/items/{item}/chat/attachments/{attachment}', [ItemChatController::class, 'destroyAttachment'])

@@ -25,7 +25,10 @@ beforeEach(function () {
  */
 function chatUploadKitchen(): array
 {
-    $user = grantCollectionPermissions(User::factory()->create(), allCollectionPermissions());
+    $user = grantCollectionPermissions(User::factory()->create(), [
+        ...allCollectionPermissions(),
+        PermissionEnum::CanShowChat->value,
+    ]);
     $collection = Collection::factory()->create();
     CollectionField::factory()->create([
         'collection_id' => $collection->id,
@@ -41,15 +44,15 @@ test('chat chunked upload init chunk complete creates orphan attachment', functi
     ['user' => $user, 'collection' => $collection, 'item' => $item] = chatUploadKitchen();
     $this->actingAs($user);
 
-    $content = str_repeat('v', 12 * 1024);
+    $content = str_repeat('plain text chunk payload ', 400);
     $totalChunks = 2;
     $chunkSize = (int) ceil(strlen($content) / $totalChunks);
 
     $init = $this->postJson(route('collections.items.chat.attachments.uploads.init', [$collection, $item]), [
-        'file_name' => 'clip.mp4',
+        'file_name' => 'notes.txt',
         'total_size' => strlen($content),
         'total_chunks' => $totalChunks,
-        'mime_type' => 'video/mp4',
+        'mime_type' => 'text/plain',
     ])->assertCreated();
 
     $uploadId = $init->json('upload_id');
@@ -67,30 +70,26 @@ test('chat chunked upload init chunk complete creates orphan attachment', functi
         'upload_id' => $uploadId,
     ])->assertCreated()->json('attachment');
 
-    expect($complete['name'])->toBe('clip.mp4')
-        ->and($complete['mime'])->toBe('video/mp4')
+    expect($complete['name'])->toBe('notes.txt')
+        ->and($complete['mime'])->toBe('text/plain')
         ->and($complete['size'])->toBe(strlen($content))
         ->and(CollectionItemChatAttachment::query()->where('id', $complete['id'])->whereNull('message_id')->exists())->toBeTrue();
 });
 
-test('chat upload accepts any file type', function () {
+test('chat upload rejects disallowed file types', function () {
     ['user' => $user, 'collection' => $collection, 'item' => $item] = chatUploadKitchen();
     $this->actingAs($user);
 
-    $store = $this->postJson(route('collections.items.chat.attachments.store', [$collection, $item]), [
+    $this->postJson(route('collections.items.chat.attachments.store', [$collection, $item]), [
         'file' => UploadedFile::fake()->createWithContent('archive.zip', 'PK..payload'),
-    ])->assertCreated()->json('attachment');
+    ])->assertUnprocessable();
 
-    expect($store['name'])->toBe('archive.zip');
-
-    $init = $this->postJson(route('collections.items.chat.attachments.uploads.init', [$collection, $item]), [
+    $this->postJson(route('collections.items.chat.attachments.uploads.init', [$collection, $item]), [
         'file_name' => 'payload.bin',
         'total_size' => 8,
         'total_chunks' => 1,
         'mime_type' => 'application/octet-stream',
-    ])->assertCreated();
-
-    expect($init->json('upload_id'))->toBeString()->not->toBeEmpty();
+    ])->assertUnprocessable();
 });
 
 test('chat upload respects chat_max_upload_bytes setting', function () {
@@ -118,7 +117,7 @@ test('chat upload respects chat_max_upload_bytes setting', function () {
     ])->assertUnprocessable();
 
     $this->postJson(route('collections.items.chat.attachments.store', [$collection, $item]), [
-        'file' => UploadedFile::fake()->createWithContent('ok.txt', 'hi'),
+        'file' => UploadedFile::fake()->createWithContent('ok.txt', "hi there\n"),
     ])->assertCreated();
 });
 
@@ -155,7 +154,7 @@ test('orphan chat attachment can be deleted by owner', function () {
 
     $upload = $this->postJson(
         route('collections.items.chat.attachments.store', [$collection, $item]),
-        ['file' => UploadedFile::fake()->createWithContent('tmp.txt', 'x')],
+        ['file' => UploadedFile::fake()->createWithContent('tmp.txt', "temporary note\n")],
     )->assertCreated()->json('attachment');
 
     $this->deleteJson(route('collections.items.chat.attachments.destroy', [
