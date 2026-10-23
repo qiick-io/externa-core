@@ -9,6 +9,26 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-10-22
+
+### Security
+
+- Security hardening of user-uploaded content responses (item chat attachments and Public API file content) and of Live Preview access control. See the security advisories [GHSA-wrg8-3xp4-qq8h](https://github.com/qiick-io/externa-core/security/advisories/GHSA-wrg8-3xp4-qq8h), [GHSA-6v82-w58h-mhqq](https://github.com/qiick-io/externa-core/security/advisories/GHSA-6v82-w58h-mhqq) and [GHSA-946v-wjmm-rvc2](https://github.com/qiick-io/externa-core/security/advisories/GHSA-946v-wjmm-rvc2). All users should upgrade.
+
+### Changed
+
+- Chat attachments: default maximum upload size is now **25 MiB** (`chat_max_upload_bytes`; previously unlimited). Raise it in Project settings if you need larger files.
+- Chat attachments and Public API file content are now served as downloads (`Content-Disposition: attachment`) unless the file is a JPEG, PNG, GIF or WebP image, which still displays inline. Responses carry stricter security headers.
+- Item-form chat attachments (upload and show) now require the `can-show-chat` permission and the Chat sidebar module to be enabled, in addition to `can-show-collections`.
+- Live Preview links are bound to the user who generated them and are valid for **5 minutes** (was 15).
+
+### Upgrade notes
+
+- Source installs: merge or check out the `v1.2.3` tag, then run `composer install` and `php artisan optimize:clear`. Docker: pull `ghcr.io/qiick-io/externa-core:1.2.3` (or `latest`).
+- Live Preview links generated before the upgrade stop working (403); reopen the preview from the item form to get a new link. Headless starters that cache preview URLs should request a fresh one.
+- Users who attach files from the item form but lack `can-show-chat` need that permission, with the Chat module enabled, to keep doing so.
+- Existing non-image files are now served as downloads; their links keep working but they no longer open in the browser tab.
+
 ## [1.2.2] - 2026-10-22
 
 ### Fixed
@@ -195,7 +215,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 [GitHub Release](https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.1)
 
-[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.2.3...HEAD
+[1.2.3]: https://github.com/qiick-io/externa-core/releases/tag/v1.2.3
 [1.2.2]: https://github.com/qiick-io/externa-core/releases/tag/v1.2.2
 [1.0.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0
 [1.0.0-beta.4]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.4

@@ -39,6 +39,7 @@ function chatKitchen(array $extraPermissions = []): array
 {
     $permissions = array_values(array_unique([
         ...allCollectionPermissions(),
+        PermissionEnum::CanShowChat->value,
         ...$extraPermissions,
     ]));
     $user = grantCollectionPermissions(User::factory()->create(), $permissions);
@@ -425,7 +426,7 @@ test('save-to-files is forbidden without can-create-files', function () {
 
     $upload = $this->postJson(
         route('collections.items.chat.attachments.store', [$collection, $item]),
-        ['file' => UploadedFile::fake()->createWithContent('note.txt', 'x')],
+        ['file' => UploadedFile::fake()->createWithContent('note.txt', "note body\n")],
     )->assertCreated()->json('attachment');
 
     $this->postJson(route('collections.items.chat.attachments.save-to-files', [
