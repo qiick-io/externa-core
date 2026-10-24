@@ -2,6 +2,7 @@
 
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
+use App\Models\ApiKey;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
@@ -105,6 +106,189 @@ it('scopes never grant more than the role', function (): void {
     $this->withToken($auth['plain'])
         ->getJson("/api/v1/collections/posts/items/{$item->id}")
         ->assertForbidden();
+});
+
+it('does not expand include relations from out-of-scope collections', function (): void {
+    $authors = Collection::query()->create([
+        'name' => 'Authors',
+        'slug' => 'authors',
+        'is_singleton' => false,
+        'sort_order' => 1,
+    ]);
+    CollectionField::factory()->create([
+        'collection_id' => $authors->id,
+        'name' => 'name',
+        'type' => FieldTypeEnum::String,
+    ]);
+    $author = $authors->items()->create([]);
+    app(CollectionItemValuesWriter::class)->sync(
+        $author,
+        $authors->fresh(['fields']),
+        app(CollectionItemDataNormalizer::class)->normalize($authors->fresh(['fields']), ['name' => 'Secret Author'], true),
+    );
+
+    $blog = Collection::query()->create([
+        'name' => 'Blog',
+        'slug' => 'blog',
+        'is_singleton' => false,
+        'sort_order' => 2,
+    ]);
+    CollectionField::factory()->create([
+        'collection_id' => $blog->id,
+        'name' => 'author',
+        'type' => FieldTypeEnum::ManyToOne,
+        'settings' => ['related_collection_id' => $authors->id],
+    ]);
+    $post = $blog->items()->create([]);
+    app(CollectionItemValuesWriter::class)->sync(
+        $post,
+        $blog->fresh(['fields']),
+        app(CollectionItemDataNormalizer::class)->normalize($blog->fresh(['fields']), ['author' => $author->id], true),
+    );
+
+    $auth = makeApiKeyForRole();
+    grantRoleActions($auth['role'], $blog, [CollectionPermissionActionEnum::Read]);
+    grantRoleActions($auth['role'], $authors, [CollectionPermissionActionEnum::Read]);
+    $auth['key']->forceFill(['collection_slugs' => ['blog']])->save();
+
+    $response = $this->withToken($auth['plain'])
+        ->getJson("/api/v1/collections/blog/items/{$post->id}?include=author")
+        ->assertOk();
+
+    // Same shape as role-unreadable relations: bare id, no nested payload.
+    expect($response->json('data.data.author'))->toBe($author->id)
+        ->and(is_array($response->json('data.data.author')))->toBeFalse()
+        ->and(json_encode($response->json()))->not->toContain('Secret Author');
+});
+
+it('partitions response cache for keys that share a role but differ in scopes', function (): void {
+    $authors = Collection::query()->create([
+        'name' => 'Authors',
+        'slug' => 'cache-authors',
+        'is_singleton' => false,
+        'sort_order' => 1,
+    ]);
+    CollectionField::factory()->create([
+        'collection_id' => $authors->id,
+        'name' => 'name',
+        'type' => FieldTypeEnum::String,
+    ]);
+    $author = $authors->items()->create([]);
+    app(CollectionItemValuesWriter::class)->sync(
+        $author,
+        $authors->fresh(['fields']),
+        app(CollectionItemDataNormalizer::class)->normalize($authors->fresh(['fields']), ['name' => 'Cached Author'], true),
+    );
+
+    $blog = Collection::query()->create([
+        'name' => 'Blog',
+        'slug' => 'cache-blog',
+        'is_singleton' => false,
+        'sort_order' => 2,
+    ]);
+    CollectionField::factory()->create([
+        'collection_id' => $blog->id,
+        'name' => 'author',
+        'type' => FieldTypeEnum::ManyToOne,
+        'settings' => ['related_collection_id' => $authors->id],
+    ]);
+    $post = $blog->items()->create([]);
+    app(CollectionItemValuesWriter::class)->sync(
+        $post,
+        $blog->fresh(['fields']),
+        app(CollectionItemDataNormalizer::class)->normalize($blog->fresh(['fields']), ['author' => $author->id], true),
+    );
+
+    $wide = makeApiKeyForRole();
+    grantRoleActions($wide['role'], $blog, [CollectionPermissionActionEnum::Read]);
+    grantRoleActions($wide['role'], $authors, [CollectionPermissionActionEnum::Read]);
+
+    // Second key: same role, blog-only allowlist.
+    $secret = ApiKey::generateSecret();
+    $narrowKey = ApiKey::query()->create([
+        'name' => 'Narrow',
+        'key_prefix' => $secret['prefix'],
+        'key_hash' => $secret['hash'],
+        'role_id' => $wide['role']->id,
+        'collection_slugs' => ['cache-blog'],
+        'read_only' => false,
+    ]);
+
+    $url = "/api/v1/collections/cache-blog/items/{$post->id}?include=author";
+
+    // Wide key warms cache with expanded author.
+    $this->withToken($wide['plain'])->getJson($url)->assertOk()
+        ->assertJsonPath('data.data.author.data.name', 'Cached Author');
+
+    // Narrow key must not reuse that payload.
+    $narrow = $this->withToken($secret['plain'])->getJson($url)->assertOk();
+    expect($narrow->json('data.data.author'))->toBe($author->id)
+        ->and(is_array($narrow->json('data.data.author')))->toBeFalse()
+        ->and(json_encode($narrow->json()))->not->toContain('Cached Author');
+
+    expect($narrowKey->fresh()->collection_slugs)->toBe(['cache-blog']);
+});
+
+it('read_only key can include in-scope relations but cannot write', function (): void {
+    $authors = Collection::query()->create([
+        'name' => 'Authors',
+        'slug' => 'ro-authors',
+        'is_singleton' => false,
+        'sort_order' => 1,
+    ]);
+    CollectionField::factory()->create([
+        'collection_id' => $authors->id,
+        'name' => 'name',
+        'type' => FieldTypeEnum::String,
+    ]);
+    $author = $authors->items()->create([]);
+    app(CollectionItemValuesWriter::class)->sync(
+        $author,
+        $authors->fresh(['fields']),
+        app(CollectionItemDataNormalizer::class)->normalize($authors->fresh(['fields']), ['name' => 'Readable'], true),
+    );
+
+    $blog = Collection::query()->create([
+        'name' => 'Blog',
+        'slug' => 'ro-blog',
+        'is_singleton' => false,
+        'sort_order' => 2,
+    ]);
+    CollectionField::factory()->create([
+        'collection_id' => $blog->id,
+        'name' => 'author',
+        'type' => FieldTypeEnum::ManyToOne,
+        'settings' => ['related_collection_id' => $authors->id],
+    ]);
+    $post = $blog->items()->create([]);
+    app(CollectionItemValuesWriter::class)->sync(
+        $post,
+        $blog->fresh(['fields']),
+        app(CollectionItemDataNormalizer::class)->normalize($blog->fresh(['fields']), ['author' => $author->id], true),
+    );
+
+    $auth = makeApiKeyForRole();
+    grantRoleActions($auth['role'], $blog, [
+        CollectionPermissionActionEnum::Read,
+        CollectionPermissionActionEnum::Create,
+        CollectionPermissionActionEnum::Update,
+        CollectionPermissionActionEnum::Delete,
+    ]);
+    grantRoleActions($auth['role'], $authors, [CollectionPermissionActionEnum::Read]);
+    $auth['key']->forceFill([
+        'collection_slugs' => ['ro-blog', 'ro-authors'],
+        'read_only' => true,
+    ])->save();
+
+    $asKey = fn () => $this->withToken($auth['plain']);
+
+    $asKey()->getJson("/api/v1/collections/ro-blog/items/{$post->id}?include=author")
+        ->assertOk()
+        ->assertJsonPath('data.data.author.data.name', 'Readable');
+
+    $asKey()->postJson('/api/v1/collections/ro-blog/items', ['data' => []])->assertForbidden();
+    $asKey()->patchJson("/api/v1/collections/ro-blog/items/{$post->id}", ['data' => []])->assertForbidden();
+    $asKey()->deleteJson("/api/v1/collections/ro-blog/items/{$post->id}")->assertForbidden();
 });
 
 it('enforces collection allowlist and read_only on GraphQL', function (): void {
