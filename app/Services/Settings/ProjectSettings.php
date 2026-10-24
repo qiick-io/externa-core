@@ -72,6 +72,17 @@ class ProjectSettings
     }
 
     /**
+     * Section-scoped edit payload (subset of {@see forEdit()}).
+     *
+     * @param  list<string>  $keys
+     * @return array<string, mixed>
+     */
+    public function forEditOnly(array $keys): array
+    {
+        return array_intersect_key($this->forEdit(), array_flip($keys));
+    }
+
+    /**
      * Public/safe payload shared on every Inertia page.
      *
      * @return array{

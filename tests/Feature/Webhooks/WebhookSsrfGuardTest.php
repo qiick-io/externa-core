@@ -31,7 +31,7 @@ it('rejects private webhook urls on project settings save', function (string $ur
     ]);
 
     $this->actingAs($user)
-        ->put(route('project.update'), baseProjectPayload([
+        ->put(route('project.integrations.update'), baseIntegrationsPayload([
             'webhook_url' => $url,
             'webhook_secret' => 'test-secret',
         ]))
@@ -44,7 +44,7 @@ it('rejects private slack notifier urls on project settings save', function (str
     ]);
 
     $this->actingAs($user)
-        ->put(route('project.update'), baseProjectPayload([
+        ->put(route('project.integrations.update'), baseIntegrationsPayload([
             'notifier_slack_webhook_url' => $url,
         ]))
         ->assertSessionHasErrors('notifier_slack_webhook_url');
@@ -56,12 +56,12 @@ it('allows public https webhook url on save', function (): void {
     ]);
 
     $this->actingAs($user)
-        ->put(route('project.update'), baseProjectPayload([
+        ->put(route('project.integrations.update'), baseIntegrationsPayload([
             'webhook_url' => 'https://example.com/externa-hooks',
             'webhook_secret' => 'test-secret',
         ]))
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.edit'));
+        ->assertRedirect(route('project.integrations.edit'));
 });
 
 it('refuses delivery when stored webhook url is private', function (): void {

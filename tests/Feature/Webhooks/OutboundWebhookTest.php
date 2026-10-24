@@ -229,10 +229,10 @@ test('project settings page exposes webhook catalog and delivery status', functi
     ]);
 
     $this->actingAs($user)
-        ->get(route('project.edit'))
+        ->get(route('project.integrations.edit'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('settings/project')
+            ->component('settings/project/integrations')
             ->has('webhookEvents', count(OutboundWebhookCatalog::EVENTS))
             ->where('webhookEvents.0.type', 'item.created')
             ->where('webhookDeliveries.last_success.event_id', 'evt_01page')
@@ -355,27 +355,27 @@ test('clearing webhook url disables outbound webhooks', function () {
     ]);
 
     $this->actingAs($user)
-        ->put(route('project.update'), baseProjectPayload([
+        ->put(route('project.integrations.update'), baseIntegrationsPayload([
             'webhook_url' => 'https://example.com/externa-hooks',
             'webhook_secret' => 'keep-me',
         ]))
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.edit'));
+        ->assertRedirect(route('project.integrations.edit'));
 
     expect(app(ProjectSettings::class)->webhookUrl())->toBe('https://example.com/externa-hooks');
 
     $this->actingAs($user)
-        ->put(route('project.update'), baseProjectPayload([
+        ->put(route('project.integrations.update'), baseIntegrationsPayload([
             'webhook_url' => '',
         ]))
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.edit'));
+        ->assertRedirect(route('project.integrations.edit'));
 
     expect(app(ProjectSettings::class)->webhookUrl())->toBeNull()
         ->and(app(ProjectSettings::class)->webhookSecret())->toBe('keep-me');
 
     $this->actingAs($user)
-        ->get(route('project.edit'))
+        ->get(route('project.integrations.edit'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('project.webhook_url', null)
@@ -389,12 +389,12 @@ test('project settings stores encrypted webhook secret and never shares it', fun
     ]);
 
     $this->actingAs($user)
-        ->put(route('project.update'), baseProjectPayload([
+        ->put(route('project.integrations.update'), baseIntegrationsPayload([
             'webhook_url' => 'https://example.com/externa-hooks',
             'webhook_secret' => 'super-secret-value',
         ]))
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.edit'));
+        ->assertRedirect(route('project.integrations.edit'));
 
     $stored = app(SettingsRepository::class)->get(
         SettingsRepository::SCOPE_PROJECT,
@@ -409,10 +409,10 @@ test('project settings stores encrypted webhook secret and never shares it', fun
         ->and(app(ProjectSettings::class)->shared())->not->toHaveKey('webhookSecret');
 
     $this->actingAs($user)
-        ->get(route('project.edit'))
+        ->get(route('project.integrations.edit'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('settings/project')
+            ->component('settings/project/integrations')
             ->where('project.webhook_url', 'https://example.com/externa-hooks')
             ->where('project.webhook_secret_configured', true)
             ->missing('project.webhook_secret')
@@ -428,8 +428,8 @@ test('send test webhook queues ping when url configured', function () {
     ]);
 
     $this->actingAs($user)
-        ->post(route('project.webhook-test'))
-        ->assertRedirect(route('project.edit'))
+        ->post(route('project.integrations.webhook-test'))
+        ->assertRedirect(route('project.integrations.edit'))
         ->assertSessionHas('success');
 
     Queue::assertPushed(DeliverOutboundWebhookJob::class, fn (DeliverOutboundWebhookJob $job): bool => $job->type === 'ping');
@@ -441,8 +441,8 @@ test('send test webhook flashes error when url missing', function () {
     ]);
 
     $this->actingAs($user)
-        ->post(route('project.webhook-test'))
-        ->assertRedirect(route('project.edit'))
+        ->post(route('project.integrations.webhook-test'))
+        ->assertRedirect(route('project.integrations.edit'))
         ->assertSessionHas('error');
 });
 
@@ -455,8 +455,8 @@ test('send test webhook flashes error when secret missing', function () {
     ]);
 
     $this->actingAs($user)
-        ->post(route('project.webhook-test'))
-        ->assertRedirect(route('project.edit'))
+        ->post(route('project.integrations.webhook-test'))
+        ->assertRedirect(route('project.integrations.edit'))
         ->assertSessionHas('error');
 });
 
@@ -467,7 +467,7 @@ test('inertia shares flash success and error', function () {
 
     $this->actingAs($user)
         ->withSession(['success' => 'Webhook ok'])
-        ->get(route('project.edit'))
+        ->get(route('project.integrations.edit'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('flash.success', 'Webhook ok')
