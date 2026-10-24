@@ -64,7 +64,8 @@ class CollectionItemController extends Controller
         $page = max($request->integer('page', 1), 1);
 
         $version = $this->responseCache->version((int) $collection->id);
-        $roleId = $this->apiAccess($request)->roleId();
+        $access = $this->apiAccess($request);
+        $roleId = $access->roleId();
         $hash = $this->responseCache->hash([
             'filter' => $stringFilters,
             'page' => $page,
@@ -75,6 +76,7 @@ class CollectionItemController extends Controller
             'role_id' => $roleId,
             // File field expansion depends on file grants, not only role_id.
             'file_grants' => $roleId === null ? [] : app(FilePermissionGuard::class)->grantsForRole($roleId),
+            ...$access->responseCacheScopeFactors(),
             'surface' => 'rest',
         ]);
         $key = $this->responseCache->itemsKey($slug, $version, $hash);
@@ -123,13 +125,15 @@ class CollectionItemController extends Controller
         $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Read);
 
         $version = $this->responseCache->version((int) $collection->id);
-        $roleId = $this->apiAccess($request)->roleId();
+        $access = $this->apiAccess($request);
+        $roleId = $access->roleId();
         $hash = $this->responseCache->hash([
             'locale' => $request->query('locale'),
             'include_all_translations' => $request->boolean('include_all_translations'),
             'include' => app(PublicApiIncludeParser::class)->parse($request->query('include')),
             'role_id' => $roleId,
             'file_grants' => $roleId === null ? [] : app(FilePermissionGuard::class)->grantsForRole($roleId),
+            ...$access->responseCacheScopeFactors(),
             'surface' => 'rest',
         ]);
         $key = $this->responseCache->itemKey($slug, $item, $version, $hash);
