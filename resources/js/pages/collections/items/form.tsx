@@ -101,7 +101,7 @@ import {
     serializeItemForm,
     writeItemDraft,
 } from '@/lib/item-draft-storage';
-import { isRemoteUpdatedAtStale } from '@/lib/item-presence';
+import { isRemoteUpdatedAtStale, notifyItemSaved } from '@/lib/item-presence';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { readReturnParam } from '@/lib/safe-return-url';
@@ -416,8 +416,16 @@ export default function ItemsForm({
 
     useEffect(() => {
         if (!isDirty) {
-            loadedUpdatedAtRef.current = item?.updated_at ?? null;
-            setExpectedUpdatedAt(item?.updated_at ?? '');
+            const next = item?.updated_at ?? null;
+            const prev = loadedUpdatedAtRef.current;
+
+            // Own save advanced updated_at — whisper so other editors see stale banner live.
+            if (prev && next && prev !== next) {
+                notifyItemSaved(next);
+            }
+
+            loadedUpdatedAtRef.current = next;
+            setExpectedUpdatedAt(next ?? '');
         }
     }, [item?.updated_at, isDirty]);
 
