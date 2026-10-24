@@ -34,6 +34,11 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Codice Perfetto naming: custom Enums/Events/Traits use explicit role suffixes (`*Enum`, `*Event`, `*Trait`); Pest `NamingArchitectureTest` + streamlined `.cursor/` rules pack; `AGENTS.md` / `CLAUDE.md` documentation standard (#260)
 - Externa mark v3 (bow-tie) assets and admin colour defaults: primary `#0E7C86` (light) / `#1A95A2` (dark), focus rings and chart accents from the v3 teal scale; favicon links cache-busted with `?v=3` (#258)
 
+### Upgrade notes
+
+- **Breaking (webhooks / Slack SSRF):** outbound webhook and Slack notifier URLs that resolve to loopback, RFC1918, link-local, or other reserved hosts are **rejected on save and again at delivery** when `WEBHOOKS_ALLOW_PRIVATE_HOSTS` is `false` (the default). Delivery also refuses HTTP redirects. Self-hosted LAN targets (e.g. n8n on a private IP) must set `WEBHOOKS_ALLOW_PRIVATE_HOSTS=true` in `.env` and clear config cache (`php artisan config:clear` / `config:cache`). Public HTTPS receivers need no change (#118 / #267).
+- **Breaking (uploads):** after the extension denylist, uploads must sniff to a MIME in `config/files.php` `upload_allowed_mimes`, with magic-byte checks for claimed formats. **SVG, JSON, and XML are not on the allowlist** (and SVG/HTML remain extension-denied). Operators who previously stored those types via File Manager / Public API / chat→Files / AI attachments need an alternate pipeline or an allowlist extension in `config/files.php` (#118 / #267).
+
 ## [1.2.3] - 2026-10-22
 
 ### Security
