@@ -502,7 +502,13 @@
             "statusDescription": "Laufzeitumgebung und Cache-Backend.",
             "statusTitle": "Status",
             "ttlSeconds": "TTL (Sekunden)",
-            "yes": "Ja"
+            "yes": "Ja",
+            "cacheHits": "Treffer (aktuelle Epoche)",
+            "cacheMisses": "Fehltreffer (aktuelle Epoche)",
+            "lastFlushedAt": "Zuletzt geleert",
+            "lastFlushedBy": "Geleert von",
+            "neverFlushed": "Nie",
+            "unknownActor": "—"
         }
     },
     "collections": {

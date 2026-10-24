@@ -475,7 +475,13 @@
             "flushDashboardMetricsTitle": "Dashboard metrics",
             "flushDashboardMetricsDescription": "Forget cached dashboard metric keys so the next visit recomputes them.",
             "flushDashboardMetricsButton": "Flush dashboard metrics",
-            "flushing": "Flushing…"
+            "flushing": "Flushing…",
+            "cacheHits": "Hits (current epoch)",
+            "cacheMisses": "Misses (current epoch)",
+            "lastFlushedAt": "Last flushed at",
+            "lastFlushedBy": "Last flushed by",
+            "neverFlushed": "Never",
+            "unknownActor": "—"
         },
         "deleteUser": {
             "title": "Delete account",

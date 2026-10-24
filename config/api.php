@@ -46,4 +46,17 @@ return [
 
     'max_per_page' => (int) env('API_MAX_PER_PAGE', 100),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Public response cache TTL (seconds)
+    |--------------------------------------------------------------------------
+    |
+    | Safety-net TTL for versioned REST/GraphQL payload keys. Writes still
+    | bump the collection version; Settings flush bumps the global epoch.
+    | Global-only for now (no per-collection override) — see #115.
+    |
+    */
+
+    'response_cache_ttl' => max(1, (int) env('PUBLIC_API_CACHE_TTL', 120)),
+
 ];
