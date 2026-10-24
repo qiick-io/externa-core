@@ -26,6 +26,8 @@ class ApiKeyResource extends JsonResource
                 'id' => $this->role?->id,
                 'name' => $this->role?->name,
             ]),
+            'collection_slugs' => $this->collection_slugs,
+            'read_only' => (bool) $this->read_only,
             'ip_allowlist' => $this->ip_allowlist,
             'rate_limit_per_minute' => $this->rate_limit_per_minute,
             'expires_at' => $this->expires_at?->toIso8601String(),

@@ -35,6 +35,20 @@ trait AuthorizesCollectionAccessTrait
         if (! $allowed) {
             abort(403, 'This action is unauthorized for the collection.');
         }
+
+        $apiKey = $access->apiKey;
+        if ($apiKey === null) {
+            return;
+        }
+
+        // Effective = role ACL ∩ key scopes (scopes only narrow).
+        if (! $apiKey->allowsCollectionSlug((string) $collection->slug)) {
+            abort(403, 'This action is unauthorized for the collection.');
+        }
+
+        if (! $apiKey->allowsAction($action)) {
+            abort(403, 'This action is unauthorized for the collection.');
+        }
     }
 
     protected function findCollectionBySlug(string $slug): Collection
