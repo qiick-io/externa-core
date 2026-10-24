@@ -5,6 +5,7 @@ import {
     claimItemEditLock,
     joinItemPresence,
     leaveItemPresence,
+    notifyItemSaved,
     releaseItemEditLock,
     subscribeItemPresence,
     takeOverItemEditLock,
@@ -30,6 +31,7 @@ export function useItemPresence(options: {
     claimLock: () => void;
     releaseLock: () => void;
     takeOverLock: () => void;
+    notifySaved: (updatedAt: string) => void;
 } {
     const page = usePage();
     const [snapshot, setSnapshot] =
@@ -83,5 +85,6 @@ export function useItemPresence(options: {
         claimLock: claimItemEditLock,
         releaseLock: releaseItemEditLock,
         takeOverLock: takeOverItemEditLock,
+        notifySaved: notifyItemSaved,
     };
 }
