@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Collections;
 
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
@@ -85,6 +86,12 @@ class ItemController extends Controller
      */
     public function index(Request $request, Collection $collection): Response|RedirectResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Read,
+        );
+
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
 
         if ($collection->is_singleton) {
@@ -234,6 +241,11 @@ class ItemController extends Controller
      */
     public function calendarMonth(Request $request, Collection $collection): JsonResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Read,
+        );
         abort_if($collection->is_singleton, 404);
 
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
@@ -296,6 +308,11 @@ class ItemController extends Controller
      */
     public function kanbanColumn(Request $request, Collection $collection): JsonResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Read,
+        );
         abort_if($collection->is_singleton, 404);
 
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
@@ -355,6 +372,12 @@ class ItemController extends Controller
      */
     public function export(Request $request, Collection $collection): StreamedResponse|RedirectResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Read,
+        );
+
         if ($collection->is_singleton) {
             return redirect()->route('collections.show', $collection);
         }
@@ -400,6 +423,12 @@ class ItemController extends Controller
         UpdateCollectionListColumnsRequest $request,
         Collection $collection,
     ): RedirectResponse {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Read,
+        );
+
         $user = $request->user();
         abort_if($user === null, 403);
 
@@ -457,6 +486,12 @@ class ItemController extends Controller
      */
     public function newItem(Request $request, Collection $collection): Response|RedirectResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Create,
+        );
+
         if ($collection->is_singleton && $collection->items()->exists()) {
             abort(422, __('A singleton collection already has its content item.'));
         }
@@ -484,6 +519,12 @@ class ItemController extends Controller
      */
     public function store(StoreCollectionItemRequest $request, Collection $collection): RedirectResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Create,
+        );
+
         if ($collection->is_singleton && $collection->items()->exists()) {
             abort(422, __('A singleton collection already has its content item.'));
         }
@@ -509,6 +550,11 @@ class ItemController extends Controller
      */
     public function show(Request $request, Collection $collection, CollectionItem $item): Response|RedirectResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Read,
+        );
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
 
@@ -580,6 +626,11 @@ class ItemController extends Controller
      */
     public function previewAsRole(Request $request, Collection $collection, CollectionItem $item): JsonResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Read,
+        );
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
         abort_unless($this->userCanPreviewAsRole($request->user()), 403);
@@ -611,6 +662,11 @@ class ItemController extends Controller
      */
     public function livePreviewUrl(Request $request, Collection $collection, CollectionItem $item): JsonResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Read,
+        );
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemReadable($request, $collection, $item);
 
@@ -649,6 +705,11 @@ class ItemController extends Controller
      */
     public function update(UpdateCollectionItemRequest $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Update,
+        );
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
 
@@ -1030,6 +1091,11 @@ class ItemController extends Controller
      */
     public function publish(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Update,
+        );
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
         abort_unless($collection->versioning, 422);
@@ -1068,6 +1134,11 @@ class ItemController extends Controller
      */
     public function submitForReview(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Update,
+        );
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
 
@@ -1087,6 +1158,11 @@ class ItemController extends Controller
      */
     public function approve(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Update,
+        );
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
 
@@ -1106,6 +1182,11 @@ class ItemController extends Controller
      */
     public function reject(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Update,
+        );
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
 
@@ -1129,6 +1210,11 @@ class ItemController extends Controller
      */
     public function schedule(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Update,
+        );
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
         abort_unless($collection->versioning, 422);
@@ -1233,6 +1319,11 @@ class ItemController extends Controller
      */
     public function discardDraft(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Update,
+        );
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
         abort_unless($collection->versioning, 422);
@@ -1272,6 +1363,11 @@ class ItemController extends Controller
      */
     public function destroy(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Delete,
+        );
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
 
@@ -1284,8 +1380,13 @@ class ItemController extends Controller
     /**
      * Restore a soft-deleted collection item.
      */
-    public function restore(Collection $collection, CollectionItem $item): RedirectResponse
+    public function restore(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Update,
+        );
         $this->assertItemBelongsToCollection($collection, $item);
 
         $item->restore();
@@ -1301,6 +1402,11 @@ class ItemController extends Controller
      */
     public function forceDelete(Request $request, Collection $collection, CollectionItem $item): RedirectResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Delete,
+        );
         $this->assertItemBelongsToCollection($collection, $item);
         $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
 
@@ -1320,6 +1426,12 @@ class ItemController extends Controller
         $action = $request->validated('action');
         /** @var list<int> $ids */
         $ids = $request->validated('ids');
+
+        $collectionAction = match ($action) {
+            'restore' => CollectionPermissionActionEnum::Update,
+            default => CollectionPermissionActionEnum::Delete,
+        };
+        $this->permissionEnforcer->assertCollectionAction($request, $collection, $collectionAction);
 
         $query = CollectionItem::query()
             ->where('collection_id', $collection->id)
@@ -1355,6 +1467,12 @@ class ItemController extends Controller
      */
     public function fieldOptions(Request $request, Collection $collection): JsonResponse
     {
+        $this->permissionEnforcer->assertCollectionAction(
+            $request,
+            $collection,
+            CollectionPermissionActionEnum::Read,
+        );
+
         $validated = $request->validate([
             'field_id' => ['required', 'integer'],
             'related_collection_id' => ['nullable', 'integer', 'exists:collections,id'],
