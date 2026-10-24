@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Notifications\Concerns\BroadcastsWithDatabase;
+use App\Notifications\Concerns\BroadcastsWithDatabaseTrait;
 use Illuminate\Notifications\Notification;
 
 /**
@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notification;
  */
 class FileZipFailedNotification extends Notification
 {
-    use BroadcastsWithDatabase;
+    use BroadcastsWithDatabaseTrait;
 
     public function __construct(
         public readonly string $jobId,

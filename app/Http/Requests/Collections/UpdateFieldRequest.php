@@ -4,8 +4,8 @@ namespace App\Http\Requests\Collections;
 
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Collections\Concerns\ValidatesCollectionFieldSettings;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Collections\Concerns\ValidatesCollectionFieldSettingsTrait;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use Illuminate\Foundation\Http\FormRequest;
@@ -17,8 +17,8 @@ use Illuminate\Validation\ValidationException;
  */
 class UpdateFieldRequest extends FormRequest
 {
-    use AuthorizesWithPermission;
-    use ValidatesCollectionFieldSettings;
+    use AuthorizesWithPermissionTrait;
+    use ValidatesCollectionFieldSettingsTrait;
 
     /**
      * Authorization is enforced by collection route middleware.

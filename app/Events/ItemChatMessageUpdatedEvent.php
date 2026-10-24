@@ -3,46 +3,46 @@
 namespace App\Events;
 
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Hub sidebar: upsert one thread row for a participant (new DM or first/later message bump).
+ * Realtime payload when a chat message is edited or pinned.
  */
-class ChatThreadUpserted implements ShouldBroadcastNow
+class ItemChatMessageUpdatedEvent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
-     * @param  array<string, mixed>  $chat
+     * @param  array<string, mixed>  $message
      */
     public function __construct(
-        public int $userId,
-        public array $chat,
+        public string $chatId,
+        public array $message,
     ) {}
 
     /**
-     * @return list<PrivateChannel>
+     * @return list<PresenceChannel>
      */
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('App.Models.User.'.$this->userId),
+            new PresenceChannel('chat.'.$this->chatId),
         ];
     }
 
     public function broadcastAs(): string
     {
-        return 'ThreadUpserted';
+        return 'MessageUpdated';
     }
 
     /**
-     * @return array{chat: array<string, mixed>}
+     * @return array{message: array<string, mixed>}
      */
     public function broadcastWith(): array
     {
-        return ['chat' => $this->chat];
+        return ['message' => $this->message];
     }
 }

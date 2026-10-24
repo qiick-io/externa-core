@@ -2,9 +2,9 @@
 
 namespace App\Ai\Tools;
 
-use App\Ai\Concerns\ChecksAiPermissions;
-use App\Ai\Concerns\LogsAiToolUse;
-use App\Ai\Concerns\RequiresDestructiveApproval;
+use App\Ai\Concerns\ChecksAiPermissionsTrait;
+use App\Ai\Concerns\LogsAiToolUseTrait;
+use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Enums\PermissionEnum;
 use App\Models\AiSyncSource;
@@ -20,9 +20,9 @@ use Stringable;
  */
 class ManageAiSyncSources implements Approvable, Tool
 {
-    use ChecksAiPermissions;
-    use LogsAiToolUse;
-    use RequiresDestructiveApproval;
+    use ChecksAiPermissionsTrait;
+    use LogsAiToolUseTrait;
+    use RequiresDestructiveApprovalTrait;
 
     /**
      * @return list<string>

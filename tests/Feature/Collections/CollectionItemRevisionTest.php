@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
@@ -245,7 +245,7 @@ test('restore is blocked when field ACL denies update', function () {
     CollectionPermission::query()->create([
         'role_id' => $role->id,
         'collection_id' => $collection->id,
-        'action' => CollectionPermissionAction::Update->value,
+        'action' => CollectionPermissionActionEnum::Update->value,
         'allowed' => true,
         'rules' => [
             'fields' => [
@@ -257,7 +257,7 @@ test('restore is blocked when field ACL denies update', function () {
     CollectionPermission::query()->create([
         'role_id' => $role->id,
         'collection_id' => $collection->id,
-        'action' => CollectionPermissionAction::Read->value,
+        'action' => CollectionPermissionActionEnum::Read->value,
         'allowed' => true,
         'rules' => null,
     ]);

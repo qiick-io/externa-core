@@ -5,7 +5,7 @@ namespace App\Enums;
 /**
  * CRUD actions for global CMS API file access (role-level, not per-folder).
  */
-enum FilePermissionAction: string
+enum FilePermissionActionEnum: string
 {
     case Create = 'create';
     case Read = 'read';

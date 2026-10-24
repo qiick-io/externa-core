@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Enums\FilePermissionAction;
+use App\Enums\FilePermissionActionEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -31,7 +31,7 @@ class FilePermission extends Model
     {
         return [
             'allowed' => 'boolean',
-            'action' => FilePermissionAction::class,
+            'action' => FilePermissionActionEnum::class,
         ];
     }
 

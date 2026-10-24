@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
-use App\Http\Requests\Concerns\ValidatesSearchQuery;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\Admin\ActivityLogResource;
 use App\Models\User;
 use App\Support\Activity\FilterableActivityEvents;
@@ -21,8 +21,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class ActivityLogController extends Controller
 {
-    use AuthorizesWithPermission;
-    use ValidatesSearchQuery;
+    use AuthorizesWithPermissionTrait;
+    use ValidatesSearchQueryTrait;
 
     /**
      * ponytail: sync stream cap — queue/zip export if product needs >10k rows.

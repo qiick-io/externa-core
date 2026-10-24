@@ -9,18 +9,15 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Realtime payload when a chat message is posted.
+ * Realtime payload when a chat message is deleted.
  */
-class ItemChatMessageCreated implements ShouldBroadcastNow
+class ItemChatMessageDeletedEvent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    /**
-     * @param  array<string, mixed>  $message
-     */
     public function __construct(
         public string $chatId,
-        public array $message,
+        public int $messageId,
     ) {}
 
     /**
@@ -35,14 +32,14 @@ class ItemChatMessageCreated implements ShouldBroadcastNow
 
     public function broadcastAs(): string
     {
-        return 'MessageCreated';
+        return 'MessageDeleted';
     }
 
     /**
-     * @return array{message: array<string, mixed>}
+     * @return array{id: int}
      */
     public function broadcastWith(): array
     {
-        return ['message' => $this->message];
+        return ['id' => $this->messageId];
     }
 }

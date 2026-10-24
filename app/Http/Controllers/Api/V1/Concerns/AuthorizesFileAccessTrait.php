@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1\Concerns;
 
-use App\Enums\FilePermissionAction;
+use App\Enums\FilePermissionActionEnum;
 use App\Models\File;
 use App\Services\Api\FilePermissionGuard;
 use App\Support\Api\ApiAccess;
 use Illuminate\Http\Request;
 
-trait AuthorizesFileAccess
+trait AuthorizesFileAccessTrait
 {
     protected function apiAccess(Request $request): ApiAccess
     {
@@ -22,7 +22,7 @@ trait AuthorizesFileAccess
 
     protected function authorizeFile(
         Request $request,
-        FilePermissionAction $action,
+        FilePermissionActionEnum $action,
     ): void {
         $access = $this->apiAccess($request);
         $allowed = app(FilePermissionGuard::class)->allows(
@@ -40,7 +40,7 @@ trait AuthorizesFileAccess
      */
     protected function authorizeFileRead(Request $request, File $file): void
     {
-        $this->authorizeFile($request, FilePermissionAction::Read);
+        $this->authorizeFile($request, FilePermissionActionEnum::Read);
 
         $access = $this->apiAccess($request);
         if (! app(FilePermissionGuard::class)->canReadFile($access->roleId(), $file)) {

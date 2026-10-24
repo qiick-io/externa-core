@@ -7,8 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkUserActionRequest;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
-use App\Http\Requests\Concerns\ValidatesSearchQuery;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\Admin\UserResource;
 use App\Models\Role;
 use App\Models\User;
@@ -23,8 +23,8 @@ use Inertia\Response;
  */
 class UserController extends Controller
 {
-    use AuthorizesWithPermission;
-    use ValidatesSearchQuery;
+    use AuthorizesWithPermissionTrait;
+    use ValidatesSearchQueryTrait;
 
     /**
      * @var list<string>

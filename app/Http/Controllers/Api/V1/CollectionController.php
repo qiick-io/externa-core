@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
-use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccess;
+use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccessTrait;
 use App\Http\Controllers\Controller;
 use App\Models\Collection;
 use App\Models\CollectionField;
@@ -18,7 +18,7 @@ use Illuminate\Http\Request;
  */
 class CollectionController extends Controller
 {
-    use AuthorizesCollectionAccess;
+    use AuthorizesCollectionAccessTrait;
 
     public function __construct(
         private PublicApiResponseCache $responseCache,
@@ -61,7 +61,7 @@ class CollectionController extends Controller
     public function show(Request $request, string $slug): JsonResponse
     {
         $collection = $this->findCollectionBySlug($slug);
-        $this->authorizeCollection($request, $collection, CollectionPermissionAction::Read);
+        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Read);
 
         $version = $this->responseCache->version((int) $collection->id);
         $key = $this->responseCache->collectionKey($slug, $version);

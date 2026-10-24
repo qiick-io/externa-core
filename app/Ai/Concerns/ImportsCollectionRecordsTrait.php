@@ -15,9 +15,9 @@ use Throwable;
 
 /**
  * Shared helpers for AI tools that create collections/fields and import item rows.
- * Expects LogsAiToolUse (for logAiMutation).
+ * Expects LogsAiToolUseTrait (for logAiMutation).
  */
-trait ImportsCollectionRecords
+trait ImportsCollectionRecordsTrait
 {
     /**
      * @return array{0: Collection, 1: bool}|string

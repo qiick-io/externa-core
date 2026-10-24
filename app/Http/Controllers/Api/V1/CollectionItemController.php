@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\CollectionPermissionAction;
-use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccess;
+use App\Enums\CollectionPermissionActionEnum;
+use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccessTrait;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
@@ -25,7 +25,7 @@ use Illuminate\Validation\ValidationException;
  */
 class CollectionItemController extends Controller
 {
-    use AuthorizesCollectionAccess;
+    use AuthorizesCollectionAccessTrait;
 
     public function __construct(
         private CollectionItemQueryService $itemQueryService,
@@ -38,7 +38,7 @@ class CollectionItemController extends Controller
     public function index(Request $request, string $slug): JsonResponse
     {
         $collection = $this->findCollectionBySlug($slug);
-        $this->authorizeCollection($request, $collection, CollectionPermissionAction::Read);
+        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Read);
 
         $filters = $request->query('filter', []);
         if (! is_array($filters)) {
@@ -111,7 +111,7 @@ class CollectionItemController extends Controller
     public function show(Request $request, string $slug, int $item): JsonResponse
     {
         $collection = $this->findCollectionBySlug($slug);
-        $this->authorizeCollection($request, $collection, CollectionPermissionAction::Read);
+        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Read);
 
         $version = $this->responseCache->version((int) $collection->id);
         $roleId = $this->apiAccess($request)->roleId();
@@ -154,7 +154,7 @@ class CollectionItemController extends Controller
     public function store(Request $request, string $slug): JsonResponse
     {
         $collection = $this->findCollectionBySlug($slug);
-        $this->authorizeCollection($request, $collection, CollectionPermissionAction::Create);
+        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Create);
 
         if ($collection->is_singleton && $collection->items()->exists()) {
             throw ValidationException::withMessages([
@@ -183,7 +183,7 @@ class CollectionItemController extends Controller
     public function update(Request $request, string $slug, int $item): JsonResponse
     {
         $collection = $this->findCollectionBySlug($slug);
-        $this->authorizeCollection($request, $collection, CollectionPermissionAction::Update);
+        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Update);
 
         $model = CollectionItem::query()
             ->where('collection_id', $collection->id)
@@ -216,7 +216,7 @@ class CollectionItemController extends Controller
     public function destroy(Request $request, string $slug, int $item): JsonResponse
     {
         $collection = $this->findCollectionBySlug($slug);
-        $this->authorizeCollection($request, $collection, CollectionPermissionAction::Delete);
+        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Delete);
 
         $model = CollectionItem::query()
             ->where('collection_id', $collection->id)

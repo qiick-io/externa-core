@@ -1,8 +1,8 @@
 <?php
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
-use App\Enums\FilePermissionAction;
+use App\Enums\FilePermissionActionEnum;
 use App\Enums\FileTypeEnum;
 use App\Enums\RoleEnum;
 use App\Jobs\WarmFileThumbnailJob;
@@ -37,12 +37,12 @@ function filesPublicRole(): Role
 }
 
 /**
- * @param  list<FilePermissionAction|string>  $actions
+ * @param  list<FilePermissionActionEnum|string>  $actions
  */
 function grantFileActions(Role $role, array $actions): void
 {
     foreach ($actions as $action) {
-        $value = $action instanceof FilePermissionAction ? $action->value : $action;
+        $value = $action instanceof FilePermissionActionEnum ? $action->value : $action;
         FilePermission::query()->updateOrCreate(
             [
                 'role_id' => $role->id,
@@ -56,7 +56,7 @@ function grantFileActions(Role $role, array $actions): void
 }
 
 /**
- * @param  list<FilePermissionAction|string>  $actions
+ * @param  list<FilePermissionActionEnum|string>  $actions
  */
 function grantPublicFileActions(array $actions): void
 {
@@ -117,7 +117,7 @@ it('denies file endpoints without grants', function (): void {
 });
 
 it('allows anonymous read list show content when public has read', function (): void {
-    grantPublicFileActions([FilePermissionAction::Read]);
+    grantPublicFileActions([FilePermissionActionEnum::Read]);
     $file = makeStoredFile('photo.jpg');
 
     $this->getJson('/api/v1/files')
@@ -134,7 +134,7 @@ it('allows anonymous read list show content when public has read', function (): 
 });
 
 it('searches files via backend query param', function (): void {
-    grantPublicFileActions([FilePermissionAction::Read]);
+    grantPublicFileActions([FilePermissionActionEnum::Read]);
     makeStoredFile('alpha.jpg');
     makeStoredFile('beta.jpg');
 
@@ -147,18 +147,18 @@ it('searches files via backend query param', function (): void {
 it('gates create update delete independently', function (): void {
     $file = makeStoredFile();
 
-    grantPublicFileActions([FilePermissionAction::Create]);
+    grantPublicFileActions([FilePermissionActionEnum::Create]);
     Queue::fake([WarmFileThumbnailJob::class]);
     $this->post('/api/v1/files', [
         'file' => UploadedFile::fake()->image('upload.png', 40, 30),
     ])->assertCreated();
 
-    grantPublicFileActions([FilePermissionAction::Update]);
+    grantPublicFileActions([FilePermissionActionEnum::Update]);
     $this->patchJson("/api/v1/files/{$file->id}", ['title' => 'Hero'])
         ->assertOk()
         ->assertJsonPath('data.title', 'Hero');
 
-    grantPublicFileActions([FilePermissionAction::Delete]);
+    grantPublicFileActions([FilePermissionActionEnum::Delete]);
     $this->deleteJson("/api/v1/files/{$file->id}")->assertNoContent();
     expect(File::query()->find($file->id))->toBeNull();
     expect(File::withTrashed()->find($file->id))->not->toBeNull();
@@ -172,7 +172,7 @@ it('enforces file grants for api keys', function (): void {
         ->getJson('/api/v1/files')
         ->assertForbidden();
 
-    grantFileActions($bundle['role'], [FilePermissionAction::Read]);
+    grantFileActions($bundle['role'], [FilePermissionActionEnum::Read]);
 
     $this->withToken($bundle['plain'])
         ->getJson("/api/v1/files/{$file->id}")
@@ -206,7 +206,7 @@ it('expands image fields on item api when file read is granted', function (): vo
         [
             'role_id' => filesPublicRole()->id,
             'collection_id' => $collection->id,
-            'action' => CollectionPermissionAction::Read->value,
+            'action' => CollectionPermissionActionEnum::Read->value,
         ],
         ['allowed' => true],
     );
@@ -224,7 +224,7 @@ it('expands image fields on item api when file read is granted', function (): vo
         ->assertJsonPath('data.data.cover.access', 'denied')
         ->assertJsonMissingPath('data.data.cover.url');
 
-    grantPublicFileActions([FilePermissionAction::Read]);
+    grantPublicFileActions([FilePermissionActionEnum::Read]);
 
     $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")
         ->assertOk()
@@ -280,7 +280,7 @@ it('expands nested files inside blocks fields on item api when file read is gran
         [
             'role_id' => filesPublicRole()->id,
             'collection_id' => $collection->id,
-            'action' => CollectionPermissionAction::Read->value,
+            'action' => CollectionPermissionActionEnum::Read->value,
         ],
         ['allowed' => true],
     );
@@ -299,7 +299,7 @@ it('expands nested files inside blocks fields on item api when file read is gran
         ->assertJsonPath('data.data.content.0.data.gallery.0.access', 'denied')
         ->assertJsonMissingPath('data.data.content.0.data.image.url');
 
-    grantPublicFileActions([FilePermissionAction::Read]);
+    grantPublicFileActions([FilePermissionActionEnum::Read]);
 
     $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")
         ->assertOk()
@@ -310,7 +310,7 @@ it('expands nested files inside blocks fields on item api when file read is gran
 
 it('dispatches warm thumbnail job on upload', function (): void {
     Queue::fake([WarmFileThumbnailJob::class]);
-    grantPublicFileActions([FilePermissionAction::Create]);
+    grantPublicFileActions([FilePermissionActionEnum::Create]);
 
     $this->post('/api/v1/files', [
         'file' => UploadedFile::fake()->image('warm.png', 80, 60),
@@ -320,7 +320,7 @@ it('dispatches warm thumbnail job on upload', function (): void {
 });
 
 it('stores a single content hash on upload', function (): void {
-    grantPublicFileActions([FilePermissionAction::Create]);
+    grantPublicFileActions([FilePermissionActionEnum::Create]);
     Queue::fake([WarmFileThumbnailJob::class]);
 
     $upload = UploadedFile::fake()->createWithContent('note.txt', 'hello-hash');
@@ -386,7 +386,7 @@ it('clears transforms when focal point changes', function (): void {
 });
 
 it('hides private files from list show content without read_private', function (): void {
-    grantPublicFileActions([FilePermissionAction::Read]);
+    grantPublicFileActions([FilePermissionActionEnum::Read]);
     $public = makeStoredFile('public.jpg');
     $private = makeStoredFile('secret.jpg');
     $private->update(['access' => 'private']);
@@ -403,7 +403,7 @@ it('hides private files from list show content without read_private', function (
 });
 
 it('allows private file access when role has read_private', function (): void {
-    grantPublicFileActions([FilePermissionAction::Read, FilePermissionAction::ReadPrivate]);
+    grantPublicFileActions([FilePermissionActionEnum::Read, FilePermissionActionEnum::ReadPrivate]);
     $private = makeStoredFile('secret.jpg');
     $private->update(['access' => 'private']);
 
@@ -419,7 +419,7 @@ it('allows private file access when role has read_private', function (): void {
 });
 
 it('inherits private access from folder and allows public override on child', function (): void {
-    grantPublicFileActions([FilePermissionAction::Read]);
+    grantPublicFileActions([FilePermissionActionEnum::Read]);
 
     $folder = File::query()->create([
         'type' => FileTypeEnum::Folder,
@@ -478,18 +478,18 @@ it('nulls private image fields on items without read_private even when collectio
         [
             'role_id' => filesPublicRole()->id,
             'collection_id' => $collection->id,
-            'action' => CollectionPermissionAction::Read->value,
+            'action' => CollectionPermissionActionEnum::Read->value,
         ],
         ['allowed' => true],
     );
     app(CollectionPermissionGuard::class)->forget(filesPublicRole()->id);
-    grantPublicFileActions([FilePermissionAction::Read]);
+    grantPublicFileActions([FilePermissionActionEnum::Read]);
 
     $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")
         ->assertOk()
         ->assertJsonPath('data.data.cover', null);
 
-    grantPublicFileActions([FilePermissionAction::Read, FilePermissionAction::ReadPrivate]);
+    grantPublicFileActions([FilePermissionActionEnum::Read, FilePermissionActionEnum::ReadPrivate]);
 
     $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")
         ->assertOk()
@@ -544,12 +544,12 @@ it('omits private nested block images without read_private', function (): void {
         [
             'role_id' => filesPublicRole()->id,
             'collection_id' => $collection->id,
-            'action' => CollectionPermissionAction::Read->value,
+            'action' => CollectionPermissionActionEnum::Read->value,
         ],
         ['allowed' => true],
     );
     app(CollectionPermissionGuard::class)->forget(filesPublicRole()->id);
-    grantPublicFileActions([FilePermissionAction::Read]);
+    grantPublicFileActions([FilePermissionActionEnum::Read]);
 
     $this->getJson("/api/v1/collections/articles/items/{$item->id}?include=files")
         ->assertOk()

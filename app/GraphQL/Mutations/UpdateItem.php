@@ -2,8 +2,8 @@
 
 namespace App\GraphQL\Mutations;
 
-use App\Enums\CollectionPermissionAction;
-use App\GraphQL\Concerns\AuthorizesGraphqlCollection;
+use App\Enums\CollectionPermissionActionEnum;
+use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcer;
@@ -12,7 +12,7 @@ use App\Services\Collections\CollectionItemValuesWriter;
 
 final class UpdateItem
 {
-    use AuthorizesGraphqlCollection;
+    use AuthorizesGraphqlCollectionTrait;
 
     /**
      * @param  array{collection: string, id: string, data: array<string, mixed>}  $args
@@ -21,7 +21,7 @@ final class UpdateItem
     public function __invoke(mixed $_, array $args): array
     {
         $collection = $this->findCollection($args['collection']);
-        $this->authorize($collection, CollectionPermissionAction::Update);
+        $this->authorize($collection, CollectionPermissionActionEnum::Update);
 
         $item = CollectionItem::query()
             ->where('collection_id', $collection->id)

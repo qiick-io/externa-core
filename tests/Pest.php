@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Models\ApiKey;
@@ -34,6 +34,9 @@ pest()->extend(TestCase::class)
 pest()->extend(TestCase::class)
     ->in('Unit');
 
+pest()->extend(TestCase::class)
+    ->in('Arch');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations
@@ -66,12 +69,12 @@ function publicRole(): Role
 }
 
 /**
- * @param  list<CollectionPermissionAction|string>  $actions
+ * @param  list<CollectionPermissionActionEnum|string>  $actions
  */
 function grantRoleActions(Role $role, Collection $collection, array $actions): void
 {
     foreach ($actions as $action) {
-        $value = $action instanceof CollectionPermissionAction ? $action->value : $action;
+        $value = $action instanceof CollectionPermissionActionEnum ? $action->value : $action;
         CollectionPermission::query()->updateOrCreate(
             [
                 'role_id' => $role->id,
@@ -86,7 +89,7 @@ function grantRoleActions(Role $role, Collection $collection, array $actions): v
 }
 
 /**
- * @param  list<CollectionPermissionAction|string>  $actions
+ * @param  list<CollectionPermissionActionEnum|string>  $actions
  */
 function grantPublicActions(Collection $collection, array $actions): void
 {

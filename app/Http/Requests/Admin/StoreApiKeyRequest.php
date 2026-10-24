@@ -4,7 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -14,7 +14,7 @@ use Illuminate\Validation\Rule;
  */
 class StoreApiKeyRequest extends FormRequest
 {
-    use AuthorizesWithPermission;
+    use AuthorizesWithPermissionTrait;
 
     public function authorize(): bool
     {

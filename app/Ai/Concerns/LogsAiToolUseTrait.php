@@ -14,7 +14,7 @@ use Throwable;
 /**
  * Wraps AI tool execution with activity logging and safe error text responses.
  */
-trait LogsAiToolUse
+trait LogsAiToolUseTrait
 {
     /**
      * Execute a tool callback with activity logging and exception-to-text handling.

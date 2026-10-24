@@ -2,12 +2,12 @@
 
 namespace App\GraphQL\Concerns;
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Models\Collection;
 use App\Services\Api\CollectionPermissionGuard;
 use App\Support\Api\ApiAccess;
 
-trait AuthorizesGraphqlCollection
+trait AuthorizesGraphqlCollectionTrait
 {
     protected function findCollection(string $slug): Collection
     {
@@ -19,7 +19,7 @@ trait AuthorizesGraphqlCollection
         return $collection;
     }
 
-    protected function authorize(Collection $collection, CollectionPermissionAction $action): void
+    protected function authorize(Collection $collection, CollectionPermissionActionEnum $action): void
     {
         $access = app(ApiAccess::class);
         $allowed = app(CollectionPermissionGuard::class)->allows(

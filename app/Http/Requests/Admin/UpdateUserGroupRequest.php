@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Models\UserGroup;
 use App\Support\Validation\StringLimits;
 use Illuminate\Foundation\Http\FormRequest;
@@ -14,7 +14,7 @@ use Illuminate\Validation\Rule;
  */
 class UpdateUserGroupRequest extends FormRequest
 {
-    use AuthorizesWithPermission;
+    use AuthorizesWithPermissionTrait;
 
     /**
      * Require permission to edit groups.

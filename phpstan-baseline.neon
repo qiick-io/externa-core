@@ -703,7 +703,7 @@ parameters:
 			path: app/Support/Validation/FilterQueryLimits.php
 
 		-
-			message: '#^Trait App\\Traits\\HasFiles is used zero times and is not analysed\.$#'
+			message: '#^Trait App\\Traits\\HasFilesTrait is used zero times and is not analysed\.$#'
 			identifier: trait.unused
 			count: 1
-			path: app/Traits/HasFiles.php
+			path: app/Traits/HasFilesTrait.php

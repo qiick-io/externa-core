@@ -3,43 +3,46 @@
 namespace App\Events;
 
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Realtime payload when a chat message is deleted.
+ * Hub sidebar: upsert one thread row for a participant (new DM or first/later message bump).
  */
-class ItemChatMessageDeleted implements ShouldBroadcastNow
+class ChatThreadUpsertedEvent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    /**
+     * @param  array<string, mixed>  $chat
+     */
     public function __construct(
-        public string $chatId,
-        public int $messageId,
+        public int $userId,
+        public array $chat,
     ) {}
 
     /**
-     * @return list<PresenceChannel>
+     * @return list<PrivateChannel>
      */
     public function broadcastOn(): array
     {
         return [
-            new PresenceChannel('chat.'.$this->chatId),
+            new PrivateChannel('App.Models.User.'.$this->userId),
         ];
     }
 
     public function broadcastAs(): string
     {
-        return 'MessageDeleted';
+        return 'ThreadUpserted';
     }
 
     /**
-     * @return array{id: int}
+     * @return array{chat: array<string, mixed>}
      */
     public function broadcastWith(): array
     {
-        return ['id' => $this->messageId];
+        return ['chat' => $this->chat];
     }
 }

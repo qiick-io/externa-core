@@ -12,7 +12,7 @@ use Illuminate\Queue\SerializesModels;
  * Sidebar/hub unread totals for one user after a chat read or new message.
  * Optional chat_id + chat_unread_count let the hub thread list patch per-row badges.
  */
-class ChatUnreadUpdated implements ShouldBroadcastNow
+class ChatUnreadUpdatedEvent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 

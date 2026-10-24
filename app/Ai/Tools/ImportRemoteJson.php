@@ -2,9 +2,9 @@
 
 namespace App\Ai\Tools;
 
-use App\Ai\Concerns\ChecksAiPermissions;
-use App\Ai\Concerns\ImportsCollectionRecords;
-use App\Ai\Concerns\LogsAiToolUse;
+use App\Ai\Concerns\ChecksAiPermissionsTrait;
+use App\Ai\Concerns\ImportsCollectionRecordsTrait;
+use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Support\CmsImport\CmsImportProfiles;
 use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Enums\PermissionEnum;
@@ -25,9 +25,9 @@ use Throwable;
  */
 class ImportRemoteJson implements Tool
 {
-    use ChecksAiPermissions;
-    use ImportsCollectionRecords;
-    use LogsAiToolUse;
+    use ChecksAiPermissionsTrait;
+    use ImportsCollectionRecordsTrait;
+    use LogsAiToolUseTrait;
 
     private const DEFAULT_LIMIT = 200;
 

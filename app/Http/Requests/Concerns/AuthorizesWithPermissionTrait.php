@@ -7,7 +7,7 @@ use App\Services\Authorization\EffectivePermissionResolver;
 /**
  * Shared helper for form requests that gate access on effective permissions.
  */
-trait AuthorizesWithPermission
+trait AuthorizesWithPermissionTrait
 {
     /**
      * Abort with 403 when the current user lacks the given permission.
