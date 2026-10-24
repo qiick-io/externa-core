@@ -13,6 +13,7 @@ use App\Services\Api\PublicApiResponseCache;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemDataRuleBuilder;
 use App\Services\Collections\CollectionItemQueryService;
+use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
 use App\Support\Api\PublicApiIncludeParser;
 use Illuminate\Http\JsonResponse;
@@ -31,6 +32,7 @@ class CollectionItemController extends Controller
         private CollectionItemQueryService $itemQueryService,
         private CollectionItemDataNormalizer $itemDataNormalizer,
         private CollectionItemValuesWriter $collectionItemValuesWriter,
+        private CollectionItemValuesAssembler $collectionItemValuesAssembler,
         private CollectionPermissionEnforcer $permissionEnforcer,
         private PublicApiResponseCache $responseCache,
     ) {}
@@ -205,7 +207,8 @@ class CollectionItemController extends Controller
 
         $this->validateItemPayload($request, $collection, false);
 
-        $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
+        $merged = $this->itemDataNormalizer->mergeIncoming($this->collectionItemValuesAssembler->assemble($model), $data);
+        $normalized = $this->itemDataNormalizer->normalize($collection, $merged, false);
         $this->collectionItemValuesWriter->sync($model, $collection, $normalized);
         $model->load(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
 
