@@ -10,9 +10,15 @@ final class SafeRemoteUrlValidator
     /**
      * Validate that a URL is safe to fetch server-side (SSRF protection).
      * Returns null when safe, or an English error message when blocked.
+     *
+     * @param  bool  $allowPrivateHosts  When true, skip private/reserved IP checks (webhooks opt-in).
+     * @param  bool  $enforceHostAllowlist  When true, apply `ai.remote_import_hosts` if configured.
      */
-    public static function validate(string $url): ?string
-    {
+    public static function validate(
+        string $url,
+        bool $allowPrivateHosts = false,
+        bool $enforceHostAllowlist = true,
+    ): ?string {
         $trimmed = trim($url);
 
         if ($trimmed === '') {
@@ -42,21 +48,32 @@ final class SafeRemoteUrlValidator
         $host = strtolower($parts['host']);
         $host = trim($host, '[]');
 
-        if ($host === '' || self::isBlockedHostname($host)) {
+        if ($host === '') {
             return 'Error: Host not allowed (SSRF).';
         }
 
-        $allowedHosts = array_values(array_filter(array_map(
-            fn (mixed $allowedHost): string => strtolower(trim((string) $allowedHost)),
-            (array) config('ai.remote_import_hosts', []),
-        )));
+        // Cloud metadata hostnames are never allowed, even with private-host opt-in.
+        if (in_array($host, ['metadata', 'metadata.google.internal'], true)) {
+            return 'Error: Host not allowed (SSRF).';
+        }
 
-        if ($allowedHosts !== [] && ! in_array($host, $allowedHosts, true)) {
-            return 'Error: Host is not on the remote import allowlist.';
+        if (! $allowPrivateHosts && self::isBlockedHostname($host)) {
+            return 'Error: Host not allowed (SSRF).';
+        }
+
+        if ($enforceHostAllowlist) {
+            $allowedHosts = array_values(array_filter(array_map(
+                fn (mixed $allowedHost): string => strtolower(trim((string) $allowedHost)),
+                (array) config('ai.remote_import_hosts', []),
+            )));
+
+            if ($allowedHosts !== [] && ! in_array($host, $allowedHosts, true)) {
+                return 'Error: Host is not on the remote import allowlist.';
+            }
         }
 
         if (filter_var($host, FILTER_VALIDATE_IP)) {
-            if (self::isBlockedIp($host)) {
+            if (! $allowPrivateHosts && self::isBlockedIp($host)) {
                 return 'Error: IP address not allowed (SSRF).';
             }
 
@@ -69,6 +86,10 @@ final class SafeRemoteUrlValidator
             return 'Error: Unable to resolve host.';
         }
 
+        if ($allowPrivateHosts) {
+            return null;
+        }
+
         foreach ($resolvedIps as $ip) {
             if (self::isBlockedIp($ip)) {
                 return 'Error: Host resolves to a disallowed address (SSRF).';
@@ -76,6 +97,18 @@ final class SafeRemoteUrlValidator
         }
 
         return null;
+    }
+
+    /**
+     * Outbound webhook / Slack notifier URLs: SSRF checks without the AI import host allowlist.
+     */
+    public static function validateOutboundWebhook(string $url): ?string
+    {
+        return self::validate(
+            $url,
+            allowPrivateHosts: (bool) config('webhooks.allow_private_hosts', false),
+            enforceHostAllowlist: false,
+        );
     }
 
     private static function isBlockedHostname(string $host): bool

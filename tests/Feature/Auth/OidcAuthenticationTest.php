@@ -207,7 +207,7 @@ test('project settings encrypt oidc secret and never return plaintext', function
     ]);
 
     $this->actingAs($user)
-        ->put(route('project.update'), baseProjectPayload([
+        ->put(route('project.security.update'), baseSecurityPayload([
             'oidc_enabled' => true,
             'oidc_issuer' => 'https://idp.example.com/realms/externa',
             'oidc_client_id' => 'externa-app',
@@ -227,7 +227,7 @@ test('project settings encrypt oidc secret and never return plaintext', function
         ->and($edit['oidc_enabled'])->toBeTrue();
 
     $this->actingAs($user)
-        ->get(route('project.edit'))
+        ->get(route('project.security.edit'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('project.oidc_client_secret_configured', true)

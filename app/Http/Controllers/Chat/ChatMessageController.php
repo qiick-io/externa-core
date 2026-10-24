@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Chat;
 
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
-use App\Events\ItemChatMessageCreated;
-use App\Events\ItemChatMessageDeleted;
-use App\Events\ItemChatMessageUpdated;
-use App\Events\ItemChatReactionToggled;
+use App\Events\ItemChatMessageCreatedEvent;
+use App\Events\ItemChatMessageDeletedEvent;
+use App\Events\ItemChatMessageUpdatedEvent;
+use App\Events\ItemChatReactionToggledEvent;
 use App\Http\Controllers\Controller;
 use App\Models\Chat;
 use App\Models\Collection;
@@ -214,7 +214,7 @@ class ChatMessageController extends Controller
 
         $this->notifyRecipients($chat, $message, $user, $mentionedIds);
         $this->unread->afterMessageCreated($chat, $message, $user, $mentionedIds);
-        event(new ItemChatMessageCreated($chat->id, $payload));
+        event(new ItemChatMessageCreatedEvent($chat->id, $payload));
 
         activity()
             ->causedBy($user)
@@ -262,7 +262,7 @@ class ChatMessageController extends Controller
 
         $message->load($this->messageRelations());
         $payload = $this->serializeMessage($message, $user);
-        event(new ItemChatMessageUpdated($chat->id, $payload));
+        event(new ItemChatMessageUpdatedEvent($chat->id, $payload));
 
         return response()->json(['message' => $payload]);
     }
@@ -285,7 +285,7 @@ class ChatMessageController extends Controller
         $bodyPreview = Str::limit((string) $message->body, 120);
 
         $message->delete();
-        event(new ItemChatMessageDeleted($chat->id, $messageId));
+        event(new ItemChatMessageDeletedEvent($chat->id, $messageId));
 
         activity()
             ->causedBy($user)
@@ -322,7 +322,7 @@ class ChatMessageController extends Controller
 
         $message->load($this->messageRelations());
         $payload = $this->serializeMessage($message, $user);
-        event(new ItemChatMessageUpdated($chat->id, $payload));
+        event(new ItemChatMessageUpdatedEvent($chat->id, $payload));
 
         return response()->json(['message' => $payload]);
     }
@@ -366,7 +366,7 @@ class ChatMessageController extends Controller
             ]);
         }
 
-        event(new ItemChatReactionToggled(
+        event(new ItemChatReactionToggledEvent(
             $chat->id,
             (int) $message->id,
             (int) $user->id,

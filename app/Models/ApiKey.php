@@ -2,7 +2,8 @@
 
 namespace App\Models;
 
-use App\Concerns\LogsApplicationActivity;
+use App\Enums\CollectionPermissionActionEnum;
+use App\Traits\LogsApplicationActivityTrait;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -11,17 +12,21 @@ use Spatie\Activitylog\Support\LogOptions;
 /**
  * Project API key authenticated via Bearer token; permissions come from role_id.
  *
+ * Optional scopes only narrow the role: collection_slugs allowlist and read_only.
+ *
  * @property string $uuid
  * @property string $name
  * @property string $key_prefix
  * @property string $key_hash
  * @property int $role_id
+ * @property list<string>|null $collection_slugs
+ * @property bool $read_only
  * @property list<string>|null $ip_allowlist
  * @property int|null $rate_limit_per_minute
  */
 class ApiKey extends Model
 {
-    use LogsApplicationActivity;
+    use LogsApplicationActivityTrait;
 
     /**
      * @var list<string>
@@ -32,6 +37,8 @@ class ApiKey extends Model
         'key_prefix',
         'key_hash',
         'role_id',
+        'collection_slugs',
+        'read_only',
         'ip_allowlist',
         'rate_limit_per_minute',
         'expires_at',
@@ -53,12 +60,50 @@ class ApiKey extends Model
     protected function casts(): array
     {
         return [
+            'collection_slugs' => 'array',
+            'read_only' => 'boolean',
             'ip_allowlist' => 'array',
             'rate_limit_per_minute' => 'integer',
             'expires_at' => 'datetime',
             'last_used_at' => 'datetime',
             'revoked_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Whether this key may touch the given collection slug.
+     * null collection_slugs = unrestricted (legacy).
+     */
+    public function allowsCollectionSlug(string $slug): bool
+    {
+        $slugs = $this->collection_slugs;
+        if ($slugs === null) {
+            return true;
+        }
+
+        /** @var list<string> $normalized */
+        $normalized = array_values(array_filter(array_map(
+            static fn (mixed $value): string => strtolower(trim((string) $value)),
+            $slugs,
+        )));
+
+        return in_array(strtolower($slug), $normalized, true);
+    }
+
+    /**
+     * Whether this key may perform the action (read_only blocks writes).
+     */
+    public function allowsAction(CollectionPermissionActionEnum|string $action): bool
+    {
+        if (! $this->read_only) {
+            return true;
+        }
+
+        $value = $action instanceof CollectionPermissionActionEnum
+            ? $action->value
+            : $action;
+
+        return $value === CollectionPermissionActionEnum::Read->value;
     }
 
     public function getActivitylogOptions(): LogOptions

@@ -213,6 +213,7 @@ test('project settings update writes settings_updated activity', function () {
 
     expect($activity)->not->toBeNull()
         ->and($activity->causer_id)->toBe($actor->id)
+        ->and($activity->properties['section'] ?? null)->toBe('general')
         ->and($activity->properties['keys'] ?? null)->toContain('name');
 });
 

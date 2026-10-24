@@ -139,11 +139,12 @@ class FileChunkUploadService
             $fileHash = hash('sha256', $fileContent);
             $storage->put($tempFilePath, $fileContent);
 
-            // Always re-sniff; client mime_type is a hint only.
+            // Always re-sniff; client mime_type is a hint only. Magic uses ≤16 bytes.
             $mimeType = SafeUploadMime::assertFilePoolAllowed(
                 (string) $fileUpload->file_name,
                 SafeUploadMime::sniff($fileContent),
                 'file_name',
+                $fileContent,
             );
 
             [$width, $height, $meta] = $files->extractImageMeta(

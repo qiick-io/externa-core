@@ -551,6 +551,8 @@ class ItemController extends Controller
         $itemPayload['publish_at'] = $item->publish_at?->toIso8601String();
         $itemPayload['unpublish_at'] = $item->unpublish_at?->toIso8601String();
         $itemPayload['published_at'] = $this->resolvePublishedAtIso($item);
+        $itemPayload['schedule_error'] = $item->schedule_error;
+        $itemPayload['schedule_failed_at'] = $item->schedule_failed_at?->toIso8601String();
         $itemPayload['approval_status'] = $item->approval_status ?? 'draft';
         $itemPayload['rejection_note'] = $item->rejection_note;
         $itemPayload['submitted_by'] = $item->submitted_by;
@@ -704,19 +706,7 @@ class ItemController extends Controller
                 $incoming,
             );
 
-            foreach ($incoming as $key => $value) {
-                // ponytail: array_merge appends list fields (blocks/m2a/files); only merge associative maps (locales).
-                if (
-                    is_array($value)
-                    && isset($data[$key])
-                    && is_array($data[$key])
-                    && ! array_is_list($value)
-                ) {
-                    $data[$key] = array_merge($data[$key], $value);
-                } else {
-                    $data[$key] = $value;
-                }
-            }
+            $data = $this->itemDataNormalizer->mergeIncoming($data, $incoming);
         }
 
         $action = $this->itemSaveAction($request);
@@ -741,11 +731,16 @@ class ItemController extends Controller
 
         if ($version === 'draft') {
             $item->draft_data = $normalized;
+            $scheduleWarningDate = null;
             // Editing an approved/rejected draft invalidates approval.
             if (
                 $collection->approvals_required
                 && in_array((string) $item->approval_status, ['approved', 'rejected', 'in_review'], true)
             ) {
+                if ($item->publish_at !== null) {
+                    $scheduleWarningDate = $item->publish_at->timezone(config('app.timezone'))
+                        ->toDayDateTimeString();
+                }
                 $item->approval_status = 'draft';
                 $item->rejection_note = null;
                 $item->submitted_by = null;
@@ -758,11 +753,17 @@ class ItemController extends Controller
                 'version' => 'draft',
             ], $normalized);
 
+            $success = $scheduleWarningDate !== null
+                ? __('Draft saved. Approval was reset; the scheduled publish on :date will not run until the item is approved again.', [
+                    'date' => $scheduleWarningDate,
+                ])
+                : __('Draft saved.');
+
             return $this->redirectAfterItemSave(
                 $collection,
                 $item,
                 $action,
-                __('Draft saved.'),
+                $success,
                 draft: true,
             );
         }
@@ -1150,6 +1151,7 @@ class ItemController extends Controller
             } else {
                 $item->publish_at = null;
                 $item->unpublish_at = null;
+                $item->clearScheduleFailure();
             }
             $item->save();
 
@@ -1205,6 +1207,7 @@ class ItemController extends Controller
         } else {
             if ($touchPublish) {
                 $item->publish_at = $validated['publish_at'] ?? null;
+                $item->clearScheduleFailure();
             }
             if ($touchUnpublish) {
                 $item->unpublish_at = $validated['unpublish_at'] ?? null;
@@ -1213,6 +1216,7 @@ class ItemController extends Controller
             if (! $touchPublish && ! $touchUnpublish) {
                 $item->publish_at = $validated['publish_at'] ?? null;
                 $item->unpublish_at = $validated['unpublish_at'] ?? null;
+                $item->clearScheduleFailure();
             }
         }
         $item->save();
@@ -1245,6 +1249,7 @@ class ItemController extends Controller
 
         $item->draft_data = null;
         $item->publish_at = null;
+        $item->clearScheduleFailure();
         if ($collection->approvals_required) {
             $this->itemApprovals->resetToDraft($item);
         } else {
@@ -1520,6 +1525,7 @@ class ItemController extends Controller
             $row = (new CollectionItemResource($item))->toArray($request);
             if ($versioning) {
                 $row['has_draft'] = is_array($item->draft_data);
+                $row['schedule_failed'] = $item->schedule_failed_at !== null;
             }
             if ($approvalsRequired) {
                 $row['approval_status'] = $item->approval_status ?? 'draft';

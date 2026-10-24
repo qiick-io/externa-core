@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Ai;
 
-use App\Ai\Concerns\ImportsCollectionRecords;
+use App\Ai\Concerns\ImportsCollectionRecordsTrait;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Ai\CollectionImportWebhookRequest;
 use App\Models\Collection;
@@ -15,7 +15,7 @@ use Throwable;
  */
 class CollectionImportWebhookController extends Controller
 {
-    use ImportsCollectionRecords;
+    use ImportsCollectionRecordsTrait;
 
     /**
      * Import associative record rows after FormRequest HMAC verification.

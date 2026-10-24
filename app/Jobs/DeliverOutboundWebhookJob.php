@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Services\Settings\ProjectSettings;
 use App\Services\Webhooks\OutboundWebhookDeliveryLog;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -47,6 +48,16 @@ class DeliverOutboundWebhookJob implements ShouldQueue
             return;
         }
 
+        if ($ssrf = SafeRemoteUrlValidator::validateOutboundWebhook($url)) {
+            Log::warning('Outbound webhook delivery refused: SSRF guard', [
+                'event_id' => $this->eventId,
+                'type' => $this->type,
+                'reason' => $ssrf,
+            ]);
+
+            return;
+        }
+
         $secret = $projectSettings->webhookSecret();
         // Prefer refuse over empty-key HMAC (deterministic, false authenticity).
         if ($secret === null || $secret === '') {
@@ -71,6 +82,7 @@ class DeliverOutboundWebhookJob implements ShouldQueue
 
         $response = Http::timeout(5)
             ->connectTimeout(3)
+            ->withoutRedirecting()
             ->withHeaders([
                 'X-Externa-Signature' => $signature,
                 'X-Externa-Event-Id' => $this->eventId,

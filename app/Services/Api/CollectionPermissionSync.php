@@ -2,7 +2,7 @@
 
 namespace App\Services\Api;
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Models\Collection;
 use App\Models\CollectionPermission;
 use App\Models\Role;
@@ -24,7 +24,7 @@ class CollectionPermissionSync
     public function sync(Role $role, array $matrix): void
     {
         $validCollectionIds = Collection::query()->pluck('id')->map(fn ($id) => (int) $id)->all();
-        $validActions = CollectionPermissionAction::values();
+        $validActions = CollectionPermissionActionEnum::values();
 
         DB::transaction(function () use ($role, $matrix, $validCollectionIds, $validActions): void {
             CollectionPermission::query()->where('role_id', $role->id)->delete();
@@ -90,7 +90,7 @@ class CollectionPermissionSync
         $allowed = [];
         $rulesByCollection = [];
         foreach ($grants as $grant) {
-            $action = $grant->action instanceof CollectionPermissionAction
+            $action = $grant->action instanceof CollectionPermissionActionEnum
                 ? $grant->action->value
                 : (string) $grant->action;
             $cid = (int) $grant->collection_id;

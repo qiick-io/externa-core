@@ -6,6 +6,7 @@ import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialo
 import InputError from '@/components/input-error';
 import { TablePagination } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -28,6 +29,8 @@ type ApiKeyRow = {
     name: string;
     key_prefix: string;
     role?: { id: number; name: string } | null;
+    collection_slugs?: string[] | null;
+    read_only?: boolean;
     ip_allowlist?: string[] | null;
     rate_limit_per_minute?: number | null;
     expires_at?: string | null;
@@ -70,6 +73,7 @@ export default function AdminApiKeysIndex({
     const rows = apiKeys.data ?? [];
 
     const [ipText, setIpText] = useState('');
+    const [collectionSlugsText, setCollectionSlugsText] = useState('');
     const [pendingRevokeKeyId, setPendingRevokeKeyId] = useState<number | null>(
         null,
     );
@@ -78,6 +82,8 @@ export default function AdminApiKeysIndex({
     const form = useForm({
         name: '',
         role_id: roles[0] ? String(roles[0].id) : '',
+        collection_slugs: '' as string,
+        read_only: false,
         ip_allowlist: '' as string,
         rate_limit_per_minute: '' as string,
         expires_at: '' as string,
@@ -99,6 +105,8 @@ export default function AdminApiKeysIndex({
         form.transform((data) => ({
             name: data.name,
             role_id: Number(data.role_id),
+            collection_slugs: collectionSlugsText,
+            read_only: data.read_only,
             ip_allowlist: ipText,
             rate_limit_per_minute: data.rate_limit_per_minute
                 ? Number(data.rate_limit_per_minute)
@@ -110,6 +118,7 @@ export default function AdminApiKeysIndex({
             onSuccess: () => {
                 form.reset();
                 setIpText('');
+                setCollectionSlugsText('');
             },
         });
     };
@@ -192,6 +201,44 @@ export default function AdminApiKeysIndex({
                                 <InputError message={form.errors.role_id} />
                             </div>
                             <div className="grid gap-2 md:col-span-2">
+                                <Label htmlFor="collection_slugs">
+                                    {t('settings.apiKeys.collectionSlugs')}
+                                </Label>
+                                <Input
+                                    id="collection_slugs"
+                                    value={collectionSlugsText}
+                                    onChange={(e) =>
+                                        setCollectionSlugsText(e.target.value)
+                                    }
+                                    placeholder="posts, pages"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    {t('settings.apiKeys.collectionSlugsHelp')}
+                                </p>
+                                <InputError
+                                    message={form.errors.collection_slugs}
+                                />
+                            </div>
+                            <div className="flex items-center gap-2 md:col-span-2">
+                                <Checkbox
+                                    id="read_only"
+                                    checked={form.data.read_only}
+                                    onCheckedChange={(checked) =>
+                                        form.setData(
+                                            'read_only',
+                                            checked === true,
+                                        )
+                                    }
+                                />
+                                <Label
+                                    htmlFor="read_only"
+                                    className="font-normal"
+                                >
+                                    {t('settings.apiKeys.readOnly')}
+                                </Label>
+                                <InputError message={form.errors.read_only} />
+                            </div>
+                            <div className="grid gap-2 md:col-span-2">
                                 <Label htmlFor="ip_allowlist">
                                     IP allowlist (optional, comma-separated)
                                 </Label>
@@ -266,6 +313,9 @@ export default function AdminApiKeysIndex({
                                                 Role
                                             </th>
                                             <th className="px-3 py-2 text-left">
+                                                {t('settings.apiKeys.scopes')}
+                                            </th>
+                                            <th className="px-3 py-2 text-left">
                                                 Status
                                             </th>
                                             <th className="px-3 py-2 text-right">
@@ -277,7 +327,7 @@ export default function AdminApiKeysIndex({
                                         {rows.length === 0 ? (
                                             <tr>
                                                 <td
-                                                    colSpan={5}
+                                                    colSpan={6}
                                                     className="px-3 py-6 text-center text-muted-foreground"
                                                 >
                                                     No API keys yet.
@@ -297,6 +347,23 @@ export default function AdminApiKeysIndex({
                                                     </td>
                                                     <td className="px-3 py-2">
                                                         {key.role?.name ?? '—'}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-xs text-muted-foreground">
+                                                        {[
+                                                            key.read_only
+                                                                ? t(
+                                                                      'settings.apiKeys.readOnlyBadge',
+                                                                  )
+                                                                : null,
+                                                            key.collection_slugs
+                                                                ?.length
+                                                                ? key.collection_slugs.join(
+                                                                      ', ',
+                                                                  )
+                                                                : null,
+                                                        ]
+                                                            .filter(Boolean)
+                                                            .join(' · ') || '—'}
                                                     </td>
                                                     <td className="px-3 py-2">
                                                         {key.revoked_at

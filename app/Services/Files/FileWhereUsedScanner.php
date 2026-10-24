@@ -86,12 +86,16 @@ class FileWhereUsedScanner
             ->whereHas('item', static fn ($q) => $q->whereNull('deleted_at'))
             ->where(function ($q) use ($needle, $driver): void {
                 if ($driver === 'pgsql') {
+                    // raw-sql: reviewed — needle bound; driver-specific CAST/LIKE literals only
                     $q->whereRaw('value::text LIKE ?', ['%'.$needle.'%']);
                 } elseif ($driver === 'sqlite') {
+                    // raw-sql: reviewed — needle bound; driver-specific CAST/LIKE literals only
                     $q->whereRaw('CAST(value AS TEXT) LIKE ?', ['%'.$needle.'%']);
                 } elseif (in_array($driver, ['mysql', 'mariadb'], true)) {
+                    // raw-sql: reviewed — needle bound; driver-specific CAST/LIKE literals only
                     $q->whereRaw('CAST(JSON_UNQUOTE(value) AS CHAR) LIKE ?', ['%'.$needle.'%']);
                 } else {
+                    // raw-sql: reviewed — needle bound; driver-specific CAST/LIKE literals only
                     $q->whereRaw('CAST(value AS CHAR) LIKE ?', ['%'.$needle.'%']);
                 }
             })

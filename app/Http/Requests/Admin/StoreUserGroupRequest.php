@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Support\Validation\StringLimits;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -12,7 +12,7 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class StoreUserGroupRequest extends FormRequest
 {
-    use AuthorizesWithPermission;
+    use AuthorizesWithPermissionTrait;
 
     /**
      * Require permission to create groups.

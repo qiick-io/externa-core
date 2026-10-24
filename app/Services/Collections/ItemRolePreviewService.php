@@ -2,7 +2,7 @@
 
 namespace App\Services\Collections;
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\RoleEnum;
 use App\Models\Collection;
 use App\Models\CollectionItem;
@@ -51,7 +51,7 @@ class ItemRolePreviewService
             'is_public' => $role->isPublic(),
         ];
 
-        if (! $this->guard->allows((int) $role->id, (int) $collection->id, CollectionPermissionAction::Read)) {
+        if (! $this->guard->allows((int) $role->id, (int) $collection->id, CollectionPermissionActionEnum::Read)) {
             return [
                 'readable' => false,
                 'role' => $rolePayload,

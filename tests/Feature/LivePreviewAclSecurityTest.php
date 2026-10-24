@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
@@ -32,7 +32,7 @@ function lpPublic(): Role
 function lpGrant(Collection $collection, Role $role, array $actions, ?array $rules = null): void
 {
     foreach ($actions as $action) {
-        $value = $action instanceof CollectionPermissionAction ? $action->value : $action;
+        $value = $action instanceof CollectionPermissionActionEnum ? $action->value : $action;
         CollectionPermission::query()->updateOrCreate(
             ['role_id' => $role->id, 'collection_id' => $collection->id, 'action' => $value],
             ['allowed' => true, 'rules' => $rules],
@@ -57,7 +57,7 @@ function lpRestrictedUser(Collection $collection, array $rules): array
         'guard_name' => 'web',
     ]);
     $role->syncPermissions([PermissionEnum::CanShowCollections->value]);
-    lpGrant($collection, $role, [CollectionPermissionAction::Read], $rules);
+    lpGrant($collection, $role, [CollectionPermissionActionEnum::Read], $rules);
     $user = User::factory()->create();
     $user->syncRoles([$role]);
 
@@ -178,14 +178,14 @@ test('preview enforces item_filter and collection Read for bound user', function
         [
             'role_id' => $role->id,
             'collection_id' => $collection->id,
-            'action' => CollectionPermissionAction::Update->value,
+            'action' => CollectionPermissionActionEnum::Update->value,
         ],
         ['allowed' => true, 'rules' => $rules],
     );
     CollectionPermission::query()
         ->where('role_id', $role->id)
         ->where('collection_id', $collection->id)
-        ->where('action', CollectionPermissionAction::Read->value)
+        ->where('action', CollectionPermissionActionEnum::Read->value)
         ->delete();
     app(CollectionPermissionGuard::class)->forget($role->id);
 

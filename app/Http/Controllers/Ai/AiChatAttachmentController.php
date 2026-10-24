@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Ai;
 use App\Http\Controllers\Controller;
 use App\Models\AiChatAttachment;
 use App\Models\User;
+use App\Support\Uploads\ForbiddenUploadExtension;
+use App\Support\Uploads\MimeTypeValidator;
+use App\Support\Uploads\SafeUploadMime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -36,11 +39,17 @@ class AiChatAttachmentController extends Controller
         /** @var UploadedFile $uploaded */
         $uploaded = $validated['file'];
 
-        $extension = strtolower((string) $uploaded->getClientOriginalExtension());
-        $mimeType = strtolower((string) ($uploaded->getMimeType() ?: $uploaded->getClientMimeType() ?: ''));
+        $originalName = $uploaded->getClientOriginalName() !== ''
+            ? $uploaded->getClientOriginalName()
+            : 'attachment.bin';
+        ForbiddenUploadExtension::assertAllowed($originalName);
+        $bytes = $uploaded->getContent();
+        $sniffed = MimeTypeValidator::assertAllowed($originalName, $bytes);
+
+        $extension = SafeUploadMime::extensionOf($originalName);
         $extensionAllowed = in_array($extension, AiChatAttachment::ALLOWED_EXTENSIONS, true);
-        $mimeAllowed = in_array($mimeType, AiChatAttachment::ALLOWED_MIME_TYPES, true)
-            || ($mimeType === 'application/octet-stream' && $extensionAllowed);
+        $mimeAllowed = in_array($sniffed, AiChatAttachment::ALLOWED_MIME_TYPES, true)
+            || ($sniffed === 'application/octet-stream' && $extensionAllowed);
 
         if (! $extensionAllowed || ! $mimeAllowed) {
             throw ValidationException::withMessages([
@@ -59,7 +68,7 @@ class AiChatAttachmentController extends Controller
             $extension === 'txt' => 'text/plain',
             $extension === 'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             $extension === 'pdf' => 'application/pdf',
-            default => $mimeType !== '' ? $mimeType : 'text/plain',
+            default => $sniffed !== '' ? $sniffed : 'text/plain',
         };
 
         $attachmentId = (string) Str::uuid7();
@@ -71,7 +80,7 @@ class AiChatAttachmentController extends Controller
             $extension,
         );
 
-        Storage::disk(AiChatAttachment::DISK)->put($storagePath, $uploaded->getContent());
+        Storage::disk(AiChatAttachment::DISK)->put($storagePath, $bytes);
 
         $attachment = AiChatAttachment::query()->create([
             'id' => $attachmentId,

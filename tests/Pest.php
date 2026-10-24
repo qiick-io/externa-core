@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Models\ApiKey;
@@ -34,6 +34,9 @@ pest()->extend(TestCase::class)
 pest()->extend(TestCase::class)
     ->in('Unit');
 
+pest()->extend(TestCase::class)
+    ->in('Arch');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations
@@ -66,12 +69,12 @@ function publicRole(): Role
 }
 
 /**
- * @param  list<CollectionPermissionAction|string>  $actions
+ * @param  list<CollectionPermissionActionEnum|string>  $actions
  */
 function grantRoleActions(Role $role, Collection $collection, array $actions): void
 {
     foreach ($actions as $action) {
-        $value = $action instanceof CollectionPermissionAction ? $action->value : $action;
+        $value = $action instanceof CollectionPermissionActionEnum ? $action->value : $action;
         CollectionPermission::query()->updateOrCreate(
             [
                 'role_id' => $role->id,
@@ -86,7 +89,7 @@ function grantRoleActions(Role $role, Collection $collection, array $actions): v
 }
 
 /**
- * @param  list<CollectionPermissionAction|string>  $actions
+ * @param  list<CollectionPermissionActionEnum|string>  $actions
  */
 function grantPublicActions(Collection $collection, array $actions): void
 {
@@ -243,7 +246,7 @@ function sampleTransformPresets(): array
 }
 
 /**
- * Minimal valid payload for PUT project settings.
+ * Minimal valid payload for PUT general project settings.
  *
  * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
@@ -251,10 +254,36 @@ function sampleTransformPresets(): array
 function baseProjectPayload(array $overrides = []): array
 {
     return array_merge([
+        'name' => null,
+        'description' => null,
+        'url' => null,
+        'report_issue_url' => null,
+        'report_bug_url' => null,
+        'report_error_url' => null,
+    ], $overrides);
+}
+
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function baseLocalizationPayload(array $overrides = []): array
+{
+    return array_merge([
         'default_language' => 'en',
         'content_locales' => ['en', 'it'],
         'default_content_locale' => 'en',
         'fallback_content_locales' => ['en', 'it'],
+    ], $overrides);
+}
+
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function baseSecurityPayload(array $overrides = []): array
+{
+    return array_merge([
         'password_policy' => 'weak',
         'login_max_attempts' => 5,
         'registration_enabled' => true,
@@ -262,7 +291,69 @@ function baseProjectPayload(array $overrides = []): array
         'two_factor_required' => false,
         'oidc_enabled' => false,
         'oidc_jit_provisioning' => false,
-        'sidebar_modules' => config('settings.project.defaults.sidebar_modules'),
+    ], $overrides);
+}
+
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function baseContentPayload(array $overrides = []): array
+{
+    return array_merge([
+        'preview_url_default' => null,
+        'revision_retention_count' => null,
+        'revision_retention_days' => null,
+    ], $overrides);
+}
+
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function baseFilesPayload(array $overrides = []): array
+{
+    return array_merge([
+        'files_max_upload_bytes' => null,
+        'chat_max_upload_bytes' => null,
+        'allowed_transformations' => [],
         'preset_transformations' => sampleTransformPresets(),
+    ], $overrides);
+}
+
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function baseApiPayload(array $overrides = []): array
+{
+    return array_merge([
+        'public_api_allowed_origins' => [],
+    ], $overrides);
+}
+
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function baseIntegrationsPayload(array $overrides = []): array
+{
+    return array_merge([
+        'webhook_url' => null,
+        'webhook_secret' => null,
+        'notifier_slack_webhook_url' => null,
+        'notifier_telegram_bot_token' => null,
+        'notifier_telegram_chat_id' => null,
+    ], $overrides);
+}
+
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function baseSidebarPayload(array $overrides = []): array
+{
+    return array_merge([
+        'sidebar_modules' => config('settings.project.defaults.sidebar_modules'),
     ], $overrides);
 }

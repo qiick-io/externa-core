@@ -2,9 +2,9 @@
 
 namespace App\Ai\Tools;
 
-use App\Ai\Concerns\ChecksAiPermissions;
-use App\Ai\Concerns\LogsAiToolUse;
-use App\Ai\Concerns\RequiresDestructiveApproval;
+use App\Ai\Concerns\ChecksAiPermissionsTrait;
+use App\Ai\Concerns\LogsAiToolUseTrait;
+use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
@@ -13,6 +13,7 @@ use App\Models\CollectionItem;
 use App\Services\Collections\ApplyCollectionPackService;
 use App\Services\Collections\ApplyFieldPackService;
 use App\Services\Collections\CollectionFieldRenamer;
+use App\Services\Collections\CollectionFieldStorageShapeService;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
@@ -32,9 +33,9 @@ use Stringable;
  */
 class ManageCollections implements Approvable, Tool
 {
-    use ChecksAiPermissions;
-    use LogsAiToolUse;
-    use RequiresDestructiveApproval;
+    use ChecksAiPermissionsTrait;
+    use LogsAiToolUseTrait;
+    use RequiresDestructiveApprovalTrait;
 
     /**
      * @return list<string>
@@ -578,6 +579,9 @@ class ManageCollections implements Approvable, Tool
             $attributes['name'] = $name;
         }
 
+        $storageShape = app(CollectionFieldStorageShapeService::class);
+        $hasStoredValues = $storageShape->hasStoredValues($field);
+
         if ($request->filled('type')) {
             $type = FieldTypeEnum::tryFrom(trim((string) $request->string('type')));
 
@@ -585,11 +589,21 @@ class ManageCollections implements Approvable, Tool
                 return 'Error: Invalid field type. Use one of: '.implode(', ', FieldTypeEnum::values()).'.';
             }
 
+            if ($hasStoredValues && $storageShape->isTypeChange($field, $type)) {
+                return 'Error: '.$storageShape->typeChangeBlockedMessage();
+            }
+
             $attributes['type'] = $type;
         }
 
         if ($request->has('translatable')) {
-            $attributes['translatable'] = (bool) $request->boolean('translatable');
+            $translatable = (bool) $request->boolean('translatable');
+
+            if ($hasStoredValues && $storageShape->isTranslatableChange($field, $translatable)) {
+                return 'Error: '.$storageShape->translatableChangeBlockedMessage();
+            }
+
+            $attributes['translatable'] = $translatable;
         }
 
         if ($request->filled('settings_json')) {

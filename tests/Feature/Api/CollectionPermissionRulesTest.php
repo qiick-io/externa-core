@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\RoleEnum;
 use App\Models\Collection;
@@ -27,7 +27,7 @@ function grantWithRules(Collection $collection, array $actions, array $rules): v
 {
     $role = rulesPublicRole();
     foreach ($actions as $action) {
-        $value = $action instanceof CollectionPermissionAction ? $action->value : $action;
+        $value = $action instanceof CollectionPermissionActionEnum ? $action->value : $action;
         CollectionPermission::query()->updateOrCreate(
             [
                 'role_id' => $role->id,
@@ -76,9 +76,9 @@ test('field rules strip unreadables and item_filter hides non-matching items', f
     ];
 
     grantWithRules($collection, [
-        CollectionPermissionAction::Read,
-        CollectionPermissionAction::Update,
-        CollectionPermissionAction::Create,
+        CollectionPermissionActionEnum::Read,
+        CollectionPermissionActionEnum::Update,
+        CollectionPermissionActionEnum::Create,
     ], $rules);
 
     $normalizer = app(CollectionItemDataNormalizer::class);
@@ -130,7 +130,7 @@ test('empty field map leaves all fields readable', function () {
         'type' => FieldTypeEnum::String,
     ]);
 
-    grantWithRules($collection, [CollectionPermissionAction::Read], [
+    grantWithRules($collection, [CollectionPermissionActionEnum::Read], [
         'fields' => [],
         'item_filter' => null,
     ]);
@@ -165,7 +165,7 @@ test('item_filter SQL pushdown returns coherent totals and pages', function () {
         'type' => FieldTypeEnum::String,
     ]);
 
-    grantWithRules($collection, [CollectionPermissionAction::Read], [
+    grantWithRules($collection, [CollectionPermissionActionEnum::Read], [
         'fields' => [],
         'item_filter' => [
             'logic' => 'and',

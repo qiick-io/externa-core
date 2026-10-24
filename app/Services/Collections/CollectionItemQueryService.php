@@ -254,14 +254,22 @@ class CollectionItemQueryService
             }
 
             match ($operator) {
+                // raw-sql: reviewed — item filters/sort; operands bound; SQL fragments from driver helpers only
                 '_eq' => $sub->whereRaw($this->valueTextSql().' = ?', [(string) $operand]),
+                // raw-sql: reviewed — item filters/sort; operands bound; SQL fragments from driver helpers only
                 '_neq' => $sub->whereRaw($this->valueTextSql().' <> ?', [(string) $operand]),
+                // raw-sql: reviewed — item filters/sort; operands bound; SQL fragments from driver helpers only
                 '_contains' => $sub->whereRaw($this->valueLikeSql().' LIKE ?', ['%'.mb_strtolower((string) $operand).'%']),
                 '_in' => $this->applyIn($sub, $operand),
+                // raw-sql: reviewed — item filters/sort; operands bound; SQL fragments from driver helpers only
                 '_gt' => $sub->whereRaw($this->valueNumericSql().' > ?', [(float) $operand]),
+                // raw-sql: reviewed — item filters/sort; operands bound; SQL fragments from driver helpers only
                 '_gte' => $sub->whereRaw($this->valueNumericSql().' >= ?', [(float) $operand]),
+                // raw-sql: reviewed — item filters/sort; operands bound; SQL fragments from driver helpers only
                 '_lt' => $sub->whereRaw($this->valueNumericSql().' < ?', [(float) $operand]),
+                // raw-sql: reviewed — item filters/sort; operands bound; SQL fragments from driver helpers only
                 '_lte' => $sub->whereRaw($this->valueNumericSql().' <= ?', [(float) $operand]),
+                // raw-sql: reviewed — item filters/sort; operands bound; SQL fragments from driver helpers only
                 default => $sub->whereRaw($this->valueLikeSql().' LIKE ?', ['%'.mb_strtolower((string) $operand).'%']),
             };
         };
@@ -289,12 +297,14 @@ class CollectionItemQueryService
             : array_values(array_filter(array_map('trim', explode(',', (string) $operand)), fn ($v) => $v !== ''));
 
         if ($values === []) {
+            // raw-sql: reviewed — item filters/sort; operands bound; SQL fragments from driver helpers only
             $sub->whereRaw('1 = 0');
 
             return;
         }
 
         $placeholders = implode(',', array_fill(0, count($values), '?'));
+        // raw-sql: reviewed — item filters/sort; operands bound; SQL fragments from driver helpers only
         $sub->whereRaw($this->valueTextSql().' IN ('.$placeholders.')', $values);
     }
 
@@ -338,7 +348,9 @@ class CollectionItemQueryService
                 $sub->whereNull('locale');
             }
 
+            // raw-sql: reviewed — item filters/sort; operands bound; SQL fragments from driver helpers only
             $sub->whereRaw($textSql.' >= ?', [$from])
+                // raw-sql: reviewed — item filters/sort; operands bound; SQL fragments from driver helpers only
                 ->whereRaw($textSql.' < ?', [$exclusiveEnd]);
         });
 
@@ -366,6 +378,7 @@ class CollectionItemQueryService
         if ($sort !== '' && in_array($sort, self::SYSTEM_SORT_COLUMNS, true)) {
             if ($sort === 'board_sort') {
                 // Nulls last so untouched cards stay below manually ordered ones.
+                // raw-sql: reviewed — item filters/sort; operands bound; SQL fragments from driver helpers only
                 $query->orderByRaw('board_sort is null asc')
                     ->orderBy('board_sort', $direction)
                     ->orderByDesc('id');
@@ -382,6 +395,7 @@ class CollectionItemQueryService
             if ($field instanceof CollectionField && $this->isSortableField($field)) {
                 $valueSql = $this->valueOrderSql();
                 $sub = CollectionItemValue::query()
+                    // raw-sql: reviewed — item filters/sort; operands bound; SQL fragments from driver helpers only
                     ->selectRaw($valueSql)
                     ->whereColumn('collections_items_values.item_id', 'collections_items.id')
                     ->where('field_id', $field->id)

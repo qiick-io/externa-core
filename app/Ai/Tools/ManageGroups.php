@@ -2,9 +2,9 @@
 
 namespace App\Ai\Tools;
 
-use App\Ai\Concerns\ChecksAiPermissions;
-use App\Ai\Concerns\LogsAiToolUse;
-use App\Ai\Concerns\RequiresDestructiveApproval;
+use App\Ai\Concerns\ChecksAiPermissionsTrait;
+use App\Ai\Concerns\LogsAiToolUseTrait;
+use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\AiToolJsonDecoder;
 use App\Enums\PermissionEnum;
 use App\Models\User;
@@ -21,9 +21,9 @@ use Stringable;
  */
 class ManageGroups implements Approvable, Tool
 {
-    use ChecksAiPermissions;
-    use LogsAiToolUse;
-    use RequiresDestructiveApproval;
+    use ChecksAiPermissionsTrait;
+    use LogsAiToolUseTrait;
+    use RequiresDestructiveApprovalTrait;
 
     /**
      * @return list<string>
