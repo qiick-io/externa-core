@@ -20,7 +20,9 @@ final class ForbiddenUploadExtension
         'sh', 'bash', 'ps1',
         'dll', 'so',
         // Stored XSS / content-sniff when served from a public disk
-        'svg', 'html', 'htm',
+        'svg', 'html', 'htm', 'shtml', 'shtm',
+        // Structured markup often served with risky browser sniffing
+        'xml', 'xhtml',
     ];
 
     public static function isForbidden(string $fileName): bool
