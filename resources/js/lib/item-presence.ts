@@ -228,21 +228,10 @@ export function notifyItemSaved(updatedAt: string): void {
     remoteUpdatedAt = updatedAt;
     emit();
 
-    // Presence leave/rejoin from Inertia prop refresh can null channelRef in the
-    // same tick as this call — retry once if the channel is not ready yet.
-    const send = (): void => {
-        if (!channelRef) {
-            return;
-        }
-
-        whisperUpdatedAt(updatedAt);
-    };
-
-    send();
-
-    if (!channelRef) {
-        window.setTimeout(send, 50);
-    }
+    // Whisper immediately and once more shortly after — save/Inertia can race the
+    // presence channel handshake and drop a single client event (#315).
+    whisperUpdatedAt(updatedAt);
+    window.setTimeout(() => whisperUpdatedAt(updatedAt), 150);
 }
 
 export function isRemoteUpdatedAtStale(
