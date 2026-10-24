@@ -26,7 +26,7 @@ beforeEach(function () {
     $this->withoutVite();
 });
 
-function configureOutboundWebhook(string $url = 'https://hooks.example.test/externa', string $secret = 'test-secret'): void
+function configureOutboundWebhook(string $url = 'https://example.com/externa-hooks', string $secret = 'test-secret'): void
 {
     $repository = app(SettingsRepository::class);
     $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', $url);
@@ -49,7 +49,7 @@ test('dispatcher is a no-op when webhook url is empty', function () {
 test('dispatcher refuses when webhook url set without secret', function () {
     Queue::fake();
     $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://hooks.example.test/externa');
+    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://example.com/externa-hooks');
 
     app(OutboundWebhookDispatcher::class)->dispatch('ping', ['ok' => true]);
 
@@ -70,9 +70,9 @@ test('dispatcher queues deliver job when webhook url is set', function () {
 });
 
 test('deliver job posts signed payload', function () {
-    configureOutboundWebhook('https://hooks.example.test/externa', 'test-secret');
+    configureOutboundWebhook('https://example.com/externa-hooks', 'test-secret');
     Http::fake([
-        'hooks.example.test/*' => Http::response(['ok' => true], 200),
+        'example.com/*' => Http::response(['ok' => true], 200),
     ]);
 
     $job = new DeliverOutboundWebhookJob(
@@ -88,7 +88,7 @@ test('deliver job posts signed payload', function () {
         $body = $request->body();
         $expected = 'sha256='.hash_hmac('sha256', $body, 'test-secret');
 
-        return $request->url() === 'https://hooks.example.test/externa'
+        return $request->url() === 'https://example.com/externa-hooks'
             && $request->hasHeader('X-Externa-Signature', $expected)
             && $request->hasHeader('X-Externa-Event-Id', 'evt_01test')
             && $request->hasHeader('X-Externa-Timestamp')
@@ -100,7 +100,7 @@ test('deliver job posts signed payload', function () {
 test('deliver job records last success and recent entry', function () {
     configureOutboundWebhook();
     Http::fake([
-        'hooks.example.test/*' => Http::response(['ok' => true], 202),
+        'example.com/*' => Http::response(['ok' => true], 202),
     ]);
 
     $job = new DeliverOutboundWebhookJob('evt_01ok', 'item.created', '2026-07-24T12:00:00Z', ['item_id' => 1]);
@@ -124,7 +124,7 @@ test('deliver job records last success and recent entry', function () {
 test('deliver job does not record success on non-2xx response', function () {
     configureOutboundWebhook();
     Http::fake([
-        'hooks.example.test/*' => Http::response('nope', 500),
+        'example.com/*' => Http::response('nope', 500),
     ]);
 
     $job = new DeliverOutboundWebhookJob('evt_01bad', 'ping', '2026-07-24T12:00:00Z', []);
@@ -245,7 +245,7 @@ test('project settings page exposes webhook catalog and delivery status', functi
 
 test('deliver job refuses when signing secret is empty', function () {
     $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://hooks.example.test/externa');
+    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://example.com/externa-hooks');
     Http::fake();
 
     $job = new DeliverOutboundWebhookJob(
@@ -356,13 +356,13 @@ test('clearing webhook url disables outbound webhooks', function () {
 
     $this->actingAs($user)
         ->put(route('project.update'), baseProjectPayload([
-            'webhook_url' => 'https://hooks.example.test/externa',
+            'webhook_url' => 'https://example.com/externa-hooks',
             'webhook_secret' => 'keep-me',
         ]))
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.edit'));
 
-    expect(app(ProjectSettings::class)->webhookUrl())->toBe('https://hooks.example.test/externa');
+    expect(app(ProjectSettings::class)->webhookUrl())->toBe('https://example.com/externa-hooks');
 
     $this->actingAs($user)
         ->put(route('project.update'), baseProjectPayload([
@@ -390,7 +390,7 @@ test('project settings stores encrypted webhook secret and never shares it', fun
 
     $this->actingAs($user)
         ->put(route('project.update'), baseProjectPayload([
-            'webhook_url' => 'https://hooks.example.test/externa',
+            'webhook_url' => 'https://example.com/externa-hooks',
             'webhook_secret' => 'super-secret-value',
         ]))
         ->assertSessionHasNoErrors()
@@ -413,7 +413,7 @@ test('project settings stores encrypted webhook secret and never shares it', fun
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/project')
-            ->where('project.webhook_url', 'https://hooks.example.test/externa')
+            ->where('project.webhook_url', 'https://example.com/externa-hooks')
             ->where('project.webhook_secret_configured', true)
             ->missing('project.webhook_secret')
         );
@@ -448,7 +448,7 @@ test('send test webhook flashes error when url missing', function () {
 
 test('send test webhook flashes error when secret missing', function () {
     $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://hooks.example.test/externa');
+    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://example.com/externa-hooks');
 
     $user = grantProjectSettingsPermissions(User::factory()->create(), [
         PermissionEnum::CanManageProjectSettings->value,
@@ -476,9 +476,9 @@ test('inertia shares flash success and error', function () {
 
 test('end-to-end item create delivers signed http request with sync queue', function () {
     config(['queue.default' => 'sync']);
-    configureOutboundWebhook('https://hooks.example.test/externa', 'e2e-secret');
+    configureOutboundWebhook('https://example.com/externa-hooks', 'e2e-secret');
     Http::fake([
-        'hooks.example.test/*' => Http::response(['received' => true], 200),
+        'example.com/*' => Http::response(['received' => true], 200),
     ]);
 
     $user = grantCollectionPermissions(User::factory()->create());
@@ -501,7 +501,7 @@ test('end-to-end item create delivers signed http request with sync queue', func
         $payload = json_decode($body, true);
         $expected = 'sha256='.hash_hmac('sha256', $body, 'e2e-secret');
 
-        return $request->url() === 'https://hooks.example.test/externa'
+        return $request->url() === 'https://example.com/externa-hooks'
             && $request->header('X-Externa-Signature')[0] === $expected
             && ($payload['type'] ?? null) === 'item.created'
             && ($payload['data']['collection_slug'] ?? null) === 'posts'

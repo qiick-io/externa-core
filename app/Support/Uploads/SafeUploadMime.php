@@ -110,9 +110,13 @@ final class SafeUploadMime
      *
      * @throws ValidationException
      */
-    public static function assertChatAllowed(string $fileName, string $sniffedMime, string $field = 'file'): string
+    public static function assertChatAllowed(string $fileName, string $sniffedMime, string $field = 'file', ?string $bytes = null): string
     {
         ForbiddenUploadExtension::assertAllowed($fileName, $field);
+
+        if ($bytes !== null) {
+            MimeTypeValidator::assertAllowed($fileName, $bytes, $field);
+        }
 
         $extension = self::extensionOf($fileName);
         $allowed = self::CHAT_EXTENSION_MIMES[$extension] ?? null;
@@ -139,9 +143,13 @@ final class SafeUploadMime
      *
      * @throws ValidationException
      */
-    public static function assertFilePoolAllowed(string $fileName, string $sniffedMime, string $field = 'file'): string
+    public static function assertFilePoolAllowed(string $fileName, string $sniffedMime, string $field = 'file', ?string $bytes = null): string
     {
         ForbiddenUploadExtension::assertAllowed($fileName, $field);
+
+        if ($bytes !== null) {
+            MimeTypeValidator::assertAllowed($fileName, $bytes, $field);
+        }
 
         $sniffed = strtolower(trim(explode(';', $sniffedMime, 2)[0]));
 
