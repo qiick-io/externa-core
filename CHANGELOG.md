@@ -9,6 +9,9 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+
+## [1.3.0] - 2026-10-24
+
 ### Security
 
 - Public API key scopes (`collection_slugs`, `read_only`) are enforced in `CollectionPermissionEnforcer` (including relation `?include=` hydration) and partition REST/GraphQL response cache keys so scoped keys cannot reuse a wider key’s cached payload; `read_only` also blocks Files API writes via the shared `ApiKey::allowsAction()` gate
@@ -53,7 +56,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - **Behaviour (project settings routes):** `/settings/project` is split into dedicated sections with their own `GET`/`PUT` routes (General, Localization, Authentication & Security, Content, Files & Media, API, Integrations, plus Appearance sidebar). Setting **keys and stored values are unchanged**; permission remains `CanManageProjectSettings`. Update bookmarks, runbooks, and any automation that POSTed the old monolithic form to the matching section endpoints. CORS public-origins cache is cleared **only** on the API section save (#201 / #304).
 - **Behaviour (authz — super-admin grants):** only existing super-admins may grant the super-admin role/groups or create/update/delete/restore super-admin users and groups (admin web, bulk actions, and AI tools). Delegated user/group managers without super-admin can no longer escalate or manage those principals (#307).
 - **Behaviour (authz — collection grants):** when an admin already has any `collection_permissions` rows, item actions require a matching per-collection grant (fail closed). Spatie-only admins with no collection grants keep prior behaviour. Collection index hides collections without Read (#312).
-- **Upgrade steps (source):** merge/check out this release line → `composer install` → `npm ci` && `npm run build` → `php artisan migrate` → set `AI_WEBHOOK_TOKEN` (and any optional caps above) → `php artisan config:clear` → restart queue/scheduler/Horizon. **Docker:** pull the new image; confirm `.dockerignore` excludes `/backups`, `/storage/app/*`, agent tooling dirs, and compose bake files so `docker build` does not ship local data (#294). Leave the `composer.json` / UI version bump and the `[1.3.0]` CHANGELOG heading to the release PR.
+- **Upgrade steps (source):** merge/check out this release line → `composer install` → `npm ci` && `npm run build` → `php artisan migrate` → set `AI_WEBHOOK_TOKEN` (and any optional caps above) → `php artisan config:clear` → restart queue/scheduler/Horizon. **Docker:** pull the new image; confirm `.dockerignore` excludes `/backups`, `/storage/app/*`, agent tooling dirs, and compose bake files so `docker build` does not ship local data (#294). Source installs: merge or check out the `v1.3.0` tag, then `composer install`, `npm ci` && `npm run build`, `php artisan migrate`, `php artisan optimize:clear`. Docker: pull `ghcr.io/qiick-io/externa-core:1.3.0` (or `latest`).
 
 ## [1.2.3] - 2026-10-22
 
@@ -261,7 +264,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 [GitHub Release](https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.1)
 
-[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.2.3...HEAD
+[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.3.0
 [1.2.3]: https://github.com/qiick-io/externa-core/releases/tag/v1.2.3
 [1.2.2]: https://github.com/qiick-io/externa-core/releases/tag/v1.2.2
 [1.0.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0
