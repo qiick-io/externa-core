@@ -35,7 +35,11 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Externa mark v3 (bow-tie) assets and admin colour defaults: primary `#0E7C86` (light) / `#1A95A2` (dark), focus rings and chart accents from the v3 teal scale; favicon links cache-busted with `?v=3` (#258)
 - Public REST item lists batch-prewarm `?include=` relation targets once per response (`RelationIncludeHydrator::prewarm`) so depth-1 query count stays flat as parent N grows (#112)
 - Memoize `ProjectSettings::raw()` for the request (singleton binding) so admin/Public item lists stop re-querying the `settings` table once per parent row (#117)
+<<<<<<< HEAD
 - Audit raw SQL call sites (`whereRaw` / `selectRaw` / `DB::select` / …); inline `// raw-sql: reviewed` markers; PHPStan disallow via `spaze/phpstan-disallowed-calls` with a reviewed-file allowlist (#208)
+=======
+- Public API response cache: env `PUBLIC_API_CACHE_TTL` (default 120), per-epoch hit/miss counters, last-flush actor/time on Performance settings (#115)
+>>>>>>> b4e5407 (feat(api): public api cache ttl, flush meta, and hit/miss stats (#115))
 
 ### Upgrade notes
 

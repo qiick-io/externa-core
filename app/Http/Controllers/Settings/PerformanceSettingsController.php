@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
+use App\Models\User;
 use App\Services\Api\CollectionPermissionGuard;
 use App\Services\Api\FilePermissionGuard;
 use App\Services\Api\PublicApiResponseCache;
@@ -65,10 +66,7 @@ class PerformanceSettingsController extends Controller
                 'appDebug' => (bool) config('app.debug'),
             ],
             'bootstrap' => $this->bootstrapCacheStatus(),
-            'publicApi' => [
-                'ttlSeconds' => PublicApiResponseCache::TTL_SECONDS,
-                'epoch' => $this->publicApiResponseCache->epoch(),
-            ],
+            'publicApi' => $this->publicApiStatus(),
             'links' => [
                 'jobs' => $user?->can(PermissionEnum::CanShowJobs->value) ? url('/settings/jobs') : null,
                 'pulse' => Gate::allows('viewPulse') ? url('/pulse') : null,
@@ -82,7 +80,18 @@ class PerformanceSettingsController extends Controller
      */
     public function flushPublicApi(): RedirectResponse
     {
-        $this->publicApiResponseCache->bumpAll();
+        $actor = auth()->user();
+        $actorId = $actor instanceof User ? (int) $actor->id : null;
+        $this->publicApiResponseCache->bumpAll($actorId);
+
+        activity()
+            ->causedBy($actor)
+            ->useLog('settings')
+            ->event('public_api_cache_flushed')
+            ->withProperties([
+                'epoch' => $this->publicApiResponseCache->epoch(),
+            ])
+            ->log('Public API response cache flushed');
 
         return to_route('performance.edit')
             ->with('success', __('Public API response cache flushed.'));
@@ -127,6 +136,40 @@ class PerformanceSettingsController extends Controller
 
         return to_route('performance.edit')
             ->with('success', __('Dashboard metrics cache flushed.'));
+    }
+
+    /**
+     * @return array{
+     *     ttlSeconds: int,
+     *     epoch: int,
+     *     hits: int,
+     *     misses: int,
+     *     lastFlushedAt: string|null,
+     *     lastFlushedBy: string|null
+     * }
+     */
+    private function publicApiStatus(): array
+    {
+        $stats = $this->publicApiResponseCache->statsForCurrentEpoch();
+        $flush = $this->publicApiResponseCache->lastFlushMeta();
+        $flushedBy = null;
+        if ($flush['by_user_id'] !== null) {
+            $user = User::query()->find($flush['by_user_id']);
+            if ($user instanceof User) {
+                $flushedBy = $user->name !== ''
+                    ? $user->name
+                    : ($user->email ?? '#'.$user->id);
+            }
+        }
+
+        return [
+            'ttlSeconds' => $this->publicApiResponseCache->ttlSeconds(),
+            'epoch' => $this->publicApiResponseCache->epoch(),
+            'hits' => $stats['hits'],
+            'misses' => $stats['misses'],
+            'lastFlushedAt' => $flush['at'],
+            'lastFlushedBy' => $flushedBy,
+        ];
     }
 
     private function redisReachable(): bool

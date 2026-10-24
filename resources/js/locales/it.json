@@ -475,7 +475,13 @@
             "flushDashboardMetricsTitle": "Metriche dashboard",
             "flushDashboardMetricsDescription": "Elimina le chiavi cache delle metriche dashboard così la visita successiva le ricalcola.",
             "flushDashboardMetricsButton": "Svuota metriche dashboard",
-            "flushing": "Svuotamento…"
+            "flushing": "Svuotamento…",
+            "cacheHits": "Hit (epoca corrente)",
+            "cacheMisses": "Miss (epoca corrente)",
+            "lastFlushedAt": "Ultimo flush",
+            "lastFlushedBy": "Flush eseguito da",
+            "neverFlushed": "Mai",
+            "unknownActor": "—"
         },
         "deleteUser": {
             "title": "Elimina account",

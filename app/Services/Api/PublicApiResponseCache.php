@@ -15,14 +15,24 @@ use Illuminate\Support\Facades\Cache;
  */
 final class PublicApiResponseCache
 {
+    /** @deprecated Use {@see ttlSeconds()} / config('api.response_cache_ttl'). */
     public const TTL_SECONDS = 120;
 
     private const VERSION_PREFIX = 'public.api.collver.';
 
     private const EPOCH_KEY = 'public.api.epoch';
 
+    private const FLUSH_META_KEY = 'public.api.flush_meta';
+
+    private const STATS_PREFIX = 'public.api.stats.';
+
     /** Local collection versions stay below this; epoch shifts the high digits. */
     private const EPOCH_STRIDE = 1_000_000;
+
+    public function ttlSeconds(): int
+    {
+        return max(1, (int) config('api.response_cache_ttl', self::TTL_SECONDS));
+    }
 
     public function epoch(): int
     {
@@ -49,9 +59,55 @@ final class PublicApiResponseCache
     /**
      * Invalidate all public API response caches without leaving stale reads.
      */
-    public function bumpAll(): void
+    public function bumpAll(?int $actorUserId = null): void
     {
-        Cache::forever(self::EPOCH_KEY, $this->epoch() + 1);
+        $nextEpoch = $this->epoch() + 1;
+        Cache::forever(self::EPOCH_KEY, $nextEpoch);
+        Cache::forever(self::FLUSH_META_KEY, [
+            'at' => now()->toIso8601String(),
+            'by_user_id' => $actorUserId,
+            'epoch' => $nextEpoch,
+        ]);
+        Cache::forever($this->statsKey($nextEpoch), ['hits' => 0, 'misses' => 0]);
+    }
+
+    /**
+     * @return array{at: string|null, by_user_id: int|null, epoch: int|null}
+     */
+    public function lastFlushMeta(): array
+    {
+        $meta = Cache::get(self::FLUSH_META_KEY);
+        if (! is_array($meta)) {
+            return ['at' => null, 'by_user_id' => null, 'epoch' => null];
+        }
+
+        return [
+            'at' => isset($meta['at']) && is_string($meta['at']) ? $meta['at'] : null,
+            'by_user_id' => isset($meta['by_user_id']) && is_numeric($meta['by_user_id'])
+                ? (int) $meta['by_user_id']
+                : null,
+            'epoch' => isset($meta['epoch']) && is_numeric($meta['epoch'])
+                ? (int) $meta['epoch']
+                : null,
+        ];
+    }
+
+    /**
+     * Hit/miss counters for the current epoch (reset on flush).
+     *
+     * @return array{hits: int, misses: int}
+     */
+    public function statsForCurrentEpoch(): array
+    {
+        $stats = Cache::get($this->statsKey($this->epoch()), ['hits' => 0, 'misses' => 0]);
+        if (! is_array($stats)) {
+            return ['hits' => 0, 'misses' => 0];
+        }
+
+        return [
+            'hits' => max(0, (int) ($stats['hits'] ?? 0)),
+            'misses' => max(0, (int) ($stats['misses'] ?? 0)),
+        ];
     }
 
     /**
@@ -62,7 +118,17 @@ final class PublicApiResponseCache
      */
     public function remember(string $key, callable $callback): mixed
     {
-        return Cache::remember($key, self::TTL_SECONDS, $callback);
+        if (Cache::has($key)) {
+            $this->incrementStat('hits');
+
+            return Cache::get($key);
+        }
+
+        $this->incrementStat('misses');
+        $value = $callback();
+        Cache::put($key, $value, $this->ttlSeconds());
+
+        return $value;
     }
 
     public function collectionKey(string $slug, int $version, string $surface = 'rest'): string
@@ -95,6 +161,22 @@ final class PublicApiResponseCache
     private function collectionVersion(int $collectionId): int
     {
         return (int) Cache::get(self::VERSION_PREFIX.$collectionId, 1);
+    }
+
+    private function statsKey(int $epoch): string
+    {
+        return self::STATS_PREFIX.$epoch;
+    }
+
+    private function incrementStat(string $field): void
+    {
+        $key = $this->statsKey($this->epoch());
+        $stats = Cache::get($key, ['hits' => 0, 'misses' => 0]);
+        if (! is_array($stats)) {
+            $stats = ['hits' => 0, 'misses' => 0];
+        }
+        $stats[$field] = max(0, (int) ($stats[$field] ?? 0)) + 1;
+        Cache::forever($key, $stats);
     }
 
     /**
