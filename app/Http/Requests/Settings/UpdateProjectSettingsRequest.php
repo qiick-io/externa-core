@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Settings;
 
+use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Enums\PermissionEnum;
 use App\Services\Authorization\EffectivePermissionResolver;
 use App\Services\Settings\ProjectSettings;
@@ -159,6 +160,21 @@ class UpdateProjectSettingsRequest extends FormRequest
                         "preset_transformations.{$index}.width",
                         'At least one of width or height is required.',
                     );
+                }
+            }
+
+            foreach (['webhook_url', 'notifier_slack_webhook_url'] as $urlField) {
+                $url = $this->input($urlField);
+                if (! is_string($url) || trim($url) === '') {
+                    continue;
+                }
+
+                $ssrf = SafeRemoteUrlValidator::validateOutboundWebhook($url);
+                if ($ssrf !== null) {
+                    $message = str_starts_with($ssrf, 'Error: ')
+                        ? substr($ssrf, strlen('Error: '))
+                        : $ssrf;
+                    $validator->errors()->add($urlField, $message);
                 }
             }
         });

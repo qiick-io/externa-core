@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Services\Settings\ProjectSettings;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -41,8 +42,18 @@ class DeliverSlackOutboundNotifierJob implements ShouldQueue
             return;
         }
 
+        if ($ssrf = SafeRemoteUrlValidator::validateOutboundWebhook($url)) {
+            Log::warning('Slack notifier delivery refused: SSRF guard', [
+                'type' => $this->type,
+                'reason' => $ssrf,
+            ]);
+
+            return;
+        }
+
         $response = Http::timeout(5)
             ->connectTimeout(3)
+            ->withoutRedirecting()
             ->withHeaders(['User-Agent' => 'Externa-Notifiers/1.0'])
             ->post($url, ['text' => $this->message]);
 

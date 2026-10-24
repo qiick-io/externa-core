@@ -12,6 +12,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ### Security
 
 - Raise `laravel/framework` Composer floor to `^13.29` (GHSA-f9x3-7vq9-cph6; lock already on 13.33.x) (#217)
+- SSRF guard on outbound webhook / Slack notifier URLs (save + delivery, no redirects); opt-in `WEBHOOKS_ALLOW_PRIVATE_HOSTS` (default false). Upload MIME allowlist + magic-byte checks via `MimeTypeValidator` on file manager, chunked upload, Public API, chat, and AI attachments (#118)
 
 ### Fixed
 

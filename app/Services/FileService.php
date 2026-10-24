@@ -70,7 +70,7 @@ class FileService
         $field = $name !== null ? 'name' : 'file';
         // ponytail: single getContent() for sniff + meta + hash (ceiling: loads whole file into memory)
         $bytes = $uploadedFile->getContent();
-        $mimeType = SafeUploadMime::assertFilePoolAllowed($fileName, SafeUploadMime::sniff($bytes), $field);
+        $mimeType = SafeUploadMime::assertFilePoolAllowed($fileName, SafeUploadMime::sniff($bytes), $field, $bytes);
         $size = $uploadedFile->getSize() ?: 0;
         $storagePath = $this->generateStoragePath($fileName, $disk);
         $storedPath = null;
@@ -418,6 +418,8 @@ class FileService
         $mimeType = SafeUploadMime::assertFilePoolAllowed(
             $uploadedFile->getClientOriginalName(),
             SafeUploadMime::sniff($bytes),
+            'file',
+            $bytes,
         );
 
         app(FileTransformService::class)->clearTransforms($file);
