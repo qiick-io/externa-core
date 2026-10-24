@@ -9,15 +9,17 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
-<<<<<<< HEAD
 ### Security
 
 - Raise `laravel/framework` Composer floor to `^13.29` (GHSA-f9x3-7vq9-cph6; lock already on 13.33.x) (#217)
-=======
+
 ### Fixed
 
 - Reject `type` / `translatable` changes on fields that already have stored values (admin + AI); lock Translatable checkbox in the field form (#219)
->>>>>>> e60f81c (fix(fields): lock type and translatable when field has values (#219))
+
+### Added
+
+- Table-driven AuthZ regression Pest datasets for collection CRUD × actors, published/draft item filters, file public/private/inherited access, `include=files`, GraphQL read, and `EffectivePermissionResolver` / `FilePermissionGuard` matrices (#114)
 
 ### Changed
 
