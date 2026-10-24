@@ -8,6 +8,7 @@ use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\AiToolJsonDecoder;
 use App\Enums\PermissionEnum;
 use App\Models\User;
+use App\Services\Authorization\SuperAdminGuardService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Ai\Contracts\Approvable;
@@ -127,6 +128,10 @@ class ManageUsers implements Approvable, Tool
             return $error;
         }
 
+        if ($error = $this->superAdminGrantError($request)) {
+            return $error;
+        }
+
         $firstName = trim((string) $request->string('first_name'));
         $email = trim((string) $request->string('email'));
         $password = (string) $request->string('password');
@@ -188,6 +193,10 @@ class ManageUsers implements Approvable, Tool
 
         if ($user === null) {
             return 'Error: User not found.';
+        }
+
+        if ($error = $this->superAdminTargetError($user) ?? $this->superAdminGrantError($request)) {
+            return $error;
         }
 
         $attributes = [];
@@ -272,6 +281,10 @@ class ManageUsers implements Approvable, Tool
             return 'Error: User not found.';
         }
 
+        if ($error = $this->superAdminTargetError($user)) {
+            return $error;
+        }
+
         if ($this->authenticatedUser()?->is($user)) {
             return 'Error: You cannot delete your own account via AI.';
         }
@@ -295,6 +308,10 @@ class ManageUsers implements Approvable, Tool
             return 'Error: Trashed user not found.';
         }
 
+        if ($error = $this->superAdminTargetError($user)) {
+            return $error;
+        }
+
         $user->restore();
         $this->logAiMutation($user, 'restore_user');
 
@@ -313,6 +330,10 @@ class ManageUsers implements Approvable, Tool
             return 'Error: User not found.';
         }
 
+        if ($error = $this->superAdminTargetError($user)) {
+            return $error;
+        }
+
         if ($this->authenticatedUser()?->is($user)) {
             return 'Error: You cannot force-delete your own account via AI.';
         }
@@ -322,6 +343,37 @@ class ManageUsers implements Approvable, Tool
         $user->forceDelete();
 
         return json_encode(['ok' => true, 'force_deleted' => $summary], JSON_PRETTY_PRINT) ?: '{}';
+    }
+
+    /**
+     * Only super-admins may modify, delete, or restore a super-admin account.
+     */
+    private function superAdminTargetError(User $user): ?string
+    {
+        if (app(SuperAdminGuardService::class)->isProtectedFrom($this->authenticatedUser(), $user)) {
+            return 'Error: Only a super-admin can modify a super-admin account.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Only super-admins may grant the super-admin role (checked before any write).
+     */
+    private function superAdminGrantError(Request $request): ?string
+    {
+        $decoded = AiToolJsonDecoder::optionalArrayFrom($request, 'role_names_json');
+        $superAdminGuard = app(SuperAdminGuardService::class);
+
+        if (
+            is_array($decoded)
+            && $superAdminGuard->includesSuperAdminRoleName(array_map(fn ($name): string => is_string($name) ? trim($name) : '', $decoded))
+            && ! $superAdminGuard->canManageSuperAdmins($this->authenticatedUser())
+        ) {
+            return 'Error: Only a super-admin can grant super-admin access.';
+        }
+
+        return null;
     }
 
     private function validatePassword(string $password): ?string
@@ -357,7 +409,7 @@ class ManageUsers implements Approvable, Tool
             $decoded,
         )));
 
-        $roles = Role::query()->whereIn('name', $names)->get();
+        $roles = Role::query()->whereIn('name', $names)->where('is_assignable', true)->get();
 
         if ($roles->count() !== count(array_unique($names))) {
             return 'Error: One or more role names are invalid.';
