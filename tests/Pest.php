@@ -1,15 +1,21 @@
 <?php
 
 use App\Enums\CollectionPermissionActionEnum;
+use App\Enums\FilePermissionActionEnum;
+use App\Enums\FileTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Models\ApiKey;
 use App\Models\Collection;
 use App\Models\CollectionPermission;
+use App\Models\File;
+use App\Models\FilePermission;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Api\CollectionPermissionGuard;
+use App\Services\Api\FilePermissionGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /*
@@ -127,6 +133,48 @@ function makeApiKeyForRole(?Role $role = null): array
     ]);
 
     return ['role' => $role, 'plain' => $secret['plain'], 'key' => $key];
+}
+
+/**
+ * Grant public Files API actions on a role (role ACL only; key scopes applied separately).
+ *
+ * @param  list<FilePermissionActionEnum|string>  $actions
+ */
+function grantFileActions(Role $role, array $actions): void
+{
+    foreach ($actions as $action) {
+        $value = $action instanceof FilePermissionActionEnum ? $action->value : $action;
+        FilePermission::query()->updateOrCreate(
+            [
+                'role_id' => $role->id,
+                'action' => $value,
+            ],
+            ['allowed' => true],
+        );
+    }
+
+    app(FilePermissionGuard::class)->forget($role->id);
+}
+
+/**
+ * Create a stored file row for Public API tests (caller must Storage::fake('assets')).
+ */
+function makeStoredFile(string $name = 'hero.jpg'): File
+{
+    Storage::disk('assets')->put('2026/07/'.$name, 'fake-bytes');
+
+    return File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => $name,
+        'path' => '/'.$name,
+        'disk' => 'assets',
+        'storage_path' => '2026/07/'.$name,
+        'mime_type' => 'image/jpeg',
+        'size' => 10,
+        'width' => 1600,
+        'height' => 900,
+        'hash' => hash('sha256', 'fake-bytes'),
+    ]);
 }
 
 /**

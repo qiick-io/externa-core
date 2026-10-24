@@ -12,10 +12,8 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionPermission;
 use App\Models\File;
-use App\Models\FilePermission;
 use App\Models\Role;
 use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Api\FilePermissionGuard;
 use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\FileService;
 use App\Services\FileTransformService;
@@ -34,25 +32,6 @@ beforeEach(function (): void {
 function filesPublicRole(): Role
 {
     return Role::query()->where('name', RoleEnum::Public->value)->firstOrFail();
-}
-
-/**
- * @param  list<FilePermissionActionEnum|string>  $actions
- */
-function grantFileActions(Role $role, array $actions): void
-{
-    foreach ($actions as $action) {
-        $value = $action instanceof FilePermissionActionEnum ? $action->value : $action;
-        FilePermission::query()->updateOrCreate(
-            [
-                'role_id' => $role->id,
-                'action' => $value,
-            ],
-            ['allowed' => true],
-        );
-    }
-
-    app(FilePermissionGuard::class)->forget($role->id);
 }
 
 /**
@@ -84,24 +63,6 @@ function makeFileApiKey(?Role $role = null): array
     ]);
 
     return ['role' => $role, 'plain' => $secret['plain'], 'key' => $key];
-}
-
-function makeStoredFile(string $name = 'hero.jpg'): File
-{
-    Storage::disk('assets')->put('2026/07/'.$name, 'fake-bytes');
-
-    return File::query()->create([
-        'type' => FileTypeEnum::File,
-        'name' => $name,
-        'path' => '/'.$name,
-        'disk' => 'assets',
-        'storage_path' => '2026/07/'.$name,
-        'mime_type' => 'image/jpeg',
-        'size' => 10,
-        'width' => 1600,
-        'height' => 900,
-        'hash' => hash('sha256', 'fake-bytes'),
-    ]);
 }
 
 it('denies file endpoints without grants', function (): void {

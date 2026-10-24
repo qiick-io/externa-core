@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Enums\CollectionPermissionActionEnum;
+use App\Enums\FilePermissionActionEnum;
 use App\Traits\LogsApplicationActivityTrait;
+use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -92,18 +94,27 @@ class ApiKey extends Model
 
     /**
      * Whether this key may perform the action (read_only blocks writes).
+     *
+     * Shared by collection and file public API gates. Read-family actions
+     * ({@see CollectionPermissionActionEnum::Read}, {@see FilePermissionActionEnum::Read},
+     * {@see FilePermissionActionEnum::ReadPrivate}) remain allowed.
      */
-    public function allowsAction(CollectionPermissionActionEnum|string $action): bool
-    {
+    public function allowsAction(
+        CollectionPermissionActionEnum|FilePermissionActionEnum|string $action,
+    ): bool {
         if (! $this->read_only) {
             return true;
         }
 
-        $value = $action instanceof CollectionPermissionActionEnum
+        $value = $action instanceof BackedEnum
             ? $action->value
             : $action;
 
-        return $value === CollectionPermissionActionEnum::Read->value;
+        return in_array($value, [
+            CollectionPermissionActionEnum::Read->value,
+            FilePermissionActionEnum::Read->value,
+            FilePermissionActionEnum::ReadPrivate->value,
+        ], true);
     }
 
     public function getActivitylogOptions(): LogOptions

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Concerns;
 
 use App\Enums\FilePermissionActionEnum;
+use App\Models\ApiKey;
 use App\Models\File;
 use App\Services\Api\FilePermissionGuard;
 use App\Support\Api\ApiAccess;
@@ -20,6 +21,13 @@ trait AuthorizesFileAccessTrait
         return app(ApiAccess::class);
     }
 
+    /**
+     * Role file ACL ∩ API key scopes (read_only blocks writes).
+     *
+     * Uses {@see ApiKey::allowsAction()} — same read_only rule as collections.
+     * Explicit: {@see ApiKey::$collection_slugs} does not gate `/api/v1/files`
+     * (files stay outside collection scopes; product may revisit later).
+     */
     protected function authorizeFile(
         Request $request,
         FilePermissionActionEnum $action,
@@ -31,6 +39,11 @@ trait AuthorizesFileAccessTrait
         );
 
         if (! $allowed) {
+            abort(403, 'This action is unauthorized for files.');
+        }
+
+        $apiKey = $access->apiKey;
+        if ($apiKey !== null && ! $apiKey->allowsAction($action)) {
             abort(403, 'This action is unauthorized for files.');
         }
     }
