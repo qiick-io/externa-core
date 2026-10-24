@@ -138,10 +138,12 @@ function measurePrewarmListQueries(object $test, string $slug, int $perPage): ar
             continue;
         }
         $withoutSettings++;
-        if (
-            str_contains($sql, 'from "collections_items"')
-            && str_contains($sql, '"id" in (')
-        ) {
+        // SQLite/pgsql quote identifiers with "; MySQL/MariaDB use `.
+        $fromItems = str_contains($sql, 'from "collections_items"')
+            || str_contains($sql, 'from `collections_items`');
+        $idIn = str_contains($sql, '"id" in (')
+            || str_contains($sql, '`id` in (');
+        if ($fromItems && $idIn) {
             $relationWhereIn++;
         }
     }
