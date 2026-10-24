@@ -11,6 +11,7 @@ use App\Services\Webhooks\OutboundWebhookDispatcher;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Throwable;
@@ -60,7 +61,7 @@ class ProcessCollectionItemSchedulesCommand extends Command
                     // Keep paired unpublish_at so editors still see the soft-delete schedule.
                     $item->publish_at = null;
                     $item->schedule_error = $message;
-                    $item->schedule_failed_at = now();
+                    $item->schedule_failed_at = Carbon::now();
                     $item->save();
 
                     $fresh = $item->fresh();
