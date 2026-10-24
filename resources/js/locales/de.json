@@ -684,7 +684,10 @@
             "pickDateTime": "Datum & Uhrzeit wählen",
             "clearField": "Löschen",
             "save": "Zeitplan speichern",
-            "cancel": "Zeitplan abbrechen"
+            "cancel": "Zeitplan abbrechen",
+            "failureTitle": "Geplante Veröffentlichung fehlgeschlagen",
+            "failureUnpublishKept": "Eine gekoppelte Rücknahme-Zeit bleibt gesetzt und läuft, sofern du sie nicht löschst.",
+            "failedBadge": "Veröffentlichung fehlgeschlagen"
         },
         "itemChat": {
             "title": "Chat",

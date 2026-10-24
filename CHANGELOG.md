@@ -19,6 +19,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Fixed
 
+- Scheduled publish failures (approval invalidated after schedule, promote errors) persist on the item, notify editors/approvers, emit `item.publish_failed`, and warn when editing an approved scheduled draft resets approval (#221)
 - Public API `PATCH /items/{id}` and GraphQL `updateItem` keep omitted fields and locales instead of wiping them; item value sync is now atomic (#268)
 - `TRUSTED_PROXIES` is now applied (`config/trustedproxy.php`): client IP, HTTPS detection, rate limits and API key IP allowlists work behind a reverse proxy (#271)
 - Reject `type` / `translatable` changes on fields that already have stored values (admin + AI); lock Translatable checkbox in the field form (#219)

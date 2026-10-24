@@ -684,7 +684,10 @@
             "pickDateTime": "Scegli data e ora",
             "clearField": "Cancella",
             "save": "Salva programmazione",
-            "cancel": "Annulla programmazione"
+            "cancel": "Annulla programmazione",
+            "failureTitle": "Pubblicazione programmata non riuscita",
+            "failureUnpublishKept": "L'orario di rimozione associato resta impostato e verrà eseguito se non lo cancelli.",
+            "failedBadge": "Pubblicazione fallita"
         },
         "itemChat": {
             "title": "Chat",
