@@ -31,6 +31,7 @@ class ReadinessChecks
     {
         try {
             DB::connection()->getPdo();
+            // raw-sql: reviewed — fixed readiness probe `select 1`
             DB::select('select 1');
 
             return 'ok';

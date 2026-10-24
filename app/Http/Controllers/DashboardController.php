@@ -93,6 +93,7 @@ class DashboardController
                     ->where('created_at', '>=', $now->copy()->subDay())
                     ->where('causer_type', User::class)
                     ->whereNotNull('causer_id')
+                    // raw-sql: reviewed — fixed aggregate/group-by analytics; no user identifiers in SQL
                     ->selectRaw('causer_id, COUNT(*) as activity_count')
                     ->groupBy('causer_id')
                     ->orderByDesc('activity_count')
@@ -217,6 +218,7 @@ class DashboardController
                     $now->copy()->addSeconds(60),
                     fn (): array => File::query()
                         ->where('type', FileTypeEnum::File)
+                        // raw-sql: reviewed — fixed aggregate/group-by analytics; no user identifiers in SQL
                         ->selectRaw('disk, COUNT(*) as files_count, COALESCE(SUM(size), 0) as files_size_sum')
                         ->groupBy('disk')
                         ->orderBy('disk')
@@ -240,6 +242,7 @@ class DashboardController
                     $bytesAddedByDate = File::query()
                         ->where('type', FileTypeEnum::File)
                         ->where('created_at', '>=', $startDate)
+                        // raw-sql: reviewed — fixed aggregate/group-by analytics; no user identifiers in SQL
                         ->selectRaw('DATE(created_at) as date, COALESCE(SUM(size), 0) as bytes_added')
                         ->groupBy('date')
                         ->orderBy('date')
@@ -283,6 +286,7 @@ class DashboardController
 
                     $countsByDate = Activity::query()
                         ->where('created_at', '>=', $startDate)
+                        // raw-sql: reviewed — fixed aggregate/group-by analytics; no user identifiers in SQL
                         ->selectRaw('DATE(created_at) as date, COUNT(*) as activity_count')
                         ->groupBy('date')
                         ->orderBy('date')
@@ -312,6 +316,7 @@ class DashboardController
                         ->where('created_at', '>=', $startDate)
                         ->where('subject_type', CollectionItem::class)
                         ->whereIn('event', ['created', 'updated', 'deleted'])
+                        // raw-sql: reviewed — fixed aggregate/group-by analytics; no user identifiers in SQL
                         ->selectRaw('event, COUNT(*) as event_count')
                         ->groupBy('event')
                         ->get()
