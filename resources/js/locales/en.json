@@ -183,7 +183,15 @@
             "roles": "Roles",
             "permissions": "Permissions",
             "apiKeys": "API Keys",
-            "reportBug": "Report a Bug"
+            "reportBug": "Report a Bug",
+            "general": "General",
+            "localization": "Localization",
+            "authSecurity": "Authentication & Security",
+            "content": "Content",
+            "filesMedia": "Files & Media",
+            "api": "API",
+            "integrations": "Integrations",
+            "sidebar": "Sidebar"
         },
         "profile": {
             "breadcrumb": "Profile settings",
@@ -242,7 +250,7 @@
             "breadcrumb": "Project settings",
             "head": "Project settings",
             "generalTitle": "General",
-            "generalDescription": "Project identity and default language",
+            "generalDescription": "Project identity and support links",
             "name": "Project name",
             "description": "Project description",
             "url": "Project URL",
@@ -409,6 +417,32 @@
                 "apiKeys": "API Keys",
                 "permissions": "Permissions",
                 "settings": "Settings"
+            },
+            "localization": {
+                "breadcrumb": "Localization settings",
+                "head": "Localization settings",
+                "title": "Admin language",
+                "description": "Default language for the admin UI"
+            },
+            "securityNav": {
+                "breadcrumb": "Authentication & security",
+                "head": "Authentication & security"
+            },
+            "contentNav": {
+                "breadcrumb": "Content settings",
+                "head": "Content settings"
+            },
+            "filesNav": {
+                "breadcrumb": "Files & media",
+                "head": "Files & media"
+            },
+            "apiNav": {
+                "breadcrumb": "API settings",
+                "head": "API settings"
+            },
+            "integrationsNav": {
+                "breadcrumb": "Integrations",
+                "head": "Integrations"
             }
         },
         "appearance": {
@@ -432,7 +466,11 @@
             "defaultAppearance": "Default appearance",
             "light": "Light",
             "dark": "Dark",
-            "system": "System"
+            "system": "System",
+            "sidebar": {
+                "breadcrumb": "Sidebar settings",
+                "head": "Sidebar settings"
+            }
         },
         "performance": {
             "breadcrumb": "Performance settings",

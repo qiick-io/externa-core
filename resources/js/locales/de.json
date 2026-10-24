@@ -183,7 +183,15 @@
             "permissions": "Berechtigungen",
             "apiKeys": "API-Schlüssel",
             "reportBug": "Bug melden",
-            "performance": "Leistung"
+            "performance": "Leistung",
+            "general": "Allgemein",
+            "localization": "Lokalisierung",
+            "authSecurity": "Authentifizierung & Sicherheit",
+            "content": "Inhalt",
+            "filesMedia": "Dateien & Medien",
+            "api": "API",
+            "integrations": "Integrationen",
+            "sidebar": "Seitenleiste"
         },
         "profile": {
             "breadcrumb": "Profileinstellungen",
@@ -242,7 +250,7 @@
             "breadcrumb": "Projekteinstellungen",
             "head": "Projekteinstellungen",
             "generalTitle": "Allgemein",
-            "generalDescription": "Projektidentität und Standardsprache",
+            "generalDescription": "Projektidentität und Support-Links",
             "name": "Projektname",
             "description": "Projektbeschreibung",
             "url": "Projekt-URL",
@@ -409,7 +417,33 @@
             "publicApiAllowedOrigins": "Erlaubte Origins",
             "publicApiAllowedOriginsHint": "Eine Origin pro Zeile (z. B. https://www.example.com). Leer = alle Origins erlaubt.",
             "publicApiDescription": "CORS / Origin-Allowlist für die Public CMS API.",
-            "publicApiTitle": "Public CMS API"
+            "publicApiTitle": "Public CMS API",
+            "localization": {
+                "breadcrumb": "Lokalisierungseinstellungen",
+                "head": "Lokalisierungseinstellungen",
+                "title": "Admin-Sprache",
+                "description": "Standardsprache der Admin-Oberfläche"
+            },
+            "securityNav": {
+                "breadcrumb": "Authentifizierung & Sicherheit",
+                "head": "Authentifizierung & Sicherheit"
+            },
+            "contentNav": {
+                "breadcrumb": "Inhaltseinstellungen",
+                "head": "Inhaltseinstellungen"
+            },
+            "filesNav": {
+                "breadcrumb": "Dateien & Medien",
+                "head": "Dateien & Medien"
+            },
+            "apiNav": {
+                "breadcrumb": "API-Einstellungen",
+                "head": "API-Einstellungen"
+            },
+            "integrationsNav": {
+                "breadcrumb": "Integrationen",
+                "head": "Integrationen"
+            }
         },
         "appearance": {
             "breadcrumb": "Darstellungseinstellungen",
@@ -432,7 +466,11 @@
             "defaultAppearance": "Standard-Darstellung",
             "light": "Hell",
             "dark": "Dunkel",
-            "system": "System"
+            "system": "System",
+            "sidebar": {
+                "breadcrumb": "Seitenleisten-Einstellungen",
+                "head": "Seitenleisten-Einstellungen"
+            }
         },
         "deleteUser": {
             "title": "Konto löschen",

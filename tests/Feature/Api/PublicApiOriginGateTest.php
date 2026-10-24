@@ -154,11 +154,11 @@ it('invalidates origins cache when project settings are saved', function (): voi
 
     $this->withoutVite();
     $this->actingAs($user)
-        ->put(route('project.update'), baseProjectPayload([
+        ->put(route('project.api.update'), baseApiPayload([
             'public_api_allowed_origins' => ['https://new.example'],
         ]))
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.edit'));
+        ->assertRedirect(route('project.api.edit'));
 
     expect(app(ProjectSettings::class)->publicApiAllowedOrigins())
         ->toBe(['https://new.example']);

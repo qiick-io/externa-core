@@ -183,7 +183,15 @@
             "roles": "Ruoli",
             "permissions": "Permessi",
             "apiKeys": "Chiavi API",
-            "reportBug": "Segnala un Bug"
+            "reportBug": "Segnala un Bug",
+            "general": "Generale",
+            "localization": "Localizzazione",
+            "authSecurity": "Autenticazione e sicurezza",
+            "content": "Contenuti",
+            "filesMedia": "File e media",
+            "api": "API",
+            "integrations": "Integrazioni",
+            "sidebar": "Barra laterale"
         },
         "profile": {
             "breadcrumb": "Impostazioni profilo",
@@ -242,7 +250,7 @@
             "breadcrumb": "Impostazioni progetto",
             "head": "Impostazioni progetto",
             "generalTitle": "Generale",
-            "generalDescription": "Identità del progetto e lingua predefinita",
+            "generalDescription": "Identità del progetto e link di supporto",
             "name": "Nome progetto",
             "description": "Descrizione progetto",
             "url": "URL progetto",
@@ -409,6 +417,32 @@
                 "apiKeys": "API Keys",
                 "permissions": "Permessi",
                 "settings": "Impostazioni"
+            },
+            "localization": {
+                "breadcrumb": "Impostazioni di localizzazione",
+                "head": "Impostazioni di localizzazione",
+                "title": "Lingua admin",
+                "description": "Lingua predefinita dell’interfaccia admin"
+            },
+            "securityNav": {
+                "breadcrumb": "Autenticazione e sicurezza",
+                "head": "Autenticazione e sicurezza"
+            },
+            "contentNav": {
+                "breadcrumb": "Impostazioni contenuti",
+                "head": "Impostazioni contenuti"
+            },
+            "filesNav": {
+                "breadcrumb": "File e media",
+                "head": "File e media"
+            },
+            "apiNav": {
+                "breadcrumb": "Impostazioni API",
+                "head": "Impostazioni API"
+            },
+            "integrationsNav": {
+                "breadcrumb": "Integrazioni",
+                "head": "Integrazioni"
             }
         },
         "appearance": {
@@ -432,7 +466,11 @@
             "defaultAppearance": "Aspetto predefinito",
             "light": "Chiaro",
             "dark": "Scuro",
-            "system": "Sistema"
+            "system": "Sistema",
+            "sidebar": {
+                "breadcrumb": "Impostazioni barra laterale",
+                "head": "Impostazioni barra laterale"
+            }
         },
         "performance": {
             "breadcrumb": "Impostazioni performance",
