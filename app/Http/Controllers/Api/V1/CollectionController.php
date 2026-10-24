@@ -42,6 +42,13 @@ class CollectionController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'slug', 'is_singleton', 'sort_order', 'description', 'status', 'icon', 'color']);
 
+        $apiKey = $access->apiKey;
+        if ($apiKey !== null) {
+            $collections = $collections->filter(
+                fn (Collection $collection): bool => $apiKey->allowsCollectionSlug((string) $collection->slug),
+            )->values();
+        }
+
         return response()->json([
             'data' => $collections->map(fn (Collection $collection): array => [
                 'id' => $collection->id,

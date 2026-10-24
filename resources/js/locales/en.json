@@ -194,6 +194,13 @@
             "resend": "Click here to resend the verification email.",
             "linkSent": "A new verification link has been sent to your email address."
         },
+        "apiKeys": {
+            "collectionSlugs": "Collection allowlist (optional, comma-separated slugs)",
+            "collectionSlugsHelp": "Leave empty to allow every collection the role can access. Scopes only narrow access.",
+            "readOnly": "Read-only (block create, update, and delete)",
+            "readOnlyBadge": "read-only",
+            "scopes": "Scopes"
+        },
         "notificationSounds": {
             "title": "Notification sounds",
             "description": "Optional sounds for new chat messages and notifications. Off by default.",

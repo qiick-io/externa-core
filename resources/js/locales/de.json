@@ -194,6 +194,13 @@
             "resend": "Hier klicken, um die Bestätigungs-E-Mail erneut zu senden.",
             "linkSent": "Ein neuer Bestätigungslink wurde an Ihre E-Mail-Adresse gesendet."
         },
+        "apiKeys": {
+            "collectionSlugs": "Collection-Allowlist (optional, Slugs kommagetrennt)",
+            "collectionSlugsHelp": "Leer lassen, um alle Collections der Rolle zuzulassen. Scopes schränken nur ein.",
+            "readOnly": "Nur Lesen (Create, Update und Delete blockieren)",
+            "readOnlyBadge": "nur lesen",
+            "scopes": "Scopes"
+        },
         "notificationSounds": {
             "title": "Benachrichtigungstöne",
             "description": "Optionale Töne für neue Chat-Nachrichten und Benachrichtigungen. Standardmäßig aus.",

@@ -194,6 +194,13 @@
             "resend": "Clicca qui per reinviare l'email di verifica.",
             "linkSent": "Un nuovo link di verifica è stato inviato al tuo indirizzo email."
         },
+        "apiKeys": {
+            "collectionSlugs": "Allowlist collezioni (opzionale, slug separati da virgola)",
+            "collectionSlugsHelp": "Lascia vuoto per consentire ogni collezione a cui il ruolo ha accesso. Gli scope restringono soltanto.",
+            "readOnly": "Sola lettura (blocca create, update e delete)",
+            "readOnlyBadge": "sola lettura",
+            "scopes": "Scope"
+        },
         "notificationSounds": {
             "title": "Suoni di notifica",
             "description": "Suoni opzionali per nuovi messaggi chat e notifiche. Disattivati di default.",
