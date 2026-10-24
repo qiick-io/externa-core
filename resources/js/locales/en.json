@@ -684,7 +684,10 @@
             "pickDateTime": "Pick date & time",
             "clearField": "Clear",
             "save": "Save schedule",
-            "cancel": "Cancel schedule"
+            "cancel": "Cancel schedule",
+            "failureTitle": "Scheduled publish failed",
+            "failureUnpublishKept": "A paired unpublish time is still set and will run unless you clear it.",
+            "failedBadge": "Publish failed"
         },
         "itemChat": {
             "title": "Chat",
