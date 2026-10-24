@@ -1685,6 +1685,38 @@ function TranslatableField({
     mode: 'create' | 'edit';
     field?: CollectionFieldRow;
 }) {
+    const { t } = useTranslation();
+    const isLocked = mode === 'edit' && Boolean(field?.has_stored_values);
+    const isChecked = field?.translatable ?? false;
+
+    if (isLocked) {
+        return (
+            <div className="flex items-start gap-4">
+                <input
+                    type="hidden"
+                    name="translatable"
+                    value={isChecked ? '1' : '0'}
+                />
+                <input
+                    id={`translatable_${mode}`}
+                    type="checkbox"
+                    checked={isChecked}
+                    disabled
+                    aria-disabled="true"
+                    className="mt-1 size-4 shrink-0 rounded border opacity-60"
+                />
+                <div className="grid gap-2">
+                    <Label htmlFor={`translatable_${mode}`}>
+                        {t('collections.translatable')}
+                    </Label>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                        {t('collections.translatableLockedHint')}
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="flex items-start gap-4">
             <input type="hidden" name="translatable" value="0" />
@@ -1693,15 +1725,15 @@ function TranslatableField({
                 type="checkbox"
                 name="translatable"
                 value="1"
-                defaultChecked={field?.translatable ?? false}
+                defaultChecked={isChecked}
                 className="mt-1 size-4 shrink-0 rounded border"
             />
             <div className="grid gap-2">
-                <Label htmlFor={`translatable_${mode}`}>Translatable</Label>
+                <Label htmlFor={`translatable_${mode}`}>
+                    {t('collections.translatable')}
+                </Label>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                    When enabled, editors enter a separate value for each
-                    language (e.g. English and Italian) instead of a single
-                    shared value.
+                    {t('collections.translatableDescription')}
                 </p>
             </div>
         </div>
