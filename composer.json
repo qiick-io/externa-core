@@ -44,7 +44,8 @@
         "spatie/laravel-permission": "^7.2",
         "spatie/laravel-tags": "^4.12",
         "spatie/laravel-translatable": "^6.13",
-        "symfony/html-sanitizer": "^8.1"
+        "symfony/html-sanitizer": "^8.1",
+        "symfony/yaml": "^7.4|^8.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",
