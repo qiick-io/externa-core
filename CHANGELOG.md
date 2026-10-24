@@ -9,6 +9,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+### Security
+
+- Raise `laravel/framework` Composer floor to `^13.29` (GHSA-f9x3-7vq9-cph6; lock already on 13.33.x) (#217)
+
 ### Changed
 
 - Codice Perfetto naming: custom Enums/Events/Traits use explicit role suffixes (`*Enum`, `*Event`, `*Trait`); Pest `NamingArchitectureTest` + streamlined `.cursor/` rules pack; `AGENTS.md` / `CLAUDE.md` documentation standard (#260)
