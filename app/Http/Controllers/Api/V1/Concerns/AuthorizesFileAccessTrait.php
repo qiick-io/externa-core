@@ -25,7 +25,8 @@ trait AuthorizesFileAccessTrait
      * Role file ACL ∩ API key scopes (read_only blocks writes).
      *
      * Uses {@see ApiKey::allowsAction()} — same read_only rule as collections.
-     * collection_slugs do not apply to /api/v1/files (pending product decision).
+     * Explicit: {@see ApiKey::$collection_slugs} does not gate `/api/v1/files`
+     * (files stay outside collection scopes; product may revisit later).
      */
     protected function authorizeFile(
         Request $request,

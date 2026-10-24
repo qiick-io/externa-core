@@ -4,6 +4,7 @@ use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\FilePermissionActionEnum;
 use App\Enums\FileTypeEnum;
+use App\Jobs\WarmFileThumbnailJob;
 use App\Models\ApiKey;
 use App\Models\Collection;
 use App\Models\CollectionField;
@@ -19,6 +20,7 @@ use App\Support\Api\ApiAccess;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
@@ -724,4 +726,34 @@ it('rejects file writes when key is read_only but still allows reads', function 
 
     expect(File::query()->find($file->id))->not->toBeNull()
         ->and($file->fresh()->title)->not->toBe('Nope');
+});
+
+it('allows file writes for an unscoped key when the role grants them', function (): void {
+    Storage::fake('assets');
+    Queue::fake([WarmFileThumbnailJob::class]);
+
+    $auth = makeApiKeyForRole();
+    grantScopedFileActions($auth['role'], [
+        FilePermissionActionEnum::Read,
+        FilePermissionActionEnum::Create,
+        FilePermissionActionEnum::Update,
+        FilePermissionActionEnum::Delete,
+    ]);
+    // Unscoped: null collection_slugs, not read_only (legacy key shape).
+    expect($auth['key']->collection_slugs)->toBeNull()
+        ->and((bool) $auth['key']->read_only)->toBeFalse();
+
+    $file = makeScopedStoredFile('writable.jpg');
+    $asKey = fn () => $this->withToken($auth['plain']);
+
+    $asKey()->post('/api/v1/files', [
+        'file' => UploadedFile::fake()->image('upload.png', 40, 30),
+    ], ['Accept' => 'application/json'])->assertCreated();
+
+    $asKey()->patchJson("/api/v1/files/{$file->id}", ['title' => 'Hero'])
+        ->assertOk()
+        ->assertJsonPath('data.title', 'Hero');
+
+    $asKey()->deleteJson("/api/v1/files/{$file->id}")->assertNoContent();
+    expect(File::query()->find($file->id))->toBeNull();
 });
