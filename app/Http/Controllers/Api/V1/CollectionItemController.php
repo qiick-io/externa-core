@@ -10,6 +10,7 @@ use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Api\FilePermissionGuard;
 use App\Services\Api\PublicApiResponseCache;
+use App\Services\Api\RelationIncludeHydrator;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemDataRuleBuilder;
 use App\Services\Collections\CollectionItemQueryService;
@@ -93,9 +94,14 @@ class CollectionItemController extends Controller
             $this->permissionEnforcer->applyItemFilterToQuery($request, $collection, $query);
 
             $paginator = $query->latest('id')->paginate($perPage, ['*'], 'page', $page);
+            $pageItems = $paginator->getCollection();
+            $include = app(PublicApiIncludeParser::class)->parse($request->query('include'));
+            if ($include !== []) {
+                app(RelationIncludeHydrator::class)->prewarm($pageItems, $collection, $include, $request);
+            }
 
             return [
-                'data' => $paginator->getCollection()
+                'data' => $pageItems
                     ->map(fn (CollectionItem $item): array => (new CollectionItemResource($item))->toArray($request))
                     ->values()
                     ->all(),
