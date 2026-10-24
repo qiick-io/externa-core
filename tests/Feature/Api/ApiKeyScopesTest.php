@@ -3,15 +3,14 @@
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\FilePermissionActionEnum;
-use App\Enums\FileTypeEnum;
+use App\GraphQL\Queries\ItemQuery;
+use App\GraphQL\Queries\ItemsQuery;
 use App\Jobs\WarmFileThumbnailJob;
 use App\Models\ApiKey;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\File;
-use App\Models\FilePermission;
-use App\Models\Role;
 use App\Services\Api\FilePermissionGuard;
 use App\Services\Api\PublicApiResponseCache;
 use App\Services\Collections\CollectionItemDataNormalizer;
@@ -20,6 +19,7 @@ use App\Support\Api\ApiAccess;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
@@ -45,41 +45,101 @@ function syncScopedItem(CollectionItem $item, Collection $collection, array $dat
 }
 
 /**
- * @param  list<FilePermissionActionEnum|string>  $actions
+ * Cache key shaped exactly like {@see ItemQuery}.
  */
-function grantScopedFileActions(Role $role, array $actions): void
+function graphqlItemCacheKey(Collection $collection, string $itemId, ApiAccess $access): string
 {
-    foreach ($actions as $action) {
-        $value = $action instanceof FilePermissionActionEnum ? $action->value : $action;
-        FilePermission::query()->updateOrCreate(
-            [
-                'role_id' => $role->id,
-                'action' => $value,
-            ],
-            ['allowed' => true],
-        );
-    }
+    $cache = app(PublicApiResponseCache::class);
+    $roleId = $access->roleId();
+    $hash = $cache->hash([
+        'locale' => request()->query('locale'),
+        'include_all_translations' => request()->boolean('include_all_translations'),
+        'role_id' => $roleId,
+        'file_grants' => app(FilePermissionGuard::class)->grantsForRole($roleId),
+        ...$access->responseCacheScopeFactors(),
+        'surface' => 'graphql',
+    ]);
 
-    app(FilePermissionGuard::class)->forget($role->id);
+    return $cache->itemKey(
+        $collection->slug,
+        $itemId,
+        $cache->version((int) $collection->id),
+        $hash,
+    );
 }
 
-function makeScopedStoredFile(string $name = 'scoped.jpg'): File
+/**
+ * Cache key shaped exactly like {@see ItemsQuery} (defaults).
+ */
+function graphqlItemsCacheKey(Collection $collection, ApiAccess $access): string
 {
-    Storage::fake('assets');
-    Storage::disk('assets')->put('2026/07/'.$name, 'fake-bytes');
-
-    return File::query()->create([
-        'type' => FileTypeEnum::File,
-        'name' => $name,
-        'path' => '/'.$name,
-        'disk' => 'assets',
-        'storage_path' => '2026/07/'.$name,
-        'mime_type' => 'image/jpeg',
-        'size' => 10,
-        'width' => 1600,
-        'height' => 900,
-        'hash' => hash('sha256', 'fake-bytes'),
+    $cache = app(PublicApiResponseCache::class);
+    $roleId = $access->roleId();
+    $hash = $cache->hash([
+        'filter' => [],
+        'page' => 1,
+        'per_page' => min(15, max(1, (int) config('api.max_per_page', 100))),
+        'locale' => request()->query('locale'),
+        'include_all_translations' => request()->boolean('include_all_translations'),
+        'role_id' => $roleId,
+        'file_grants' => app(FilePermissionGuard::class)->grantsForRole($roleId),
+        ...$access->responseCacheScopeFactors(),
+        'surface' => 'graphql',
     ]);
+
+    return $cache->itemsKey(
+        $collection->slug,
+        $cache->version((int) $collection->id),
+        $hash,
+    );
+}
+
+/**
+ * Same as ItemQuery hash factors but without api_key_scopes (regression probe).
+ */
+function graphqlItemCacheKeyWithoutScopes(Collection $collection, string $itemId, ApiAccess $access): string
+{
+    $cache = app(PublicApiResponseCache::class);
+    $roleId = $access->roleId();
+    $hash = $cache->hash([
+        'locale' => request()->query('locale'),
+        'include_all_translations' => request()->boolean('include_all_translations'),
+        'role_id' => $roleId,
+        'file_grants' => app(FilePermissionGuard::class)->grantsForRole($roleId),
+        'surface' => 'graphql',
+    ]);
+
+    return $cache->itemKey(
+        $collection->slug,
+        $itemId,
+        $cache->version((int) $collection->id),
+        $hash,
+    );
+}
+
+/**
+ * Same as ItemsQuery hash factors but without api_key_scopes (regression probe).
+ */
+function graphqlItemsCacheKeyWithoutScopes(Collection $collection, ApiAccess $access): string
+{
+    $cache = app(PublicApiResponseCache::class);
+    $roleId = $access->roleId();
+    $hash = $cache->hash([
+        'filter' => [],
+        'page' => 1,
+        'per_page' => min(15, max(1, (int) config('api.max_per_page', 100))),
+        'locale' => request()->query('locale'),
+        'include_all_translations' => request()->boolean('include_all_translations'),
+        'role_id' => $roleId,
+        'file_grants' => app(FilePermissionGuard::class)->grantsForRole($roleId),
+        'surface' => 'graphql',
+    ]);
+
+    return $cache->itemsKey(
+        $collection->slug,
+        $cache->version((int) $collection->id),
+        $hash,
+    );
 }
 
 it('legacy keys without scopes behave as today', function (): void {
@@ -635,74 +695,111 @@ it('does not share index response cache across keys with different scopes', func
         ->and(json_encode($narrow->json()))->not->toContain('Index Cached Author');
 });
 
-it('partitions GraphQL response cache hash by api key scopes', function (): void {
-    $role = Role::query()->create([
-        'name' => 'gql-cache-'.uniqid(),
-        'guard_name' => 'web',
-        'is_system' => false,
-        'is_assignable' => true,
+it('partitions GraphQL ItemQuery and ItemsQuery cache keys by api key scopes', function (): void {
+    $posts = makePostsCollection();
+    CollectionField::factory()->create([
+        'collection_id' => $posts->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
     ]);
+    $item = $posts->items()->create([]);
+    syncScopedItem($item, $posts, ['title' => 'Cached']);
 
-    $wide = ApiKey::query()->create([
-        'name' => 'Wide gql',
-        'key_prefix' => 'ek_widegqlxx',
-        'key_hash' => hash('sha256', 'wide'),
-        'role_id' => $role->id,
-        'collection_slugs' => null,
+    $wide = makeApiKeyForRole();
+    grantRoleActions($wide['role'], $posts, [CollectionPermissionActionEnum::Read]);
+
+    $emptySecret = ApiKey::generateSecret();
+    $emptyKey = ApiKey::query()->create([
+        'name' => 'Empty slugs gql',
+        'key_prefix' => $emptySecret['prefix'],
+        'key_hash' => $emptySecret['hash'],
+        'role_id' => $wide['role']->id,
+        'collection_slugs' => [],
         'read_only' => false,
     ]);
-    $narrow = ApiKey::query()->create([
+
+    $narrowSecret = ApiKey::generateSecret();
+    $narrowKey = ApiKey::query()->create([
         'name' => 'Narrow gql',
-        'key_prefix' => 'ek_narrowgql',
-        'key_hash' => hash('sha256', 'narrow'),
-        'role_id' => $role->id,
+        'key_prefix' => $narrowSecret['prefix'],
+        'key_hash' => $narrowSecret['hash'],
+        'role_id' => $wide['role']->id,
         'collection_slugs' => ['posts'],
         'read_only' => false,
     ]);
-    $readOnly = ApiKey::query()->create([
+
+    $readOnlySecret = ApiKey::generateSecret();
+    $readOnlyKey = ApiKey::query()->create([
         'name' => 'RO gql',
-        'key_prefix' => 'ek_rogqlxxxx',
-        'key_hash' => hash('sha256', 'ro'),
-        'role_id' => $role->id,
+        'key_prefix' => $readOnlySecret['prefix'],
+        'key_hash' => $readOnlySecret['hash'],
+        'role_id' => $wide['role']->id,
         'collection_slugs' => ['posts'],
         'read_only' => true,
     ]);
 
-    $cache = app(PublicApiResponseCache::class);
-    $base = [
-        'filter' => [],
-        'page' => 1,
-        'per_page' => 15,
-        'locale' => null,
-        'include_all_translations' => false,
-        'role_id' => $role->id,
-        'file_grants' => [],
-        'surface' => 'graphql',
-    ];
+    $wideAccess = new ApiAccess('api_key', $wide['role'], $wide['key']);
+    $emptyAccess = new ApiAccess('api_key', $wide['role'], $emptyKey);
+    $narrowAccess = new ApiAccess('api_key', $wide['role'], $narrowKey);
+    $readOnlyAccess = new ApiAccess('api_key', $wide['role'], $readOnlyKey);
 
-    $wideHash = $cache->hash([
-        ...$base,
-        ...(new ApiAccess('api_key', $role, $wide))->responseCacheScopeFactors(),
-    ]);
-    $narrowHash = $cache->hash([
-        ...$base,
-        ...(new ApiAccess('api_key', $role, $narrow))->responseCacheScopeFactors(),
-    ]);
-    $readOnlyHash = $cache->hash([
-        ...$base,
-        ...(new ApiAccess('api_key', $role, $readOnly))->responseCacheScopeFactors(),
-    ]);
+    $itemId = (string) $item->id;
 
-    expect($wideHash)->not->toBe($narrowHash)
-        ->and($narrowHash)->not->toBe($readOnlyHash)
-        ->and($wideHash)->not->toBe($readOnlyHash);
+    // null vs [] must not collapse — same formula ItemQuery/ItemsQuery use.
+    expect(graphqlItemCacheKey($posts, $itemId, $wideAccess))
+        ->not->toBe(graphqlItemCacheKey($posts, $itemId, $emptyAccess))
+        ->and(graphqlItemsCacheKey($posts, $wideAccess))
+        ->not->toBe(graphqlItemsCacheKey($posts, $emptyAccess))
+        ->and(graphqlItemCacheKey($posts, $itemId, $narrowAccess))
+        ->not->toBe(graphqlItemCacheKey($posts, $itemId, $readOnlyAccess))
+        ->and(graphqlItemsCacheKey($posts, $narrowAccess))
+        ->not->toBe(graphqlItemsCacheKey($posts, $readOnlyAccess));
+
+    $itemQuery = <<<'GQL'
+        query ($c: String!, $id: ID!) {
+            item(collection: $c, id: $id) { id }
+        }
+        GQL;
+    $itemsQuery = <<<'GQL'
+        query ($c: String!) {
+            items(collection: $c) { data { id } meta { total } }
+        }
+        GQL;
+
+    foreach (
+        [
+            [$wide['plain'], $wideAccess],
+            [$narrowSecret['plain'], $narrowAccess],
+            [$readOnlySecret['plain'], $readOnlyAccess],
+        ] as [$plain, $access]
+    ) {
+        $this->withToken($plain)->postJson('/api/graphql', [
+            'query' => $itemQuery,
+            'variables' => ['c' => 'posts', 'id' => $itemId],
+        ])->assertOk()->assertJsonPath('data.item.id', $itemId);
+
+        $this->withToken($plain)->postJson('/api/graphql', [
+            'query' => $itemsQuery,
+            'variables' => ['c' => 'posts'],
+        ])->assertOk()->assertJsonPath('data.items.meta.total', 1);
+
+        // Would fail if ItemQuery/ItemsQuery dropped responseCacheScopeFactors().
+        expect(Cache::has(graphqlItemCacheKey($posts, $itemId, $access)))->toBeTrue()
+            ->and(Cache::has(graphqlItemCacheKeyWithoutScopes($posts, $itemId, $access)))->toBeFalse()
+            ->and(Cache::has(graphqlItemsCacheKey($posts, $access)))->toBeTrue()
+            ->and(Cache::has(graphqlItemsCacheKeyWithoutScopes($posts, $access)))->toBeFalse();
+    }
+
+    // Empty allowlist cannot read posts (authorize before cache); key shape still differs from null.
+    expect($emptyKey->fresh()->collection_slugs)->toBe([])
+        ->and($wide['key']->fresh()->collection_slugs)->toBeNull();
 });
 
 it('rejects file writes when key is read_only but still allows reads', function (): void {
     Storage::fake('assets');
 
     $auth = makeApiKeyForRole();
-    grantScopedFileActions($auth['role'], [
+    grantFileActions($auth['role'], [
         FilePermissionActionEnum::Read,
         FilePermissionActionEnum::Create,
         FilePermissionActionEnum::Update,
@@ -710,7 +807,7 @@ it('rejects file writes when key is read_only but still allows reads', function 
     ]);
     $auth['key']->forceFill(['read_only' => true])->save();
 
-    $file = makeScopedStoredFile('ro-file.jpg');
+    $file = makeStoredFile('ro-file.jpg');
     $asKey = fn () => $this->withToken($auth['plain']);
 
     $asKey()->getJson('/api/v1/files')->assertOk();
@@ -733,7 +830,7 @@ it('allows file writes for an unscoped key when the role grants them', function 
     Queue::fake([WarmFileThumbnailJob::class]);
 
     $auth = makeApiKeyForRole();
-    grantScopedFileActions($auth['role'], [
+    grantFileActions($auth['role'], [
         FilePermissionActionEnum::Read,
         FilePermissionActionEnum::Create,
         FilePermissionActionEnum::Update,
@@ -743,7 +840,7 @@ it('allows file writes for an unscoped key when the role grants them', function 
     expect($auth['key']->collection_slugs)->toBeNull()
         ->and((bool) $auth['key']->read_only)->toBeFalse();
 
-    $file = makeScopedStoredFile('writable.jpg');
+    $file = makeStoredFile('writable.jpg');
     $asKey = fn () => $this->withToken($auth['plain']);
 
     $asKey()->post('/api/v1/files', [
