@@ -16,6 +16,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - SSRF guard on outbound webhook / Slack notifier URLs (save + delivery, no redirects); opt-in `WEBHOOKS_ALLOW_PRIVATE_HOSTS` (default false). Upload MIME allowlist + magic-byte checks via `MimeTypeValidator` on file manager, chunked upload, Public API, chat, and AI attachments (#118)
 - Optional Public API cost budget (`API_COST_LIMIT`, default off), GraphQL depth/complexity env caps (`GRAPHQL_MAX_DEPTH` / `GRAPHQL_MAX_COMPLEXITY`, default off), and payload caps (`API_MAX_BODY_BYTES`, `API_MAX_PER_PAGE`) stacked with existing `throttle:api` + per-key limits (#113)
 - `php artisan ai:rotate-webhook-token` with optional grace window (`AI_WEBHOOK_TOKEN_PREVIOUS` / `AI_WEBHOOK_TOKEN_PREVIOUS_EXPIRES_AT`); collection-import webhook HMAC fails closed when no token is configured (no local unsigned bypass) (#207)
+- Only super-admins can grant the super-admin role/groups or edit, delete and restore super-admin users and groups (web, bulk and AI tools) (GHSA-j87m-4qvv-5qgg)
 
 ### Fixed
 
