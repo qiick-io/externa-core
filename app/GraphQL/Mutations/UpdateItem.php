@@ -8,6 +8,7 @@ use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Collections\CollectionItemDataNormalizer;
+use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
 
 final class UpdateItem
@@ -38,7 +39,9 @@ final class UpdateItem
         $data = is_array($args['data'] ?? null) ? $args['data'] : [];
         $enforcer->assertWritableFields($request, $collection, $data, 'update');
 
-        $normalized = app(CollectionItemDataNormalizer::class)->normalize($collection, $data, false);
+        $normalizer = app(CollectionItemDataNormalizer::class);
+        $merged = $normalizer->mergeIncoming(app(CollectionItemValuesAssembler::class)->assemble($item), $data);
+        $normalized = $normalizer->normalize($collection, $merged, false);
         app(CollectionItemValuesWriter::class)->sync($item, $collection, $normalized);
         $item->load(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
 

@@ -704,19 +704,7 @@ class ItemController extends Controller
                 $incoming,
             );
 
-            foreach ($incoming as $key => $value) {
-                // ponytail: array_merge appends list fields (blocks/m2a/files); only merge associative maps (locales).
-                if (
-                    is_array($value)
-                    && isset($data[$key])
-                    && is_array($data[$key])
-                    && ! array_is_list($value)
-                ) {
-                    $data[$key] = array_merge($data[$key], $value);
-                } else {
-                    $data[$key] = $value;
-                }
-            }
+            $data = $this->itemDataNormalizer->mergeIncoming($data, $incoming);
         }
 
         $action = $this->itemSaveAction($request);
