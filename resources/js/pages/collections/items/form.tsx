@@ -101,7 +101,10 @@ import {
     serializeItemForm,
     writeItemDraft,
 } from '@/lib/item-draft-storage';
-import { isRemoteUpdatedAtStale } from '@/lib/item-presence';
+import {
+    isRemoteUpdatedAtStale,
+    notifyItemSaved,
+} from '@/lib/item-presence';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { readReturnParam } from '@/lib/safe-return-url';
@@ -420,6 +423,16 @@ export default function ItemsForm({
             setExpectedUpdatedAt(item?.updated_at ?? '');
         }
     }, [item?.updated_at, isDirty]);
+
+    // Whisper fresh updated_at to peer editors after Inertia save refreshes props.
+    // notifyItemSaved was previously unused — peers never saw the stale banner (#315).
+    useEffect(() => {
+        if (isNew || !item?.updated_at) {
+            return;
+        }
+
+        notifyItemSaved(item.updated_at);
+    }, [isNew, item?.updated_at]);
 
     useEffect(() => {
         const form = document.getElementById(COLLECTION_ITEM_FORM_ID);
