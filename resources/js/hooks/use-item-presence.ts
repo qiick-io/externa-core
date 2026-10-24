@@ -1,5 +1,5 @@
 import { usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
 import {
     claimItemEditLock,
@@ -37,6 +37,8 @@ export function useItemPresence(options: {
     const [snapshot, setSnapshot] =
         useState<ItemPresenceSnapshot>(emptySnapshot);
     const realtimeOn = isRealtimeEnabled(page.props.realtime);
+    // Keep the join baseline stable — re-joining on every save drops peer whispers (#315).
+    const initialUpdatedAtRef = useRef(options.loadedUpdatedAt);
 
     useEffect(() => {
         if (!options.enabled || !realtimeOn || options.viewerId <= 0) {
@@ -56,12 +58,8 @@ export function useItemPresence(options: {
             itemId: options.itemId,
             viewerId: options.viewerId,
             viewerName: options.viewerName,
-            loadedUpdatedAt: options.loadedUpdatedAt,
+            loadedUpdatedAt: initialUpdatedAtRef.current,
         });
-
-        if (options.canClaimLock) {
-            claimItemEditLock();
-        }
 
         const unsubscribe = subscribeItemPresence(setSnapshot);
 
@@ -75,9 +73,27 @@ export function useItemPresence(options: {
         options.itemId,
         options.viewerId,
         options.viewerName,
-        options.loadedUpdatedAt,
-        options.canClaimLock,
         realtimeOn,
+    ]);
+
+    useEffect(() => {
+        if (
+            !options.enabled ||
+            !realtimeOn ||
+            options.viewerId <= 0 ||
+            !options.canClaimLock
+        ) {
+            return;
+        }
+
+        claimItemEditLock();
+    }, [
+        options.enabled,
+        options.canClaimLock,
+        options.viewerId,
+        realtimeOn,
+        options.collectionId,
+        options.itemId,
     ]);
 
     return {
