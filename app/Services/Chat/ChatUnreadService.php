@@ -380,6 +380,7 @@ class ChatUnreadService
                     $query->orWhereIn('chats.collection_id', $notifyIds);
                 }
                 $query->orWhereExists(function ($posted) use ($user): void {
+                    // raw-sql: reviewed — existence/count aggregates; no user-controlled SQL
                     $posted->selectRaw('1')
                         ->from('chat_messages as posted')
                         ->whereColumn('posted.chat_id', 'chats.id')
@@ -409,6 +410,7 @@ class ChatUnreadService
         $rows = $query
             ->clone()
             ->select('chat_messages.chat_id')
+            // raw-sql: reviewed — existence/count aggregates; no user-controlled SQL
             ->selectRaw('COUNT(*) as unread')
             ->groupBy('chat_messages.chat_id')
             ->toBase()

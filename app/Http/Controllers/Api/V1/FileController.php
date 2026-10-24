@@ -226,11 +226,15 @@ class FileController extends Controller
             ->when($search, function (Builder $builder) use ($search) {
                 $searchTerm = '%'.strtolower((string) $search).'%';
                 $builder->where(function (Builder $inner) use ($searchTerm) {
+                    // raw-sql: reviewed — search term bound; folder-first ORDER BY uses bound enum
                     $inner->whereRaw('LOWER(name) LIKE ?', [$searchTerm])
+                        // raw-sql: reviewed — search term bound; folder-first ORDER BY uses bound enum
                         ->orWhereRaw('LOWER(path) LIKE ?', [$searchTerm])
+                        // raw-sql: reviewed — search term bound; folder-first ORDER BY uses bound enum
                         ->orWhereRaw('LOWER(title) LIKE ?', [$searchTerm]);
                 });
             })
+            // raw-sql: reviewed — search term bound; folder-first ORDER BY uses bound enum
             ->orderByRaw('CASE WHEN type = ? THEN 0 ELSE 1 END', [FileTypeEnum::Folder->value])
             ->orderBy('name')
             ->orderBy('id');
