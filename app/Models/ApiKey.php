@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Concerns\LogsApplicationActivity;
+use App\Traits\LogsApplicationActivityTrait;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -21,7 +21,7 @@ use Spatie\Activitylog\Support\LogOptions;
  */
 class ApiKey extends Model
 {
-    use LogsApplicationActivity;
+    use LogsApplicationActivityTrait;
 
     /**
      * @var list<string>

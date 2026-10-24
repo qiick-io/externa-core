@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
@@ -191,7 +191,7 @@ test('api rejects disabled locale query parameter', function () {
         [
             'role_id' => $public->id,
             'collection_id' => $collection->id,
-            'action' => CollectionPermissionAction::Read->value,
+            'action' => CollectionPermissionActionEnum::Read->value,
         ],
         ['allowed' => true],
     );

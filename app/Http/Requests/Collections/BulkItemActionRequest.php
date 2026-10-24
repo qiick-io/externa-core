@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Collections;
 
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Models\Collection;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -14,7 +14,7 @@ use Illuminate\Validation\Rule;
  */
 class BulkItemActionRequest extends FormRequest
 {
-    use AuthorizesWithPermission;
+    use AuthorizesWithPermissionTrait;
 
     /**
      * Require the permission that matches the requested bulk action.

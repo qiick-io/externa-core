@@ -16,7 +16,7 @@ use Illuminate\Validation\Validator;
 /**
  * Shared validation rules and normalization for collection field settings payloads.
  */
-trait ValidatesCollectionFieldSettings
+trait ValidatesCollectionFieldSettingsTrait
 {
     /**
      * Build validation rules for field settings, including locale-specific keys.

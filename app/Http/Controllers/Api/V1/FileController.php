@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\FilePermissionAction;
+use App\Enums\FilePermissionActionEnum;
 use App\Enums\FileTypeEnum;
-use App\Http\Controllers\Api\V1\Concerns\AuthorizesFileAccess;
+use App\Http\Controllers\Api\V1\Concerns\AuthorizesFileAccessTrait;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\FileResource;
 use App\Models\File;
@@ -27,7 +27,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class FileController extends Controller
 {
-    use AuthorizesFileAccess;
+    use AuthorizesFileAccessTrait;
 
     public function __construct(
         private FileService $fileService,
@@ -36,7 +36,7 @@ class FileController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionAction::Read);
+        $this->authorizeFile($request, FilePermissionActionEnum::Read);
 
         $validated = $request->validate([
             'parent_id' => ['nullable', 'integer', 'exists:files,id'],
@@ -140,7 +140,7 @@ class FileController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionAction::Create);
+        $this->authorizeFile($request, FilePermissionActionEnum::Create);
 
         $validated = $request->validate([
             'file' => ['required', 'file'],
@@ -166,7 +166,7 @@ class FileController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionAction::Update);
+        $this->authorizeFile($request, FilePermissionActionEnum::Update);
 
         $file = File::query()->find($id);
         if ($file === null) {
@@ -199,7 +199,7 @@ class FileController extends Controller
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionAction::Delete);
+        $this->authorizeFile($request, FilePermissionActionEnum::Delete);
 
         $file = File::query()->find($id);
         if ($file === null) {

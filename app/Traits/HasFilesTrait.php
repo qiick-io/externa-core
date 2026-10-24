@@ -12,7 +12,7 @@ use Illuminate\Support\Collection;
  *
  * @mixin Model
  */
-trait HasFiles
+trait HasFilesTrait
 {
     /**
      * @return MorphToMany<File, $this>

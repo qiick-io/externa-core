@@ -3,7 +3,7 @@
 namespace App\Support\Collections;
 
 use App\Enums\FieldTypeEnum;
-use App\Http\Requests\Collections\Concerns\ValidatesCollectionFieldSettings;
+use App\Http\Requests\Collections\Concerns\ValidatesCollectionFieldSettingsTrait;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -12,7 +12,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class CollectionFieldSettingsPipeline
 {
-    use ValidatesCollectionFieldSettings;
+    use ValidatesCollectionFieldSettingsTrait;
 
     /**
      * Normalize then validate settings the same way Store/Update field HTTP requests do.

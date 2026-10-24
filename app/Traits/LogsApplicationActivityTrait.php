@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Concerns;
+namespace App\Traits;
 
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -8,7 +8,7 @@ use Spatie\Activitylog\Support\LogOptions;
 /**
  * Default Spatie activity log configuration for application models.
  */
-trait LogsApplicationActivity
+trait LogsApplicationActivityTrait
 {
     use LogsActivity;
 

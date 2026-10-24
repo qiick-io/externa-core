@@ -2,8 +2,8 @@
 
 namespace App\Services\Api;
 
-use App\Enums\FileAccess;
-use App\Enums\FilePermissionAction;
+use App\Enums\FileAccessEnum;
+use App\Enums\FilePermissionActionEnum;
 use App\Models\File;
 use App\Models\FilePermission;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,9 +16,9 @@ class FilePermissionGuard
 {
     private const CACHE_TTL_SECONDS = 300;
 
-    public function allows(int $roleId, FilePermissionAction|string $action): bool
+    public function allows(int $roleId, FilePermissionActionEnum|string $action): bool
     {
-        $actionValue = $action instanceof FilePermissionAction ? $action->value : $action;
+        $actionValue = $action instanceof FilePermissionActionEnum ? $action->value : $action;
         $grants = $this->grantsForRole($roleId);
 
         return (bool) ($grants[$actionValue] ?? false);
@@ -30,7 +30,7 @@ class FilePermissionGuard
      */
     public function canReadFile(int $roleId, File $file): bool
     {
-        if (! $this->allows($roleId, FilePermissionAction::Read)) {
+        if (! $this->allows($roleId, FilePermissionActionEnum::Read)) {
             return false;
         }
 
@@ -38,7 +38,7 @@ class FilePermissionGuard
             return true;
         }
 
-        return $this->allows($roleId, FilePermissionAction::ReadPrivate);
+        return $this->allows($roleId, FilePermissionActionEnum::ReadPrivate);
     }
 
     /**
@@ -50,7 +50,7 @@ class FilePermissionGuard
      */
     public function constrainReadable(Builder $query, int $roleId): Builder
     {
-        if ($this->allows($roleId, FilePermissionAction::ReadPrivate)) {
+        if ($this->allows($roleId, FilePermissionActionEnum::ReadPrivate)) {
             return $query;
         }
 
@@ -90,7 +90,7 @@ class FilePermissionGuard
 
             $row = $byId[$id] ?? null;
             if ($row === null) {
-                return $memo[$id] = FileAccess::Public->value;
+                return $memo[$id] = FileAccessEnum::Public->value;
             }
 
             if ($row['access'] !== null) {
@@ -98,7 +98,7 @@ class FilePermissionGuard
             }
 
             if ($row['parent_id'] === null) {
-                return $memo[$id] = FileAccess::Public->value;
+                return $memo[$id] = FileAccessEnum::Public->value;
             }
 
             return $memo[$id] = $resolve($row['parent_id']);
@@ -106,7 +106,7 @@ class FilePermissionGuard
 
         $private = [];
         foreach (array_keys($byId) as $id) {
-            if ($resolve($id) === FileAccess::Private->value) {
+            if ($resolve($id) === FileAccessEnum::Private->value) {
                 $private[] = $id;
             }
         }
@@ -130,7 +130,7 @@ class FilePermissionGuard
 
                 $grants = [];
                 foreach ($rows as $row) {
-                    $action = $row->action instanceof FilePermissionAction
+                    $action = $row->action instanceof FilePermissionActionEnum
                         ? $row->action->value
                         : (string) $row->action;
                     $grants[$action] = true;

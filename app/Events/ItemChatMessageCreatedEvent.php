@@ -9,19 +9,18 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Realtime payload when a chat reaction is added or removed.
+ * Realtime payload when a chat message is posted.
  */
-class ItemChatReactionToggled implements ShouldBroadcastNow
+class ItemChatMessageCreatedEvent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    /**
+     * @param  array<string, mixed>  $message
+     */
     public function __construct(
         public string $chatId,
-        public int $messageId,
-        public int $userId,
-        public string $userName,
-        public string $emoji,
-        public bool $added,
+        public array $message,
     ) {}
 
     /**
@@ -36,20 +35,14 @@ class ItemChatReactionToggled implements ShouldBroadcastNow
 
     public function broadcastAs(): string
     {
-        return 'ReactionToggled';
+        return 'MessageCreated';
     }
 
     /**
-     * @return array{message_id: int, user_id: int, user_name: string, emoji: string, added: bool}
+     * @return array{message: array<string, mixed>}
      */
     public function broadcastWith(): array
     {
-        return [
-            'message_id' => $this->messageId,
-            'user_id' => $this->userId,
-            'user_name' => $this->userName,
-            'emoji' => $this->emoji,
-            'added' => $this->added,
-        ];
+        return ['message' => $this->message];
     }
 }

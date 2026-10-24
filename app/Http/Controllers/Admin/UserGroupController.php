@@ -7,8 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkUserGroupActionRequest;
 use App\Http\Requests\Admin\StoreUserGroupRequest;
 use App\Http\Requests\Admin\UpdateUserGroupRequest;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
-use App\Http\Requests\Concerns\ValidatesSearchQuery;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\UserGroupResource;
 use App\Models\Role;
 use App\Models\UserGroup;
@@ -23,8 +23,8 @@ use Inertia\Response;
  */
 class UserGroupController extends Controller
 {
-    use AuthorizesWithPermission;
-    use ValidatesSearchQuery;
+    use AuthorizesWithPermissionTrait;
+    use ValidatesSearchQueryTrait;
 
     /**
      * @var list<string>

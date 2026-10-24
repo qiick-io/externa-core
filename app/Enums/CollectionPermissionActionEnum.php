@@ -5,7 +5,7 @@ namespace App\Enums;
 /**
  * CRUD actions for per-collection CMS API access.
  */
-enum CollectionPermissionAction: string
+enum CollectionPermissionActionEnum: string
 {
     case Create = 'create';
     case Read = 'read';

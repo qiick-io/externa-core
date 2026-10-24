@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -14,7 +14,7 @@ use Spatie\Permission\Models\Permission;
  */
 class UpdatePermissionRequest extends FormRequest
 {
-    use AuthorizesWithPermission;
+    use AuthorizesWithPermissionTrait;
 
     /**
      * Require permission to edit permissions.

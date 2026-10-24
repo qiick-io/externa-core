@@ -5,7 +5,7 @@ namespace App\Enums;
 /**
  * Editorial approval workflow status for versioned collection items.
  */
-enum ItemApprovalStatus: string
+enum ItemApprovalStatusEnum: string
 {
     case Draft = 'draft';
     case InReview = 'in_review';

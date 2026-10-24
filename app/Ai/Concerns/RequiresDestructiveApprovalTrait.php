@@ -11,7 +11,7 @@ use Laravel\Ai\Tools\Request;
  *
  * Tools using this trait must implement Laravel\Ai\Contracts\Approvable.
  */
-trait RequiresDestructiveApproval
+trait RequiresDestructiveApprovalTrait
 {
     use InteractsWithApprovals;
 

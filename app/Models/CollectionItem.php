@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
-use App\Concerns\LogsApplicationActivity;
 use App\Jobs\Ai\GenerateCollectionItemEmbeddingJob;
 use App\Services\Api\PublicApiResponseCache;
 use App\Services\Search\MeilisearchSyncDispatcher;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 use App\Support\Collections\CollectionItemDataAccessor;
+use App\Traits\LogsApplicationActivityTrait;
 use Database\Factories\CollectionItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -40,7 +40,7 @@ use Illuminate\Support\Carbon;
 class CollectionItem extends Model
 {
     /** @use HasFactory<CollectionItemFactory> */
-    use HasFactory, LogsApplicationActivity, SoftDeletes;
+    use HasFactory, LogsApplicationActivityTrait, SoftDeletes;
 
     protected $table = 'collections_items';
 

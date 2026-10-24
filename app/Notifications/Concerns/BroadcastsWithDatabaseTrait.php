@@ -7,7 +7,7 @@ use Illuminate\Notifications\Messages\BroadcastMessage;
 /**
  * Deliver via database always; also broadcast when a real-time driver is configured.
  */
-trait BroadcastsWithDatabase
+trait BroadcastsWithDatabaseTrait
 {
     /**
      * @return list<string>

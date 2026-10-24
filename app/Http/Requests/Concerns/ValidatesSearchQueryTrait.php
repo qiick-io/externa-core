@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 /**
  * Validate and normalize list `search` query params.
  */
-trait ValidatesSearchQuery
+trait ValidatesSearchQueryTrait
 {
     /**
      * @return non-empty-string|''

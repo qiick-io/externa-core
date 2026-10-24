@@ -2,8 +2,8 @@
 
 namespace App\GraphQL\Queries;
 
-use App\Enums\CollectionPermissionAction;
-use App\GraphQL\Concerns\AuthorizesGraphqlCollection;
+use App\Enums\CollectionPermissionActionEnum;
+use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcer;
@@ -14,7 +14,7 @@ use App\Support\Api\ApiAccess;
 
 final class ItemsQuery
 {
-    use AuthorizesGraphqlCollection;
+    use AuthorizesGraphqlCollectionTrait;
 
     /**
      * @param  array{collection: string, filter?: mixed, page?: int, perPage?: int}  $args
@@ -23,7 +23,7 @@ final class ItemsQuery
     public function __invoke(mixed $_, array $args): array
     {
         $collection = $this->findCollection($args['collection']);
-        $this->authorize($collection, CollectionPermissionAction::Read);
+        $this->authorize($collection, CollectionPermissionActionEnum::Read);
 
         $filters = [];
         if (isset($args['filter']) && is_array($args['filter'])) {

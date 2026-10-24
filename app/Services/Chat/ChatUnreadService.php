@@ -2,7 +2,7 @@
 
 namespace App\Services\Chat;
 
-use App\Events\ChatUnreadUpdated;
+use App\Events\ChatUnreadUpdatedEvent;
 use App\Models\Chat;
 use App\Models\ChatParticipant;
 use App\Models\ChatRead;
@@ -173,7 +173,7 @@ class ChatUnreadService
             $chatUnread = $counts[$chatId] ?? 0;
         }
 
-        event(new ChatUnreadUpdated(
+        event(new ChatUnreadUpdatedEvent(
             (int) $user->id,
             $totals['total'],
             $totals['private'],

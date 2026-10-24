@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\FilePermissionAction;
+use App\Enums\FilePermissionActionEnum;
 use App\Enums\FileTypeEnum;
 use App\Enums\RoleEnum;
 use App\Models\ApiKey;
@@ -41,7 +41,7 @@ function fileSecApiKeyWithCreateRead(): array
 {
     $public = Role::query()->where('name', RoleEnum::Public->value)->firstOrFail();
     FilePermission::query()->updateOrCreate(
-        ['role_id' => $public->id, 'action' => FilePermissionAction::Read->value],
+        ['role_id' => $public->id, 'action' => FilePermissionActionEnum::Read->value],
         ['allowed' => true],
     );
     app(FilePermissionGuard::class)->forget($public->id);
@@ -52,7 +52,7 @@ function fileSecApiKeyWithCreateRead(): array
         'is_system' => false,
         'is_assignable' => true,
     ]);
-    foreach ([FilePermissionAction::Create, FilePermissionAction::Read] as $action) {
+    foreach ([FilePermissionActionEnum::Create, FilePermissionActionEnum::Read] as $action) {
         FilePermission::query()->updateOrCreate(
             ['role_id' => $role->id, 'action' => $action->value],
             ['allowed' => true],

@@ -2,7 +2,7 @@
 
 namespace App\GraphQL\Queries;
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Models\Collection;
 use App\Services\Api\CollectionPermissionGuard;
 use App\Support\Api\ApiAccess;
@@ -21,7 +21,7 @@ final class CollectionsQuery
             ->active()
             ->ordered()
             ->get(['id', 'name', 'slug', 'is_singleton'])
-            ->filter(fn (Collection $c): bool => (bool) ($matrix[(int) $c->id][CollectionPermissionAction::Read->value] ?? false))
+            ->filter(fn (Collection $c): bool => (bool) ($matrix[(int) $c->id][CollectionPermissionActionEnum::Read->value] ?? false))
             ->map(fn (Collection $c): array => [
                 'id' => $c->id,
                 'name' => $c->name,

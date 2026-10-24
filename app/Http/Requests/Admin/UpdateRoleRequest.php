@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Enums\CollectionPermissionAction;
-use App\Enums\FilePermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
+use App\Enums\FilePermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Models\Role;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -17,7 +17,7 @@ use Illuminate\Validation\Rule;
  */
 class UpdateRoleRequest extends FormRequest
 {
-    use AuthorizesWithPermission;
+    use AuthorizesWithPermissionTrait;
 
     /**
      * Require permission to edit roles.
@@ -98,7 +98,7 @@ class UpdateRoleRequest extends FormRequest
                     continue;
                 }
                 $row = [];
-                foreach (CollectionPermissionAction::values() as $action) {
+                foreach (CollectionPermissionActionEnum::values() as $action) {
                     $row[$action] = (bool) ($actions[$action] ?? false);
                 }
                 if (isset($actions['rules']) && is_array($actions['rules'])) {
@@ -111,7 +111,7 @@ class UpdateRoleRequest extends FormRequest
 
         if (isset($data['file_permissions']) && is_array($data['file_permissions'])) {
             $normalized = [];
-            foreach (FilePermissionAction::values() as $action) {
+            foreach (FilePermissionActionEnum::values() as $action) {
                 $normalized[$action] = (bool) ($data['file_permissions'][$action] ?? false);
             }
             $data['file_permissions'] = $normalized;

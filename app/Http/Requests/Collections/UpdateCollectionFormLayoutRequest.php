@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Collections;
 
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Models\Collection;
 use App\Services\Collections\CollectionFormLayoutNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
@@ -13,7 +13,7 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class UpdateCollectionFormLayoutRequest extends FormRequest
 {
-    use AuthorizesWithPermission;
+    use AuthorizesWithPermissionTrait;
 
     public function authorize(): bool
     {

@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use App\Concerns\LogsApplicationActivity;
 use App\Enums\FieldTypeEnum;
 use App\Services\Api\PublicApiResponseCache;
 use App\Support\Collections\CollectionLocaleResolver;
+use App\Traits\LogsApplicationActivityTrait;
 use Database\Factories\CollectionFieldFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -29,7 +29,7 @@ use Spatie\EloquentSortable\SortableTrait;
 class CollectionField extends Model implements Sortable
 {
     /** @use HasFactory<CollectionFieldFactory> */
-    use HasFactory, LogsApplicationActivity;
+    use HasFactory, LogsApplicationActivityTrait;
 
     use SortableTrait;
 

@@ -2,9 +2,9 @@
 
 namespace App\Services\Chat;
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\PermissionEnum;
-use App\Events\ChatThreadUpserted;
+use App\Events\ChatThreadUpsertedEvent;
 use App\Models\Chat;
 use App\Models\ChatParticipant;
 use App\Models\Collection;
@@ -229,7 +229,7 @@ class ChatService
             }
 
             $hasGrant = true;
-            if ($this->permissionGuard->allows($roleId, (int) $collection->id, CollectionPermissionAction::Read)) {
+            if ($this->permissionGuard->allows($roleId, (int) $collection->id, CollectionPermissionActionEnum::Read)) {
                 return true;
             }
         }
@@ -665,7 +665,7 @@ class ChatService
 
         foreach ($users as $user) {
             $uid = (int) $user->id;
-            event(new ChatThreadUpserted(
+            event(new ChatThreadUpsertedEvent(
                 $uid,
                 $this->serializeSummary($chat, $user, $unreadByUserId[$uid] ?? 0),
             ));

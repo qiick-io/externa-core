@@ -6,7 +6,7 @@ namespace App\Enums;
  * Visibility of a file/folder for the public CMS API.
  * Stored null on the row means inherit from the nearest ancestor override.
  */
-enum FileAccess: string
+enum FileAccessEnum: string
 {
     case Public = 'public';
     case Private = 'private';

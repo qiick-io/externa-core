@@ -9,7 +9,7 @@ use App\Services\Authorization\EffectivePermissionResolver;
 /**
  * Permission gate helpers for AI tools returning English machine-error strings.
  */
-trait ChecksAiPermissions
+trait ChecksAiPermissionsTrait
 {
     /**
      * Return an error string when the user lacks the permission, or null when allowed.

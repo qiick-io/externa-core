@@ -2,7 +2,7 @@
 
 namespace App\Services\Api;
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionItem;
@@ -89,7 +89,7 @@ class CollectionPermissionEnforcer
     {
         $access = $request->attributes->get('apiAccess');
         if ($access instanceof ApiAccess) {
-            return $this->guard->allows($access->roleId(), (int) $collection->id, CollectionPermissionAction::Read);
+            return $this->guard->allows($access->roleId(), (int) $collection->id, CollectionPermissionActionEnum::Read);
         }
 
         $user = $request->user();
@@ -185,7 +185,7 @@ class CollectionPermissionEnforcer
 
         $roleIds = $resolver->effectiveRoleIds($user);
         foreach ($roleIds as $roleId) {
-            if ($this->guard->allows($roleId, (int) $collection->id, CollectionPermissionAction::Read)) {
+            if ($this->guard->allows($roleId, (int) $collection->id, CollectionPermissionActionEnum::Read)) {
                 return true;
             }
         }

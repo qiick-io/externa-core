@@ -9,6 +9,7 @@ use App\Models\CollectionItem;
 use App\Models\User;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Search\MeilisearchSyncDispatcher;
 use App\Services\Settings\ProjectSettings;
 use App\Services\Settings\SettingsRepository;
 use App\Services\Webhooks\OutboundWebhookCatalog;
@@ -333,12 +334,16 @@ test('withoutWebhooks suppresses emission during bulk import style sync', functi
     $writer = app(CollectionItemValuesWriter::class);
     $normalizer = app(CollectionItemDataNormalizer::class);
 
-    OutboundWebhookDispatcher::withoutWebhooks(function () use ($collection, $writer, $normalizer): void {
-        for ($i = 0; $i < 3; $i++) {
-            $item = $collection->items()->create([]);
-            $normalized = $normalizer->normalize($collection, ['title' => "Row {$i}"], true);
-            $writer->sync($item, $collection, $normalized);
-        }
+    // Mirror bulk import (AI/CLI): suppress webhooks and Meilisearch so assertNothingPushed
+    // isolates outbound webhook emission (Meili sync is orthogonal and already covered elsewhere).
+    MeilisearchSyncDispatcher::withoutMeilisearch(function () use ($collection, $writer, $normalizer): void {
+        OutboundWebhookDispatcher::withoutWebhooks(function () use ($collection, $writer, $normalizer): void {
+            for ($i = 0; $i < 3; $i++) {
+                $item = $collection->items()->create([]);
+                $normalized = $normalizer->normalize($collection, ['title' => "Row {$i}"], true);
+                $writer->sync($item, $collection, $normalized);
+            }
+        });
     });
 
     Queue::assertNothingPushed();

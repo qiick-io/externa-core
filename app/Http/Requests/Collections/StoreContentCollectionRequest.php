@@ -4,7 +4,7 @@ namespace App\Http\Requests\Collections;
 
 use App\Enums\CollectionStatusEnum;
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -15,7 +15,7 @@ use Illuminate\Validation\ValidationException;
  */
 class StoreContentCollectionRequest extends FormRequest
 {
-    use AuthorizesWithPermission;
+    use AuthorizesWithPermissionTrait;
 
     /**
      * Authorization is enforced by collection route middleware.
