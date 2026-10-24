@@ -999,7 +999,9 @@
             "relational": "Relational",
             "other": "Sonstiges",
             "groups": "Gruppen"
-        }
+        },
+        "translatableDescription": "Wenn aktiviert, geben Redakteure einen eigenen Wert je Sprache ein (z. B. Englisch und Italienisch) statt eines gemeinsamen Werts.",
+        "translatableLockedHint": "Gesperrt, weil dieses Feld bereits Inhalte hat. Eine Änderung von Übersetzbar würde vorhandene Werte nicht konvertieren — legen Sie ein neues Feld an und migrieren Sie die Inhalte."
     },
     "ai": {
         "drawer": {
@@ -1072,11 +1074,11 @@
             },
             "import-directus": {
                 "title": "Aus Directus-URL importieren",
-                "description": "Directus-Items-JSON \u2192 Collection (zuerst dry-run)"
+                "description": "Directus-Items-JSON → Collection (zuerst dry-run)"
             },
             "import-wordpress": {
                 "title": "Aus WordPress REST importieren",
-                "description": "WP-Posts-JSON \u2192 Collection (rendered entpacken)"
+                "description": "WP-Posts-JSON → Collection (rendered entpacken)"
             },
             "import-dry-run": {
                 "title": "Import-Vorschau (Dry-Run)",
