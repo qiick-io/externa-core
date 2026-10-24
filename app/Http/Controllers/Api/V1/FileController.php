@@ -42,10 +42,11 @@ class FileController extends Controller
             'parent_id' => ['nullable', 'integer', 'exists:files,id'],
             'search' => ['nullable', 'string', 'max:255'],
             'page' => ['nullable', 'integer', 'min:1'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:'.max(1, (int) config('api.max_per_page', 100))],
         ]);
 
-        $perPage = min(max((int) ($validated['per_page'] ?? 15), 1), 100);
+        $maxPerPage = max(1, (int) config('api.max_per_page', 100));
+        $perPage = min(max((int) ($validated['per_page'] ?? 15), 1), $maxPerPage);
         $parentId = isset($validated['parent_id']) ? (int) $validated['parent_id'] : null;
         $search = $validated['search'] ?? null;
 

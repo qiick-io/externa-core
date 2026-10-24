@@ -56,7 +56,8 @@ class CollectionItemController extends Controller
             }
         }
 
-        $perPage = min(max($request->integer('per_page', 15), 1), 100);
+        $maxPerPage = max(1, (int) config('api.max_per_page', 100));
+        $perPage = min(max($request->integer('per_page', 15), 1), $maxPerPage);
         $page = max($request->integer('page', 1), 1);
 
         $version = $this->responseCache->version((int) $collection->id);
