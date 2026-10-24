@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use App\Http\Middleware\ApiRequestCostMiddleware;
 use App\Http\Middleware\EnforcePublicApiOrigin;
 use App\Http\Middleware\ResolveApiAccess;
 use GraphQL\Error\DebugFlag;
@@ -55,6 +56,7 @@ return [
             'throttle:api',
             EnforcePublicApiOrigin::class,
             ResolveApiAccess::class,
+            ApiRequestCostMiddleware::class,
         ],
 
         /*
@@ -239,8 +241,13 @@ return [
     */
 
     'security' => [
-        'max_query_complexity' => QueryComplexity::DISABLED,
-        'max_query_depth' => QueryDepth::DISABLED,
+        // 0 / unset = DISABLED (open default; set GRAPHQL_MAX_* to enable).
+        'max_query_complexity' => (($complexity = env('GRAPHQL_MAX_COMPLEXITY')) === null || $complexity === '')
+            ? QueryComplexity::DISABLED
+            : max(0, (int) $complexity),
+        'max_query_depth' => (($depth = env('GRAPHQL_MAX_DEPTH')) === null || $depth === '')
+            ? QueryDepth::DISABLED
+            : max(0, (int) $depth),
         'disable_introspection' => (bool) env('LIGHTHOUSE_SECURITY_DISABLE_INTROSPECTION', false)
             ? DisableIntrospection::ENABLED
             : DisableIntrospection::DISABLED,

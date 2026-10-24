@@ -34,7 +34,8 @@ final class ItemsQuery
             }
         }
 
-        $perPage = min(max((int) ($args['perPage'] ?? 15), 1), 100);
+        $maxPerPage = max(1, (int) config('api.max_per_page', 100));
+        $perPage = min(max((int) ($args['perPage'] ?? 15), 1), $maxPerPage);
         $page = max((int) ($args['page'] ?? 1), 1);
         $request = request();
 

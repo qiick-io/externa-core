@@ -13,6 +13,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 - Raise `laravel/framework` Composer floor to `^13.29` (GHSA-f9x3-7vq9-cph6; lock already on 13.33.x) (#217)
 - SSRF guard on outbound webhook / Slack notifier URLs (save + delivery, no redirects); opt-in `WEBHOOKS_ALLOW_PRIVATE_HOSTS` (default false). Upload MIME allowlist + magic-byte checks via `MimeTypeValidator` on file manager, chunked upload, Public API, chat, and AI attachments (#118)
+- Optional Public API cost budget (`API_COST_LIMIT`, default off), GraphQL depth/complexity env caps (`GRAPHQL_MAX_DEPTH` / `GRAPHQL_MAX_COMPLEXITY`, default off), and payload caps (`API_MAX_BODY_BYTES`, `API_MAX_PER_PAGE`) stacked with existing `throttle:api` + per-key limits (#113)
 
 ### Fixed
 
