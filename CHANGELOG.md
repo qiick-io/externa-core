@@ -18,6 +18,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - `php artisan ai:rotate-webhook-token` with optional grace window (`AI_WEBHOOK_TOKEN_PREVIOUS` / `AI_WEBHOOK_TOKEN_PREVIOUS_EXPIRES_AT`); collection-import webhook HMAC fails closed when no token is configured (no local unsigned bypass) (#207)
 - Only super-admins can grant the super-admin role/groups or edit, delete and restore super-admin users and groups (web, bulk and AI tools) (GHSA-j87m-4qvv-5qgg)
 - Admin collection item actions require a matching per-collection grant when the actor already has any collection permission grants; Spatie-only admins unchanged (GHSA-j7vc-w5wj-mx3x)
+- Deny SSI/markup upload extensions (`.shtml`, `.shtm`, `.xml`, `.xhtml`, `.xht`, `.mht`, `.xsl`, `.svgz`); sandbox CSP on Docker nginx `/storage/` (GHSA-2mwj-jgfg-c694)
 
 ### Fixed
 
