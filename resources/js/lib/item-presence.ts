@@ -79,6 +79,14 @@ function whisperUpdatedAt(value: string): void {
     });
 }
 
+/** Whisper with short retries — first client events after join are often dropped. */
+function whisperUpdatedAtReliable(value: string): void {
+    whisperUpdatedAt(value);
+
+    window.setTimeout(() => whisperUpdatedAt(value), 50);
+    window.setTimeout(() => whisperUpdatedAt(value), 200);
+}
+
 function startHeartbeat(): void {
     if (heartbeatTimer !== null) {
         return;
@@ -225,9 +233,9 @@ export function takeOverItemEditLock(): void {
 }
 
 export function notifyItemSaved(updatedAt: string): void {
-    remoteUpdatedAt = updatedAt;
-    whisperUpdatedAt(updatedAt);
-    emit();
+    // Do not raise the saver's own remoteUpdatedAt — peers learn via whisper.
+    // Raising it locally races with expectedUpdatedAt and can hide the banner.
+    whisperUpdatedAtReliable(updatedAt);
 }
 
 export function isRemoteUpdatedAtStale(

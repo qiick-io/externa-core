@@ -489,7 +489,7 @@ export default function ItemsForm({
         clearItemDraft(collection.id, draftItemKey);
         setDraftBanner(false);
         setFormKey((key) => key + 1);
-    }, [collection.id, draftItemKey]);
+    }, [collection.id, draftItemKey, setIsDirty]);
 
     const submitSave = useCallback((action: ItemSaveAction) => {
         setItemSaveAction(action)?.requestSubmit();
@@ -1606,10 +1606,21 @@ export default function ItemsForm({
                                 id={COLLECTION_ITEM_FORM_ID}
                                 className="space-y-6"
                                 options={{ preserveScroll: true }}
-                                onSuccess={() => {
+                                onSuccess={(successPage) => {
                                     setIsDirty(false);
                                     clearItemDraft(collection.id, draftItemKey);
                                     setDraftBanner(false);
+                                    const next = (
+                                        successPage.props as {
+                                            item?: {
+                                                updated_at?: string | null;
+                                            };
+                                        }
+                                    ).item?.updated_at;
+
+                                    if (next) {
+                                        notifyItemSaved(next);
+                                    }
                                 }}
                                 onError={(errors) => {
                                     const nonFieldErrors =
@@ -1679,13 +1690,25 @@ export default function ItemsForm({
                                         id={COLLECTION_ITEM_FORM_ID}
                                         className="space-y-6"
                                         options={{ preserveScroll: true }}
-                                        onSuccess={() => {
+                                        onSuccess={(successPage) => {
                                             setIsDirty(false);
                                             clearItemDraft(
                                                 collection.id,
                                                 draftItemKey,
                                             );
                                             setDraftBanner(false);
+                                            const next = (
+                                                successPage.props as {
+                                                    item?: {
+                                                        updated_at?:
+                                                            string | null;
+                                                    };
+                                                }
+                                            ).item?.updated_at;
+
+                                            if (next) {
+                                                notifyItemSaved(next);
+                                            }
                                         }}
                                         onError={(errors) => {
                                             const nonFieldErrors =
