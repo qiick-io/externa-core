@@ -1,0 +1,12 @@
+---
+description: WCAG 2.2 AA and semantic theme tokens for React/Inertia UI
+globs: **/*.tsx
+alwaysApply: false
+---
+
+# Accessibility and theme
+
+- Target WCAG 2.2 AA: visible focus, keyboard reachability, labels/`aria-label` on icon-only controls, meaningful roles, contrast.
+- Prefer semantic theme tokens / CSS variables from the design system. Avoid raw hex/RGB and one-off palette utility classes in product UI unless matching an existing tokenized pattern.
+- Check light and dark themes for any UI change.
+- Do not rename native HTML/React/Radix/shadcn/Inertia boolean props (`disabled`, `required`, `checked`, `open`, `defaultOpen`, `readOnly`, `asChild`, `preserveScroll`, `preserveState`, `replace`).
