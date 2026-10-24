@@ -226,8 +226,23 @@ export function takeOverItemEditLock(): void {
 
 export function notifyItemSaved(updatedAt: string): void {
     remoteUpdatedAt = updatedAt;
-    whisperUpdatedAt(updatedAt);
     emit();
+
+    // Presence leave/rejoin from Inertia prop refresh can null channelRef in the
+    // same tick as this call — retry once if the channel is not ready yet.
+    const send = (): void => {
+        if (!channelRef) {
+            return;
+        }
+
+        whisperUpdatedAt(updatedAt);
+    };
+
+    send();
+
+    if (!channelRef) {
+        window.setTimeout(send, 50);
+    }
 }
 
 export function isRemoteUpdatedAtStale(

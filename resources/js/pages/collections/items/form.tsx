@@ -101,10 +101,7 @@ import {
     serializeItemForm,
     writeItemDraft,
 } from '@/lib/item-draft-storage';
-import {
-    isRemoteUpdatedAtStale,
-    notifyItemSaved,
-} from '@/lib/item-presence';
+import { isRemoteUpdatedAtStale, notifyItemSaved } from '@/lib/item-presence';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { readReturnParam } from '@/lib/safe-return-url';
@@ -431,7 +428,11 @@ export default function ItemsForm({
             return;
         }
 
-        notifyItemSaved(item.updated_at);
+        const timer = window.setTimeout(() => {
+            notifyItemSaved(item.updated_at as string);
+        }, 0);
+
+        return () => window.clearTimeout(timer);
     }, [isNew, item?.updated_at]);
 
     useEffect(() => {
