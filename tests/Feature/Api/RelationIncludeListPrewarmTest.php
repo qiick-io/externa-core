@@ -110,8 +110,7 @@ function makePrewarmRelationGraph(int $parentCount): array
 }
 
 /**
- * Count list queries excluding Spatie `settings` lookups (locale/project settings
- * still scale with parent N today — tracked separately from #112 relation prewarm).
+ * Count list queries excluding `settings` lookups (covered by #117 memoization).
  *
  * @return array{total: int, relation_where_in: int, without_settings: int}
  */

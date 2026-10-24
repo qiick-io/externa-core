@@ -21,6 +21,9 @@ class ProjectSettings
     /** Short TTL; forgotten on project settings save. */
     private const PUBLIC_API_ORIGINS_CACHE_TTL_SECONDS = 60;
 
+    /** @var array<string, mixed>|null Request-lifetime memo (singleton binding). */
+    private ?array $memoizedRaw = null;
+
     public function __construct(
         private readonly SettingsRepository $settings,
     ) {}
@@ -32,12 +35,24 @@ class ProjectSettings
      */
     public function raw(): array
     {
+        if ($this->memoizedRaw !== null) {
+            return $this->memoizedRaw;
+        }
+
         $raw = $this->settings->project(
             'project',
             config('settings.project.defaults', []),
         );
 
-        return $this->normalize($raw);
+        return $this->memoizedRaw = $this->normalize($raw);
+    }
+
+    /**
+     * Drop the request-lifetime raw bag after project settings change.
+     */
+    public function forgetRawCache(): void
+    {
+        $this->memoizedRaw = null;
     }
 
     /**
@@ -195,6 +210,7 @@ class ProjectSettings
     public function forgetPublicApiAllowedOriginsCache(): void
     {
         Cache::forget(self::PUBLIC_API_ORIGINS_CACHE_KEY);
+        $this->forgetRawCache();
     }
 
     public function loginMaxAttempts(): int
