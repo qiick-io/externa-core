@@ -9,6 +9,7 @@ use App\Ai\Support\AiToolJsonDecoder;
 use App\Enums\PermissionEnum;
 use App\Models\User;
 use App\Models\UserGroup;
+use App\Services\Authorization\SuperAdminGuardService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
@@ -129,6 +130,10 @@ class ManageGroups implements Approvable, Tool
             return $error;
         }
 
+        if ($error = $this->superAdminGrantError($request)) {
+            return $error;
+        }
+
         $name = trim((string) $request->string('name'));
 
         if ($name === '') {
@@ -176,6 +181,10 @@ class ManageGroups implements Approvable, Tool
 
         if ($group === null) {
             return 'Error: Group not found.';
+        }
+
+        if ($error = $this->superAdminGroupError($group) ?? $this->superAdminGrantError($request)) {
+            return $error;
         }
 
         $attributes = [];
@@ -233,6 +242,10 @@ class ManageGroups implements Approvable, Tool
             return 'Error: Group not found.';
         }
 
+        if ($error = $this->superAdminGroupError($group)) {
+            return $error;
+        }
+
         $summary = $this->serializeGroup($group);
         $this->logAiMutation($group, 'delete_group');
         $group->delete();
@@ -250,6 +263,10 @@ class ManageGroups implements Approvable, Tool
 
         if ($group === null) {
             return 'Error: Trashed group not found.';
+        }
+
+        if ($error = $this->superAdminGroupError($group)) {
+            return $error;
         }
 
         $group->restore();
@@ -271,11 +288,51 @@ class ManageGroups implements Approvable, Tool
             return 'Error: Trashed group not found.';
         }
 
+        if ($error = $this->superAdminGroupError($group)) {
+            return $error;
+        }
+
         $summary = $this->serializeGroup($group);
         $this->logAiMutation($group, 'force_delete_group');
         $group->forceDelete();
 
         return json_encode(['ok' => true, 'force_deleted' => $summary], JSON_PRETTY_PRINT) ?: '{}';
+    }
+
+    /**
+     * Groups that grant super-admin are managed by super-admins only.
+     */
+    private function superAdminGroupError(UserGroup $group): ?string
+    {
+        $superAdminGuard = app(SuperAdminGuardService::class);
+
+        if (
+            ! $superAdminGuard->canManageSuperAdmins($this->authenticatedUser())
+            && $superAdminGuard->includesSuperAdminGroup([$group->id])
+        ) {
+            return 'Error: Only a super-admin can change a group that grants super-admin.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Only super-admins may attach the super-admin role to a group (checked before any write).
+     */
+    private function superAdminGrantError(Request $request): ?string
+    {
+        $decoded = AiToolJsonDecoder::optionalArrayFrom($request, 'role_names_json');
+        $superAdminGuard = app(SuperAdminGuardService::class);
+
+        if (
+            is_array($decoded)
+            && $superAdminGuard->includesSuperAdminRoleName(array_map(fn ($name): string => is_string($name) ? trim($name) : '', $decoded))
+            && ! $superAdminGuard->canManageSuperAdmins($this->authenticatedUser())
+        ) {
+            return 'Error: Only a super-admin can grant super-admin access.';
+        }
+
+        return null;
     }
 
     private function syncMembers(UserGroup $group, Request $request, bool $required): ?string
@@ -330,7 +387,7 @@ class ManageGroups implements Approvable, Tool
         }
 
         $names = collect($decoded)->map(fn (string $value): string => trim($value))->unique()->values();
-        $roles = Role::query()->whereIn('name', $names->all())->get();
+        $roles = Role::query()->whereIn('name', $names->all())->where('is_assignable', true)->get();
 
         if ($roles->count() !== $names->count()) {
             $missing = $names->diff($roles->pluck('name'))->values()->all();
