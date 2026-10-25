@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\CollectionPermissionActionEnum;
+use App\Enums\CollectionPermissionAction;
 use App\Enums\FieldTypeEnum;
 use App\Enums\RoleEnum;
 use App\Models\Collection;
@@ -36,7 +36,7 @@ test('graphql items query respects collection permissions', function () {
         [
             'role_id' => $role->id,
             'collection_id' => $collection->id,
-            'action' => CollectionPermissionActionEnum::Read->value,
+            'action' => CollectionPermissionAction::Read->value,
         ],
         ['allowed' => true, 'rules' => null],
     );

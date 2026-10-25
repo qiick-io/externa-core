@@ -2,8 +2,8 @@
 
 namespace App\Ai\Tools;
 
-use App\Ai\Concerns\ChecksAiPermissionsTrait;
-use App\Ai\Concerns\LogsAiToolUseTrait;
+use App\Ai\Concerns\ChecksAiPermissions;
+use App\Ai\Concerns\LogsAiToolUse;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionItem;
@@ -21,9 +21,9 @@ use Stringable;
  */
 class RollbackLastAiTurn implements Approvable, Tool
 {
-    use ChecksAiPermissionsTrait;
+    use ChecksAiPermissions;
     use InteractsWithApprovals;
-    use LogsAiToolUseTrait;
+    use LogsAiToolUse;
 
     /**
      * Describe what this tool does for the model.

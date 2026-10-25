@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Collections;
 
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -13,7 +13,7 @@ use Illuminate\Validation\Rule;
  */
 class ApplyCollectionPackRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
+    use AuthorizesWithPermission;
 
     public function authorize(): bool
     {

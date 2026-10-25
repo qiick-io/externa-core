@@ -2,22 +2,15 @@
 
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
-use App\Jobs\DeliverOutboundWebhookJob;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\User;
-use App\Notifications\ItemScheduleFailedNotification;
 use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemPublisher;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
 use App\Services\Webhooks\OutboundWebhookCatalog;
 use Database\Seeders\PermissionSeeder;
-use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
@@ -164,149 +157,4 @@ test('publish sets published_at timestamp', function () {
 test('catalog includes item.published', function () {
     expect(OutboundWebhookCatalog::has('item.published'))->toBeTrue();
     expect(OutboundWebhookCatalog::types())->toContain('item.published');
-});
-
-test('catalog includes item.publish_failed', function () {
-    expect(OutboundWebhookCatalog::has('item.publish_failed'))->toBeTrue();
-    expect(OutboundWebhookCatalog::types())->toContain('item.publish_failed');
-});
-
-test('editing approved scheduled draft warns that publish will not run', function () {
-    $user = grantCollectionPermissions(User::factory()->create());
-    $this->actingAs($user);
-
-    $collection = Collection::factory()->create([
-        'versioning' => true,
-        'approvals_required' => true,
-    ]);
-    CollectionField::factory()->create([
-        'collection_id' => $collection->id,
-        'name' => 'title',
-        'type' => FieldTypeEnum::String,
-    ]);
-
-    $item = $collection->items()->create([
-        'draft_data' => ['title' => 'staging'],
-        'approval_status' => 'approved',
-        'publish_at' => now()->addDay(),
-    ]);
-
-    $this->put(route('collections.items.update', [$collection, $item]), [
-        'version' => 'draft',
-        'data' => ['title' => 'edited'],
-    ])->assertRedirect()
-        ->assertSessionHas('success', function (string $message): bool {
-            return str_contains($message, 'Approval was reset')
-                && str_contains($message, 'will not run until the item is approved again');
-        });
-
-    $item->refresh();
-    expect($item->approval_status)->toBe('draft')
-        ->and($item->publish_at)->not->toBeNull()
-        ->and($item->draft_data['title'] ?? null)->toBe('edited');
-});
-
-test('scheduled publish failure persists error, notifies, and emits webhook', function () {
-    Notification::fake();
-    Queue::fake();
-
-    $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://hooks.example.test/externa');
-    $repository->set(
-        SettingsRepository::SCOPE_PROJECT,
-        'project',
-        'webhook_secret',
-        ProjectSettings::encryptWebhookSecret('test-signing-secret'),
-    );
-
-    $editor = grantCollectionPermissions(User::factory()->create());
-    $this->actingAs($editor);
-
-    $collection = Collection::factory()->create([
-        'versioning' => true,
-        'approvals_required' => true,
-    ]);
-    CollectionField::factory()->create([
-        'collection_id' => $collection->id,
-        'name' => 'title',
-        'type' => FieldTypeEnum::String,
-    ]);
-
-    $item = $collection->items()->create([
-        'draft_data' => ['title' => 'staging'],
-        'approval_status' => 'draft',
-        'publish_at' => now()->subMinute(),
-        'unpublish_at' => now()->addDays(7),
-        'user_updated_id' => $editor->id,
-        'submitted_by' => $editor->id,
-    ]);
-
-    $this->artisan('collections:process-schedules')->assertSuccessful();
-
-    $item->refresh();
-    expect($item->publish_at)->toBeNull()
-        ->and($item->schedule_error)->toBe('Item must be approved before publishing.')
-        ->and($item->schedule_failed_at)->not->toBeNull()
-        ->and($item->unpublish_at)->not->toBeNull()
-        ->and($item->draft_data['title'] ?? null)->toBe('staging');
-
-    Notification::assertSentTo($editor, ItemScheduleFailedNotification::class);
-    Queue::assertPushed(
-        DeliverOutboundWebhookJob::class,
-        fn (DeliverOutboundWebhookJob $job): bool => $job->type === 'item.publish_failed',
-    );
-});
-
-test('scheduled publish failure for non-approval promote errors uses same handling', function () {
-    Notification::fake();
-
-    $editor = grantCollectionPermissions(User::factory()->create());
-    $this->actingAs($editor);
-
-    $collection = Collection::factory()->create(['versioning' => true]);
-    $item = $collection->items()->create([
-        'draft_data' => ['title' => 'staging'],
-        'publish_at' => now()->subMinute(),
-        'user_updated_id' => $editor->id,
-    ]);
-
-    $this->mock(CollectionItemPublisher::class, function ($mock): void {
-        $mock->shouldReceive('promote')
-            ->once()
-            ->andThrow(new RuntimeException('Simulated promote failure'));
-    });
-
-    $this->artisan('collections:process-schedules')->assertSuccessful();
-
-    $item->refresh();
-    expect($item->schedule_error)->toBe('Simulated promote failure')
-        ->and($item->schedule_failed_at)->not->toBeNull()
-        ->and($item->publish_at)->toBeNull();
-
-    Notification::assertSentTo($editor, ItemScheduleFailedNotification::class);
-});
-
-test('reschedule clears previous schedule failure state', function () {
-    $user = grantCollectionPermissions(User::factory()->create());
-    $this->actingAs($user);
-
-    $collection = Collection::factory()->create([
-        'versioning' => true,
-        'approvals_required' => true,
-    ]);
-    $item = $collection->items()->create([
-        'draft_data' => ['title' => 'wip'],
-        'approval_status' => 'approved',
-        'schedule_error' => 'Item must be approved before publishing.',
-        'schedule_failed_at' => now()->subHour(),
-    ]);
-
-    $this->post(route('collections.items.schedule', [$collection, $item]), [
-        'publish_at' => now()->addHour()->toIso8601String(),
-    ])->assertRedirect();
-
-    $item->refresh();
-    expect($item->publish_at)->not->toBeNull()
-        ->and($item->schedule_error)->toBeNull()
-        ->and($item->schedule_failed_at)->toBeNull();
 });

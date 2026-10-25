@@ -2,9 +2,9 @@
 
 namespace App\Ai\Tools;
 
-use App\Ai\Concerns\ChecksAiPermissionsTrait;
-use App\Ai\Concerns\ImportsCollectionRecordsTrait;
-use App\Ai\Concerns\LogsAiToolUseTrait;
+use App\Ai\Concerns\ChecksAiPermissions;
+use App\Ai\Concerns\ImportsCollectionRecords;
+use App\Ai\Concerns\LogsAiToolUse;
 use App\Enums\PermissionEnum;
 use App\Jobs\ImportCollectionJob;
 use App\Models\AiChatAttachment;
@@ -21,9 +21,9 @@ use Throwable;
  */
 class ImportCollectionCsv implements Tool
 {
-    use ChecksAiPermissionsTrait;
-    use ImportsCollectionRecordsTrait;
-    use LogsAiToolUseTrait;
+    use ChecksAiPermissions;
+    use ImportsCollectionRecords;
+    use LogsAiToolUse;
 
     private const MAX_ROWS = 500;
 

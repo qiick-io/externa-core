@@ -47,41 +47,15 @@ test('authorized users can view and update project settings', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/project')
             ->has('project')
-            ->where('project.name', null)
-        );
-
-    $this->actingAs($user)
-        ->get(route('project.files.edit'))
-        ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('settings/project/files')
             ->has('transformFits')
             ->has('transformFormats')
+            ->where('project.default_language', 'en')
+            ->where('project.registration_enabled', true)
             ->where('project.preset_transformations.0.key', 'thumbnail')
-            ->where('project.files_max_upload_bytes', null)
-            ->where('project.chat_max_upload_bytes', 25 * 1024 * 1024)
-        );
-
-    $this->actingAs($user)
-        ->get(route('project.content.edit'))
-        ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('project.revision_retention_count', null)
             ->where('project.revision_retention_days', null)
-        );
-
-    $this->actingAs($user)
-        ->get(route('project.security.edit'))
-        ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('project.registration_enabled', true)
-        );
-
-    $this->actingAs($user)
-        ->get(route('project.localization.edit'))
-        ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('project.default_language', 'en')
+            ->where('project.files_max_upload_bytes', null)
+            ->where('project.chat_max_upload_bytes', 25 * 1024 * 1024)
         );
 
     $modules = config('settings.project.defaults.sidebar_modules');
@@ -93,63 +67,27 @@ test('authorized users can view and update project settings', function () {
             'name' => 'Externa HQ',
             'description' => 'Project description',
             'url' => 'https://example.com',
-            'report_issue_url' => 'https://example.com/issues',
-            'report_bug_url' => 'https://example.com/bugs',
-            'report_error_url' => null,
-        ]))
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.edit'));
-
-    $this->actingAs($user)
-        ->put(route('project.localization.update'), baseLocalizationPayload([
             'default_language' => 'it',
-        ]))
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.localization.edit'));
-
-    $this->actingAs($user)
-        ->put(route('appearance.sidebar.update'), baseSidebarPayload([
             'sidebar_modules' => $modules,
-        ]))
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('appearance.sidebar.edit'));
-
-    $this->actingAs($user)
-        ->put(route('project.security.update'), baseSecurityPayload([
             'password_policy' => 'strong',
             'login_max_attempts' => 8,
             'registration_enabled' => false,
             'default_user_role' => $role->name,
             'email_verification_required' => true,
             'allowed_domains' => ['example.com', 'qiick.io'],
-        ]))
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.security.edit'));
-
-    $this->actingAs($user)
-        ->put(route('project.api.update'), baseApiPayload([
             'public_api_allowed_origins' => ['https://www.example.com', 'https://app.example.com'],
-        ]))
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.api.edit'));
-
-    $this->actingAs($user)
-        ->put(route('project.files.update'), baseFilesPayload([
             'allowed_transformations' => ['thumbnail'],
             'preset_transformations' => $presets,
+            'report_issue_url' => 'https://example.com/issues',
+            'report_bug_url' => 'https://example.com/bugs',
+            'report_error_url' => null,
+            'revision_retention_count' => 50,
+            'revision_retention_days' => 90,
             'files_max_upload_bytes' => 20 * 1024 * 1024,
             'chat_max_upload_bytes' => 15 * 1024 * 1024,
         ]))
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.files.edit'));
-
-    $this->actingAs($user)
-        ->put(route('project.content.update'), baseContentPayload([
-            'revision_retention_count' => 50,
-            'revision_retention_days' => 90,
-        ]))
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.content.edit'));
+        ->assertRedirect(route('project.edit'));
 
     $repository = app(SettingsRepository::class);
 
@@ -192,25 +130,14 @@ test('authorized users can view and update project settings', function () {
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('project.name', 'Externa HQ')
+            ->where('project.default_language', 'it')
+            ->where('project.registration_enabled', false)
+            ->where('project.preset_transformations.1.key', 'hero')
+            ->where('project.preset_transformations.1.format', 'webp')
             ->where('name', 'Externa HQ')
             ->where('projectSettings.name', 'Externa HQ')
             ->where('projectSettings.registrationEnabled', false)
             ->where('projectSettings.reportIssueUrl', 'https://example.com/issues')
-        );
-
-    $this->actingAs($user)
-        ->get(route('project.localization.edit'))
-        ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('project.default_language', 'it')
-        );
-
-    $this->actingAs($user)
-        ->get(route('project.files.edit'))
-        ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('project.preset_transformations.1.key', 'hero')
-            ->where('project.preset_transformations.1.format', 'webp')
         );
 });
 
@@ -247,13 +174,13 @@ test('ai sidebar module stays pinned first and locked', function () {
     ];
 
     $this->actingAs($user)
-        ->put(route('appearance.sidebar.update'), baseSidebarPayload([
+        ->put(route('project.update'), baseProjectPayload([
             'sidebar_modules' => $modules,
         ]))
         ->assertSessionHasNoErrors();
 
     $this->actingAs($user)
-        ->get(route('appearance.sidebar.edit'))
+        ->get(route('project.edit'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('project.sidebar_modules.0.id', 'ai')
@@ -277,19 +204,19 @@ test('telegram bot token must look like a BotFather token', function () {
     ]);
 
     $this->actingAs($user)
-        ->put(route('project.integrations.update'), baseIntegrationsPayload([
+        ->put(route('project.update'), baseProjectPayload([
             'notifier_telegram_bot_token' => 'BitelifeBot',
             'notifier_telegram_chat_id' => '-1001234567890',
         ]))
         ->assertSessionHasErrors('notifier_telegram_bot_token');
 
     $this->actingAs($user)
-        ->put(route('project.integrations.update'), baseIntegrationsPayload([
+        ->put(route('project.update'), baseProjectPayload([
             'notifier_telegram_bot_token' => '123456789:AAExampleToken_Value-1',
             'notifier_telegram_chat_id' => '-1001234567890',
         ]))
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.integrations.edit'));
+        ->assertRedirect(route('project.edit'));
 
     expect(app(ProjectSettings::class)->notifierTelegramBotToken())
         ->toBe('123456789:AAExampleToken_Value-1');
@@ -323,8 +250,8 @@ test('telegram notifier test surfaces bot api errors immediately', function () {
     ]);
 
     $this->actingAs($user)
-        ->post(route('project.integrations.telegram-notifier-test'))
-        ->assertRedirect(route('project.integrations.edit'))
+        ->post(route('project.telegram-notifier-test'))
+        ->assertRedirect(route('project.edit'))
         ->assertSessionHas('error');
 
     expect(session('error'))->toContain('Not Found');
@@ -354,41 +281,12 @@ test('telegram notifier test reports success when bot api accepts the message', 
     ]);
 
     $this->actingAs($user)
-        ->from(route('project.integrations.edit'))
-        ->post(route('project.integrations.telegram-notifier-test'))
-        ->assertRedirect(route('project.integrations.edit'))
+        ->from(route('project.edit'))
+        ->post(route('project.telegram-notifier-test'))
+        ->assertRedirect(route('project.edit'))
         ->assertSessionHas('success');
 
     expect(session('success'))->toBe(__('Test Telegram message sent.'));
-});
-
-test('deprecated telegram notifier test alias still works', function () {
-    $user = grantProjectSettingsPermissions(User::factory()->create(), [
-        PermissionEnum::CanManageProjectSettings->value,
-    ]);
-
-    $repository = app(SettingsRepository::class);
-    $repository->set(
-        SettingsRepository::SCOPE_PROJECT,
-        'project',
-        'notifier_telegram_bot_token',
-        ProjectSettings::encryptNotifierTelegramBotToken('123456:ABC'),
-    );
-    $repository->set(
-        SettingsRepository::SCOPE_PROJECT,
-        'project',
-        'notifier_telegram_chat_id',
-        '-100123',
-    );
-
-    Http::fake([
-        'api.telegram.org/*' => Http::response(['ok' => true], 200),
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('project.telegram-notifier-test'))
-        ->assertRedirect(route('project.integrations.edit'))
-        ->assertSessionHas('success');
 });
 
 test('registration is blocked when disabled in project settings', function () {
@@ -399,7 +297,7 @@ test('registration is blocked when disabled in project settings', function () {
     ]);
 
     $this->actingAs($admin)
-        ->put(route('project.security.update'), baseSecurityPayload([
+        ->put(route('project.update'), baseProjectPayload([
             'registration_enabled' => false,
         ]))
         ->assertSessionHasNoErrors();

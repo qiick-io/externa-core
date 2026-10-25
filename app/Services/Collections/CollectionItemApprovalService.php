@@ -2,7 +2,7 @@
 
 namespace App\Services\Collections;
 
-use App\Enums\ItemApprovalStatusEnum;
+use App\Enums\ItemApprovalStatus;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionItem;
@@ -34,13 +34,13 @@ class CollectionItemApprovalService
         }
 
         $status = $this->status($item);
-        if (! in_array($status, [ItemApprovalStatusEnum::Draft, ItemApprovalStatusEnum::Rejected], true)) {
+        if (! in_array($status, [ItemApprovalStatus::Draft, ItemApprovalStatus::Rejected], true)) {
             throw ValidationException::withMessages([
                 'approval' => __('Item is already in review or approved.'),
             ]);
         }
 
-        $item->approval_status = ItemApprovalStatusEnum::InReview->value;
+        $item->approval_status = ItemApprovalStatus::InReview->value;
         $item->rejection_note = null;
         $item->submitted_by = $actor->id;
         $item->reviewed_by = null;
@@ -55,13 +55,13 @@ class CollectionItemApprovalService
     {
         $this->assertApprovalsEnabled($collection);
 
-        if ($this->status($item) !== ItemApprovalStatusEnum::InReview) {
+        if ($this->status($item) !== ItemApprovalStatus::InReview) {
             throw ValidationException::withMessages([
                 'approval' => __('Only items in review can be approved.'),
             ]);
         }
 
-        $item->approval_status = ItemApprovalStatusEnum::Approved->value;
+        $item->approval_status = ItemApprovalStatus::Approved->value;
         $item->rejection_note = null;
         $item->reviewed_by = $actor->id;
         $item->reviewed_at = Carbon::now();
@@ -82,13 +82,13 @@ class CollectionItemApprovalService
             ]);
         }
 
-        if ($this->status($item) !== ItemApprovalStatusEnum::InReview) {
+        if ($this->status($item) !== ItemApprovalStatus::InReview) {
             throw ValidationException::withMessages([
                 'approval' => __('Only items in review can be rejected.'),
             ]);
         }
 
-        $item->approval_status = ItemApprovalStatusEnum::Rejected->value;
+        $item->approval_status = ItemApprovalStatus::Rejected->value;
         $item->rejection_note = $note;
         $item->reviewed_by = $actor->id;
         $item->reviewed_at = Carbon::now();
@@ -105,7 +105,7 @@ class CollectionItemApprovalService
      */
     public function resetToDraft(CollectionItem $item): void
     {
-        $item->approval_status = ItemApprovalStatusEnum::Draft->value;
+        $item->approval_status = ItemApprovalStatus::Draft->value;
         $item->rejection_note = null;
         $item->submitted_by = null;
         $item->reviewed_by = null;
@@ -118,7 +118,7 @@ class CollectionItemApprovalService
      */
     public function clearAfterPromote(CollectionItem $item): void
     {
-        $item->approval_status = ItemApprovalStatusEnum::Draft->value;
+        $item->approval_status = ItemApprovalStatus::Draft->value;
         $item->rejection_note = null;
         $item->submitted_by = null;
         $item->reviewed_by = null;
@@ -131,7 +131,7 @@ class CollectionItemApprovalService
             return;
         }
 
-        if ($this->status($item) !== ItemApprovalStatusEnum::Approved) {
+        if ($this->status($item) !== ItemApprovalStatus::Approved) {
             throw new RuntimeException('Item must be approved before publishing.');
         }
     }
@@ -145,9 +145,9 @@ class CollectionItemApprovalService
         }
     }
 
-    private function status(CollectionItem $item): ItemApprovalStatusEnum
+    private function status(CollectionItem $item): ItemApprovalStatus
     {
-        return ItemApprovalStatusEnum::tryFrom((string) $item->approval_status) ?? ItemApprovalStatusEnum::Draft;
+        return ItemApprovalStatus::tryFrom((string) $item->approval_status) ?? ItemApprovalStatus::Draft;
     }
 
     private function notifyReviewers(CollectionItem $item, Collection $collection, string $action, User $actor): void

@@ -22,12 +22,7 @@ Homestead.yaml
 npm-debug.log
 yarn-error.log
 /auth.json
-# Cursor: track shared rules/commands; keep local MCP/skills private
-/.cursor/*
-!/.cursor/rules/
-!/.cursor/rules/**
-!/.cursor/commands/
-!/.cursor/commands/**
+/.cursor
 /.fleet
 /.idea
 /.nova

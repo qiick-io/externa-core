@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\CollectionPermissionActionEnum;
+use App\Enums\CollectionPermissionAction;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
@@ -58,7 +58,7 @@ test('project settings reject empty content locales', function () {
     $user = grantContentLocaleSettingsUser();
 
     $this->actingAs($user)
-        ->put(route('project.localization.update'), baseLocalizationPayload([
+        ->put(route('project.update'), baseProjectPayload([
             'content_locales' => [],
             'default_content_locale' => 'en',
             'preset_transformations' => contentLocalesSamplePresets(),
@@ -70,7 +70,7 @@ test('project settings require default content locale to be selected', function 
     $user = grantContentLocaleSettingsUser();
 
     $this->actingAs($user)
-        ->put(route('project.localization.update'), baseLocalizationPayload([
+        ->put(route('project.update'), baseProjectPayload([
             'content_locales' => ['en', 'it'],
             'default_content_locale' => 'de-DE',
             'preset_transformations' => contentLocalesSamplePresets(),
@@ -82,7 +82,7 @@ test('project settings persist content locales and resolver reads them', functio
     $user = grantContentLocaleSettingsUser();
 
     $this->actingAs($user)
-        ->put(route('project.localization.update'), baseLocalizationPayload([
+        ->put(route('project.update'), baseProjectPayload([
             'content_locales' => ['it', 'en', 'de-DE'],
             'default_content_locale' => 'it',
             'fallback_content_locales' => ['it', 'en'],
@@ -191,7 +191,7 @@ test('api rejects disabled locale query parameter', function () {
         [
             'role_id' => $public->id,
             'collection_id' => $collection->id,
-            'action' => CollectionPermissionActionEnum::Read->value,
+            'action' => CollectionPermissionAction::Read->value,
         ],
         ['allowed' => true],
     );

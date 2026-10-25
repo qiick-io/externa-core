@@ -95,10 +95,8 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Use PHP 8 constructor property promotion: `public function __construct(public GitHub $github) { }`. Do not leave empty zero-parameter `__construct()` methods unless the constructor is private.
 - Use explicit return type declarations and type hints for all method parameters: `function isAccessible(User $user, ?string $path = null): bool`
 - Use TitleCase for Enum keys: `FavoritePerson`, `BestLake`, `Monthly`.
-- Follow **Codice Perfetto**: English PHPDoc/JSDoc on classes, components, hooks, and non-trivial methods (array shapes, side effects, invariants, `@throws`). Do not restate obvious line-by-line mechanics. This supersedes “comments only for exceptionally complex logic”.
+- Prefer PHPDoc blocks over inline comments. Only add inline comments for exceptionally complex logic.
 - Use array shape type definitions in PHPDoc blocks.
-- Custom classes use explicit role suffixes (`*Controller`, `*Request`, `*Resource`, `*Action` with `execute()`, `*Service`, `*Data` readonly, `*Policy`, `*Enum`, `*Event`, `*Job`, `*Middleware`, `*Trait`). Eloquent Models stay bare nouns. Never rename Laravel/Fortify/starter-kit or vendor/shadcn scaffolding — exempt in `tests/Arch/NamingArchitectureTest.php`.
-- Architecture pillars: thin controllers (Request → Action/Service + `*Data` → Resource/Inertia); `app/Actions` vs `app/Services` vs `app/Data` vs `app/Traits`; clean Models; authorization in Policies; Pest Arch guardrails in CI.
 
 === deployments rules ===
 

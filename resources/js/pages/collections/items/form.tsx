@@ -101,7 +101,7 @@ import {
     serializeItemForm,
     writeItemDraft,
 } from '@/lib/item-draft-storage';
-import { isRemoteUpdatedAtStale, notifyItemSaved } from '@/lib/item-presence';
+import { isRemoteUpdatedAtStale } from '@/lib/item-presence';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { readReturnParam } from '@/lib/safe-return-url';
@@ -157,8 +157,6 @@ type ItemPayload = {
     publish_at?: string | null;
     unpublish_at?: string | null;
     published_at?: string | null;
-    schedule_error?: string | null;
-    schedule_failed_at?: string | null;
     approval_status?: string | null;
     rejection_note?: string | null;
     submitted_by?: number | null;
@@ -420,20 +418,6 @@ export default function ItemsForm({
             setExpectedUpdatedAt(item?.updated_at ?? '');
         }
     }, [item?.updated_at, isDirty]);
-
-    // Whisper fresh updated_at to peer editors after Inertia save refreshes props.
-    // notifyItemSaved was previously unused — peers never saw the stale banner (#315).
-    useEffect(() => {
-        if (isNew || !item?.updated_at) {
-            return;
-        }
-
-        const timer = window.setTimeout(() => {
-            notifyItemSaved(item.updated_at as string);
-        }, 0);
-
-        return () => window.clearTimeout(timer);
-    }, [isNew, item?.updated_at]);
 
     useEffect(() => {
         const form = document.getElementById(COLLECTION_ITEM_FORM_ID);
@@ -1419,32 +1403,6 @@ export default function ItemsForm({
                         >
                             {t('collections.itemPresence.staleReload')}
                         </Button>
-                    </div>
-                ) : null}
-
-                {!isNew &&
-                item !== null &&
-                versioningEnabled &&
-                canEditItem &&
-                item.schedule_error ? (
-                    <div
-                        className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
-                        data-test="item-schedule-failure"
-                        role="alert"
-                    >
-                        <p className="font-medium">
-                            {t('collections.itemSchedule.failureTitle')}
-                        </p>
-                        <p className="mt-1 text-destructive/90">
-                            {item.schedule_error}
-                        </p>
-                        {item.unpublish_at ? (
-                            <p className="mt-1 text-xs text-destructive/80">
-                                {t(
-                                    'collections.itemSchedule.failureUnpublishKept',
-                                )}
-                            </p>
-                        ) : null}
                     </div>
                 ) : null}
 

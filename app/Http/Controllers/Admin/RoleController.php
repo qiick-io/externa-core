@@ -9,8 +9,8 @@ use App\Http\Requests\Admin\BulkRoleActionRequest;
 use App\Http\Requests\Admin\DuplicateRoleRequest;
 use App\Http\Requests\Admin\StoreRoleRequest;
 use App\Http\Requests\Admin\UpdateRoleRequest;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
-use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\ValidatesSearchQuery;
 use App\Http\Resources\Admin\RoleResource;
 use App\Models\Role;
 use App\Services\Api\CollectionPermissionSync;
@@ -29,8 +29,8 @@ use Spatie\Permission\PermissionRegistrar;
  */
 class RoleController extends Controller
 {
-    use AuthorizesWithPermissionTrait;
-    use ValidatesSearchQueryTrait;
+    use AuthorizesWithPermission;
+    use ValidatesSearchQuery;
 
     public function __construct(
         private readonly PermissionGrouper $permissionGrouper,

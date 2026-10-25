@@ -2,8 +2,8 @@
 
 namespace App\Ai\Tools;
 
-use App\Ai\Concerns\ChecksAiPermissionsTrait;
-use App\Ai\Concerns\LogsAiToolUseTrait;
+use App\Ai\Concerns\ChecksAiPermissions;
+use App\Ai\Concerns\LogsAiToolUse;
 use App\Enums\PermissionEnum;
 use App\Models\AiChatAttachment;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -17,8 +17,8 @@ use Stringable;
  */
 class ExtractPdfText implements Tool
 {
-    use ChecksAiPermissionsTrait;
-    use LogsAiToolUseTrait;
+    use ChecksAiPermissions;
+    use LogsAiToolUse;
 
     private const MAX_CHARACTERS = 20_000;
 

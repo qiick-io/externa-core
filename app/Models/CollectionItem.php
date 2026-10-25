@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsApplicationActivity;
 use App\Jobs\Ai\GenerateCollectionItemEmbeddingJob;
 use App\Services\Api\PublicApiResponseCache;
 use App\Services\Search\MeilisearchSyncDispatcher;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 use App\Support\Collections\CollectionItemDataAccessor;
-use App\Traits\LogsApplicationActivityTrait;
 use Database\Factories\CollectionItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -33,8 +33,6 @@ use Illuminate\Support\Carbon;
  * @property int|null $reviewed_by
  * @property Carbon|null $reviewed_at
  * @property Carbon|null $publish_at
- * @property string|null $schedule_error
- * @property Carbon|null $schedule_failed_at
  * @property Carbon|null $unpublish_at
  * @property Carbon|null $published_at
  * @property Carbon|null $deleted_at
@@ -42,7 +40,7 @@ use Illuminate\Support\Carbon;
 class CollectionItem extends Model
 {
     /** @use HasFactory<CollectionItemFactory> */
-    use HasFactory, LogsApplicationActivityTrait, SoftDeletes;
+    use HasFactory, LogsApplicationActivity, SoftDeletes;
 
     protected $table = 'collections_items';
 
@@ -58,8 +56,6 @@ class CollectionItem extends Model
         'reviewed_by',
         'reviewed_at',
         'publish_at',
-        'schedule_error',
-        'schedule_failed_at',
         'unpublish_at',
         'published_at',
     ];
@@ -74,19 +70,9 @@ class CollectionItem extends Model
             'draft_data' => 'array',
             'reviewed_at' => 'datetime',
             'publish_at' => 'datetime',
-            'schedule_failed_at' => 'datetime',
             'unpublish_at' => 'datetime',
             'published_at' => 'datetime',
         ];
-    }
-
-    /**
-     * Clear persisted scheduled-publish failure after success or reschedule.
-     */
-    public function clearScheduleFailure(): void
-    {
-        $this->schedule_error = null;
-        $this->schedule_failed_at = null;
     }
 
     protected static function booted(): void

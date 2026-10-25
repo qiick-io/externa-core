@@ -37,7 +37,6 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(EffectivePermissionResolver::class);
-        $this->app->singleton(ProjectSettings::class);
     }
 
     /**

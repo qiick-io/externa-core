@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\CollectionPermissionActionEnum;
+use App\Enums\CollectionPermissionAction;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionPermission;
@@ -343,7 +343,7 @@ test('collection permission rules use group-inherited roles', function () {
     CollectionPermission::query()->create([
         'role_id' => $editorRole->id,
         'collection_id' => $collection->id,
-        'action' => CollectionPermissionActionEnum::Read->value,
+        'action' => CollectionPermissionAction::Read->value,
         'allowed' => true,
         'rules' => [
             'fields' => [

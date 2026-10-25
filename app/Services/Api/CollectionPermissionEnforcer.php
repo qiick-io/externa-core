@@ -2,7 +2,7 @@
 
 namespace App\Services\Api;
 
-use App\Enums\CollectionPermissionActionEnum;
+use App\Enums\CollectionPermissionAction;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionItem;
@@ -83,48 +83,13 @@ class CollectionPermissionEnforcer
     }
 
     /**
-     * Hard collection action gate for admin (and reusable for API actors).
-     *
-     * Super-admin: allow. Users with any collection_permissions grant: require a matching
-     * grant on this collection + action. Spatie-only users (no collection_permissions
-     * anywhere): keep today's behaviour (Spatie middleware already gated the route).
+     * Soft collection Read check (API role grant or admin user Read / Spatie-only).
      */
-    public function assertCollectionAction(
-        Request $request,
-        Collection $collection,
-        CollectionPermissionActionEnum $action,
-    ): void {
-        if ($this->allowsCollectionAction($request, $collection, $action)) {
-            return;
-        }
-
-        abort(403, 'This action is unauthorized for the collection.');
-    }
-
-    /**
-     * Soft collection action check (API role grant ∩ key scopes, or admin user grant / Spatie-only).
-     *
-     * For API keys, scopes only narrow the role: collection_slugs allowlist and read_only.
-     * Relation includes and item readability share this gate via {@see isItemReadable()}.
-     */
-    public function allowsCollectionAction(
-        Request $request,
-        Collection $collection,
-        CollectionPermissionActionEnum $action,
-    ): bool {
+    public function isCollectionReadable(Request $request, Collection $collection): bool
+    {
         $access = $request->attributes->get('apiAccess');
         if ($access instanceof ApiAccess) {
-            if (! $this->guard->allows($access->roleId(), (int) $collection->id, $action)) {
-                return false;
-            }
-
-            $apiKey = $access->apiKey;
-            if ($apiKey === null) {
-                return true;
-            }
-
-            return $apiKey->allowsCollectionSlug((string) $collection->slug)
-                && $apiKey->allowsAction($action);
+            return $this->guard->allows($access->roleId(), (int) $collection->id, CollectionPermissionAction::Read);
         }
 
         $user = $request->user();
@@ -132,15 +97,7 @@ class CollectionPermissionEnforcer
             return false;
         }
 
-        return $this->userAllowsCollectionAction($user, $collection, $action);
-    }
-
-    /**
-     * Soft collection Read check (API role grant or admin user Read / Spatie-only).
-     */
-    public function isCollectionReadable(Request $request, Collection $collection): bool
-    {
-        return $this->allowsCollectionAction($request, $collection, CollectionPermissionActionEnum::Read);
+        return $this->userHasCollectionRead($user, $collection);
     }
 
     /**
@@ -169,8 +126,6 @@ class CollectionPermissionEnforcer
     {
         $rules = $this->resolveRules($request, $collection);
         if ($rules === null) {
-            $this->abortIfAclScopedWithoutRules($request);
-
             return;
         }
 
@@ -187,8 +142,6 @@ class CollectionPermissionEnforcer
     {
         $rules = $this->resolveRules($request, $collection);
         if ($rules === null) {
-            $this->abortIfAclScopedWithoutRules($request);
-
             return;
         }
 
@@ -210,13 +163,7 @@ class CollectionPermissionEnforcer
     public function applyItemFilterToQuery(Request $request, Collection $collection, Builder $query): void
     {
         $rules = $this->resolveRules($request, $collection);
-        if ($rules === null) {
-            $this->abortIfAclScopedWithoutRules($request);
-
-            return;
-        }
-
-        if (($rules['item_filter'] ?? null) === null) {
+        if ($rules === null || ($rules['item_filter'] ?? null) === null) {
             return;
         }
 
@@ -226,58 +173,29 @@ class CollectionPermissionEnforcer
     }
 
     /**
-     * Collection action for an admin user: matching role grant, or Spatie-only unrestricted.
+     * Collection Read for an admin user: any role Read grant, or Spatie-only unrestricted.
      */
-    private function userAllowsCollectionAction(
-        User $user,
-        Collection $collection,
-        CollectionPermissionActionEnum $action,
-    ): bool {
+    private function userHasCollectionRead(User $user, Collection $collection): bool
+    {
         $resolver = app(EffectivePermissionResolver::class);
 
         if ($resolver->isSuperAdmin($user)) {
             return true;
         }
 
-        foreach ($resolver->effectiveRoleIds($user) as $roleId) {
-            if ($this->guard->allows($roleId, (int) $collection->id, $action)) {
+        $roleIds = $resolver->effectiveRoleIds($user);
+        foreach ($roleIds as $roleId) {
+            if ($this->guard->allows($roleId, (int) $collection->id, CollectionPermissionAction::Read)) {
                 return true;
             }
         }
 
-        // Spatie-only (no collection_permissions on any role): middleware already gated
-        // can-show / can-edit — keep unrestricted collection access.
-        if (! $this->userHasAnyCollectionGrant($user)) {
-            return match ($action) {
-                CollectionPermissionActionEnum::Read => $resolver->hasPermission(
-                    $user,
-                    PermissionEnum::CanShowCollections->value,
-                ),
-                default => $resolver->hasPermission(
-                    $user,
-                    PermissionEnum::CanEditCollections->value,
-                ),
-            };
+        // Spatie-only (no collection_permissions on any role): can-show-collections is enough.
+        if (! $this->userHasAnyCollectionGrant($user) && $resolver->hasPermission($user, PermissionEnum::CanShowCollections->value)) {
+            return true;
         }
 
         return false;
-    }
-
-    /**
-     * Null rules mean "no grant for this collection". Fail closed for ACL-scoped actors
-     * (API role, or admin user who has at least one collection_permissions grant).
-     */
-    private function abortIfAclScopedWithoutRules(Request $request): void
-    {
-        $access = $request->attributes->get('apiAccess');
-        if ($access instanceof ApiAccess) {
-            abort(403, 'This action is unauthorized for the collection.');
-        }
-
-        $user = $request->user();
-        if ($user instanceof User && $this->userHasAnyCollectionGrant($user)) {
-            abort(403, 'This action is unauthorized for the collection.');
-        }
     }
 
     private function userHasAnyCollectionGrant(User $user): bool

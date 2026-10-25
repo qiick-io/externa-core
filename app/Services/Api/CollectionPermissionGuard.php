@@ -2,7 +2,7 @@
 
 namespace App\Services\Api;
 
-use App\Enums\CollectionPermissionActionEnum;
+use App\Enums\CollectionPermissionAction;
 use App\Enums\PermissionEnum;
 use App\Models\CollectionPermission;
 use App\Models\User;
@@ -20,9 +20,9 @@ class CollectionPermissionGuard
         private CollectionPermissionRules $rulesService,
     ) {}
 
-    public function allows(int $roleId, int $collectionId, CollectionPermissionActionEnum|string $action): bool
+    public function allows(int $roleId, int $collectionId, CollectionPermissionAction|string $action): bool
     {
-        $actionValue = $action instanceof CollectionPermissionActionEnum ? $action->value : $action;
+        $actionValue = $action instanceof CollectionPermissionAction ? $action->value : $action;
         $matrix = $this->matrixForRole($roleId);
 
         return (bool) ($matrix[$collectionId][$actionValue] ?? false);
@@ -130,7 +130,7 @@ class CollectionPermissionGuard
 
                 foreach ($rows as $row) {
                     $collectionId = (int) $row->collection_id;
-                    $action = $row->action instanceof CollectionPermissionActionEnum
+                    $action = $row->action instanceof CollectionPermissionAction
                         ? $row->action->value
                         : (string) $row->action;
                     $matrix[$collectionId][$action] = true;

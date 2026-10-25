@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\V1\CollectionItemController;
 use App\Http\Controllers\Api\V1\FileController;
 use App\Http\Controllers\Api\V1\LivePreviewController;
 use App\Http\Controllers\Api\V1\OpenApiController;
-use App\Http\Middleware\ApiRequestCostMiddleware;
 use App\Http\Middleware\EnforcePublicApiOrigin;
 use App\Http\Middleware\ResolveApiAccess;
 use Illuminate\Support\Facades\Route;
@@ -25,12 +24,7 @@ Route::prefix('v1')
     });
 
 Route::prefix('v1')
-    ->middleware([
-        'throttle:api',
-        EnforcePublicApiOrigin::class,
-        ResolveApiAccess::class,
-        ApiRequestCostMiddleware::class,
-    ])
+    ->middleware(['throttle:api', EnforcePublicApiOrigin::class, ResolveApiAccess::class])
     ->group(function (): void {
         Route::get('collections', [CollectionController::class, 'index']);
         Route::get('collections/{slug}', [CollectionController::class, 'show']);

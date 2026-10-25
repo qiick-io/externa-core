@@ -72,12 +72,8 @@ test('authorized users can view performance settings with nested props', functio
                 ->has('packagesCached')
             )
             ->has('publicApi', fn (AssertableInertia $publicApi) => $publicApi
-                ->where('ttlSeconds', $cache->ttlSeconds())
+                ->where('ttlSeconds', PublicApiResponseCache::TTL_SECONDS)
                 ->where('epoch', $cache->epoch())
-                ->where('hits', 0)
-                ->where('misses', 0)
-                ->where('lastFlushedAt', null)
-                ->where('lastFlushedBy', null)
             )
             ->has('links', fn (AssertableInertia $links) => $links
                 ->where('jobs', null)
@@ -109,41 +105,7 @@ test('flush public api increments epoch visible in props', function () {
         ->get(route('performance.edit'))
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('publicApi.epoch', $beforeEpoch + 1)
-            ->where('publicApi.hits', 0)
-            ->where('publicApi.misses', 0)
-            ->where('publicApi.lastFlushedBy', $user->name !== '' ? $user->name : $user->email)
-            ->has('publicApi.lastFlushedAt')
         );
-});
-
-test('public api cache ttl comes from PUBLIC_API_CACHE_TTL env', function () {
-    config(['api.response_cache_ttl' => 45]);
-
-    $cache = app(PublicApiResponseCache::class);
-    expect($cache->ttlSeconds())->toBe(45);
-
-    $user = grantProjectSettingsPermissions(User::factory()->create(), [
-        PermissionEnum::CanManageProjectSettings->value,
-    ]);
-
-    $this->actingAs($user)
-        ->get(route('performance.edit'))
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('publicApi.ttlSeconds', 45)
-        );
-});
-
-test('public api remember increments hit and miss counters for the epoch', function () {
-    $cache = app(PublicApiResponseCache::class);
-    $cache->bumpAll();
-
-    $key = $cache->itemsKey('demo', $cache->version(1), 'abc');
-    $cache->remember($key, fn (): array => ['ok' => true]);
-    $cache->remember($key, fn (): array => ['ok' => true]);
-
-    $stats = $cache->statsForCurrentEpoch();
-    expect($stats['misses'])->toBe(1)
-        ->and($stats['hits'])->toBe(1);
 });
 
 test('authorized users can flush dashboard metric keys', function () {

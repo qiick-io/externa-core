@@ -17,7 +17,6 @@ export function slugify(value: string): string {
  * when the raw input ends with a separator so multi-segment keys stay typeable.
  *
  * ponytail: trailing-sep UX ceiling — blur/submit should use {@link slugify} to match Laravel.
- * Used by collection-field key, collection drawer slug, and item string fields with slugify on.
  */
 export function slugifyInput(value: string): string {
     const keepTrailing = value.length > 0 && /[^A-Za-z0-9]$/.test(value);

@@ -2,8 +2,8 @@
 
 namespace App\Ai\Tools;
 
-use App\Ai\Concerns\ChecksAiPermissionsTrait;
-use App\Ai\Concerns\LogsAiToolUseTrait;
+use App\Ai\Concerns\ChecksAiPermissions;
+use App\Ai\Concerns\LogsAiToolUse;
 use App\Enums\PermissionEnum;
 use App\Jobs\ImportCollectionJob;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -16,8 +16,8 @@ use Stringable;
  */
 class GetImportJobStatus implements Tool
 {
-    use ChecksAiPermissionsTrait;
-    use LogsAiToolUseTrait;
+    use ChecksAiPermissions;
+    use LogsAiToolUse;
 
     /**
      * Describe what this tool does for the model.

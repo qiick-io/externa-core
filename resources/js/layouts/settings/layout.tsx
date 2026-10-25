@@ -11,16 +11,9 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 import adminRoutes from '@/lib/admin-routes';
 import { cn, toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
-import { edit as editSidebar } from '@/routes/appearance/sidebar';
 import { edit as editPerformance } from '@/routes/performance';
 import { edit } from '@/routes/profile';
 import { edit as editProject } from '@/routes/project';
-import { edit as editApi } from '@/routes/project/api';
-import { edit as editContent } from '@/routes/project/content';
-import { edit as editFiles } from '@/routes/project/files';
-import { edit as editIntegrations } from '@/routes/project/integrations';
-import { edit as editLocalization } from '@/routes/project/localization';
-import { edit as editProjectSecurity } from '@/routes/project/security';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
 
@@ -40,7 +33,7 @@ export default function SettingsLayout({
     wide = false,
 }: SettingsLayoutProps) {
     const { t } = useTranslation();
-    const { isCurrentUrl } = useCurrentUrl();
+    const { isCurrentOrParentUrl } = useCurrentUrl();
     const { can } = useCan();
     const { projectSettings } = usePage().props;
 
@@ -62,48 +55,13 @@ export default function SettingsLayout({
     )
         ? [
               {
-                  title: t('settings.layout.general'),
+                  title: t('settings.layout.project'),
                   href: editProject(),
-                  icon: null,
-              },
-              {
-                  title: t('settings.layout.localization'),
-                  href: editLocalization(),
-                  icon: null,
-              },
-              {
-                  title: t('settings.layout.authSecurity'),
-                  href: editProjectSecurity(),
-                  icon: null,
-              },
-              {
-                  title: t('settings.layout.content'),
-                  href: editContent(),
-                  icon: null,
-              },
-              {
-                  title: t('settings.layout.filesMedia'),
-                  href: editFiles(),
-                  icon: null,
-              },
-              {
-                  title: t('settings.layout.api'),
-                  href: editApi(),
-                  icon: null,
-              },
-              {
-                  title: t('settings.layout.integrations'),
-                  href: editIntegrations(),
                   icon: null,
               },
               {
                   title: t('settings.layout.appearance'),
                   href: editAppearance(),
-                  icon: null,
-              },
-              {
-                  title: t('settings.layout.sidebar'),
-                  href: editSidebar(),
                   icon: null,
               },
               {
@@ -167,7 +125,7 @@ export default function SettingsLayout({
             variant="ghost"
             asChild
             className={cn('w-full justify-start', {
-                'bg-muted': isCurrentUrl(item.href),
+                'bg-muted': isCurrentOrParentUrl(item.href),
             })}
         >
             <Link href={item.href}>

@@ -3,9 +3,9 @@
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
-use App\Events\ItemChatMessageCreatedEvent;
-use App\Events\ItemChatMessageDeletedEvent;
-use App\Events\ItemChatMessageUpdatedEvent;
+use App\Events\ItemChatMessageCreated;
+use App\Events\ItemChatMessageDeleted;
+use App\Events\ItemChatMessageUpdated;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItemChatAttachment;
@@ -92,9 +92,9 @@ test('chat events broadcast immediately without a queue worker', function () {
     ['user' => $user, 'collection' => $collection, 'item' => $item] = chatKitchen();
     $this->actingAs($user);
 
-    $created = new ItemChatMessageCreatedEvent('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', ['id' => 1]);
-    $updated = new ItemChatMessageUpdatedEvent('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', ['id' => 1]);
-    $deleted = new ItemChatMessageDeletedEvent('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 1);
+    $created = new ItemChatMessageCreated('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', ['id' => 1]);
+    $updated = new ItemChatMessageUpdated('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', ['id' => 1]);
+    $deleted = new ItemChatMessageDeleted('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 1);
 
     expect($created)->toBeInstanceOf(ShouldBroadcastNow::class)
         ->and($created->broadcastAs())->toBe('MessageCreated')
@@ -104,13 +104,13 @@ test('chat events broadcast immediately without a queue worker', function () {
         ->and($deleted)->toBeInstanceOf(ShouldBroadcastNow::class)
         ->and($deleted->broadcastAs())->toBe('MessageDeleted');
 
-    Event::fake([ItemChatMessageCreatedEvent::class]);
+    Event::fake([ItemChatMessageCreated::class]);
 
     $this->postJson(route('collections.items.chat.store', [$collection, $item]), [
         'body' => 'live',
     ])->assertCreated();
 
-    Event::assertDispatched(ItemChatMessageCreatedEvent::class, function (ItemChatMessageCreatedEvent $event): bool {
+    Event::assertDispatched(ItemChatMessageCreated::class, function (ItemChatMessageCreated $event): bool {
         return ($event->message['body'] ?? null) === 'live'
             && str_starts_with($event->broadcastOn()[0]->name, 'presence-chat.');
     });

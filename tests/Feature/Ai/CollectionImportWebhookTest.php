@@ -100,12 +100,8 @@ test('collection import webhook returns 401 for a tampered body', function () {
         ->and($collectionB->items()->count())->toBe(0);
 });
 
-test('collection import webhook returns 401 when the token is unset (fail closed)', function () {
-    config()->set([
-        'ai.webhook_token' => '',
-        'ai.webhook_token_previous' => null,
-        'ai.webhook_token_previous_expires_at' => null,
-    ]);
+test('collection import webhook returns 401 when the token is unset outside local', function () {
+    config()->set('ai.webhook_token', '');
     $collection = Collection::factory()->create();
     $payload = [
         'collection_id' => $collection->id,
@@ -114,6 +110,8 @@ test('collection import webhook returns 401 when the token is unset (fail closed
         ],
     ];
     $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
+
+    expect(app()->environment('local'))->toBeFalse();
 
     $this->call(
         'POST',
@@ -125,76 +123,6 @@ test('collection import webhook returns 401 when the token is unset (fail closed
             'CONTENT_TYPE' => 'application/json',
             'HTTP_ACCEPT' => 'application/json',
             'HTTP_X_AI_WEBHOOK_SIGNATURE' => CollectionImportWebhookController::sign($rawBody, 'anything'),
-        ],
-        $rawBody,
-    )->assertUnauthorized();
-
-    expect($collection->items()->count())->toBe(0);
-});
-
-test('collection import webhook accepts the previous token during grace', function () {
-    config()->set([
-        'ai.webhook_token' => 'new-secret',
-        'ai.webhook_token_previous' => 'old-secret',
-        'ai.webhook_token_previous_expires_at' => now()->addHour()->toIso8601String(),
-    ]);
-
-    $collection = Collection::factory()->create();
-    $payload = [
-        'collection_id' => $collection->id,
-        'records' => [
-            ['sku' => 'A1', 'title' => 'Grace item'],
-        ],
-    ];
-    $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
-    $signature = CollectionImportWebhookController::sign($rawBody, 'old-secret');
-
-    $this->call(
-        'POST',
-        route('ai.webhooks.collection-import'),
-        [],
-        [],
-        [],
-        [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_ACCEPT' => 'application/json',
-            'HTTP_X_AI_WEBHOOK_SIGNATURE' => $signature,
-        ],
-        $rawBody,
-    )->assertSuccessful();
-
-    expect($collection->items()->count())->toBe(1);
-});
-
-test('collection import webhook rejects the previous token after grace expiry', function () {
-    $this->travelTo(now());
-
-    config()->set([
-        'ai.webhook_token' => 'new-secret',
-        'ai.webhook_token_previous' => 'old-secret',
-        'ai.webhook_token_previous_expires_at' => now()->subMinute()->toIso8601String(),
-    ]);
-
-    $collection = Collection::factory()->create();
-    $payload = [
-        'collection_id' => $collection->id,
-        'records' => [
-            ['sku' => 'A1', 'title' => 'Expired grace'],
-        ],
-    ];
-    $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
-    $signature = CollectionImportWebhookController::sign($rawBody, 'old-secret');
-
-    $this->call(
-        'POST',
-        route('ai.webhooks.collection-import'),
-        [],
-        [],
-        [],
-        [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_ACCEPT' => 'application/json',
-            'HTTP_X_AI_WEBHOOK_SIGNATURE' => $signature,
         ],
         $rawBody,
     )->assertUnauthorized();

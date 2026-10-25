@@ -47,8 +47,6 @@ export type CollectionFieldRow = {
     name: string;
     type: string;
     translatable: boolean;
-    /** True when published values or draft_data exist — locks type/translatable shape. */
-    has_stored_values?: boolean;
     sort_order: number;
     settings?: Record<string, unknown> | null;
 };

@@ -62,10 +62,6 @@ return [
     // HMAC-SHA256 key for collection-import webhook (raw request body).
     'webhook_token' => env('AI_WEBHOOK_TOKEN'),
 
-    // Previous token accepted until webhook_token_previous_expires_at (ISO 8601).
-    'webhook_token_previous' => env('AI_WEBHOOK_TOKEN_PREVIOUS'),
-    'webhook_token_previous_expires_at' => env('AI_WEBHOOK_TOKEN_PREVIOUS_EXPIRES_AT'),
-
     'daily_prompt_limit' => (int) env('AI_DAILY_PROMPT_LIMIT', 0),
 
     'embeddings' => [

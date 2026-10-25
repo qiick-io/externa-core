@@ -15,7 +15,6 @@ use App\Models\CollectionField;
 use App\Services\Collections\ApplyFieldPackService;
 use App\Services\Collections\CollectionFieldGroupService;
 use App\Services\Collections\CollectionFieldRenamer;
-use App\Services\Collections\CollectionFieldStorageShapeService;
 use App\Support\Collections\FieldPacks\FieldPackRegistry;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -32,16 +31,6 @@ class FieldController extends Controller
     public function index(Collection $collection): Response
     {
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
-
-        $storedValueFlags = app(CollectionFieldStorageShapeService::class)
-            ->storedValueFlagsByFieldId($collection);
-
-        $collection->fields->each(function (CollectionField $field) use ($storedValueFlags): void {
-            $field->setAttribute(
-                'has_stored_values',
-                (bool) ($storedValueFlags[(int) $field->id] ?? false),
-            );
-        });
 
         $relatedCollections = Collection::query()
             ->active()

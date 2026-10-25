@@ -25,37 +25,4 @@ final class ApiAccess
     {
         return (int) $this->role->id;
     }
-
-    /**
-     * Factors that partition public response caches beyond role_id.
-     *
-     * Keys that share a role but differ in collection_slugs / read_only must
-     * not share cached payloads (includes and field ACL intersect with scopes).
-     *
-     * @return array{api_key_scopes: array{collection_slugs: list<string>|null, read_only: bool}|null}
-     */
-    public function responseCacheScopeFactors(): array
-    {
-        $apiKey = $this->apiKey;
-        if ($apiKey === null) {
-            return ['api_key_scopes' => null];
-        }
-
-        $slugs = $apiKey->collection_slugs;
-        $normalized = null;
-        if (is_array($slugs)) {
-            $normalized = array_values(array_unique(array_filter(array_map(
-                static fn (mixed $value): string => strtolower(trim((string) $value)),
-                $slugs,
-            ), static fn (string $value): bool => $value !== '')));
-            sort($normalized);
-        }
-
-        return [
-            'api_key_scopes' => [
-                'collection_slugs' => $normalized,
-                'read_only' => (bool) $apiKey->read_only,
-            ],
-        ];
-    }
 }

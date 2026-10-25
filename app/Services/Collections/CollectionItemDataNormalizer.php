@@ -64,32 +64,6 @@ class CollectionItemDataNormalizer
     }
 
     /**
-     * Overlay a partial payload on the item's current values so omitted fields survive the full-row sync.
-     *
-     * @param  array<string, mixed>  $current
-     * @param  array<string, mixed>  $incoming
-     * @return array<string, mixed>
-     */
-    public function mergeIncoming(array $current, array $incoming): array
-    {
-        foreach ($incoming as $key => $value) {
-            // ponytail: array_merge appends list fields (blocks/m2a/files); only merge associative maps (locales).
-            if (
-                is_array($value)
-                && isset($current[$key])
-                && is_array($current[$key])
-                && ! array_is_list($value)
-            ) {
-                $current[$key] = array_merge($current[$key], $value);
-            } else {
-                $current[$key] = $value;
-            }
-        }
-
-        return $current;
-    }
-
-    /**
      * @return array<string, mixed>
      */
     private function defaultTranslatableValue(CollectionField $field, mixed $defaultValue): array

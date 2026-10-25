@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsApplicationActivity;
 use App\Enums\CollectionStatusEnum;
 use App\Services\Api\PublicApiResponseCache;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
-use App\Traits\LogsApplicationActivityTrait;
 use Database\Factories\CollectionFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -40,7 +40,7 @@ use Spatie\EloquentSortable\SortableTrait;
 class Collection extends Model implements Sortable
 {
     /** @use HasFactory<CollectionFactory> */
-    use HasFactory, LogsApplicationActivityTrait, SoftDeletes;
+    use HasFactory, LogsApplicationActivity, SoftDeletes;
 
     use SortableTrait;
 

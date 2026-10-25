@@ -2,14 +2,14 @@
 
 namespace App\GraphQL\Mutations;
 
-use App\Enums\CollectionPermissionActionEnum;
-use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
+use App\Enums\CollectionPermissionAction;
+use App\GraphQL\Concerns\AuthorizesGraphqlCollection;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcer;
 
 final class DeleteItem
 {
-    use AuthorizesGraphqlCollectionTrait;
+    use AuthorizesGraphqlCollection;
 
     /**
      * @param  array{collection: string, id: string}  $args
@@ -17,7 +17,7 @@ final class DeleteItem
     public function __invoke(mixed $_, array $args): bool
     {
         $collection = $this->findCollection($args['collection']);
-        $this->authorize($collection, CollectionPermissionActionEnum::Delete);
+        $this->authorize($collection, CollectionPermissionAction::Delete);
 
         $item = CollectionItem::query()
             ->where('collection_id', $collection->id)
