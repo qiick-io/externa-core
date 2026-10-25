@@ -41,7 +41,8 @@ final class ItemsQuery
 
         $cache = app(PublicApiResponseCache::class);
         $version = $cache->version((int) $collection->id);
-        $roleId = app(ApiAccess::class)->roleId();
+        $access = app(ApiAccess::class);
+        $roleId = $access->roleId();
         $hash = $cache->hash([
             'filter' => $filters,
             'page' => $page,
@@ -50,6 +51,7 @@ final class ItemsQuery
             'include_all_translations' => $request->boolean('include_all_translations'),
             'role_id' => $roleId,
             'file_grants' => $roleId === null ? [] : app(FilePermissionGuard::class)->grantsForRole($roleId),
+            ...$access->responseCacheScopeFactors(),
             'surface' => 'graphql',
         ]);
         $key = $cache->itemsKey($collection->slug, $version, $hash);

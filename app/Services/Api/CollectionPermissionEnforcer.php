@@ -102,7 +102,10 @@ class CollectionPermissionEnforcer
     }
 
     /**
-     * Soft collection action check (API role grant or admin user grant / Spatie-only).
+     * Soft collection action check (API role grant ∩ key scopes, or admin user grant / Spatie-only).
+     *
+     * For API keys, scopes only narrow the role: collection_slugs allowlist and read_only.
+     * Relation includes and item readability share this gate via {@see isItemReadable()}.
      */
     public function allowsCollectionAction(
         Request $request,
@@ -111,7 +114,17 @@ class CollectionPermissionEnforcer
     ): bool {
         $access = $request->attributes->get('apiAccess');
         if ($access instanceof ApiAccess) {
-            return $this->guard->allows($access->roleId(), (int) $collection->id, $action);
+            if (! $this->guard->allows($access->roleId(), (int) $collection->id, $action)) {
+                return false;
+            }
+
+            $apiKey = $access->apiKey;
+            if ($apiKey === null) {
+                return true;
+            }
+
+            return $apiKey->allowsCollectionSlug((string) $collection->slug)
+                && $apiKey->allowsAction($action);
         }
 
         $user = $request->user();
