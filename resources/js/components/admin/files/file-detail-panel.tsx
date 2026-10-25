@@ -582,7 +582,7 @@ export function FileDetailPanel({
                                                   )}
                                         </p>
                                         <ul
-                                            className="space-y-0.5"
+                                            className="-mx-1 divide-y divide-border/60"
                                             data-test="file-where-used-list"
                                         >
                                             {whereUsedRefs
@@ -593,24 +593,34 @@ export function FileDetailPanel({
                                                     >
                                                         <a
                                                             className={cn(
-                                                                'group flex min-w-0 items-baseline gap-1.5 rounded-md px-2 py-1.5 text-xs',
-                                                                'transition-colors hover:bg-muted/60',
-                                                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                                                                'flex w-full min-w-0 items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs',
+                                                                'text-foreground transition-colors',
+                                                                'hover:bg-accent hover:text-accent-foreground',
+                                                                'focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
                                                             )}
                                                             href={`/collections/${ref.collection_id}/items/${ref.item_id}`}
                                                         >
-                                                            <span className="min-w-0 truncate font-medium text-foreground group-hover:text-primary">
-                                                                {ref.collection_name}{' '}
-                                                                #{ref.item_id}
+                                                            <span className="flex min-w-0 items-center gap-1.5">
+                                                                <span className="min-w-0 truncate font-medium">
+                                                                    {
+                                                                        ref.collection_name
+                                                                    }
+                                                                </span>
+                                                                <span className="shrink-0 font-mono text-[0.65rem] text-muted-foreground tabular-nums">
+                                                                    #
+                                                                    {
+                                                                        ref.item_id
+                                                                    }
+                                                                </span>
                                                             </span>
                                                             <span className="shrink-0 text-muted-foreground">
-                                                                · {ref.field}
+                                                                {ref.field}
                                                             </span>
                                                         </a>
                                                     </li>
                                                 ))}
                                             {whereUsedRefs.length > 20 && (
-                                                <li className="px-2 py-1 text-xs text-muted-foreground">
+                                                <li className="w-full px-2 py-1.5 text-xs text-muted-foreground">
                                                     {t(
                                                         'files.detail.moreRefs',
                                                         {
