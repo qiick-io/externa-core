@@ -44,6 +44,7 @@ import {
     fieldControlChromeSingle,
     fieldControlHeight,
 } from '@/lib/field-control-chrome';
+import { slugify, slugifyInput } from '@/lib/slugify';
 import { cn } from '@/lib/utils';
 
 const inputLike =
@@ -247,6 +248,95 @@ export function InputWithIcons({
                 </span>
             ) : null}
         </div>
+    );
+}
+
+/**
+ * Collection item string field. When `slugify` is on, same live pattern as the
+ * create-field **key** input: {@link slugifyInput} on change/paste, {@link slugify}
+ * on blur (matches Laravel `Str::slug`). Caret lands at end after transform —
+ * same as field-key / collection-slug drawers.
+ */
+export function StringFieldInput({
+    id,
+    name,
+    defaultValue,
+    placeholder,
+    maxLength,
+    readonly,
+    hasError,
+    iconLeft,
+    iconRight,
+    inputType,
+    masked,
+    slugify: slugifyEnabled,
+}: {
+    id: string;
+    name: string;
+    defaultValue?: unknown;
+    placeholder?: string;
+    maxLength?: number | null;
+    readonly?: boolean;
+    hasError?: boolean;
+    iconLeft?: string;
+    iconRight?: string;
+    inputType: string;
+    masked: boolean;
+    slugify: boolean;
+}) {
+    const initial = String(defaultValue ?? '');
+    const [value, setValue] = useState(initial);
+
+    const resolvedType = slugifyEnabled
+        ? 'text'
+        : masked
+          ? 'password'
+          : inputType === 'integer' ||
+              inputType === 'float' ||
+              inputType === 'decimal'
+            ? 'number'
+            : 'text';
+
+    return (
+        <InputWithIcons iconLeft={iconLeft} iconRight={iconRight}>
+            {slugifyEnabled ? (
+                <Input
+                    id={id}
+                    type={resolvedType}
+                    name={name}
+                    value={value}
+                    placeholder={placeholder}
+                    maxLength={maxLength ?? undefined}
+                    readOnly={readonly}
+                    aria-invalid={hasError}
+                    onChange={(event) => {
+                        if (readonly) {
+                            return;
+                        }
+
+                        setValue(slugifyInput(event.target.value));
+                    }}
+                    onBlur={() => {
+                        if (readonly) {
+                            return;
+                        }
+
+                        setValue((current) => slugify(current));
+                    }}
+                />
+            ) : (
+                <Input
+                    id={id}
+                    type={resolvedType}
+                    name={name}
+                    defaultValue={initial}
+                    placeholder={placeholder}
+                    maxLength={maxLength ?? undefined}
+                    readOnly={readonly}
+                    aria-invalid={hasError}
+                />
+            )}
+        </InputWithIcons>
     );
 }
 
