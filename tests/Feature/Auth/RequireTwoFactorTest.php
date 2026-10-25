@@ -19,17 +19,17 @@ test('project settings persist two factor required', function () {
     ]);
 
     $this->actingAs($user)
-        ->put(route('project.update'), baseProjectPayload([
+        ->put(route('project.security.update'), baseSecurityPayload([
             'two_factor_required' => true,
         ]))
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.edit'));
+        ->assertRedirect(route('project.security.edit'));
 
     expect(app(ProjectSettings::class)->twoFactorRequired())->toBeTrue();
 
     $this->actingAs($user)
         ->withSession(['auth.password_confirmed_at' => time()])
-        ->get(route('project.edit'))
+        ->get(route('project.security.edit'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('project.two_factor_required', true)

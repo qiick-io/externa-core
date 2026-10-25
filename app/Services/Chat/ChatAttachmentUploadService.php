@@ -43,7 +43,7 @@ class ChatAttachmentUploadService
         $clientName = $uploaded->getClientOriginalName();
         $originalName = $clientName !== '' ? $clientName : 'attachment.bin';
         $contents = $uploaded->getContent();
-        $mimeType = SafeUploadMime::assertChatAllowed($originalName, SafeUploadMime::sniff($contents));
+        $mimeType = SafeUploadMime::assertChatAllowed($originalName, SafeUploadMime::sniff($contents), 'file', $contents);
         $extension = SafeUploadMime::extensionOf($originalName);
         $attachmentId = (string) Str::uuid7();
         $safeName = Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) ?: 'attachment';
@@ -202,6 +202,7 @@ class ChatAttachmentUploadService
             (string) $fileUpload->file_name,
             SafeUploadMime::sniff($assembled),
             'file_name',
+            $assembled,
         );
         $extension = SafeUploadMime::extensionOf((string) $fileUpload->file_name);
 

@@ -138,6 +138,7 @@ class FieldValueUniqueRule implements ValidationRule
 
         if (DB::connection()->getDriverName() === 'pgsql') {
             $encodedValue = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            // raw-sql: reviewed — unique check; value bound; driver cast literal
             if ($query->whereRaw('value::text = ?', [$encodedValue])->exists()) {
                 $fail(__('The :attribute has already been taken.'));
             }

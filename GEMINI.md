@@ -142,7 +142,7 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 ## Comments
 
-- Prefer PHPDoc blocks over inline comments. Never use comments within the code itself unless the logic is exceptionally complex.
+- Follow **Codice Perfetto**: English PHPDoc/JSDoc on classes, components, hooks, and non-trivial methods. Do not restate obvious line-by-line mechanics. See `.cursor/rules/code-craftsmanship.mdc` and `tests/Arch/NamingArchitectureTest.php`.
 
 ## PHPDoc Blocks
 

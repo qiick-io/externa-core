@@ -2,13 +2,13 @@
 
 namespace App\GraphQL\Queries;
 
-use App\Enums\CollectionPermissionAction;
-use App\GraphQL\Concerns\AuthorizesGraphqlCollection;
+use App\Enums\CollectionPermissionActionEnum;
+use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
 use App\Services\Api\PublicApiResponseCache;
 
 final class CollectionQuery
 {
-    use AuthorizesGraphqlCollection;
+    use AuthorizesGraphqlCollectionTrait;
 
     /**
      * @param  array{slug: string}  $args
@@ -17,7 +17,7 @@ final class CollectionQuery
     public function __invoke(mixed $_, array $args): ?array
     {
         $collection = $this->findCollection($args['slug']);
-        $this->authorize($collection, CollectionPermissionAction::Read);
+        $this->authorize($collection, CollectionPermissionActionEnum::Read);
 
         $cache = app(PublicApiResponseCache::class);
         $version = $cache->version((int) $collection->id);

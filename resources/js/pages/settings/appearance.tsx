@@ -32,7 +32,11 @@ import type { AdminFileRow } from '@/types/files';
 
 type FileFieldKey = 'project_logo' | 'project_logo_dark' | 'public_favicon';
 
-const DEFAULT_PROJECT_COLOR = '#0f172a';
+/** Externa mark v3 body (light); WCAG AA with white foreground. */
+const DEFAULT_PROJECT_COLOR = '#0E7C86';
+
+/** Externa mark v3 body (dark); WCAG AA with black foreground. */
+const DEFAULT_PROJECT_COLOR_DARK = '#1A95A2';
 
 /**
  * Apply draft brand colors to CSS vars for live preview.
@@ -138,8 +142,9 @@ export default function Appearance({
     const initialColor = appearance.project_color ?? DEFAULT_PROJECT_COLOR;
     const initialColorDark =
         appearance.project_color_dark ??
-        appearance.project_color ??
-        DEFAULT_PROJECT_COLOR;
+        (appearance.project_color
+            ? appearance.project_color
+            : DEFAULT_PROJECT_COLOR_DARK);
     const initialAppearance = appearance.default_appearance;
     const initialFiles = useMemo(
         () => ({
@@ -303,7 +308,7 @@ export default function Appearance({
                                                 )
                                             }
                                             className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono shadow-none focus-visible:ring-0"
-                                            placeholder="#0f172a"
+                                            placeholder="#0E7C86"
                                         />
                                     </div>
                                     <InputError
@@ -341,7 +346,7 @@ export default function Appearance({
                                                 'settings.appearance.projectColorDark',
                                             )}
                                             className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono shadow-none focus-visible:ring-0"
-                                            placeholder="#0f172a"
+                                            placeholder="#1A95A2"
                                         />
                                     </div>
                                     <InputError

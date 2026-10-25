@@ -3,17 +3,19 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Services\Authorization\SuperAdminGuardService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Validates bulk admin actions against user groups.
  */
 class BulkUserGroupActionRequest extends FormRequest
 {
-    use AuthorizesWithPermission;
+    use AuthorizesWithPermissionTrait;
 
     /**
      * Require the permission that matches the requested bulk action.
@@ -41,5 +43,24 @@ class BulkUserGroupActionRequest extends FormRequest
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', Rule::exists('user_groups', 'id')],
         ];
+    }
+
+    /**
+     * Reject the whole batch when it touches groups that grant super-admin and the actor is not a super-admin.
+     *
+     * @return list<callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            $superAdminGuard = app(SuperAdminGuardService::class);
+
+            if (
+                ! $superAdminGuard->canManageSuperAdmins($this->user())
+                && $superAdminGuard->includesSuperAdminGroup((array) $this->input('ids', []))
+            ) {
+                $validator->errors()->add('ids', __('Only a super-admin can change groups that grant super-admin.'));
+            }
+        }];
     }
 }

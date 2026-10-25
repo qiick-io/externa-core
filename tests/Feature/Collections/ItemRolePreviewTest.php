@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\RoleEnum;
 use App\Models\Collection;
@@ -52,7 +52,7 @@ test('preview as role strips unreadable fields and reports readable payload', fu
     CollectionPermission::query()->create([
         'role_id' => $previewRole->id,
         'collection_id' => $collection->id,
-        'action' => CollectionPermissionAction::Read->value,
+        'action' => CollectionPermissionActionEnum::Read->value,
         'allowed' => true,
         'rules' => [
             'fields' => [

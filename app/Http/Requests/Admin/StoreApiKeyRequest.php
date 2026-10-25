@@ -4,7 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -14,7 +14,7 @@ use Illuminate\Validation\Rule;
  */
 class StoreApiKeyRequest extends FormRequest
 {
-    use AuthorizesWithPermission;
+    use AuthorizesWithPermissionTrait;
 
     public function authorize(): bool
     {
@@ -35,6 +35,9 @@ class StoreApiKeyRequest extends FormRequest
                 'integer',
                 Rule::exists('roles', 'id')->where(fn ($query) => $query->where('name', '!=', RoleEnum::SuperAdmin->value)),
             ],
+            'collection_slugs' => ['nullable', 'array'],
+            'collection_slugs.*' => ['string', 'max:128', 'distinct'],
+            'read_only' => ['sometimes', 'boolean'],
             'ip_allowlist' => ['nullable', 'array'],
             'ip_allowlist.*' => ['string', 'max:64'],
             'rate_limit_per_minute' => ['nullable', 'integer', 'min:1', 'max:10000'],
@@ -50,6 +53,24 @@ class StoreApiKeyRequest extends FormRequest
             $this->merge([
                 'ip_allowlist' => array_values(array_filter(array_map('trim', $parts))),
             ]);
+        }
+
+        $slugs = $this->input('collection_slugs');
+        if (is_string($slugs)) {
+            $parts = preg_split('/[\s,]+/', $slugs) ?: [];
+            $normalized = array_values(array_unique(array_filter(array_map(
+                static fn (string $slug): string => strtolower(trim($slug)),
+                $parts,
+            ))));
+            $this->merge([
+                'collection_slugs' => $normalized === [] ? null : $normalized,
+            ]);
+        } elseif (is_array($slugs) && $slugs === []) {
+            $this->merge(['collection_slugs' => null]);
+        }
+
+        if ($this->has('read_only')) {
+            $this->merge(['read_only' => $this->boolean('read_only')]);
         }
     }
 }

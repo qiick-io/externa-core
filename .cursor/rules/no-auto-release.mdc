@@ -1,0 +1,22 @@
+---
+description: Never auto-ship to main — open release PRs only; maintainers merge, tag, and GitHub Release.
+alwaysApply: true
+---
+
+# No automatic release to main
+
+Agents **must not** ship Externa Core to `main` / `master` without an explicit user request.
+
+## Allowed
+
+- Open a `develop` → `main` **release PR** with full body, assignee, and milestone
+- Stop after the PR is open (and CI green if asked to wait/check)
+
+## Forbidden unless the user explicitly asks
+
+- Merge the release PR (`develop` → `main`)
+- Create git tags (`vX.Y.Z` or otherwise)
+- Run `gh release create` / publish a GitHub Release
+- Push to `main` / `master` to cut a release
+
+Maintainers merge, tag, and publish the GitHub Release themselves.

@@ -283,12 +283,6 @@ parameters:
 			path: app/Http/Requests/Collections/UpdateContentCollectionRequest.php
 
 		-
-			message: '#^Parameter \#1 \$array \(list\) of array_values is already a list, call has no effect\.$#'
-			identifier: arrayValues.list
-			count: 1
-			path: app/Http/Requests/Settings/UpdateProjectSettingsRequest.php
-
-		-
 			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
 			identifier: method.nonObject
 			count: 3
@@ -703,7 +697,7 @@ parameters:
 			path: app/Support/Validation/FilterQueryLimits.php
 
 		-
-			message: '#^Trait App\\Traits\\HasFiles is used zero times and is not analysed\.$#'
+			message: '#^Trait App\\Traits\\HasFilesTrait is used zero times and is not analysed\.$#'
 			identifier: trait.unused
 			count: 1
-			path: app/Traits/HasFiles.php
+			path: app/Traits/HasFilesTrait.php

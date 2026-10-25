@@ -2,10 +2,10 @@
 
 namespace App\Ai\Tools;
 
-use App\Ai\Concerns\ChecksAiPermissions;
-use App\Ai\Concerns\EnforcesAiCollectionPermissions;
-use App\Ai\Concerns\LogsAiToolUse;
-use App\Ai\Concerns\RequiresDestructiveApproval;
+use App\Ai\Concerns\ChecksAiPermissionsTrait;
+use App\Ai\Concerns\EnforcesAiCollectionPermissionsTrait;
+use App\Ai\Concerns\LogsAiToolUseTrait;
+use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
@@ -28,10 +28,10 @@ use Stringable;
  */
 class ManageCollectionItems implements Approvable, Tool
 {
-    use ChecksAiPermissions;
-    use EnforcesAiCollectionPermissions;
-    use LogsAiToolUse;
-    use RequiresDestructiveApproval;
+    use ChecksAiPermissionsTrait;
+    use EnforcesAiCollectionPermissionsTrait;
+    use LogsAiToolUseTrait;
+    use RequiresDestructiveApprovalTrait;
 
     /**
      * @return list<string>

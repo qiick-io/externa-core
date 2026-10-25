@@ -145,7 +145,7 @@ test('super admin can manage files without explicit file permissions', function 
     ])->assertCreated()
         ->assertJsonPath('name', 'Super Folder');
 
-    $upload = UploadedFile::fake()->create('super.pdf', 50, 'application/pdf');
+    $upload = UploadedFile::fake()->createWithContent('super.pdf', "%PDF-1.4\n%âãÏÓ\n".str_repeat('x', 64));
 
     $this->postJson(route('files.upload'), [
         'file' => $upload,
@@ -178,8 +178,8 @@ test('duplicate file names in the same parent are allowed', function () {
     ]);
     $this->actingAs($user);
 
-    $firstUpload = UploadedFile::fake()->create('report.pdf', 100, 'application/pdf');
-    $secondUpload = UploadedFile::fake()->create('report.pdf', 100, 'application/pdf');
+    $firstUpload = UploadedFile::fake()->createWithContent('report.pdf', "%PDF-1.4\n%âãÏÓ\n".str_repeat('x', 64));
+    $secondUpload = UploadedFile::fake()->createWithContent('report.pdf', "%PDF-1.4\n%âãÏÓ\n".str_repeat('x', 64));
 
     $this->postJson(route('files.upload'), [
         'file' => $firstUpload,
@@ -201,7 +201,7 @@ test('authorized users can upload files', function () {
     ]);
     $this->actingAs($user);
 
-    $upload = UploadedFile::fake()->create('report.pdf', 100, 'application/pdf');
+    $upload = UploadedFile::fake()->createWithContent('report.pdf', "%PDF-1.4\n%âãÏÓ\n".str_repeat('x', 64));
 
     $response = $this->postJson(route('files.upload'), [
         'file' => $upload,
@@ -278,7 +278,7 @@ test('authorized users can upload files into nested folders', function () {
         'parent_id' => $rootFolder['id'],
     ])->assertCreated()->json();
 
-    $upload = UploadedFile::fake()->create('logo.png', 50, 'image/png');
+    $upload = UploadedFile::fake()->image('logo.png', 40, 30);
 
     $this->postJson(route('files.upload'), [
         'file' => $upload,
@@ -1477,7 +1477,7 @@ test('file upload auto-refreshes page without requiring full reload', function (
     $this->actingAs($user);
 
     // Upload a file
-    $upload = UploadedFile::fake()->create('auto-refresh-test.pdf', 100, 'application/pdf');
+    $upload = UploadedFile::fake()->createWithContent('auto-refresh-test.pdf', "%PDF-1.4\n%âãÏÓ\n".str_repeat('x', 64));
 
     $this->postJson(route('files.upload'), [
         'file' => $upload,

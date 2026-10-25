@@ -16,6 +16,7 @@ final class OutboundWebhookCatalog
         'item.created' => 'A collection item was created.',
         'item.updated' => 'A collection item\'s values were saved.',
         'item.published' => 'A draft was promoted to published values (manual or scheduled).',
+        'item.publish_failed' => 'A scheduled publish failed (approval missing, promote error, …).',
         'item.submitted' => 'A draft was submitted for editorial review.',
         'item.approved' => 'A draft in review was approved for publish.',
         'item.rejected' => 'A draft in review was rejected with a note.',

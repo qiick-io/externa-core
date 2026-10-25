@@ -2,8 +2,8 @@
 
 namespace App\GraphQL\Mutations;
 
-use App\Enums\CollectionPermissionAction;
-use App\GraphQL\Concerns\AuthorizesGraphqlCollection;
+use App\Enums\CollectionPermissionActionEnum;
+use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
 use App\Http\Resources\CollectionItemResource;
 use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Collections\CollectionItemDataNormalizer;
@@ -12,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 
 final class CreateItem
 {
-    use AuthorizesGraphqlCollection;
+    use AuthorizesGraphqlCollectionTrait;
 
     /**
      * @param  array{collection: string, data: array<string, mixed>}  $args
@@ -21,7 +21,7 @@ final class CreateItem
     public function __invoke(mixed $_, array $args): array
     {
         $collection = $this->findCollection($args['collection']);
-        $this->authorize($collection, CollectionPermissionAction::Create);
+        $this->authorize($collection, CollectionPermissionActionEnum::Create);
 
         if ($collection->is_singleton && $collection->items()->exists()) {
             throw ValidationException::withMessages([

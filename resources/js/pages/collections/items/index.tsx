@@ -112,6 +112,7 @@ type ItemRow = {
     displays?: Record<string, string | null>;
     thumbs?: Record<string, string | null>;
     has_draft?: boolean;
+    schedule_failed?: boolean;
     approval_status?: string | null;
 };
 
@@ -1337,6 +1338,18 @@ export default function ItemsIndex({
                                                                         'approved'
                                                                       ? 'Approved'
                                                                       : 'Rejected'}
+                                                            </Badge>
+                                                        ) : null}
+                                                        {versioningEnabled &&
+                                                        row.schedule_failed ? (
+                                                            <Badge
+                                                                variant="destructive"
+                                                                className="mr-1 text-xs"
+                                                                data-test={`item-schedule-failed-badge-${row.id}`}
+                                                            >
+                                                                {t(
+                                                                    'collections.itemSchedule.failedBadge',
+                                                                )}
                                                             </Badge>
                                                         ) : null}
                                                         <AskAiButton
