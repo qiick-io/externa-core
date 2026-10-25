@@ -198,6 +198,7 @@ export function NotificationsDrawer({
                         type="button"
                         variant="ghost"
                         size="sm"
+                        className="text-muted-foreground hover:text-foreground"
                         disabled={isMutating || isLoading || !hasUnread}
                         onClick={() => void handleMarkAllRead()}
                         data-test="notifications-mark-all-read"
@@ -251,7 +252,7 @@ export function NotificationsDrawer({
                                         <Button
                                             asChild
                                             variant="link"
-                                            className="h-auto px-0"
+                                            className="h-auto px-0 text-muted-foreground hover:text-foreground"
                                         >
                                             <Link
                                                 href={adminRoutes.files.index(
@@ -269,7 +270,7 @@ export function NotificationsDrawer({
                                         <Button
                                             asChild
                                             variant="link"
-                                            className="h-auto px-0"
+                                            className="h-auto px-0 text-muted-foreground hover:text-foreground"
                                         >
                                             <Link
                                                 href={chatUrl}
@@ -285,7 +286,7 @@ export function NotificationsDrawer({
                                         <Button
                                             asChild
                                             variant="link"
-                                            className="h-auto px-0"
+                                            className="h-auto px-0 text-muted-foreground hover:text-foreground"
                                         >
                                             <a
                                                 href={zipHref}
@@ -301,7 +302,7 @@ export function NotificationsDrawer({
                                         <Button
                                             type="button"
                                             variant="link"
-                                            className="h-auto px-0"
+                                            className="h-auto px-0 text-muted-foreground hover:text-foreground"
                                             disabled={isMutating}
                                             onClick={() =>
                                                 void handleMarkUnread(
