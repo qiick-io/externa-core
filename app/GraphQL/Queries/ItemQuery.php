@@ -2,8 +2,8 @@
 
 namespace App\GraphQL\Queries;
 
-use App\Enums\CollectionPermissionAction;
-use App\GraphQL\Concerns\AuthorizesGraphqlCollection;
+use App\Enums\CollectionPermissionActionEnum;
+use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcer;
@@ -13,7 +13,7 @@ use App\Support\Api\ApiAccess;
 
 final class ItemQuery
 {
-    use AuthorizesGraphqlCollection;
+    use AuthorizesGraphqlCollectionTrait;
 
     /**
      * @param  array{collection: string, id: string}  $args
@@ -22,17 +22,19 @@ final class ItemQuery
     public function __invoke(mixed $_, array $args): ?array
     {
         $collection = $this->findCollection($args['collection']);
-        $this->authorize($collection, CollectionPermissionAction::Read);
+        $this->authorize($collection, CollectionPermissionActionEnum::Read);
 
         $request = request();
         $cache = app(PublicApiResponseCache::class);
         $version = $cache->version((int) $collection->id);
-        $roleId = app(ApiAccess::class)->roleId();
+        $access = app(ApiAccess::class);
+        $roleId = $access->roleId();
         $hash = $cache->hash([
             'locale' => $request->query('locale'),
             'include_all_translations' => $request->boolean('include_all_translations'),
             'role_id' => $roleId,
             'file_grants' => $roleId === null ? [] : app(FilePermissionGuard::class)->grantsForRole($roleId),
+            ...$access->responseCacheScopeFactors(),
             'surface' => 'graphql',
         ]);
         $key = $cache->itemKey($collection->slug, $args['id'], $version, $hash);

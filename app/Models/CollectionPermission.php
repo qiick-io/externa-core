@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -36,7 +36,7 @@ class CollectionPermission extends Model
         return [
             'allowed' => 'boolean',
             'rules' => 'array',
-            'action' => CollectionPermissionAction::class,
+            'action' => CollectionPermissionActionEnum::class,
         ];
     }
 

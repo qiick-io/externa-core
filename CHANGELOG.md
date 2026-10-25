@@ -9,6 +9,55 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+
+## [1.3.0] - 2026-10-24
+
+### Security
+
+- Public API key scopes (`collection_slugs`, `read_only`) are enforced in `CollectionPermissionEnforcer` (including relation `?include=` hydration) and partition REST/GraphQL response cache keys so scoped keys cannot reuse a wider key’s cached payload; `read_only` also blocks Files API writes via the shared `ApiKey::allowsAction()` gate
+- Raise `laravel/framework` Composer floor to `^13.29` (GHSA-f9x3-7vq9-cph6; lock already on 13.33.x) (#217)
+- Bump `livewire/livewire` 4.4.5 → 4.4.8 (GHSA-mhf7-xp6r-6qrc, via `laravel/pulse`), dev-only `zod` 4.6.7 and `fast-uri` 3.1.9; resync `composer.lock` content-hash (#276)
+- SSRF guard on outbound webhook / Slack notifier URLs (save + delivery, no redirects); opt-in `WEBHOOKS_ALLOW_PRIVATE_HOSTS` (default false). Upload MIME allowlist + magic-byte checks via `MimeTypeValidator` on file manager, chunked upload, Public API, chat, and AI attachments (#118)
+- Optional Public API cost budget (`API_COST_LIMIT`, default off), GraphQL depth/complexity env caps (`GRAPHQL_MAX_DEPTH` / `GRAPHQL_MAX_COMPLEXITY`, default off), and payload caps (`API_MAX_BODY_BYTES`, `API_MAX_PER_PAGE`) stacked with existing `throttle:api` + per-key limits (#113)
+- `php artisan ai:rotate-webhook-token` with optional grace window (`AI_WEBHOOK_TOKEN_PREVIOUS` / `AI_WEBHOOK_TOKEN_PREVIOUS_EXPIRES_AT`); collection-import webhook HMAC fails closed when no token is configured (no local unsigned bypass) (#207)
+- Only super-admins can grant the super-admin role/groups or edit, delete and restore super-admin users and groups (web, bulk and AI tools) (GHSA-j87m-4qvv-5qgg)
+- Admin collection item actions require a matching per-collection grant when the actor already has any collection permission grants; Spatie-only admins unchanged (GHSA-j7vc-w5wj-mx3x)
+- Deny SSI/markup upload extensions (`.shtml`, `.shtm`, `.xml`, `.xhtml`, `.xht`, `.mht`, `.xsl`, `.svgz`); sandbox CSP on Docker nginx `/storage/` (GHSA-2mwj-jgfg-c694)
+
+### Fixed
+
+- Scheduled publish failures (approval invalidated after schedule, promote errors) persist on the item, notify editors/approvers, emit `item.publish_failed`, and warn when editing an approved scheduled draft resets approval (#221)
+- Public API `PATCH /items/{id}` and GraphQL `updateItem` keep omitted fields and locales instead of wiping them; item value sync is now atomic (#268)
+- `TRUSTED_PROXIES` is now applied (`config/trustedproxy.php`): client IP, HTTPS detection, rate limits and API key IP allowlists work behind a reverse proxy (#271)
+- Reject `type` / `translatable` changes on fields that already have stored values (admin + AI); lock Translatable checkbox in the field form (#219)
+
+### Added
+
+- Optional API key scopes: collection slug allowlist + `read_only` (effective access = role ACL ∩ key scopes; null/empty scopes keep legacy behaviour) for REST + GraphQL; admin create form fields (#116)
+- Table-driven AuthZ regression Pest datasets for collection CRUD × actors, published/draft item filters, file public/private/inherited access, `include=files`, GraphQL read, and `EffectivePermissionResolver` / `FilePermissionGuard` matrices (#114)
+
+### Changed
+
+- Split project settings into dedicated sections (General, Localization, Authentication & Security, Content, Files & Media, API, Integrations, Sidebar) with per-section routes and saves; CORS cache cleared only on API save (#201)
+- Weekly scheduled + manual `workflow_dispatch` runs for dependency audits (`audit.yml`); document thresholds in `SECURITY.md` (#184)
+- Codice Perfetto naming: custom Enums/Events/Traits use explicit role suffixes (`*Enum`, `*Event`, `*Trait`); Pest `NamingArchitectureTest` + streamlined `.cursor/` rules pack; `AGENTS.md` / `CLAUDE.md` documentation standard (#260)
+- Externa mark v3 (bow-tie) assets and admin colour defaults: primary `#0E7C86` (light) / `#1A95A2` (dark), focus rings and chart accents from the v3 teal scale; favicon links cache-busted with `?v=3` (#258)
+- Public REST item lists batch-prewarm `?include=` relation targets once per response (`RelationIncludeHydrator::prewarm`) so depth-1 query count stays flat as parent N grows (#112)
+- Memoize `ProjectSettings::raw()` for the request (singleton binding) so admin/Public item lists stop re-querying the `settings` table once per parent row (#117)
+- Audit raw SQL call sites (`whereRaw` / `selectRaw` / `DB::select` / …); inline `// raw-sql: reviewed` markers; PHPStan disallow via `spaze/phpstan-disallowed-calls` with a reviewed-file allowlist (#208)
+- Public API response cache: env `PUBLIC_API_CACHE_TTL` (default 120), per-epoch hit/miss counters, last-flush actor/time on Performance settings (#115)
+
+### Upgrade notes
+
+- **Breaking (`AI_WEBHOOK_TOKEN` required):** `POST /ai/webhooks/collection-import` fails closed when no token is configured (including local — the previous unsigned local bypass is gone). Set a non-empty `AI_WEBHOOK_TOKEN` in every environment that receives collection-import webhooks before upgrading. Rotate with `php artisan ai:rotate-webhook-token --grace=24h [--write-env] [--show]`; optional grace uses `AI_WEBHOOK_TOKEN_PREVIOUS` + `AI_WEBHOOK_TOKEN_PREVIOUS_EXPIRES_AT`. After `.env` changes: `php artisan config:clear` (or rebuild config cache) and restart workers/containers (#207 / #297).
+- **Breaking (webhooks / Slack SSRF):** outbound webhook and Slack notifier URLs that resolve to loopback, RFC1918, link-local, or other reserved hosts are **rejected on save and again at delivery** when `WEBHOOKS_ALLOW_PRIVATE_HOSTS` is `false` (the default). Delivery also refuses HTTP redirects. Self-hosted LAN targets (e.g. n8n on a private IP) must set `WEBHOOKS_ALLOW_PRIVATE_HOSTS=true` in `.env` and clear config cache (`php artisan config:clear` / `config:cache`). Public HTTPS receivers need no change (#118 / #267).
+- **Breaking (uploads):** after the extension denylist, uploads must sniff to a MIME in `config/files.php` `upload_allowed_mimes`, with magic-byte checks for claimed formats. **SVG, JSON, XML, and `.shtml` are not on the allowlist** (and SVG/HTML remain extension-denied). Operators who previously stored those types via File Manager / Public API / chat→Files / AI attachments need an alternate pipeline or an allowlist extension in `config/files.php` (#118 / #267).
+- **New optional env vars (defaults keep prior behaviour when unset):** `API_COST_LIMIT`, `GRAPHQL_MAX_DEPTH`, `GRAPHQL_MAX_COMPLEXITY`, `API_MAX_BODY_BYTES`, `API_MAX_PER_PAGE`, `PUBLIC_API_CACHE_TTL` (default `120`), `TRUSTED_PROXIES`, `WEBHOOKS_ALLOW_PRIVATE_HOSTS` (default `false`), `AI_WEBHOOK_TOKEN_PREVIOUS`, `AI_WEBHOOK_TOKEN_PREVIOUS_EXPIRES_AT` (#113 / #115 / #118 / #207 / #271).
+- **Behaviour (project settings routes):** `/settings/project` is split into dedicated sections with their own `GET`/`PUT` routes (General, Localization, Authentication & Security, Content, Files & Media, API, Integrations, plus Appearance sidebar). Setting **keys and stored values are unchanged**; permission remains `CanManageProjectSettings`. Update bookmarks, runbooks, and any automation that POSTed the old monolithic form to the matching section endpoints. CORS public-origins cache is cleared **only** on the API section save (#201 / #304).
+- **Behaviour (authz — super-admin grants):** only existing super-admins may grant the super-admin role/groups or create/update/delete/restore super-admin users and groups (admin web, bulk actions, and AI tools). Delegated user/group managers without super-admin can no longer escalate or manage those principals (#307).
+- **Behaviour (authz — collection grants):** when an admin already has any `collection_permissions` rows, item actions require a matching per-collection grant (fail closed). Spatie-only admins with no collection grants keep prior behaviour. Collection index hides collections without Read (#312).
+- **Upgrade steps (source):** merge or check out the `v1.3.0` tag → `composer install` → `npm ci` && `npm run build` → `php artisan migrate` → set `AI_WEBHOOK_TOKEN` (and any optional caps above) → `php artisan optimize:clear` → restart queue/scheduler/Horizon. **Docker:** pull `ghcr.io/qiick-io/externa-core:1.3.0` (or `latest`); confirm `.dockerignore` excludes `/backups`, `/storage/app/*`, agent tooling dirs, and compose bake files so `docker build` does not ship local data (#294).
+
 ## [1.2.3] - 2026-10-22
 
 ### Security
@@ -215,7 +264,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 [GitHub Release](https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.1)
 
-[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.2.3...HEAD
+[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.3.0
 [1.2.3]: https://github.com/qiick-io/externa-core/releases/tag/v1.2.3
 [1.2.2]: https://github.com/qiick-io/externa-core/releases/tag/v1.2.2
 [1.0.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.0.0

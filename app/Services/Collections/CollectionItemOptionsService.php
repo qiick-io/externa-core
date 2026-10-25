@@ -77,6 +77,7 @@ class CollectionItemOptionsService
         if ($search !== null && $search !== '') {
             $pattern = '%'.mb_strtolower($search).'%';
             $query->whereHas('fieldValues', function ($sub) use ($pattern): void {
+                // raw-sql: reviewed — filter/search; values bound; SQL fragments from driver helpers only
                 $sub->whereRaw($this->valueLikeSql().' LIKE ?', [$pattern]);
             });
         }
@@ -119,6 +120,7 @@ class CollectionItemOptionsService
                 $sub->where('field_id', $field->id)
                     ->whereNull('locale')
                     ->where('position', 0)
+                    // raw-sql: reviewed — filter/search; values bound; SQL fragments from driver helpers only
                     ->whereRaw($this->jsonScalarEqualsSql().' = ?', [(string) $expectedValue]);
             });
         }
@@ -218,6 +220,7 @@ class CollectionItemOptionsService
     private function emptyPaginator(int $perPage): LengthAwarePaginator
     {
         return CollectionItem::query()
+            // raw-sql: reviewed — filter/search; values bound; SQL fragments from driver helpers only
             ->whereRaw('1 = 0')
             ->paginate($perPage)
             ->through(fn (CollectionItem $item): array => [

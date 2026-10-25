@@ -7,11 +7,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkUserActionRequest;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
-use App\Http\Requests\Concerns\ValidatesSearchQuery;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\Admin\UserResource;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Authorization\SuperAdminGuardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,8 +24,8 @@ use Inertia\Response;
  */
 class UserController extends Controller
 {
-    use AuthorizesWithPermission;
-    use ValidatesSearchQuery;
+    use AuthorizesWithPermissionTrait;
+    use ValidatesSearchQueryTrait;
 
     /**
      * @var list<string>
@@ -156,6 +157,7 @@ class UserController extends Controller
     public function destroy(User $user): RedirectResponse
     {
         $this->authorizePermission(PermissionEnum::CanDeleteUsers->value);
+        $this->abortIfSuperAdminProtected($user);
 
         $user->delete();
 
@@ -170,6 +172,7 @@ class UserController extends Controller
     public function restore(User $user): RedirectResponse
     {
         $this->authorizePermission(PermissionEnum::CanRestoreUsers->value);
+        $this->abortIfSuperAdminProtected($user);
 
         $user->restore();
 
@@ -184,6 +187,7 @@ class UserController extends Controller
     public function forceDelete(User $user): RedirectResponse
     {
         $this->authorizePermission(PermissionEnum::CanForceDeleteUsers->value);
+        $this->abortIfSuperAdminProtected($user);
 
         $user->forceDelete();
 
@@ -242,5 +246,13 @@ class UserController extends Controller
                 ->withProperties(['group_ids' => $groupIds])
                 ->log('User groups synced');
         }
+    }
+
+    /**
+     * Only super-admins may delete, restore, or force-delete a super-admin account.
+     */
+    private function abortIfSuperAdminProtected(User $user): void
+    {
+        abort_if(app(SuperAdminGuardService::class)->isProtectedFrom(auth()->user(), $user), 403);
     }
 }

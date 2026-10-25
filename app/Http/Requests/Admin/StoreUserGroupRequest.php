@@ -3,16 +3,27 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\GuardsSuperAdminGrantsTrait;
 use App\Support\Validation\StringLimits;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 /**
  * Validate creating a user group with memberships and roles.
  */
 class StoreUserGroupRequest extends FormRequest
 {
-    use AuthorizesWithPermission;
+    use AuthorizesWithPermissionTrait;
+    use GuardsSuperAdminGrantsTrait;
+
+    /**
+     * @return list<callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [fn (Validator $validator) => $this->rejectSuperAdminGrants($validator)];
+    }
 
     /**
      * Require permission to create groups.

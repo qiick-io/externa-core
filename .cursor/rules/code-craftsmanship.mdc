@@ -1,0 +1,50 @@
+---
+description: Codice Perfetto — YAGNI, naming, PHPDoc/JSDoc, architecture pillars
+alwaysApply: true
+---
+
+# Codice Perfetto (code craftsmanship)
+
+## Ponytail (lazy senior)
+
+Pick the simplest solution that works. Stop at the first rung that holds: YAGNI → stdlib → platform → installed dependency → one-liner → minimum code.
+
+- No unrequested abstractions, dependencies, or boilerplate.
+- Deletion over addition. Boring over clever. Fewest files possible.
+- Mark intentional shortcuts with a `ponytail:` comment that names the ceiling and upgrade path.
+- Not lazy about: trust-boundary validation, data-loss prevention, security, accessibility, hardware calibration, anything explicitly requested.
+- Non-trivial logic leaves ONE runnable check behind.
+
+## Descriptive names (zero abbreviations)
+
+- Full words only (`$authenticatedUser`, `$collectionFieldDefinition`). No `cfg`/`res`/`req`/`val`/`ctx`/`idx`.
+- Loop indices `i`/`j`/`k` only in tight numeric loops.
+- Booleans and boolean methods: prefix `is` / `has` / `can` / `should` — except Laravel contract method names (`authorize`, Policy `view`/`create`/`update`/`delete`, `passes`, `broadcastWhen`) and native HTML/React/Radix/shadcn/Inertia boolean props (`disabled`, `required`, `checked`, `open`, `asChild`, `preserveScroll`, …).
+- Collections: specific plurals or explicit map names — never `$data` / `$list`.
+
+## Explicit role suffixes (custom code only)
+
+Only Eloquent Models use bare domain nouns. Every other custom class ends with its role: `Controller`, `Request`, `Resource`, `Response`, `Middleware`, `Policy`, `Job`, `Command`, `Event`, `Listener`, `Notification`, `Enum`, `Action` (single `execute(...)`), `Service`, `Data` (`readonly`), `Trait`, `Builder`, `Observer`, `Rule`, `Exception`.
+
+**Never rename** Laravel / Fortify / starter-kit scaffolding or vendor-published / shadcn files. Exempt via Pest `->ignoring(...)` in `tests/Arch/NamingArchitectureTest.php`.
+
+## 5 Enterprise Laravel architecture pillars
+
+1. Thin controllers: Request → Action/Service (+ `*Data` DTO) → Resource/Inertia. No `DB` facade in controllers.
+2. Domain boundaries: `app/Actions` (writes), `app/Services` (orchestration/reads/integrations), `app/Data` (readonly DTOs), `app/Traits`.
+3. Clean models: relationships, casts, scopes, constants only.
+4. Centralized authorization in `app/Policies`.
+5. Pest Arch guardrails in CI (`NamingArchitectureTest`).
+
+## Documentation
+
+Supersedes “comments only for exceptionally complex logic”.
+
+- English PHPDoc / JSDoc on classes, components, hooks, and non-trivial methods.
+- Document array shapes, side effects, invariants, `@throws` — not line-by-line noise.
+- Explicit curly braces; blank lines around control-flow blocks; strict DRY.
+
+## Immutable contracts
+
+- Never edit committed `database/migrations/` — forward-only new migrations only.
+- Preserve enum backing values, `broadcastAs()` names, JSON keys, route names, Inertia page paths.

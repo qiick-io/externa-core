@@ -1,0 +1,13 @@
+---
+description: Behavior-driven Pest/Vitest tests and NamingArchitecture enforcement
+globs: "**/*Test.php,**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx"
+alwaysApply: false
+---
+
+# Testing
+
+- Prefer behavior-focused Pest feature tests and Vitest tests over implementation-detail assertions.
+- Never delete or weaken existing tests. Add coverage for every behavior change.
+- Architecture: `tests/Arch/NamingArchitectureTest.php` must stay green. New custom classes must satisfy role suffixes; scaffolding stays ignored, not renamed.
+- Run the narrowest relevant tests while iterating; full quality gate before each PR:
+  `vendor/bin/pint --test` · `composer analyse` · `npm run lint:check` · `npm run types:check` · `php artisan test` · `php artisan test --testsuite=Arch`

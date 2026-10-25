@@ -565,8 +565,8 @@ export function FileDetailPanel({
                             {!whereUsedLoading &&
                                 whereUsedRefs !== null &&
                                 whereUsedRefs.length > 0 && (
-                                    <ul className="space-y-2 text-xs">
-                                        <li className="text-muted-foreground">
+                                    <div className="space-y-2">
+                                        <p className="text-xs text-muted-foreground">
                                             {whereUsedRefs.length === 1
                                                 ? t(
                                                       'files.detail.referenceCount',
@@ -580,36 +580,59 @@ export function FileDetailPanel({
                                                           count: whereUsedRefs.length,
                                                       },
                                                   )}
-                                        </li>
-                                        {whereUsedRefs
-                                            .slice(0, 20)
-                                            .map((ref) => (
-                                                <li
-                                                    key={`${ref.collection_id}-${ref.item_id}-${ref.field}`}
-                                                >
-                                                    <a
-                                                        className="text-primary underline-offset-2 hover:underline"
-                                                        href={`/collections/${ref.collection_id}/items/${ref.item_id}`}
+                                        </p>
+                                        <ul
+                                            className="-mx-1 divide-y divide-border/60"
+                                            data-test="file-where-used-list"
+                                        >
+                                            {whereUsedRefs
+                                                .slice(0, 20)
+                                                .map((ref) => (
+                                                    <li
+                                                        key={`${ref.collection_id}-${ref.item_id}-${ref.field}`}
                                                     >
-                                                        {ref.collection_name} #
-                                                        {ref.item_id}
-                                                    </a>
-                                                    <span className="text-muted-foreground">
-                                                        {' '}
-                                                        · {ref.field}
-                                                    </span>
+                                                        <a
+                                                            className={cn(
+                                                                'flex w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs',
+                                                                'text-foreground transition-colors',
+                                                                'hover:bg-accent hover:text-accent-foreground',
+                                                                'focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
+                                                            )}
+                                                            href={`/collections/${ref.collection_id}/items/${ref.item_id}`}
+                                                        >
+                                                            <span className="flex min-w-0 items-center gap-1.5">
+                                                                <span className="min-w-0 truncate font-medium">
+                                                                    {
+                                                                        ref.collection_name
+                                                                    }
+                                                                </span>
+                                                                <span className="shrink-0 font-mono text-[0.65rem] text-muted-foreground tabular-nums">
+                                                                    #
+                                                                    {
+                                                                        ref.item_id
+                                                                    }
+                                                                </span>
+                                                            </span>
+                                                            <span className="shrink-0 text-muted-foreground">
+                                                                {ref.field}
+                                                            </span>
+                                                        </a>
+                                                    </li>
+                                                ))}
+                                            {whereUsedRefs.length > 20 && (
+                                                <li className="w-full px-2 py-1.5 text-xs text-muted-foreground">
+                                                    {t(
+                                                        'files.detail.moreRefs',
+                                                        {
+                                                            count:
+                                                                whereUsedRefs.length -
+                                                                20,
+                                                        },
+                                                    )}
                                                 </li>
-                                            ))}
-                                        {whereUsedRefs.length > 20 && (
-                                            <li className="text-muted-foreground">
-                                                {t('files.detail.moreRefs', {
-                                                    count:
-                                                        whereUsedRefs.length -
-                                                        20,
-                                                })}
-                                            </li>
-                                        )}
-                                    </ul>
+                                            )}
+                                        </ul>
+                                    </div>
                                 )}
                         </div>
                         <Separator />

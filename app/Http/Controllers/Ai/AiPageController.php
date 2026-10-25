@@ -55,6 +55,7 @@ class AiPageController extends Controller
         $user = $request->user();
 
         $conversations = $user->conversations()
+            // raw-sql: reviewed — fixed nulls-last pin ordering
             ->orderByRaw('pinned_at IS NULL')
             ->orderByDesc('pinned_at')
             ->latest('updated_at')

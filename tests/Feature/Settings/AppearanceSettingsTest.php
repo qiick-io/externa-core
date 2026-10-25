@@ -31,6 +31,14 @@ test('guests are redirected from appearance settings', function () {
     $this->get(route('appearance.edit'))->assertRedirect(route('login'));
 });
 
+test('shell uses cache-busted default favicons when project favicon unset', function () {
+    $this->get(route('login'))
+        ->assertOk()
+        ->assertSee('/favicon.ico?v=3', false)
+        ->assertSee('/favicon.svg?v=3', false)
+        ->assertSee('/apple-touch-icon.png?v=3', false);
+});
+
 test('users without permission receive 403 on appearance get and put', function () {
     $user = User::factory()->create();
 

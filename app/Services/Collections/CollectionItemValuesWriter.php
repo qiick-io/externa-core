@@ -9,6 +9,7 @@ use App\Models\CollectionItemValue;
 use App\Services\Api\PublicApiResponseCache;
 use App\Services\Search\MeilisearchSyncDispatcher;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Persists collection item field values, including translatable and relational data.
@@ -38,37 +39,40 @@ class CollectionItemValuesWriter
     ): void {
         $collection->loadMissing('fields');
 
-        CollectionItemValue::query()->where('item_id', $item->id)->delete();
+        // Delete + reinsert must be atomic: a failed insert would otherwise leave the item without values.
+        DB::transaction(function () use ($item, $collection, $normalizedData, $revisionMeta): void {
+            CollectionItemValue::query()->where('item_id', $item->id)->delete();
 
-        foreach ($collection->fields as $field) {
-            if ($field->type->isNoData()) {
-                continue;
+            foreach ($collection->fields as $field) {
+                if ($field->type->isNoData()) {
+                    continue;
+                }
+
+                if (! array_key_exists($field->name, $normalizedData)) {
+                    continue;
+                }
+
+                $value = $normalizedData[$field->name];
+
+                if ($field->translatable) {
+                    $this->syncTranslatable($item, $field, is_array($value) ? $value : []);
+
+                    continue;
+                }
+
+                $this->syncNonTranslatable($item, $field, $value);
             }
 
-            if (! array_key_exists($field->name, $normalizedData)) {
-                continue;
+            $this->revisionRecorder->record($item, $revisionMeta ?? ['source' => 'sync']);
+
+            // Values live on related rows — bump parent audit + updated_at.
+            // Set user_updated_id first so save is dirty even when touch lands in the same second.
+            $userId = auth()->id();
+            if (is_int($userId) || (is_string($userId) && ctype_digit($userId))) {
+                $item->user_updated_id = (int) $userId;
             }
-
-            $value = $normalizedData[$field->name];
-
-            if ($field->translatable) {
-                $this->syncTranslatable($item, $field, is_array($value) ? $value : []);
-
-                continue;
-            }
-
-            $this->syncNonTranslatable($item, $field, $value);
-        }
-
-        $this->revisionRecorder->record($item, $revisionMeta ?? ['source' => 'sync']);
-
-        // Values live on related rows — bump parent audit + updated_at.
-        // Set user_updated_id first so save is dirty even when touch lands in the same second.
-        $userId = auth()->id();
-        if (is_int($userId) || (is_string($userId) && ctype_digit($userId))) {
-            $item->user_updated_id = (int) $userId;
-        }
-        $item->touch();
+            $item->touch();
+        });
 
         $isCreated = $created ?? $item->wasRecentlyCreated;
         $this->webhooks->dispatchItem(

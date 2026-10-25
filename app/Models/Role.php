@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Concerns\LogsApplicationActivity;
 use App\Enums\RoleEnum;
+use App\Traits\LogsApplicationActivityTrait;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Permission\Models\Role as SpatieRole;
 
@@ -15,7 +15,7 @@ use Spatie\Permission\Models\Role as SpatieRole;
  */
 class Role extends SpatieRole
 {
-    use LogsApplicationActivity;
+    use LogsApplicationActivityTrait;
 
     /**
      * @return array<string, string>

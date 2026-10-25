@@ -30,6 +30,7 @@ class AiConversationController extends Controller
         $perPage = min(max($request->integer('per_page', 25), 1), 100);
 
         $conversations = $user->conversations()
+            // raw-sql: reviewed — fixed nulls-last pin ordering
             ->orderByRaw('pinned_at IS NULL')
             ->orderByDesc('pinned_at')
             ->latest('updated_at')

@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Models\CollectionItem;
@@ -21,7 +21,7 @@ it('denies anonymous collection list by default', function (): void {
 
 it('allows anonymous read when public role has read grant', function (): void {
     $collection = makePostsCollection();
-    grantPublicActions($collection, [CollectionPermissionAction::Read]);
+    grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
 
     $this->getJson('/api/v1/collections')
         ->assertOk()
@@ -34,7 +34,7 @@ it('allows anonymous read when public role has read grant', function (): void {
 
 it('rejects create without public create grant', function (): void {
     $collection = makePostsCollection();
-    grantPublicActions($collection, [CollectionPermissionAction::Read]);
+    grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
 
     $this->postJson('/api/v1/collections/posts/items', ['data' => []])
         ->assertForbidden();
@@ -53,7 +53,7 @@ it('enforces each public permission independently across item endpoints', functi
     $this->deleteJson("/api/v1/collections/posts/items/{$item->id}")->assertForbidden();
 
     // Read only
-    grantPublicActions($collection, [CollectionPermissionAction::Read]);
+    grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
     $this->getJson('/api/v1/collections/posts')->assertOk();
     $this->getJson('/api/v1/collections/posts/items')->assertOk();
     $this->getJson("/api/v1/collections/posts/items/{$item->id}")->assertOk();
@@ -62,19 +62,19 @@ it('enforces each public permission independently across item endpoints', functi
     $this->deleteJson("/api/v1/collections/posts/items/{$item->id}")->assertForbidden();
 
     // Create
-    grantPublicActions($collection, [CollectionPermissionAction::Create]);
+    grantPublicActions($collection, [CollectionPermissionActionEnum::Create]);
     $this->postJson('/api/v1/collections/posts/items', ['data' => []])
         ->assertCreated()
         ->assertJsonPath('data.collection_id', $collection->id);
 
     // Update
-    grantPublicActions($collection, [CollectionPermissionAction::Update]);
+    grantPublicActions($collection, [CollectionPermissionActionEnum::Update]);
     $this->patchJson("/api/v1/collections/posts/items/{$item->id}", ['data' => []])
         ->assertOk()
         ->assertJsonPath('data.id', $item->id);
 
     // Delete
-    grantPublicActions($collection, [CollectionPermissionAction::Delete]);
+    grantPublicActions($collection, [CollectionPermissionActionEnum::Delete]);
     $this->deleteJson("/api/v1/collections/posts/items/{$item->id}")->assertNoContent();
     expect(CollectionItem::query()->find($item->id))->toBeNull();
 });
@@ -82,7 +82,7 @@ it('enforces each public permission independently across item endpoints', functi
 it('authenticates with api key and enforces ip allowlist', function (): void {
     $collection = makePostsCollection();
     $auth = makeApiKeyForRole();
-    grantRoleActions($auth['role'], $collection, [CollectionPermissionAction::Read]);
+    grantRoleActions($auth['role'], $collection, [CollectionPermissionActionEnum::Read]);
 
     $auth['key']->update(['ip_allowlist' => ['203.0.113.10']]);
 
@@ -115,7 +115,7 @@ it('api key role grants gate each item endpoint independently', function (): voi
     $asKey()->deleteJson("/api/v1/collections/posts/items/{$item->id}")->assertForbidden();
 
     // Read
-    grantRoleActions($auth['role'], $collection, [CollectionPermissionAction::Read]);
+    grantRoleActions($auth['role'], $collection, [CollectionPermissionActionEnum::Read]);
     $asKey()->getJson('/api/v1/collections')->assertOk()->assertJsonFragment(['slug' => 'posts']);
     $asKey()->getJson('/api/v1/collections/posts')->assertOk();
     $asKey()->getJson('/api/v1/collections/posts/items')->assertOk();
@@ -125,20 +125,20 @@ it('api key role grants gate each item endpoint independently', function (): voi
     $asKey()->deleteJson("/api/v1/collections/posts/items/{$item->id}")->assertForbidden();
 
     // Create (keep read so list still works)
-    grantRoleActions($auth['role'], $collection, [CollectionPermissionAction::Create]);
+    grantRoleActions($auth['role'], $collection, [CollectionPermissionActionEnum::Create]);
     $created = $asKey()->postJson('/api/v1/collections/posts/items', ['data' => []])
         ->assertCreated()
         ->json('data.id');
     expect($created)->toBeInt();
 
     // Update
-    grantRoleActions($auth['role'], $collection, [CollectionPermissionAction::Update]);
+    grantRoleActions($auth['role'], $collection, [CollectionPermissionActionEnum::Update]);
     $asKey()->patchJson("/api/v1/collections/posts/items/{$item->id}", ['data' => []])
         ->assertOk()
         ->assertJsonPath('data.id', $item->id);
 
     // Delete
-    grantRoleActions($auth['role'], $collection, [CollectionPermissionAction::Delete]);
+    grantRoleActions($auth['role'], $collection, [CollectionPermissionActionEnum::Delete]);
     $asKey()->deleteJson("/api/v1/collections/posts/items/{$item->id}")->assertNoContent();
     expect(CollectionItem::query()->find($item->id))->toBeNull();
 });
@@ -149,10 +149,10 @@ it('api key with full grants can use all endpoints while another key without gra
 
     $full = makeApiKeyForRole();
     grantRoleActions($full['role'], $collection, [
-        CollectionPermissionAction::Create,
-        CollectionPermissionAction::Read,
-        CollectionPermissionAction::Update,
-        CollectionPermissionAction::Delete,
+        CollectionPermissionActionEnum::Create,
+        CollectionPermissionActionEnum::Read,
+        CollectionPermissionActionEnum::Update,
+        CollectionPermissionActionEnum::Delete,
     ]);
 
     $blocked = makeApiKeyForRole();

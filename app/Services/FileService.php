@@ -13,7 +13,7 @@ use App\Support\Files\FilesDisk;
 use App\Support\Security\PlainTextSanitizer;
 use App\Support\Uploads\ForbiddenUploadExtension;
 use App\Support\Uploads\SafeUploadMime;
-use App\Traits\HasFiles;
+use App\Traits\HasFilesTrait;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -70,7 +70,7 @@ class FileService
         $field = $name !== null ? 'name' : 'file';
         // ponytail: single getContent() for sniff + meta + hash (ceiling: loads whole file into memory)
         $bytes = $uploadedFile->getContent();
-        $mimeType = SafeUploadMime::assertFilePoolAllowed($fileName, SafeUploadMime::sniff($bytes), $field);
+        $mimeType = SafeUploadMime::assertFilePoolAllowed($fileName, SafeUploadMime::sniff($bytes), $field, $bytes);
         $size = $uploadedFile->getSize() ?: 0;
         $storagePath = $this->generateStoragePath($fileName, $disk);
         $storedPath = null;
@@ -418,6 +418,8 @@ class FileService
         $mimeType = SafeUploadMime::assertFilePoolAllowed(
             $uploadedFile->getClientOriginalName(),
             SafeUploadMime::sniff($bytes),
+            'file',
+            $bytes,
         );
 
         app(FileTransformService::class)->clearTransforms($file);
@@ -893,7 +895,7 @@ class FileService
     }
 
     /**
-     * Attach a file to a model using the HasFiles trait.
+     * Attach a file to a model using the HasFilesTrait trait.
      *
      * @throws \InvalidArgumentException When the model class or instance is invalid
      */
@@ -909,8 +911,8 @@ class FileService
                 throw new \InvalidArgumentException("Model '{$modelType}' with ID {$modelId} not found.");
             }
 
-            if (! in_array(HasFiles::class, class_uses_recursive($modelType), true)) {
-                throw new \InvalidArgumentException("Model '{$modelType}' does not use HasFiles trait.");
+            if (! in_array(HasFilesTrait::class, class_uses_recursive($modelType), true)) {
+                throw new \InvalidArgumentException("Model '{$modelType}' does not use HasFilesTrait trait.");
             }
 
             $model->attachFile($file, $role, $order);
@@ -934,8 +936,8 @@ class FileService
                 throw new \InvalidArgumentException("Model '{$modelType}' with ID {$modelId} not found.");
             }
 
-            if (! in_array(HasFiles::class, class_uses_recursive($modelType), true)) {
-                throw new \InvalidArgumentException("Model '{$modelType}' does not use HasFiles trait.");
+            if (! in_array(HasFilesTrait::class, class_uses_recursive($modelType), true)) {
+                throw new \InvalidArgumentException("Model '{$modelType}' does not use HasFilesTrait trait.");
             }
 
             $model->detachFile($file, $role);

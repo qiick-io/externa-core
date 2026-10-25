@@ -7,11 +7,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkUserGroupActionRequest;
 use App\Http\Requests\Admin\StoreUserGroupRequest;
 use App\Http\Requests\Admin\UpdateUserGroupRequest;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
-use App\Http\Requests\Concerns\ValidatesSearchQuery;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\UserGroupResource;
 use App\Models\Role;
 use App\Models\UserGroup;
+use App\Services\Authorization\SuperAdminGuardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,8 +24,8 @@ use Inertia\Response;
  */
 class UserGroupController extends Controller
 {
-    use AuthorizesWithPermission;
-    use ValidatesSearchQuery;
+    use AuthorizesWithPermissionTrait;
+    use ValidatesSearchQueryTrait;
 
     /**
      * @var list<string>
@@ -174,6 +175,7 @@ class UserGroupController extends Controller
     public function destroy(UserGroup $group): RedirectResponse
     {
         $this->authorizePermission(PermissionEnum::CanDeleteGroups->value);
+        $this->abortIfSuperAdminGroupProtected($group);
 
         $group->delete();
 
@@ -201,6 +203,7 @@ class UserGroupController extends Controller
     public function forceDelete(UserGroup $group): RedirectResponse
     {
         $this->authorizePermission(PermissionEnum::CanForceDeleteGroups->value);
+        $this->abortIfSuperAdminGroupProtected($group);
 
         $group->forceDelete();
 
@@ -226,5 +229,19 @@ class UserGroupController extends Controller
         return redirect()
             ->back()
             ->with('success', __('Bulk action completed.'));
+    }
+
+    /**
+     * Only super-admins may delete a group that grants the super-admin role.
+     */
+    private function abortIfSuperAdminGroupProtected(UserGroup $group): void
+    {
+        $superAdminGuard = app(SuperAdminGuardService::class);
+
+        abort_if(
+            ! $superAdminGuard->canManageSuperAdmins(auth()->user())
+                && $superAdminGuard->includesSuperAdminGroup([$group->id]),
+            403,
+        );
     }
 }

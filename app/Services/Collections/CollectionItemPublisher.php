@@ -52,6 +52,7 @@ class CollectionItemPublisher
 
         $item->draft_data = null;
         $item->publish_at = null;
+        $item->clearScheduleFailure();
         $item->published_at = Carbon::now();
         $this->approvals->clearAfterPromote($item);
         $item->save();

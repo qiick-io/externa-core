@@ -2,7 +2,7 @@
 
 use App\Ai\Tools\ManageCollectionItems;
 use App\Ai\Tools\QueryCollectionItems;
-use App\Enums\CollectionPermissionAction;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
@@ -39,14 +39,14 @@ function aiUserWithCollectionRules(Collection $collection, array $rules, array $
     ]);
 
     $actionList = $actions !== [] ? $actions : [
-        CollectionPermissionAction::Read,
-        CollectionPermissionAction::Create,
-        CollectionPermissionAction::Update,
-        CollectionPermissionAction::Delete,
+        CollectionPermissionActionEnum::Read,
+        CollectionPermissionActionEnum::Create,
+        CollectionPermissionActionEnum::Update,
+        CollectionPermissionActionEnum::Delete,
     ];
 
     foreach ($actionList as $action) {
-        $value = $action instanceof CollectionPermissionAction ? $action->value : $action;
+        $value = $action instanceof CollectionPermissionActionEnum ? $action->value : $action;
         CollectionPermission::query()->updateOrCreate(
             [
                 'role_id' => $role->id,

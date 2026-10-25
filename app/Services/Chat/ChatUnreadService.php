@@ -2,7 +2,7 @@
 
 namespace App\Services\Chat;
 
-use App\Events\ChatUnreadUpdated;
+use App\Events\ChatUnreadUpdatedEvent;
 use App\Models\Chat;
 use App\Models\ChatParticipant;
 use App\Models\ChatRead;
@@ -173,7 +173,7 @@ class ChatUnreadService
             $chatUnread = $counts[$chatId] ?? 0;
         }
 
-        event(new ChatUnreadUpdated(
+        event(new ChatUnreadUpdatedEvent(
             (int) $user->id,
             $totals['total'],
             $totals['private'],
@@ -380,6 +380,7 @@ class ChatUnreadService
                     $query->orWhereIn('chats.collection_id', $notifyIds);
                 }
                 $query->orWhereExists(function ($posted) use ($user): void {
+                    // raw-sql: reviewed — existence/count aggregates; no user-controlled SQL
                     $posted->selectRaw('1')
                         ->from('chat_messages as posted')
                         ->whereColumn('posted.chat_id', 'chats.id')
@@ -409,6 +410,7 @@ class ChatUnreadService
         $rows = $query
             ->clone()
             ->select('chat_messages.chat_id')
+            // raw-sql: reviewed — existence/count aggregates; no user-controlled SQL
             ->selectRaw('COUNT(*) as unread')
             ->groupBy('chat_messages.chat_id')
             ->toBase()

@@ -3,18 +3,21 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermission;
+use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\GuardsSuperAdminGrantsTrait;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Validator;
 
 /**
  * Validate creating a new admin user with required role and optional group assignments.
  */
 class StoreUserRequest extends FormRequest
 {
-    use AuthorizesWithPermission;
+    use AuthorizesWithPermissionTrait;
+    use GuardsSuperAdminGrantsTrait;
 
     /**
      * Require permission to create users.
@@ -45,6 +48,14 @@ class StoreUserRequest extends FormRequest
             'group_ids' => ['sometimes', 'array'],
             'group_ids.*' => ['integer', Rule::exists('user_groups', 'id')],
         ];
+    }
+
+    /**
+     * @return list<callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [fn (Validator $validator) => $this->rejectSuperAdminGrants($validator)];
     }
 
     /**
