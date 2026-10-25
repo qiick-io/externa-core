@@ -593,7 +593,7 @@ export function FileDetailPanel({
                                                     >
                                                         <a
                                                             className={cn(
-                                                                'flex w-full min-w-0 items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs',
+                                                                'flex w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs',
                                                                 'text-foreground transition-colors',
                                                                 'hover:bg-accent hover:text-accent-foreground',
                                                                 'focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
