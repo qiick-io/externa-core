@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\CollectionPermissionActionEnum;
+use App\Enums\CollectionPermissionAction;
 use App\Enums\PermissionEnum;
 use App\Models\User;
 use App\Services\Settings\ProjectSettings;
@@ -17,7 +17,7 @@ beforeEach(function (): void {
 
 it('skips the origin gate when allowlist is empty', function (): void {
     $collection = makePostsCollection();
-    grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
+    grantPublicActions($collection, [CollectionPermissionAction::Read]);
 
     $this->getJson('/api/v1/collections')
         ->assertOk()
@@ -34,7 +34,7 @@ it('allows matching Origin and rejects mismatched Origin when allowlist is set',
     app(ProjectSettings::class)->forgetPublicApiAllowedOriginsCache();
 
     $collection = makePostsCollection();
-    grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
+    grantPublicActions($collection, [CollectionPermissionAction::Read]);
 
     $this->withHeader('Origin', 'https://app.example')
         ->getJson('/api/v1/collections')
@@ -57,14 +57,14 @@ it('requires a valid API key when Origin is absent and allowlist is set', functi
     app(ProjectSettings::class)->forgetPublicApiAllowedOriginsCache();
 
     $collection = makePostsCollection();
-    grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
+    grantPublicActions($collection, [CollectionPermissionAction::Read]);
 
     $this->getJson('/api/v1/collections')
         ->assertForbidden()
         ->assertJsonPath('message', 'Origin required or API key.');
 
     $auth = makeApiKeyForRole();
-    grantRoleActions($auth['role'], $collection, [CollectionPermissionActionEnum::Read]);
+    grantRoleActions($auth['role'], $collection, [CollectionPermissionAction::Read]);
 
     $this->withToken($auth['plain'])
         ->getJson('/api/v1/collections')
@@ -82,7 +82,7 @@ it('enforces the same origin gate on GraphQL', function (): void {
     app(ProjectSettings::class)->forgetPublicApiAllowedOriginsCache();
 
     $collection = makePostsCollection();
-    grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
+    grantPublicActions($collection, [CollectionPermissionAction::Read]);
 
     $query = ['query' => '{ __typename }'];
 
@@ -154,11 +154,11 @@ it('invalidates origins cache when project settings are saved', function (): voi
 
     $this->withoutVite();
     $this->actingAs($user)
-        ->put(route('project.api.update'), baseApiPayload([
+        ->put(route('project.update'), baseProjectPayload([
             'public_api_allowed_origins' => ['https://new.example'],
         ]))
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.api.edit'));
+        ->assertRedirect(route('project.edit'));
 
     expect(app(ProjectSettings::class)->publicApiAllowedOrigins())
         ->toBe(['https://new.example']);

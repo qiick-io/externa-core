@@ -65,23 +65,6 @@ test('verify email HTML uses project branding without Laravel logo', function ()
         ->not->toContain('laravel.com/img/notification-logo');
 });
 
-test('mail falls back to mark v3 teal when project color unset', function () {
-    app(SettingsRepository::class)->setMany(SettingsRepository::SCOPE_PROJECT, 'project', [
-        'name' => 'Default Teal Project',
-    ]);
-    app(SettingsRepository::class)->setMany(SettingsRepository::SCOPE_PROJECT, 'appearance', [
-        'project_color' => null,
-        'project_logo' => null,
-    ]);
-
-    $user = User::factory()->create();
-    $html = (new ResetPassword('test-token'))->toMail($user)->render()->toHtml();
-
-    expect($html)
-        ->toContain('Default Teal Project')
-        ->toContain('#0E7C86');
-});
-
 test('mail falls back to project name text when logo unset', function () {
     app(SettingsRepository::class)->setMany(SettingsRepository::SCOPE_PROJECT, 'project', [
         'name' => 'Text Only Project',

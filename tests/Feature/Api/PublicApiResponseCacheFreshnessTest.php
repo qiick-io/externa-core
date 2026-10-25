@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\CollectionPermissionActionEnum;
+use App\Enums\CollectionPermissionAction;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
@@ -39,10 +39,10 @@ function freshnessCollection(string $slugPrefix = 'fresh'): array
         'translatable' => false,
     ]);
     grantPublicActions($collection, [
-        CollectionPermissionActionEnum::Read,
-        CollectionPermissionActionEnum::Create,
-        CollectionPermissionActionEnum::Update,
-        CollectionPermissionActionEnum::Delete,
+        CollectionPermissionAction::Read,
+        CollectionPermissionAction::Create,
+        CollectionPermissionAction::Update,
+        CollectionPermissionAction::Delete,
     ]);
 
     return ['collection' => $collection, 'field' => $field, 'slug' => $slug];
@@ -299,8 +299,8 @@ it('keeps locale and include_all_translations reads fresh after translation upda
         'translatable' => true,
     ]);
     grantPublicActions($collection, [
-        CollectionPermissionActionEnum::Read,
-        CollectionPermissionActionEnum::Update,
+        CollectionPermissionAction::Read,
+        CollectionPermissionAction::Update,
     ]);
 
     $item = $collection->items()->create([]);

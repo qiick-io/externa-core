@@ -5,7 +5,7 @@ import { useAppearance } from '@/hooks/use-appearance';
 /**
  * Brand mark and application name for sidebar and header chrome.
  * Custom project logos render as a plain image; the default mark is the
- * Externa v3 bow-tie (same teal fills as public/logo.svg / AppLogoIcon).
+ * colored 3-tone Externa isometric (same teal fills as public/logo.svg).
  * @returns {JSX.Element}
  */
 export default function AppLogo() {

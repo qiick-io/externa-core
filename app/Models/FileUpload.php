@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Traits\LogsApplicationActivityTrait;
+use App\Concerns\LogsApplicationActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -25,7 +25,7 @@ use Illuminate\Support\Carbon;
  */
 class FileUpload extends Model
 {
-    use LogsApplicationActivityTrait;
+    use LogsApplicationActivity;
 
     protected $table = 'file_uploads';
 

@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Enums\FileAccessEnum;
+use App\Enums\FileAccess;
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -14,7 +14,7 @@ use Illuminate\Validation\Rule;
  */
 class UpdateFileMetadataRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
+    use AuthorizesWithPermission;
 
     /**
      * Require permission to update file metadata.
@@ -42,7 +42,7 @@ class UpdateFileMetadataRequest extends FormRequest
             'translate_y' => ['nullable', 'numeric', 'between:-9999.999999,9999.999999'],
             'scale' => ['nullable', 'numeric', 'between:0,9999.999999'],
             // null = inherit from folder; omit key to leave unchanged
-            'access' => ['sometimes', 'nullable', Rule::in(FileAccessEnum::values())],
+            'access' => ['sometimes', 'nullable', Rule::in(FileAccess::values())],
         ];
     }
 }

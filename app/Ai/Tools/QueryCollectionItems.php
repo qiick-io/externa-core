@@ -2,9 +2,9 @@
 
 namespace App\Ai\Tools;
 
-use App\Ai\Concerns\ChecksAiPermissionsTrait;
-use App\Ai\Concerns\EnforcesAiCollectionPermissionsTrait;
-use App\Ai\Concerns\LogsAiToolUseTrait;
+use App\Ai\Concerns\ChecksAiPermissions;
+use App\Ai\Concerns\EnforcesAiCollectionPermissions;
+use App\Ai\Concerns\LogsAiToolUse;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionItem;
@@ -20,9 +20,9 @@ use Stringable;
  */
 class QueryCollectionItems implements Tool
 {
-    use ChecksAiPermissionsTrait;
-    use EnforcesAiCollectionPermissionsTrait;
-    use LogsAiToolUseTrait;
+    use ChecksAiPermissions;
+    use EnforcesAiCollectionPermissions;
+    use LogsAiToolUse;
 
     /**
      * Describe what this tool does for the model.

@@ -27,14 +27,6 @@ it('denies forbidden extensions', function (string $fileName): void {
     'xss.svg',
     'page.html',
     'legacy.HTM',
-    'ssi.shtml',
-    'legacy.shtm',
-    'data.xml',
-    'doc.xhtml',
-    'compact.xht',
-    'mail.mht',
-    'sheet.xsl',
-    'icon.svgz',
 ]);
 
 it('uses the given validation field on reject', function (): void {

@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use App\Enums\FileAccessEnum;
+use App\Concerns\LogsApplicationActivity;
+use App\Enums\FileAccess;
 use App\Enums\FileTypeEnum;
-use App\Traits\LogsApplicationActivityTrait;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,7 +22,7 @@ use Spatie\Tags\HasTags;
  * @property string $uuid
  * @property int|null $parent_id
  * @property FileTypeEnum $type
- * @property FileAccessEnum|null $access null = inherit from nearest ancestor
+ * @property FileAccess|null $access null = inherit from nearest ancestor
  * @property string $name
  * @property string|null $title
  * @property string|null $description
@@ -55,7 +55,7 @@ use Spatie\Tags\HasTags;
 class File extends Model
 {
     use HasTags;
-    use LogsApplicationActivityTrait;
+    use LogsApplicationActivity;
     use SoftDeletes;
 
     protected $table = 'files';
@@ -116,7 +116,7 @@ class File extends Model
         return [
             'meta' => 'array',
             'type' => FileTypeEnum::class,
-            'access' => FileAccessEnum::class,
+            'access' => FileAccess::class,
             'size' => 'integer',
             'width' => 'integer',
             'height' => 'integer',
@@ -188,13 +188,13 @@ class File extends Model
      * Resolved visibility walking parent_id until a non-null access override is found.
      * Root with null access defaults to public.
      */
-    public function effectiveAccess(): FileAccessEnum
+    public function effectiveAccess(): FileAccess
     {
         $node = $this;
         $guard = 0;
 
         while ($node !== null && $guard < 64) {
-            if ($node->access instanceof FileAccessEnum) {
+            if ($node->access instanceof FileAccess) {
                 return $node->access;
             }
 
@@ -209,12 +209,12 @@ class File extends Model
             $guard++;
         }
 
-        return FileAccessEnum::Public;
+        return FileAccess::Public;
     }
 
     public function isEffectivelyPrivate(): bool
     {
-        return $this->effectiveAccess() === FileAccessEnum::Private;
+        return $this->effectiveAccess() === FileAccess::Private;
     }
 
     /**

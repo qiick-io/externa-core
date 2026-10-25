@@ -50,8 +50,6 @@ class SettingsRepository
                 'value' => $value,
             ],
         );
-
-        $this->forgetProjectSettingsMemo($scope, $group);
     }
 
     /**
@@ -63,34 +61,9 @@ class SettingsRepository
     {
         DB::transaction(function () use ($scope, $group, $values, $scopeId): void {
             foreach ($values as $key => $value) {
-                Setting::query()->updateOrCreate(
-                    [
-                        'scope' => $scope,
-                        'scope_id' => $scopeId,
-                        'group' => $group,
-                        'key' => $key,
-                    ],
-                    [
-                        'value' => $value,
-                    ],
-                );
+                $this->set($scope, $group, $key, $value, $scopeId);
             }
         });
-
-        $this->forgetProjectSettingsMemo($scope, $group);
-    }
-
-    private function forgetProjectSettingsMemo(string $scope, string $group): void
-    {
-        if ($scope !== self::SCOPE_PROJECT || $group !== 'project') {
-            return;
-        }
-
-        if (! app()->bound(ProjectSettings::class)) {
-            return;
-        }
-
-        app(ProjectSettings::class)->forgetRawCache();
     }
 
     /**

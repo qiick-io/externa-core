@@ -2,8 +2,8 @@
 
 namespace App\GraphQL\Queries;
 
-use App\Enums\CollectionPermissionActionEnum;
-use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
+use App\Enums\CollectionPermissionAction;
+use App\GraphQL\Concerns\AuthorizesGraphqlCollection;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcer;
@@ -14,7 +14,7 @@ use App\Support\Api\ApiAccess;
 
 final class ItemsQuery
 {
-    use AuthorizesGraphqlCollectionTrait;
+    use AuthorizesGraphqlCollection;
 
     /**
      * @param  array{collection: string, filter?: mixed, page?: int, perPage?: int}  $args
@@ -23,7 +23,7 @@ final class ItemsQuery
     public function __invoke(mixed $_, array $args): array
     {
         $collection = $this->findCollection($args['collection']);
-        $this->authorize($collection, CollectionPermissionActionEnum::Read);
+        $this->authorize($collection, CollectionPermissionAction::Read);
 
         $filters = [];
         if (isset($args['filter']) && is_array($args['filter'])) {
@@ -34,15 +34,13 @@ final class ItemsQuery
             }
         }
 
-        $maxPerPage = max(1, (int) config('api.max_per_page', 100));
-        $perPage = min(max((int) ($args['perPage'] ?? 15), 1), $maxPerPage);
+        $perPage = min(max((int) ($args['perPage'] ?? 15), 1), 100);
         $page = max((int) ($args['page'] ?? 1), 1);
         $request = request();
 
         $cache = app(PublicApiResponseCache::class);
         $version = $cache->version((int) $collection->id);
-        $access = app(ApiAccess::class);
-        $roleId = $access->roleId();
+        $roleId = app(ApiAccess::class)->roleId();
         $hash = $cache->hash([
             'filter' => $filters,
             'page' => $page,
@@ -51,7 +49,6 @@ final class ItemsQuery
             'include_all_translations' => $request->boolean('include_all_translations'),
             'role_id' => $roleId,
             'file_grants' => $roleId === null ? [] : app(FilePermissionGuard::class)->grantsForRole($roleId),
-            ...$access->responseCacheScopeFactors(),
             'surface' => 'graphql',
         ]);
         $key = $cache->itemsKey($collection->slug, $version, $hash);

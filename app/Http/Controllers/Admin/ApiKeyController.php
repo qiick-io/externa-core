@@ -6,7 +6,7 @@ use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreApiKeyRequest;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Http\Resources\Admin\ApiKeyResource;
 use App\Models\ApiKey;
 use App\Models\Role;
@@ -20,7 +20,7 @@ use Inertia\Response;
  */
 class ApiKeyController extends Controller
 {
-    use AuthorizesWithPermissionTrait;
+    use AuthorizesWithPermission;
 
     public function index(Request $request): Response
     {
@@ -54,8 +54,6 @@ class ApiKeyController extends Controller
             'key_prefix' => $secret['prefix'],
             'key_hash' => $secret['hash'],
             'role_id' => $data['role_id'],
-            'collection_slugs' => $data['collection_slugs'] ?? null,
-            'read_only' => (bool) ($data['read_only'] ?? false),
             'ip_allowlist' => $data['ip_allowlist'] ?? null,
             'rate_limit_per_minute' => $data['rate_limit_per_minute'] ?? null,
             'expires_at' => $data['expires_at'] ?? null,

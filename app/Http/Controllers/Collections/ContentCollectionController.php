@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Collections;
 
-use App\Enums\CollectionPermissionActionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Collections\ApplyCollectionPackRequest;
 use App\Http\Requests\Collections\BulkCollectionActionRequest;
@@ -82,12 +81,7 @@ class ContentCollectionController extends Controller
                 });
             })
             ->orderBy($sort, $direction)
-            ->get()
-            ->filter(fn (Collection $collection): bool => $this->permissionEnforcer->isCollectionReadable(
-                $request,
-                $collection,
-            ))
-            ->values();
+            ->get();
 
         return Inertia::render('collections/collections/index', [
             'collections' => $collections,
@@ -181,12 +175,6 @@ class ContentCollectionController extends Controller
      */
     public function show(Request $request, Collection $collection): Response|RedirectResponse
     {
-        $this->permissionEnforcer->assertCollectionAction(
-            $request,
-            $collection,
-            CollectionPermissionActionEnum::Read,
-        );
-
         if (! $collection->is_singleton) {
             return redirect()->route('collections.items.index', $collection);
         }

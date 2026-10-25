@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Collections;
 
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Models\Collection;
 use App\Services\Collections\CollectionItemDataRuleBuilder;
 use Illuminate\Foundation\Http\FormRequest;
@@ -15,7 +15,7 @@ use Illuminate\Validation\Validator;
  */
 class UpdateCollectionItemRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
+    use AuthorizesWithPermission;
 
     /**
      * Authorization is enforced by collection route middleware.

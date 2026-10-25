@@ -2,7 +2,7 @@
 
 namespace App\Services\Api;
 
-use App\Enums\FilePermissionActionEnum;
+use App\Enums\FilePermissionAction;
 use App\Models\FilePermission;
 use App\Models\Role;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +21,7 @@ class FilePermissionSync
      */
     public function sync(Role $role, array $grants): void
     {
-        $validActions = FilePermissionActionEnum::values();
+        $validActions = FilePermissionAction::values();
 
         DB::transaction(function () use ($role, $grants, $validActions): void {
             FilePermission::query()->where('role_id', $role->id)->delete();
@@ -69,7 +69,7 @@ class FilePermissionSync
 
         $map = [];
         foreach ($allowed as $grant) {
-            $action = $grant->action instanceof FilePermissionActionEnum
+            $action = $grant->action instanceof FilePermissionAction
                 ? $grant->action->value
                 : (string) $grant->action;
             $map[$action] = true;

@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\CollectionPermissionActionEnum;
+use App\Enums\CollectionPermissionAction;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
@@ -39,10 +39,10 @@ function adminUserWithFieldAcl(Collection $collection, array $rules): User
     $role->syncPermissions(allCollectionPermissions());
 
     foreach ([
-        CollectionPermissionActionEnum::Read,
-        CollectionPermissionActionEnum::Create,
-        CollectionPermissionActionEnum::Update,
-        CollectionPermissionActionEnum::Delete,
+        CollectionPermissionAction::Read,
+        CollectionPermissionAction::Create,
+        CollectionPermissionAction::Update,
+        CollectionPermissionAction::Delete,
     ] as $action) {
         CollectionPermission::query()->updateOrCreate(
             [

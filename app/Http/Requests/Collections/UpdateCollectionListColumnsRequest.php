@@ -4,7 +4,7 @@ namespace App\Http\Requests\Collections;
 
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Services\Collections\CollectionListColumnsNormalizer;
@@ -15,7 +15,7 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class UpdateCollectionListColumnsRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
+    use AuthorizesWithPermission;
 
     public function authorize(): bool
     {

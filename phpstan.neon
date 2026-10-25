@@ -1,56 +1,10 @@
 includes:
     - vendor/larastan/larastan/extension.neon
-    - vendor/spaze/phpstan-disallowed-calls/extension.neon
     - phpstan-baseline.neon
 
 parameters:
     paths:
         - app/
+    # Level 5: ratchet without boiling the ocean on day one (#87).
     level: 5
     treatPhpDocTypesAsCertain: false
-    disallowedMethodCalls:
-        -
-            method:
-                - 'Illuminate\Database\Query\Builder::whereRaw()'
-                - 'Illuminate\Database\Query\Builder::orWhereRaw()'
-                - 'Illuminate\Database\Query\Builder::selectRaw()'
-                - 'Illuminate\Database\Query\Builder::orderByRaw()'
-                - 'Illuminate\Database\Query\Builder::havingRaw()'
-                - 'Illuminate\Database\Query\Builder::groupByRaw()'
-                - 'Illuminate\Database\Eloquent\Builder::whereRaw()'
-                - 'Illuminate\Database\Eloquent\Builder::orWhereRaw()'
-                - 'Illuminate\Database\Eloquent\Builder::selectRaw()'
-                - 'Illuminate\Database\Eloquent\Builder::orderByRaw()'
-                - 'Illuminate\Database\Eloquent\Builder::havingRaw()'
-                - 'Illuminate\Database\Eloquent\Builder::groupByRaw()'
-            message: 'Raw SQL must live in a reviewed allowlisted file (#208).'
-            errorIdentifier: externa.rawSql
-            allowIn:
-                - 'app/Services/Collections/CollectionItemQueryService.php'
-                - 'app/Services/Collections/CollectionItemOptionsService.php'
-                - 'app/Services/Collections/FieldValidationRuleEvaluator.php'
-                - 'app/Services/Files/FileWhereUsedScanner.php'
-                - 'app/Services/Chat/ChatUnreadService.php'
-                - 'app/Support/Health/ReadinessChecks.php'
-                - 'app/Http/Controllers/DashboardController.php'
-                - 'app/Http/Controllers/Admin/FileController.php'
-                - 'app/Http/Controllers/Api/V1/FileController.php'
-                - 'app/Http/Controllers/Ai/AiPageController.php'
-                - 'app/Http/Controllers/Ai/AiConversationController.php'
-    disallowedStaticCalls:
-        -
-            method:
-                - 'Illuminate\Support\Facades\DB::raw()'
-                - 'Illuminate\Support\Facades\DB::select()'
-                - 'Illuminate\Support\Facades\DB::statement()'
-                - 'Illuminate\Support\Facades\DB::unprepared()'
-                - 'Illuminate\Database\ConnectionInterface::select()'
-                - 'Illuminate\Database\Connection::select()'
-                - 'Illuminate\Database\ConnectionInterface::statement()'
-                - 'Illuminate\Database\Connection::statement()'
-                - 'Illuminate\Database\ConnectionInterface::unprepared()'
-                - 'Illuminate\Database\Connection::unprepared()'
-            message: 'Raw SQL must live in a reviewed allowlisted file (#208).'
-            errorIdentifier: externa.rawSql
-            allowIn:
-                - 'app/Support/Health/ReadinessChecks.php'

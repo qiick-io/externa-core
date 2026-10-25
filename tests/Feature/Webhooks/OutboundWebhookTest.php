@@ -9,7 +9,6 @@ use App\Models\CollectionItem;
 use App\Models\User;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Search\MeilisearchSyncDispatcher;
 use App\Services\Settings\ProjectSettings;
 use App\Services\Settings\SettingsRepository;
 use App\Services\Webhooks\OutboundWebhookCatalog;
@@ -26,7 +25,7 @@ beforeEach(function () {
     $this->withoutVite();
 });
 
-function configureOutboundWebhook(string $url = 'https://example.com/externa-hooks', string $secret = 'test-secret'): void
+function configureOutboundWebhook(string $url = 'https://hooks.example.test/externa', string $secret = 'test-secret'): void
 {
     $repository = app(SettingsRepository::class);
     $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', $url);
@@ -49,7 +48,7 @@ test('dispatcher is a no-op when webhook url is empty', function () {
 test('dispatcher refuses when webhook url set without secret', function () {
     Queue::fake();
     $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://example.com/externa-hooks');
+    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://hooks.example.test/externa');
 
     app(OutboundWebhookDispatcher::class)->dispatch('ping', ['ok' => true]);
 
@@ -70,9 +69,9 @@ test('dispatcher queues deliver job when webhook url is set', function () {
 });
 
 test('deliver job posts signed payload', function () {
-    configureOutboundWebhook('https://example.com/externa-hooks', 'test-secret');
+    configureOutboundWebhook('https://hooks.example.test/externa', 'test-secret');
     Http::fake([
-        'example.com/*' => Http::response(['ok' => true], 200),
+        'hooks.example.test/*' => Http::response(['ok' => true], 200),
     ]);
 
     $job = new DeliverOutboundWebhookJob(
@@ -88,7 +87,7 @@ test('deliver job posts signed payload', function () {
         $body = $request->body();
         $expected = 'sha256='.hash_hmac('sha256', $body, 'test-secret');
 
-        return $request->url() === 'https://example.com/externa-hooks'
+        return $request->url() === 'https://hooks.example.test/externa'
             && $request->hasHeader('X-Externa-Signature', $expected)
             && $request->hasHeader('X-Externa-Event-Id', 'evt_01test')
             && $request->hasHeader('X-Externa-Timestamp')
@@ -100,7 +99,7 @@ test('deliver job posts signed payload', function () {
 test('deliver job records last success and recent entry', function () {
     configureOutboundWebhook();
     Http::fake([
-        'example.com/*' => Http::response(['ok' => true], 202),
+        'hooks.example.test/*' => Http::response(['ok' => true], 202),
     ]);
 
     $job = new DeliverOutboundWebhookJob('evt_01ok', 'item.created', '2026-07-24T12:00:00Z', ['item_id' => 1]);
@@ -124,7 +123,7 @@ test('deliver job records last success and recent entry', function () {
 test('deliver job does not record success on non-2xx response', function () {
     configureOutboundWebhook();
     Http::fake([
-        'example.com/*' => Http::response('nope', 500),
+        'hooks.example.test/*' => Http::response('nope', 500),
     ]);
 
     $job = new DeliverOutboundWebhookJob('evt_01bad', 'ping', '2026-07-24T12:00:00Z', []);
@@ -229,10 +228,10 @@ test('project settings page exposes webhook catalog and delivery status', functi
     ]);
 
     $this->actingAs($user)
-        ->get(route('project.integrations.edit'))
+        ->get(route('project.edit'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('settings/project/integrations')
+            ->component('settings/project')
             ->has('webhookEvents', count(OutboundWebhookCatalog::EVENTS))
             ->where('webhookEvents.0.type', 'item.created')
             ->where('webhookDeliveries.last_success.event_id', 'evt_01page')
@@ -245,7 +244,7 @@ test('project settings page exposes webhook catalog and delivery status', functi
 
 test('deliver job refuses when signing secret is empty', function () {
     $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://example.com/externa-hooks');
+    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://hooks.example.test/externa');
     Http::fake();
 
     $job = new DeliverOutboundWebhookJob(
@@ -334,16 +333,12 @@ test('withoutWebhooks suppresses emission during bulk import style sync', functi
     $writer = app(CollectionItemValuesWriter::class);
     $normalizer = app(CollectionItemDataNormalizer::class);
 
-    // Mirror bulk import (AI/CLI): suppress webhooks and Meilisearch so assertNothingPushed
-    // isolates outbound webhook emission (Meili sync is orthogonal and already covered elsewhere).
-    MeilisearchSyncDispatcher::withoutMeilisearch(function () use ($collection, $writer, $normalizer): void {
-        OutboundWebhookDispatcher::withoutWebhooks(function () use ($collection, $writer, $normalizer): void {
-            for ($i = 0; $i < 3; $i++) {
-                $item = $collection->items()->create([]);
-                $normalized = $normalizer->normalize($collection, ['title' => "Row {$i}"], true);
-                $writer->sync($item, $collection, $normalized);
-            }
-        });
+    OutboundWebhookDispatcher::withoutWebhooks(function () use ($collection, $writer, $normalizer): void {
+        for ($i = 0; $i < 3; $i++) {
+            $item = $collection->items()->create([]);
+            $normalized = $normalizer->normalize($collection, ['title' => "Row {$i}"], true);
+            $writer->sync($item, $collection, $normalized);
+        }
     });
 
     Queue::assertNothingPushed();
@@ -355,27 +350,27 @@ test('clearing webhook url disables outbound webhooks', function () {
     ]);
 
     $this->actingAs($user)
-        ->put(route('project.integrations.update'), baseIntegrationsPayload([
-            'webhook_url' => 'https://example.com/externa-hooks',
+        ->put(route('project.update'), baseProjectPayload([
+            'webhook_url' => 'https://hooks.example.test/externa',
             'webhook_secret' => 'keep-me',
         ]))
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.integrations.edit'));
+        ->assertRedirect(route('project.edit'));
 
-    expect(app(ProjectSettings::class)->webhookUrl())->toBe('https://example.com/externa-hooks');
+    expect(app(ProjectSettings::class)->webhookUrl())->toBe('https://hooks.example.test/externa');
 
     $this->actingAs($user)
-        ->put(route('project.integrations.update'), baseIntegrationsPayload([
+        ->put(route('project.update'), baseProjectPayload([
             'webhook_url' => '',
         ]))
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.integrations.edit'));
+        ->assertRedirect(route('project.edit'));
 
     expect(app(ProjectSettings::class)->webhookUrl())->toBeNull()
         ->and(app(ProjectSettings::class)->webhookSecret())->toBe('keep-me');
 
     $this->actingAs($user)
-        ->get(route('project.integrations.edit'))
+        ->get(route('project.edit'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('project.webhook_url', null)
@@ -389,12 +384,12 @@ test('project settings stores encrypted webhook secret and never shares it', fun
     ]);
 
     $this->actingAs($user)
-        ->put(route('project.integrations.update'), baseIntegrationsPayload([
-            'webhook_url' => 'https://example.com/externa-hooks',
+        ->put(route('project.update'), baseProjectPayload([
+            'webhook_url' => 'https://hooks.example.test/externa',
             'webhook_secret' => 'super-secret-value',
         ]))
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('project.integrations.edit'));
+        ->assertRedirect(route('project.edit'));
 
     $stored = app(SettingsRepository::class)->get(
         SettingsRepository::SCOPE_PROJECT,
@@ -409,11 +404,11 @@ test('project settings stores encrypted webhook secret and never shares it', fun
         ->and(app(ProjectSettings::class)->shared())->not->toHaveKey('webhookSecret');
 
     $this->actingAs($user)
-        ->get(route('project.integrations.edit'))
+        ->get(route('project.edit'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('settings/project/integrations')
-            ->where('project.webhook_url', 'https://example.com/externa-hooks')
+            ->component('settings/project')
+            ->where('project.webhook_url', 'https://hooks.example.test/externa')
             ->where('project.webhook_secret_configured', true)
             ->missing('project.webhook_secret')
         );
@@ -428,8 +423,8 @@ test('send test webhook queues ping when url configured', function () {
     ]);
 
     $this->actingAs($user)
-        ->post(route('project.integrations.webhook-test'))
-        ->assertRedirect(route('project.integrations.edit'))
+        ->post(route('project.webhook-test'))
+        ->assertRedirect(route('project.edit'))
         ->assertSessionHas('success');
 
     Queue::assertPushed(DeliverOutboundWebhookJob::class, fn (DeliverOutboundWebhookJob $job): bool => $job->type === 'ping');
@@ -441,22 +436,22 @@ test('send test webhook flashes error when url missing', function () {
     ]);
 
     $this->actingAs($user)
-        ->post(route('project.integrations.webhook-test'))
-        ->assertRedirect(route('project.integrations.edit'))
+        ->post(route('project.webhook-test'))
+        ->assertRedirect(route('project.edit'))
         ->assertSessionHas('error');
 });
 
 test('send test webhook flashes error when secret missing', function () {
     $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://example.com/externa-hooks');
+    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://hooks.example.test/externa');
 
     $user = grantProjectSettingsPermissions(User::factory()->create(), [
         PermissionEnum::CanManageProjectSettings->value,
     ]);
 
     $this->actingAs($user)
-        ->post(route('project.integrations.webhook-test'))
-        ->assertRedirect(route('project.integrations.edit'))
+        ->post(route('project.webhook-test'))
+        ->assertRedirect(route('project.edit'))
         ->assertSessionHas('error');
 });
 
@@ -467,7 +462,7 @@ test('inertia shares flash success and error', function () {
 
     $this->actingAs($user)
         ->withSession(['success' => 'Webhook ok'])
-        ->get(route('project.integrations.edit'))
+        ->get(route('project.edit'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('flash.success', 'Webhook ok')
@@ -476,9 +471,9 @@ test('inertia shares flash success and error', function () {
 
 test('end-to-end item create delivers signed http request with sync queue', function () {
     config(['queue.default' => 'sync']);
-    configureOutboundWebhook('https://example.com/externa-hooks', 'e2e-secret');
+    configureOutboundWebhook('https://hooks.example.test/externa', 'e2e-secret');
     Http::fake([
-        'example.com/*' => Http::response(['received' => true], 200),
+        'hooks.example.test/*' => Http::response(['received' => true], 200),
     ]);
 
     $user = grantCollectionPermissions(User::factory()->create());
@@ -501,7 +496,7 @@ test('end-to-end item create delivers signed http request with sync queue', func
         $payload = json_decode($body, true);
         $expected = 'sha256='.hash_hmac('sha256', $body, 'e2e-secret');
 
-        return $request->url() === 'https://example.com/externa-hooks'
+        return $request->url() === 'https://hooks.example.test/externa'
             && $request->header('X-Externa-Signature')[0] === $expected
             && ($payload['type'] ?? null) === 'item.created'
             && ($payload['data']['collection_slug'] ?? null) === 'posts'

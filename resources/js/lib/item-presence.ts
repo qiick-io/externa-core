@@ -226,12 +226,8 @@ export function takeOverItemEditLock(): void {
 
 export function notifyItemSaved(updatedAt: string): void {
     remoteUpdatedAt = updatedAt;
-    emit();
-
-    // Whisper immediately and once more shortly after — save/Inertia can race the
-    // presence channel handshake and drop a single client event (#315).
     whisperUpdatedAt(updatedAt);
-    window.setTimeout(() => whisperUpdatedAt(updatedAt), 150);
+    emit();
 }
 
 export function isRemoteUpdatedAtStale(

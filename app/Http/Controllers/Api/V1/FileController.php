@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\FilePermissionActionEnum;
+use App\Enums\FilePermissionAction;
 use App\Enums\FileTypeEnum;
-use App\Http\Controllers\Api\V1\Concerns\AuthorizesFileAccessTrait;
+use App\Http\Controllers\Api\V1\Concerns\AuthorizesFileAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\FileResource;
 use App\Models\File;
@@ -27,7 +27,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class FileController extends Controller
 {
-    use AuthorizesFileAccessTrait;
+    use AuthorizesFileAccess;
 
     public function __construct(
         private FileService $fileService,
@@ -36,17 +36,16 @@ class FileController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionActionEnum::Read);
+        $this->authorizeFile($request, FilePermissionAction::Read);
 
         $validated = $request->validate([
             'parent_id' => ['nullable', 'integer', 'exists:files,id'],
             'search' => ['nullable', 'string', 'max:255'],
             'page' => ['nullable', 'integer', 'min:1'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:'.max(1, (int) config('api.max_per_page', 100))],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $maxPerPage = max(1, (int) config('api.max_per_page', 100));
-        $perPage = min(max((int) ($validated['per_page'] ?? 15), 1), $maxPerPage);
+        $perPage = min(max((int) ($validated['per_page'] ?? 15), 1), 100);
         $parentId = isset($validated['parent_id']) ? (int) $validated['parent_id'] : null;
         $search = $validated['search'] ?? null;
 
@@ -141,7 +140,7 @@ class FileController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionActionEnum::Create);
+        $this->authorizeFile($request, FilePermissionAction::Create);
 
         $validated = $request->validate([
             'file' => ['required', 'file'],
@@ -167,7 +166,7 @@ class FileController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionActionEnum::Update);
+        $this->authorizeFile($request, FilePermissionAction::Update);
 
         $file = File::query()->find($id);
         if ($file === null) {
@@ -200,7 +199,7 @@ class FileController extends Controller
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $this->authorizeFile($request, FilePermissionActionEnum::Delete);
+        $this->authorizeFile($request, FilePermissionAction::Delete);
 
         $file = File::query()->find($id);
         if ($file === null) {
@@ -226,15 +225,11 @@ class FileController extends Controller
             ->when($search, function (Builder $builder) use ($search) {
                 $searchTerm = '%'.strtolower((string) $search).'%';
                 $builder->where(function (Builder $inner) use ($searchTerm) {
-                    // raw-sql: reviewed — search term bound; folder-first ORDER BY uses bound enum
                     $inner->whereRaw('LOWER(name) LIKE ?', [$searchTerm])
-                        // raw-sql: reviewed — search term bound; folder-first ORDER BY uses bound enum
                         ->orWhereRaw('LOWER(path) LIKE ?', [$searchTerm])
-                        // raw-sql: reviewed — search term bound; folder-first ORDER BY uses bound enum
                         ->orWhereRaw('LOWER(title) LIKE ?', [$searchTerm]);
                 });
             })
-            // raw-sql: reviewed — search term bound; folder-first ORDER BY uses bound enum
             ->orderByRaw('CASE WHEN type = ? THEN 0 ELSE 1 END', [FileTypeEnum::Folder->value])
             ->orderBy('name')
             ->orderBy('id');

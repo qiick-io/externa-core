@@ -2,8 +2,8 @@
 
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
-use App\Events\ChatThreadUpsertedEvent;
-use App\Events\ChatUnreadUpdatedEvent;
+use App\Events\ChatThreadUpserted;
+use App\Events\ChatUnreadUpdated;
 use App\Models\Chat;
 use App\Models\ChatParticipant;
 use App\Models\Collection;
@@ -99,7 +99,7 @@ test('create direct chat broadcasts ThreadUpserted to peer private channel', fun
         PermissionEnum::CanCreateDirectChats->value,
     ]);
 
-    Event::fake([ChatThreadUpsertedEvent::class]);
+    Event::fake([ChatThreadUpserted::class]);
 
     $chatId = $this->actingAs($user)
         ->postJson(route('chat.threads.store'), [
@@ -109,19 +109,19 @@ test('create direct chat broadcasts ThreadUpserted to peer private channel', fun
         ->assertCreated()
         ->json('chat.id');
 
-    Event::assertDispatched(ChatThreadUpsertedEvent::class, function (ChatThreadUpsertedEvent $event) use ($other, $chatId): bool {
+    Event::assertDispatched(ChatThreadUpserted::class, function (ChatThreadUpserted $event) use ($other, $chatId): bool {
         return $event->userId === (int) $other->id
             && $event->broadcastAs() === 'ThreadUpserted'
             && $event->broadcastOn()[0]->name === 'private-App.Models.User.'.$other->id
             && ($event->chat['id'] ?? null) === $chatId
             && ($event->chat['kind'] ?? null) === 'direct';
     });
-    Event::assertNotDispatched(ChatThreadUpsertedEvent::class, function (ChatThreadUpsertedEvent $event) use ($user): bool {
+    Event::assertNotDispatched(ChatThreadUpserted::class, function (ChatThreadUpserted $event) use ($user): bool {
         return $event->userId === (int) $user->id;
     });
 
     // Existing DM (findOrCreate) must not re-broadcast create.
-    Event::fake([ChatThreadUpsertedEvent::class]);
+    Event::fake([ChatThreadUpserted::class]);
 
     $this->actingAs($user)
         ->postJson(route('chat.threads.store'), [
@@ -130,7 +130,7 @@ test('create direct chat broadcasts ThreadUpserted to peer private channel', fun
         ])
         ->assertCreated();
 
-    Event::assertNotDispatched(ChatThreadUpsertedEvent::class);
+    Event::assertNotDispatched(ChatThreadUpserted::class);
 });
 
 test('direct message broadcasts ThreadUpserted with last_message for peer list', function () {
@@ -146,7 +146,7 @@ test('direct message broadcasts ThreadUpserted with last_message for peer list',
         ->assertCreated()
         ->json('chat.id');
 
-    Event::fake([ChatThreadUpsertedEvent::class]);
+    Event::fake([ChatThreadUpserted::class]);
 
     $this->actingAs($user)
         ->postJson(route('chat.messages.store', $chatId), [
@@ -154,7 +154,7 @@ test('direct message broadcasts ThreadUpserted with last_message for peer list',
         ])
         ->assertCreated();
 
-    Event::assertDispatched(ChatThreadUpsertedEvent::class, function (ChatThreadUpsertedEvent $event) use ($other, $chatId): bool {
+    Event::assertDispatched(ChatThreadUpserted::class, function (ChatThreadUpserted $event) use ($other, $chatId): bool {
         return $event->userId === (int) $other->id
             && ($event->chat['id'] ?? null) === $chatId
             && ($event->chat['last_message']['body'] ?? null) === 'asdfasdf'
@@ -473,7 +473,7 @@ test('collection notify broadcasts unread totals to subscriber', function () {
         ])
         ->assertOk();
 
-    Event::fake([ChatUnreadUpdatedEvent::class]);
+    Event::fake([ChatUnreadUpdated::class]);
 
     $this->actingAs($user)
         ->postJson(route('collections.items.chat.store', [$collection, $item]), [
@@ -481,7 +481,7 @@ test('collection notify broadcasts unread totals to subscriber', function () {
         ])
         ->assertCreated();
 
-    Event::assertDispatched(ChatUnreadUpdatedEvent::class, function (ChatUnreadUpdatedEvent $event) use ($other, $item): bool {
+    Event::assertDispatched(ChatUnreadUpdated::class, function (ChatUnreadUpdated $event) use ($other, $item): bool {
         $itemChat = Chat::query()
             ->where('kind', Chat::KIND_ITEM)
             ->where('collection_item_id', $item->id)
@@ -565,7 +565,7 @@ test('opening a chat marks it read and drops sidebar total', function () {
         'body' => 'ping',
     ])->assertCreated();
 
-    Event::fake([ChatUnreadUpdatedEvent::class]);
+    Event::fake([ChatUnreadUpdated::class]);
 
     $this->actingAs($other)
         ->get(route('chat.show', $chatId))
@@ -574,7 +574,7 @@ test('opening a chat marks it read and drops sidebar total', function () {
             ->where('chat.unread_count', 0)
             ->where('chat.unread_private', 0));
 
-    Event::assertDispatched(ChatUnreadUpdatedEvent::class, function (ChatUnreadUpdatedEvent $event) use ($other, $chatId): bool {
+    Event::assertDispatched(ChatUnreadUpdated::class, function (ChatUnreadUpdated $event) use ($other, $chatId): bool {
         return $event->userId === (int) $other->id
             && $event->chatId === $chatId
             && $event->chatUnreadCount === 0
@@ -602,7 +602,7 @@ test('open chat does not increment while viewer is on the thread', function () {
         ->postJson(route('chat.read', $chatId))
         ->assertOk();
 
-    Event::fake([ChatUnreadUpdatedEvent::class]);
+    Event::fake([ChatUnreadUpdated::class]);
 
     $this->actingAs($user)
         ->postJson(route('chat.messages.store', $chatId), [
@@ -615,7 +615,7 @@ test('open chat does not increment while viewer is on the thread', function () {
         ->assertOk()
         ->assertJsonPath('unread_count', 0);
 
-    Event::assertDispatched(ChatUnreadUpdatedEvent::class, function (ChatUnreadUpdatedEvent $event) use ($other, $chatId): bool {
+    Event::assertDispatched(ChatUnreadUpdated::class, function (ChatUnreadUpdated $event) use ($other, $chatId): bool {
         return $event->userId === (int) $other->id
             && $event->chatId === $chatId
             && $event->total === 0

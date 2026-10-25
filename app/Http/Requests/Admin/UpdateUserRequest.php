@@ -3,45 +3,28 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
-use App\Http\Requests\Concerns\GuardsSuperAdminGrantsTrait;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Models\User;
-use App\Services\Authorization\SuperAdminGuardService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
-use Illuminate\Validation\Validator;
 
 /**
  * Validate updating an admin user.
  */
 class UpdateUserRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
-    use GuardsSuperAdminGrantsTrait;
+    use AuthorizesWithPermission;
 
     /**
-     * Require permission to edit users; only super-admins may edit a super-admin account.
+     * Require permission to edit users.
      */
     public function authorize(): bool
     {
         $this->authorizePermission(PermissionEnum::CanEditUsers->value);
 
-        /** @var User $targetUser */
-        $targetUser = $this->route('user');
-
-        abort_if(app(SuperAdminGuardService::class)->isProtectedFrom($this->user(), $targetUser), 403);
-
         return true;
-    }
-
-    /**
-     * @return list<callable(Validator): void>
-     */
-    public function after(): array
-    {
-        return [fn (Validator $validator) => $this->rejectSuperAdminGrants($validator)];
     }
 
     /**

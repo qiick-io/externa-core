@@ -4,8 +4,8 @@ namespace App\Http\Requests\Collections;
 
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Collections\Concerns\ValidatesCollectionFieldSettingsTrait;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Collections\Concerns\ValidatesCollectionFieldSettings;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Models\Collection;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -16,8 +16,8 @@ use Illuminate\Validation\ValidationException;
  */
 class StoreFieldRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
-    use ValidatesCollectionFieldSettingsTrait;
+    use AuthorizesWithPermission;
+    use ValidatesCollectionFieldSettings;
 
     /**
      * Authorization is enforced by collection route middleware.

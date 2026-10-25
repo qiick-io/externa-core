@@ -18,14 +18,11 @@ use Illuminate\Support\Collection as SupportCollection;
  * Depth-1 relation hydration for Public REST `?include=` field names.
  *
  * Nested items never re-apply relation includes; optional nested files/users follow the same include list.
- * List endpoints call {@see prewarm()} once so shared related ids load in a constant query count.
+ *
+ * ponytail: hydrates per parent resource (list = N queries). Ceiling: large lists; upgrade = collection-level prewarm.
  */
 class RelationIncludeHydrator
 {
-    public const PREWARM_ATTR = 'api.relation_include_prewarm';
-
-    public const SERIALIZED_CACHE_ATTR = 'api.relation_include_serialized';
-
     public function __construct(
         private CollectionItemDataAccessor $itemDataAccessor,
         private CollectionLocaleResolver $localeResolver,
@@ -33,40 +30,6 @@ class RelationIncludeHydrator
         private FileFieldExpander $fileFieldExpander,
         private PublicApiIncludeParser $includeParser,
     ) {}
-
-    /**
-     * Batch-load related items for every parent in a list response (call once before mapping resources).
-     *
-     * @param  iterable<int, CollectionItem>  $items
-     * @param  list<string>  $include
-     */
-    public function prewarm(iterable $items, Collection $collection, array $include, Request $request): void
-    {
-        $collection->loadMissing('fields');
-        $relationFields = $this->relationFieldsForInclude($collection, $include, requirePresentInData: false);
-        if ($relationFields === []) {
-            return;
-        }
-
-        $locale = $this->resolveLocale($request);
-        $includeAll = $request->boolean('include_all_translations');
-        $idsByCollection = [];
-
-        foreach ($items as $item) {
-            if (! $item instanceof CollectionItem) {
-                continue;
-            }
-            $item->loadMissing('fieldValues');
-            $data = $this->itemDataAccessor->flattenForLocale($item, $locale, $includeAll);
-            $idsByCollection = $this->mergeIdsByCollection(
-                $idsByCollection,
-                $this->collectRelatedIds($data, $relationFields),
-            );
-        }
-
-        $request->attributes->set(self::PREWARM_ATTR, $this->batchLoadItems($idsByCollection, $request));
-        $request->attributes->set(self::SERIALIZED_CACHE_ATTR, []);
-    }
 
     /**
      * @param  array<string, mixed>  $data
@@ -77,14 +40,27 @@ class RelationIncludeHydrator
     {
         $collection->loadMissing('fields');
 
-        $relationFields = $this->relationFieldsForInclude($collection, $include, requirePresentInData: true, data: $data);
+        $relationFields = [];
+        foreach ($collection->fields as $field) {
+            if (! $this->includeParser->has($include, $field->name)) {
+                continue;
+            }
+            $type = $this->fieldType($field);
+            if ($type === null || ! $this->isHydratableRelation($type)) {
+                continue;
+            }
+            if (! array_key_exists($field->name, $data)) {
+                continue;
+            }
+            $relationFields[$field->name] = ['field' => $field, 'type' => $type];
+        }
 
         if ($relationFields === []) {
             return $data;
         }
 
         $idsByCollection = $this->collectRelatedIds($data, $relationFields);
-        $itemsById = $this->batchLoadItems($idsByCollection, $request);
+        $itemsById = $this->batchLoadItems($idsByCollection);
 
         $wantsFiles = $this->includeParser->has($include, PublicApiIncludeParser::TOKEN_FILES);
         $wantsUsers = $this->includeParser->has($include, PublicApiIncludeParser::TOKEN_USERS);
@@ -92,11 +68,7 @@ class RelationIncludeHydrator
         $locale = $this->resolveLocale($request);
         $includeAll = $request->boolean('include_all_translations');
 
-        /** @var array<string, array<string, mixed>> $serializedCache */
-        $serializedCache = $request->attributes->get(self::SERIALIZED_CACHE_ATTR, []);
-        if (! is_array($serializedCache)) {
-            $serializedCache = [];
-        }
+        $serializedCache = [];
 
         foreach ($relationFields as $name => $meta) {
             /** @var CollectionField $field */
@@ -117,54 +89,7 @@ class RelationIncludeHydrator
             );
         }
 
-        $request->attributes->set(self::SERIALIZED_CACHE_ATTR, $serializedCache);
-
         return $data;
-    }
-
-    /**
-     * @param  array<string, mixed>|null  $data
-     * @param  list<string>  $include
-     * @return array<string, array{field: CollectionField, type: FieldTypeEnum}>
-     */
-    private function relationFieldsForInclude(
-        Collection $collection,
-        array $include,
-        bool $requirePresentInData,
-        ?array $data = null,
-    ): array {
-        $relationFields = [];
-        foreach ($collection->fields as $field) {
-            if (! $this->includeParser->has($include, $field->name)) {
-                continue;
-            }
-            $type = $this->fieldType($field);
-            if ($type === null || ! $this->isHydratableRelation($type)) {
-                continue;
-            }
-            if ($requirePresentInData && ($data === null || ! array_key_exists($field->name, $data))) {
-                continue;
-            }
-            $relationFields[$field->name] = ['field' => $field, 'type' => $type];
-        }
-
-        return $relationFields;
-    }
-
-    /**
-     * @param  array<int, array<int, true>>  $into
-     * @param  array<int, array<int, true>>  $from
-     * @return array<int, array<int, true>>
-     */
-    private function mergeIdsByCollection(array $into, array $from): array
-    {
-        foreach ($from as $collectionId => $idMap) {
-            foreach ($idMap as $itemId => $_) {
-                $into[$collectionId][$itemId] = true;
-            }
-        }
-
-        return $into;
     }
 
     /**
@@ -179,7 +104,7 @@ class RelationIncludeHydrator
         foreach ($relationFields as $name => $meta) {
             $field = $meta['field'];
             $type = $meta['type'];
-            $raw = $data[$name] ?? null;
+            $raw = $data[$name];
 
             if ($type === FieldTypeEnum::M2a) {
                 foreach ($this->m2aEntries($raw) as $entry) {
@@ -206,26 +131,19 @@ class RelationIncludeHydrator
      * @param  array<int, array<int, true>>  $idsByCollection
      * @return SupportCollection<int, CollectionItem>
      */
-    private function batchLoadItems(array $idsByCollection, Request $request): SupportCollection
+    private function batchLoadItems(array $idsByCollection): SupportCollection
     {
-        /** @var SupportCollection<int, CollectionItem>|null $prewarmed */
-        $prewarmed = $request->attributes->get(self::PREWARM_ATTR);
-        $itemsById = $prewarmed instanceof SupportCollection ? $prewarmed->all() : [];
+        $itemsById = collect();
 
         foreach ($idsByCollection as $collectionId => $idMap) {
-            $missing = [];
-            foreach (array_keys($idMap) as $id) {
-                if (! isset($itemsById[$id])) {
-                    $missing[] = $id;
-                }
-            }
-            if ($missing === []) {
+            $ids = array_keys($idMap);
+            if ($ids === []) {
                 continue;
             }
 
             $loaded = CollectionItem::query()
                 ->where('collection_id', $collectionId)
-                ->whereIn('id', $missing)
+                ->whereIn('id', $ids)
                 ->with([
                     'fieldValues',
                     'userCreated:id,first_name,last_name,email',
@@ -239,10 +157,7 @@ class RelationIncludeHydrator
             }
         }
 
-        $result = collect($itemsById);
-        $request->attributes->set(self::PREWARM_ATTR, $result);
-
-        return $result;
+        return $itemsById;
     }
 
     /**

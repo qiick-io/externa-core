@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Collections;
 
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,7 +12,7 @@ use Illuminate\Validation\Rule;
  */
 class UpdateFieldLayoutWidthRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
+    use AuthorizesWithPermission;
 
     /**
      * Authorization is enforced by collection route middleware.

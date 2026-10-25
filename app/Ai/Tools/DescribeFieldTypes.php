@@ -2,8 +2,8 @@
 
 namespace App\Ai\Tools;
 
-use App\Ai\Concerns\ChecksAiPermissionsTrait;
-use App\Ai\Concerns\LogsAiToolUseTrait;
+use App\Ai\Concerns\ChecksAiPermissions;
+use App\Ai\Concerns\LogsAiToolUse;
 use App\Ai\Support\FieldTypeCookbook;
 use App\Enums\PermissionEnum;
 use App\Models\User;
@@ -18,8 +18,8 @@ use Stringable;
  */
 class DescribeFieldTypes implements Tool
 {
-    use ChecksAiPermissionsTrait;
-    use LogsAiToolUseTrait;
+    use ChecksAiPermissions;
+    use LogsAiToolUse;
 
     public function description(): Stringable|string
     {

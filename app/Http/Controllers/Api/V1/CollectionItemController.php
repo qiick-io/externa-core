@@ -2,19 +2,17 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\CollectionPermissionActionEnum;
-use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccessTrait;
+use App\Enums\CollectionPermissionAction;
+use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Api\FilePermissionGuard;
 use App\Services\Api\PublicApiResponseCache;
-use App\Services\Api\RelationIncludeHydrator;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemDataRuleBuilder;
 use App\Services\Collections\CollectionItemQueryService;
-use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
 use App\Support\Api\PublicApiIncludeParser;
 use Illuminate\Http\JsonResponse;
@@ -27,13 +25,12 @@ use Illuminate\Validation\ValidationException;
  */
 class CollectionItemController extends Controller
 {
-    use AuthorizesCollectionAccessTrait;
+    use AuthorizesCollectionAccess;
 
     public function __construct(
         private CollectionItemQueryService $itemQueryService,
         private CollectionItemDataNormalizer $itemDataNormalizer,
         private CollectionItemValuesWriter $collectionItemValuesWriter,
-        private CollectionItemValuesAssembler $collectionItemValuesAssembler,
         private CollectionPermissionEnforcer $permissionEnforcer,
         private PublicApiResponseCache $responseCache,
     ) {}
@@ -41,7 +38,7 @@ class CollectionItemController extends Controller
     public function index(Request $request, string $slug): JsonResponse
     {
         $collection = $this->findCollectionBySlug($slug);
-        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Read);
+        $this->authorizeCollection($request, $collection, CollectionPermissionAction::Read);
 
         $filters = $request->query('filter', []);
         if (! is_array($filters)) {
@@ -59,13 +56,11 @@ class CollectionItemController extends Controller
             }
         }
 
-        $maxPerPage = max(1, (int) config('api.max_per_page', 100));
-        $perPage = min(max($request->integer('per_page', 15), 1), $maxPerPage);
+        $perPage = min(max($request->integer('per_page', 15), 1), 100);
         $page = max($request->integer('page', 1), 1);
 
         $version = $this->responseCache->version((int) $collection->id);
-        $access = $this->apiAccess($request);
-        $roleId = $access->roleId();
+        $roleId = $this->apiAccess($request)->roleId();
         $hash = $this->responseCache->hash([
             'filter' => $stringFilters,
             'page' => $page,
@@ -76,7 +71,6 @@ class CollectionItemController extends Controller
             'role_id' => $roleId,
             // File field expansion depends on file grants, not only role_id.
             'file_grants' => $roleId === null ? [] : app(FilePermissionGuard::class)->grantsForRole($roleId),
-            ...$access->responseCacheScopeFactors(),
             'surface' => 'rest',
         ]);
         $key = $this->responseCache->itemsKey($slug, $version, $hash);
@@ -96,14 +90,9 @@ class CollectionItemController extends Controller
             $this->permissionEnforcer->applyItemFilterToQuery($request, $collection, $query);
 
             $paginator = $query->latest('id')->paginate($perPage, ['*'], 'page', $page);
-            $pageItems = $paginator->getCollection();
-            $include = app(PublicApiIncludeParser::class)->parse($request->query('include'));
-            if ($include !== []) {
-                app(RelationIncludeHydrator::class)->prewarm($pageItems, $collection, $include, $request);
-            }
 
             return [
-                'data' => $pageItems
+                'data' => $paginator->getCollection()
                     ->map(fn (CollectionItem $item): array => (new CollectionItemResource($item))->toArray($request))
                     ->values()
                     ->all(),
@@ -122,18 +111,16 @@ class CollectionItemController extends Controller
     public function show(Request $request, string $slug, int $item): JsonResponse
     {
         $collection = $this->findCollectionBySlug($slug);
-        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Read);
+        $this->authorizeCollection($request, $collection, CollectionPermissionAction::Read);
 
         $version = $this->responseCache->version((int) $collection->id);
-        $access = $this->apiAccess($request);
-        $roleId = $access->roleId();
+        $roleId = $this->apiAccess($request)->roleId();
         $hash = $this->responseCache->hash([
             'locale' => $request->query('locale'),
             'include_all_translations' => $request->boolean('include_all_translations'),
             'include' => app(PublicApiIncludeParser::class)->parse($request->query('include')),
             'role_id' => $roleId,
             'file_grants' => $roleId === null ? [] : app(FilePermissionGuard::class)->grantsForRole($roleId),
-            ...$access->responseCacheScopeFactors(),
             'surface' => 'rest',
         ]);
         $key = $this->responseCache->itemKey($slug, $item, $version, $hash);
@@ -167,7 +154,7 @@ class CollectionItemController extends Controller
     public function store(Request $request, string $slug): JsonResponse
     {
         $collection = $this->findCollectionBySlug($slug);
-        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Create);
+        $this->authorizeCollection($request, $collection, CollectionPermissionAction::Create);
 
         if ($collection->is_singleton && $collection->items()->exists()) {
             throw ValidationException::withMessages([
@@ -196,7 +183,7 @@ class CollectionItemController extends Controller
     public function update(Request $request, string $slug, int $item): JsonResponse
     {
         $collection = $this->findCollectionBySlug($slug);
-        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Update);
+        $this->authorizeCollection($request, $collection, CollectionPermissionAction::Update);
 
         $model = CollectionItem::query()
             ->where('collection_id', $collection->id)
@@ -217,8 +204,7 @@ class CollectionItemController extends Controller
 
         $this->validateItemPayload($request, $collection, false);
 
-        $merged = $this->itemDataNormalizer->mergeIncoming($this->collectionItemValuesAssembler->assemble($model), $data);
-        $normalized = $this->itemDataNormalizer->normalize($collection, $merged, false);
+        $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
         $this->collectionItemValuesWriter->sync($model, $collection, $normalized);
         $model->load(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
 
@@ -230,7 +216,7 @@ class CollectionItemController extends Controller
     public function destroy(Request $request, string $slug, int $item): JsonResponse
     {
         $collection = $this->findCollectionBySlug($slug);
-        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Delete);
+        $this->authorizeCollection($request, $collection, CollectionPermissionAction::Delete);
 
         $model = CollectionItem::query()
             ->where('collection_id', $collection->id)

@@ -1,7 +1,7 @@
 <?php
 
-use App\Enums\CollectionPermissionActionEnum;
-use App\Enums\FilePermissionActionEnum;
+use App\Enums\CollectionPermissionAction;
+use App\Enums\FilePermissionAction;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Http\Controllers\Admin\RoleController;
@@ -58,7 +58,7 @@ test('authorized user can duplicate a role with permissions and matrices', funct
     CollectionPermission::query()->create([
         'role_id' => $source->id,
         'collection_id' => $collection->id,
-        'action' => CollectionPermissionActionEnum::Read->value,
+        'action' => CollectionPermissionAction::Read->value,
         'allowed' => true,
         'rules' => [
             'fields' => [
@@ -70,7 +70,7 @@ test('authorized user can duplicate a role with permissions and matrices', funct
 
     FilePermission::query()->create([
         'role_id' => $source->id,
-        'action' => FilePermissionActionEnum::Read->value,
+        'action' => FilePermissionAction::Read->value,
         'allowed' => true,
     ]);
 
@@ -97,7 +97,7 @@ test('authorized user can duplicate a role with permissions and matrices', funct
         CollectionPermission::query()
             ->where('role_id', $clone->id)
             ->where('collection_id', $collection->id)
-            ->where('action', CollectionPermissionActionEnum::Read->value)
+            ->where('action', CollectionPermissionAction::Read->value)
             ->where('allowed', true)
             ->exists()
     )->toBeTrue();
@@ -105,7 +105,7 @@ test('authorized user can duplicate a role with permissions and matrices', funct
     expect(
         FilePermission::query()
             ->where('role_id', $clone->id)
-            ->where('action', FilePermissionActionEnum::Read->value)
+            ->where('action', FilePermissionAction::Read->value)
             ->where('allowed', true)
             ->exists()
     )->toBeTrue();

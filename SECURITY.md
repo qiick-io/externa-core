@@ -6,13 +6,7 @@ Longer docs: [Threat model & hosting](https://docs.externa.qiick.io/docs/threat-
 
 ## Dependency audits
 
-Results live in **GitHub Actions → workflow `audit`** (jobs `composer-audit` and `npm-audit`). The workflow runs on:
-
-- every push and pull request targeting `develop` / `main` / `master`
-- a weekly schedule (Monday 06:00 UTC)
-- manual `workflow_dispatch`
-
-Policy (#32): fail on **high+** for Composer (`composer audit --locked`, low/medium ignored) and for **production** npm deps (`npm audit --omit=dev --audit-level=high`). Failures are **blocking**. Do not use `npm audit fix --force` in CI. Triage: upgrade first; open a separate issue for real advisories; justified ignores need a PR note and follow-up.
+PRs run `composer audit` (lockfile, high+) and `npm audit --omit=dev` (high+) via `.github/workflows/audit.yml`. Failures are **blocking**. Do not use `npm audit fix --force` in CI. Triage: upgrade first; justified ignores need a PR note and follow-up.
 
 ## Code scanning & secrets (maintainers)
 

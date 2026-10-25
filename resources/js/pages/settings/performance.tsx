@@ -36,10 +36,6 @@ type Bootstrap = {
 type PublicApi = {
     ttlSeconds: number;
     epoch: number;
-    hits: number;
-    misses: number;
-    lastFlushedAt: string | null;
-    lastFlushedBy: string | null;
 };
 
 type Links = {
@@ -276,40 +272,6 @@ export default function PerformanceSettingsPage({
                                 </dt>
                                 <dd data-test="performance-public-api-epoch">
                                     {publicApi.epoch}
-                                </dd>
-                            </div>
-                            <div className="grid gap-1">
-                                <dt className="text-muted-foreground">
-                                    {t('settings.performance.cacheHits')}
-                                </dt>
-                                <dd data-test="performance-public-api-hits">
-                                    {publicApi.hits}
-                                </dd>
-                            </div>
-                            <div className="grid gap-1">
-                                <dt className="text-muted-foreground">
-                                    {t('settings.performance.cacheMisses')}
-                                </dt>
-                                <dd data-test="performance-public-api-misses">
-                                    {publicApi.misses}
-                                </dd>
-                            </div>
-                            <div className="grid gap-1">
-                                <dt className="text-muted-foreground">
-                                    {t('settings.performance.lastFlushedAt')}
-                                </dt>
-                                <dd data-test="performance-public-api-last-flushed-at">
-                                    {publicApi.lastFlushedAt ??
-                                        t('settings.performance.neverFlushed')}
-                                </dd>
-                            </div>
-                            <div className="grid gap-1">
-                                <dt className="text-muted-foreground">
-                                    {t('settings.performance.lastFlushedBy')}
-                                </dt>
-                                <dd data-test="performance-public-api-last-flushed-by">
-                                    {publicApi.lastFlushedBy ??
-                                        t('settings.performance.unknownActor')}
                                 </dd>
                             </div>
                         </dl>

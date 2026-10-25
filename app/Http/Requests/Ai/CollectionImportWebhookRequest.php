@@ -5,9 +5,7 @@ namespace App\Http\Requests\Ai;
 use App\Http\Controllers\Ai\CollectionImportWebhookController;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Carbon;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
 
 /**
  * Validates inbound collection import webhook payloads after HMAC verification.
@@ -41,61 +39,32 @@ class CollectionImportWebhookRequest extends FormRequest
 
     /**
      * Timing-safe HMAC check over the raw body. Never logs the secret.
-     * Accepts the current token, or a non-expired previous token during grace.
      */
     private function verifyWebhookSignature(): void
     {
-        $tokens = $this->acceptableTokens();
+        $configuredToken = (string) config('ai.webhook_token', '');
 
-        if ($tokens === []) {
-            abort(
+        // Fail closed outside local when the signing secret is unset.
+        if ($configuredToken === '') {
+            abort_unless(
+                app()->environment('local'),
                 Response::HTTP_UNAUTHORIZED,
                 'Webhook signing is not configured.',
             );
+
+            // Local with no token: allow unsigned requests for development only.
+            return;
         }
 
         $providedSignature = (string) $this->header('X-AI-Webhook-Signature', '');
-        $rawBody = $this->getContent();
 
-        foreach ($tokens as $token) {
-            if (hash_equals(
-                CollectionImportWebhookController::sign($rawBody, $token),
+        abort_unless(
+            hash_equals(
+                CollectionImportWebhookController::sign($this->getContent(), $configuredToken),
                 $providedSignature,
-            )) {
-                return;
-            }
-        }
-
-        abort(
+            ),
             Response::HTTP_UNAUTHORIZED,
             'Invalid webhook signature.',
         );
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function acceptableTokens(): array
-    {
-        $tokens = [];
-
-        $current = (string) config('ai.webhook_token', '');
-        if ($current !== '') {
-            $tokens[] = $current;
-        }
-
-        $previous = (string) config('ai.webhook_token_previous', '');
-        $expiresAt = config('ai.webhook_token_previous_expires_at');
-        if ($previous !== '' && is_string($expiresAt) && $expiresAt !== '') {
-            try {
-                if (Carbon::parse($expiresAt)->isFuture()) {
-                    $tokens[] = $previous;
-                }
-            } catch (Throwable) {
-                // Invalid expiry → ignore previous token (fail closed for grace).
-            }
-        }
-
-        return $tokens;
     }
 }

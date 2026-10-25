@@ -15,12 +15,12 @@ import {
     CheckboxGroupTreeInput,
     FieldNoteSlot,
     HashFieldInput,
+    InputWithIcons,
     MultiselectWithOtherInput,
     RadioWithOtherInput,
     SelectWithOtherInput,
     SliderFieldInput,
     StaticAutocompleteInput,
-    StringFieldInput,
     defaultBooleanChecked,
 } from '@/components/collections/item-field-choice-inputs';
 import { DateFieldInput } from '@/components/collections/item-field-date-input';
@@ -516,20 +516,29 @@ function renderFieldControl(context: FieldRenderContext) {
             );
         case 'string':
             return (
-                <StringFieldInput
-                    id={id}
-                    name={name}
-                    defaultValue={defaultValue}
-                    placeholder={placeholder}
-                    maxLength={stringSettings.maxLength}
-                    readonly={readonly}
-                    hasError={hasError}
+                <InputWithIcons
                     iconLeft={stringSettings.iconLeft}
                     iconRight={stringSettings.iconRight}
-                    inputType={stringSettings.inputType}
-                    masked={stringSettings.masked}
-                    slugify={stringSettings.slugify}
-                />
+                >
+                    <Input
+                        id={id}
+                        type={
+                            stringSettings.masked
+                                ? 'password'
+                                : stringSettings.inputType === 'integer' ||
+                                    stringSettings.inputType === 'float' ||
+                                    stringSettings.inputType === 'decimal'
+                                  ? 'number'
+                                  : 'text'
+                        }
+                        name={name}
+                        defaultValue={String(defaultValue ?? '')}
+                        placeholder={placeholder}
+                        maxLength={stringSettings.maxLength ?? undefined}
+                        readOnly={readonly}
+                        aria-invalid={hasError}
+                    />
+                </InputWithIcons>
             );
         case 'image':
             if (isImageFieldMultiple(field.settings)) {

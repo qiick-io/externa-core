@@ -1,8 +1,8 @@
 <?php
 
-use App\Enums\CollectionPermissionActionEnum;
+use App\Enums\CollectionPermissionAction;
 use App\Enums\FieldTypeEnum;
-use App\Enums\FilePermissionActionEnum;
+use App\Enums\FilePermissionAction;
 use App\Enums\FileTypeEnum;
 use App\Enums\RoleEnum;
 use App\Models\Collection;
@@ -31,13 +31,13 @@ function includePublicRole(): Role
 }
 
 /**
- * @param  list<FilePermissionActionEnum|string>  $actions
+ * @param  list<FilePermissionAction|string>  $actions
  */
 function grantIncludePublicFileActions(array $actions): void
 {
     $role = includePublicRole();
     foreach ($actions as $action) {
-        $value = $action instanceof FilePermissionActionEnum ? $action->value : $action;
+        $value = $action instanceof FilePermissionAction ? $action->value : $action;
         FilePermission::query()->updateOrCreate(
             [
                 'role_id' => $role->id,
@@ -103,8 +103,8 @@ it('keeps file fields as ids and users null without include', function (): void 
     ]);
     syncIncludeItem($item, $collection->fresh(['fields']), ['cover' => $file->id]);
 
-    grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
-    grantIncludePublicFileActions([FilePermissionActionEnum::Read]);
+    grantPublicActions($collection, [CollectionPermissionAction::Read]);
+    grantIncludePublicFileActions([FilePermissionAction::Read]);
 
     $this->getJson("/api/v1/collections/include-slim/items/{$item->id}")
         ->assertOk()
@@ -141,8 +141,8 @@ it('expands files and users when included', function (): void {
     ]);
     syncIncludeItem($item, $collection->fresh(['fields']), ['cover' => $file->id]);
 
-    grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
-    grantIncludePublicFileActions([FilePermissionActionEnum::Read]);
+    grantPublicActions($collection, [CollectionPermissionAction::Read]);
+    grantIncludePublicFileActions([FilePermissionAction::Read]);
 
     $this->getJson("/api/v1/collections/include-files/items/{$item->id}?include=files,users")
         ->assertOk()
@@ -209,9 +209,9 @@ it('hydrates m2o and m2m relations only when field names are included', function
         ],
     ]);
 
-    grantPublicActions($posts, [CollectionPermissionActionEnum::Read]);
-    grantPublicActions($authors, [CollectionPermissionActionEnum::Read]);
-    grantPublicActions($tags, [CollectionPermissionActionEnum::Read]);
+    grantPublicActions($posts, [CollectionPermissionAction::Read]);
+    grantPublicActions($authors, [CollectionPermissionAction::Read]);
+    grantPublicActions($tags, [CollectionPermissionAction::Read]);
 
     $slim = $this->getJson("/api/v1/collections/include-posts/items/{$post->id}")->assertOk();
     expect($slim->json('data.data.author'))->toBe($author->id)
@@ -262,7 +262,7 @@ it('does not leak full payload for unreadable related items', function (): void 
     syncIncludeItem($post, $posts->fresh(['fields']), ['author' => $author->id]);
 
     // Parent readable; related collection has no public read grant.
-    grantPublicActions($posts, [CollectionPermissionActionEnum::Read]);
+    grantPublicActions($posts, [CollectionPermissionAction::Read]);
 
     $response = $this->getJson("/api/v1/collections/leak-posts/items/{$post->id}?include=author")
         ->assertOk();
@@ -289,8 +289,8 @@ it('returns different cached payloads for different include values', function ()
     $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
     syncIncludeItem($item, $collection->fresh(['fields']), ['cover' => $file->id]);
 
-    grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
-    grantIncludePublicFileActions([FilePermissionActionEnum::Read]);
+    grantPublicActions($collection, [CollectionPermissionAction::Read]);
+    grantIncludePublicFileActions([FilePermissionAction::Read]);
 
     $baseUrl = "/api/v1/collections/include-cache/items/{$item->id}";
 

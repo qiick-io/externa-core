@@ -44,10 +44,8 @@ class DeliverTelegramOutboundNotifierJob implements ShouldQueue
 
         $endpoint = 'https://api.telegram.org/bot'.$token.'/sendMessage';
 
-        // Host is fixed to api.telegram.org (not user-configured); still refuse redirects.
         $response = Http::timeout(5)
             ->connectTimeout(3)
-            ->withoutRedirecting()
             ->withHeaders(['User-Agent' => 'Externa-Notifiers/1.0'])
             ->post($endpoint, [
                 'chat_id' => $chatId,

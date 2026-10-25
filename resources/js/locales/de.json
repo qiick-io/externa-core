@@ -183,15 +183,7 @@
             "permissions": "Berechtigungen",
             "apiKeys": "API-Schlüssel",
             "reportBug": "Bug melden",
-            "performance": "Leistung",
-            "general": "Allgemein",
-            "localization": "Lokalisierung",
-            "authSecurity": "Authentifizierung & Sicherheit",
-            "content": "Inhalt",
-            "filesMedia": "Dateien & Medien",
-            "api": "API",
-            "integrations": "Integrationen",
-            "sidebar": "Seitenleiste"
+            "performance": "Leistung"
         },
         "profile": {
             "breadcrumb": "Profileinstellungen",
@@ -201,13 +193,6 @@
             "unverified": "Ihre E-Mail-Adresse ist nicht bestätigt.",
             "resend": "Hier klicken, um die Bestätigungs-E-Mail erneut zu senden.",
             "linkSent": "Ein neuer Bestätigungslink wurde an Ihre E-Mail-Adresse gesendet."
-        },
-        "apiKeys": {
-            "collectionSlugs": "Collection-Allowlist (optional, Slugs kommagetrennt)",
-            "collectionSlugsHelp": "Leer lassen, um alle Collections der Rolle zuzulassen. Scopes schränken nur ein.",
-            "readOnly": "Nur Lesen (Create, Update und Delete blockieren)",
-            "readOnlyBadge": "nur lesen",
-            "scopes": "Scopes"
         },
         "notificationSounds": {
             "title": "Benachrichtigungstöne",
@@ -250,7 +235,7 @@
             "breadcrumb": "Projekteinstellungen",
             "head": "Projekteinstellungen",
             "generalTitle": "Allgemein",
-            "generalDescription": "Projektidentität und Support-Links",
+            "generalDescription": "Projektidentität und Standardsprache",
             "name": "Projektname",
             "description": "Projektbeschreibung",
             "url": "Projekt-URL",
@@ -417,33 +402,7 @@
             "publicApiAllowedOrigins": "Erlaubte Origins",
             "publicApiAllowedOriginsHint": "Eine Origin pro Zeile (z. B. https://www.example.com). Leer = alle Origins erlaubt.",
             "publicApiDescription": "CORS / Origin-Allowlist für die Public CMS API.",
-            "publicApiTitle": "Public CMS API",
-            "localization": {
-                "breadcrumb": "Lokalisierungseinstellungen",
-                "head": "Lokalisierungseinstellungen",
-                "title": "Admin-Sprache",
-                "description": "Standardsprache der Admin-Oberfläche"
-            },
-            "securityNav": {
-                "breadcrumb": "Authentifizierung & Sicherheit",
-                "head": "Authentifizierung & Sicherheit"
-            },
-            "contentNav": {
-                "breadcrumb": "Inhaltseinstellungen",
-                "head": "Inhaltseinstellungen"
-            },
-            "filesNav": {
-                "breadcrumb": "Dateien & Medien",
-                "head": "Dateien & Medien"
-            },
-            "apiNav": {
-                "breadcrumb": "API-Einstellungen",
-                "head": "API-Einstellungen"
-            },
-            "integrationsNav": {
-                "breadcrumb": "Integrationen",
-                "head": "Integrationen"
-            }
+            "publicApiTitle": "Public CMS API"
         },
         "appearance": {
             "breadcrumb": "Darstellungseinstellungen",
@@ -466,11 +425,7 @@
             "defaultAppearance": "Standard-Darstellung",
             "light": "Hell",
             "dark": "Dunkel",
-            "system": "System",
-            "sidebar": {
-                "breadcrumb": "Seitenleisten-Einstellungen",
-                "head": "Seitenleisten-Einstellungen"
-            }
+            "system": "System"
         },
         "deleteUser": {
             "title": "Konto löschen",
@@ -540,13 +495,7 @@
             "statusDescription": "Laufzeitumgebung und Cache-Backend.",
             "statusTitle": "Status",
             "ttlSeconds": "TTL (Sekunden)",
-            "yes": "Ja",
-            "cacheHits": "Treffer (aktuelle Epoche)",
-            "cacheMisses": "Fehltreffer (aktuelle Epoche)",
-            "lastFlushedAt": "Zuletzt geleert",
-            "lastFlushedBy": "Geleert von",
-            "neverFlushed": "Nie",
-            "unknownActor": "—"
+            "yes": "Ja"
         }
     },
     "collections": {
@@ -722,10 +671,7 @@
             "pickDateTime": "Datum & Uhrzeit wählen",
             "clearField": "Löschen",
             "save": "Zeitplan speichern",
-            "cancel": "Zeitplan abbrechen",
-            "failureTitle": "Geplante Veröffentlichung fehlgeschlagen",
-            "failureUnpublishKept": "Eine gekoppelte Rücknahme-Zeit bleibt gesetzt und läuft, sofern du sie nicht löschst.",
-            "failedBadge": "Veröffentlichung fehlgeschlagen"
+            "cancel": "Zeitplan abbrechen"
         },
         "itemChat": {
             "title": "Chat",
@@ -1053,9 +999,7 @@
             "relational": "Relational",
             "other": "Sonstiges",
             "groups": "Gruppen"
-        },
-        "translatableDescription": "Wenn aktiviert, geben Redakteure einen eigenen Wert je Sprache ein (z. B. Englisch und Italienisch) statt eines gemeinsamen Werts.",
-        "translatableLockedHint": "Gesperrt, weil dieses Feld bereits Inhalte hat. Eine Änderung von Übersetzbar würde vorhandene Werte nicht konvertieren — legen Sie ein neues Feld an und migrieren Sie die Inhalte."
+        }
     },
     "ai": {
         "drawer": {
@@ -1128,11 +1072,11 @@
             },
             "import-directus": {
                 "title": "Aus Directus-URL importieren",
-                "description": "Directus-Items-JSON → Collection (zuerst dry-run)"
+                "description": "Directus-Items-JSON \u2192 Collection (zuerst dry-run)"
             },
             "import-wordpress": {
                 "title": "Aus WordPress REST importieren",
-                "description": "WP-Posts-JSON → Collection (rendered entpacken)"
+                "description": "WP-Posts-JSON \u2192 Collection (rendered entpacken)"
             },
             "import-dry-run": {
                 "title": "Import-Vorschau (Dry-Run)",

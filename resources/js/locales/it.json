@@ -183,15 +183,7 @@
             "roles": "Ruoli",
             "permissions": "Permessi",
             "apiKeys": "Chiavi API",
-            "reportBug": "Segnala un Bug",
-            "general": "Generale",
-            "localization": "Localizzazione",
-            "authSecurity": "Autenticazione e sicurezza",
-            "content": "Contenuti",
-            "filesMedia": "File e media",
-            "api": "API",
-            "integrations": "Integrazioni",
-            "sidebar": "Barra laterale"
+            "reportBug": "Segnala un Bug"
         },
         "profile": {
             "breadcrumb": "Impostazioni profilo",
@@ -201,13 +193,6 @@
             "unverified": "Il tuo indirizzo email non è verificato.",
             "resend": "Clicca qui per reinviare l'email di verifica.",
             "linkSent": "Un nuovo link di verifica è stato inviato al tuo indirizzo email."
-        },
-        "apiKeys": {
-            "collectionSlugs": "Allowlist collezioni (opzionale, slug separati da virgola)",
-            "collectionSlugsHelp": "Lascia vuoto per consentire ogni collezione a cui il ruolo ha accesso. Gli scope restringono soltanto.",
-            "readOnly": "Sola lettura (blocca create, update e delete)",
-            "readOnlyBadge": "sola lettura",
-            "scopes": "Scope"
         },
         "notificationSounds": {
             "title": "Suoni di notifica",
@@ -250,7 +235,7 @@
             "breadcrumb": "Impostazioni progetto",
             "head": "Impostazioni progetto",
             "generalTitle": "Generale",
-            "generalDescription": "Identità del progetto e link di supporto",
+            "generalDescription": "Identità del progetto e lingua predefinita",
             "name": "Nome progetto",
             "description": "Descrizione progetto",
             "url": "URL progetto",
@@ -417,32 +402,6 @@
                 "apiKeys": "API Keys",
                 "permissions": "Permessi",
                 "settings": "Impostazioni"
-            },
-            "localization": {
-                "breadcrumb": "Impostazioni di localizzazione",
-                "head": "Impostazioni di localizzazione",
-                "title": "Lingua admin",
-                "description": "Lingua predefinita dell’interfaccia admin"
-            },
-            "securityNav": {
-                "breadcrumb": "Autenticazione e sicurezza",
-                "head": "Autenticazione e sicurezza"
-            },
-            "contentNav": {
-                "breadcrumb": "Impostazioni contenuti",
-                "head": "Impostazioni contenuti"
-            },
-            "filesNav": {
-                "breadcrumb": "File e media",
-                "head": "File e media"
-            },
-            "apiNav": {
-                "breadcrumb": "Impostazioni API",
-                "head": "Impostazioni API"
-            },
-            "integrationsNav": {
-                "breadcrumb": "Integrazioni",
-                "head": "Integrazioni"
             }
         },
         "appearance": {
@@ -466,11 +425,7 @@
             "defaultAppearance": "Aspetto predefinito",
             "light": "Chiaro",
             "dark": "Scuro",
-            "system": "Sistema",
-            "sidebar": {
-                "breadcrumb": "Impostazioni barra laterale",
-                "head": "Impostazioni barra laterale"
-            }
+            "system": "Sistema"
         },
         "performance": {
             "breadcrumb": "Impostazioni performance",
@@ -513,13 +468,7 @@
             "flushDashboardMetricsTitle": "Metriche dashboard",
             "flushDashboardMetricsDescription": "Elimina le chiavi cache delle metriche dashboard così la visita successiva le ricalcola.",
             "flushDashboardMetricsButton": "Svuota metriche dashboard",
-            "flushing": "Svuotamento…",
-            "cacheHits": "Hit (epoca corrente)",
-            "cacheMisses": "Miss (epoca corrente)",
-            "lastFlushedAt": "Ultimo flush",
-            "lastFlushedBy": "Flush eseguito da",
-            "neverFlushed": "Mai",
-            "unknownActor": "—"
+            "flushing": "Svuotamento…"
         },
         "deleteUser": {
             "title": "Elimina account",
@@ -722,10 +671,7 @@
             "pickDateTime": "Scegli data e ora",
             "clearField": "Cancella",
             "save": "Salva programmazione",
-            "cancel": "Annulla programmazione",
-            "failureTitle": "Pubblicazione programmata non riuscita",
-            "failureUnpublishKept": "L'orario di rimozione associato resta impostato e verrà eseguito se non lo cancelli.",
-            "failedBadge": "Pubblicazione fallita"
+            "cancel": "Annulla programmazione"
         },
         "itemChat": {
             "title": "Chat",
@@ -1053,9 +999,7 @@
             "relational": "Relazionali",
             "other": "Altro",
             "groups": "Gruppi"
-        },
-        "translatableDescription": "Se attivo, gli editor inseriscono un valore separato per ogni lingua (es. inglese e italiano) invece di un unico valore condiviso.",
-        "translatableLockedHint": "Bloccato perché questo campo ha già dei contenuti. Cambiare Translatable non convertirebbe i valori esistenti — crea un nuovo campo e migra i contenuti."
+        }
     },
     "ai": {
         "drawer": {
@@ -1128,11 +1072,11 @@
             },
             "import-directus": {
                 "title": "Importa da URL Directus",
-                "description": "JSON items Directus → collection (prima dry-run)"
+                "description": "JSON items Directus \u2192 collection (prima dry-run)"
             },
             "import-wordpress": {
                 "title": "Importa da WordPress REST",
-                "description": "JSON post WP → collection (unwrap rendered)"
+                "description": "JSON post WP \u2192 collection (unwrap rendered)"
             },
             "import-dry-run": {
                 "title": "Anteprima import (dry-run)",

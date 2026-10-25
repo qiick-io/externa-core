@@ -4,23 +4,21 @@ namespace App\Http\Requests\Collections;
 
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
-use App\Http\Requests\Collections\Concerns\ValidatesCollectionFieldSettingsTrait;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Collections\Concerns\ValidatesCollectionFieldSettings;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Models\Collection;
 use App\Models\CollectionField;
-use App\Services\Collections\CollectionFieldStorageShapeService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Validation\Validator;
 
 /**
  * Validates updating a collection field definition.
  */
 class UpdateFieldRequest extends FormRequest
 {
-    use AuthorizesWithPermissionTrait;
-    use ValidatesCollectionFieldSettingsTrait;
+    use AuthorizesWithPermission;
+    use ValidatesCollectionFieldSettings;
 
     /**
      * Authorization is enforced by collection route middleware.
@@ -99,29 +97,5 @@ class UpdateFieldRequest extends FormRequest
                 FieldTypeEnum::tryFrom((string) $this->input('type')) ?? $field->type,
             ),
         ];
-    }
-
-    /**
-     * Reject type / translatable storage-shape changes when the field already has content.
-     */
-    public function withValidator(Validator $validator): void
-    {
-        $validator->after(function (Validator $validator): void {
-            /** @var CollectionField $field */
-            $field = $this->route('field');
-            $storageShape = app(CollectionFieldStorageShapeService::class);
-
-            if (! $storageShape->hasStoredValues($field)) {
-                return;
-            }
-
-            if ($this->filled('type') && $storageShape->isTypeChange($field, $this->input('type'))) {
-                $validator->errors()->add('type', $storageShape->typeChangeBlockedMessage());
-            }
-
-            if ($this->has('translatable') && $storageShape->isTranslatableChange($field, $this->boolean('translatable'))) {
-                $validator->errors()->add('translatable', $storageShape->translatableChangeBlockedMessage());
-            }
-        });
     }
 }

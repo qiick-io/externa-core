@@ -1,54 +1,253 @@
-import { Form, Head } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
+import { Form, Head, router } from '@inertiajs/react';
+import { GripVertical, Lock } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import ProjectSettingsController from '@/actions/App/Http/Controllers/Settings/ProjectSettingsController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { ContentLocalesField } from '@/components/settings/content-locales-field';
+import { TransformPresetsField } from '@/components/settings/transform-presets-field';
+import { WebhookDeliveryStatus } from '@/components/settings/webhook-deliveries-panel';
 import { SettingsFormActions } from '@/components/settings-form-actions';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import type { ContentLocaleCatalogEntry } from '@/lib/content-locales-catalog';
+import { createSortableList } from '@/lib/create-sortable-list';
+import { cn } from '@/lib/utils';
 import { edit as editProject } from '@/routes/project';
-import type { BreadcrumbItem, ProjectSettingsForm } from '@/types';
-
-type GeneralProjectSettings = Pick<
+import type {
+    BreadcrumbItem,
+    ProjectRoleOption,
     ProjectSettingsForm,
-    | 'name'
-    | 'description'
-    | 'url'
-    | 'report_issue_url'
-    | 'report_bug_url'
-    | 'report_error_url'
->;
+    SidebarModuleSetting,
+    TransformPreset,
+    WebhookDeliverySummary,
+    WebhookEventCatalogEntry,
+} from '@/types';
 
 type Props = {
-    project: GeneralProjectSettings;
+    project: ProjectSettingsForm;
+    roles: ProjectRoleOption[];
+    availableLocales: Record<string, string>;
+    contentLocaleCatalog: ContentLocaleCatalogEntry[];
+    passwordPolicies: Array<'weak' | 'medium' | 'strong'>;
+    transformationOptions: string[];
+    transformFits: TransformPreset['fit'][];
+    transformFormats: TransformPreset['format'][];
+    webhookEvents: WebhookEventCatalogEntry[];
+    webhookDeliveries: WebhookDeliverySummary;
 };
 
-function buildFormState(project: GeneralProjectSettings) {
+/** Matches config('settings.project.sidebar_pinned_module_ids'). */
+const PINNED_SIDEBAR_MODULE_IDS = new Set(['ai']);
+
+function buildProjectFormState(project: ProjectSettingsForm) {
     return {
+        ...project,
         name: project.name ?? '',
         description: project.description ?? '',
         url: project.url ?? '',
+        default_user_role: project.default_user_role ?? '',
+        allowed_domains: (project.allowed_domains ?? []).join(', '),
+        public_api_allowed_origins: (
+            project.public_api_allowed_origins ?? []
+        ).join('\n'),
+        preset_transformations: project.preset_transformations ?? [],
         report_issue_url: project.report_issue_url ?? '',
         report_bug_url: project.report_bug_url ?? '',
         report_error_url: project.report_error_url ?? '',
+        webhook_url: project.webhook_url ?? '',
+        webhook_secret: '',
+        notifier_slack_webhook_url: project.notifier_slack_webhook_url ?? '',
+        notifier_telegram_bot_token: '',
+        notifier_telegram_chat_id: project.notifier_telegram_chat_id ?? '',
+        notifier_event_types: project.notifier_event_types ?? [],
+        oidc_enabled: project.oidc_enabled ?? false,
+        oidc_issuer: project.oidc_issuer ?? '',
+        oidc_client_id: project.oidc_client_id ?? '',
+        oidc_client_secret: '',
+        oidc_button_label: project.oidc_button_label ?? '',
+        oidc_jit_provisioning: project.oidc_jit_provisioning ?? false,
+        preview_url_default: project.preview_url_default ?? '',
+        revision_retention_count: project.revision_retention_count ?? null,
+        revision_retention_days: project.revision_retention_days ?? null,
+        files_max_upload_bytes: project.files_max_upload_bytes ?? null,
+        chat_max_upload_bytes: project.chat_max_upload_bytes ?? null,
+        sidebar_modules: pinSidebarModules(project.sidebar_modules),
+        allowed_transformations: project.allowed_transformations ?? [],
+        content_locales: project.content_locales ?? ['en', 'it'],
+        default_content_locale:
+            project.default_content_locale ??
+            project.content_locales?.[0] ??
+            'en',
+        fallback_content_locales: project.fallback_content_locales ??
+            project.content_locales ?? ['en', 'it'],
     };
 }
 
+function presetTransformErrors(
+    errors: Record<string, string | undefined>,
+): string | undefined {
+    if (errors.preset_transformations) {
+        return errors.preset_transformations;
+    }
+
+    const nested = Object.entries(errors)
+        .filter(([key]) => key.startsWith('preset_transformations'))
+        .map(([, message]) => message)
+        .filter((message): message is string => Boolean(message));
+
+    return nested.length > 0 ? nested.join(' ') : undefined;
+}
+
+function pinSidebarModules(
+    modules: SidebarModuleSetting[],
+): SidebarModuleSetting[] {
+    const pinned = [...PINNED_SIDEBAR_MODULE_IDS]
+        .map((id) => modules.find((module) => module.id === id))
+        .filter((module): module is SidebarModuleSetting => !!module);
+    const rest = modules.filter(
+        (module) => !PINNED_SIDEBAR_MODULE_IDS.has(module.id),
+    );
+
+    return [...pinned, ...rest];
+}
+
+function ModuleRowContent({
+    module,
+    label,
+    onToggle,
+    dragHandle,
+}: {
+    module: SidebarModuleSetting;
+    label: string;
+    onToggle: (enabled: boolean) => void;
+    dragHandle?: ReactNode;
+}) {
+    return (
+        <>
+            {dragHandle ?? (
+                <span
+                    className="flex size-4 items-center justify-center text-muted-foreground/40"
+                    aria-hidden
+                >
+                    <Lock className="size-3.5" />
+                </span>
+            )}
+            <Checkbox
+                id={`module-${module.id}`}
+                checked={module.enabled}
+                disabled={module.locked}
+                onCheckedChange={(checked) => onToggle(checked === true)}
+            />
+            <Label
+                htmlFor={`module-${module.id}`}
+                className={cn(
+                    'flex-1',
+                    module.locked && 'text-muted-foreground',
+                )}
+            >
+                {label}
+                {module.locked ? ' *' : ''}
+            </Label>
+        </>
+    );
+}
+
+function PinnedModuleRow({
+    module,
+    label,
+    onToggle,
+}: {
+    module: SidebarModuleSetting;
+    label: string;
+    onToggle: (enabled: boolean) => void;
+}) {
+    return (
+        <div className="flex items-center gap-3 rounded-md border bg-muted/30 px-3 py-2">
+            <ModuleRowContent
+                module={module}
+                label={label}
+                onToggle={onToggle}
+            />
+        </div>
+    );
+}
+
+function ModuleRow({
+    module,
+    label,
+    onToggle,
+}: {
+    module: SidebarModuleSetting;
+    label: string;
+    onToggle: (enabled: boolean) => void;
+}) {
+    return (
+        <div
+            data-id={module.id}
+            className="flex items-center gap-3 rounded-md border px-3 py-2"
+        >
+            <ModuleRowContent
+                module={module}
+                label={label}
+                onToggle={onToggle}
+                dragHandle={
+                    <button
+                        type="button"
+                        className="drag-handle cursor-grab touch-none text-muted-foreground hover:text-foreground"
+                        aria-label="Reorder"
+                    >
+                        <GripVertical className="size-4" />
+                    </button>
+                }
+            />
+        </div>
+    );
+}
+
 /**
- * General project settings (identity + reporting links).
+ * Project-level settings (general, sidebar, security, registration, files, reporting).
  */
-export default function ProjectSettingsPage({ project }: Props) {
+export default function ProjectSettingsPage({
+    project,
+    roles,
+    availableLocales,
+    contentLocaleCatalog,
+    passwordPolicies,
+    transformationOptions,
+    transformFits,
+    transformFormats,
+    webhookEvents,
+    webhookDeliveries,
+}: Props) {
     const { t } = useTranslation();
-    const initialForm = useMemo(() => buildFormState(project), [project]);
+    const initialForm = useMemo(
+        () => buildProjectFormState(project),
+        [project],
+    );
     const [form, setFormState] = useState(initialForm);
     const [isDirty, setIsDirty] = useState(false);
+    const [sendingTestWebhook, setSendingTestWebhook] = useState(false);
+    const [sendingTestSlackNotifier, setSendingTestSlackNotifier] =
+        useState(false);
+    const [sendingTestTelegramNotifier, setSendingTestTelegramNotifier] =
+        useState(false);
 
     const setForm: Dispatch<SetStateAction<typeof initialForm>> = (action) => {
         setIsDirty(true);
@@ -64,12 +263,147 @@ export default function ProjectSettingsPage({ project }: Props) {
         },
     });
 
+    const sortableModulesRef = useRef<HTMLDivElement>(null);
+    const formRef = useRef(form);
+    const setFormRef = useRef(setForm);
+
+    useEffect(() => {
+        formRef.current = form;
+        setFormRef.current = setForm;
+    });
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: t('settings.project.breadcrumb'),
             href: editProject(),
         },
     ];
+
+    const moduleLabel = (id: string): string => {
+        const key = `settings.project.modules.${id}`;
+        const translated = t(key);
+
+        return translated === key ? id : translated;
+    };
+
+    const pinnedModules = pinSidebarModules(form.sidebar_modules).filter(
+        (module) => PINNED_SIDEBAR_MODULE_IDS.has(module.id),
+    );
+    const sortableModules = form.sidebar_modules.filter(
+        (module) => !PINNED_SIDEBAR_MODULE_IDS.has(module.id),
+    );
+    const sortableModuleKey = sortableModules
+        .map((module) => module.id)
+        .join('\0');
+
+    useEffect(() => {
+        const el = sortableModulesRef.current;
+
+        if (!el || sortableModuleKey === '') {
+            return;
+        }
+
+        const sortable = createSortableList(el, {
+            handle: '.drag-handle',
+            onEnd: () => {
+                const order = sortable.toArray();
+                const prev = formRef.current.sidebar_modules
+                    .filter(
+                        (module) => !PINNED_SIDEBAR_MODULE_IDS.has(module.id),
+                    )
+                    .map((module) => module.id);
+
+                if (
+                    order.length === 0 ||
+                    order.join('\0') === prev.join('\0')
+                ) {
+                    return;
+                }
+
+                setFormRef.current((current) => {
+                    const byId = new Map(
+                        current.sidebar_modules.map((module) => [
+                            module.id,
+                            module,
+                        ]),
+                    );
+                    const reordered = order
+                        .map((id) => byId.get(id))
+                        .filter(
+                            (module): module is SidebarModuleSetting =>
+                                !!module,
+                        );
+
+                    return {
+                        ...current,
+                        sidebar_modules: pinSidebarModules([
+                            ...current.sidebar_modules.filter((module) =>
+                                PINNED_SIDEBAR_MODULE_IDS.has(module.id),
+                            ),
+                            ...reordered,
+                        ]),
+                    };
+                });
+            },
+        });
+
+        return () => sortable.destroy();
+        // ponytail: remount when set membership changes; order sync is onEnd-only
+    }, [sortableModuleKey]);
+
+    const toggleModule = (moduleId: string, enabled: boolean): void => {
+        setForm((current) => ({
+            ...current,
+            sidebar_modules: current.sidebar_modules.map((entry) =>
+                entry.id === moduleId ? { ...entry, enabled } : entry,
+            ),
+        }));
+    };
+
+    const generateWebhookSecret = (): void => {
+        const bytes = new Uint8Array(32);
+        crypto.getRandomValues(bytes);
+        const secret = Array.from(bytes, (byte) =>
+            byte.toString(16).padStart(2, '0'),
+        ).join('');
+        setForm((current) => ({ ...current, webhook_secret: secret }));
+    };
+
+    const sendTestWebhook = (): void => {
+        setSendingTestWebhook(true);
+        router.post(
+            ProjectSettingsController.sendTestWebhook.url(),
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setSendingTestWebhook(false),
+            },
+        );
+    };
+
+    const sendTestSlackNotifier = (): void => {
+        setSendingTestSlackNotifier(true);
+        router.post(
+            ProjectSettingsController.sendTestSlackNotifier.url(),
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setSendingTestSlackNotifier(false),
+            },
+        );
+    };
+
+    const sendTestTelegramNotifier = (): void => {
+        setSendingTestTelegramNotifier(true);
+        router.post(
+            ProjectSettingsController.sendTestTelegramNotifier.url(),
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setSendingTestTelegramNotifier(false),
+            },
+        );
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -86,6 +420,84 @@ export default function ProjectSettingsPage({ project }: Props) {
                 >
                     {({ processing, recentlySuccessful, errors }) => (
                         <>
+                            <input
+                                type="hidden"
+                                name="sidebar_modules"
+                                value={JSON.stringify(
+                                    pinSidebarModules(form.sidebar_modules),
+                                )}
+                            />
+                            <input
+                                type="hidden"
+                                name="allowed_transformations"
+                                value={JSON.stringify(
+                                    form.allowed_transformations,
+                                )}
+                            />
+                            <input
+                                type="hidden"
+                                name="preset_transformations"
+                                value={JSON.stringify(
+                                    form.preset_transformations,
+                                )}
+                            />
+                            <input
+                                type="hidden"
+                                name="registration_enabled"
+                                value={form.registration_enabled ? '1' : '0'}
+                            />
+                            <input
+                                type="hidden"
+                                name="email_verification_required"
+                                value={
+                                    form.email_verification_required ? '1' : '0'
+                                }
+                            />
+                            <input
+                                type="hidden"
+                                name="two_factor_required"
+                                value={form.two_factor_required ? '1' : '0'}
+                            />
+                            <input
+                                type="hidden"
+                                name="default_language"
+                                value={form.default_language}
+                            />
+                            <input
+                                type="hidden"
+                                name="content_locales"
+                                value={JSON.stringify(form.content_locales)}
+                            />
+                            <input
+                                type="hidden"
+                                name="default_content_locale"
+                                value={form.default_content_locale}
+                            />
+                            <input
+                                type="hidden"
+                                name="fallback_content_locales"
+                                value={JSON.stringify(
+                                    form.fallback_content_locales,
+                                )}
+                            />
+                            <input
+                                type="hidden"
+                                name="notifier_event_types"
+                                value={JSON.stringify(
+                                    form.notifier_event_types,
+                                )}
+                            />
+                            <input
+                                type="hidden"
+                                name="password_policy"
+                                value={form.password_policy}
+                            />
+                            <input
+                                type="hidden"
+                                name="default_user_role"
+                                value={form.default_user_role}
+                            />
+
                             <div className="space-y-6">
                                 <Heading
                                     variant="small"
@@ -150,6 +562,932 @@ export default function ProjectSettingsPage({ project }: Props) {
                                     />
                                     <InputError message={errors.url} />
                                 </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="default_language">
+                                        {t('settings.project.defaultLanguage')}
+                                    </Label>
+                                    <Select
+                                        value={form.default_language}
+                                        onValueChange={(value) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                default_language: value,
+                                            }))
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            id="default_language"
+                                            className="w-full"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Object.entries(
+                                                availableLocales,
+                                            ).map(([code, label]) => (
+                                                <SelectItem
+                                                    key={code}
+                                                    value={code}
+                                                >
+                                                    {label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError
+                                        message={errors.default_language}
+                                    />
+                                </div>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t(
+                                        'settings.project.contentLocalesTitle',
+                                    )}
+                                    description={t(
+                                        'settings.project.contentLocalesDescription',
+                                    )}
+                                />
+
+                                <ContentLocalesField
+                                    catalog={contentLocaleCatalog}
+                                    value={form.content_locales}
+                                    defaultLocale={form.default_content_locale}
+                                    onChange={(locales, defaultLocale) =>
+                                        setForm((current) => ({
+                                            ...current,
+                                            content_locales: locales,
+                                            default_content_locale:
+                                                defaultLocale,
+                                            fallback_content_locales: [
+                                                defaultLocale,
+                                                ...locales.filter(
+                                                    (code) =>
+                                                        code !== defaultLocale,
+                                                ),
+                                            ],
+                                        }))
+                                    }
+                                />
+                                <InputError
+                                    message={
+                                        errors.content_locales ??
+                                        errors.default_content_locale ??
+                                        errors['content_locales.0']
+                                    }
+                                />
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t('settings.project.sidebarTitle')}
+                                    description={t(
+                                        'settings.project.sidebarDescription',
+                                    )}
+                                />
+                                <div className="space-y-2">
+                                    {pinnedModules.map((module) => (
+                                        <PinnedModuleRow
+                                            key={module.id}
+                                            module={module}
+                                            label={moduleLabel(module.id)}
+                                            onToggle={(enabled) =>
+                                                toggleModule(module.id, enabled)
+                                            }
+                                        />
+                                    ))}
+                                    <div
+                                        ref={sortableModulesRef}
+                                        className="space-y-2"
+                                    >
+                                        {sortableModules.map((module) => (
+                                            <ModuleRow
+                                                key={module.id}
+                                                module={module}
+                                                label={moduleLabel(module.id)}
+                                                onToggle={(enabled) =>
+                                                    toggleModule(
+                                                        module.id,
+                                                        enabled,
+                                                    )
+                                                }
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                                <InputError message={errors.sidebar_modules} />
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t('settings.project.securityTitle')}
+                                    description={t(
+                                        'settings.project.securityDescription',
+                                    )}
+                                />
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="password_policy">
+                                        {t('settings.project.passwordPolicy')}
+                                    </Label>
+                                    <Select
+                                        value={form.password_policy}
+                                        onValueChange={(value) => {
+                                            if (
+                                                value === 'weak' ||
+                                                value === 'medium' ||
+                                                value === 'strong'
+                                            ) {
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    password_policy: value,
+                                                }));
+                                            }
+                                        }}
+                                    >
+                                        <SelectTrigger
+                                            id="password_policy"
+                                            className="w-full"
+                                        >
+                                            <SelectValue>
+                                                {t(
+                                                    `settings.project.passwordPolicies.${form.password_policy}.label`,
+                                                )}
+                                            </SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {passwordPolicies.map((policy) => (
+                                                <SelectItem
+                                                    key={policy}
+                                                    value={policy}
+                                                    textValue={t(
+                                                        `settings.project.passwordPolicies.${policy}.label`,
+                                                    )}
+                                                    className="items-start py-2"
+                                                >
+                                                    <span className="flex flex-col gap-0.5 text-left">
+                                                        <span>
+                                                            {t(
+                                                                `settings.project.passwordPolicies.${policy}.label`,
+                                                            )}
+                                                        </span>
+                                                        <span className="text-xs font-normal whitespace-normal text-muted-foreground">
+                                                            {t(
+                                                                `settings.project.passwordPolicies.${policy}.description`,
+                                                            )}
+                                                        </span>
+                                                    </span>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                                        {passwordPolicies.map((policy) => (
+                                            <li key={`hint-${policy}`}>
+                                                <span className="font-medium text-foreground">
+                                                    {t(
+                                                        `settings.project.passwordPolicies.${policy}.label`,
+                                                    )}
+                                                    :
+                                                </span>{' '}
+                                                {t(
+                                                    `settings.project.passwordPolicies.${policy}.description`,
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <InputError
+                                        message={errors.password_policy}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="login_max_attempts">
+                                        {t('settings.project.loginMaxAttempts')}
+                                    </Label>
+                                    <Input
+                                        id="login_max_attempts"
+                                        name="login_max_attempts"
+                                        type="number"
+                                        min={1}
+                                        max={100}
+                                        value={form.login_max_attempts}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                login_max_attempts: Number(
+                                                    event.target.value,
+                                                ),
+                                            }))
+                                        }
+                                    />
+                                    <InputError
+                                        message={errors.login_max_attempts}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-3">
+                                        <Checkbox
+                                            id="two_factor_required"
+                                            checked={form.two_factor_required}
+                                            onCheckedChange={(checked) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    two_factor_required:
+                                                        checked === true,
+                                                }))
+                                            }
+                                        />
+                                        <Label htmlFor="two_factor_required">
+                                            {t(
+                                                'settings.project.twoFactorRequired',
+                                            )}
+                                        </Label>
+                                    </div>
+                                    <p className="pl-7 text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.twoFactorRequiredHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={errors.two_factor_required}
+                                    />
+                                </div>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t('settings.project.oidcTitle')}
+                                    description={t(
+                                        'settings.project.oidcDescription',
+                                    )}
+                                />
+
+                                <input
+                                    type="hidden"
+                                    name="oidc_enabled"
+                                    value={form.oidc_enabled ? '1' : '0'}
+                                />
+                                <input
+                                    type="hidden"
+                                    name="oidc_jit_provisioning"
+                                    value={
+                                        form.oidc_jit_provisioning ? '1' : '0'
+                                    }
+                                />
+
+                                <div className="flex items-center gap-3">
+                                    <Checkbox
+                                        id="oidc_enabled"
+                                        checked={form.oidc_enabled}
+                                        onCheckedChange={(checked) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                oidc_enabled: checked === true,
+                                            }))
+                                        }
+                                    />
+                                    <Label htmlFor="oidc_enabled">
+                                        {t('settings.project.oidcEnabled')}
+                                    </Label>
+                                </div>
+                                <InputError message={errors.oidc_enabled} />
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="oidc_issuer">
+                                        {t('settings.project.oidcIssuer')}
+                                    </Label>
+                                    <Input
+                                        id="oidc_issuer"
+                                        name="oidc_issuer"
+                                        type="url"
+                                        placeholder="https://idp.example.com/realms/externa"
+                                        value={form.oidc_issuer}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                oidc_issuer: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {t('settings.project.oidcIssuerHint')}
+                                    </p>
+                                    <InputError message={errors.oidc_issuer} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="oidc_client_id">
+                                        {t('settings.project.oidcClientId')}
+                                    </Label>
+                                    <Input
+                                        id="oidc_client_id"
+                                        name="oidc_client_id"
+                                        value={form.oidc_client_id}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                oidc_client_id:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                    />
+                                    <InputError
+                                        message={errors.oidc_client_id}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="oidc_client_secret">
+                                        {t('settings.project.oidcClientSecret')}
+                                    </Label>
+                                    <Input
+                                        id="oidc_client_secret"
+                                        name="oidc_client_secret"
+                                        type="password"
+                                        autoComplete="new-password"
+                                        value={form.oidc_client_secret}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                oidc_client_secret:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder={
+                                            project.oidc_client_secret_configured
+                                                ? '••••••••'
+                                                : undefined
+                                        }
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {project.oidc_client_secret_configured
+                                            ? t(
+                                                  'settings.project.oidcSecretConfiguredHint',
+                                              )
+                                            : t(
+                                                  'settings.project.oidcSecretEmptyHint',
+                                              )}
+                                    </p>
+                                    <InputError
+                                        message={errors.oidc_client_secret}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="oidc_button_label">
+                                        {t('settings.project.oidcButtonLabel')}
+                                    </Label>
+                                    <Input
+                                        id="oidc_button_label"
+                                        name="oidc_button_label"
+                                        value={form.oidc_button_label}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                oidc_button_label:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder={t(
+                                            'settings.project.oidcButtonLabelPlaceholder',
+                                        )}
+                                    />
+                                    <InputError
+                                        message={errors.oidc_button_label}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-3">
+                                        <Checkbox
+                                            id="oidc_jit_provisioning"
+                                            checked={form.oidc_jit_provisioning}
+                                            onCheckedChange={(checked) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    oidc_jit_provisioning:
+                                                        checked === true,
+                                                }))
+                                            }
+                                        />
+                                        <Label htmlFor="oidc_jit_provisioning">
+                                            {t(
+                                                'settings.project.oidcJitProvisioning',
+                                            )}
+                                        </Label>
+                                    </div>
+                                    <p className="pl-7 text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.oidcJitProvisioningHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={errors.oidc_jit_provisioning}
+                                    />
+                                </div>
+
+                                <p className="text-sm text-muted-foreground">
+                                    {t('settings.project.oidcRedirectHint', {
+                                        url:
+                                            typeof window !== 'undefined'
+                                                ? `${window.location.origin}/auth/oidc/callback`
+                                                : '/auth/oidc/callback',
+                                    })}
+                                </p>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t(
+                                        'settings.project.registrationTitle',
+                                    )}
+                                    description={t(
+                                        'settings.project.registrationDescription',
+                                    )}
+                                />
+
+                                <div className="flex items-center gap-3">
+                                    <Checkbox
+                                        id="registration_enabled"
+                                        checked={form.registration_enabled}
+                                        onCheckedChange={(checked) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                registration_enabled:
+                                                    checked === true,
+                                            }))
+                                        }
+                                    />
+                                    <Label htmlFor="registration_enabled">
+                                        {t(
+                                            'settings.project.registrationEnabled',
+                                        )}
+                                    </Label>
+                                </div>
+                                <InputError
+                                    message={errors.registration_enabled}
+                                />
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="default_user_role">
+                                        {t('settings.project.defaultUserRole')}
+                                    </Label>
+                                    <Select
+                                        value={
+                                            form.default_user_role || '__none__'
+                                        }
+                                        onValueChange={(value) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                default_user_role:
+                                                    value === '__none__'
+                                                        ? ''
+                                                        : value,
+                                            }))
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            id="default_user_role"
+                                            className="w-full"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="__none__">
+                                                {t('settings.project.noRole')}
+                                            </SelectItem>
+                                            {roles.map((role) => (
+                                                <SelectItem
+                                                    key={role.id}
+                                                    value={role.name}
+                                                >
+                                                    {role.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError
+                                        message={errors.default_user_role}
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <Checkbox
+                                        id="email_verification_required"
+                                        checked={
+                                            form.email_verification_required
+                                        }
+                                        onCheckedChange={(checked) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                email_verification_required:
+                                                    checked === true,
+                                            }))
+                                        }
+                                    />
+                                    <Label htmlFor="email_verification_required">
+                                        {t(
+                                            'settings.project.emailVerificationRequired',
+                                        )}
+                                    </Label>
+                                </div>
+                                <InputError
+                                    message={errors.email_verification_required}
+                                />
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="allowed_domains">
+                                        {t('settings.project.allowedDomains')}
+                                    </Label>
+                                    <Textarea
+                                        id="allowed_domains"
+                                        name="allowed_domains"
+                                        value={form.allowed_domains}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                allowed_domains:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder="example.com, company.org"
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.allowedDomainsHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={errors.allowed_domains}
+                                    />
+                                </div>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t('settings.project.publicApiTitle')}
+                                    description={t(
+                                        'settings.project.publicApiDescription',
+                                    )}
+                                />
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="public_api_allowed_origins">
+                                        {t(
+                                            'settings.project.publicApiAllowedOrigins',
+                                        )}
+                                    </Label>
+                                    <Textarea
+                                        id="public_api_allowed_origins"
+                                        name="public_api_allowed_origins"
+                                        value={form.public_api_allowed_origins}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                public_api_allowed_origins:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder={
+                                            'https://www.example.com\nhttps://app.example.com'
+                                        }
+                                        rows={4}
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.publicApiAllowedOriginsHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={
+                                            errors.public_api_allowed_origins ??
+                                            errors[
+                                                'public_api_allowed_origins.0'
+                                            ]
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t(
+                                        'settings.project.revisionRetentionTitle',
+                                    )}
+                                    description={t(
+                                        'settings.project.revisionRetentionDescription',
+                                    )}
+                                />
+
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="revision_retention_count">
+                                            {t(
+                                                'settings.project.revisionRetentionCount',
+                                            )}
+                                        </Label>
+                                        <Input
+                                            id="revision_retention_count"
+                                            name="revision_retention_count"
+                                            type="number"
+                                            min={1}
+                                            max={10000}
+                                            value={
+                                                form.revision_retention_count ??
+                                                ''
+                                            }
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    revision_retention_count:
+                                                        event.target.value ===
+                                                        ''
+                                                            ? null
+                                                            : Number(
+                                                                  event.target
+                                                                      .value,
+                                                              ),
+                                                }))
+                                            }
+                                        />
+                                        <InputError
+                                            message={
+                                                errors.revision_retention_count
+                                            }
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="revision_retention_days">
+                                            {t(
+                                                'settings.project.revisionRetentionDays',
+                                            )}
+                                        </Label>
+                                        <Input
+                                            id="revision_retention_days"
+                                            name="revision_retention_days"
+                                            type="number"
+                                            min={1}
+                                            max={3650}
+                                            value={
+                                                form.revision_retention_days ??
+                                                ''
+                                            }
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    revision_retention_days:
+                                                        event.target.value ===
+                                                        ''
+                                                            ? null
+                                                            : Number(
+                                                                  event.target
+                                                                      .value,
+                                                              ),
+                                                }))
+                                            }
+                                        />
+                                        <InputError
+                                            message={
+                                                errors.revision_retention_days
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    {t(
+                                        'settings.project.revisionRetentionHint',
+                                    )}
+                                </p>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t(
+                                        'settings.project.uploadLimitsTitle',
+                                    )}
+                                    description={t(
+                                        'settings.project.uploadLimitsDescription',
+                                    )}
+                                />
+
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="files_max_upload_mb">
+                                            {t(
+                                                'settings.project.filesMaxUploadMb',
+                                            )}
+                                        </Label>
+                                        <Input
+                                            id="files_max_upload_mb"
+                                            type="number"
+                                            min={1}
+                                            value={
+                                                form.files_max_upload_bytes !=
+                                                null
+                                                    ? Math.round(
+                                                          form.files_max_upload_bytes /
+                                                              (1024 * 1024),
+                                                      )
+                                                    : ''
+                                            }
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    files_max_upload_bytes:
+                                                        event.target.value ===
+                                                        ''
+                                                            ? null
+                                                            : Math.max(
+                                                                  1,
+                                                                  Number(
+                                                                      event
+                                                                          .target
+                                                                          .value,
+                                                                  ),
+                                                              ) *
+                                                              1024 *
+                                                              1024,
+                                                }))
+                                            }
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name="files_max_upload_bytes"
+                                            value={
+                                                form.files_max_upload_bytes ??
+                                                ''
+                                            }
+                                        />
+                                        <InputError
+                                            message={
+                                                errors.files_max_upload_bytes
+                                            }
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="chat_max_upload_mb">
+                                            {t(
+                                                'settings.project.chatMaxUploadMb',
+                                            )}
+                                        </Label>
+                                        <Input
+                                            id="chat_max_upload_mb"
+                                            type="number"
+                                            min={1}
+                                            value={
+                                                form.chat_max_upload_bytes !=
+                                                null
+                                                    ? Math.round(
+                                                          form.chat_max_upload_bytes /
+                                                              (1024 * 1024),
+                                                      )
+                                                    : ''
+                                            }
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    chat_max_upload_bytes:
+                                                        event.target.value ===
+                                                        ''
+                                                            ? null
+                                                            : Math.max(
+                                                                  1,
+                                                                  Number(
+                                                                      event
+                                                                          .target
+                                                                          .value,
+                                                                  ),
+                                                              ) *
+                                                              1024 *
+                                                              1024,
+                                                }))
+                                            }
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name="chat_max_upload_bytes"
+                                            value={
+                                                form.chat_max_upload_bytes ?? ''
+                                            }
+                                        />
+                                        <InputError
+                                            message={
+                                                errors.chat_max_upload_bytes
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    {t('settings.project.uploadLimitsHint')}
+                                </p>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t('settings.project.filesTitle')}
+                                    description={t(
+                                        'settings.project.filesDescription',
+                                    )}
+                                />
+
+                                <div className="space-y-2">
+                                    <Label>
+                                        {t(
+                                            'settings.project.allowedTransformations',
+                                        )}
+                                    </Label>
+                                    {transformationOptions.map((option) => (
+                                        <div
+                                            key={option}
+                                            className="flex items-center gap-3"
+                                        >
+                                            <Checkbox
+                                                id={`transform-${option}`}
+                                                checked={form.allowed_transformations.includes(
+                                                    option,
+                                                )}
+                                                onCheckedChange={(checked) =>
+                                                    setForm((current) => {
+                                                        const next =
+                                                            checked === true
+                                                                ? [
+                                                                      ...current.allowed_transformations,
+                                                                      option,
+                                                                  ]
+                                                                : current.allowed_transformations.filter(
+                                                                      (entry) =>
+                                                                          entry !==
+                                                                          option,
+                                                                  );
+
+                                                        return {
+                                                            ...current,
+                                                            allowed_transformations:
+                                                                next,
+                                                        };
+                                                    })
+                                                }
+                                            />
+                                            <Label
+                                                htmlFor={`transform-${option}`}
+                                            >
+                                                {t(
+                                                    `settings.project.transformations.${option}`,
+                                                    {
+                                                        defaultValue: option,
+                                                    },
+                                                )}
+                                            </Label>
+                                        </div>
+                                    ))}
+                                    <InputError
+                                        message={errors.allowed_transformations}
+                                    />
+                                </div>
+
+                                <TransformPresetsField
+                                    presets={form.preset_transformations}
+                                    fits={transformFits}
+                                    formats={transformFormats}
+                                    error={presetTransformErrors(errors)}
+                                    onChange={(presets) =>
+                                        setForm((current) => ({
+                                            ...current,
+                                            preset_transformations: presets,
+                                        }))
+                                    }
+                                />
                             </div>
 
                             <Separator />
@@ -200,6 +1538,419 @@ export default function ProjectSettingsPage({ project }: Props) {
                                         <InputError message={errors[field]} />
                                     </div>
                                 ))}
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t('settings.project.webhooksTitle')}
+                                    description={t(
+                                        'settings.project.webhooksDescription',
+                                    )}
+                                />
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="webhook_url">
+                                        {t('settings.project.webhookUrl')}
+                                    </Label>
+                                    <Input
+                                        id="webhook_url"
+                                        name="webhook_url"
+                                        type="url"
+                                        autoComplete="off"
+                                        data-1p-ignore
+                                        data-lpignore="true"
+                                        value={form.webhook_url}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                webhook_url: event.target.value,
+                                            }))
+                                        }
+                                        placeholder="https://example.com/webhooks/externa"
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {t('settings.project.webhookUrlHint')}
+                                    </p>
+                                    <InputError message={errors.webhook_url} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="preview_url_default">
+                                        {t(
+                                            'settings.project.previewUrlDefault',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="preview_url_default"
+                                        name="preview_url_default"
+                                        type="url"
+                                        autoComplete="off"
+                                        data-1p-ignore
+                                        data-lpignore="true"
+                                        value={form.preview_url_default}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                preview_url_default:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder="https://example.com/preview/{{collection}}/{{id}}?token={{token}}"
+                                        data-test="project-preview-url-default"
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.previewUrlDefaultHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={errors.preview_url_default}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="webhook_secret">
+                                        {t('settings.project.webhookSecret')}
+                                    </Label>
+                                    <div className="flex flex-col gap-2 sm:flex-row">
+                                        <Input
+                                            id="webhook_secret"
+                                            name="webhook_secret"
+                                            type="password"
+                                            autoComplete="new-password"
+                                            value={form.webhook_secret}
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    webhook_secret:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                            placeholder={
+                                                project.webhook_secret_configured
+                                                    ? '••••••••'
+                                                    : undefined
+                                            }
+                                            className="sm:flex-1"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={generateWebhookSecret}
+                                        >
+                                            {t(
+                                                'settings.project.webhookSecretGenerate',
+                                            )}
+                                        </Button>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        {project.webhook_secret_configured
+                                            ? t(
+                                                  'settings.project.webhookSecretConfigured',
+                                              )
+                                            : null}{' '}
+                                        {t(
+                                            'settings.project.webhookSecretHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={errors.webhook_secret}
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        disabled={
+                                            sendingTestWebhook ||
+                                            !project.webhook_url ||
+                                            !project.webhook_secret_configured
+                                        }
+                                        onClick={sendTestWebhook}
+                                        data-test="project-webhook-test"
+                                    >
+                                        {t('settings.project.webhookSendTest')}
+                                    </Button>
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.webhookSendTestHint',
+                                        )}
+                                    </p>
+                                </div>
+
+                                <WebhookDeliveryStatus
+                                    deliveries={webhookDeliveries}
+                                />
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t('settings.project.notifiersTitle')}
+                                    description={t(
+                                        'settings.project.notifiersDescription',
+                                    )}
+                                />
+
+                                <div className="grid gap-3">
+                                    <div className="space-y-1">
+                                        <Label>
+                                            {t(
+                                                'settings.project.notifierEventTypes',
+                                            )}
+                                        </Label>
+                                        <p className="text-sm text-muted-foreground">
+                                            {t(
+                                                'settings.project.notifierEventTypesHint',
+                                            )}
+                                        </p>
+                                    </div>
+                                    <div
+                                        className="grid gap-2 sm:grid-cols-2"
+                                        data-test="project-notifier-event-types"
+                                    >
+                                        {webhookEvents
+                                            .filter(
+                                                (event) =>
+                                                    event.type !== 'ping',
+                                            )
+                                            .map((event) => {
+                                                const checked =
+                                                    form.notifier_event_types.includes(
+                                                        event.type,
+                                                    );
+
+                                                return (
+                                                    <label
+                                                        key={event.type}
+                                                        htmlFor={`notifier_event_${event.type}`}
+                                                        className="flex cursor-pointer items-start gap-3 rounded-md border border-border/60 p-3"
+                                                    >
+                                                        <Checkbox
+                                                            id={`notifier_event_${event.type}`}
+                                                            className="mt-0.5"
+                                                            checked={checked}
+                                                            onCheckedChange={(
+                                                                value,
+                                                            ) =>
+                                                                setForm(
+                                                                    (
+                                                                        current,
+                                                                    ) => {
+                                                                        const selected =
+                                                                            new Set(
+                                                                                current.notifier_event_types,
+                                                                            );
+
+                                                                        if (
+                                                                            value ===
+                                                                            true
+                                                                        ) {
+                                                                            selected.add(
+                                                                                event.type,
+                                                                            );
+                                                                        } else {
+                                                                            selected.delete(
+                                                                                event.type,
+                                                                            );
+                                                                        }
+
+                                                                        return {
+                                                                            ...current,
+                                                                            notifier_event_types:
+                                                                                Array.from(
+                                                                                    selected,
+                                                                                ),
+                                                                        };
+                                                                    },
+                                                                )
+                                                            }
+                                                        />
+                                                        <span className="min-w-0 space-y-0.5">
+                                                            <span className="block font-mono text-sm">
+                                                                {event.type}
+                                                            </span>
+                                                            <span className="block text-sm text-muted-foreground">
+                                                                {
+                                                                    event.description
+                                                                }
+                                                            </span>
+                                                        </span>
+                                                    </label>
+                                                );
+                                            })}
+                                    </div>
+                                    <InputError
+                                        message={
+                                            errors.notifier_event_types ??
+                                            errors['notifier_event_types.0']
+                                        }
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="notifier_slack_webhook_url">
+                                        {t(
+                                            'settings.project.notifierSlackWebhookUrl',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="notifier_slack_webhook_url"
+                                        name="notifier_slack_webhook_url"
+                                        type="url"
+                                        autoComplete="off"
+                                        data-1p-ignore
+                                        data-lpignore="true"
+                                        value={form.notifier_slack_webhook_url}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                notifier_slack_webhook_url:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder="https://hooks.slack.com/services/…"
+                                        data-test="project-notifier-slack-url"
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.notifierSlackWebhookUrlHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={
+                                            errors.notifier_slack_webhook_url
+                                        }
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        disabled={
+                                            sendingTestSlackNotifier ||
+                                            !project.notifier_slack_webhook_url
+                                        }
+                                        onClick={sendTestSlackNotifier}
+                                        data-test="project-slack-notifier-test"
+                                    >
+                                        {t(
+                                            'settings.project.notifierSlackSendTest',
+                                        )}
+                                    </Button>
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.notifierSlackSendTestHint',
+                                        )}
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="notifier_telegram_chat_id">
+                                        {t(
+                                            'settings.project.notifierTelegramChatId',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="notifier_telegram_chat_id"
+                                        name="notifier_telegram_chat_id"
+                                        autoComplete="off"
+                                        data-1p-ignore
+                                        data-lpignore="true"
+                                        value={form.notifier_telegram_chat_id}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                notifier_telegram_chat_id:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder="-1001234567890"
+                                        data-test="project-notifier-telegram-chat-id"
+                                    />
+                                    <InputError
+                                        message={
+                                            errors.notifier_telegram_chat_id
+                                        }
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="notifier_telegram_bot_token">
+                                        {t(
+                                            'settings.project.notifierTelegramBotToken',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="notifier_telegram_bot_token"
+                                        name="notifier_telegram_bot_token"
+                                        type="password"
+                                        autoComplete="new-password"
+                                        value={form.notifier_telegram_bot_token}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                notifier_telegram_bot_token:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder={
+                                            project.notifier_telegram_bot_token_configured
+                                                ? '••••••••'
+                                                : undefined
+                                        }
+                                        data-test="project-notifier-telegram-token"
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {project.notifier_telegram_bot_token_configured
+                                            ? t(
+                                                  'settings.project.notifierTelegramBotTokenConfigured',
+                                              )
+                                            : null}{' '}
+                                        {t(
+                                            'settings.project.notifierTelegramBotTokenHint',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={
+                                            errors.notifier_telegram_bot_token
+                                        }
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        disabled={
+                                            sendingTestTelegramNotifier ||
+                                            !project.notifier_telegram_chat_id ||
+                                            !project.notifier_telegram_bot_token_configured
+                                        }
+                                        onClick={sendTestTelegramNotifier}
+                                        data-test="project-telegram-notifier-test"
+                                    >
+                                        {t(
+                                            'settings.project.notifierTelegramSendTest',
+                                        )}
+                                    </Button>
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.notifierTelegramSendTestHint',
+                                        )}
+                                    </p>
+                                </div>
+
+                                <p className="text-sm text-muted-foreground">
+                                    {t('settings.project.notifiersPrivacyNote')}
+                                </p>
                             </div>
 
                             <SettingsFormActions

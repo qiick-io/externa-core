@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Traits\LogsApplicationActivityTrait;
+use App\Concerns\LogsApplicationActivity;
 use Database\Factories\UserGroupFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +16,7 @@ use Spatie\Permission\Models\Role;
 class UserGroup extends Model
 {
     /** @use HasFactory<UserGroupFactory> */
-    use HasFactory, LogsApplicationActivityTrait, SoftDeletes;
+    use HasFactory, LogsApplicationActivity, SoftDeletes;
 
     /**
      * @var list<string>

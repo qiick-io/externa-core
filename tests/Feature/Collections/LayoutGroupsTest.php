@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\CollectionPermissionActionEnum;
+use App\Enums\CollectionPermissionAction;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
@@ -348,7 +348,7 @@ test('public collection schema omits layout group fields', function () {
         'settings' => ['layout_width' => 'full'],
     ]);
 
-    grantPublicActions($collection, [CollectionPermissionActionEnum::Read]);
+    grantPublicActions($collection, [CollectionPermissionAction::Read]);
 
     $response = $this->getJson('/api/v1/collections/'.$collection->slug);
     $response->assertOk();

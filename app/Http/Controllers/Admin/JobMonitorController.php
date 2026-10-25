@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\AuthorizesWithPermission;
 use App\Services\Authorization\EffectivePermissionResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +18,7 @@ use Inertia\Response;
  */
 class JobMonitorController extends Controller
 {
-    use AuthorizesWithPermissionTrait;
+    use AuthorizesWithPermission;
 
     public function index(Request $request): Response
     {

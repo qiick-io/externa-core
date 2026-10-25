@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Notifications\Concerns\BroadcastsWithDatabaseTrait;
+use App\Notifications\Concerns\BroadcastsWithDatabase;
 use Illuminate\Notifications\Notification;
 
 /**
@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notification;
  */
 class ItemApprovalNotification extends Notification
 {
-    use BroadcastsWithDatabaseTrait;
+    use BroadcastsWithDatabase;
 
     public function __construct(
         public readonly string $action,
