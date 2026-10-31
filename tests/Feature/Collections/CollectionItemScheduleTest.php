@@ -16,6 +16,7 @@ use App\Services\Settings\ProjectSettings;
 use App\Services\Settings\SettingsRepository;
 use App\Services\Webhooks\OutboundWebhookCatalog;
 use Database\Seeders\PermissionSeeder;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 
@@ -309,4 +310,59 @@ test('reschedule clears previous schedule failure state', function () {
     expect($item->publish_at)->not->toBeNull()
         ->and($item->schedule_error)->toBeNull()
         ->and($item->schedule_failed_at)->toBeNull();
+});
+
+test('promote rolls back synced values when draft clear fails mid-flight', function () {
+    $collection = Collection::factory()->create(['versioning' => true]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    $item = $collection->items()->create([]);
+    $writer = app(CollectionItemValuesWriter::class);
+    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer->sync($item, $collection, $normalizer->normalize($collection, ['title' => 'live'], true));
+
+    $item->draft_data = ['title' => 'soon'];
+    $item->publish_at = now()->subMinute();
+    $item->save();
+
+    $realWriter = app(CollectionItemValuesWriter::class);
+    $this->mock(CollectionItemValuesWriter::class, function ($mock) use ($realWriter): void {
+        $mock->shouldReceive('sync')->once()->andReturnUsing(
+            function (...$args) use ($realWriter): void {
+                $realWriter->sync(...$args);
+                throw new RuntimeException('simulated post-sync failure');
+            },
+        );
+    });
+
+    expect(fn () => app(CollectionItemPublisher::class)->promote(
+        $item->fresh(),
+        $collection,
+        scheduled: true,
+    ))->toThrow(RuntimeException::class, 'simulated post-sync failure');
+
+    $item->refresh();
+    expect($item->draft_data)->toBe(['title' => 'soon'])
+        ->and(app(CollectionItemValuesAssembler::class)->assemble($item)['title'])->toBe('live');
+});
+
+test('schedule definitions prevent overlapping multi-server runs', function () {
+    $schedule = app(Schedule::class);
+    $commands = collect($schedule->events())
+        ->map(fn ($event) => [
+            'command' => $event->command ?? $event->description,
+            'withoutOverlapping' => $event->withoutOverlapping,
+            'onOneServer' => $event->onOneServer,
+        ]);
+
+    foreach (['collections:process-schedules', 'ai:run-sync-sources'] as $needle) {
+        $match = $commands->first(fn (array $row): bool => is_string($row['command']) && str_contains($row['command'], $needle));
+        expect($match)->not->toBeNull("missing schedule for {$needle}")
+            ->and($match['withoutOverlapping'])->toBeTrue()
+            ->and($match['onOneServer'])->toBeTrue();
+    }
 });
