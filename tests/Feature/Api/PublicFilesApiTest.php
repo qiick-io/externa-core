@@ -4,7 +4,6 @@ use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\FilePermissionActionEnum;
 use App\Enums\FileTypeEnum;
-use App\Enums\RoleEnum;
 use App\Jobs\WarmFileThumbnailJob;
 use App\Models\ApiKey;
 use App\Models\Collection;
@@ -28,19 +27,6 @@ beforeEach(function (): void {
     $this->seed(RoleSeeder::class);
     Storage::fake('assets');
 });
-
-function filesPublicRole(): Role
-{
-    return Role::query()->where('name', RoleEnum::Public->value)->firstOrFail();
-}
-
-/**
- * @param  list<FilePermissionActionEnum|string>  $actions
- */
-function grantPublicFileActions(array $actions): void
-{
-    grantFileActions(filesPublicRole(), $actions);
-}
 
 /**
  * @return array{role: Role, plain: string, key: ApiKey}
