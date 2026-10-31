@@ -14,7 +14,7 @@
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",
-        "lint:check": "eslint .",
+        "lint:check": "eslint . --max-warnings=0",
         "types:check": "tsc --noEmit",
         "prepare": "node --input-type=commonjs -e \"const fs=require('fs'); if (fs.existsSync('.git')) { require('child_process').execSync('lefthook install', {stdio:'inherit'}) }\""
     },

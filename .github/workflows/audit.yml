@@ -5,27 +5,33 @@ on:
     branches:
       - develop
       - main
-      - master
   pull_request:
     branches:
       - develop
       - main
-      - master
   schedule:
     - cron: '0 6 * * 1'
   workflow_dispatch:
 
-# Policy (beta.3 / #32): fail on high+critical for Composer and production npm deps.
-# Low/medium Composer advisories ignored; npm uses --audit-level=high.
-# Before GA (#24): keep blocking (do not add continue-on-error). Never run audit fix --force in CI.
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Policy (#32 / #289): PR/push gates fail on high+critical for Composer (ignore low/medium)
+# and production npm deps. Weekly schedule also runs a non-blocking full audit
+# (Composer all severities + npm including dev).
 jobs:
   composer-audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           tools: composer:v2
@@ -38,13 +44,41 @@ jobs:
 
   npm-audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
+          cache: npm
 
       - name: npm audit (production, high+)
         run: npm audit --omit=dev --audit-level=high
+
+  audit-full:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+
+      - name: Setup Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Composer audit (all severities)
+        run: composer audit --locked
+
+      - name: npm audit (including dev)
+        run: npm audit --audit-level=moderate

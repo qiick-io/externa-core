@@ -10,6 +10,9 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ## [Unreleased]
 
 
+### Changed
+- Harden CI: parallel Pest, shared Vite artifact, caches, concurrency/timeouts, SHA-pinned actions, Dependabot, hard browser gate (#289).
+
 ### Security
 - Bump production npm deps for `follow-redirects` / `qs` audit findings (#341).
 ### Fixed
