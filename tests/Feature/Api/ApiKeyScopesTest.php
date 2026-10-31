@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ApiKeyFilesScopeEnum;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\FilePermissionActionEnum;
@@ -853,4 +854,134 @@ it('allows file writes for an unscoped key when the role grants them', function 
 
     $asKey()->deleteJson("/api/v1/files/{$file->id}")->assertNoContent();
     expect(File::query()->find($file->id))->toBeNull();
+});
+
+it('files_scope none forbids Files API and returns bare ids on includes', function (): void {
+    Storage::fake('assets');
+
+    $posts = makePostsCollection();
+    CollectionField::factory()->create([
+        'collection_id' => $posts->id,
+        'name' => 'cover',
+        'type' => FieldTypeEnum::Image,
+    ]);
+
+    $auth = makeApiKeyForRole();
+    grantFileActions($auth['role'], [
+        FilePermissionActionEnum::Read,
+        FilePermissionActionEnum::Create,
+    ]);
+    grantRoleActions($auth['role'], $posts, [CollectionPermissionActionEnum::Read]);
+    $auth['key']->forceFill([
+        'collection_slugs' => ['posts'],
+        'files_scope' => ApiKeyFilesScopeEnum::None,
+    ])->save();
+
+    $file = makeStoredFile('scoped-none.jpg');
+    $asKey = fn () => $this->withToken($auth['plain']);
+
+    $asKey()->getJson('/api/v1/files')->assertForbidden();
+    $asKey()->getJson("/api/v1/files/{$file->id}")->assertForbidden();
+    $asKey()->get("/api/v1/files/{$file->id}/content")->assertForbidden();
+
+    $item = CollectionItem::factory()->create(['collection_id' => $posts->id]);
+    syncScopedItem($item, $posts, ['cover' => $file->id]);
+
+    $asKey()->getJson("/api/v1/collections/posts/items/{$item->id}?include=files")
+        ->assertOk()
+        ->assertJsonPath('data.data.cover', $file->id);
+});
+
+it('files_scope read allows reads but blocks writes', function (): void {
+    Storage::fake('assets');
+
+    $auth = makeApiKeyForRole();
+    grantFileActions($auth['role'], [
+        FilePermissionActionEnum::Read,
+        FilePermissionActionEnum::Create,
+        FilePermissionActionEnum::Update,
+        FilePermissionActionEnum::Delete,
+    ]);
+    $auth['key']->forceFill(['files_scope' => ApiKeyFilesScopeEnum::Read])->save();
+
+    $file = makeStoredFile('scoped-read.jpg');
+    $asKey = fn () => $this->withToken($auth['plain']);
+
+    $asKey()->getJson('/api/v1/files')->assertOk();
+    $asKey()->getJson("/api/v1/files/{$file->id}")->assertOk();
+
+    $asKey()->post('/api/v1/files', [
+        'file' => UploadedFile::fake()->image('blocked.png', 40, 30),
+    ], ['Accept' => 'application/json'])->assertForbidden();
+    $asKey()->patchJson("/api/v1/files/{$file->id}", ['title' => 'Nope'])->assertForbidden();
+    $asKey()->deleteJson("/api/v1/files/{$file->id}")->assertForbidden();
+});
+
+it('migrated keys default files_scope all keeps 1.3.0 file behaviour', function (): void {
+    Storage::fake('assets');
+    Queue::fake([WarmFileThumbnailJob::class]);
+
+    $auth = makeApiKeyForRole();
+    grantFileActions($auth['role'], [
+        FilePermissionActionEnum::Read,
+        FilePermissionActionEnum::Create,
+        FilePermissionActionEnum::Update,
+        FilePermissionActionEnum::Delete,
+    ]);
+    expect($auth['key']->fresh()->files_scope)->toBe(ApiKeyFilesScopeEnum::All);
+
+    $file = makeStoredFile('legacy-all.jpg');
+    $asKey = fn () => $this->withToken($auth['plain']);
+
+    $asKey()->getJson('/api/v1/files')->assertOk();
+    $asKey()->post('/api/v1/files', [
+        'file' => UploadedFile::fake()->image('upload.png', 40, 30),
+    ], ['Accept' => 'application/json'])->assertCreated();
+    $asKey()->patchJson("/api/v1/files/{$file->id}", ['title' => 'Hero'])->assertOk();
+});
+
+it('response cache factors include files_scope', function (): void {
+    $auth = makeApiKeyForRole();
+    $accessAll = new ApiAccess('api_key', $auth['role'], $auth['key']->fresh());
+    $factorsAll = $accessAll->responseCacheScopeFactors();
+
+    $auth['key']->forceFill(['files_scope' => ApiKeyFilesScopeEnum::None])->save();
+    $accessNone = new ApiAccess('api_key', $auth['role'], $auth['key']->fresh());
+    $factorsNone = $accessNone->responseCacheScopeFactors();
+
+    expect($factorsAll['api_key_scopes']['files_scope'])->toBe('all')
+        ->and($factorsNone['api_key_scopes']['files_scope'])->toBe('none')
+        ->and($factorsAll)->not->toBe($factorsNone);
+});
+
+it('files_scope none still allows GraphQL collection reads', function (): void {
+    $posts = makePostsCollection();
+    CollectionField::factory()->create([
+        'collection_id' => $posts->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    $auth = makeApiKeyForRole();
+    grantRoleActions($auth['role'], $posts, [CollectionPermissionActionEnum::Read]);
+    grantFileActions($auth['role'], [FilePermissionActionEnum::Read]);
+    $auth['key']->forceFill([
+        'collection_slugs' => ['posts'],
+        'files_scope' => ApiKeyFilesScopeEnum::None,
+    ])->save();
+
+    $item = CollectionItem::factory()->create(['collection_id' => $posts->id]);
+    syncScopedItem($item, $posts, ['title' => 'Scoped']);
+
+    $asKey = fn () => $this->withToken($auth['plain']);
+
+    $asKey()->getJson('/api/v1/files')->assertForbidden();
+
+    $gql = $asKey()->postJson('/api/graphql', [
+        'query' => 'query ($c: String!, $id: ID!) { item(collection: $c, id: $id) { id } }',
+        'variables' => ['c' => 'posts', 'id' => (string) $item->id],
+    ]);
+    $gql->assertOk();
+    expect($gql->json('data.item.id'))->toBe((string) $item->id)
+        ->and($gql->json('errors'))->toBeNull();
 });

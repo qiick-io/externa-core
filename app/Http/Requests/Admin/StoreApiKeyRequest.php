@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\ApiKeyFilesScopeEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
@@ -38,6 +39,7 @@ class StoreApiKeyRequest extends FormRequest
             'collection_slugs' => ['nullable', 'array'],
             'collection_slugs.*' => ['string', 'max:128', 'distinct'],
             'read_only' => ['sometimes', 'boolean'],
+            'files_scope' => ['sometimes', 'string', Rule::in(ApiKeyFilesScopeEnum::values())],
             'ip_allowlist' => ['nullable', 'array'],
             'ip_allowlist.*' => ['string', 'max:64'],
             'rate_limit_per_minute' => ['nullable', 'integer', 'min:1', 'max:10000'],
@@ -78,6 +80,18 @@ class StoreApiKeyRequest extends FormRequest
 
         if ($this->has('read_only')) {
             $this->merge(['read_only' => $this->boolean('read_only')]);
+        }
+
+        // Defaults: scoped keys → none; unscoped → all (or read when read_only).
+        if (! $this->filled('files_scope')) {
+            $slugs = $this->input('collection_slugs');
+            $scoped = is_array($slugs) && $slugs !== [];
+            $readOnly = $this->boolean('read_only');
+            $this->merge([
+                'files_scope' => $scoped
+                    ? ApiKeyFilesScopeEnum::None->value
+                    : ($readOnly ? ApiKeyFilesScopeEnum::Read->value : ApiKeyFilesScopeEnum::All->value),
+            ]);
         }
     }
 }

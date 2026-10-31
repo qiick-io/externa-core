@@ -21,8 +21,8 @@ import SettingsLayout from '@/layouts/settings/layout';
 import adminRoutes from '@/lib/admin-routes';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
-import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem, Paginated } from '@/types';
+import { edit as editProfile } from '@/routes/profile';
 
 type ApiKeyRow = {
     id: number;
@@ -33,6 +33,7 @@ type ApiKeyRow = {
     owner?: { id: number; name: string; email: string } | null;
     collection_slugs?: string[] | null;
     read_only?: boolean;
+    files_scope?: 'none' | 'read' | 'all';
     ip_allowlist?: string[] | null;
     rate_limit_per_minute?: number | null;
     expires_at?: string | null;
@@ -86,10 +87,28 @@ export default function AdminApiKeysIndex({
 
     const [ipText, setIpText] = useState('');
     const [collectionSlugsText, setCollectionSlugsText] = useState('');
+    const [filesScopeTouched, setFilesScopeTouched] = useState(false);
     const [pendingRevokeKeyId, setPendingRevokeKeyId] = useState<number | null>(
         null,
     );
     const [revoking, setRevoking] = useState(false);
+
+    const defaultFilesScope = (
+        slugsText: string,
+        readOnly: boolean,
+    ): 'none' | 'read' | 'all' => {
+        const scoped =
+            slugsText
+                .split(/[\s,]+/)
+                .map((s) => s.trim())
+                .filter(Boolean).length > 0;
+
+        if (scoped) {
+            return 'none';
+        }
+
+        return readOnly ? 'read' : 'all';
+    };
 
     const defaultOwnerId =
         currentUserId != null
@@ -104,6 +123,7 @@ export default function AdminApiKeysIndex({
         owner_id: defaultOwnerId,
         collection_slugs: '' as string,
         read_only: false,
+        files_scope: 'all' as 'none' | 'read' | 'all',
         ip_allowlist: '' as string,
         rate_limit_per_minute: '' as string,
         expires_at: '' as string,
@@ -128,6 +148,7 @@ export default function AdminApiKeysIndex({
             owner_id: data.owner_id ? Number(data.owner_id) : null,
             collection_slugs: collectionSlugsText,
             read_only: data.read_only,
+            files_scope: data.files_scope,
             ip_allowlist: ipText,
             rate_limit_per_minute: data.rate_limit_per_minute
                 ? Number(data.rate_limit_per_minute)
@@ -139,8 +160,10 @@ export default function AdminApiKeysIndex({
             onSuccess: () => {
                 form.reset();
                 form.setData('owner_id', defaultOwnerId);
+                form.setData('files_scope', 'all');
                 setIpText('');
                 setCollectionSlugsText('');
+                setFilesScopeTouched(false);
             },
         });
     };
@@ -260,9 +283,20 @@ export default function AdminApiKeysIndex({
                                 <Input
                                     id="collection_slugs"
                                     value={collectionSlugsText}
-                                    onChange={(e) =>
-                                        setCollectionSlugsText(e.target.value)
-                                    }
+                                    onChange={(e) => {
+                                        const next = e.target.value;
+                                        setCollectionSlugsText(next);
+
+                                        if (!filesScopeTouched) {
+                                            form.setData(
+                                                'files_scope',
+                                                defaultFilesScope(
+                                                    next,
+                                                    form.data.read_only,
+                                                ),
+                                            );
+                                        }
+                                    }}
                                     placeholder="posts, pages"
                                 />
                                 <p className="text-xs text-muted-foreground">
@@ -276,12 +310,20 @@ export default function AdminApiKeysIndex({
                                 <Checkbox
                                     id="read_only"
                                     checked={form.data.read_only}
-                                    onCheckedChange={(checked) =>
-                                        form.setData(
-                                            'read_only',
-                                            checked === true,
-                                        )
-                                    }
+                                    onCheckedChange={(checked) => {
+                                        const readOnly = checked === true;
+                                        form.setData('read_only', readOnly);
+
+                                        if (!filesScopeTouched) {
+                                            form.setData(
+                                                'files_scope',
+                                                defaultFilesScope(
+                                                    collectionSlugsText,
+                                                    readOnly,
+                                                ),
+                                            );
+                                        }
+                                    }}
                                 />
                                 <Label
                                     htmlFor="read_only"
@@ -290,6 +332,46 @@ export default function AdminApiKeysIndex({
                                     {t('settings.apiKeys.readOnly')}
                                 </Label>
                                 <InputError message={form.errors.read_only} />
+                            </div>
+                            <div className="grid gap-2 md:col-span-2">
+                                <Label htmlFor="files_scope">
+                                    {t('settings.apiKeys.filesScope')}
+                                </Label>
+                                <Select
+                                    value={form.data.files_scope}
+                                    onValueChange={(value) => {
+                                        setFilesScopeTouched(true);
+                                        form.setData(
+                                            'files_scope',
+                                            value as 'none' | 'read' | 'all',
+                                        );
+                                    }}
+                                >
+                                    <SelectTrigger id="files_scope">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">
+                                            {t(
+                                                'settings.apiKeys.filesScopeNone',
+                                            )}
+                                        </SelectItem>
+                                        <SelectItem value="read">
+                                            {t(
+                                                'settings.apiKeys.filesScopeRead',
+                                            )}
+                                        </SelectItem>
+                                        <SelectItem value="all">
+                                            {t(
+                                                'settings.apiKeys.filesScopeAll',
+                                            )}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                    {t('settings.apiKeys.filesScopeHelp')}
+                                </p>
+                                <InputError message={form.errors.files_scope} />
                             </div>
                             <div className="grid gap-2 md:col-span-2">
                                 <Label htmlFor="ip_allowlist">
@@ -413,6 +495,11 @@ export default function AdminApiKeysIndex({
                                                                 ? t(
                                                                       'settings.apiKeys.readOnlyBadge',
                                                                   )
+                                                                : null,
+                                                            key.files_scope &&
+                                                            key.files_scope !==
+                                                                'all'
+                                                                ? `files:${key.files_scope}`
                                                                 : null,
                                                             key.collection_slugs
                                                                 ?.length
