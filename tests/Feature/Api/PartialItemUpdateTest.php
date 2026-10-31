@@ -5,13 +5,13 @@ use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
-use App\Models\CollectionItemValue;
 use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\Settings\SettingsRepository;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
@@ -79,8 +79,10 @@ it('keeps omitted fields on GraphQL updateItem', function (): void {
 });
 
 it('rolls back the value sync when an insert fails', function (): void {
-    CollectionItemValue::creating(function (CollectionItemValue $value): void {
-        if ($value->value === 'boom') {
+    // Bulk insert bypasses Eloquent creating hooks — fail at the query layer instead.
+    DB::listen(function ($query): void {
+        if (str_starts_with(strtolower($query->sql), 'insert into')
+            && str_contains(strtolower($query->sql), 'collections_items_values')) {
             throw new RuntimeException('insert failed');
         }
     });
