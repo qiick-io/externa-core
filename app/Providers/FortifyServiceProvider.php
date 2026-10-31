@@ -126,12 +126,13 @@ class FortifyServiceProvider extends ServiceProvider
             return Limit::perMinute($maxAttempts)->by($throttleKey);
         });
 
+        // Key on IP only — client-supplied credential ids must not partition the bucket (#272).
         RateLimiter::for('passkeys', function (Request $request) {
-            $credentialId = $request->input('credential.id');
+            return Limit::perMinute(10)->by((string) $request->ip());
+        });
 
-            return Limit::perMinute(10)->by(
-                ($credentialId ?: $request->session()->getId()).'|'.$request->ip()
-            );
+        RateLimiter::for('auth-sensitive', function (Request $request) {
+            return Limit::perMinute(5)->by((string) $request->ip());
         });
     }
 }
