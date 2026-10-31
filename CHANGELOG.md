@@ -10,6 +10,9 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ## [Unreleased]
 
 
+### Security
+- Bump production npm deps for `follow-redirects` / `qs` audit findings (#341).
+
 ## [1.3.0] - 2026-10-24
 
 ### Security
