@@ -20,6 +20,7 @@ use App\Services\Api\CollectionPermissionGuard;
 use App\Services\Api\FilePermissionGuard;
 use App\Services\Authorization\EffectivePermissionResolver;
 use App\Services\Collections\CollectionItemDataNormalizer;
+use App\Services\Collections\CollectionItemValuesAssembler;
 use App\Services\Collections\CollectionItemValuesWriter;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -575,6 +576,99 @@ it('enforces GraphQL items AuthZ matrix', function (
         expect($response->json('errors'))->not->toBeEmpty();
     }
 })->with('authz graphql read matrix');
+
+dataset('authz graphql write matrix', function () {
+    return [
+        'create without grant' => ['create', [], 'deny'],
+        'create with read only' => ['create', [CollectionPermissionActionEnum::Read], 'deny'],
+        'update without grant' => ['update', [], 'deny'],
+        'update with read only' => ['update', [CollectionPermissionActionEnum::Read], 'deny'],
+        'update blocked by item_filter' => ['update', [CollectionPermissionActionEnum::Read, CollectionPermissionActionEnum::Update], 'filter'],
+        'delete without grant' => ['delete', [], 'deny'],
+        'delete with read only' => ['delete', [CollectionPermissionActionEnum::Read], 'deny'],
+        'delete blocked by item_filter' => ['delete', [CollectionPermissionActionEnum::Read, CollectionPermissionActionEnum::Delete], 'filter'],
+    ];
+});
+
+it('denies GraphQL write mutations without Create/Update/Delete and honors item_filter', function (
+    string $operation,
+    array $grants,
+    string $expectation,
+): void {
+    $collection = authzMakeCollection('gql-write');
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'title',
+        'type' => FieldTypeEnum::String,
+    ]);
+    CollectionField::factory()->create([
+        'collection_id' => $collection->id,
+        'name' => 'status',
+        'type' => FieldTypeEnum::String,
+    ]);
+
+    $rules = null;
+    if ($expectation === 'filter') {
+        $rules = [
+            'fields' => [],
+            'item_filter' => [
+                'logic' => 'and',
+                'rules' => [
+                    ['field' => 'status', 'operator' => 'equals', 'value' => 'published'],
+                ],
+            ],
+        ];
+    }
+
+    $bundle = makeApiKeyForRole();
+    if ($grants !== []) {
+        authzGrant($bundle['role'], $collection, $grants, $rules);
+    }
+
+    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriter::class);
+
+    $item = $collection->items()->create([]);
+    $writer->sync($item, $collection, $normalizer->normalize($collection, [
+        'title' => 'Seed',
+        'status' => $expectation === 'filter' ? 'draft' : 'published',
+    ], true));
+    $itemCountBefore = $collection->items()->count();
+
+    $client = authzClient($bundle['plain']);
+    $slug = $collection->slug;
+
+    $response = match ($operation) {
+        'create' => $client('POST', '/api/graphql', [
+            'query' => 'mutation ($c: String!, $d: JSON!) { createItem(collection: $c, data: $d) { id } }',
+            'variables' => ['c' => $slug, 'd' => ['title' => 'Nope', 'status' => 'published']],
+        ]),
+        'update' => $client('POST', '/api/graphql', [
+            'query' => 'mutation ($c: String!, $id: ID!, $d: JSON!) { updateItem(collection: $c, id: $id, data: $d) { id } }',
+            'variables' => ['c' => $slug, 'id' => (string) $item->id, 'd' => ['title' => 'Changed']],
+        ]),
+        'delete' => $client('POST', '/api/graphql', [
+            'query' => 'mutation ($c: String!, $id: ID!) { deleteItem(collection: $c, id: $id) { id } }',
+            'variables' => ['c' => $slug, 'id' => (string) $item->id],
+        ]),
+        default => throw new InvalidArgumentException("Unknown operation {$operation}"),
+    };
+
+    expect(in_array($response->status(), [200, 403, 404], true))->toBeTrue();
+    if ($response->status() === 200) {
+        expect($response->json('errors'))->not->toBeEmpty();
+        expect($response->json("data.{$operation}Item"))->toBeNull();
+    }
+
+    expect($collection->items()->count())->toBe($itemCountBefore)
+        ->and(CollectionItem::query()->find($item->id))->not->toBeNull();
+
+    $titleAfter = data_get(
+        app(CollectionItemValuesAssembler::class)->assemble($item->fresh()),
+        'title',
+    );
+    expect($titleAfter)->toBe('Seed');
+})->with('authz graphql write matrix');
 
 dataset('authz effective permission resolver', function () {
     return [
