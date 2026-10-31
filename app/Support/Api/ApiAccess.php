@@ -32,7 +32,7 @@ final class ApiAccess
      * Keys that share a role but differ in collection_slugs / read_only must
      * not share cached payloads (includes and field ACL intersect with scopes).
      *
-     * @return array{api_key_scopes: array{collection_slugs: list<string>|null, read_only: bool}|null}
+     * @return array{api_key_scopes: array{collection_slugs: list<string>|null, read_only: bool, owner_id: int|null}|null}
      */
     public function responseCacheScopeFactors(): array
     {
@@ -55,6 +55,7 @@ final class ApiAccess
             'api_key_scopes' => [
                 'collection_slugs' => $normalized,
                 'read_only' => (bool) $apiKey->read_only,
+                'owner_id' => $apiKey->owner_id !== null ? (int) $apiKey->owner_id : null,
             ],
         ];
     }

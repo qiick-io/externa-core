@@ -26,6 +26,12 @@ class ApiKeyResource extends JsonResource
                 'id' => $this->role?->id,
                 'name' => $this->role?->name,
             ]),
+            'owner_id' => $this->owner_id,
+            'owner' => $this->whenLoaded('owner', fn () => $this->owner === null ? null : [
+                'id' => $this->owner->id,
+                'name' => $this->owner->name,
+                'email' => $this->owner->email,
+            ]),
             'collection_slugs' => $this->collection_slugs,
             'read_only' => (bool) $this->read_only,
             'ip_allowlist' => $this->ip_allowlist,

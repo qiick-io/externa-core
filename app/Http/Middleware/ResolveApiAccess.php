@@ -49,10 +49,18 @@ class ResolveApiAccess
     private function resolveFromApiKey(Request $request, string $bearer): ApiAccess
     {
         $hash = ApiKey::hashSecret($bearer);
-        $apiKey = ApiKey::query()->with('role')->where('key_hash', $hash)->first();
+        $apiKey = ApiKey::query()->with(['role', 'owner'])->where('key_hash', $hash)->first();
 
         if ($apiKey === null || ! $apiKey->isActive()) {
             abort(401, 'Invalid or inactive API key.');
+        }
+
+        // Owned keys: owner must still be active (lifecycle should have revoked; fail closed).
+        if ($apiKey->owner_id !== null) {
+            $owner = $apiKey->owner;
+            if ($owner === null || ! $owner->is_active || $owner->trashed()) {
+                abort(401, 'Invalid or inactive API key.');
+            }
         }
 
         if (! $apiKey->allowsIp((string) $request->ip())) {

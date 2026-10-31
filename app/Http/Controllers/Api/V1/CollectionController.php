@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccessTrait;
 use App\Http\Controllers\Controller;
 use App\Models\Collection;
 use App\Models\CollectionField;
+use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Api\CollectionPermissionGuard;
 use App\Services\Api\PublicApiResponseCache;
 use Illuminate\Http\JsonResponse;
@@ -42,12 +43,14 @@ class CollectionController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'slug', 'is_singleton', 'sort_order', 'description', 'status', 'icon', 'color']);
 
-        $apiKey = $access->apiKey;
-        if ($apiKey !== null) {
-            $collections = $collections->filter(
-                fn (Collection $collection): bool => $apiKey->allowsCollectionSlug((string) $collection->slug),
-            )->values();
-        }
+        $enforcer = app(CollectionPermissionEnforcer::class);
+        $collections = $collections->filter(
+            fn (Collection $collection): bool => $enforcer->allowsCollectionAction(
+                $request,
+                $collection,
+                CollectionPermissionActionEnum::Read,
+            ),
+        )->values();
 
         return response()->json([
             'data' => $collections->map(fn (Collection $collection): array => [

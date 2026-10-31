@@ -205,6 +205,8 @@
         "apiKeys": {
             "collectionSlugs": "Collection allowlist (optional, comma-separated slugs)",
             "collectionSlugsHelp": "Leave empty to allow every collection the role can access. Scopes only narrow access.",
+            "owner": "Owner",
+            "ownerHelp": "Permission ceiling: the key cannot do more than this user. Defaults to you.",
             "readOnly": "Read-only (block create, update, and delete)",
             "readOnlyBadge": "read-only",
             "scopes": "Scopes"

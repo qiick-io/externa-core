@@ -205,6 +205,8 @@
         "apiKeys": {
             "collectionSlugs": "Collection-Allowlist (optional, Slugs kommagetrennt)",
             "collectionSlugsHelp": "Leer lassen, um alle Collections der Rolle zuzulassen. Scopes schränken nur ein.",
+            "owner": "Besitzer",
+            "ownerHelp": "Berechtigungsobergrenze: der Schlüssel kann nicht mehr als dieser Benutzer. Standard: Sie.",
             "readOnly": "Nur Lesen (Create, Update und Delete blockieren)",
             "readOnlyBadge": "nur lesen",
             "scopes": "Scopes"

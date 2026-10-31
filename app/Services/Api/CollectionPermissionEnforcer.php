@@ -34,7 +34,18 @@ class CollectionPermissionEnforcer
     {
         $access = $request->attributes->get('apiAccess');
         if ($access instanceof ApiAccess) {
-            return $this->guard->rulesFor($access->roleId(), (int) $collection->id);
+            $keyRules = $this->guard->rulesFor($access->roleId(), (int) $collection->id);
+            $owner = $access->apiKey?->owner;
+            if (! $owner instanceof User) {
+                return $keyRules;
+            }
+
+            $ownerRules = $this->guard->rulesForUser($owner, (int) $collection->id);
+            if ($keyRules === null || $ownerRules === null) {
+                return null;
+            }
+
+            return $this->intersectNormalizedRules($keyRules, $ownerRules);
         }
 
         $user = $request->user();
@@ -123,8 +134,27 @@ class CollectionPermissionEnforcer
                 return true;
             }
 
-            return $apiKey->allowsCollectionSlug((string) $collection->slug)
-                && $apiKey->allowsAction($action);
+            if (
+                ! $apiKey->allowsCollectionSlug((string) $collection->slug)
+                || ! $apiKey->allowsAction($action)
+            ) {
+                return false;
+            }
+
+            // Permission ceiling: owned keys cannot exceed the owner's effective access.
+            if ($apiKey->owner_id === null) {
+                return true;
+            }
+
+            $owner = $apiKey->relationLoaded('owner')
+                ? $apiKey->owner
+                : $apiKey->owner()->first();
+
+            if (! $owner instanceof User || ! $owner->is_active || $owner->trashed()) {
+                return false;
+            }
+
+            return $this->userAllowsCollectionAction($owner, $collection, $action);
         }
 
         $user = $request->user();
@@ -290,5 +320,49 @@ class CollectionPermissionEnforcer
         }
 
         return false;
+    }
+
+    /**
+     * Field ACL ∩ item_filter: empty fields map = unrestricted.
+     *
+     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}  $a
+     * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}  $b
+     * @return array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}
+     */
+    private function intersectNormalizedRules(array $a, array $b): array
+    {
+        $fieldsA = $a['fields'];
+        $fieldsB = $b['fields'];
+
+        if ($fieldsA === [] && $fieldsB === []) {
+            $fields = [];
+        } elseif ($fieldsA === []) {
+            $fields = $fieldsB;
+        } elseif ($fieldsB === []) {
+            $fields = $fieldsA;
+        } else {
+            $fields = [];
+            foreach (array_unique([...array_keys($fieldsA), ...array_keys($fieldsB)]) as $name) {
+                $fa = $fieldsA[$name] ?? ['read' => false, 'create' => false, 'update' => false];
+                $fb = $fieldsB[$name] ?? ['read' => false, 'create' => false, 'update' => false];
+                $fields[$name] = [
+                    'read' => $fa['read'] && $fb['read'],
+                    'create' => $fa['create'] && $fb['create'],
+                    'update' => $fa['update'] && $fb['update'],
+                ];
+            }
+        }
+
+        // Prefer the more specific filter when only one side sets item_filter.
+        $itemFilter = $a['item_filter'] ?? $b['item_filter'] ?? null;
+        if (($a['item_filter'] ?? null) !== null && ($b['item_filter'] ?? null) !== null) {
+            // ponytail: keep owner filter when both set (ceiling); upgrade: AND both trees
+            $itemFilter = $b['item_filter'];
+        }
+
+        return [
+            'fields' => $fields,
+            'item_filter' => $itemFilter,
+        ];
     }
 }
