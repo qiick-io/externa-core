@@ -15,6 +15,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Add Pest coverage for GraphQL write AuthZ, chat ownership routes, cleanup commands, and embedding job (#286).
 
 ### Changed
+- Stream SHA-256 hashing for file uploads and chunk finalize (`hash_file` / `hash_update`) so large files are not loaded into a PHP string for hashing (#189).
 - Denormalize `files.effective_access` (with backfill command) so file list AuthZ no longer loads the full tree (#186).
 - Route web, REST, GraphQL, AI, import, chat, revision restore, and publish through shared `CreateCollectionItemAction` / `UpdateCollectionItemAction` so validation and draft versioning stay in parity (#269).
 - Bump `laravel/ai` constraint to `^1.1` (resolved v1.3.0) (#180).

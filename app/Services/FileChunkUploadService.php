@@ -7,6 +7,7 @@ use App\Models\File;
 use App\Models\FileUpload;
 use App\Support\Security\PlainTextSanitizer;
 use App\Support\Uploads\ForbiddenUploadExtension;
+use App\Support\Uploads\MimeTypeValidator;
 use App\Support\Uploads\SafeUploadMime;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -107,51 +108,69 @@ class FileChunkUploadService
 
         $storage = Storage::disk($fileUpload->disk);
         $tempFilePath = $this->getTempFilePath($uploadId);
+        $localTemp = tempnam(sys_get_temp_dir(), 'externa-chunk-');
+        if ($localTemp === false) {
+            throw new \RuntimeException('Failed to create temporary merge file.');
+        }
 
         try {
-            $finalFile = fopen('php://temp', 'r+');
+            $finalFile = fopen($localTemp, 'wb');
             if ($finalFile === false) {
-                throw new \RuntimeException('Failed to create temporary file handle.');
+                throw new \RuntimeException('Failed to open temporary merge file.');
             }
 
-            for ($i = 0; $i < $fileUpload->total_chunks; $i++) {
-                $chunkPath = $this->getChunkPath($uploadId, $i);
-                if (! $storage->exists($chunkPath)) {
-                    throw new \RuntimeException("Chunk {$i} is missing.");
+            $hashContext = hash_init('sha256');
+
+            try {
+                for ($i = 0; $i < $fileUpload->total_chunks; $i++) {
+                    $chunkPath = $this->getChunkPath($uploadId, $i);
+                    if (! $storage->exists($chunkPath)) {
+                        throw new \RuntimeException("Chunk {$i} is missing.");
+                    }
+
+                    $chunkContent = $storage->get($chunkPath);
+                    if ($chunkContent === false) {
+                        throw new \RuntimeException("Failed to read chunk {$i}.");
+                    }
+
+                    fwrite($finalFile, $chunkContent);
+                    hash_update($hashContext, $chunkContent);
                 }
+            } finally {
+                fclose($finalFile);
+            }
 
-                $chunkContent = $storage->get($chunkPath);
-                if ($chunkContent === false) {
-                    throw new \RuntimeException("Failed to read chunk {$i}.");
+            $fileHash = hash_final($hashContext);
+
+            $readStream = fopen($localTemp, 'rb');
+            if ($readStream === false) {
+                throw new \RuntimeException('Failed to read merged temporary file.');
+            }
+            try {
+                $storage->put($tempFilePath, $readStream);
+            } finally {
+                if (is_resource($readStream)) {
+                    fclose($readStream);
                 }
-
-                fwrite($finalFile, $chunkContent);
             }
-
-            rewind($finalFile);
-            $fileContent = stream_get_contents($finalFile);
-            fclose($finalFile);
-
-            if ($fileContent === false) {
-                throw new \RuntimeException('Failed to read merged file content.');
-            }
-
-            $fileHash = hash('sha256', $fileContent);
-            $storage->put($tempFilePath, $fileContent);
 
             // Always re-sniff; client mime_type is a hint only. Magic uses ≤16 bytes.
+            $sniffed = MimeTypeValidator::assertAllowedPath(
+                (string) $fileUpload->file_name,
+                $localTemp,
+                'file_name',
+            );
             $mimeType = SafeUploadMime::assertFilePoolAllowed(
                 (string) $fileUpload->file_name,
-                SafeUploadMime::sniff($fileContent),
+                $sniffed,
                 'file_name',
-                $fileContent,
             );
 
             [$width, $height, $meta] = $files->extractImageMeta(
                 $fileUpload->disk,
                 $tempFilePath,
                 $mimeType,
-                $fileContent
+                $files->imageMetaContent($fileUpload->disk, $tempFilePath),
             );
 
             $version = $files->resolveOrCreateVersion(
@@ -207,6 +226,10 @@ class FileChunkUploadService
             $this->cleanupChunks($uploadId, $fileUpload->disk);
 
             throw $e;
+        } finally {
+            if (is_file($localTemp)) {
+                @unlink($localTemp);
+            }
         }
     }
 
