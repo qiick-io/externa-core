@@ -21,6 +21,7 @@ use App\Support\Collections\CollectionItemDataAccessor;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -296,11 +297,8 @@ class ChatService
 
         $scope = $this->readableCollectionScope($user);
         if (! $scope['unrestricted']) {
-            if ($scope['ids'] === []) {
-                $query->whereRaw('0 = 1');
-            } else {
-                $query->whereIn('collection_id', $scope['ids']);
-            }
+            // Empty whereIn → Laravel emits `0 = 1` (no raw SQL in this file).
+            $query->whereIn('collection_id', $scope['ids']);
         }
 
         return $query;
@@ -319,22 +317,24 @@ class ChatService
             return $query;
         }
 
-        $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], mb_strtolower($needle)).'%';
+        $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $needle);
+        $like = '%'.$escaped.'%';
+        $likeOp = DB::getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
-        return $query->where(function (Builder $outer) use ($like, $viewer): void {
-            $outer->whereHas('collection', function (Builder $collection) use ($like): void {
-                $collection->whereRaw('LOWER(name) like ?', [$like]);
-            })->orWhereHas('messages', function (Builder $messages) use ($like): void {
-                $messages->whereRaw('LOWER(body) like ?', [$like]);
-            })->orWhereHas('participants.user', function (Builder $users) use ($like, $viewer): void {
+        return $query->where(function (Builder $outer) use ($like, $likeOp, $viewer): void {
+            $outer->whereHas('collection', function (Builder $collection) use ($like, $likeOp): void {
+                $collection->where('name', $likeOp, $like);
+            })->orWhereHas('messages', function (Builder $messages) use ($like, $likeOp): void {
+                $messages->where('body', $likeOp, $like);
+            })->orWhereHas('participants.user', function (Builder $users) use ($like, $likeOp, $viewer): void {
                 $users->where('users.id', '!=', $viewer->id)
-                    ->where(function (Builder $name) use ($like): void {
-                        $name->whereRaw('LOWER(first_name) like ?', [$like])
-                            ->orWhereRaw('LOWER(last_name) like ?', [$like])
-                            ->orWhereRaw('LOWER(email) like ?', [$like]);
+                    ->where(function (Builder $name) use ($like, $likeOp): void {
+                        $name->where('first_name', $likeOp, $like)
+                            ->orWhere('last_name', $likeOp, $like)
+                            ->orWhere('email', $likeOp, $like);
                     });
-            })->orWhereHas('participants.group', function (Builder $groups) use ($like): void {
-                $groups->whereRaw('LOWER(name) like ?', [$like]);
+            })->orWhereHas('participants.group', function (Builder $groups) use ($like, $likeOp): void {
+                $groups->where('name', $likeOp, $like);
             });
         });
     }
