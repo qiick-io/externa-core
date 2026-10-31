@@ -227,7 +227,7 @@ class FileChunkUploadService
 
             throw $e;
         } finally {
-            if (isset($localTemp) && is_string($localTemp) && is_file($localTemp)) {
+            if (is_file($localTemp)) {
                 @unlink($localTemp);
             }
         }
