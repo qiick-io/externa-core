@@ -10,6 +10,7 @@ use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Http\Resources\Admin\ApiKeyResource;
 use App\Models\ApiKey;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -27,7 +28,7 @@ class ApiKeyController extends Controller
         $this->authorizePermission(PermissionEnum::CanShowApiKeys->value);
 
         $keys = ApiKey::query()
-            ->with('role:id,name')
+            ->with(['role:id,name', 'owner:id,first_name,last_name,email'])
             ->latest('id')
             ->paginate($request->integer('per_page', 15))
             ->withQueryString();
@@ -37,9 +38,21 @@ class ApiKeyController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'is_system', 'is_assignable']);
 
+        $owners = User::query()
+            ->where('is_active', true)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get(['id', 'first_name', 'last_name', 'email']);
+
         return Inertia::render('admin/api-keys/index', [
             'apiKeys' => ApiKeyResource::collection($keys),
             'roles' => $roles,
+            'owners' => $owners->map(fn (User $user): array => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ]),
+            'currentUserId' => $request->user()?->id,
             'plainTextKey' => $request->session()->pull('plain_text_api_key'),
         ]);
     }
@@ -48,6 +61,8 @@ class ApiKeyController extends Controller
     {
         $data = $request->validated();
         $secret = ApiKey::generateSecret();
+        $creatorId = $request->user()?->id;
+        $ownerId = isset($data['owner_id']) ? (int) $data['owner_id'] : $creatorId;
 
         ApiKey::query()->create([
             'name' => $data['name'],
@@ -59,7 +74,8 @@ class ApiKeyController extends Controller
             'ip_allowlist' => $data['ip_allowlist'] ?? null,
             'rate_limit_per_minute' => $data['rate_limit_per_minute'] ?? null,
             'expires_at' => $data['expires_at'] ?? null,
-            'created_by' => $request->user()?->id,
+            'created_by' => $creatorId,
+            'owner_id' => $ownerId,
         ]);
 
         // Flash then redirect so index can pull the one-time secret into props

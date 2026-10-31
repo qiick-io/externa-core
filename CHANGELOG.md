@@ -21,6 +21,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Harden CI: parallel Pest, shared Vite artifact, caches, concurrency/timeouts, SHA-pinned actions, Dependabot, hard browser gate (#289).
 
 ### Security
+- Bind API keys to an optional owner (`owner_id`) so effective access is key role ∩ scopes ∩ owner ACL; revoke keys when the owner is deactivated or deleted (#215).
 - Bump production npm deps for `follow-redirects` / `qs` audit findings (#341).
 ### Fixed
 - Add job timeouts/retries/`failed()` notifications and `report()` on soft-fail catches; make embedding job unique (#279).

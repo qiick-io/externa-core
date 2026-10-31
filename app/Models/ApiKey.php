@@ -15,12 +15,14 @@ use Spatie\Activitylog\Support\LogOptions;
  * Project API key authenticated via Bearer token; permissions come from role_id.
  *
  * Optional scopes only narrow the role: collection_slugs allowlist and read_only.
+ * Optional owner_id adds a permission ceiling (key ≤ owner). Null owner = legacy.
  *
  * @property string $uuid
  * @property string $name
  * @property string $key_prefix
  * @property string $key_hash
  * @property int $role_id
+ * @property int|null $owner_id
  * @property list<string>|null $collection_slugs
  * @property bool $read_only
  * @property list<string>|null $ip_allowlist
@@ -47,6 +49,7 @@ class ApiKey extends Model
         'last_used_at',
         'revoked_at',
         'created_by',
+        'owner_id',
     ];
 
     /**
@@ -146,6 +149,24 @@ class ApiKey extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Permission-ceiling owner (MCP requires this for key-based auth — see #121).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    /**
+     * Whether this key has an owner binding (MCP rejects ownerless keys).
+     */
+    public function hasOwner(): bool
+    {
+        return $this->owner_id !== null;
     }
 
     public function isRevoked(): bool

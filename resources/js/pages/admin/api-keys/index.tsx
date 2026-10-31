@@ -21,14 +21,16 @@ import SettingsLayout from '@/layouts/settings/layout';
 import adminRoutes from '@/lib/admin-routes';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
-import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem, Paginated } from '@/types';
+import { edit as editProfile } from '@/routes/profile';
 
 type ApiKeyRow = {
     id: number;
     name: string;
     key_prefix: string;
     role?: { id: number; name: string } | null;
+    owner_id?: number | null;
+    owner?: { id: number; name: string; email: string } | null;
     collection_slugs?: string[] | null;
     read_only?: boolean;
     ip_allowlist?: string[] | null;
@@ -44,16 +46,26 @@ type RoleOption = {
     name: string;
 };
 
+type OwnerOption = {
+    id: number;
+    name: string;
+    email: string;
+};
+
 /**
  * List and create project API keys for the public CMS API.
  */
 export default function AdminApiKeysIndex({
     apiKeys: apiKeysProp,
     roles,
+    owners,
+    currentUserId,
     plainTextKey,
 }: {
     apiKeys: LaravelPaginated<ApiKeyRow> | Paginated<ApiKeyRow>;
     roles: RoleOption[];
+    owners: OwnerOption[];
+    currentUserId?: number | null;
     plainTextKey?: string | null;
 }) {
     const { t } = useTranslation();
@@ -79,9 +91,17 @@ export default function AdminApiKeysIndex({
     );
     const [revoking, setRevoking] = useState(false);
 
+    const defaultOwnerId =
+        currentUserId != null
+            ? String(currentUserId)
+            : owners[0]
+              ? String(owners[0].id)
+              : '';
+
     const form = useForm({
         name: '',
         role_id: roles[0] ? String(roles[0].id) : '',
+        owner_id: defaultOwnerId,
         collection_slugs: '' as string,
         read_only: false,
         ip_allowlist: '' as string,
@@ -105,6 +125,7 @@ export default function AdminApiKeysIndex({
         form.transform((data) => ({
             name: data.name,
             role_id: Number(data.role_id),
+            owner_id: data.owner_id ? Number(data.owner_id) : null,
             collection_slugs: collectionSlugsText,
             read_only: data.read_only,
             ip_allowlist: ipText,
@@ -117,6 +138,7 @@ export default function AdminApiKeysIndex({
             preserveScroll: true,
             onSuccess: () => {
                 form.reset();
+                form.setData('owner_id', defaultOwnerId);
                 setIpText('');
                 setCollectionSlugsText('');
             },
@@ -199,6 +221,37 @@ export default function AdminApiKeysIndex({
                                     </SelectContent>
                                 </Select>
                                 <InputError message={form.errors.role_id} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>{t('settings.apiKeys.owner')}</Label>
+                                <Select
+                                    value={form.data.owner_id}
+                                    onValueChange={(v) =>
+                                        form.setData('owner_id', v)
+                                    }
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue
+                                            placeholder={t(
+                                                'settings.apiKeys.owner',
+                                            )}
+                                        />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {owners.map((owner) => (
+                                            <SelectItem
+                                                key={owner.id}
+                                                value={String(owner.id)}
+                                            >
+                                                {owner.name} ({owner.email})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                    {t('settings.apiKeys.ownerHelp')}
+                                </p>
+                                <InputError message={form.errors.owner_id} />
                             </div>
                             <div className="grid gap-2 md:col-span-2">
                                 <Label htmlFor="collection_slugs">
@@ -313,6 +366,9 @@ export default function AdminApiKeysIndex({
                                                 Role
                                             </th>
                                             <th className="px-3 py-2 text-left">
+                                                {t('settings.apiKeys.owner')}
+                                            </th>
+                                            <th className="px-3 py-2 text-left">
                                                 {t('settings.apiKeys.scopes')}
                                             </th>
                                             <th className="px-3 py-2 text-left">
@@ -327,7 +383,7 @@ export default function AdminApiKeysIndex({
                                         {rows.length === 0 ? (
                                             <tr>
                                                 <td
-                                                    colSpan={6}
+                                                    colSpan={7}
                                                     className="px-3 py-6 text-center text-muted-foreground"
                                                 >
                                                     No API keys yet.
@@ -347,6 +403,9 @@ export default function AdminApiKeysIndex({
                                                     </td>
                                                     <td className="px-3 py-2">
                                                         {key.role?.name ?? '—'}
+                                                    </td>
+                                                    <td className="px-3 py-2">
+                                                        {key.owner?.name ?? '—'}
                                                     </td>
                                                     <td className="px-3 py-2 text-xs text-muted-foreground">
                                                         {[

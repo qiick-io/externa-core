@@ -42,6 +42,13 @@ class StoreApiKeyRequest extends FormRequest
             'ip_allowlist.*' => ['string', 'max:64'],
             'rate_limit_per_minute' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'expires_at' => ['nullable', 'date', 'after:now'],
+            'owner_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where(fn ($query) => $query
+                    ->where('is_active', true)
+                    ->whereNull('deleted_at')),
+            ],
         ];
     }
 
