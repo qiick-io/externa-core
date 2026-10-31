@@ -51,11 +51,16 @@ class CollectionImportWebhookController extends Controller
     }
 
     /**
-     * HMAC-SHA256 over the raw request body, keyed by AI_WEBHOOK_TOKEN.
+     * Max skew (seconds) between webhook timestamp and server clock (#273).
      */
-    public static function sign(string $rawBody, string $secret): string
+    public const TIMESTAMP_TOLERANCE_SECONDS = 300;
+
+    /**
+     * HMAC-SHA256 over `"{timestamp}.{rawBody}"`, keyed by AI_WEBHOOK_TOKEN.
+     */
+    public static function sign(string $rawBody, string $secret, string $timestamp): string
     {
-        return 'sha256='.hash_hmac('sha256', $rawBody, $secret);
+        return 'sha256='.hash_hmac('sha256', $timestamp.'.'.$rawBody, $secret);
     }
 
     /**

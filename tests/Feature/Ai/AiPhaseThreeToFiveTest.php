@@ -197,13 +197,17 @@ test('collection import webhook rejects bad signature and accepts valid HMAC', f
         ],
     ];
     $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
-    $validSignature = CollectionImportWebhookController::sign($rawBody, 'signed-secret');
+    $timestamp = (string) now()->timestamp;
+    $validSignature = CollectionImportWebhookController::sign($rawBody, 'signed-secret', $timestamp);
 
     $this->withToken('signed-secret')
         ->postJson(route('ai.webhooks.collection-import'), $payload)
         ->assertUnauthorized();
 
-    $this->withHeaders(['X-AI-Webhook-Signature' => 'sha256=deadbeef'])
+    $this->withHeaders([
+        'X-AI-Webhook-Timestamp' => $timestamp,
+        'X-AI-Webhook-Signature' => 'sha256=deadbeef',
+    ])
         ->postJson(route('ai.webhooks.collection-import'), $payload)
         ->assertUnauthorized();
 
@@ -216,6 +220,7 @@ test('collection import webhook rejects bad signature and accepts valid HMAC', f
         [
             'CONTENT_TYPE' => 'application/json',
             'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_AI_WEBHOOK_TIMESTAMP' => $timestamp,
             'HTTP_X_AI_WEBHOOK_SIGNATURE' => $validSignature,
         ],
         $rawBody,
@@ -241,7 +246,8 @@ test('collection import webhook signature for collection A cannot write collecti
         ],
     ];
     $rawBodyA = json_encode($payloadA, JSON_THROW_ON_ERROR);
-    $signatureForA = CollectionImportWebhookController::sign($rawBodyA, 'signed-secret');
+    $timestamp = (string) now()->timestamp;
+    $signatureForA = CollectionImportWebhookController::sign($rawBodyA, 'signed-secret', $timestamp);
 
     $payloadB = [
         'collection_id' => $collectionB->id,
@@ -260,6 +266,7 @@ test('collection import webhook signature for collection A cannot write collecti
         [
             'CONTENT_TYPE' => 'application/json',
             'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_AI_WEBHOOK_TIMESTAMP' => $timestamp,
             'HTTP_X_AI_WEBHOOK_SIGNATURE' => $signatureForA,
         ],
         $rawBodyB,

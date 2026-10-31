@@ -78,13 +78,16 @@ class DeliverOutboundWebhookJob implements ShouldQueue
         ], JSON_THROW_ON_ERROR);
 
         $timestamp = (string) now()->timestamp;
-        $signature = 'sha256='.hash_hmac('sha256', $payload, $secret);
+        // Legacy body-only HMAC — keep for one minor; prefer V2 (timestamp-bound).
+        $legacySignature = 'sha256='.hash_hmac('sha256', $payload, $secret);
+        $v2Signature = 'sha256='.hash_hmac('sha256', $timestamp.'.'.$payload, $secret);
 
         $response = Http::timeout(5)
             ->connectTimeout(3)
             ->withoutRedirecting()
             ->withHeaders([
-                'X-Externa-Signature' => $signature,
+                'X-Externa-Signature' => $legacySignature,
+                'X-Externa-Signature-V2' => $v2Signature,
                 'X-Externa-Event-Id' => $this->eventId,
                 'X-Externa-Timestamp' => $timestamp,
                 'User-Agent' => 'Externa-Webhooks/1.0',
