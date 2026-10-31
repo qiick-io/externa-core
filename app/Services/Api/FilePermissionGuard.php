@@ -45,6 +45,8 @@ class FilePermissionGuard
      * Restrict a files query to rows the role may see when listing.
      * Admin / roles with read_private see everything.
      *
+     * Uses denormalized `effective_access` (no full-tree load).
+     *
      * @param  Builder<File>  $query
      * @return Builder<File>
      */
@@ -54,12 +56,10 @@ class FilePermissionGuard
             return $query;
         }
 
-        $hiddenIds = $this->effectivelyPrivateIds();
-        if ($hiddenIds === []) {
-            return $query;
-        }
-
-        return $query->whereNotIn('id', $hiddenIds);
+        return $query->where(function (Builder $nested): void {
+            $nested->where('effective_access', '!=', FileAccessEnum::Private->value)
+                ->orWhereNull('effective_access');
+        });
     }
 
     /**
@@ -67,51 +67,11 @@ class FilePermissionGuard
      */
     public function effectivelyPrivateIds(): array
     {
-        // ponytail: load id/parent/access for all files (ceiling: very large libraries → denormalize effective_access)
-        $rows = File::query()
-            ->toBase()
-            ->get(['id', 'parent_id', 'access']);
-
-        $byId = [];
-        foreach ($rows as $row) {
-            $byId[(int) $row->id] = [
-                'parent_id' => $row->parent_id !== null ? (int) $row->parent_id : null,
-                'access' => is_string($row->access) && $row->access !== ''
-                    ? $row->access
-                    : null,
-            ];
-        }
-
-        $memo = [];
-        $resolve = function (int $id) use (&$resolve, &$memo, $byId): string {
-            if (isset($memo[$id])) {
-                return $memo[$id];
-            }
-
-            $row = $byId[$id] ?? null;
-            if ($row === null) {
-                return $memo[$id] = FileAccessEnum::Public->value;
-            }
-
-            if ($row['access'] !== null) {
-                return $memo[$id] = $row['access'];
-            }
-
-            if ($row['parent_id'] === null) {
-                return $memo[$id] = FileAccessEnum::Public->value;
-            }
-
-            return $memo[$id] = $resolve($row['parent_id']);
-        };
-
-        $private = [];
-        foreach (array_keys($byId) as $id) {
-            if ($resolve($id) === FileAccessEnum::Private->value) {
-                $private[] = $id;
-            }
-        }
-
-        return $private;
+        return File::query()
+            ->where('effective_access', FileAccessEnum::Private->value)
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
     }
 
     /**

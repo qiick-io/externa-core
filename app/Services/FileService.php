@@ -8,6 +8,7 @@ use App\Models\File;
 use App\Models\FileUpload;
 use App\Models\FileVersion;
 use App\Models\User;
+use App\Services\Files\FileEffectiveAccessService;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 use App\Support\Files\FilesDisk;
 use App\Support\Security\PlainTextSanitizer;
@@ -190,6 +191,9 @@ class FileService
                 return $file->fresh();
             });
 
+            // query()->update and path-only saves can skip access/parent dirty checks — force recompute.
+            $this->syncEffectiveAccess($moved);
+
             app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $moved);
 
             $moved = $this->reconcilePrivacyDisk($moved);
@@ -297,6 +301,22 @@ class FileService
         app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $updated);
 
         return $updated;
+    }
+
+    /**
+     * Persist denormalized effective_access for a node (and folder descendants).
+     */
+    private function syncEffectiveAccess(File $file): void
+    {
+        $service = app(FileEffectiveAccessService::class);
+        $service->apply($file);
+        File::query()->whereKey($file->id)->update([
+            'effective_access' => $file->effective_access,
+        ]);
+
+        if ($file->isFolder()) {
+            $service->refreshDescendants($file);
+        }
     }
 
     /**
