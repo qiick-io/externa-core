@@ -10,6 +10,7 @@ use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\ThrottleAuthSensitiveMiddleware;
+use App\Http\Middleware\SetSecurityHeadersMiddleware;
 use App\Support\Auth\HomePath;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -63,6 +64,7 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
             EnsureTwoFactorIsEnabled::class,
             ThrottleAuthSensitiveMiddleware::class,
+            SetSecurityHeadersMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
