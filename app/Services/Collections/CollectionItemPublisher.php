@@ -2,6 +2,8 @@
 
 namespace App\Services\Collections;
 
+use App\Actions\Collections\UpdateCollectionItemAction;
+use App\Data\Collections\CollectionItemWriteData;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Services\GitExport\GitExportDispatcher;
@@ -16,8 +18,7 @@ use RuntimeException;
 class CollectionItemPublisher
 {
     public function __construct(
-        private CollectionItemDataNormalizer $normalizer,
-        private CollectionItemValuesWriter $writer,
+        private UpdateCollectionItemAction $updateCollectionItemAction,
         private OutboundWebhookDispatcher $webhooks,
         private GitExportDispatcher $gitExport,
         private CollectionItemApprovalService $approvals,
@@ -54,17 +55,20 @@ class CollectionItemPublisher
 
             $this->approvals->assertPromotable($locked, $collection);
 
-            $normalized = $this->normalizer->normalize($collection, $draft, false);
-            $this->writer->sync(
-                $locked,
-                $collection,
-                $normalized,
-                created: false,
+            $locked = $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
+                collection: $collection,
+                data: $draft,
+                item: $locked,
+                creating: false,
+                version: 'published',
+                shouldValidate: false,
+                shouldMergeIncoming: false,
+                shouldEnforceVersioningGuard: false,
                 revisionMeta: [
                     'source' => 'publish',
                     'scheduled' => $scheduled,
                 ],
-            );
+            ));
 
             $locked->draft_data = null;
             $locked->publish_at = null;

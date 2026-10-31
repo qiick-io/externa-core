@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Collections\CreateCollectionItemAction;
+use App\Actions\Collections\UpdateCollectionItemAction;
+use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccessTrait;
 use App\Http\Controllers\Controller;
@@ -11,16 +14,10 @@ use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Api\FilePermissionGuard;
 use App\Services\Api\PublicApiResponseCache;
 use App\Services\Api\RelationIncludeHydrator;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemDataRuleBuilder;
 use App\Services\Collections\CollectionItemQueryService;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
 use App\Support\Api\PublicApiIncludeParser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Public CMS API: CRUD for collection items gated by collection_permissions.
@@ -31,9 +28,8 @@ class CollectionItemController extends Controller
 
     public function __construct(
         private CollectionItemQueryService $itemQueryService,
-        private CollectionItemDataNormalizer $itemDataNormalizer,
-        private CollectionItemValuesWriter $collectionItemValuesWriter,
-        private CollectionItemValuesAssembler $collectionItemValuesAssembler,
+        private CreateCollectionItemAction $createCollectionItemAction,
+        private UpdateCollectionItemAction $updateCollectionItemAction,
         private CollectionPermissionEnforcer $permissionEnforcer,
         private PublicApiResponseCache $responseCache,
     ) {}
@@ -169,23 +165,19 @@ class CollectionItemController extends Controller
         $collection = $this->findCollectionBySlug($slug);
         $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Create);
 
-        if ($collection->is_singleton && $collection->items()->exists()) {
-            throw ValidationException::withMessages([
-                'collection' => [__('A singleton collection already has its content item.')],
-            ]);
-        }
-
         $data = $request->input('data', []);
         if (! is_array($data)) {
             $data = [];
         }
-        $this->permissionEnforcer->assertWritableFields($request, $collection, $data, 'create');
 
-        $this->validateItemPayload($request, $collection, true);
-
-        $normalized = $this->itemDataNormalizer->normalize($collection, $data, true);
-        $item = $collection->items()->create([]);
-        $this->collectionItemValuesWriter->sync($item, $collection, $normalized);
+        $item = $this->createCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            creating: true,
+            request: $request,
+            shouldAssertWritableFields: true,
+            writableMode: 'create',
+        ));
         $item->load(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
 
         return response()->json([
@@ -213,13 +205,17 @@ class CollectionItemController extends Controller
         if (! is_array($data)) {
             $data = [];
         }
-        $this->permissionEnforcer->assertWritableFields($request, $collection, $data, 'update');
 
-        $this->validateItemPayload($request, $collection, false);
-
-        $merged = $this->itemDataNormalizer->mergeIncoming($this->collectionItemValuesAssembler->assemble($model), $data);
-        $normalized = $this->itemDataNormalizer->normalize($collection, $merged, false);
-        $this->collectionItemValuesWriter->sync($model, $collection, $normalized);
+        $model = $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            item: $model,
+            creating: false,
+            version: $collection->versioning ? 'draft' : 'published',
+            request: $request,
+            shouldAssertWritableFields: true,
+            writableMode: 'update',
+        ));
         $model->load(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
 
         return response()->json([
@@ -246,25 +242,5 @@ class CollectionItemController extends Controller
         $model->delete();
 
         return response()->json(null, 204);
-    }
-
-    private function validateItemPayload(Request $request, $collection, bool $creating): void
-    {
-        $data = $request->input('data');
-        $rules = app(CollectionItemDataRuleBuilder::class)->rules(
-            $collection,
-            $creating,
-            null,
-            is_array($data) ? $data : [],
-        );
-        $validator = Validator::make($request->all(), $rules);
-        $validator->after(function ($validator) use ($request, $collection): void {
-            $data = $request->input('data');
-            if (! is_array($data)) {
-                return;
-            }
-            app(CollectionItemDataRuleBuilder::class)->assertKnownKeysOnly($collection, $data);
-        });
-        $validator->validate();
     }
 }

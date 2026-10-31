@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Collections;
 
+use App\Actions\Collections\CreateCollectionItemAction;
+use App\Actions\Collections\UpdateCollectionItemAction;
+use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Collections\ApplyCollectionPackRequest;
@@ -13,10 +16,8 @@ use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Collections\ApplyCollectionPackService;
-use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemOptionsService;
 use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\Collections\FieldConditionEvaluator;
 use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
 use App\Support\Collections\UniqueCollectionSlugGenerator;
@@ -45,8 +46,8 @@ class ContentCollectionController extends Controller
     ];
 
     public function __construct(
-        private CollectionItemDataNormalizer $itemDataNormalizer,
-        private CollectionItemValuesWriter $collectionItemValuesWriter,
+        private CreateCollectionItemAction $createCollectionItemAction,
+        private UpdateCollectionItemAction $updateCollectionItemAction,
         private CollectionItemValuesAssembler $collectionItemValuesAssembler,
         private CollectionItemOptionsService $collectionItemOptionsService,
         private CollectionPermissionEnforcer $permissionEnforcer,
@@ -287,9 +288,12 @@ class ContentCollectionController extends Controller
         $item = $collection->items()->first();
 
         if (! $item instanceof CollectionItem) {
-            $normalized = $this->itemDataNormalizer->normalize($collection, $incoming, true);
-            $created = $collection->items()->create([]);
-            $this->collectionItemValuesWriter->sync($created, $collection, $normalized);
+            $this->createCollectionItemAction->execute(new CollectionItemWriteData(
+                collection: $collection,
+                data: $incoming,
+                creating: true,
+                shouldValidate: false,
+            ));
 
             return redirect()->route('collections.show', $collection)
                 ->with('success', __('Content saved.'));
@@ -317,9 +321,16 @@ class ContentCollectionController extends Controller
             }
         }
 
-        $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
-
-        $this->collectionItemValuesWriter->sync($item->fresh(), $collection, $normalized);
+        $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            item: $item,
+            creating: false,
+            version: $collection->versioning ? 'draft' : 'published',
+            shouldValidate: false,
+            shouldMergeIncoming: false,
+            shouldEnforceVersioningGuard: false,
+        ));
 
         return redirect()->route('collections.show', $collection)
             ->with('success', __('Content updated.'));

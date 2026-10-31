@@ -2,9 +2,11 @@
 
 namespace App\Ai\Tools;
 
+use App\Actions\Collections\CreateCollectionItemAction;
 use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
+use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
@@ -14,9 +16,7 @@ use App\Services\Collections\ApplyCollectionPackService;
 use App\Services\Collections\ApplyFieldPackService;
 use App\Services\Collections\CollectionFieldRenamer;
 use App\Services\Collections\CollectionFieldStorageShapeService;
-use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
 use App\Support\Collections\CollectionFieldSettingsPipeline;
 use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
 use App\Support\Collections\FieldPacks\FieldPackRegistry;
@@ -357,17 +357,16 @@ class ManageCollections implements Approvable, Tool
         if ($request->boolean('with_sample')) {
             $duplicate->load('fields');
             $assembler = app(CollectionItemValuesAssembler::class);
-            $normalizer = app(CollectionItemDataNormalizer::class);
-            $writer = app(CollectionItemValuesWriter::class);
+            $createAction = app(CreateCollectionItemAction::class);
 
             foreach ($source->items()->oldest('id')->limit(5)->get() as $sourceItem) {
                 /** @var CollectionItem $sourceItem */
-                $item = $duplicate->items()->create([]);
-                $writer->sync(
-                    $item,
-                    $duplicate,
-                    $normalizer->normalize($duplicate, $assembler->assemble($sourceItem), true),
-                );
+                $createAction->execute(new CollectionItemWriteData(
+                    collection: $duplicate,
+                    data: $assembler->assemble($sourceItem),
+                    creating: true,
+                    shouldValidate: false,
+                ));
                 $sampleCount++;
             }
         }
