@@ -12,6 +12,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Added
 - Add Vitest frontend unit runner and CI step for `resources/js` lib/hook tests (#285).
+- Add Pest coverage for GraphQL write AuthZ, chat ownership routes, cleanup commands, and embedding job (#286).
 
 ### Changed
 - Harden CI: parallel Pest, shared Vite artifact, caches, concurrency/timeouts, SHA-pinned actions, Dependabot, hard browser gate (#289).
