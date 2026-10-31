@@ -48,7 +48,7 @@ final class PackFieldCreator
                 throw new InvalidArgumentException($settings);
             }
 
-            $translatable = $type->supportsTranslatable() && (bool) ($fieldDef['translatable'] ?? false);
+            $translatable = $type->isTranslatableSupported() && (bool) ($fieldDef['translatable'] ?? false);
 
             $field = $collection->fields()->create([
                 'name' => $name,

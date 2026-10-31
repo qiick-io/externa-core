@@ -826,7 +826,7 @@ class ChatMessageController extends Controller
 
         $allowed = [];
         foreach ($users as $candidate) {
-            if ($this->chats->userCanReadCollection($candidate, $collection)) {
+            if ($this->chats->canUserReadCollection($candidate, $collection)) {
                 $allowed[] = (int) $candidate->id;
             }
         }
@@ -854,7 +854,7 @@ class ChatMessageController extends Controller
         $found = Collection::query()->whereIn('id', $ids)->get()->keyBy('id');
         foreach ($ids as $id) {
             $collection = $found->get($id);
-            if (! $collection instanceof Collection || ! $this->chats->userCanReadCollection($user, $collection)) {
+            if (! $collection instanceof Collection || ! $this->chats->canUserReadCollection($user, $collection)) {
                 throw ValidationException::withMessages([
                     'body' => 'One or more mentioned collections are invalid.',
                 ]);
@@ -924,7 +924,7 @@ class ChatMessageController extends Controller
             $collection = $chat->collection;
             abort_unless($collection instanceof Collection, 404);
             $users = $users->filter(
-                fn (User $candidate): bool => $this->chats->userCanReadCollection($candidate, $collection),
+                fn (User $candidate): bool => $this->chats->canUserReadCollection($candidate, $collection),
             );
         }
 
@@ -954,7 +954,7 @@ class ChatMessageController extends Controller
             ->get(['id', 'name']);
 
         return $collections
-            ->filter(fn (Collection $collection): bool => $this->chats->userCanReadCollection($user, $collection))
+            ->filter(fn (Collection $collection): bool => $this->chats->canUserReadCollection($user, $collection))
             ->take(20)
             ->map(fn (Collection $collection): array => [
                 'id' => (int) $collection->id,
@@ -1304,7 +1304,7 @@ class ChatMessageController extends Controller
 
     private function mergeScalarOrList(CollectionField $field, mixed $current, int $fileId): mixed
     {
-        if (! $field->usesArrayStorage()) {
+        if (! $field->hasArrayStorage()) {
             return $fileId;
         }
 

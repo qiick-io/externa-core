@@ -65,9 +65,9 @@ class FortifyServiceProvider extends ServiceProvider
             return Inertia::render('auth/login', [
                 'canResetPassword' => Features::enabled(Features::resetPasswords()),
                 'canRegister' => Features::enabled(Features::registration())
-                    && $project->registrationEnabled(),
+                    && $project->isRegistrationEnabled(),
                 'canManagePasskeys' => Features::canManagePasskeys(),
-                'canUseOidc' => $project->oidcLoginAvailable(),
+                'canUseOidc' => $project->isOidcLoginAvailable(),
                 'oidcButtonLabel' => $project->oidcButtonLabel(),
                 'status' => $request->session()->get('status'),
             ]);
@@ -88,7 +88,7 @@ class FortifyServiceProvider extends ServiceProvider
 
         Fortify::registerView(function () {
             if (! Features::enabled(Features::registration())
-                || ! app(ProjectSettings::class)->registrationEnabled()) {
+                || ! app(ProjectSettings::class)->isRegistrationEnabled()) {
                 abort(403);
             }
 

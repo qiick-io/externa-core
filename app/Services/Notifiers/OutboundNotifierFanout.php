@@ -25,7 +25,7 @@ class OutboundNotifierFanout
             return;
         }
 
-        if (! $this->projectSettings->notifierAllowsEvent($type)) {
+        if (! $this->projectSettings->canAllowNotifierEvent($type)) {
             return;
         }
 
@@ -41,7 +41,7 @@ class OutboundNotifierFanout
             }
         }
 
-        if ($this->projectSettings->notifierTelegramConfigured()) {
+        if ($this->projectSettings->isNotifierTelegramConfigured()) {
             $message = OutboundNotifierMessageFormatter::format(
                 $type,
                 $data,

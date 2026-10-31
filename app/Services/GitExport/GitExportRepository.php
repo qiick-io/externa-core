@@ -11,7 +11,7 @@ use RuntimeException;
  */
 class GitExportRepository
 {
-    public function enabled(): bool
+    public function isEnabled(): bool
     {
         if (! config('git_export.enabled')) {
             return false;

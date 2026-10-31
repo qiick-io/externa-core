@@ -28,7 +28,7 @@ class CreateNewUser implements CreatesNewUsers
     {
         $project = app(ProjectSettings::class);
 
-        if (! Features::enabled(Features::registration()) || ! $project->registrationEnabled()) {
+        if (! Features::enabled(Features::registration()) || ! $project->isRegistrationEnabled()) {
             throw ValidationException::withMessages([
                 'email' => __('Registration is currently disabled.'),
             ]);
@@ -62,7 +62,7 @@ class CreateNewUser implements CreatesNewUsers
             'password' => $input['password'],
         ]);
 
-        if (! $project->emailVerificationRequired()) {
+        if (! $project->isEmailVerificationRequired()) {
             $user->forceFill(['email_verified_at' => now()])->save();
         }
 

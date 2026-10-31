@@ -58,7 +58,7 @@ class EnsureTwoFactorIsEnabled
             return $next($request);
         }
 
-        if (! $this->projectSettings->twoFactorRequired()
+        if (! $this->projectSettings->isTwoFactorRequired()
             || ! Features::canManageTwoFactorAuthentication()
             || $user->hasEnabledTwoFactorAuthentication()
             || (Features::canManagePasskeys() && $user->hasPasskeysEnabled())

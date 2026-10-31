@@ -106,7 +106,7 @@ class CollectionItemValuesWriter
     private function queueTranslatable(CollectionItem $item, CollectionField $field, array $perLocale): void
     {
         foreach ($perLocale as $locale => $localeValue) {
-            if ($field->usesArrayStorage()) {
+            if ($field->hasArrayStorage()) {
                 $list = is_array($localeValue) ? $localeValue : [];
                 foreach ($list as $position => $entry) {
                     $this->queueRow($item, $field, $locale, (int) $position, $entry);
@@ -121,7 +121,7 @@ class CollectionItemValuesWriter
 
     private function queueNonTranslatable(CollectionItem $item, CollectionField $field, mixed $value): void
     {
-        if ($field->usesArrayStorage()) {
+        if ($field->hasArrayStorage()) {
             $list = is_array($value) ? $value : [];
             foreach ($list as $position => $entry) {
                 $this->queueRow($item, $field, null, (int) $position, $entry);

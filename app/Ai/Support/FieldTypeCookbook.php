@@ -130,7 +130,7 @@ final class FieldTypeCookbook
         $base = [
             'type' => $type,
             'purpose' => self::purpose($enum),
-            'translatable_supported' => $enum->supportsTranslatable(),
+            'translatable_supported' => $enum->isTranslatableSupported(),
             'array_storage' => $enum->isArrayStorage(),
             'is_relation' => $enum->isRelationType(),
             'required_settings_keys' => self::requiredSettingsKeys($enum),

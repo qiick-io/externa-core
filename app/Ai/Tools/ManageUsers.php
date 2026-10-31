@@ -367,7 +367,7 @@ class ManageUsers implements Approvable, Tool
 
         if (
             is_array($decoded)
-            && $superAdminGuard->includesSuperAdminRoleName(array_map(fn ($name): string => is_string($name) ? trim($name) : '', $decoded))
+            && $superAdminGuard->hasSuperAdminRoleName(array_map(fn ($name): string => is_string($name) ? trim($name) : '', $decoded))
             && ! $superAdminGuard->canManageSuperAdmins($this->authenticatedUser())
         ) {
             return 'Error: Only a super-admin can grant super-admin access.';

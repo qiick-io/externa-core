@@ -210,7 +210,7 @@ class ChatService
         return $userCount > 2;
     }
 
-    public function userCanReadCollection(User $user, Collection $collection): bool
+    public function canUserReadCollection(User $user, Collection $collection): bool
     {
         if (! $user->is_active) {
             return false;
@@ -552,7 +552,7 @@ class ChatService
         return $out;
     }
 
-    public function matchesQuery(Chat $chat, string $q, User $viewer): bool
+    public function isMatchingQuery(Chat $chat, string $q, User $viewer): bool
     {
         $needle = mb_strtolower($q);
         $hay = mb_strtolower($this->titleFor($chat, $viewer));
@@ -604,7 +604,7 @@ class ChatService
                 return false;
             }
 
-            if (! $this->userCanReadCollection($user, $collection)) {
+            if (! $this->canUserReadCollection($user, $collection)) {
                 return false;
             }
 

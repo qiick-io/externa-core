@@ -115,7 +115,7 @@ class ProjectIntegrationsSettingsController extends Controller
      */
     public function sendTestTelegramNotifier(): RedirectResponse
     {
-        if (! $this->projectSettings->notifierTelegramConfigured()) {
+        if (! $this->projectSettings->isNotifierTelegramConfigured()) {
             return to_route('project.integrations.edit')
                 ->with('error', __('Configure a Telegram bot token and chat ID before sending a test message.'));
         }

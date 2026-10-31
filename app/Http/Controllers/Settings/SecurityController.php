@@ -48,14 +48,14 @@ class SecurityController extends Controller implements HasMiddleware
         $user = $request->user();
         $canManageTwoFactor = Features::canManageTwoFactorAuthentication();
         $canManagePasskeys = Features::canManagePasskeys();
-        $twoFactorRequired = $this->projectSettings->twoFactorRequired();
+        $isTwoFactorRequired = $this->projectSettings->isTwoFactorRequired();
         $twoFactorEnabled = false;
         $hasPasskeys = false;
 
         $props = [
             'canManageTwoFactor' => $canManageTwoFactor,
             'canManagePasskeys' => $canManagePasskeys,
-            'twoFactorRequired' => $twoFactorRequired,
+            'isTwoFactorRequired' => $isTwoFactorRequired,
         ];
 
         if ($canManageTwoFactor) {
@@ -87,7 +87,7 @@ class SecurityController extends Controller implements HasMiddleware
 
         // Banner: project requires MFA and this user has neither TOTP nor a passkey.
         $props['twoFactorEnforcedForUser'] = $canManageTwoFactor
-            && $twoFactorRequired
+            && $isTwoFactorRequired
             && ! $twoFactorEnabled
             && ! ($canManagePasskeys && $hasPasskeys);
 

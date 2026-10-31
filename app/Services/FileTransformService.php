@@ -86,7 +86,7 @@ class FileTransformService
      */
     public function ensureTransform(File $file, ?array $preset = null, ?string $key = null): string
     {
-        if (! $this->transformationsEnabled()) {
+        if (! $this->isTransformationsEnabled()) {
             throw new RuntimeException('Image transformations are disabled.');
         }
 
@@ -207,10 +207,10 @@ class FileTransformService
         }
     }
 
-    public function transformationsEnabled(): bool
+    public function isTransformationsEnabled(): bool
     {
         try {
-            return app(ProjectSettings::class)->transformationsEnabled();
+            return app(ProjectSettings::class)->isTransformationsEnabled();
         } catch (\Throwable $exception) {
             report($exception);
 

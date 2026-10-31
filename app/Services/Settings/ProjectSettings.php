@@ -90,8 +90,8 @@ class ProjectSettings
      * @return array{
      *     name: string|null,
      *     defaultLanguage: string,
-     *     registrationEnabled: bool,
-     *     emailVerificationRequired: bool,
+     *     isRegistrationEnabled: bool,
+     *     isEmailVerificationRequired: bool,
      *     passwordPolicy: string,
      *     sidebarModules: list<array{id: string, enabled: bool, locked: bool}>,
      *     reportIssueUrl: string|null,
@@ -108,8 +108,8 @@ class ProjectSettings
         return [
             'name' => $this->projectName(),
             'defaultLanguage' => $raw['default_language'],
-            'registrationEnabled' => $raw['registration_enabled'],
-            'emailVerificationRequired' => $raw['email_verification_required'],
+            'isRegistrationEnabled' => $raw['registration_enabled'],
+            'isEmailVerificationRequired' => $raw['email_verification_required'],
             'passwordPolicy' => $raw['password_policy'],
             'sidebarModules' => $raw['sidebar_modules'],
             'reportIssueUrl' => $raw['report_issue_url'],
@@ -172,17 +172,17 @@ class ProjectSettings
         return ContentLocaleCatalog::metaFor($this->contentLocales());
     }
 
-    public function registrationEnabled(): bool
+    public function isRegistrationEnabled(): bool
     {
         return (bool) $this->raw()['registration_enabled'];
     }
 
-    public function emailVerificationRequired(): bool
+    public function isEmailVerificationRequired(): bool
     {
         return (bool) $this->raw()['email_verification_required'];
     }
 
-    public function twoFactorRequired(): bool
+    public function isTwoFactorRequired(): bool
     {
         return (bool) $this->raw()['two_factor_required'];
     }
@@ -261,7 +261,7 @@ class ProjectSettings
         return $this->raw()['allowed_transformations'];
     }
 
-    public function transformationsEnabled(): bool
+    public function isTransformationsEnabled(): bool
     {
         return in_array('thumbnail', $this->allowedTransformations(), true);
     }
@@ -425,7 +425,7 @@ class ProjectSettings
         return is_string($chatId) && $chatId !== '' ? $chatId : null;
     }
 
-    public function notifierTelegramConfigured(): bool
+    public function isNotifierTelegramConfigured(): bool
     {
         return $this->notifierTelegramBotToken() !== null
             && $this->notifierTelegramChatId() !== null;
@@ -436,7 +436,7 @@ class ProjectSettings
      *
      * `ping` always allowed (Send test). Null setting = all domain events (legacy).
      */
-    public function notifierAllowsEvent(string $type): bool
+    public function canAllowNotifierEvent(string $type): bool
     {
         if ($type === 'ping') {
             return true;
@@ -474,7 +474,7 @@ class ProjectSettings
         return Crypt::encryptString($plain);
     }
 
-    public function oidcEnabled(): bool
+    public function isOidcEnabled(): bool
     {
         return (bool) $this->raw()['oidc_enabled'];
     }
@@ -500,7 +500,7 @@ class ProjectSettings
         return is_string($label) && trim($label) !== '' ? trim($label) : null;
     }
 
-    public function oidcJitProvisioning(): bool
+    public function isOidcJitProvisioningEnabled(): bool
     {
         return (bool) $this->raw()['oidc_jit_provisioning'];
     }
@@ -508,9 +508,9 @@ class ProjectSettings
     /**
      * True when OIDC is enabled and credentials are present (login CTA).
      */
-    public function oidcLoginAvailable(): bool
+    public function isOidcLoginAvailable(): bool
     {
-        return $this->oidcEnabled()
+        return $this->isOidcEnabled()
             && $this->oidcIssuer() !== null
             && $this->oidcClientId() !== null
             && $this->oidcClientSecret() !== null;
