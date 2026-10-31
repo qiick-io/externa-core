@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * IP throttle for Fortify POSTs that ship without limiters (#272).
  */
-class ThrottleAuthSensitive
+class ThrottleAuthSensitiveMiddleware
 {
     /** @var list<string> */
     private const ROUTE_NAMES = [
