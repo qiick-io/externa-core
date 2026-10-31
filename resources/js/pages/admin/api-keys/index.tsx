@@ -21,8 +21,8 @@ import SettingsLayout from '@/layouts/settings/layout';
 import adminRoutes from '@/lib/admin-routes';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
-import type { BreadcrumbItem, Paginated } from '@/types';
 import { edit as editProfile } from '@/routes/profile';
+import type { BreadcrumbItem, Paginated } from '@/types';
 
 type ApiKeyRow = {
     id: number;
