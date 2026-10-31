@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
+import { expect, test } from 'vitest';
 import {
     applyLockWhisper,
     buildLockClaim,
@@ -11,10 +10,10 @@ test('lock claim and expiry', () => {
     const now = 1_000_000;
     const claim = buildLockClaim(7, 'Ada', now);
 
-    assert.equal(isLockActive(claim, now), true);
-    assert.equal(isLockActive(claim, now + 30_001), false);
-    assert.equal(lockHeldByOther(claim, 7, now), false);
-    assert.equal(lockHeldByOther(claim, 3, now), true);
+    expect(isLockActive(claim, now)).toBe(true);
+    expect(isLockActive(claim, now + 30_001)).toBe(false);
+    expect(lockHeldByOther(claim, 7, now)).toBe(false);
+    expect(lockHeldByOther(claim, 3, now)).toBe(true);
 });
 
 test('applyLockWhisper keeps the longer-lived lock', () => {
@@ -30,7 +29,7 @@ test('applyLockWhisper keeps the longer-lived lock', () => {
         now,
     );
 
-    assert.equal(shorter?.userId, 1);
+    expect(shorter?.userId).toBe(1);
 
     const longer = applyLockWhisper(
         first,
@@ -42,7 +41,7 @@ test('applyLockWhisper keeps the longer-lived lock', () => {
         now,
     );
 
-    assert.equal(longer?.userId, 2);
+    expect(longer?.userId).toBe(2);
 
     const stale = applyLockWhisper(
         longer,
@@ -54,5 +53,5 @@ test('applyLockWhisper keeps the longer-lived lock', () => {
         now,
     );
 
-    assert.equal(stale, null);
+    expect(stale).toBe(null);
 });

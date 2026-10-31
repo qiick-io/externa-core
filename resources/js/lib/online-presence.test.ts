@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
+import { expect, test } from 'vitest';
 import {
     joinOnlinePresence,
     leaveOnlinePresence,
@@ -38,7 +37,7 @@ function mockEcho() {
             };
         },
         leave(channel: string) {
-            assert.equal(channel, 'online');
+            expect(channel).toBe('online');
         },
     };
 }
@@ -59,10 +58,10 @@ test('joinOnlinePresence tracks here, joining, and leaving once', () => {
     echo.handlers.joining?.({ id: 3 });
     echo.handlers.leaving?.({ id: 2 });
 
-    assert.deepEqual(seen.at(-1), [1, 3]);
+    expect(seen.at(-1)).toEqual([1, 3]);
 
     leaveOnlinePresence(echo as never);
-    assert.deepEqual(seen.at(-1), []);
+    expect(seen.at(-1)).toEqual([]);
 
     unsubscribe();
 });

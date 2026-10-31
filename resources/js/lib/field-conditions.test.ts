@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
+import { expect, test } from 'vitest';
 import {
     evaluateFieldFlags,
     parseFieldConditions,
@@ -140,7 +139,7 @@ for (const fixture of parityCases) {
             fixture.data,
         );
 
-        assert.equal(flags.required, fixture.expected);
+        expect(flags.required).toBe(fixture.expected);
     });
 }
 
@@ -156,11 +155,11 @@ test('parseFieldConditions accepts or + new operators', () => {
         },
     });
 
-    assert.ok(parsed);
-    assert.equal(parsed.logic, 'or');
-    assert.equal(parsed.rules[0]?.operator, 'gte');
-    assert.equal(parsed.rules[1]?.operator, 'in');
-    assert.equal(parsed.hidden, false);
+    expect(parsed).toBeTruthy();
+    expect(parsed.logic).toBe('or');
+    expect(parsed.rules[0]?.operator).toBe('gte');
+    expect(parsed.rules[1]?.operator).toBe('in');
+    expect(parsed.hidden).toBe(false);
 });
 
 test('show-when still hides when OR rules miss', () => {
@@ -178,5 +177,5 @@ test('show-when still hides when OR rules miss', () => {
         { a: 'x', b: 'y' },
     );
 
-    assert.equal(flags.hidden, true);
+    expect(flags.hidden).toBe(true);
 });
