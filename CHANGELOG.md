@@ -15,6 +15,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Add Pest coverage for GraphQL write AuthZ, chat ownership routes, cleanup commands, and embedding job (#286).
 
 ### Changed
+- Bump `laravel/ai` constraint to `^1.1` (resolved v1.3.0) (#180).
 - Harden CI: parallel Pest, shared Vite artifact, caches, concurrency/timeouts, SHA-pinned actions, Dependabot, hard browser gate (#289).
 
 ### Security
