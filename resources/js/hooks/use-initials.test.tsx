@@ -4,7 +4,7 @@ import {
     formatUserDisplayName,
     getInitialsFromParts,
     useInitials,
-} from './use-initials.tsx';
+} from './use-initials';
 
 describe('getInitialsFromParts', () => {
     it('builds two-letter initials from first and last name', () => {
