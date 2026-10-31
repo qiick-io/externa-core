@@ -34,8 +34,9 @@ class FileResource extends JsonResource
                     }
                     $transforms[$key] = url("/api/v1/files/{$file->id}/transforms/{$key}");
                 }
-            } catch (\Throwable) {
+            } catch (\Throwable $exception) {
                 // Settings unavailable — omit transforms
+                report($exception);
             }
         }
 

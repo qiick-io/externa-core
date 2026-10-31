@@ -200,7 +200,9 @@ class FileTransformService
         try {
             // Floor at MAX_SIZE so grid can request 512 even when project presets top out lower.
             return max(self::MAX_SIZE, app(ProjectSettings::class)->maxTransformSize());
-        } catch (\Throwable) {
+        } catch (\Throwable $exception) {
+            report($exception);
+
             return self::MAX_SIZE;
         }
     }
@@ -209,7 +211,9 @@ class FileTransformService
     {
         try {
             return app(ProjectSettings::class)->transformationsEnabled();
-        } catch (\Throwable) {
+        } catch (\Throwable $exception) {
+            report($exception);
+
             return true;
         }
     }
@@ -289,7 +293,8 @@ class FileTransformService
 
         try {
             $presets = app(ProjectSettings::class)->presetTransformations();
-        } catch (\Throwable) {
+        } catch (\Throwable $exception) {
+            report($exception);
             $presets = [];
         }
 

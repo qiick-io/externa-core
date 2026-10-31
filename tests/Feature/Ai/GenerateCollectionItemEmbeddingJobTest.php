@@ -5,6 +5,8 @@ use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemEmbedding;
 use App\Services\Collections\CollectionItemValuesAssembler;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Embeddings;
 
@@ -28,10 +30,10 @@ it('stores an embedding vector on success', function () {
         ->and($row->content_hash)->not->toBeEmpty();
 });
 
-it('swallows provider failures without writing a row', function () {
+it('reports provider failures without writing a row', function () {
     config(['ai.embeddings.enabled' => true]);
+    Exceptions::fake();
 
-    Log::spy();
     Embeddings::fake(function () {
         throw new RuntimeException('provider down');
     });
@@ -44,7 +46,23 @@ it('swallows provider failures without writing a row', function () {
     );
 
     expect(CollectionItemEmbedding::query()->where('collection_item_id', $item->id)->exists())->toBeFalse();
+    Exceptions::assertReported(RuntimeException::class);
+});
+
+it('logs a warning from failed() after embedding retries are exhausted', function () {
+    Log::spy();
+
+    $job = new GenerateCollectionItemEmbeddingJob(7);
+    $job->failed(new RuntimeException('provider down'));
+
     Log::shouldHaveReceived('warning')->atLeast()->once();
+});
+
+it('is unique per collection item id', function () {
+    $job = new GenerateCollectionItemEmbeddingJob(42);
+
+    expect($job)->toBeInstanceOf(ShouldBeUnique::class)
+        ->and($job->uniqueId())->toBe('42');
 });
 
 it('no-ops when the collection item is missing', function () {

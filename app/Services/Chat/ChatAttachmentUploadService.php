@@ -287,7 +287,9 @@ class ChatAttachmentUploadService
 
         try {
             $encoded = $this->transforms->encodePreviewFromBinary($contents, self::PREVIEW_MAX_EDGE);
-        } catch (\Throwable) {
+        } catch (\Throwable $exception) {
+            report($exception);
+
             return null;
         }
 

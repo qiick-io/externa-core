@@ -142,7 +142,9 @@ class DashboardHealthMetrics
                 'throughput' => (int) $metrics->throughput(),
                 'workloads' => $workloadRows,
             ];
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            report($exception);
+
             return $empty;
         }
     }
@@ -158,7 +160,9 @@ class DashboardHealthMetrics
             Redis::connection()->ping();
 
             return true;
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            report($exception);
+
             return false;
         }
     }
@@ -187,7 +191,9 @@ class DashboardHealthMetrics
                 return (int) Redis::connection(
                     (string) config('queue.connections.redis.connection', 'default')
                 )->llen('queues:'.$queue);
-            } catch (Throwable) {
+            } catch (Throwable $exception) {
+                report($exception);
+
                 return 0;
             }
         }
@@ -211,7 +217,9 @@ class DashboardHealthMetrics
                 ->where('type', $type)
                 ->where('bucket', '>=', $bucket)
                 ->sum('count');
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            report($exception);
+
             return 0;
         }
     }

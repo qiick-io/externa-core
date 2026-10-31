@@ -442,8 +442,9 @@ class FileFieldExpander
                     }
                     $transforms[$key] = url("/api/v1/files/{$file->id}/transforms/{$key}");
                 }
-            } catch (\Throwable) {
+            } catch (\Throwable $exception) {
                 // omit transforms when settings unavailable
+                report($exception);
             }
         }
 
