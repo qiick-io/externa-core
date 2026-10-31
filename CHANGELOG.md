@@ -35,6 +35,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Reject `type` / `translatable` changes on fields that already have stored values (admin + AI); lock Translatable checkbox in the field form (#219)
 
 ### Added
+- Community profile: Code of Conduct, PR template, and feature-request issue form (#332).
 
 - Optional API key scopes: collection slug allowlist + `read_only` (effective access = role ACL ∩ key scopes; null/empty scopes keep legacy behaviour) for REST + GraphQL; admin create form fields (#116)
 - Table-driven AuthZ regression Pest datasets for collection CRUD × actors, published/draft item filters, file public/private/inherited access, `include=files`, GraphQL read, and `EffectivePermissionResolver` / `FilePermissionGuard` matrices (#114)
