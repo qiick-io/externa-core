@@ -67,12 +67,22 @@ test('import remote json tool creates collection fields and items from remote JS
         ->and($collection->fields()->count())->toBeGreaterThanOrEqual(4)
         ->and(CollectionItem::query()->where('collection_id', $collection->id)->count())->toBe(2);
 
-    $firstItem = CollectionItem::query()
+    // PostgreSQL does not guarantee row order without ORDER BY; assert the home item by slug.
+    $homeItem = CollectionItem::query()
         ->where('collection_id', $collection->id)
         ->with('fieldValues.field')
-        ->first();
+        ->get()
+        ->first(function (CollectionItem $item): bool {
+            $slug = $item->fieldValues
+                ->first(fn ($fieldValue) => $fieldValue->field?->name === 'slug')
+                ?->value;
 
-    $valuesByField = $firstItem->fieldValues->mapWithKeys(
+            return $slug === 'home';
+        });
+
+    expect($homeItem)->not->toBeNull();
+
+    $valuesByField = $homeItem->fieldValues->mapWithKeys(
         fn ($value) => [$value->field->name => $value->value]
     );
 

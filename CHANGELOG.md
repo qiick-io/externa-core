@@ -12,6 +12,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ### Security
 - Bump production npm deps for `follow-redirects` / `qs` audit findings (#341).
+### Fixed
+- Fix flaky `ImportRemoteJsonTest` on PostgreSQL by selecting the imported item by slug (#331).
 
 ## [1.3.0] - 2026-10-24
 
