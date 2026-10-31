@@ -9,7 +9,10 @@ use RuntimeException;
 use Throwable;
 
 /**
- * SSRF-safe remote GET: DNS pin via CURLOPT_RESOLVE + streamed byte cap.
+ * SSRF-safe remote GET: DNS pin via CURLOPT_RESOLVE + byte-capped body.
+ *
+ * Note: do not set Guzzle `stream => true` here — it bypasses Laravel Http::fake
+ * and hits the real network (breaks AI import feature tests).
  */
 final class SafeRemoteFetcher
 {
@@ -46,7 +49,6 @@ final class SafeRemoteFetcher
                 ->withOptions([
                     'allow_redirects' => false,
                     'http_errors' => false,
-                    'stream' => true,
                     'curl' => $curlResolve === [] ? [] : [
                         CURLOPT_RESOLVE => $curlResolve,
                     ],
@@ -79,20 +81,9 @@ final class SafeRemoteFetcher
             throw new RuntimeException('Remote file is too large (max '.(int) ($maxBytes / 1024 / 1024).' MB).');
         }
 
-        $psrBody = $response->toPsrResponse()->getBody();
-        $body = '';
-        $bytes = 0;
-
-        while (! $psrBody->eof()) {
-            $chunk = $psrBody->read(8192);
-            if ($chunk === '') {
-                break;
-            }
-            $bytes += strlen($chunk);
-            if ($bytes > $maxBytes) {
-                throw new RuntimeException('Remote file is too large (max '.(int) ($maxBytes / 1024 / 1024).' MB).');
-            }
-            $body .= $chunk;
+        $body = $response->body();
+        if (strlen($body) > $maxBytes) {
+            throw new RuntimeException('Remote file is too large (max '.(int) ($maxBytes / 1024 / 1024).' MB).');
         }
 
         return [
