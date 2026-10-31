@@ -2,12 +2,13 @@
 
 namespace App\Ai\Concerns;
 
+use App\Actions\Collections\CreateCollectionItemAction;
+use App\Actions\Collections\UpdateCollectionItemAction;
+use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
-use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\Search\MeilisearchSyncDispatcher;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 use Illuminate\Support\Str;
@@ -155,9 +156,9 @@ trait ImportsCollectionRecordsTrait
             );
         }
 
-        $normalizer = app(CollectionItemDataNormalizer::class);
         $assembler = app(CollectionItemValuesAssembler::class);
-        $writer = app(CollectionItemValuesWriter::class);
+        $createAction = app(CreateCollectionItemAction::class);
+        $updateAction = app(UpdateCollectionItemAction::class);
 
         // ponytail: suppress per-row webhooks + Meilisearch on bulk import (ceiling: no summary event; upgrade: batched webhook / reindex)
         return OutboundWebhookDispatcher::withoutWebhooks(function () use (
@@ -167,9 +168,9 @@ trait ImportsCollectionRecordsTrait
             $upsertKey,
             $labelToField,
             $fieldsCreated,
-            $normalizer,
             $assembler,
-            $writer,
+            $createAction,
+            $updateAction,
         ): array {
             return MeilisearchSyncDispatcher::withoutMeilisearch(function () use (
                 $collection,
@@ -178,9 +179,9 @@ trait ImportsCollectionRecordsTrait
                 $upsertKey,
                 $labelToField,
                 $fieldsCreated,
-                $normalizer,
                 $assembler,
-                $writer,
+                $createAction,
+                $updateAction,
             ): array {
                 $created = 0;
                 $updated = 0;
@@ -241,16 +242,25 @@ trait ImportsCollectionRecordsTrait
 
                         if ($isUpdate) {
                             $data = array_replace($assembler->assemble($item), $data);
-                        } else {
-                            $item = $collection->items()->create([]);
-                        }
-
-                        $normalized = $normalizer->normalize($collection, $data, ! $isUpdate);
-                        $writer->sync($item, $collection, $normalized);
-
-                        if ($isUpdate) {
+                            // ponytail: bulk import skips RuleBuilder (inferred/remote rows often fail type/required); Action still owns normalize+persist. Ceiling: bad rows land; upgrade: per-field coerce + validate.
+                            $item = $updateAction->execute(new CollectionItemWriteData(
+                                collection: $collection,
+                                data: $data,
+                                item: $item,
+                                creating: false,
+                                version: $collection->versioning ? 'draft' : 'published',
+                                shouldValidate: false,
+                                shouldMergeIncoming: false,
+                                shouldEnforceVersioningGuard: false,
+                            ));
                             $updated++;
                         } else {
+                            $item = $createAction->execute(new CollectionItemWriteData(
+                                collection: $collection,
+                                data: $data,
+                                creating: true,
+                                shouldValidate: false,
+                            ));
                             $created++;
                             $this->logAiMutation($item, 'import_create_item');
 

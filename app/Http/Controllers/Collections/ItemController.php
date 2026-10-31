@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Collections;
 
+use App\Actions\Collections\CreateCollectionItemAction;
+use App\Actions\Collections\UpdateCollectionItemAction;
+use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
@@ -28,7 +31,6 @@ use App\Services\Collections\CollectionItemPublisher;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Services\Collections\CollectionItemRevisionRecorder;
 use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\Collections\CollectionListColumnsNormalizer;
 use App\Services\Collections\CollectionListDisplayEnricher;
 use App\Services\Collections\FieldConditionEvaluator;
@@ -64,7 +66,8 @@ class ItemController extends Controller
     public function __construct(
         private CollectionItemQueryService $itemQueryService,
         private CollectionItemDataNormalizer $itemDataNormalizer,
-        private CollectionItemValuesWriter $collectionItemValuesWriter,
+        private CreateCollectionItemAction $createCollectionItemAction,
+        private UpdateCollectionItemAction $updateCollectionItemAction,
         private CollectionItemValuesAssembler $collectionItemValuesAssembler,
         private CollectionItemOptionsService $collectionItemOptionsService,
         private CollectionListColumnsNormalizer $listColumnsNormalizer,
@@ -535,7 +538,7 @@ class ItemController extends Controller
         }
         $this->permissionEnforcer->assertWritableFields($request, $collection, $data, 'create');
 
-        $item = $this->persistNewItem($collection, $data, creating: true);
+        $item = $this->persistNewItem($collection, $data);
 
         return $this->redirectAfterItemSave(
             $collection,
@@ -778,7 +781,7 @@ class ItemController extends Controller
                 403,
             );
 
-            $copy = $this->persistNewItem($collection, $data, creating: true);
+            $copy = $this->persistNewItem($collection, $data);
 
             return $this->redirectAfterItemSave(
                 $collection,
@@ -788,32 +791,29 @@ class ItemController extends Controller
             );
         }
 
-        $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
+        $scheduleWarningDate = null;
+        if (
+            $version === 'draft'
+            && $collection->approvals_required
+            && in_array((string) $item->approval_status, ['approved', 'rejected', 'in_review'], true)
+            && $item->publish_at !== null
+        ) {
+            $scheduleWarningDate = $item->publish_at->timezone(config('app.timezone'))
+                ->toDayDateTimeString();
+        }
+
+        $item = $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            item: $item,
+            creating: false,
+            version: $version === 'draft' ? 'draft' : 'published',
+            shouldValidate: false,
+            shouldMergeIncoming: false,
+            shouldEnforceVersioningGuard: false,
+        ));
 
         if ($version === 'draft') {
-            $item->draft_data = $normalized;
-            $scheduleWarningDate = null;
-            // Editing an approved/rejected draft invalidates approval.
-            if (
-                $collection->approvals_required
-                && in_array((string) $item->approval_status, ['approved', 'rejected', 'in_review'], true)
-            ) {
-                if ($item->publish_at !== null) {
-                    $scheduleWarningDate = $item->publish_at->timezone(config('app.timezone'))
-                        ->toDayDateTimeString();
-                }
-                $item->approval_status = 'draft';
-                $item->rejection_note = null;
-                $item->submitted_by = null;
-                $item->reviewed_by = null;
-                $item->reviewed_at = null;
-            }
-            $item->save();
-            $this->revisionRecorder->record($item, [
-                'source' => 'draft',
-                'version' => 'draft',
-            ], $normalized);
-
             $success = $scheduleWarningDate !== null
                 ? __('Draft saved. Approval was reset; the scheduled publish on :date will not run until the item is approved again.', [
                     'date' => $scheduleWarningDate,
@@ -828,8 +828,6 @@ class ItemController extends Controller
                 draft: true,
             );
         }
-
-        $this->collectionItemValuesWriter->sync($item->fresh(), $collection, $normalized);
 
         return $this->redirectAfterItemSave(
             $collection,
@@ -884,15 +882,17 @@ class ItemController extends Controller
             $data[$key] = $value;
         }
 
-        $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
-        $this->collectionItemValuesWriter->sync(
-            $item->fresh(),
-            $collection,
-            $normalized,
+        $item = $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            item: $item,
+            creating: false,
+            version: 'published',
+            shouldValidate: false,
+            shouldMergeIncoming: false,
+            shouldEnforceVersioningGuard: false,
             revisionMeta: ['source' => 'board_move'],
-        );
-
-        $item->refresh();
+        ));
 
         if (is_array($item->draft_data)) {
             $draft = $item->draft_data;
@@ -978,15 +978,17 @@ class ItemController extends Controller
             $data[$key] = $value;
         }
 
-        $normalized = $this->itemDataNormalizer->normalize($collection, $data, false);
-        $this->collectionItemValuesWriter->sync(
-            $item->fresh(),
-            $collection,
-            $normalized,
+        $item = $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            item: $item,
+            creating: false,
+            version: 'published',
+            shouldValidate: false,
+            shouldMergeIncoming: false,
+            shouldEnforceVersioningGuard: false,
             revisionMeta: ['source' => 'calendar_move'],
-        );
-
-        $item->refresh();
+        ));
 
         if (is_array($item->draft_data)) {
             $draft = $item->draft_data;
@@ -1505,13 +1507,14 @@ class ItemController extends Controller
     /**
      * @param  array<string, mixed>  $data
      */
-    private function persistNewItem(Collection $collection, array $data, bool $creating): CollectionItem
+    private function persistNewItem(Collection $collection, array $data): CollectionItem
     {
-        $normalized = $this->itemDataNormalizer->normalize($collection, $data, $creating);
-        $item = $collection->items()->create([]);
-        $this->collectionItemValuesWriter->sync($item, $collection, $normalized);
-
-        return $item;
+        return $this->createCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            creating: true,
+            shouldValidate: false,
+        ));
     }
 
     private function itemSaveAction(Request $request): string

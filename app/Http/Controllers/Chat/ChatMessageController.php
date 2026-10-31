@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Chat;
 
+use App\Actions\Collections\UpdateCollectionItemAction;
+use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Events\ItemChatMessageCreatedEvent;
@@ -25,9 +27,7 @@ use App\Services\Authorization\EffectivePermissionResolver;
 use App\Services\Chat\ChatAttachmentUploadService;
 use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatUnreadService;
-use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\FileService;
 use App\Services\Settings\SettingsRepository;
 use App\Support\Collections\CollectionLocaleResolver;
@@ -63,8 +63,7 @@ class ChatMessageController extends Controller
         private SettingsRepository $settings,
         private FileService $fileService,
         private CollectionItemValuesAssembler $assembler,
-        private CollectionItemDataNormalizer $normalizer,
-        private CollectionItemValuesWriter $writer,
+        private UpdateCollectionItemAction $updateCollectionItemAction,
         private CollectionLocaleResolver $localeResolver,
     ) {}
 
@@ -659,8 +658,16 @@ class ChatMessageController extends Controller
 
         $assembled = $this->assembler->assemble($item);
         $assembled[$field->name] = $this->mergedFieldValue($field, $assembled[$field->name] ?? null, $fileId);
-        $normalized = $this->normalizer->normalize($collection, $assembled, false);
-        $this->writer->sync($item, $collection, $normalized);
+        $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $assembled,
+            item: $item,
+            creating: false,
+            version: $collection->versioning ? 'draft' : 'published',
+            shouldValidate: false,
+            shouldMergeIncoming: false,
+            shouldEnforceVersioningGuard: false,
+        ));
 
         return response()->json([
             'attachment' => $attachment->fresh()?->toApiArray(),

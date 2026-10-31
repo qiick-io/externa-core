@@ -2,22 +2,24 @@
 
 namespace App\Ai\Tools;
 
+use App\Actions\Collections\CreateCollectionItemAction;
+use App\Actions\Collections\UpdateCollectionItemAction;
 use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\EnforcesAiCollectionPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
+use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
-use App\Services\Collections\CollectionItemDataNormalizer;
 use App\Services\Collections\CollectionItemOptionsService;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
 use App\Services\Collections\FieldConditionEvaluator;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Validation\ValidationException;
 use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -167,10 +169,6 @@ class ManageCollectionItems implements Approvable, Tool
             return 'Error: Collection not found.';
         }
 
-        if ($collection->is_singleton && $collection->items()->exists()) {
-            return 'Error: Singleton collection already has its content item. Use update instead.';
-        }
-
         $data = $this->decodeData($request);
 
         if (is_string($data)) {
@@ -181,9 +179,16 @@ class ManageCollectionItems implements Approvable, Tool
             return $error;
         }
 
-        $normalized = app(CollectionItemDataNormalizer::class)->normalize($collection, $data, true);
-        $item = $collection->items()->create([]);
-        app(CollectionItemValuesWriter::class)->sync($item, $collection, $normalized);
+        try {
+            $item = app(CreateCollectionItemAction::class)->execute(new CollectionItemWriteData(
+                collection: $collection,
+                data: $data,
+                creating: true,
+            ));
+        } catch (ValidationException $exception) {
+            return 'Error: '.$exception->getMessage();
+        }
+
         $this->logAiMutation($item, 'create_item');
 
         return json_encode([
@@ -193,7 +198,7 @@ class ManageCollectionItems implements Approvable, Tool
                 'collection_id' => $item->collection_id,
                 'data' => $this->stripAiItemData(
                     $collection,
-                    app(CollectionItemValuesAssembler::class)->assemble($item->fresh()),
+                    app(CollectionItemValuesAssembler::class)->assemble($item),
                 ),
             ],
         ], JSON_PRETTY_PRINT) ?: '{}';
@@ -230,7 +235,12 @@ class ManageCollectionItems implements Approvable, Tool
             return $error;
         }
 
-        $data = $this->patchItem($item, $incoming);
+        try {
+            $data = $this->patchItem($item, $incoming);
+        } catch (ValidationException $exception) {
+            return 'Error: '.$exception->getMessage();
+        }
+
         $this->logAiMutation($item, 'update_item');
 
         return json_encode([
@@ -275,7 +285,11 @@ class ManageCollectionItems implements Approvable, Tool
             if ($this->guardAiItemWritable($collection, $item) !== null) {
                 continue;
             }
-            $this->patchItem($item->load('collection.fields'), $incoming);
+            try {
+                $this->patchItem($item->load('collection.fields'), $incoming);
+            } catch (ValidationException) {
+                continue;
+            }
             $this->logAiMutation($item, 'bulk_update_item');
             $updated++;
         }
@@ -465,10 +479,17 @@ class ManageCollectionItems implements Approvable, Tool
                 : $value;
         }
 
-        $normalized = app(CollectionItemDataNormalizer::class)->normalize($collection, $data, false);
-        app(CollectionItemValuesWriter::class)->sync($item->fresh(), $collection, $normalized);
+        $item = app(UpdateCollectionItemAction::class)->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            item: $item,
+            creating: false,
+            version: $collection->versioning ? 'draft' : 'published',
+            shouldMergeIncoming: false,
+            shouldEnforceVersioningGuard: false,
+        ));
 
-        return $assembler->assemble($item->fresh());
+        return $assembler->assemble($item);
     }
 
     /**

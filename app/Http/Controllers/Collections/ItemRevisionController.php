@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Collections;
 
+use App\Actions\Collections\UpdateCollectionItemAction;
+use App\Data\Collections\CollectionItemWriteData;
 use App\Http\Controllers\Controller;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemRevision;
 use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,8 +25,7 @@ class ItemRevisionController extends Controller
     private const MAX_PER_PAGE = 100;
 
     public function __construct(
-        private CollectionItemDataNormalizer $normalizer,
-        private CollectionItemValuesWriter $writer,
+        private UpdateCollectionItemAction $updateCollectionItemAction,
         private CollectionPermissionEnforcer $permissionEnforcer,
     ) {}
 
@@ -158,8 +157,17 @@ class ItemRevisionController extends Controller
         );
 
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
-        $normalized = $this->normalizer->normalize($collection, $data, false);
-        $this->writer->sync($item, $collection, $normalized);
+        $item = $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            item: $item,
+            creating: false,
+            version: 'published',
+            shouldValidate: false,
+            shouldMergeIncoming: false,
+            shouldEnforceVersioningGuard: false,
+            revisionMeta: ['source' => 'restore'],
+        ));
 
         // Versioning: align draft workspace with restored published values (like after publish).
         if ($collection->versioning) {

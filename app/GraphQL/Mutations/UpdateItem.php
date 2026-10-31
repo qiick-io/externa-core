@@ -2,14 +2,13 @@
 
 namespace App\GraphQL\Mutations;
 
+use App\Actions\Collections\UpdateCollectionItemAction;
+use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
 
 final class UpdateItem
 {
@@ -33,16 +32,21 @@ final class UpdateItem
         }
 
         $request = request();
-        $enforcer = app(CollectionPermissionEnforcer::class);
-        $enforcer->assertItemWritable($request, $collection, $item);
+        app(CollectionPermissionEnforcer::class)->assertItemWritable($request, $collection, $item);
 
         $data = is_array($args['data'] ?? null) ? $args['data'] : [];
-        $enforcer->assertWritableFields($request, $collection, $data, 'update');
 
-        $normalizer = app(CollectionItemDataNormalizer::class);
-        $merged = $normalizer->mergeIncoming(app(CollectionItemValuesAssembler::class)->assemble($item), $data);
-        $normalized = $normalizer->normalize($collection, $merged, false);
-        app(CollectionItemValuesWriter::class)->sync($item, $collection, $normalized);
+        $item = app(UpdateCollectionItemAction::class)->execute(new CollectionItemWriteData(
+            collection: $collection,
+            data: $data,
+            item: $item,
+            creating: false,
+            version: $collection->versioning ? 'draft' : 'published',
+            request: $request,
+            shouldAssertWritableFields: true,
+            writableMode: 'update',
+        ));
+
         $item->load(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
 
         return (new CollectionItemResource($item))->toArray($request);
