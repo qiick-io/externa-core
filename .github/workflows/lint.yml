@@ -72,3 +72,6 @@ jobs:
 
       - name: Typecheck Frontend
         run: npm run types:check
+
+      - name: Frontend unit tests (Vitest)
+        run: npm run test:unit
