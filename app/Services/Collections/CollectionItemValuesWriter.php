@@ -9,6 +9,7 @@ use App\Models\CollectionItemValue;
 use App\Services\Api\PublicApiResponseCache;
 use App\Services\Search\MeilisearchSyncDispatcher;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -16,6 +17,11 @@ use Illuminate\Support\Facades\DB;
  */
 class CollectionItemValuesWriter
 {
+    /**
+     * @var list<array{item_id: int, field_id: int, locale: ?string, position: int, value: mixed, created_at: Carbon, updated_at: Carbon}>
+     */
+    private array $pendingRows = [];
+
     public function __construct(
         private CollectionItemRevisionRecorder $revisionRecorder,
         private OutboundWebhookDispatcher $webhooks,
@@ -43,6 +49,8 @@ class CollectionItemValuesWriter
         DB::transaction(function () use ($item, $collection, $normalizedData, $revisionMeta): void {
             CollectionItemValue::query()->where('item_id', $item->id)->delete();
 
+            $this->pendingRows = [];
+
             foreach ($collection->fields as $field) {
                 if ($field->type->isNoData()) {
                     continue;
@@ -55,13 +63,15 @@ class CollectionItemValuesWriter
                 $value = $normalizedData[$field->name];
 
                 if ($field->translatable) {
-                    $this->syncTranslatable($item, $field, is_array($value) ? $value : []);
+                    $this->queueTranslatable($item, $field, is_array($value) ? $value : []);
 
                     continue;
                 }
 
-                $this->syncNonTranslatable($item, $field, $value);
+                $this->queueNonTranslatable($item, $field, $value);
             }
+
+            $this->flushPendingRows();
 
             $this->revisionRecorder->record($item, $revisionMeta ?? ['source' => 'sync']);
 
@@ -93,48 +103,66 @@ class CollectionItemValuesWriter
     /**
      * @param  array<string, mixed>  $perLocale
      */
-    private function syncTranslatable(CollectionItem $item, CollectionField $field, array $perLocale): void
+    private function queueTranslatable(CollectionItem $item, CollectionField $field, array $perLocale): void
     {
         foreach ($perLocale as $locale => $localeValue) {
             if ($field->usesArrayStorage()) {
                 $list = is_array($localeValue) ? $localeValue : [];
                 foreach ($list as $position => $entry) {
-                    $this->insertRow($item, $field, $locale, (int) $position, $entry);
+                    $this->queueRow($item, $field, $locale, (int) $position, $entry);
                 }
 
                 continue;
             }
 
-            $this->insertRow($item, $field, $locale, 0, $localeValue);
+            $this->queueRow($item, $field, $locale, 0, $localeValue);
         }
     }
 
-    private function syncNonTranslatable(CollectionItem $item, CollectionField $field, mixed $value): void
+    private function queueNonTranslatable(CollectionItem $item, CollectionField $field, mixed $value): void
     {
         if ($field->usesArrayStorage()) {
             $list = is_array($value) ? $value : [];
             foreach ($list as $position => $entry) {
-                $this->insertRow($item, $field, null, (int) $position, $entry);
+                $this->queueRow($item, $field, null, (int) $position, $entry);
             }
 
             return;
         }
 
-        $this->insertRow($item, $field, null, 0, $value);
+        $this->queueRow($item, $field, null, 0, $value);
     }
 
-    private function insertRow(CollectionItem $item, CollectionField $field, ?string $locale, int $position, mixed $value): void
+    private function queueRow(CollectionItem $item, CollectionField $field, ?string $locale, int $position, mixed $value): void
     {
         if ($value === null) {
             return;
         }
 
-        CollectionItemValue::query()->create([
+        $now = now();
+        $this->pendingRows[] = [
             'item_id' => $item->id,
             'field_id' => $field->id,
             'locale' => $locale,
             'position' => $position,
-            'value' => $value,
-        ]);
+            // Match Eloquent json cast used by ::create().
+            'value' => json_encode($value, JSON_THROW_ON_ERROR),
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+    }
+
+    private function flushPendingRows(): void
+    {
+        if ($this->pendingRows === []) {
+            return;
+        }
+
+        // Chunk large payloads (many array/locale cells) to stay under driver packet limits.
+        foreach (array_chunk($this->pendingRows, 500) as $chunk) {
+            CollectionItemValue::query()->insert($chunk);
+        }
+
+        $this->pendingRows = [];
     }
 }

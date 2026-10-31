@@ -6,9 +6,9 @@ use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\File;
-use App\Services\Settings\ProjectSettings;
 use App\Support\Api\ApiAccess;
 use App\Support\Collections\BlocksFieldSchema;
+use App\Support\Files\FileTransformUrlBuilder;
 
 /**
  * Expand image/file/files field values to public file payloads on API responses.
@@ -432,21 +432,7 @@ class FileFieldExpander
             ];
         }
 
-        $transforms = [];
-        if (is_string($file->mime_type) && str_starts_with($file->mime_type, 'image/')) {
-            try {
-                foreach (app(ProjectSettings::class)->presetTransformations() as $preset) {
-                    $key = $preset['key'] ?? null;
-                    if (! is_string($key) || $key === '') {
-                        continue;
-                    }
-                    $transforms[$key] = url("/api/v1/files/{$file->id}/transforms/{$key}");
-                }
-            } catch (\Throwable $exception) {
-                // omit transforms when settings unavailable
-                report($exception);
-            }
-        }
+        $transforms = FileTransformUrlBuilder::urlsFor((int) $file->id, $file->mime_type);
 
         return [
             'id' => $file->id,

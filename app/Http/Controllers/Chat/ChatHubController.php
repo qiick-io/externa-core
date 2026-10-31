@@ -56,10 +56,23 @@ class ChatHubController extends Controller
             'attachments',
         ]);
 
+        $page = max((int) $request->query('page', 1), 1);
+
         if ($tab === 'private') {
-            $chats = $this->chats->directChatsFor($user, $archived)
-                ->with(['messages' => $lastMessage])
-                ->get();
+            $query = $this->chats->directChatsFor($user, $archived)
+                ->with([
+                    'messages' => $lastMessage,
+                    'participants.user:id,first_name,last_name,email',
+                    'participants.group:id,name',
+                ]);
+
+            if ($q !== '') {
+                $query = $this->chats->applyHubSearch($query, $q, $user);
+            }
+
+            $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+            $slice = $paginator->getCollection()->values();
+            $total = $paginator->total();
         } else {
             $query = $this->chats->itemChatsFor($request, $user)
                 ->with(['messages' => $lastMessage]);
@@ -68,16 +81,17 @@ class ChatHubController extends Controller
                 $query->where('collection_id', (int) $validated['collection_id']);
             }
 
-            $chats = $this->chats->filterReadableItemChats($request, $query->get());
+            if ($q !== '') {
+                $query = $this->chats->applyHubSearch($query, $q, $user);
+            }
+
+            // Item-level ACL still needs PHP filter. Over-fetch then page in memory for this set.
+            // Collection scope + search already ran in SQL (readableCollectionScope / applyHubSearch).
+            $candidates = $this->chats->filterReadableItemChats($request, $query->get());
+            $total = $candidates->count();
+            $slice = $candidates->slice(($page - 1) * $perPage, $perPage)->values();
         }
 
-        if ($q !== '') {
-            $chats = $chats->filter(fn (Chat $chat): bool => $this->chats->matchesQuery($chat, $q, $user))->values();
-        }
-
-        $page = max((int) $request->query('page', 1), 1);
-        $total = $chats->count();
-        $slice = $chats->slice(($page - 1) * $perPage, $perPage)->values();
         $unreads = $this->unread->countsFor($slice, $user);
         $totals = $this->unread->shared($user);
 

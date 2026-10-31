@@ -976,18 +976,28 @@ class ChatMessageController extends Controller
         $subscriberIds = [];
         if ($chat->isItem() && $chat->collection_id !== null) {
             $collectionId = (int) $chat->collection_id;
+            // Indexed (scope, group) + JSON membership — avoid loading every notify row into PHP.
             $subscriberIds = Setting::query()
                 ->where('scope', SettingsRepository::SCOPE_USER)
                 ->where('group', self::SETTINGS_GROUP)
                 ->where('key', self::SETTINGS_KEY)
                 ->whereNotNull('scope_id')
-                ->get(['scope_id', 'value'])
-                ->filter(function (Setting $row) use ($collectionId): bool {
-                    $ids = is_array($row->value) ? array_map('intval', $row->value) : [];
-
-                    return in_array($collectionId, $ids, true);
+                ->where(function ($query) use ($collectionId): void {
+                    $driver = $query->getConnection()->getDriverName();
+                    if ($driver === 'sqlite') {
+                        // Laravel whereJsonContains uses `is ?` which misses numeric JSON on sqlite.
+                        $query->whereRaw(
+                            'exists (select 1 from json_each(settings.value) where json_each.value = ?)',
+                            [$collectionId],
+                        );
+                    } else {
+                        $query->whereJsonContains('value', $collectionId)
+                            // MySQL/MariaDB may persist numeric JSON elements as strings.
+                            ->orWhereJsonContains('value', (string) $collectionId);
+                    }
                 })
-                ->map(fn (Setting $row): int => (int) $row->scope_id)
+                ->pluck('scope_id')
+                ->map(fn (mixed $id): int => (int) $id)
                 ->all();
         }
 

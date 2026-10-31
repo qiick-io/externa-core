@@ -238,16 +238,105 @@ class ChatService
     }
 
     /**
+     * Collection IDs the user may read (empty list means unrestricted Spatie-only admin:
+     * no collection_permissions grants → all collections with CanShowCollections).
+     *
+     * @return array{unrestricted: bool, ids: list<int>}
+     */
+    public function readableCollectionScope(User $user): array
+    {
+        if (! $user->is_active || ! $this->permissionResolver->hasPermission($user, PermissionEnum::CanShowCollections->value)) {
+            return ['unrestricted' => false, 'ids' => []];
+        }
+
+        if ($this->permissionResolver->isSuperAdmin($user)) {
+            return ['unrestricted' => true, 'ids' => []];
+        }
+
+        $roleIds = $this->permissionResolver->effectiveRoleIds($user);
+        $readable = [];
+        $hasAnyGrant = false;
+
+        foreach ($roleIds as $roleId) {
+            $matrix = $this->permissionGuard->matrixForRole($roleId);
+            if ($matrix !== []) {
+                $hasAnyGrant = true;
+            }
+            foreach ($matrix as $collectionId => $actions) {
+                if (($actions[CollectionPermissionActionEnum::Read->value] ?? false) === true) {
+                    $readable[(int) $collectionId] = true;
+                }
+            }
+        }
+
+        // Spatie-only: no collection_permissions rows → treat as unrestricted.
+        if (! $hasAnyGrant) {
+            return ['unrestricted' => true, 'ids' => []];
+        }
+
+        return ['unrestricted' => false, 'ids' => array_keys($readable)];
+    }
+
+    /**
      * @return Builder<Chat>
      */
     public function itemChatsFor(Request $request, User $user): Builder
     {
-        return Chat::query()
+        $query = Chat::query()
             ->where('kind', Chat::KIND_ITEM)
             ->whereHas('collection')
             ->whereHas('item')
-            ->with(['collection:id,name,icon,color', 'item'])
+            ->with([
+                'collection:id,name,icon,color',
+                // Eager labels for serializeSummary / itemLabel (avoids N+1 assemble).
+                'item.fieldValues',
+                'item.collection.fields',
+            ])
             ->orderByDesc('updated_at');
+
+        $scope = $this->readableCollectionScope($user);
+        if (! $scope['unrestricted']) {
+            if ($scope['ids'] === []) {
+                $query->whereRaw('0 = 1');
+            } else {
+                $query->whereIn('collection_id', $scope['ids']);
+            }
+        }
+
+        return $query;
+    }
+
+    /**
+     * Apply hub search in SQL (collection name, message body, participant names).
+     *
+     * @param  Builder<Chat>  $query
+     * @return Builder<Chat>
+     */
+    public function applyHubSearch(Builder $query, string $q, User $viewer): Builder
+    {
+        $needle = trim($q);
+        if ($needle === '') {
+            return $query;
+        }
+
+        $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], mb_strtolower($needle)).'%';
+
+        return $query->where(function (Builder $outer) use ($like, $viewer): void {
+            $outer->whereHas('collection', function (Builder $collection) use ($like): void {
+                $collection->whereRaw('LOWER(name) like ?', [$like]);
+            })->orWhereHas('messages', function (Builder $messages) use ($like): void {
+                $messages->whereRaw('LOWER(body) like ?', [$like]);
+            })->orWhereHas('participants.user', function (Builder $users) use ($like, $viewer): void {
+                $users->where('users.id', '!=', $viewer->id)
+                    ->where(function (Builder $name) use ($like): void {
+                        $name->whereRaw('LOWER(first_name) like ?', [$like])
+                            ->orWhereRaw('LOWER(last_name) like ?', [$like])
+                            ->orWhereRaw('LOWER(email) like ?', [$like]);
+                    });
+            })->orWhereHas('participants.group', function (Builder $groups) use ($like): void {
+                $groups->whereRaw('LOWER(name) like ?', [$like]);
+            });
+        });
     }
 
     /**
