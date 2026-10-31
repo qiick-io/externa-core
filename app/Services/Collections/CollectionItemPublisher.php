@@ -7,6 +7,7 @@ use App\Models\CollectionItem;
 use App\Services\GitExport\GitExportDispatcher;
 use App\Services\Webhooks\OutboundWebhookDispatcher;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
@@ -23,6 +24,10 @@ class CollectionItemPublisher
     ) {}
 
     /**
+     * Promote under a single DB transaction with a row lock so sync + draft clear cannot diverge.
+     *
+     * Side effects (webhooks / git export) run only after the transaction commits.
+     *
      * @throws RuntimeException when no draft, versioning off, or approvals block promote
      */
     public function promote(CollectionItem $item, Collection $collection, bool $scheduled = false): void
@@ -31,33 +36,49 @@ class CollectionItemPublisher
             throw new RuntimeException('Collection versioning is disabled.');
         }
 
-        $draft = is_array($item->draft_data) ? $item->draft_data : null;
-        if ($draft === null) {
-            throw new RuntimeException('No draft changes to publish.');
-        }
+        DB::transaction(function () use ($item, $collection, $scheduled): void {
+            /** @var CollectionItem|null $locked */
+            $locked = CollectionItem::query()
+                ->whereKey($item->id)
+                ->lockForUpdate()
+                ->first();
 
-        $this->approvals->assertPromotable($item, $collection);
+            if ($locked === null) {
+                throw new RuntimeException('Collection item no longer exists.');
+            }
 
-        $normalized = $this->normalizer->normalize($collection, $draft, false);
-        $this->writer->sync(
-            $item->fresh(),
-            $collection,
-            $normalized,
-            created: false,
-            revisionMeta: [
-                'source' => 'publish',
-                'scheduled' => $scheduled,
-            ],
-        );
+            $draft = is_array($locked->draft_data) ? $locked->draft_data : null;
+            if ($draft === null) {
+                throw new RuntimeException('No draft changes to publish.');
+            }
 
-        $item->draft_data = null;
-        $item->publish_at = null;
-        $item->clearScheduleFailure();
-        $item->published_at = Carbon::now();
-        $this->approvals->clearAfterPromote($item);
-        $item->save();
+            $this->approvals->assertPromotable($locked, $collection);
+
+            $normalized = $this->normalizer->normalize($collection, $draft, false);
+            $this->writer->sync(
+                $locked,
+                $collection,
+                $normalized,
+                created: false,
+                revisionMeta: [
+                    'source' => 'publish',
+                    'scheduled' => $scheduled,
+                ],
+            );
+
+            $locked->draft_data = null;
+            $locked->publish_at = null;
+            $locked->clearScheduleFailure();
+            $locked->published_at = Carbon::now();
+            $this->approvals->clearAfterPromote($locked);
+            $locked->save();
+        });
 
         $published = $item->fresh();
+        if ($published === null) {
+            return;
+        }
+
         $this->webhooks->dispatchItem('item.published', $published, $collection, [
             'scheduled' => $scheduled,
         ]);
