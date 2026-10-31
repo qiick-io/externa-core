@@ -5,6 +5,16 @@ role="${1:-app}"
 
 cd /var/www/html
 
+# Refuse well-known placeholder DB passwords in production (#272).
+if [[ "${APP_ENV:-local}" == "production" ]]; then
+  case "${DB_PASSWORD:-}" in
+    ''|'change-me'|'changeme'|'password'|'secret')
+      echo "Refusing to start: set a strong DB_PASSWORD (got placeholder/empty) when APP_ENV=production." >&2
+      exit 1
+      ;;
+  esac
+fi
+
 mkdir -p storage/framework/{cache/data,sessions,views} storage/logs storage/app/{public,private,zips,tmp} bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
