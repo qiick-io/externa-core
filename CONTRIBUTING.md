@@ -2,6 +2,14 @@
 
 Operators who only deploy via Packagist / Docker can ignore this file. **Contributors** developing externa-core should read on.
 
+## Code of Conduct
+
+Participation is governed by our [Code of Conduct](./CODE_OF_CONDUCT.md). Report violations through the channel described there and in [SECURITY.md](./SECURITY.md) — not via public issues.
+
+## Pull requests
+
+Open PRs against `develop` using the [pull request template](./.github/pull_request_template.md). Link the issue with `Closes #…`, keep one issue per PR, and follow the checklist in the template.
+
 ## Setup
 
 ```bash
