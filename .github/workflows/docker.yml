@@ -93,6 +93,28 @@ jobs:
           grep -E 'upload_max_filesize => 100M => 100M' /tmp/php-i.txt
           grep -E 'session.use_strict_mode => On => On' /tmp/php-i.txt
 
+      - name: Assert worker roles drop to www-data
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -e APP_ENV=local \
+            -e RUN_MIGRATIONS=false \
+            -e RUN_SEED=false \
+            -e STORAGE_LINK=false \
+            --entrypoint bash externa:prod -lc '
+              set -euo pipefail
+              cp /usr/local/bin/php /usr/local/bin/php.bin
+              printf "%s\n" "#!/bin/sh" "if [ \"\$1\" = \"artisan\" ]; then id -u; exit 0; fi" "exec /usr/local/bin/php.bin \"\$@\"" > /usr/local/bin/php
+              chmod +x /usr/local/bin/php
+              expected="$(id -u www-data)"
+              for role in horizon reverb scheduler pulse queue; do
+                uid="$(/usr/local/bin/entrypoint.sh "$role")"
+                echo "$role uid=$uid (expect www-data=$expected)"
+                test "$uid" = "$expected"
+                test "$uid" != "0"
+              done
+            '
+
   # Multi-arch bake is slow (~30 min QEMU). Keep on merge/release path only so
   # pecl/php-base regressions still fail before develop/main advances; PRs use
   # native image-build for fast feedback.
