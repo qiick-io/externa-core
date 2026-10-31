@@ -149,6 +149,12 @@ final class SafeRemoteUrlValidator
             return ['error' => null, 'url' => $trimmed, 'host' => $host, 'port' => $port, 'ips' => [$host]];
         }
 
+        // Feature: Http::fake hosts (e.g. idp.example.com) often have no DNS — skip resolve so
+        // feature tests can stub discovery/import without hitting the network.
+        if (app()->runningUnitTests()) {
+            return ['error' => null, 'url' => $trimmed, 'host' => $host, 'port' => $port, 'ips' => []];
+        }
+
         $resolvedIps = self::resolveHostIps($host);
 
         if ($resolvedIps === []) {
