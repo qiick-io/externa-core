@@ -242,12 +242,14 @@ trait ImportsCollectionRecordsTrait
 
                         if ($isUpdate) {
                             $data = array_replace($assembler->assemble($item), $data);
+                            // ponytail: bulk import skips RuleBuilder (inferred/remote rows often fail type/required); Action still owns normalize+persist. Ceiling: bad rows land; upgrade: per-field coerce + validate.
                             $item = $updateAction->execute(new CollectionItemWriteData(
                                 collection: $collection,
                                 data: $data,
                                 item: $item,
                                 creating: false,
                                 version: $collection->versioning ? 'draft' : 'published',
+                                shouldValidate: false,
                                 shouldMergeIncoming: false,
                                 shouldEnforceVersioningGuard: false,
                             ));
@@ -257,6 +259,7 @@ trait ImportsCollectionRecordsTrait
                                 collection: $collection,
                                 data: $data,
                                 creating: true,
+                                shouldValidate: false,
                             ));
                             $created++;
                             $this->logAiMutation($item, 'import_create_item');
