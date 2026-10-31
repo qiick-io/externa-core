@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Ai\Support\SafeRemoteFetcher;
 use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Enums\FileTypeEnum;
 use App\Http\Controllers\Controller;
@@ -24,7 +25,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -314,36 +314,25 @@ class FileController extends Controller
         $maxBytes = 25 * 1024 * 1024;
 
         try {
-            $response = Http::timeout(30)
-                ->connectTimeout(10)
-                ->withOptions([
-                    // ponytail: no redirects — avoids SSRF via Location to private IPs; upgrade: re-validate each hop
-                    'allow_redirects' => false,
-                    'http_errors' => false,
-                ])
-                ->withHeaders(['Accept' => '*/*'])
-                ->get($url);
+            $fetched = SafeRemoteFetcher::get(
+                $url,
+                $maxBytes,
+                headers: ['Accept' => '*/*'],
+                timeoutSeconds: 30,
+            );
         } catch (\Throwable $exception) {
             throw ValidationException::withMessages([
-                'url' => ['Failed to download URL: '.$exception->getMessage()],
+                'url' => ['Failed to download URL.'],
             ]);
         }
 
-        if ($response->status() >= 400) {
+        if ($fetched['status'] >= 400) {
             throw ValidationException::withMessages([
-                'url' => ['Remote server returned HTTP '.$response->status()],
+                'url' => ['Remote download failed.'],
             ]);
         }
 
-        $contentLength = $response->header('Content-Length');
-
-        if (is_numeric($contentLength) && (int) $contentLength > $maxBytes) {
-            throw ValidationException::withMessages([
-                'url' => ['Remote file is too large (max 25 MB).'],
-            ]);
-        }
-
-        $body = $response->body();
+        $body = $fetched['body'];
 
         if ($body === '' || strlen($body) > $maxBytes) {
             throw ValidationException::withMessages([
@@ -351,7 +340,7 @@ class FileController extends Controller
             ]);
         }
 
-        $mime = $response->header('Content-Type') ?: 'application/octet-stream';
+        $mime = $fetched['content_type'] ?: 'application/octet-stream';
         $mime = strtolower(trim(explode(';', $mime)[0]));
 
         $pathName = parse_url($url, PHP_URL_PATH);

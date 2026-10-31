@@ -48,6 +48,8 @@ return [
     'oidc' => [
         'discovery_base' => env('OIDC_DISCOVERY_BASE'),
         'server_origin' => env('OIDC_SERVER_ORIGIN'),
+        // Opt-in when the IdP lives on a private/CGNAT host (lab / Docker).
+        'allow_private_hosts' => (bool) env('OIDC_ALLOW_PRIVATE_HOSTS', false),
     ],
 
 ];
