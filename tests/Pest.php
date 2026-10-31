@@ -156,6 +156,19 @@ function grantFileActions(Role $role, array $actions): void
     app(FilePermissionGuard::class)->forget($role->id);
 }
 
+function filesPublicRole(): Role
+{
+    return Role::query()->where('name', RoleEnum::Public->value)->firstOrFail();
+}
+
+/**
+ * @param  list<FilePermissionActionEnum|string>  $actions
+ */
+function grantPublicFileActions(array $actions): void
+{
+    grantFileActions(filesPublicRole(), $actions);
+}
+
 /**
  * Create a stored file row for Public API tests (caller must Storage::fake('assets')).
  */

@@ -9,10 +9,12 @@ use App\Services\FileService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
+    Storage::fake('assets');
 });
 
 it('denormalizes effective_access on create and access update', function (): void {
