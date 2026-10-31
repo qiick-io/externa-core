@@ -19,6 +19,7 @@ use Laravel\Ai\Tools\Request;
 
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
+    $this->withoutVite();
 });
 
 /**

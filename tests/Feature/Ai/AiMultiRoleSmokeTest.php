@@ -9,6 +9,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
+    $this->withoutVite();
 });
 
 test('super-permission user can open ai page collections and trashed filter', function () {
