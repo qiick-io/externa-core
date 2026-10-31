@@ -282,8 +282,9 @@ class FileChunkUploadService
             foreach ($storage->allFiles($chunkDir) as $file) {
                 $storage->delete($file);
             }
-        } catch (\Throwable) {
-            // Ignore cleanup errors.
+        } catch (\Throwable $exception) {
+            // Ignore cleanup errors, but keep them visible in the error tracker.
+            report($exception);
         }
     }
 }

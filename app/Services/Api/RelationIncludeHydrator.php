@@ -541,7 +541,9 @@ class RelationIncludeHydrator
 
         try {
             return app(ApiAccess::class);
-        } catch (\Throwable) {
+        } catch (\Throwable $exception) {
+            report($exception);
+
             return null;
         }
     }

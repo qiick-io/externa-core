@@ -1111,8 +1111,9 @@ class FileService
                 $height = $imageInfo[1];
                 $meta['dimensions'] = ['width' => $width, 'height' => $height];
             }
-        } catch (\Throwable) {
-            // Ignore image processing failures.
+        } catch (\Throwable $exception) {
+            // Ignore image processing failures, but keep them visible.
+            report($exception);
         }
 
         return [$width, $height, $meta];

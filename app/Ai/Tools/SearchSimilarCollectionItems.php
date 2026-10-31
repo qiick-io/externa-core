@@ -84,7 +84,9 @@ class SearchSimilarCollectionItems implements Tool
     ): ?string {
         try {
             $queryVector = Embeddings::for([$query])->generate()->first();
-        } catch (\Throwable) {
+        } catch (\Throwable $exception) {
+            report($exception);
+
             return null;
         }
 

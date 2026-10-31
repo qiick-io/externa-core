@@ -20,6 +20,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ### Security
 - Bump production npm deps for `follow-redirects` / `qs` audit findings (#341).
 ### Fixed
+- Add job timeouts/retries/`failed()` notifications and `report()` on soft-fail catches; make embedding job unique (#279).
 - Make scheduled publish atomic (`lockForUpdate` + transaction) and prevent schedule command overlap (#270).
 - Fix flaky `ImportRemoteJsonTest` on PostgreSQL by selecting the imported item by slug (#331).
 
