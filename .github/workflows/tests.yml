@@ -5,18 +5,76 @@ on:
     branches:
       - develop
       - main
-      - master
-      - workos
   pull_request:
     branches:
       - develop
       - main
-      - master
-      - workos
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  ci:
+  assets:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-8.4-
+
+      - name: Install Composer Dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Copy Environment File
+        run: cp .env.example .env
+
+      - name: Generate Application Key
+        run: php artisan key:generate
+
+      - name: Install Node Dependencies
+        run: npm ci
+
+      - name: Build Assets
+        run: npm run build
+
+      - name: Upload built assets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: vite-build
+          path: public/build
+          retention-days: 1
+
+  ci:
+    needs: assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -24,22 +82,34 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: ${{ matrix.php-version }}
           tools: composer:v2
-          coverage: xdebug
+          coverage: none
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
+          cache: npm
 
       - name: Install Node Dependencies
-        run: npm i
+        run: npm ci
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-${{ matrix.php-version }}-
 
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
@@ -50,14 +120,19 @@ jobs:
       - name: Generate Application Key
         run: php artisan key:generate
 
-      - name: Build Assets
-        run: npm run build
+      - name: Download built assets
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: vite-build
+          path: public/build
 
       - name: Tests
-        run: ./vendor/bin/pest
+        run: ./vendor/bin/pest --parallel
 
   ci-mysql:
+    needs: assets
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       mysql:
         image: mysql:8.4
@@ -74,22 +149,35 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           extensions: pdo_mysql
           tools: composer:v2
+          coverage: none
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
+          cache: npm
 
       - name: Install Node Dependencies
-        run: npm i
+        run: npm ci
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-8.4-
 
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
@@ -100,11 +188,14 @@ jobs:
       - name: Generate Application Key
         run: php artisan key:generate
 
-      - name: Build Assets
-        run: npm run build
+      - name: Download built assets
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: vite-build
+          path: public/build
 
       - name: Tests
-        run: ./vendor/bin/pest
+        run: ./vendor/bin/pest --parallel
         env:
           DB_CONNECTION: mysql
           DB_HOST: 127.0.0.1
@@ -116,7 +207,9 @@ jobs:
           DB_COLLATION: utf8mb4_unicode_ci
 
   ci-mariadb:
+    needs: assets
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       mariadb:
         image: mariadb:11.4
@@ -135,22 +228,35 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           extensions: pdo_mysql
           tools: composer:v2
+          coverage: none
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
+          cache: npm
 
       - name: Install Node Dependencies
-        run: npm i
+        run: npm ci
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-8.4-
 
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
@@ -161,11 +267,14 @@ jobs:
       - name: Generate Application Key
         run: php artisan key:generate
 
-      - name: Build Assets
-        run: npm run build
+      - name: Download built assets
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: vite-build
+          path: public/build
 
       - name: Tests
-        run: ./vendor/bin/pest
+        run: ./vendor/bin/pest --parallel
         env:
           DB_CONNECTION: mariadb
           DB_HOST: 127.0.0.1
@@ -177,7 +286,9 @@ jobs:
           DB_COLLATION: utf8mb4_unicode_ci
 
   ci-pgsql:
+    needs: assets
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16
@@ -195,22 +306,35 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           extensions: pdo_pgsql
           tools: composer:v2
+          coverage: none
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
+          cache: npm
 
       - name: Install Node Dependencies
-        run: npm i
+        run: npm ci
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-8.4-
 
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
@@ -221,11 +345,19 @@ jobs:
       - name: Generate Application Key
         run: php artisan key:generate
 
-      - name: Build Assets
-        run: npm run build
+      - name: Allow PostgreSQL createdb for parallel Pest
+        env:
+          PGPASSWORD: password
+        run: psql -h 127.0.0.1 -U externa -d externa -c "ALTER USER externa CREATEDB;"
+
+      - name: Download built assets
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: vite-build
+          path: public/build
 
       - name: Tests
-        run: ./vendor/bin/pest
+        run: ./vendor/bin/pest --parallel
         env:
           DB_CONNECTION: pgsql
           DB_HOST: 127.0.0.1
@@ -234,30 +366,44 @@ jobs:
           DB_USERNAME: externa
           DB_PASSWORD: password
 
-  # Dedicated Browser job (fail-soft): not in phpunit.xml Unit/Feature suites.
+  # Required merge gate — runs the full Browser suite (no continue-on-error).
   browser:
+    needs: assets
     runs-on: ubuntu-latest
-    continue-on-error: true
+    timeout-minutes: 60
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           tools: composer:v2
+          coverage: none
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
+          cache: npm
 
       - name: Install Node Dependencies
-        run: npm i
+        run: npm ci
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-8.4-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-8.4-
 
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
@@ -268,10 +414,13 @@ jobs:
       - name: Generate Application Key
         run: php artisan key:generate
 
-      - name: Build Assets
-        run: npm run build
+      - name: Download built assets
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: vite-build
+          path: public/build
 
-      - name: Browser Tests (File Manager)
-        run: ./vendor/bin/pest tests/Browser/FileManagerBrowserTest.php
+      - name: Browser Tests
+        run: ./vendor/bin/pest tests/Browser
         env:
           QUEUE_CONNECTION: sync

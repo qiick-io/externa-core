@@ -7,7 +7,8 @@ pre-commit:
   commands:
     pint:
       glob: "*.php"
-      run: vendor/bin/pint --dirty
+      run: vendor/bin/pint {staged_files}
+      stage_fixed: true
     eslint:
       glob: "resources/js/**/*.{js,jsx,ts,tsx}"
       run: npx eslint {staged_files} --max-warnings=0
@@ -27,5 +28,5 @@ pre-push:
     pint-test:
       run: vendor/bin/pint --parallel --test
     eslint:
-      run: npm run lint:check
+      run: npm run lint:check -- --max-warnings=0
     # Skip full Pest / browser suite — CI owns that.

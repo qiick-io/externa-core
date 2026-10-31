@@ -314,7 +314,10 @@ export function ItemChatDrawer({
     const messagesEntry = useChatStore((state) =>
         liveChatId ? state.messagesByChatId[liveChatId] : undefined,
     );
-    const messages = messagesEntry?.messages ?? [];
+    const messages = useMemo(
+        () => messagesEntry?.messages ?? [],
+        [messagesEntry?.messages],
+    );
     const hasMore = messagesEntry?.hasMore ?? false;
     const pinned = messagesEntry?.pinned ?? [];
     const setMessagesCache = useChatStore((state) => state.setMessagesCache);
@@ -679,7 +682,7 @@ export function ItemChatDrawer({
                 // Ignore; viewer TTL will expire.
             });
         };
-    }, [open, scopeKey, variant]);
+    }, [open, scope, scopeKey, variant]);
 
     useEffect(() => {
         setMentionHighlight(0);
@@ -1214,7 +1217,7 @@ export function ItemChatDrawer({
                 load();
             }
         },
-        [load, realtimeOn],
+        [appendMessage, load, patchThread, realtimeOn],
     );
 
     const runPendingPipeline = useCallback(

@@ -5,14 +5,12 @@ on:
     branches:
       - develop
       - main
-      - master
     tags:
       - "v*"
   pull_request:
     branches:
       - develop
       - main
-      - master
     # Skip Docker CI on PRs that cannot affect images/compose.
     paths:
       - Dockerfile
@@ -33,12 +31,17 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: docker-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   compose-config:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Prepare env samples
         run: |
@@ -66,10 +69,11 @@ jobs:
   # Native amd64 only — PR time budget ~3–5 min (vs ~35 min with QEMU multiarch).
   image-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     needs: compose-config
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Build development target
         run: docker build --target development -t externa:dev .
@@ -98,7 +102,7 @@ jobs:
     needs: compose-config
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -124,7 +128,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Resolve version
         id: meta
