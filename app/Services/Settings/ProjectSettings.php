@@ -5,6 +5,8 @@ namespace App\Services\Settings;
 use App\Services\Webhooks\OutboundWebhookCatalog;
 use App\Support\Api\PublicApiOrigin;
 use App\Support\Collections\ContentLocaleCatalog;
+use App\Support\Uploads\ForbiddenUploadExtension;
+use App\Support\Uploads\UploadAllowlist;
 use App\Support\Uploads\UploadSizeLimiter;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Cache;
@@ -643,7 +645,97 @@ class ProjectSettings
                 1,
                 UploadSizeLimiter::SETTING_MAX_BYTES,
             ),
+            'upload_allowed_mimes' => $this->normalizeUploadMimeList($raw['upload_allowed_mimes'] ?? null),
+            'upload_allowed_extensions' => $this->normalizeUploadExtensionList(
+                $raw['upload_allowed_extensions'] ?? null,
+            ),
+            'upload_allow_svg' => (bool) ($raw['upload_allow_svg'] ?? false),
         ];
+    }
+
+    public function uploadAllowSvg(): bool
+    {
+        return (bool) $this->raw()['upload_allow_svg'];
+    }
+
+    /**
+     * null = use config/files.php defaults.
+     *
+     * @return list<string>|null
+     */
+    public function uploadAllowedMimes(): ?array
+    {
+        /** @var list<string>|null $mimes */
+        $mimes = $this->raw()['upload_allowed_mimes'];
+
+        return $mimes;
+    }
+
+    /**
+     * null = no extra extension filter.
+     *
+     * @return list<string>|null
+     */
+    public function uploadAllowedExtensions(): ?array
+    {
+        /** @var list<string>|null $extensions */
+        $extensions = $this->raw()['upload_allowed_extensions'];
+
+        return $extensions;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    private function normalizeUploadMimeList(mixed $value): ?array
+    {
+        if ($value === null || $value === '' || $value === []) {
+            return null;
+        }
+
+        if (! is_array($value)) {
+            return null;
+        }
+
+        $mimes = array_values(array_unique(array_filter(array_map(
+            static fn (mixed $mime): string => strtolower(trim((string) $mime)),
+            $value,
+        ), static fn (string $mime): bool => $mime !== '' && str_contains($mime, '/'))));
+
+        return $mimes === [] ? null : $mimes;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    private function normalizeUploadExtensionList(mixed $value): ?array
+    {
+        if ($value === null || $value === '' || $value === []) {
+            return null;
+        }
+
+        if (! is_array($value)) {
+            return null;
+        }
+
+        $extensions = array_values(array_unique(array_filter(array_map(
+            static function (mixed $ext): string {
+                $normalized = strtolower(trim((string) $ext));
+                $normalized = ltrim($normalized, '.');
+
+                return preg_replace('/[^a-z0-9]/', '', $normalized) ?? '';
+            },
+            $value,
+        ), static fn (string $ext): bool => $ext !== '')));
+
+        // Hard floor extensions can never be allowlisted via settings.
+        $extensions = array_values(array_filter(
+            $extensions,
+            static fn (string $ext): bool => ! ForbiddenUploadExtension::isHardFloor("file.{$ext}")
+                || in_array($ext, UploadAllowlist::SVG_EXTENSIONS, true),
+        ));
+
+        return $extensions === [] ? null : $extensions;
     }
 
     /**

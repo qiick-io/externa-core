@@ -174,6 +174,12 @@ return [
             'files_max_upload_bytes' => null,
             // Default chat attachment cap (25 MiB); null still allowed via settings UI for unlimited
             'chat_max_upload_bytes' => 25 * 1024 * 1024,
+            // null/empty = config/files.php upload_allowed_mimes (1.3.0 floor)
+            'upload_allowed_mimes' => null,
+            // null/empty = no extra extension filter (MIME allowlist still applies)
+            'upload_allowed_extensions' => null,
+            // SVG is XSS-prone when served/inlined; opt-in only (hard floor otherwise)
+            'upload_allow_svg' => false,
         ],
         'sidebar_module_ids' => [
             'ai',

@@ -53,6 +53,9 @@ export type ProjectSettingsForm = {
     revision_retention_days: number | null;
     files_max_upload_bytes: number | null;
     chat_max_upload_bytes: number | null;
+    upload_allowed_mimes: string[] | null;
+    upload_allowed_extensions: string[] | null;
+    upload_allow_svg: boolean;
 };
 
 export type WebhookEventCatalogEntry = {
