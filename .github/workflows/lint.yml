@@ -17,29 +17,83 @@ concurrency:
   group: lint-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Vitest stays in quality for PR → develop code changes (#381).
+# Docs/md-only PRs skip Vitest (and heavy frontend gates) but `quality` still succeeds.
+
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      docs_only: ${{ steps.mode.outputs.docs_only }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect docs-only PR
+        id: mode
+        shell: bash
+        run: |
+          set -euo pipefail
+          DOCS_ONLY=false
+          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "develop" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            mapfile -t FILES < <(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" || true)
+            if [[ ${#FILES[@]} -gt 0 ]]; then
+              CODE=0
+              for f in "${FILES[@]}"; do
+                case "$f" in
+                  *.md|docs/*|.github/ISSUE_TEMPLATE/*|.github/PULL_REQUEST_TEMPLATE*)
+                    ;;
+                  *)
+                    CODE=1
+                    break
+                    ;;
+                esac
+              done
+              if [[ $CODE -eq 0 ]]; then
+                DOCS_ONLY=true
+              fi
+            fi
+          fi
+          echo "docs_only=$DOCS_ONLY" >> "$GITHUB_OUTPUT"
+          echo "docs_only=$DOCS_ONLY"
+
   quality:
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Docs-only stub (skip Vitest / frontend gates)
+        if: needs.changes.outputs.docs_only == 'true'
+        run: echo "Docs-only PR — skipping Pint/PHPStan/frontend/Vitest work; quality reports success (#381)."
+
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        if: needs.changes.outputs.docs_only != 'true'
 
       - name: Setup PHP
+        if: needs.changes.outputs.docs_only != 'true'
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
 
       - name: Setup Node
+        if: needs.changes.outputs.docs_only != 'true'
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
           cache: npm
 
       - name: Get Composer cache directory
+        if: needs.changes.outputs.docs_only != 'true'
         id: composer-cache
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
       - name: Cache Composer packages
+        if: needs.changes.outputs.docs_only != 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
@@ -47,11 +101,13 @@ jobs:
           restore-keys: composer-${{ runner.os }}-8.4-
 
       - name: Install Dependencies
+        if: needs.changes.outputs.docs_only != 'true'
         run: |
           composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
           npm ci
 
       - name: Prepare Application
+        if: needs.changes.outputs.docs_only != 'true'
         run: |
           cp .env.example .env
           php artisan key:generate
@@ -59,24 +115,31 @@ jobs:
           php artisan wayfinder:generate --with-form --no-interaction
 
       - name: Run Pint
+        if: needs.changes.outputs.docs_only != 'true'
         run: composer lint:check
 
       - name: Run PHPStan (Larastan)
+        if: needs.changes.outputs.docs_only != 'true'
         run: composer analyse
 
       - name: Lint Frontend
+        if: needs.changes.outputs.docs_only != 'true'
         run: npm run lint:check -- --max-warnings=0
 
       - name: Format Frontend
+        if: needs.changes.outputs.docs_only != 'true'
         run: npm run format:check
 
       - name: Typecheck Frontend
+        if: needs.changes.outputs.docs_only != 'true'
         run: npm run types:check
 
       - name: Frontend unit tests (Vitest)
+        if: needs.changes.outputs.docs_only != 'true'
         run: npm run test:unit
 
       - name: Public CMS SDK typecheck + OpenAPI freshness
+        if: needs.changes.outputs.docs_only != 'true'
         working-directory: packages/sdk
         run: |
           npm ci
