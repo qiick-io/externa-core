@@ -113,10 +113,13 @@ export type TablePaginationLink = {
  * @returns {JSX.Element | null}
  */
 function paginationAriaLabel(label: string): string | undefined {
-    const plain = label
-        .replace(/<[^>]*>/g, '')
-        .replace(/&[^;]+;/g, ' ')
-        .trim();
+    // Parse as HTML so tags/entities resolve safely — regex tag-stripping
+    // reintroduces nested sequences (CodeQL js/incomplete-multi-character-sanitization).
+    const plain =
+        new DOMParser()
+            .parseFromString(label, 'text/html')
+            .body.textContent?.replace(/\s+/g, ' ')
+            .trim() ?? '';
 
     if (/^\d+$/.test(plain)) {
         return `Go to page ${plain}`;
