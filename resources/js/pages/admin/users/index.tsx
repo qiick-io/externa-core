@@ -286,7 +286,7 @@ export default function AdminUsersIndex({
                                         can(PermissionEnum.CanDeleteUsers) && (
                                             <Button
                                                 type="button"
-                                                variant="destructive"
+                                                variant="destructive-outline"
                                                 size="sm"
                                                 onClick={() =>
                                                     setPendingBulkAction(
@@ -314,7 +314,7 @@ export default function AdminUsersIndex({
                                         ) && (
                                             <Button
                                                 type="button"
-                                                variant="destructive"
+                                                variant="destructive-outline"
                                                 size="sm"
                                                 onClick={() =>
                                                     setPendingBulkAction(
@@ -368,8 +368,7 @@ export default function AdminUsersIndex({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="icon"
-                                    className="size-8"
+                                    size="icon-sm"
                                     aria-label={
                                         direction === 'asc'
                                             ? 'Sort ascending'

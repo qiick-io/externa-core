@@ -6,6 +6,7 @@ import {
     FolderOpen,
     GripVertical,
     LayoutList,
+    MoreHorizontal,
     Pencil,
     Plus,
     RotateCcw,
@@ -824,7 +825,7 @@ export default function ItemsIndex({
                                     ) && (
                                         <Button
                                             type="button"
-                                            variant="destructive"
+                                            variant="destructive-outline"
                                             size="sm"
                                             onClick={() =>
                                                 setPendingBulkAction('delete')
@@ -852,7 +853,7 @@ export default function ItemsIndex({
                                     ) && (
                                         <Button
                                             type="button"
-                                            variant="destructive"
+                                            variant="destructive-outline"
                                             size="sm"
                                             onClick={() =>
                                                 setPendingBulkAction(
@@ -1373,8 +1374,7 @@ export default function ItemsIndex({
                                                                     <HeaderIconButton
                                                                         type="button"
                                                                         variant="outline"
-                                                                        size="icon"
-                                                                        className="size-8"
+                                                                        size="icon-sm"
                                                                         label="Restore"
                                                                         onClick={() =>
                                                                             router.post(
@@ -1394,30 +1394,44 @@ export default function ItemsIndex({
                                                                 {can(
                                                                     PermissionEnum.CanForceDeleteCollections,
                                                                 ) && (
-                                                                    <HeaderIconButton
-                                                                        type="button"
-                                                                        variant="destructive"
-                                                                        size="icon"
-                                                                        className="size-8"
-                                                                        label="Delete permanently"
-                                                                        onClick={() =>
-                                                                            setPendingForceDeleteItemId(
-                                                                                row.id,
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <Trash2 className="size-3.5" />
-                                                                    </HeaderIconButton>
+                                                                    <DropdownMenu>
+                                                                        <DropdownMenuTrigger
+                                                                            asChild
+                                                                        >
+                                                                            <HeaderIconButton
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="icon-sm"
+                                                                                label="More actions"
+                                                                                data-test={`item-row-menu-${row.id}`}
+                                                                            >
+                                                                                <MoreHorizontal className="size-3.5" />
+                                                                            </HeaderIconButton>
+                                                                        </DropdownMenuTrigger>
+                                                                        <DropdownMenuContent align="end">
+                                                                            <DropdownMenuItem
+                                                                                variant="destructive"
+                                                                                onSelect={() =>
+                                                                                    setPendingForceDeleteItemId(
+                                                                                        row.id,
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                Delete
+                                                                                permanently
+                                                                            </DropdownMenuItem>
+                                                                        </DropdownMenuContent>
+                                                                    </DropdownMenu>
                                                                 )}
                                                             </>
                                                         ) : (
                                                             <>
                                                                 <HeaderIconButton
                                                                     variant="outline"
-                                                                    size="icon"
-                                                                    className="size-8"
+                                                                    size="icon-sm"
                                                                     label="Edit"
                                                                     asChild
+                                                                    data-test={`item-row-edit-${row.id}`}
                                                                 >
                                                                     <Link
                                                                         href={
@@ -1432,23 +1446,38 @@ export default function ItemsIndex({
                                                                         <Pencil className="size-3.5" />
                                                                     </Link>
                                                                 </HeaderIconButton>
-                                                                <HeaderIconButton
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    size="icon"
-                                                                    className="size-8 text-destructive hover:text-destructive"
-                                                                    label="Delete"
-                                                                    onClick={(
-                                                                        event,
-                                                                    ) => {
-                                                                        event.stopPropagation();
-                                                                        setDeleteItemId(
-                                                                            row.id,
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <Trash2 className="size-3.5" />
-                                                                </HeaderIconButton>
+                                                                {can(
+                                                                    PermissionEnum.CanDeleteCollections,
+                                                                ) && (
+                                                                    <DropdownMenu>
+                                                                        <DropdownMenuTrigger
+                                                                            asChild
+                                                                        >
+                                                                            <HeaderIconButton
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="icon-sm"
+                                                                                label="More actions"
+                                                                                data-test={`item-row-menu-${row.id}`}
+                                                                            >
+                                                                                <MoreHorizontal className="size-3.5" />
+                                                                            </HeaderIconButton>
+                                                                        </DropdownMenuTrigger>
+                                                                        <DropdownMenuContent align="end">
+                                                                            <DropdownMenuItem
+                                                                                variant="destructive"
+                                                                                data-test={`item-row-delete-${row.id}`}
+                                                                                onSelect={() =>
+                                                                                    setDeleteItemId(
+                                                                                        row.id,
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                Delete
+                                                                            </DropdownMenuItem>
+                                                                        </DropdownMenuContent>
+                                                                    </DropdownMenu>
+                                                                )}
                                                             </>
                                                         )}
                                                     </div>

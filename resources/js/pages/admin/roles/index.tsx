@@ -207,8 +207,7 @@ export default function AdminRolesIndex({
                                                     ) && (
                                                         <HeaderIconButton
                                                             variant="outline"
-                                                            size="icon"
-                                                            className="size-8"
+                                                            size="icon-sm"
                                                             label={t(
                                                                 'roles.actions.edit',
                                                             )}
@@ -227,8 +226,7 @@ export default function AdminRolesIndex({
                                                         <HeaderIconButton
                                                             type="button"
                                                             variant="outline"
-                                                            size="icon"
-                                                            className="size-8"
+                                                            size="icon-sm"
                                                             label={t(
                                                                 'roles.actions.duplicate',
                                                             )}
@@ -249,9 +247,8 @@ export default function AdminRolesIndex({
                                                             'super-admin' && (
                                                             <HeaderIconButton
                                                                 type="button"
-                                                                variant="destructive"
-                                                                size="icon"
-                                                                className="size-8"
+                                                                variant="destructive-ghost"
+                                                                size="icon-sm"
                                                                 label={t(
                                                                     'roles.actions.delete',
                                                                 )}
