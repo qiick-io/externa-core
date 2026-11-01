@@ -92,16 +92,6 @@ class ChatHubController extends Controller
             $slice = $candidates->slice(($page - 1) * $perPage, $perPage)->values();
         }
 
-<<<<<<< HEAD
-=======
-        if ($q !== '') {
-            $chats = $chats->filter(fn (Chat $chat): bool => $this->chats->isMatchingQuery($chat, $q, $user))->values();
-        }
-
-        $page = max((int) $request->query('page', 1), 1);
-        $total = $chats->count();
-        $slice = $chats->slice(($page - 1) * $perPage, $perPage)->values();
->>>>>>> 979d34f (refactor(naming): boolean methods use is/has/can/should prefixes)
         $unreads = $this->unread->countsFor($slice, $user);
         $totals = $this->unread->shared($user);
 
