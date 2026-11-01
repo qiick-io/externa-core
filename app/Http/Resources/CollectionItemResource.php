@@ -85,6 +85,7 @@ class CollectionItemResource extends JsonResource
             'data' => $data,
             'created_at' => $item->created_at?->toIso8601String(),
             'updated_at' => $item->updated_at?->toIso8601String(),
+            'published_at' => $item->published_at?->toIso8601String(),
             'user_created_id' => $item->user_created_id,
             'user_updated_id' => $item->user_updated_id,
             'user_created' => $wantsUsers ? app(MiniUserMapper::class)->toArray($item->userCreated) : null,

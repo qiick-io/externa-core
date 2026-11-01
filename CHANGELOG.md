@@ -11,6 +11,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 
 ### Added
+- Public CMS `sort` query param (REST CSV / GraphQL `[String!]`, max 3 keys, `-` = desc) for system `id`/`created_at`/`updated_at`/`published_at` and sortable fields; expose `published_at` on item payloads; indexes on `(collection_id, published_at|created_at|updated_at)` (#224).
 - Add Vitest frontend unit runner and CI step for `resources/js` lib/hook tests (#285).
 - Add Pest coverage for GraphQL write AuthZ, chat ownership routes, cleanup commands, and embedding job (#286).
 

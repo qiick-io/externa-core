@@ -17,6 +17,7 @@ type Query {
         filter: JSON
         page: Int = 1
         perPage: Int = 15
+        sort: [String!]
     ): ItemPage!
         @field(resolver: "App\\GraphQL\\Queries\\ItemsQuery")
 
@@ -48,6 +49,7 @@ type Item {
     data: JSON!
     created_at: DateTime
     updated_at: DateTime
+    published_at: DateTime
     user_created_id: ID
     user_updated_id: ID
 }

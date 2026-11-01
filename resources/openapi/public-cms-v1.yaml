@@ -71,6 +71,7 @@ paths:
                 - $ref: '#/components/parameters/Locale'
                 - $ref: '#/components/parameters/IncludeAllTranslations'
                 - $ref: '#/components/parameters/Include'
+                - $ref: '#/components/parameters/Sort'
                 - name: filter
                   in: query
                   style: deepObject
@@ -434,6 +435,17 @@ components:
                 relation field name hydrates related items at depth 1. Unknown tokens ignored.
                 Example: `files,users,author`. Breaking: without `files`, file fields remain raw IDs.
             example: files,users
+        Sort:
+            name: sort
+            in: query
+            schema:
+                type: string
+            description: |
+                Comma-separated sort keys (max 3). Prefix `-` for descending.
+                Allowlist: system `id`, `created_at`, `updated_at`, `published_at`, plus sortable
+                collection fields the caller can read. Unknown / non-sortable / unreadable keys → 422.
+                Default (omit): newest `id` first. Nulls sort last; `id` is always the tiebreaker.
+            example: -published_at,title
     responses:
         Forbidden:
             description: Missing collection/file permission or origin gate failure
@@ -544,6 +556,10 @@ components:
                     type: string
                     format: date-time
                     nullable: true
+                published_at:
+                    type: string
+                    format: date-time
+                    nullable: true
                 user_created_id:
                     type: integer
                     nullable: true
@@ -612,6 +628,11 @@ components:
                     type: string
                     format: date-time
                     nullable: true
+                published_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    description: Nullable publish timestamp; sortable via `sort=published_at` / `-published_at`
                 user_created_id:
                     type: integer
                     nullable: true
