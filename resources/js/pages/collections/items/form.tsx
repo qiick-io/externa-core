@@ -27,7 +27,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
-import collections from '@/routes/collections';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
@@ -108,6 +107,7 @@ import type { LaravelPaginated } from '@/lib/pagination';
 import { readReturnParam } from '@/lib/safe-return-url';
 import { toast } from '@/lib/toast';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
+import collections from '@/routes/collections';
 import type { AdminActivityLogRow, BreadcrumbItem, Paginated } from '@/types';
 import type { CollectionView } from '@/types/collections';
 
