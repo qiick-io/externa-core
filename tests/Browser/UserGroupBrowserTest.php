@@ -95,7 +95,8 @@ it('supports trash restore and force delete actions', function () {
     $page = visit('/groups');
 
     $page->assertDontSee('Trash Me Please')
-        ->click('[aria-label="Trashed groups"]')
+        // ToggleGroupItem label is "Trash" (not "Trashed groups").
+        ->click('button[aria-label="Trash"]')
         ->wait(1)
         ->assertQueryStringHas('trashed', '1')
         ->assertSee('Trash Me Please')
@@ -113,6 +114,8 @@ it('supports trash restore and force delete actions', function () {
 
     $page->assertSee('Trash Me Please')
         ->click('Delete forever')
+        ->assertSee('Delete group permanently?')
+        ->click('Delete permanently')
         ->wait(1)
         ->assertDontSee('Trash Me Please')
         ->assertNoJavaScriptErrors();

@@ -105,17 +105,28 @@ it('shows the two factor required banner mentioning passkeys', function () {
         true,
     );
 
-    $user = User::factory()->create([
-        'email' => 'passkey-enforced@example.com',
-        'password' => 'password',
-    ]);
+    try {
+        $user = User::factory()->create([
+            'email' => 'passkey-enforced@example.com',
+            'password' => 'password',
+        ]);
 
-    $this->actingAs($user)
-        ->withSession(['auth.password_confirmed_at' => time()]);
+        $this->actingAs($user)
+            ->withSession(['auth.password_confirmed_at' => time()]);
 
-    $page = visit('/settings/security');
+        $page = visit('/settings/security');
 
-    $page->assertPresent('[data-test="two-factor-required-banner"]')
-        ->assertSee('Enable 2FA or register a passkey')
-        ->assertNoJavaScriptErrors();
+        $page->assertPresent('[data-test="two-factor-required-banner"]')
+            ->assertSee('Enable 2FA or register a passkey')
+            ->assertNoJavaScriptErrors();
+    } finally {
+        // Avoid leaking project 2FA requirement into later Browser tests
+        // if RefreshDatabase rollback is skipped (shared HTTP server).
+        app(SettingsRepositoryService::class)->set(
+            SettingsRepositoryService::SCOPE_PROJECT,
+            'project',
+            'two_factor_required',
+            false,
+        );
+    }
 });
