@@ -396,7 +396,6 @@ export default function CollectionsIndex({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="icon"
                                     size="icon-sm"
                                     aria-label={
                                         direction === 'asc'
