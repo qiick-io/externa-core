@@ -102,31 +102,41 @@ class ChatService
             ]);
         }
 
-        $chat = Chat::query()->create([
-            'kind' => Chat::KIND_DIRECT,
-            'created_by_user_id' => $creator->id,
-        ]);
+        return DB::transaction(function () use ($creator, $userIds, $groupIds, $groups): Chat {
+            // Serialize concurrent creates for the same participant set (creator row lock).
+            User::query()->whereKey($creator->id)->lockForUpdate()->first();
 
-        foreach ($userIds as $userId) {
-            ChatParticipant::query()->create([
-                'chat_id' => $chat->id,
-                'user_id' => $userId,
-                'user_group_id' => null,
-                'source' => ChatParticipant::SOURCE_EXPLICIT,
+            $existing = $this->matchingDirectChat($userIds, $groupIds);
+            if ($existing instanceof Chat) {
+                return $existing;
+            }
+
+            $chat = Chat::query()->create([
+                'kind' => Chat::KIND_DIRECT,
+                'created_by_user_id' => $creator->id,
             ]);
-        }
 
-        foreach ($groups as $group) {
-            ChatParticipant::query()->create([
-                'chat_id' => $chat->id,
-                'user_id' => null,
-                'user_group_id' => $group->id,
-                'source' => ChatParticipant::SOURCE_EXPLICIT,
-            ]);
-            $this->participantSync->expandGroup($chat, $group);
-        }
+            foreach ($userIds as $userId) {
+                ChatParticipant::query()->create([
+                    'chat_id' => $chat->id,
+                    'user_id' => $userId,
+                    'user_group_id' => null,
+                    'source' => ChatParticipant::SOURCE_EXPLICIT,
+                ]);
+            }
 
-        return $chat;
+            foreach ($groups as $group) {
+                ChatParticipant::query()->create([
+                    'chat_id' => $chat->id,
+                    'user_id' => null,
+                    'user_group_id' => $group->id,
+                    'source' => ChatParticipant::SOURCE_EXPLICIT,
+                ]);
+                $this->participantSync->expandGroup($chat, $group);
+            }
+
+            return $chat;
+        });
     }
 
     public function assertAccessible(Request $request, Chat $chat): void

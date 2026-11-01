@@ -1035,57 +1035,67 @@ class ItemController extends Controller
         ?int $afterItemId,
         ?int $beforeItemId,
     ): void {
-        $after = null;
-        if ($afterItemId !== null && $afterItemId !== $item->id) {
-            $after = CollectionItem::query()
-                ->where('collection_id', $collection->id)
-                ->whereKey($afterItemId)
-                ->first();
-        }
-
-        $before = null;
-        if ($beforeItemId !== null && $beforeItemId !== $item->id) {
-            $before = CollectionItem::query()
-                ->where('collection_id', $collection->id)
-                ->whereKey($beforeItemId)
-                ->first();
-        }
-
-        if ($after !== null) {
-            if ($after->board_sort === null) {
-                $after->board_sort = 1000;
-                $after->save();
+        CollectionItem::query()->getConnection()->transaction(function () use ($item, $collection, $afterItemId, $beforeItemId): void {
+            $after = null;
+            if ($afterItemId !== null && $afterItemId !== $item->id) {
+                $after = CollectionItem::query()
+                    ->where('collection_id', $collection->id)
+                    ->whereKey($afterItemId)
+                    ->lockForUpdate()
+                    ->first();
             }
-            $afterSort = (int) $after->board_sort;
+
+            $before = null;
+            if ($beforeItemId !== null && $beforeItemId !== $item->id) {
+                $before = CollectionItem::query()
+                    ->where('collection_id', $collection->id)
+                    ->whereKey($beforeItemId)
+                    ->lockForUpdate()
+                    ->first();
+            }
+
             CollectionItem::query()
                 ->where('collection_id', $collection->id)
-                ->whereKeyNot($item->id)
-                ->whereNotNull('board_sort')
-                ->where('board_sort', '>', $afterSort)
-                ->increment('board_sort', 1000);
-            $item->board_sort = $afterSort + 1000;
+                ->whereKey($item->id)
+                ->lockForUpdate()
+                ->first();
 
-            return;
-        }
+            if ($after !== null) {
+                if ($after->board_sort === null) {
+                    $after->board_sort = 1000;
+                    $after->save();
+                }
+                $afterSort = (int) $after->board_sort;
+                CollectionItem::query()
+                    ->where('collection_id', $collection->id)
+                    ->whereKeyNot($item->id)
+                    ->whereNotNull('board_sort')
+                    ->where('board_sort', '>', $afterSort)
+                    ->increment('board_sort', 1000);
+                $item->board_sort = $afterSort + 1000;
 
-        if ($before !== null) {
-            if ($before->board_sort === null) {
-                $before->board_sort = 2000;
-                $before->save();
+                return;
             }
-            $beforeSort = (int) $before->board_sort;
-            CollectionItem::query()
-                ->where('collection_id', $collection->id)
-                ->whereKeyNot($item->id)
-                ->whereNotNull('board_sort')
-                ->where('board_sort', '>=', $beforeSort)
-                ->increment('board_sort', 1000);
-            $item->board_sort = $beforeSort;
 
-            return;
-        }
+            if ($before !== null) {
+                if ($before->board_sort === null) {
+                    $before->board_sort = 2000;
+                    $before->save();
+                }
+                $beforeSort = (int) $before->board_sort;
+                CollectionItem::query()
+                    ->where('collection_id', $collection->id)
+                    ->whereKeyNot($item->id)
+                    ->whereNotNull('board_sort')
+                    ->where('board_sort', '>=', $beforeSort)
+                    ->increment('board_sort', 1000);
+                $item->board_sort = $beforeSort;
 
-        $item->board_sort = 1000;
+                return;
+            }
+
+            $item->board_sort = 1000;
+        });
     }
 
     /**
@@ -1445,17 +1455,22 @@ class ItemController extends Controller
 
         $items = $query->get();
 
-        foreach ($items as $item) {
-            if ($action !== 'restore') {
+        // Authorize every selected item before mutating any (no partial apply on AuthZ fail).
+        if ($action !== 'restore') {
+            foreach ($items as $item) {
                 $this->permissionEnforcer->assertItemWritable($request, $collection, $item);
             }
-
-            match ($action) {
-                'delete' => $item->delete(),
-                'restore' => $item->restore(),
-                'force_delete' => $item->forceDelete(),
-            };
         }
+
+        CollectionItem::query()->getConnection()->transaction(function () use ($items, $action): void {
+            foreach ($items as $item) {
+                match ($action) {
+                    'delete' => $item->delete(),
+                    'restore' => $item->restore(),
+                    'force_delete' => $item->forceDelete(),
+                };
+            }
+        });
 
         return redirect()
             ->back()

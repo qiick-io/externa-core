@@ -41,6 +41,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - **Docker workers as www-data (#320):** existing bind-mounted `storage/` / `bootstrap/cache` volumes that were created as root may need a one-time `chown -R www-data:www-data storage bootstrap/cache` (or recreate the volume). The entrypoint still `chown`s when it starts as root.
 
 ### Fixed
+- Wrap chat message create, direct-chat create, bulk item actions, kanban rank shifts, and AI collection duplicate in transactions/`lockForUpdate`; authorize bulk items before mutate; report (not 500) broadcast failures after a saved write; Postgres `collections_items_values` unique uses `NULLS NOT DISTINCT` with dedupe (#278).
 - Stabilize Browser Pest suite waits/selectors and clear ProjectSettings memo between tests (#345).
 - Add job timeouts/retries/`failed()` notifications and `report()` on soft-fail catches; make embedding job unique (#279).
 - Make scheduled publish atomic (`lockForUpdate` + transaction) and prevent schedule command overlap (#270).

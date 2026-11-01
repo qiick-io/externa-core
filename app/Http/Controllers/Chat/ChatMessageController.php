@@ -40,6 +40,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 /**
  * JSON chat API keyed by unified Chat UUID.
@@ -188,32 +189,54 @@ class ChatMessageController extends Controller
 
         $mentionedIds = $this->validatedMentionIds($request, $chat, $validated['mentioned_user_ids'] ?? []);
         $this->assertCollectionMentions($request, $body);
-        $attachments = $this->claimOrphanAttachments($user, $attachmentIds);
         $replyToId = $this->validatedReplyToId($chat, isset($validated['reply_to_id']) ? (int) $validated['reply_to_id'] : null);
 
-        $message = CollectionItemChatMessage::query()->create([
-            'chat_id' => $chat->id,
-            'user_id' => $user->id,
-            'body' => $body,
-            'mentioned_user_ids' => $mentionedIds,
-            'reply_to_id' => $replyToId,
-        ]);
+        /** @var array{0: CollectionItemChatMessage, 1: list<CollectionItemChatAttachment>} $written */
+        $written = CollectionItemChatMessage::query()->getConnection()->transaction(function () use ($chat, $user, $body, $mentionedIds, $replyToId, $attachmentIds): array {
+            $attachments = $this->claimOrphanAttachments($user, $attachmentIds);
 
-        foreach ($attachments as $attachment) {
-            $attachment->message_id = $message->id;
-            $attachment->expires_at = null;
-            $attachment->save();
-        }
+            $message = CollectionItemChatMessage::query()->create([
+                'chat_id' => $chat->id,
+                'user_id' => $user->id,
+                'body' => $body,
+                'mentioned_user_ids' => $mentionedIds,
+                'reply_to_id' => $replyToId,
+            ]);
 
-        $chat->touch();
-        $this->chats->unarchiveDirectChatForRecipients($chat, $user);
+            foreach ($attachments as $attachment) {
+                $attachment->message_id = $message->id;
+                $attachment->expires_at = null;
+                $attachment->save();
+            }
 
+            $chat->touch();
+            $this->chats->unarchiveDirectChatForRecipients($chat, $user);
+
+            return [$message, $attachments];
+        });
+
+        [$message, $attachments] = $written;
         $message->load($this->messageRelations());
         $payload = $this->serializeMessage($message, $user);
 
-        $this->notifyRecipients($chat, $message, $user, $mentionedIds);
-        $this->unread->afterMessageCreated($chat, $message, $user, $mentionedIds);
-        event(new ItemChatMessageCreatedEvent($chat->id, $payload));
+        // Side effects after commit; broadcast failures must not 500 a saved write.
+        try {
+            $this->notifyRecipients($chat, $message, $user, $mentionedIds);
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        try {
+            $this->unread->afterMessageCreated($chat, $message, $user, $mentionedIds);
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        try {
+            event(new ItemChatMessageCreatedEvent($chat->id, $payload));
+        } catch (Throwable $e) {
+            report($e);
+        }
 
         activity()
             ->causedBy($user)
@@ -876,6 +899,7 @@ class ChatMessageController extends Controller
             ->whereIn('id', $ids)
             ->where('user_id', $user->id)
             ->whereNull('message_id')
+            ->lockForUpdate()
             ->get();
 
         if ($attachments->count() !== count($ids)) {
