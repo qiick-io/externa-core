@@ -6,8 +6,8 @@ use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
-use App\Models\User;
 use App\Support\Api\ApiAccess;
+use App\Support\Api\MiniUserMapper;
 use App\Support\Api\PublicApiIncludeParser;
 use App\Support\Collections\CollectionItemDataAccessor;
 use App\Support\Collections\CollectionLocaleResolver;
@@ -32,6 +32,7 @@ class RelationIncludeHydrator
         private CollectionPermissionEnforcer $permissionEnforcer,
         private FileFieldExpander $fileFieldExpander,
         private PublicApiIncludeParser $includeParser,
+        private MiniUserMapper $miniUserMapper,
     ) {}
 
     /**
@@ -410,8 +411,8 @@ class RelationIncludeHydrator
             'updated_at' => $item->updated_at?->toIso8601String(),
             'user_created_id' => $item->user_created_id,
             'user_updated_id' => $item->user_updated_id,
-            'user_created' => $wantsUsers ? $this->miniUser($item->userCreated) : null,
-            'user_updated' => $wantsUsers ? $this->miniUser($item->userUpdated) : null,
+            'user_created' => $wantsUsers ? $this->miniUserMapper->toArray($item->userCreated) : null,
+            'user_updated' => $wantsUsers ? $this->miniUserMapper->toArray($item->userUpdated) : null,
         ];
 
         $serializedCache[$cacheKey] = $payload;
@@ -555,21 +556,5 @@ class RelationIncludeHydrator
         $this->localeResolver->assertRequestedLocaleAllowed($override);
 
         return $this->localeResolver->resolve($override);
-    }
-
-    /**
-     * @return array{id: int, name: string, email: string|null}|null
-     */
-    private function miniUser(?User $user): ?array
-    {
-        if ($user === null) {
-            return null;
-        }
-
-        return [
-            'id' => (int) $user->id,
-            'name' => $user->name !== '' ? $user->name : ($user->email ?? ('#'.$user->id)),
-            'email' => $user->email,
-        ];
     }
 }
