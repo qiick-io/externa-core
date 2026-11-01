@@ -51,6 +51,7 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PermissionEnum } from '@/enums/permission-enum';
@@ -133,6 +134,8 @@ type FieldRenderContext = {
     maxBlocksDepth?: number;
     /** Whether this field has a validation error */
     hasError?: boolean;
+    /** DOM id of the linked FieldError for aria-describedby */
+    errorId?: string;
     markdownMode?: 'edit' | 'preview';
     onMarkdownModeChange?: (mode: 'edit' | 'preview') => void;
     showMarkdownModeToggle?: boolean;
@@ -266,11 +269,13 @@ function renderFieldControl(context: FieldRenderContext) {
         nestingDepth,
         maxBlocksDepth,
         hasError,
+        errorId,
         markdownMode,
         onMarkdownModeChange,
         showMarkdownModeToggle,
         onValueChange,
     } = context;
+    const errorDescribedBy = hasError && errorId ? errorId : undefined;
     const options = parseFieldOptions(field.settings).filter(
         (option) => option.value.trim() !== '',
     );
@@ -305,6 +310,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     placeholder={placeholder}
                     readOnly={readonly}
                     aria-invalid={hasError}
+                    aria-describedby={errorDescribedBy}
                 />
             );
         case 'slider':
@@ -336,6 +342,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     )}
                     readOnly={readonly}
                     aria-invalid={hasError}
+                    aria-describedby={errorDescribedBy}
                 />
             );
         case 'wysiwyg':
@@ -537,6 +544,7 @@ function renderFieldControl(context: FieldRenderContext) {
                         maxLength={stringSettings.maxLength ?? undefined}
                         readOnly={readonly}
                         aria-invalid={hasError}
+                        aria-describedby={errorDescribedBy}
                     />
                 </InputWithIcons>
             );
@@ -645,6 +653,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     placeholder={placeholder}
                     readOnly={readonly}
                     aria-invalid={hasError}
+                    aria-describedby={errorDescribedBy}
                 />
             );
     }
@@ -857,6 +866,7 @@ function TranslatableItemField({
                     relatedCollections,
                     defaultValue: getDefaultLocale(defaults, field.name, code),
                     hasError: !!errorMessage && code === fieldLocale,
+                    errorId: `data_${field.name}-error`,
                     markdownMode,
                     onMarkdownModeChange: setMarkdownMode,
                     showMarkdownModeToggle: false,
@@ -895,6 +905,7 @@ function TranslatableItemField({
             onTranslateFromLocale={translateFromLocale}
             aiTranslating={aiTranslating}
             errorMessage={errorMessage}
+            errorId={`data_${field.name}-error`}
             namePrefix={`data[${field.name}]`}
             locale={fieldLocale}
             onLocaleChange={setFieldLocale}
@@ -1071,6 +1082,7 @@ function NonTranslatableItemField({
                 relatedCollections,
                 defaultValue: getDefaultScalar(defaults, field.name),
                 hasError: !!errorMessage,
+                errorId: `data_${field.name}-error`,
                 markdownMode,
                 onMarkdownModeChange: setMarkdownMode,
                 showMarkdownModeToggle: false,
@@ -1078,9 +1090,9 @@ function NonTranslatableItemField({
             })}
             {/* Always reserve note line below control so half-width siblings stay aligned */}
             <FieldNoteSlot note={note} />
-            {errorMessage ? (
-                <p className="text-sm text-destructive">{errorMessage}</p>
-            ) : null}
+            <FieldError id={`data_${field.name}-error`}>
+                {errorMessage}
+            </FieldError>
         </div>
     );
 }
