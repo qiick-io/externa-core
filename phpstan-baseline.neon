@@ -129,7 +129,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$created_at\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 1
 			path: app/Http/Controllers/Ai/AiConversationController.php
 
 		-
@@ -137,6 +137,12 @@ parameters:
 			identifier: argument.unresolvableType
 			count: 1
 			path: app/Http/Controllers/Ai/AiConversationController.php
+
+		-
+			message: '#^Access to an undefined property Laravel\\Ai\\Models\\ConversationMessage\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/Ai/AiConversationMutationService.php
 
 		-
 			message: '#^Access to an undefined property Laravel\\Ai\\Models\\Conversation\:\:\$created_at\.$#'
