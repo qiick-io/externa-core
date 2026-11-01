@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands\Ai;
 
+use App\Console\Concerns\ManagesDotEnvTrait;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
@@ -14,6 +15,8 @@ use Throwable;
 #[AsCommand(name: 'ai:rotate-webhook-token')]
 class RotateWebhookTokenCommand extends Command
 {
+    use ManagesDotEnvTrait;
+
     protected $signature = 'ai:rotate-webhook-token
         {--grace=24h : Grace window for the previous token (e.g. 30m, 24h, 7d)}
         {--show : Print the new token once to stdout}
@@ -152,41 +155,5 @@ class RotateWebhookTokenCommand extends Command
             'd' => $amount * 86400,
             default => throw new \InvalidArgumentException('Invalid --grace unit. Use s, m, h, or d.'),
         };
-    }
-
-    private function looksLikeProduction(): bool
-    {
-        if (app()->environment('production')) {
-            return true;
-        }
-
-        if (! File::exists(base_path('.env'))) {
-            return false;
-        }
-
-        $env = File::get(base_path('.env'));
-
-        return (bool) preg_match('/^APP_ENV\s*=\s*production\s*$/mi', $env);
-    }
-
-    private function setEnv(string $env, string $key, string $value): string
-    {
-        $escaped = $this->escapeEnvValue($value);
-        $pattern = '/^'.preg_quote($key, '/').'=.*$/m';
-
-        if (preg_match($pattern, $env)) {
-            return preg_replace($pattern, $key.'='.$escaped, $env) ?? $env;
-        }
-
-        return rtrim($env)."\n{$key}={$escaped}\n";
-    }
-
-    private function escapeEnvValue(string $value): string
-    {
-        if ($value === '' || preg_match('/[\s#"\']/', $value)) {
-            return '"'.str_replace(['\\', '"'], ['\\\\', '\\"'], $value).'"';
-        }
-
-        return $value;
     }
 }
