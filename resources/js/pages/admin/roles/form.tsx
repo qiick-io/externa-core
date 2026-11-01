@@ -612,7 +612,7 @@ export default function AdminRoleForm({
                                                             className={cn(
                                                                 'inline-flex size-8 items-center justify-center rounded-md border transition-colors',
                                                                 allowed
-                                                                    ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                                                    ? 'border-success/50 bg-success/15 text-success'
                                                                     : 'border-destructive/50 bg-destructive/10 text-destructive',
                                                             )}
                                                             onClick={() =>
@@ -784,7 +784,7 @@ export default function AdminRoleForm({
                                                                                     className={cn(
                                                                                         'inline-flex size-8 items-center justify-center rounded-md border transition-colors',
                                                                                         allowed
-                                                                                            ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                                                                            ? 'border-success/50 bg-success/15 text-success'
                                                                                             : 'border-destructive/50 bg-destructive/10 text-destructive',
                                                                                     )}
                                                                                     onClick={() =>

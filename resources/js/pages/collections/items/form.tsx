@@ -1381,7 +1381,7 @@ export default function ItemsForm({
             >
                 {draftBanner && (
                     <div
-                        className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+                        className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warning/40 bg-warning/10 text-warning px-3 py-2 text-sm"
                         data-test="item-draft-banner"
                     >
                         <span>Restored unsaved browser draft.</span>
@@ -1404,7 +1404,7 @@ export default function ItemsForm({
 
                 {!isNew && item !== null && remoteStale ? (
                     <div
-                        className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+                        className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warning/40 bg-warning/10 text-warning px-3 py-2 text-sm"
                         data-test="item-stale-banner"
                     >
                         <span>
@@ -1743,7 +1743,7 @@ export default function ItemsForm({
                                                 />
                                                 {formReadonly ? (
                                                     <p
-                                                        className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+                                                        className="rounded-lg border border-warning/40 bg-warning/10 text-warning px-3 py-2 text-sm"
                                                         data-test={
                                                             presence.lockedByOther
                                                                 ? 'item-soft-lock-banner'

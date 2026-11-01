@@ -1149,7 +1149,7 @@ function MetricCard({
                         'text-xl',
                         tone === 'danger' && 'text-destructive',
                         tone === 'ok' &&
-                            'text-emerald-600 dark:text-emerald-400',
+                            'text-success',
                     )}
                 >
                     {value}
@@ -1342,7 +1342,7 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                         className={cn(
                                             'text-2xl font-semibold',
                                             horizon.status === 'running'
-                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                ? 'text-success'
                                                 : 'text-destructive',
                                         )}
                                     >

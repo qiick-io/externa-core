@@ -195,7 +195,7 @@ export default function AdminApiKeysIndex({
                         {(flashKey || plainTextKey) && (
                             <div
                                 data-testid="api-key-secret"
-                                className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm"
+                                className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning"
                             >
                                 <p className="font-medium">
                                     Copy this key now — it will not be shown

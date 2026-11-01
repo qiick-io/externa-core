@@ -572,9 +572,25 @@ export default function AdminUsersIndex({
                                             </TableCell>
                                             <TableCell>
                                                 {user.is_active ? (
-                                                    <Badge>Active</Badge>
+                                                    <Badge
+                                                        variant="success"
+                                                        className="gap-1.5"
+                                                    >
+                                                        <span
+                                                            className="size-1.5 rounded-full bg-success"
+                                                            aria-hidden
+                                                        />
+                                                        Active
+                                                    </Badge>
                                                 ) : (
-                                                    <Badge variant="outline">
+                                                    <Badge
+                                                        variant="muted"
+                                                        className="gap-1.5"
+                                                    >
+                                                        <span
+                                                            className="size-1.5 rounded-full bg-muted-foreground"
+                                                            aria-hidden
+                                                        />
                                                         Inactive
                                                     </Badge>
                                                 )}

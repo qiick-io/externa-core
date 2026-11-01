@@ -168,7 +168,7 @@ export function FileUploadIndicator({
                           ) ? (
                             <XCircle className="size-4 shrink-0 text-destructive" />
                         ) : (
-                            <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+                            <CheckCircle2 className="size-4 shrink-0 text-success" />
                         )}
                         <p className="min-w-0 flex-1 truncate text-sm font-medium">
                             {summaryLabel}
@@ -237,7 +237,7 @@ export function FileUploadIndicator({
                                                 </p>
                                             </div>
                                             {upload.status === 'complete' && (
-                                                <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+                                                <CheckCircle2 className="size-4 shrink-0 text-success" />
                                             )}
                                             {upload.status === 'error' && (
                                                 <Button
@@ -268,7 +268,7 @@ export function FileUploadIndicator({
                                                         ? 'bg-destructive'
                                                         : upload.status ===
                                                             'complete'
-                                                          ? 'bg-emerald-600'
+                                                          ? 'bg-success'
                                                           : 'bg-primary',
                                                 )}
                                                 style={{

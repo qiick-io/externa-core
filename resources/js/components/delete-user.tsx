@@ -5,6 +5,7 @@ import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileCo
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -32,15 +33,13 @@ export default function DeleteUser() {
                 title={t('settings.deleteUser.title')}
                 description={t('settings.deleteUser.description')}
             />
-            <div className="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
-                <div className="relative space-y-0.5 text-red-600 dark:text-red-100">
-                    <p className="font-medium">
-                        {t('settings.deleteUser.warning')}
-                    </p>
-                    <p className="text-sm">
+            <div className="space-y-4">
+                <Alert variant="destructive">
+                    <AlertTitle>{t('settings.deleteUser.warning')}</AlertTitle>
+                    <AlertDescription>
                         {t('settings.deleteUser.caution')}
-                    </p>
-                </div>
+                    </AlertDescription>
+                </Alert>
 
                 <Dialog>
                     <DialogTrigger asChild>
