@@ -6,9 +6,9 @@ use App\Ai\Support\AiPendingApprovals;
 use App\Ai\Support\AiToolTurnSummary;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Ai\AiConversationMutationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Ai\Models\Conversation;
 use Laravel\Ai\Models\ConversationMessage;
@@ -19,6 +19,10 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class AiConversationController extends Controller
 {
+    public function __construct(
+        private readonly AiConversationMutationService $mutations,
+    ) {}
+
     /**
      * Paginate the authenticated user's conversations with pinned items first.
      */
@@ -122,13 +126,7 @@ class AiConversationController extends Controller
     {
         $owned = $this->ownedConversation($request, $conversation);
 
-        DB::transaction(function () use ($owned): void {
-            ConversationMessage::query()
-                ->where('conversation_id', $owned->id)
-                ->delete();
-
-            $owned->delete();
-        });
+        $this->mutations->deleteConversation($owned);
 
         return response()->json(['ok' => true]);
     }
@@ -155,15 +153,7 @@ class AiConversationController extends Controller
 
         abort_if(count($ownedIds) !== count($ids), Response::HTTP_NOT_FOUND);
 
-        $deleted = DB::transaction(function () use ($ownedIds): int {
-            ConversationMessage::query()
-                ->whereIn('conversation_id', $ownedIds)
-                ->delete();
-
-            return Conversation::query()
-                ->whereIn('id', $ownedIds)
-                ->delete();
-        });
+        $deleted = $this->mutations->deleteConversations($ownedIds);
 
         return response()->json([
             'ok' => true,
@@ -205,18 +195,7 @@ class AiConversationController extends Controller
 
         abort_if($anchor === null, Response::HTTP_NOT_FOUND);
 
-        $deleted = DB::transaction(function () use ($owned, $anchor): int {
-            return ConversationMessage::query()
-                ->where('conversation_id', $owned->id)
-                ->where(function ($query) use ($anchor): void {
-                    $query->where('created_at', '>', $anchor->created_at)
-                        ->orWhere(function ($sameInstant) use ($anchor): void {
-                            $sameInstant->where('created_at', $anchor->created_at)
-                                ->where('id', '>=', $anchor->id);
-                        });
-                })
-                ->delete();
-        });
+        $deleted = $this->mutations->truncateFromMessage($owned, $anchor);
 
         $owned->touch();
 

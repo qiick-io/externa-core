@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Admin\JobMonitorController;
-use App\Http\Controllers\Ai\AiConversationController;
 use App\Http\Middleware\ConfigurePublicApiCors;
 use App\Http\Middleware\EnforcePublicApiOrigin;
 use App\Http\Middleware\EnsureCanManageFiles;
@@ -86,11 +84,7 @@ arch('env helper is not used outside config')
 
 arch('controllers do not use the DB facade directly')
     ->expect('App\Http\Controllers')
-    ->not->toUse('Illuminate\Support\Facades\DB')
-    ->ignoring([
-        AiConversationController::class,
-        JobMonitorController::class,
-    ]);
+    ->not->toUse('Illuminate\Support\Facades\DB');
 
 arch('Models use bare domain nouns without a Model suffix')
     ->expect('App\Models')
