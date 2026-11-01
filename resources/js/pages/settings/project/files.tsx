@@ -27,6 +27,9 @@ type FilesProjectSettings = Pick<
     | 'chat_max_upload_bytes'
     | 'allowed_transformations'
     | 'preset_transformations'
+    | 'upload_allowed_mimes'
+    | 'upload_allowed_extensions'
+    | 'upload_allow_svg'
 >;
 
 type Props = {
@@ -34,6 +37,7 @@ type Props = {
     transformationOptions: string[];
     transformFits: TransformPreset['fit'][];
     transformFormats: TransformPreset['format'][];
+    defaultUploadMimes: string[];
 };
 
 function buildFormState(project: FilesProjectSettings) {
@@ -42,7 +46,21 @@ function buildFormState(project: FilesProjectSettings) {
         chat_max_upload_bytes: project.chat_max_upload_bytes ?? null,
         allowed_transformations: project.allowed_transformations ?? [],
         preset_transformations: project.preset_transformations ?? [],
+        upload_allowed_mimes_text: (project.upload_allowed_mimes ?? []).join(
+            ', ',
+        ),
+        upload_allowed_extensions_text: (
+            project.upload_allowed_extensions ?? []
+        ).join(', '),
+        upload_allow_svg: project.upload_allow_svg ?? false,
     };
+}
+
+function splitList(value: string): string[] {
+    return value
+        .split(/[\s,]+/)
+        .map((part) => part.trim())
+        .filter(Boolean);
 }
 
 function presetTransformErrors(
@@ -68,6 +86,7 @@ export default function ProjectFilesSettingsPage({
     transformationOptions,
     transformFits,
     transformFormats,
+    defaultUploadMimes,
 }: Props) {
     const { t } = useTranslation();
     const initialForm = useMemo(() => buildFormState(project), [project]);
@@ -123,6 +142,27 @@ export default function ProjectFilesSettingsPage({
                                 value={JSON.stringify(
                                     form.preset_transformations,
                                 )}
+                            />
+                            <input
+                                type="hidden"
+                                name="upload_allowed_mimes"
+                                value={JSON.stringify(
+                                    splitList(form.upload_allowed_mimes_text),
+                                )}
+                            />
+                            <input
+                                type="hidden"
+                                name="upload_allowed_extensions"
+                                value={JSON.stringify(
+                                    splitList(
+                                        form.upload_allowed_extensions_text,
+                                    ),
+                                )}
+                            />
+                            <input
+                                type="hidden"
+                                name="upload_allow_svg"
+                                value={form.upload_allow_svg ? '1' : '0'}
                             />
 
                             <div className="space-y-6">
@@ -245,6 +285,120 @@ export default function ProjectFilesSettingsPage({
                                 </div>
                                 <p className="text-sm text-muted-foreground">
                                     {t('settings.project.uploadLimitsHint')}
+                                </p>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t(
+                                        'settings.project.uploadPolicyTitle',
+                                    )}
+                                    description={t(
+                                        'settings.project.uploadPolicyDescription',
+                                    )}
+                                />
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="upload_allowed_extensions">
+                                        {t(
+                                            'settings.project.uploadAllowedExtensions',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="upload_allowed_extensions"
+                                        value={
+                                            form.upload_allowed_extensions_text
+                                        }
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                upload_allowed_extensions_text:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder="png, jpg, pdf"
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.uploadAllowedExtensionsHelp',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={
+                                            errors.upload_allowed_extensions
+                                        }
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="upload_allowed_mimes">
+                                        {t(
+                                            'settings.project.uploadAllowedMimes',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="upload_allowed_mimes"
+                                        value={form.upload_allowed_mimes_text}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                upload_allowed_mimes_text:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder={defaultUploadMimes
+                                            .slice(0, 4)
+                                            .join(', ')}
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        {t(
+                                            'settings.project.uploadAllowedMimesHelp',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={errors.upload_allowed_mimes}
+                                    />
+                                </div>
+
+                                <div className="flex items-start gap-3">
+                                    <Checkbox
+                                        id="upload_allow_svg"
+                                        checked={form.upload_allow_svg}
+                                        onCheckedChange={(checked) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                upload_allow_svg:
+                                                    checked === true,
+                                            }))
+                                        }
+                                    />
+                                    <div className="grid gap-1">
+                                        <Label
+                                            htmlFor="upload_allow_svg"
+                                            className="font-normal"
+                                        >
+                                            {t(
+                                                'settings.project.uploadAllowSvg',
+                                            )}
+                                        </Label>
+                                        <p className="text-sm text-muted-foreground">
+                                            {t(
+                                                'settings.project.uploadAllowSvgHelp',
+                                            )}
+                                        </p>
+                                        <InputError
+                                            message={errors.upload_allow_svg}
+                                        />
+                                    </div>
+                                </div>
+
+                                <p className="text-sm text-muted-foreground">
+                                    {t(
+                                        'settings.project.uploadPolicyFloorHint',
+                                    )}
                                 </p>
                             </div>
 

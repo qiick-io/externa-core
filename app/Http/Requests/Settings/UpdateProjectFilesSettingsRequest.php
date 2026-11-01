@@ -37,6 +37,11 @@ class UpdateProjectFilesSettingsRequest extends FormRequest
             'preset_transformations.*.quality' => ['required', 'integer', 'min:1', 'max:100'],
             'preset_transformations.*.without_enlargement' => ['required', 'boolean'],
             'preset_transformations.*.format' => ['required', 'string', Rule::in($formats)],
+            'upload_allowed_mimes' => ['nullable', 'array'],
+            'upload_allowed_mimes.*' => ['string', 'max:128'],
+            'upload_allowed_extensions' => ['nullable', 'array'],
+            'upload_allowed_extensions.*' => ['string', 'max:32'],
+            'upload_allow_svg' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -83,6 +88,24 @@ class UpdateProjectFilesSettingsRequest extends FormRequest
             ->values()
             ->all();
 
+        $mimes = isset($validated['upload_allowed_mimes']) && is_array($validated['upload_allowed_mimes'])
+            ? array_values(array_filter(array_map(
+                static fn (mixed $mime): string => strtolower(trim((string) $mime)),
+                $validated['upload_allowed_mimes'],
+            )))
+            : null;
+
+        $extensions = isset($validated['upload_allowed_extensions']) && is_array($validated['upload_allowed_extensions'])
+            ? array_values(array_filter(array_map(
+                static function (mixed $ext): string {
+                    $normalized = strtolower(trim((string) $ext));
+
+                    return ltrim($normalized, '.');
+                },
+                $validated['upload_allowed_extensions'],
+            )))
+            : null;
+
         return [
             'files_max_upload_bytes' => isset($validated['files_max_upload_bytes'])
                 ? (int) $validated['files_max_upload_bytes']
@@ -92,6 +115,9 @@ class UpdateProjectFilesSettingsRequest extends FormRequest
                 : null,
             'allowed_transformations' => array_values($validated['allowed_transformations'] ?? []),
             'preset_transformations' => $presets,
+            'upload_allowed_mimes' => $mimes === [] ? null : $mimes,
+            'upload_allowed_extensions' => $extensions === [] ? null : $extensions,
+            'upload_allow_svg' => (bool) ($validated['upload_allow_svg'] ?? false),
         ];
     }
 
@@ -141,6 +167,28 @@ class UpdateProjectFilesSettingsRequest extends FormRequest
             if (is_array($decoded)) {
                 $merge['allowed_transformations'] = $decoded;
             }
+        }
+
+        foreach (['upload_allowed_mimes', 'upload_allowed_extensions'] as $listField) {
+            if (! $this->has($listField)) {
+                continue;
+            }
+            $raw = $this->input($listField);
+            if (is_string($raw)) {
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    $merge[$listField] = $decoded;
+                } else {
+                    $parts = preg_split('/[\s,]+/', $raw) ?: [];
+                    $merge[$listField] = array_values(array_filter(array_map('trim', $parts)));
+                }
+            } elseif ($raw === null || (is_array($raw) && $raw === [])) {
+                $merge[$listField] = null;
+            }
+        }
+
+        if ($this->has('upload_allow_svg')) {
+            $merge['upload_allow_svg'] = $this->boolean('upload_allow_svg');
         }
 
         if ($merge !== []) {

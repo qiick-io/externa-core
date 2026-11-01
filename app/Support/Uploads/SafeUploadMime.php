@@ -119,17 +119,26 @@ final class SafeUploadMime
         }
 
         $extension = self::extensionOf($fileName);
-        $allowed = self::CHAT_EXTENSION_MIMES[$extension] ?? null;
+        $chatMimes = self::CHAT_EXTENSION_MIMES;
+        $allowlist = app(UploadAllowlist::class);
+        if ($allowlist->allowSvg()) {
+            $chatMimes['svg'] = [UploadAllowlist::SVG_MIME];
+            $chatMimes['svgz'] = [UploadAllowlist::SVG_MIME];
+        }
+        $allowed = $chatMimes[$extension] ?? null;
 
         if ($allowed === null) {
             throw ValidationException::withMessages([
-                $field => ['This file type is not allowed.'],
+                $field => ['This file extension is not in the project upload allowlist.'],
             ]);
         }
 
         $sniffed = strtolower(trim(explode(';', $sniffedMime, 2)[0]));
 
-        if (self::isDangerous($sniffed) || ! in_array($sniffed, $allowed, true)) {
+        $dangerous = self::isDangerous($sniffed)
+            && ! ($allowlist->allowSvg() && $allowlist->isSvgMime($sniffed));
+
+        if ($dangerous || ! in_array($sniffed, $allowed, true)) {
             throw ValidationException::withMessages([
                 $field => ['File content does not match the declared file type.'],
             ]);
@@ -152,10 +161,12 @@ final class SafeUploadMime
         }
 
         $sniffed = strtolower(trim(explode(';', $sniffedMime, 2)[0]));
+        $allowlist = app(UploadAllowlist::class);
 
-        if (self::isDangerous($sniffed)) {
+        if (self::isDangerous($sniffed)
+            && ! ($allowlist->allowSvg() && $allowlist->isSvgMime($sniffed))) {
             throw ValidationException::withMessages([
-                $field => ['This file type is not allowed.'],
+                $field => ['This file type is not in the project upload allowlist.'],
             ]);
         }
 

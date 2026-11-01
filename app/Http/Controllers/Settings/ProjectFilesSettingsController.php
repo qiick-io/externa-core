@@ -34,10 +34,14 @@ class ProjectFilesSettingsController extends Controller
                 'chat_max_upload_bytes',
                 'allowed_transformations',
                 'preset_transformations',
+                'upload_allowed_mimes',
+                'upload_allowed_extensions',
+                'upload_allow_svg',
             ]),
             'transformationOptions' => config('settings.project.allowed_transformations', ['thumbnail']),
             'transformFits' => config('settings.project.transform_fits', ['contain']),
             'transformFormats' => config('settings.project.transform_formats', ['auto']),
+            'defaultUploadMimes' => array_values((array) config('files.upload_allowed_mimes', [])),
         ]);
     }
 
