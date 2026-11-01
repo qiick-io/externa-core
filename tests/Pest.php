@@ -14,6 +14,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\Api\CollectionPermissionGuardService;
 use App\Services\Api\FilePermissionGuardService;
+use App\Services\Settings\ProjectSettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -42,8 +43,8 @@ pest()->browser()->timeout(10_000);
 
 // Drop ProjectSettings memo between Browser tests — RefreshDatabase alone leaves stale two_factor_required etc.
 uses()->afterEach(function () {
-    if (app()->bound(\App\Services\Settings\ProjectSettingsService::class)) {
-        app(\App\Services\Settings\ProjectSettingsService::class)->forgetRawCache();
+    if (app()->bound(ProjectSettingsService::class)) {
+        app(ProjectSettingsService::class)->forgetRawCache();
     }
 })->in('Browser');
 
