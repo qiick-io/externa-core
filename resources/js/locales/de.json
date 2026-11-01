@@ -97,7 +97,17 @@
         "dismissUpload": "Upload verwerfen",
         "clearSelection": "Auswahl löschen",
         "removeTab": "Tab entfernen",
-        "removeSection": "Abschnitt entfernen"
+        "removeSection": "Abschnitt entfernen",
+        "close": "Schließen",
+        "toggleSidebar": "Seitenleiste umschalten",
+        "loading": "Wird geladen",
+        "notifications": "Benachrichtigungen",
+        "notificationsUnread": "Benachrichtigungen, {{count}} ungelesen",
+        "unreadCount": "{{count}} ungelesen",
+        "moreActions": "Weitere Aktionen",
+        "configureColumns": "Spalten konfigurieren",
+        "columnOptions": "Spaltenoptionen für {{label}}",
+        "fieldActions": "Feldaktionen"
     },
     "auth": {
         "login": {

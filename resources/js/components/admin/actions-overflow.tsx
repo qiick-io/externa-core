@@ -167,7 +167,7 @@ export function ActionsOverflow({
         [actions, overflowStart],
     );
 
-    const ariaMore = moreLabel ?? t('files.actions.moreActions');
+    const ariaMore = moreLabel ?? t('a11y.moreActions');
 
     return (
         <div
@@ -240,7 +240,7 @@ export function ActionsOverflow({
                         aria-label={ariaMore}
                         data-testid="files-actions-more"
                     >
-                        <MoreHorizontal className="size-4" />
+                        <MoreHorizontal className="size-4" aria-hidden="true" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">

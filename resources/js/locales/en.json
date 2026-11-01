@@ -97,7 +97,17 @@
         "dismissUpload": "Dismiss upload",
         "clearSelection": "Clear selection",
         "removeTab": "Remove tab",
-        "removeSection": "Remove section"
+        "removeSection": "Remove section",
+        "close": "Close",
+        "toggleSidebar": "Toggle sidebar",
+        "loading": "Loading",
+        "notifications": "Notifications",
+        "notificationsUnread": "Notifications, {{count}} unread",
+        "unreadCount": "{{count}} unread",
+        "moreActions": "More actions",
+        "configureColumns": "Configure columns",
+        "columnOptions": "{{label}} column options",
+        "fieldActions": "Field actions"
     },
     "auth": {
         "login": {

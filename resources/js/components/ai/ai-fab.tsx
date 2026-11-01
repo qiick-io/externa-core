@@ -683,7 +683,7 @@ export function AiFab() {
                                 : 'bg-gradient-to-br from-orange-500 via-rose-500 to-amber-400 hover:scale-105',
                         )}
                     >
-                        <Sparkles className="size-6" />
+                        <Sparkles className="size-6" aria-hidden="true" />
                     </button>
                 </TooltipTrigger>
                 <TooltipContent side="left">
