@@ -22,9 +22,9 @@
         "testing-best-practices",
         "configuring-horizon",
         "pulse-development",
+        "socialite-development",
         "wayfinder-development",
         "inertia-react-development",
-        "echo-development",
         "tailwindcss-development"
     ]
 }

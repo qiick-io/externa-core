@@ -6,29 +6,19 @@ metadata:
   author: laravel
 ---
 
-# Inertia React Development
-
-## When to Apply
-
-Activate this skill when:
-
-- Creating or modifying React page components for Inertia
-- Working with forms in React (using `<Form>` or `useForm`)
-- Implementing client-side navigation with `<Link>` or `router`
-- Using v2 features: deferred props, prefetching, WhenVisible, InfiniteScroll, once props, flash data, or polling
-- Building React-specific features with the Inertia protocol
+# Inertia React development
 
 ## Documentation
 
 Use `search-docs` for detailed Inertia v2 React patterns and documentation.
 
-## Basic Usage
+## Basic usage
 
-### Page Components Location
+### Page components location
 
-React page components should be placed in the `resources/js/pages` directory.
+Place React page components in the `resources/js/pages` directory.
 
-### Page Component Structure
+### Page component structure
 
 <!-- Basic React Page Component -->
 ```react
@@ -44,11 +34,11 @@ export default function UsersIndex({ users }) {
 }
 ```
 
-## Client-Side Navigation
+## Client-side navigation
 
-### Basic Link Component
+### Basic Link component
 
-Use `<Link>` for client-side navigation instead of traditional `<a>` tags:
+Use `<Link>` for client-side navigation instead of `<a>` tags:
 
 <!-- Inertia React Navigation -->
 ```react
@@ -59,7 +49,7 @@ import { Link, router } from '@inertiajs/react'
 <Link href={`/users/${user.id}`}>View User</Link>
 ```
 
-### Link with Method
+### Link with method
 
 <!-- Link with POST Method -->
 ```react
@@ -83,7 +73,7 @@ import { Link } from '@inertiajs/react'
 </Link>
 ```
 
-### Programmatic Navigation
+### Programmatic navigation
 
 <!-- Router Visit -->
 ```react
@@ -101,9 +91,9 @@ router.visit('/users', {
 })
 ```
 
-## Form Handling
+## Form handling
 
-### Form Component (Recommended)
+### Form component (recommended)
 
 The recommended way to build forms is with the `<Form>` component:
 
@@ -134,7 +124,7 @@ export default function CreateUser() {
 }
 ```
 
-### Form Component With All Props
+### Form component with all props
 
 <!-- Form Component Full Example -->
 ```react
@@ -175,15 +165,15 @@ import { Form } from '@inertiajs/react'
 </Form>
 ```
 
-### Form Component Reset Props
+### Form component reset props
 
 The `<Form>` component supports automatic resetting:
 
-- `resetOnError` - Reset form data when the request fails
-- `resetOnSuccess` - Reset form data when the request succeeds
-- `setDefaultsOnSuccess` - Update default values on success
+- `resetOnError`: reset form data when the request fails
+- `resetOnSuccess`: reset form data when the request succeeds
+- `setDefaultsOnSuccess`: update default values on success
 
-Use the `search-docs` tool with a query of `form component resetting` for detailed guidance.
+For details, run the `search-docs` tool with the query `form component resetting`.
 
 <!-- Form with Reset Props -->
 ```react
@@ -208,9 +198,9 @@ import { Form } from '@inertiajs/react'
 </Form>
 ```
 
-Forms can also be built using the `useForm` helper for more programmatic control. Use the `search-docs` tool with a query of `useForm helper` for guidance.
+For more programmatic control, you can also build forms with the `useForm` hook. For guidance, run the `search-docs` tool with the query `useForm helper`.
 
-### `useForm` Hook
+### `useForm` hook
 
 For more programmatic control or to follow existing conventions, use the `useForm` hook:
 
@@ -263,11 +253,11 @@ export default function CreateUser() {
 }
 ```
 
-## Inertia v2 Features
+## Inertia v2 features
 
-### Deferred Props
+### Deferred props
 
-Use deferred props to load data after initial page render:
+Use deferred props to load data after the initial page render:
 
 <!-- Deferred Props with Empty State -->
 ```react
@@ -295,7 +285,7 @@ export default function UsersIndex({ users }) {
 
 ### Polling
 
-Use the `usePoll` hook to automatically refresh data at intervals. It handles cleanup on unmount and throttles polling when the tab is inactive.
+Use the `usePoll` hook to refresh data automatically at intervals. The hook cleans up on unmount and throttles polling when the browser tab is inactive.
 
 <!-- Basic Polling -->
 ```react
@@ -342,61 +332,40 @@ export default function Dashboard({ stats }) {
 }
 ```
 
-- `autoStart` (default `true`) — set to `false` to start polling manually via the returned `start()` function
-- `keepAlive` (default `false`) — set to `true` to prevent throttling when the browser tab is inactive
+- `autoStart` (default `true`): set to `false` to start polling manually with the returned `start()` function
+- `keepAlive` (default `false`): set to `true` to prevent throttling when the browser tab is inactive
 
-### WhenVisible
+### WhenVisible (infinite scroll)
 
-Lazy-load a prop when an element scrolls into view. Useful for deferring expensive data that sits below the fold:
+Load more data when the user scrolls to a specific element:
 
-<!-- WhenVisible Example -->
+<!-- Infinite Scroll with WhenVisible -->
 ```react
 import { WhenVisible } from '@inertiajs/react'
 
-export default function Dashboard({ stats }) {
+export default function UsersList({ users }) {
     return (
         <div>
-            <h1>Dashboard</h1>
+            {users.data.map(user => (
+                <div key={user.id}>{user.name}</div>
+            ))}
 
-            <WhenVisible data="stats" buffer={200} fallback={<div className="animate-pulse">Loading stats...</div>}>
-                {({ fetching }) => (
-                    <div>
-                        <p>Total Users: {stats.total_users}</p>
-                        <p>Revenue: {stats.revenue}</p>
-                        {fetching && <span>Refreshing...</span>}
-                    </div>
-                )}
-            </WhenVisible>
+            {users.next_page_url && (
+                <WhenVisible
+                    data="users"
+                    params={{ page: users.current_page + 1 }}
+                    fallback={<div>Loading more...</div>}
+                />
+            )}
         </div>
     )
 }
 ```
 
-### InfiniteScroll
-
-Automatically load additional pages of paginated data as users scroll:
-
-<!-- InfiniteScroll Example -->
-```react
-import { InfiniteScroll } from '@inertiajs/react'
-
-export default function Users({ users }) {
-    return (
-        <InfiniteScroll data="users">
-            {users.data.map(user => (
-                <div key={user.id}>{user.name}</div>
-            ))}
-        </InfiniteScroll>
-    )
-}
-```
-
-The server must use `Inertia::scroll()` to configure the paginated data. Use the `search-docs` tool with a query of `infinite scroll` for detailed guidance on buffers, manual loading, reverse mode, and custom trigger elements.
-
-## Common Pitfalls
+## Common pitfalls
 
 - Using traditional `<a>` links instead of Inertia's `<Link>` component (breaks SPA behavior)
 - Forgetting to add loading states (skeleton screens) when using deferred props
 - Not handling the `undefined` state of deferred props before data loads
-- Using `<form>` without preventing default submission (use `<Form>` component or `e.preventDefault()`)
-- Forgetting to check if `<Form>` component is available in your Inertia version
+- Using `<form>` without preventing default submission (use the `<Form>` component or `e.preventDefault()`)
+- Forgetting to check whether the `<Form>` component is available in your Inertia version

@@ -30,6 +30,7 @@
         "laravel/fortify": "^1.34",
         "laravel/framework": "^13.29",
         "laravel/horizon": "^5.48",
+        "laravel/mcp": "^1.1.2",
         "laravel/pulse": "^1.7",
         "laravel/reverb": "^1.11",
         "laravel/socialite": "^5.31",
