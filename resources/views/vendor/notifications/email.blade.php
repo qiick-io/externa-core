@@ -1,5 +1,5 @@
 @php
-    $mailBranding = app(\App\Services\Settings\ProjectAppearance::class)->forMail();
+    $mailBranding = app(\App\Services\Settings\ProjectAppearanceService::class)->forMail();
 @endphp
 <x-mail::message>
 {{-- Greeting --}}

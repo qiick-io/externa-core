@@ -25,7 +25,7 @@ test('project settings persist two factor required', function () {
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.security.edit'));
 
-    expect(app(ProjectSettingsService::class)->twoFactorRequired())->toBeTrue();
+    expect(app(ProjectSettingsService::class)->isTwoFactorRequired())->toBeTrue();
 
     $this->actingAs($user)
         ->withSession(['auth.password_confirmed_at' => time()])

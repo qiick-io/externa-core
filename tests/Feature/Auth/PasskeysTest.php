@@ -196,7 +196,7 @@ test('security page hides enforced banner when user has a passkey', function () 
         ->get(route('security.edit'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('twoFactorRequired', true)
+            ->where('isTwoFactorRequired', true)
             ->where('twoFactorEnabled', false)
             ->where('twoFactorEnforcedForUser', false)
             ->has('passkeys', 1)

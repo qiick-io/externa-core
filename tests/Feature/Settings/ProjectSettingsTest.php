@@ -194,7 +194,7 @@ test('authorized users can view and update project settings', function () {
             ->where('project.name', 'Externa HQ')
             ->where('name', 'Externa HQ')
             ->where('projectSettings.name', 'Externa HQ')
-            ->where('projectSettings.registrationEnabled', false)
+            ->where('projectSettings.isRegistrationEnabled', false)
             ->where('projectSettings.reportIssueUrl', 'https://example.com/issues')
         );
 

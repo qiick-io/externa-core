@@ -219,7 +219,7 @@ test('project settings encrypt oidc secret and never return plaintext', function
 
     $project = app(ProjectSettingsService::class);
     expect($project->oidcClientSecret())->toBe('plain-secret-value')
-        ->and($project->oidcLoginAvailable())->toBeTrue();
+        ->and($project->isOidcLoginAvailable())->toBeTrue();
 
     $edit = $project->forEdit();
     expect($edit)->not->toHaveKey('oidc_client_secret')

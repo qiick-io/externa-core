@@ -1,6 +1,6 @@
 {{-- Dynamic brand colors from Settings → Appearance (light mail theme). --}}
 @php
-    $mailBranding = app(\App\Services\Settings\ProjectAppearance::class)->forMail();
+    $mailBranding = app(\App\Services\Settings\ProjectAppearanceService::class)->forMail();
     $primary = $mailBranding['primaryColor'];
     $primaryFg = $mailBranding['primaryForeground'];
 @endphp
