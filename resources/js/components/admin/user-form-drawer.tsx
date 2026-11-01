@@ -204,9 +204,7 @@ export function UserFormDrawer({
                                     maxLength={STRING_LIMITS.NAME}
                                     disabled={readOnly}
                                     aria-invalid={
-                                        form.errors.last_name
-                                            ? true
-                                            : undefined
+                                        form.errors.last_name ? true : undefined
                                     }
                                     aria-describedby={
                                         form.errors.last_name
@@ -221,9 +219,7 @@ export function UserFormDrawer({
                         </div>
 
                         <Field
-                            data-invalid={
-                                form.errors.email ? true : undefined
-                            }
+                            data-invalid={form.errors.email ? true : undefined}
                         >
                             <FieldLabel htmlFor="user_email">
                                 Email *

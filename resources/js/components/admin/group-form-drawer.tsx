@@ -132,9 +132,7 @@ export function GroupFormDrawer({
                 <DrawerBody>
                     <FieldGroup className="gap-4">
                         <Field
-                            data-invalid={
-                                form.errors.name ? true : undefined
-                            }
+                            data-invalid={form.errors.name ? true : undefined}
                         >
                             <FieldLabel htmlFor="group_name">Name</FieldLabel>
                             <Input

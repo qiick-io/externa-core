@@ -387,9 +387,7 @@ export default function AdminApiKeysIndex({
                                 <Field
                                     className="md:col-span-2"
                                     data-invalid={
-                                        form.errors.read_only
-                                            ? true
-                                            : undefined
+                                        form.errors.read_only ? true : undefined
                                     }
                                 >
                                     <div className="flex items-center gap-2">
@@ -444,9 +442,7 @@ export default function AdminApiKeysIndex({
                                             form.setData(
                                                 'files_scope',
                                                 value as
-                                                    | 'none'
-                                                    | 'read'
-                                                    | 'all',
+                                                    'none' | 'read' | 'all',
                                             );
                                         }}
                                     >
@@ -499,8 +495,7 @@ export default function AdminApiKeysIndex({
                                     }
                                 >
                                     <FieldLabel htmlFor="ip_allowlist">
-                                        IP allowlist (optional,
-                                        comma-separated)
+                                        IP allowlist (optional, comma-separated)
                                     </FieldLabel>
                                     <Input
                                         id="ip_allowlist"

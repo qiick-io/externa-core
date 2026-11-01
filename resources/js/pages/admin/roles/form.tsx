@@ -395,7 +395,9 @@ export default function AdminRoleForm({
                                     form.errors.name ? true : undefined
                                 }
                             >
-                                <FieldLabel htmlFor="role_name">Name</FieldLabel>
+                                <FieldLabel htmlFor="role_name">
+                                    Name
+                                </FieldLabel>
                                 <Input
                                     id="role_name"
                                     value={form.data.name}
