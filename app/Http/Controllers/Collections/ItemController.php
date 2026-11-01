@@ -45,7 +45,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -1036,7 +1035,7 @@ class ItemController extends Controller
         ?int $afterItemId,
         ?int $beforeItemId,
     ): void {
-        DB::transaction(function () use ($item, $collection, $afterItemId, $beforeItemId): void {
+        CollectionItem::query()->getConnection()->transaction(function () use ($item, $collection, $afterItemId, $beforeItemId): void {
             $after = null;
             if ($afterItemId !== null && $afterItemId !== $item->id) {
                 $after = CollectionItem::query()
@@ -1463,7 +1462,7 @@ class ItemController extends Controller
             }
         }
 
-        DB::transaction(function () use ($items, $action): void {
+        CollectionItem::query()->getConnection()->transaction(function () use ($items, $action): void {
             foreach ($items as $item) {
                 match ($action) {
                     'delete' => $item->delete(),

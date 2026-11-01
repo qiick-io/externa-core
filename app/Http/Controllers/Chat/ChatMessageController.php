@@ -36,7 +36,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -193,7 +192,7 @@ class ChatMessageController extends Controller
         $replyToId = $this->validatedReplyToId($chat, isset($validated['reply_to_id']) ? (int) $validated['reply_to_id'] : null);
 
         /** @var array{0: CollectionItemChatMessage, 1: list<CollectionItemChatAttachment>} $written */
-        $written = DB::transaction(function () use ($chat, $user, $body, $mentionedIds, $replyToId, $attachmentIds): array {
+        $written = CollectionItemChatMessage::query()->getConnection()->transaction(function () use ($chat, $user, $body, $mentionedIds, $replyToId, $attachmentIds): array {
             $attachments = $this->claimOrphanAttachments($user, $attachmentIds);
 
             $message = CollectionItemChatMessage::query()->create([
