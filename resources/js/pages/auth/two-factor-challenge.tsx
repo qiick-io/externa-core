@@ -2,8 +2,8 @@ import { Form, Head } from '@inertiajs/react';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Field, FieldError, FieldGroup } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
     InputOTP,
@@ -61,12 +61,18 @@ export default function TwoFactorChallenge() {
                     className="space-y-4"
                     resetOnError
                     resetOnSuccess={!showRecoveryInput}
+                    noValidate
                 >
                     {({ errors, processing, clearErrors }) => (
-                        <>
+                        <FieldGroup className="gap-4">
                             {showRecoveryInput ? (
-                                <>
+                                <Field
+                                    data-invalid={
+                                        errors.recovery_code ? true : undefined
+                                    }
+                                >
                                     <Input
+                                        id="recovery_code"
                                         name="recovery_code"
                                         type="text"
                                         aria-label={t(
@@ -77,13 +83,28 @@ export default function TwoFactorChallenge() {
                                         )}
                                         autoFocus={showRecoveryInput}
                                         required
+                                        aria-invalid={
+                                            errors.recovery_code
+                                                ? true
+                                                : undefined
+                                        }
+                                        aria-describedby={
+                                            errors.recovery_code
+                                                ? 'recovery-code-error'
+                                                : undefined
+                                        }
                                     />
-                                    <InputError
-                                        message={errors.recovery_code}
-                                    />
-                                </>
+                                    <FieldError id="recovery-code-error">
+                                        {errors.recovery_code}
+                                    </FieldError>
+                                </Field>
                             ) : (
-                                <div className="flex flex-col items-center justify-center space-y-3 text-center">
+                                <Field
+                                    className="items-center justify-center text-center"
+                                    data-invalid={
+                                        errors.code ? true : undefined
+                                    }
+                                >
                                     <div className="flex w-full items-center justify-center">
                                         <InputOTP
                                             name="code"
@@ -95,6 +116,14 @@ export default function TwoFactorChallenge() {
                                             aria-label={t(
                                                 'auth.twoFactorChallenge.authTitle',
                                             )}
+                                            aria-invalid={
+                                                errors.code ? true : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.code
+                                                    ? 'code-error'
+                                                    : undefined
+                                            }
                                         >
                                             <InputOTPGroup>
                                                 {Array.from(
@@ -109,8 +138,10 @@ export default function TwoFactorChallenge() {
                                             </InputOTPGroup>
                                         </InputOTP>
                                     </div>
-                                    <InputError message={errors.code} />
-                                </div>
+                                    <FieldError id="code-error">
+                                        {errors.code}
+                                    </FieldError>
+                                </Field>
                             )}
 
                             <Button
@@ -135,7 +166,7 @@ export default function TwoFactorChallenge() {
                                     {authConfigContent.toggleText}
                                 </button>
                             </div>
-                        </>
+                        </FieldGroup>
                     )}
                 </Form>
             </div>

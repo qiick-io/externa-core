@@ -3,13 +3,17 @@ import { UserCancelledError } from '@laravel/passkeys';
 import { usePasskeyVerify } from '@laravel/passkeys/react';
 import { KeyRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Tooltip,
@@ -127,10 +131,12 @@ export default function Login({
                                         : t('auth.login.oidc')}
                                 </a>
                             </Button>
-                            <InputError
-                                message={pageEmailError}
+                            <FieldError
+                                id="oidc-login-error"
                                 data-test="oidc-login-error"
-                            />
+                            >
+                                {pageEmailError}
+                            </FieldError>
                         </>
                     )}
                     {canManagePasskeys &&
@@ -148,9 +154,11 @@ export default function Login({
                         ) : (
                             passkeyButton
                         ))}
-                    {canManagePasskeys && (
-                        <InputError message={passkeyErrorMessage} />
-                    )}
+                    {canManagePasskeys && passkeyErrorMessage ? (
+                        <FieldError id="passkey-error">
+                            {passkeyErrorMessage}
+                        </FieldError>
+                    ) : null}
                     <div className="relative py-1">
                         <div className="absolute inset-0 flex items-center">
                             <span className="w-full border-t" />
@@ -168,14 +176,17 @@ export default function Login({
                 {...store.form()}
                 resetOnSuccess={['password']}
                 className="flex flex-col gap-6"
+                noValidate
             >
                 {({ processing, errors }) => (
                     <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">
+                        <FieldGroup className="gap-6">
+                            <Field
+                                data-invalid={errors.email ? true : undefined}
+                            >
+                                <FieldLabel htmlFor="email">
                                     {t('common.emailAddress')}
-                                </Label>
+                                </FieldLabel>
                                 <Input
                                     id="email"
                                     type="email"
@@ -184,15 +195,27 @@ export default function Login({
                                     autoFocus
                                     autoComplete="email"
                                     placeholder="email@example.com"
+                                    aria-invalid={
+                                        errors.email ? true : undefined
+                                    }
+                                    aria-describedby={
+                                        errors.email ? 'email-error' : undefined
+                                    }
                                 />
-                                <InputError message={errors.email} />
-                            </div>
+                                <FieldError id="email-error">
+                                    {errors.email}
+                                </FieldError>
+                            </Field>
 
-                            <div className="grid gap-2">
+                            <Field
+                                data-invalid={
+                                    errors.password ? true : undefined
+                                }
+                            >
                                 <div className="flex items-center">
-                                    <Label htmlFor="password">
+                                    <FieldLabel htmlFor="password">
                                         {t('common.password')}
-                                    </Label>
+                                    </FieldLabel>
                                     {canResetPassword && (
                                         <TextLink
                                             href={request()}
@@ -208,16 +231,26 @@ export default function Login({
                                     required
                                     autoComplete="current-password"
                                     placeholder={t('common.password')}
+                                    aria-invalid={
+                                        errors.password ? true : undefined
+                                    }
+                                    aria-describedby={
+                                        errors.password
+                                            ? 'password-error'
+                                            : undefined
+                                    }
                                 />
-                                <InputError message={errors.password} />
-                            </div>
+                                <FieldError id="password-error">
+                                    {errors.password}
+                                </FieldError>
+                            </Field>
 
-                            <div className="flex items-center space-x-3">
+                            <Field orientation="horizontal">
                                 <Checkbox id="remember" name="remember" />
-                                <Label htmlFor="remember">
+                                <FieldLabel htmlFor="remember">
                                     {t('auth.login.rememberMe')}
-                                </Label>
-                            </div>
+                                </FieldLabel>
+                            </Field>
 
                             <Button
                                 type="submit"
@@ -228,7 +261,7 @@ export default function Login({
                                 {processing && <Spinner />}
                                 {t('auth.login.submit')}
                             </Button>
-                        </div>
+                        </FieldGroup>
 
                         {canRegister && (
                             <div className="text-center text-sm text-muted-foreground">

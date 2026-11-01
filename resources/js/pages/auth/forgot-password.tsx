@@ -1,11 +1,15 @@
 import { Form, Head } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
@@ -30,13 +34,15 @@ export default function ForgotPassword({ status }: { status?: string }) {
             )}
 
             <div className="space-y-6">
-                <Form {...email.form()}>
+                <Form {...email.form()} noValidate>
                     {({ processing, errors }) => (
-                        <>
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">
+                        <FieldGroup>
+                            <Field
+                                data-invalid={errors.email ? true : undefined}
+                            >
+                                <FieldLabel htmlFor="email">
                                     {t('common.emailAddress')}
-                                </Label>
+                                </FieldLabel>
                                 <Input
                                     id="email"
                                     type="email"
@@ -44,10 +50,17 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     autoComplete="off"
                                     autoFocus
                                     placeholder="email@example.com"
+                                    aria-invalid={
+                                        errors.email ? true : undefined
+                                    }
+                                    aria-describedby={
+                                        errors.email ? 'email-error' : undefined
+                                    }
                                 />
-
-                                <InputError message={errors.email} />
-                            </div>
+                                <FieldError id="email-error">
+                                    {errors.email}
+                                </FieldError>
+                            </Field>
 
                             <div className="my-6 flex items-center justify-start">
                                 <Button
@@ -61,7 +74,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     {t('auth.forgotPassword.submit')}
                                 </Button>
                             </div>
-                        </>
+                        </FieldGroup>
                     )}
                 </Form>
 
