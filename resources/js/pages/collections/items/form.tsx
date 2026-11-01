@@ -25,6 +25,9 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
+import collections from '@/routes/collections';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
@@ -107,9 +110,6 @@ import { toast } from '@/lib/toast';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 import type { AdminActivityLogRow, BreadcrumbItem, Paginated } from '@/types';
 import type { CollectionView } from '@/types/collections';
-import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
-import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
-import collections from '@/routes/collections';
 
 const COLLECTION_ITEM_FORM_ID = 'collection-item-form';
 const DRAFT_DEBOUNCE_MS = 800;
