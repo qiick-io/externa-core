@@ -2,9 +2,17 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { Check, Search, X } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
@@ -344,6 +352,7 @@ export default function AdminRoleForm({
                 <div className="flex min-h-0 flex-1 flex-col gap-6">
                     <form
                         className="flex w-full flex-col gap-6"
+                        noValidate
                         onSubmit={(e) => {
                             e.preventDefault();
                             submit();
@@ -380,19 +389,35 @@ export default function AdminRoleForm({
                             </div>
                         </div>
 
-                        <div className="grid max-w-md gap-2">
-                            <Label htmlFor="role_name">Name</Label>
-                            <Input
-                                id="role_name"
-                                value={form.data.name}
-                                onChange={(e) =>
-                                    form.setData('name', e.target.value)
+                        <FieldGroup className="max-w-md">
+                            <Field
+                                data-invalid={
+                                    form.errors.name ? true : undefined
                                 }
-                                required
-                                disabled={isSystem}
-                            />
-                            <InputError message={form.errors.name} />
-                        </div>
+                            >
+                                <FieldLabel htmlFor="role_name">Name</FieldLabel>
+                                <Input
+                                    id="role_name"
+                                    value={form.data.name}
+                                    onChange={(e) =>
+                                        form.setData('name', e.target.value)
+                                    }
+                                    required
+                                    disabled={isSystem}
+                                    aria-invalid={
+                                        form.errors.name ? true : undefined
+                                    }
+                                    aria-describedby={
+                                        form.errors.name
+                                            ? 'role-name-error'
+                                            : undefined
+                                    }
+                                />
+                                <FieldError id="role-name-error">
+                                    {form.errors.name}
+                                </FieldError>
+                            </Field>
+                        </FieldGroup>
 
                         {!isPublic && (
                             <div className="space-y-6">
@@ -410,11 +435,11 @@ export default function AdminRoleForm({
                                         );
 
                                     return (
-                                        <section
+                                        <FieldSet
                                             key={group.section}
                                             className="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
                                         >
-                                            <div className="mb-3 flex items-center gap-2">
+                                            <div className="mb-3 flex flex-wrap items-center gap-2">
                                                 <Checkbox
                                                     id={`section-${group.section}`}
                                                     checked={allChecked}
@@ -425,12 +450,20 @@ export default function AdminRoleForm({
                                                         )
                                                     }
                                                 />
-                                                <Label
-                                                    htmlFor={`section-${group.section}`}
-                                                    className="text-base font-semibold"
+                                                <FieldLegend
+                                                    variant="label"
+                                                    className="mb-0"
                                                 >
-                                                    {group.label}
-                                                </Label>
+                                                    <Label
+                                                        htmlFor={`section-${group.section}`}
+                                                        className="text-base font-semibold"
+                                                    >
+                                                        {group.label}
+                                                    </Label>
+                                                </FieldLegend>
+                                                <FieldDescription className="font-mono text-xs">
+                                                    {group.section}
+                                                </FieldDescription>
                                             </div>
                                             <div className="grid gap-2 sm:grid-cols-2">
                                                 {group.show_permission && (
@@ -488,7 +521,7 @@ export default function AdminRoleForm({
                                                     ),
                                                 )}
                                             </div>
-                                        </section>
+                                        </FieldSet>
                                     );
                                 })}
                                 {createDirectChatsPermission ? (
@@ -612,9 +645,9 @@ export default function AdminRoleForm({
                                     </tbody>
                                 </table>
                             </div>
-                            <InputError
-                                message={form.errors.file_permissions}
-                            />
+                            <FieldError id="role-file-permissions-error">
+                                {form.errors.file_permissions}
+                            </FieldError>
                         </section>
 
                         <section className="space-y-3">
@@ -1072,9 +1105,9 @@ export default function AdminRoleForm({
                                     </table>
                                 </div>
                             )}
-                            <InputError
-                                message={form.errors.collection_permissions}
-                            />
+                            <FieldError id="role-collection-permissions-error">
+                                {form.errors.collection_permissions}
+                            </FieldError>
                         </section>
                     </form>
                 </div>
