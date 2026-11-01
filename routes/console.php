@@ -19,6 +19,7 @@ Schedule::command('activitylog:clean')->daily();
 Schedule::command('files:cleanup-uploads')->hourly();
 Schedule::command('files:cleanup-zips')->hourly();
 Schedule::command('ai:cleanup-attachments')->daily();
+Schedule::command('ai:prune-tool-audit')->daily();
 Schedule::command('chat:cleanup-attachments')->daily();
 Schedule::command('ai:run-sync-sources')->everyMinute()->withoutOverlapping()->onOneServer();
 Schedule::command('collections:process-schedules')->everyMinute()->withoutOverlapping()->onOneServer();

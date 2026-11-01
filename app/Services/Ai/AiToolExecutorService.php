@@ -4,25 +4,37 @@ declare(strict_types=1);
 
 namespace App\Services\Ai;
 
+use App\Ai\Support\AiActivityLogger;
 use App\Data\Ai\AiToolExecutionResultData;
+use App\Enums\PendingToolCallStatusEnum;
+use App\Models\PendingToolCall;
 use App\Models\User;
 use Illuminate\Contracts\Auth\Authenticatable;
+use InvalidArgumentException;
 use Throwable;
 
 /**
- * Resolves the actor, validates arguments, re-checks AuthZ, then runs a registry tool.
+ * Resolves the actor, validates arguments, applies write/approval policy, then runs a registry tool.
  */
 class AiToolExecutorService
 {
     public function __construct(
         private readonly AiToolRegistryService $registry,
+        private readonly AiToolWriteGateService $writeGate,
+        private readonly AiToolApprovalService $approvals,
     ) {}
 
     /**
      * Execute a registered tool for the given actor.
      *
      * @param  array<string, mixed>  $arguments
-     * @param  array{include_write?: bool}  $options
+     * @param  array{
+     *     include_write?: bool,
+     *     surface?: string,
+     *     pending_id?: string,
+     *     skip_approval?: bool,
+     *     approved_by?: User|null,
+     * }  $options
      */
     public function execute(
         string $name,
@@ -30,62 +42,326 @@ class AiToolExecutorService
         ?Authenticatable $actor = null,
         array $options = [],
     ): AiToolExecutionResultData {
+        $surface = is_string($options['surface'] ?? null) ? (string) $options['surface'] : 'mcp';
+        $actor ??= $this->resolveActor();
+        $actorUser = $actor instanceof User ? $actor : null;
+
         if (! (bool) config('ai.tools.enabled', true)) {
-            return new AiToolExecutionResultData(
-                status: 'disabled',
-                message: 'AI tools are disabled.',
+            return $this->finish(
+                new AiToolExecutionResultData(
+                    status: 'disabled',
+                    message: 'AI tools are disabled.',
+                ),
+                $actorUser,
+                $name,
+                $arguments,
+                decision: 'denied',
+                surface: $surface,
             );
         }
 
-        $actor ??= $this->resolveActor();
         $definition = $this->registry->get($name);
 
         if ($definition === null) {
-            return new AiToolExecutionResultData(
-                status: 'not_found',
-                message: sprintf('Unknown tool [%s].', $name),
+            return $this->finish(
+                new AiToolExecutionResultData(
+                    status: 'not_found',
+                    message: sprintf('Unknown tool [%s].', $name),
+                ),
+                $actorUser,
+                $name,
+                $arguments,
+                decision: 'denied',
+                surface: $surface,
             );
         }
 
         $includeWrite = (bool) ($options['include_write'] ?? false);
-        $writeEnabled = $includeWrite || (bool) config('ai.tools.write_enabled', false);
 
-        if (! $this->registry->passesConfigGates($definition, $writeEnabled)) {
-            return new AiToolExecutionResultData(
-                status: 'denied',
-                message: sprintf('Tool [%s] is not enabled for this surface.', $name),
+        if (! $this->registry->passesConfigGates($definition, $includeWrite ? true : null)) {
+            return $this->finish(
+                new AiToolExecutionResultData(
+                    status: 'denied',
+                    message: sprintf('Tool [%s] is not enabled for this surface.', $name),
+                ),
+                $actorUser,
+                $name,
+                $arguments,
+                decision: 'denied',
+                surface: $surface,
             );
         }
 
         $validationError = $this->validateArguments($definition->inputSchema(), $arguments);
 
         if ($validationError !== null) {
-            return new AiToolExecutionResultData(
-                status: 'invalid_args',
-                message: $validationError,
+            return $this->finish(
+                new AiToolExecutionResultData(
+                    status: 'invalid_args',
+                    message: $validationError,
+                ),
+                $actorUser,
+                $name,
+                $arguments,
+                decision: 'denied',
+                surface: $surface,
             );
         }
 
         if (! $this->registry->actorPassesAbilities($definition, $actor, $arguments)) {
-            return new AiToolExecutionResultData(
-                status: 'denied',
-                message: sprintf('Not allowed to call tool [%s].', $name),
+            return $this->finish(
+                new AiToolExecutionResultData(
+                    status: 'denied',
+                    message: sprintf('Not allowed to call tool [%s].', $name),
+                ),
+                $actorUser,
+                $name,
+                $arguments,
+                decision: 'denied',
+                surface: $surface,
             );
+        }
+
+        $isMutating = $definition->kind()->isMutating();
+        $skipApproval = (bool) ($options['skip_approval'] ?? false);
+        $pendingId = is_string($options['pending_id'] ?? null) ? (string) $options['pending_id'] : null;
+        $approver = $options['approved_by'] ?? null;
+        $approverUser = $approver instanceof User ? $approver : null;
+
+        if ($isMutating && ! $this->writeGate->isToolWriteAllowed($name) && ! $skipApproval) {
+            return $this->finish(
+                new AiToolExecutionResultData(
+                    status: 'denied',
+                    message: sprintf('Write tool [%s] is disabled. Enable AI write tools and this tool class first.', $name),
+                ),
+                $actorUser,
+                $name,
+                $arguments,
+                decision: 'denied',
+                surface: $surface,
+            );
+        }
+
+        if ($isMutating && $surface === 'mcp' && $pendingId === null && ! $skipApproval) {
+            $pending = $this->approvals->createPending($name, $arguments, $surface, $actor);
+
+            return $this->finish(
+                new AiToolExecutionResultData(
+                    status: 'pending_approval',
+                    message: 'Tool call awaiting human approval.',
+                    pendingId: $pending->uuid,
+                ),
+                $actorUser,
+                $name,
+                $arguments,
+                decision: 'pending',
+                surface: $surface,
+                pendingId: $pending->uuid,
+            );
+        }
+
+        if ($isMutating && $pendingId !== null) {
+            $pending = PendingToolCall::query()->where('uuid', $pendingId)->first();
+
+            if ($pending === null) {
+                return $this->finish(
+                    new AiToolExecutionResultData(
+                        status: 'denied',
+                        message: 'Unknown pending tool call.',
+                    ),
+                    $actorUser,
+                    $name,
+                    $arguments,
+                    decision: 'denied',
+                    surface: $surface,
+                    pendingId: $pendingId,
+                );
+            }
+
+            if ($pending->tool !== $name) {
+                return $this->finish(
+                    new AiToolExecutionResultData(
+                        status: 'denied',
+                        message: 'Pending tool call does not match the requested tool.',
+                    ),
+                    $actorUser,
+                    $name,
+                    $arguments,
+                    decision: 'denied',
+                    surface: $surface,
+                    pendingId: $pendingId,
+                    approver: $approverUser,
+                );
+            }
+
+            if (in_array($pending->status, [PendingToolCallStatusEnum::Rejected, PendingToolCallStatusEnum::Expired], true)
+                || ($pending->status === PendingToolCallStatusEnum::Pending && $pending->isExpired())) {
+                if ($pending->status === PendingToolCallStatusEnum::Pending) {
+                    $this->approvals->expireOverdue();
+                    $pending->refresh();
+                }
+
+                return $this->finish(
+                    new AiToolExecutionResultData(
+                        status: 'denied',
+                        message: sprintf('Pending tool call is %s and will not execute.', $pending->status->value),
+                    ),
+                    $actorUser,
+                    $name,
+                    $arguments,
+                    decision: $pending->status->value,
+                    surface: $surface,
+                    pendingId: $pendingId,
+                    approver: $approverUser,
+                );
+            }
+
+            if ($pending->status !== PendingToolCallStatusEnum::Approved && ! $skipApproval) {
+                return $this->finish(
+                    new AiToolExecutionResultData(
+                        status: 'denied',
+                        message: 'Pending tool call has not been approved.',
+                    ),
+                    $actorUser,
+                    $name,
+                    $arguments,
+                    decision: 'denied',
+                    surface: $surface,
+                    pendingId: $pendingId,
+                    approver: $approverUser,
+                );
+            }
+
+            // Approver must hold the tool's underlying abilities (no self-escalation).
+            $permissionActor = $approverUser ?? $actor;
+
+            if (! $this->registry->actorPassesAbilities($definition, $permissionActor, $arguments)) {
+                return $this->finish(
+                    new AiToolExecutionResultData(
+                        status: 'denied',
+                        message: sprintf('Approver is not allowed to run tool [%s].', $name),
+                    ),
+                    $actorUser,
+                    $name,
+                    $arguments,
+                    decision: 'denied',
+                    surface: $surface,
+                    pendingId: $pendingId,
+                    approver: $approverUser,
+                );
+            }
         }
 
         try {
             $result = $this->runAsActor($actor, fn (): string => (string) $definition->handle($arguments));
         } catch (Throwable $e) {
-            return new AiToolExecutionResultData(
-                status: 'denied',
-                message: 'Tool execution failed: '.$e->getMessage(),
+            if (isset($pending) && $pending instanceof PendingToolCall) {
+                $this->approvals->markFailed($pending, $e->getMessage());
+            }
+
+            return $this->finish(
+                new AiToolExecutionResultData(
+                    status: 'denied',
+                    message: 'Tool execution failed: '.$e->getMessage(),
+                ),
+                $actorUser,
+                $name,
+                $arguments,
+                decision: 'failed',
+                surface: $surface,
+                pendingId: $pendingId,
+                approver: $approverUser,
+                result: $e->getMessage(),
             );
         }
 
-        return new AiToolExecutionResultData(
-            status: 'ok',
+        if (isset($pending) && $pending instanceof PendingToolCall) {
+            $this->approvals->markExecuted($pending, $result);
+        }
+
+        return $this->finish(
+            new AiToolExecutionResultData(
+                status: 'ok',
+                result: $result,
+            ),
+            $actorUser,
+            $name,
+            $arguments,
+            decision: 'executed',
+            surface: $surface,
+            pendingId: $pendingId,
+            approver: $approverUser,
             result: $result,
         );
+    }
+
+    /**
+     * Approve a pending MCP tool call and execute it when the approver has permission.
+     */
+    public function approveAndExecute(PendingToolCall $pending, User $approver): AiToolExecutionResultData
+    {
+        try {
+            $this->approvals->markApproved($pending, $approver);
+        } catch (InvalidArgumentException $e) {
+            return $this->finish(
+                new AiToolExecutionResultData(
+                    status: 'denied',
+                    message: $e->getMessage(),
+                    pendingId: $pending->uuid,
+                ),
+                $pending->requester,
+                $pending->tool,
+                is_array($pending->arguments) ? $pending->arguments : [],
+                decision: 'denied',
+                surface: $pending->surface,
+                pendingId: $pending->uuid,
+                approver: $approver,
+            );
+        }
+
+        $pending->refresh();
+        $actor = $pending->requester;
+
+        return $this->execute(
+            $pending->tool,
+            is_array($pending->arguments) ? $pending->arguments : [],
+            $actor,
+            [
+                'surface' => $pending->surface,
+                'pending_id' => $pending->uuid,
+                'approved_by' => $approver,
+                'include_write' => true,
+            ],
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    private function finish(
+        AiToolExecutionResultData $outcome,
+        ?User $actor,
+        string $tool,
+        array $arguments,
+        string $decision,
+        string $surface,
+        ?string $pendingId = null,
+        ?User $approver = null,
+        ?string $result = null,
+    ): AiToolExecutionResultData {
+        AiActivityLogger::toolDecision(
+            actor: $actor,
+            tool: $tool,
+            arguments: $arguments,
+            decision: $decision,
+            status: $outcome->status,
+            surface: $surface,
+            approver: $approver,
+            result: $result ?? $outcome->result ?? $outcome->message,
+            pendingId: $pendingId ?? $outcome->pendingId,
+        );
+
+        return $outcome;
     }
 
     private function resolveActor(): ?Authenticatable

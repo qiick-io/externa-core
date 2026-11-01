@@ -624,6 +624,23 @@ test('user tool actions respect each permission', function (string $permission, 
 })->with('user permission matrix');
 
 test('app assistant registers tools only for granted permission families', function (string $permission, array $expectedToolBasenames) {
+    // Permission-family visibility assumes the write gate is open; deny-by-default is covered in #203 registry tests.
+    config([
+        'ai.tools.write_enabled' => true,
+        'ai.tools.write_allow' => [
+            'ManageCollections',
+            'ManageCollectionItems',
+            'ImportCollectionCsv',
+            'ImportRemoteJson',
+            'ManageAiSyncSources',
+            'RollbackLastAiTurn',
+            'ManageFiles',
+            'ManageUsers',
+            'ManageRoles',
+            'ManageGroups',
+        ],
+    ]);
+
     $user = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
         $permission,

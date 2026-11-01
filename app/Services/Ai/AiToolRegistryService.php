@@ -45,6 +45,7 @@ class AiToolRegistryService
 
     public function __construct(
         private readonly EffectivePermissionResolverService $permissionResolver,
+        private readonly AiToolWriteGateService $writeGate,
     ) {}
 
     /**
@@ -104,12 +105,11 @@ class AiToolRegistryService
 
         $includeWrite = (bool) ($options['include_write'] ?? false);
         $arguments = is_array($options['arguments'] ?? null) ? $options['arguments'] : [];
-        $writeEnabled = $includeWrite || (bool) config('ai.tools.write_enabled', false);
 
         $visible = [];
 
         foreach ($this->definitions as $definition) {
-            if (! $this->passesConfigGates($definition, $writeEnabled)) {
+            if (! $this->passesConfigGates($definition, $includeWrite ? true : null)) {
                 continue;
             }
 
@@ -124,7 +124,7 @@ class AiToolRegistryService
     }
 
     /**
-     * laravel/ai Tool instances for AppAssistant (write tools always opted in for BC).
+     * laravel/ai Tool instances for AppAssistant (mutating tools only when write gate allows).
      *
      * @return list<Tool>
      */
@@ -151,6 +151,9 @@ class AiToolRegistryService
 
     /**
      * Whether a definition is allowed by config (enabled, allow/deny, write gate).
+     *
+     * @param  bool|null  $writeEnabled  When true, still requires per-tool allowlist via {@see AiToolWriteGateService}.
+     *                                   When null, uses the env kill switch + allowlist. When false, denies mutating tools.
      */
     public function passesConfigGates(ToolDefinitionInterface $definition, ?bool $writeEnabled = null): bool
     {
@@ -170,13 +173,20 @@ class AiToolRegistryService
             return false;
         }
 
-        $writeEnabled ??= (bool) config('ai.tools.write_enabled', false);
+        if (! $definition->kind()->isMutating()) {
+            return true;
+        }
 
-        if ($definition->kind()->isMutating() && ! $writeEnabled) {
+        if ($writeEnabled === false) {
             return false;
         }
 
-        return true;
+        // include_write / writeEnabled=true still cannot bypass the env kill switch or empty allowlist.
+        if ($writeEnabled === true && ! $this->writeGate->isWriteEnabled()) {
+            return false;
+        }
+
+        return $this->writeGate->isToolWriteAllowed($name);
     }
 
     /**

@@ -111,6 +111,11 @@ export default function SettingsLayout({
                   href: editPerformance(),
                   icon: null,
               },
+              {
+                  title: t('settings.layout.aiTools'),
+                  href: '/settings/ai-tools',
+                  icon: null,
+              },
           ]
         : [];
 
@@ -147,6 +152,15 @@ export default function SettingsLayout({
                   {
                       title: 'Jobs',
                       href: '/settings/jobs',
+                      icon: null,
+                  },
+              ]
+            : []),
+        ...(can(PermissionEnum.CanUseAi)
+            ? [
+                  {
+                      title: t('settings.layout.pendingToolCalls'),
+                      href: '/settings/pending-tool-calls',
                       icon: null,
                   },
               ]

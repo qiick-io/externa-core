@@ -201,7 +201,9 @@
             "filesMedia": "Files & Media",
             "api": "API",
             "integrations": "Integrations",
-            "sidebar": "Sidebar"
+            "sidebar": "Sidebar",
+            "aiTools": "AI write tools",
+            "pendingToolCalls": "AI tool approvals"
         },
         "profile": {
             "breadcrumb": "Profile settings",
@@ -578,6 +580,18 @@
             "codesAria": "Recovery codes",
             "loadingAria": "Loading recovery codes",
             "regenerateWarning": "Each recovery code can be used once to access your account and will be removed after use. If you need more, click <bold>Regenerate codes</bold> above."
+        },
+        "aiTools": {
+            "breadcrumb": "AI write tools",
+            "head": "AI write tools",
+            "title": "AI write tools",
+            "description": "Choose which mutating AI tool classes may run after human approval. The AI_WRITE_TOOLS env kill switch must be on.",
+            "killSwitchLabel": "Env kill switch",
+            "killSwitchOn": "enabled",
+            "killSwitchOff": "disabled (default)",
+            "killSwitchHint": "Set AI_WRITE_TOOLS=true (or AI_TOOLS_WRITE_ENABLED=true) in the environment to allow any write tools.",
+            "ttlHint": "MCP approvals expire after {{minutes}} minutes. Tool audit rows are retained for {{days}} days.",
+            "save": "Save"
         }
     },
     "collections": {
@@ -1753,5 +1767,17 @@
             "forceDeleteTitle": "Delete group “{{name}}” permanently?",
             "forceDeleteDescription": "This group will be permanently removed. This cannot be undone."
         }
+    },
+    "pendingToolCalls": {
+        "head": "AI tool approvals",
+        "description": "MCP tool calls waiting for a human with the matching permission.",
+        "colTool": "Tool",
+        "colArgs": "Arguments",
+        "colRequester": "Requested by",
+        "colExpires": "Expires",
+        "colActions": "Actions",
+        "empty": "No pending tool approvals.",
+        "approve": "Approve",
+        "reject": "Reject"
     }
 }

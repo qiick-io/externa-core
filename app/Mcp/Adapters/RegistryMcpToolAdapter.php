@@ -22,7 +22,7 @@ final class RegistryMcpToolAdapter
     ) {}
 
     /**
-     * MCP `tools/list` entries visible to the actor (write tools only when write_enabled).
+     * MCP `tools/list` entries visible to the actor (mutating tools only when write gate allows).
      *
      * @return list<array{
      *     name: string,
@@ -35,12 +35,14 @@ final class RegistryMcpToolAdapter
     {
         return array_map(
             fn (ToolDefinitionInterface $definition): array => $this->toMcpTool($definition),
-            $this->registry->visibleFor($actor, ['include_write' => false]),
+            $this->registry->visibleFor($actor),
         );
     }
 
     /**
      * MCP `tools/call` via the shared executor (permissions re-checked at call time).
+     *
+     * Mutating tools return pending_approval until a human resolves the PendingToolCall.
      *
      * @param  array<string, mixed>  $arguments
      * @return array{
@@ -52,8 +54,23 @@ final class RegistryMcpToolAdapter
     public function callTool(string $name, array $arguments, ?Authenticatable $actor): array
     {
         $outcome = $this->executor->execute($name, $arguments, $actor, [
-            'include_write' => false,
+            'surface' => 'mcp',
         ]);
+
+        if ($outcome->isPendingApproval()) {
+            $payload = $outcome->toArray();
+
+            return [
+                'isError' => false,
+                'content' => [
+                    [
+                        'type' => 'text',
+                        'text' => $outcome->message ?? 'Tool call awaiting human approval.',
+                    ],
+                ],
+                'structuredContent' => $payload,
+            ];
+        }
 
         if (! $outcome->isOk()) {
             $payload = $outcome->toArray();

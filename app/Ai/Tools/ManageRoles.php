@@ -34,6 +34,14 @@ class ManageRoles implements Approvable, Tool
     /**
      * @return list<string>
      */
+    protected function writeActions(): array
+    {
+        return ['create', 'update', 'duplicate'];
+    }
+
+    /**
+     * @return list<string>
+     */
     protected function destructiveActions(): array
     {
         return ['delete'];

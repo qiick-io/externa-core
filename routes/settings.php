@@ -8,6 +8,7 @@
  */
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Settings\AiToolSettingsController;
 use App\Http\Controllers\Settings\AppearanceSettingsController;
 use App\Http\Controllers\Settings\AppearanceSidebarSettingsController;
 use App\Http\Controllers\Settings\LocaleController;
@@ -161,4 +162,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('settings/performance/flush-dashboard-metrics', [PerformanceSettingsController::class, 'flushDashboardMetrics'])
         ->middleware($canManageProject)
         ->name('performance.flush-dashboard-metrics');
+
+    Route::get('settings/ai-tools', [AiToolSettingsController::class, 'edit'])
+        ->middleware($canManageProject)
+        ->name('ai-tools.edit');
+
+    Route::put('settings/ai-tools', [AiToolSettingsController::class, 'update'])
+        ->middleware($canManageProject)
+        ->name('ai-tools.update');
 });

@@ -78,18 +78,33 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Shared AI / MCP tool registry (#202)
+    | Shared AI / MCP tool registry (#202 / #203)
     |--------------------------------------------------------------------------
     |
-    | Write / destructive tools are hidden unless write_enabled is true (or the
-    | chat adapter opts in via include_write). Per-tool allow/deny lists are
-    | empty by default (all registered tools eligible subject to AuthZ).
+    | Write / destructive tools are denied by default. The env kill switch
+    | (AI_WRITE_TOOLS / AI_TOOLS_WRITE_ENABLED) must be true AND the tool class
+    | must be listed in write_allow (env) and/or project setting ai.write_tools.
+    | Mutating MCP calls then require human approval (PendingToolCall).
     |
     */
 
     'tools' => [
         'enabled' => (bool) env('AI_TOOLS_ENABLED', true),
-        'write_enabled' => (bool) env('AI_TOOLS_WRITE_ENABLED', false),
+        // AI_WRITE_TOOLS is the #203 kill switch; AI_TOOLS_WRITE_ENABLED kept for #202 compat.
+        'write_enabled' => (bool) env('AI_WRITE_TOOLS', env('AI_TOOLS_WRITE_ENABLED', false)),
+        'write_allow' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('AI_TOOLS_WRITE_ALLOW', '')),
+        ))),
+        'approval_ttl_minutes' => (int) env('AI_TOOLS_APPROVAL_TTL', 15),
+        'audit_retention_days' => (int) env('AI_TOOLS_AUDIT_RETENTION_DAYS', 90),
+        'redact_keys' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env(
+                'AI_TOOLS_REDACT_KEYS',
+                'auth_bearer,auth_header,authorization,bearer,password,token,api_key,apikey,secret,client_secret,email,phone,telephone,ssn,social_security_number,credit_card,card_number,cvv',
+            )),
+        ))),
         'allow' => array_values(array_filter(array_map(
             'trim',
             explode(',', (string) env('AI_TOOLS_ALLOW', '')),
