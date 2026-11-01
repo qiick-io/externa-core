@@ -8,7 +8,7 @@ beforeEach(function () {
     $this->withoutVite();
 
     app(SettingsRepositoryService::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'registration_enabled',
         true,

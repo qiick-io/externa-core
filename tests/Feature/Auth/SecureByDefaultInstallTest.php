@@ -33,7 +33,7 @@ it('disables registration by default for fresh installs', function (): void {
 
 it('keeps an explicitly stored registration_enabled=true setting', function (): void {
     app(SettingsRepositoryService::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'registration_enabled',
         true,

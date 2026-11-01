@@ -16,7 +16,7 @@ beforeEach(function (): void {
 function setUploadPolicy(array $values): void
 {
     app(SettingsRepositoryService::class)->setMany(
-        SettingsRepository::SCOPE_PROJECT,
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         $values,
     );
