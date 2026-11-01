@@ -21,7 +21,7 @@ class OidcSocialiteFactoryService
 
     public function enabled(): bool
     {
-        return $this->project->oidcEnabled()
+        return $this->project->isOidcEnabled()
             && $this->project->oidcIssuer() !== null
             && $this->project->oidcClientId() !== null
             && $this->project->oidcClientSecret() !== null;

@@ -2,7 +2,7 @@
 
 namespace App\Services\Settings;
 
-use App\Services\Webhooks\OutboundWebhookCatalog;
+use App\Services\Webhooks\OutboundWebhookCatalogService;
 use App\Support\Api\PublicApiOrigin;
 use App\Support\Collections\ContentLocaleCatalog;
 use App\Support\Uploads\ForbiddenUploadExtension;
@@ -743,7 +743,7 @@ class ProjectSettingsService
      */
     private function normalizeNotifierEventTypes(mixed $value): array
     {
-        $allowed = OutboundWebhookCatalog::notifierSelectableTypes();
+        $allowed = OutboundWebhookCatalogService::notifierSelectableTypes();
 
         if ($value === null) {
             return $allowed;
