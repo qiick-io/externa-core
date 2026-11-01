@@ -209,9 +209,7 @@ function TwoFactorVerificationStep({
                                     disabled={processing}
                                     pattern={REGEXP_ONLY_DIGITS}
                                     autoFocus
-                                    aria-invalid={
-                                        codeError ? true : undefined
-                                    }
+                                    aria-invalid={codeError ? true : undefined}
                                     aria-describedby={
                                         codeError
                                             ? 'two-factor-code-error'

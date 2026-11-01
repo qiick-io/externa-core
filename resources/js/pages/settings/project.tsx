@@ -246,9 +246,7 @@ export default function ProjectSettingsPage({ project }: Props) {
                                         <Field
                                             key={field}
                                             data-invalid={
-                                                errors[field]
-                                                    ? true
-                                                    : undefined
+                                                errors[field] ? true : undefined
                                             }
                                         >
                                             <FieldLabel htmlFor={field}>

@@ -101,9 +101,7 @@ export default function ProjectApiSettingsPage({ project }: Props) {
                                     <FieldGroup className="gap-6">
                                         <Field
                                             data-invalid={
-                                                originsError
-                                                    ? true
-                                                    : undefined
+                                                originsError ? true : undefined
                                             }
                                         >
                                             <FieldLabel htmlFor="public_api_allowed_origins">

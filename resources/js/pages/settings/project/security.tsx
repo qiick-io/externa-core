@@ -468,9 +468,7 @@ export default function ProjectSecuritySettingsPage({
                                         }
                                     >
                                         <FieldLabel htmlFor="oidc_client_id">
-                                            {t(
-                                                'settings.project.oidcClientId',
-                                            )}
+                                            {t('settings.project.oidcClientId')}
                                         </FieldLabel>
                                         <Input
                                             id="oidc_client_id"
@@ -816,9 +814,7 @@ export default function ProjectSecuritySettingsPage({
                                             </FieldLabel>
                                         </div>
                                         <FieldError id="email-verification-required-error">
-                                            {
-                                                errors.email_verification_required
-                                            }
+                                            {errors.email_verification_required}
                                         </FieldError>
                                     </Field>
 
