@@ -6,14 +6,12 @@ use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\ImportsCollectionRecordsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Support\CmsImport\CmsImportProfiles;
+use App\Ai\Support\SafeRemoteFetcher;
 use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Enums\PermissionEnum;
 use App\Jobs\ImportCollectionJob;
 use App\Models\Collection;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\RequestException;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -108,8 +106,8 @@ class ImportRemoteJson implements Tool
 
             try {
                 $payload = $this->fetchJson($url, $authBearer, $authHeader);
-            } catch (Throwable $exception) {
-                return 'Error: Unable to download JSON ('.$exception->getMessage().').';
+            } catch (Throwable) {
+                return 'Error: Unable to download JSON.';
             }
 
             $records = $this->extractRecords($payload);
@@ -291,36 +289,18 @@ class ImportRemoteJson implements Tool
             $headers['Authorization'] = $authHeader;
         }
 
-        try {
-            $response = Http::timeout(self::TIMEOUT_SECONDS)
-                ->connectTimeout(10)
-                ->withOptions([
-                    'allow_redirects' => false,
-                    'http_errors' => false,
-                ])
-                ->withHeaders($headers)
-                ->get($url);
-        } catch (ConnectionException $exception) {
-            throw new \RuntimeException('timeout or connection failed: '.$exception->getMessage(), 0, $exception);
-        } catch (RequestException $exception) {
-            throw new \RuntimeException('request failed: '.$exception->getMessage(), 0, $exception);
+        $fetched = SafeRemoteFetcher::get(
+            $url,
+            self::MAX_BYTES,
+            headers: $headers,
+            timeoutSeconds: self::TIMEOUT_SECONDS,
+        );
+
+        if ($fetched['status'] >= 400) {
+            throw new \RuntimeException('Remote download failed.');
         }
 
-        if ($response->status() >= 400) {
-            throw new \RuntimeException('HTTP '.$response->status());
-        }
-
-        $contentLength = $response->header('Content-Length');
-
-        if (is_numeric($contentLength) && (int) $contentLength > self::MAX_BYTES) {
-            throw new \RuntimeException('risposta troppo grande (max '.(int) (self::MAX_BYTES / 1024 / 1024).' MB)');
-        }
-
-        $body = $response->body();
-
-        if (strlen($body) > self::MAX_BYTES) {
-            throw new \RuntimeException('risposta troppo grande (max '.(int) (self::MAX_BYTES / 1024 / 1024).' MB)');
-        }
+        $body = $fetched['body'];
 
         $decoded = json_decode($body, true);
 

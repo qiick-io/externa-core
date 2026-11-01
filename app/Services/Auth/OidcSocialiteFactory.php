@@ -2,6 +2,7 @@
 
 namespace App\Services\Auth;
 
+use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Auth\Oidc\GenericOidcProvider;
 use App\Services\Settings\ProjectSettings;
 use Illuminate\Support\Facades\Cache;
@@ -73,9 +74,15 @@ class OidcSocialiteFactory
 
         /** @var array<string, mixed> $cached */
         $cached = Cache::remember($cacheKey, now()->addHours(6), function () use ($fetchBase): array {
+            $discoveryUrl = $fetchBase.'/.well-known/openid-configuration';
+            if ($ssrf = SafeRemoteUrlValidator::validateOidcEndpoint($discoveryUrl)) {
+                throw new RuntimeException('OIDC discovery URL is not allowed.');
+            }
+
             $response = Http::timeout(10)
                 ->acceptJson()
-                ->get($fetchBase.'/.well-known/openid-configuration');
+                ->withOptions(['allow_redirects' => false])
+                ->get($discoveryUrl);
 
             if (! $response->successful()) {
                 throw new RuntimeException('OIDC discovery request failed.');
@@ -83,7 +90,21 @@ class OidcSocialiteFactory
 
             $json = $response->json();
 
-            return is_array($json) ? $json : [];
+            if (! is_array($json)) {
+                return [];
+            }
+
+            foreach (['token_endpoint', 'userinfo_endpoint', 'authorization_endpoint'] as $key) {
+                $endpoint = $json[$key] ?? null;
+                if (! is_string($endpoint) || $endpoint === '') {
+                    continue;
+                }
+                if (SafeRemoteUrlValidator::validateOidcEndpoint($endpoint) !== null) {
+                    throw new RuntimeException('OIDC discovery returned a disallowed endpoint.');
+                }
+            }
+
+            return $json;
         });
 
         return $cached;
