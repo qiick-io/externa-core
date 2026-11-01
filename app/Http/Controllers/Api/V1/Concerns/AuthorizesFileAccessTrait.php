@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api\V1\Concerns;
 use App\Enums\FilePermissionActionEnum;
 use App\Models\File;
 use App\Models\User;
-use App\Services\Api\FilePermissionGuard;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Api\FilePermissionGuardService;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Support\Api\ApiAccess;
 use Illuminate\Http\Request;
 
@@ -33,7 +33,7 @@ trait AuthorizesFileAccessTrait
         FilePermissionActionEnum $action,
     ): void {
         $access = $this->apiAccess($request);
-        $allowed = app(FilePermissionGuard::class)->allows(
+        $allowed = app(FilePermissionGuardService::class)->allows(
             $access->roleId(),
             $action,
         );
@@ -57,12 +57,12 @@ trait AuthorizesFileAccessTrait
 
     private function ownerAllowsFileAction(User $owner, FilePermissionActionEnum $action): bool
     {
-        $resolver = app(EffectivePermissionResolver::class);
+        $resolver = app(EffectivePermissionResolverService::class);
         if ($resolver->isSuperAdmin($owner)) {
             return true;
         }
 
-        $guard = app(FilePermissionGuard::class);
+        $guard = app(FilePermissionGuardService::class);
         foreach ($resolver->effectiveRoleIds($owner) as $roleId) {
             if ($guard->allows($roleId, $action)) {
                 return true;
@@ -80,7 +80,7 @@ trait AuthorizesFileAccessTrait
         $this->authorizeFile($request, FilePermissionActionEnum::Read);
 
         $access = $this->apiAccess($request);
-        if (! app(FilePermissionGuard::class)->canReadFile($access->roleId(), $file)) {
+        if (! app(FilePermissionGuardService::class)->canReadFile($access->roleId(), $file)) {
             abort(403, 'This action is unauthorized for files.');
         }
 

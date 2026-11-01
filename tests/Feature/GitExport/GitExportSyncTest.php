@@ -4,12 +4,12 @@ use App\Enums\FieldTypeEnum;
 use App\Jobs\GitExport\ExportCollectionItemToGitJob;
 use App\Models\Collection;
 use App\Models\CollectionField;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemPublisher;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\GitExport\GitExportDispatcher;
-use App\Services\GitExport\GitExportDocumentBuilder;
-use App\Services\GitExport\GitExportRepository;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemPublisherService;
+use App\Services\Collections\CollectionItemValuesWriterService;
+use App\Services\GitExport\GitExportDispatcherService;
+use App\Services\GitExport\GitExportDocumentBuilderService;
+use App\Services\GitExport\GitExportRepositoryService;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Queue;
@@ -57,7 +57,7 @@ test('git export dispatcher is a no-op when disabled', function () {
     ['collection' => $collection] = gitExportKitchen();
     $item = $collection->items()->create([]);
 
-    app(GitExportDispatcher::class)->dispatchItem($item);
+    app(GitExportDispatcherService::class)->dispatchItem($item);
 
     Queue::assertNothingPushed();
 });
@@ -69,7 +69,7 @@ test('publish queues git export job when enabled', function () {
         'draft_data' => ['title' => 'Hello'],
     ]);
 
-    app(CollectionItemPublisher::class)->promote($item, $collection);
+    app(CollectionItemPublisherService::class)->promote($item, $collection);
 
     Queue::assertPushed(ExportCollectionItemToGitJob::class, function (ExportCollectionItemToGitJob $job) use ($item): bool {
         return $job->itemId === $item->id;
@@ -79,15 +79,15 @@ test('publish queues git export job when enabled', function () {
 test('document builder writes json under content/{slug}/{id}.json', function () {
     ['collection' => $collection] = gitExportKitchen();
     $item = $collection->items()->create([]);
-    $normalizer = app(CollectionItemDataNormalizer::class);
-    app(CollectionItemValuesWriter::class)->sync(
+    $normalizer = app(CollectionItemDataNormalizerService::class);
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
         $normalizer->normalize($collection, ['title' => 'Hello'], true),
         created: true,
     );
 
-    $built = app(GitExportDocumentBuilder::class)->build($item->fresh()->load('collection'));
+    $built = app(GitExportDocumentBuilderService::class)->build($item->fresh()->load('collection'));
 
     expect($built)->not->toBeNull()
         ->and($built['path'])->toBe('content/posts/'.$item->id.'.json')
@@ -111,8 +111,8 @@ test('export job writes file and commits with dry-run (no push)', function () {
 
     ['collection' => $collection] = gitExportKitchen();
     $item = $collection->items()->create([]);
-    $normalizer = app(CollectionItemDataNormalizer::class);
-    app(CollectionItemValuesWriter::class)->sync(
+    $normalizer = app(CollectionItemDataNormalizerService::class);
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
         $normalizer->normalize($collection, ['title' => 'Hello'], true),
@@ -120,8 +120,8 @@ test('export job writes file and commits with dry-run (no push)', function () {
     );
 
     (new ExportCollectionItemToGitJob($item->id))->handle(
-        app(GitExportRepository::class),
-        app(GitExportDocumentBuilder::class),
+        app(GitExportRepositoryService::class),
+        app(GitExportDocumentBuilderService::class),
     );
 
     $path = $dir.'/content/posts/'.$item->id.'.json';
@@ -157,7 +157,7 @@ test('ensureRepository bootstraps empty bare remote without existing branch', fu
         'git_export.commit_email' => 'git-export@externa.test',
     ]);
 
-    $repo = app(GitExportRepository::class);
+    $repo = app(GitExportRepositoryService::class);
     $repo->ensureRepository();
 
     expect(is_dir($work.'/.git'))->toBeTrue();
@@ -181,8 +181,8 @@ test('artisan git-export:sync --dry-run writes files without remote', function (
 
     ['collection' => $collection] = gitExportKitchen();
     $item = $collection->items()->create([]);
-    $normalizer = app(CollectionItemDataNormalizer::class);
-    app(CollectionItemValuesWriter::class)->sync(
+    $normalizer = app(CollectionItemDataNormalizerService::class);
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
         $normalizer->normalize($collection, ['title' => 'Sync'], true),

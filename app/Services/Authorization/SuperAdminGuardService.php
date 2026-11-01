@@ -20,7 +20,7 @@ use Spatie\Permission\Models\Role;
  */
 class SuperAdminGuardService
 {
-    public function __construct(private EffectivePermissionResolver $permissionResolver) {}
+    public function __construct(private EffectivePermissionResolverService $permissionResolver) {}
 
     /**
      * Whether the actor may grant, revoke, or manage super-admin access.
@@ -43,7 +43,7 @@ class SuperAdminGuardService
      *
      * @param  array<int, mixed>  $roleIds
      */
-    public function hasSuperAdminRole(array $roleIds): bool
+    public function includesSuperAdminRole(array $roleIds): bool
     {
         return Role::query()
             ->whereIn('id', $this->integerIds($roleIds))
@@ -56,7 +56,7 @@ class SuperAdminGuardService
      *
      * @param  array<int, string>  $roleNames
      */
-    public function hasSuperAdminRoleName(array $roleNames): bool
+    public function includesSuperAdminRoleName(array $roleNames): bool
     {
         return in_array(RoleEnum::SuperAdmin->value, $roleNames, true);
     }
@@ -66,7 +66,7 @@ class SuperAdminGuardService
      *
      * @param  array<int, mixed>  $groupIds
      */
-    public function hasSuperAdminGroup(array $groupIds): bool
+    public function includesSuperAdminGroup(array $groupIds): bool
     {
         return UserGroup::withTrashed()
             ->whereIn('id', $this->integerIds($groupIds))
@@ -79,7 +79,7 @@ class SuperAdminGuardService
      *
      * @param  array<int, mixed>  $userIds
      */
-    public function hasSuperAdminUser(array $userIds): bool
+    public function includesSuperAdminUser(array $userIds): bool
     {
         $isSuperAdminRole = fn (Builder $roleQuery) => $roleQuery->where('name', RoleEnum::SuperAdmin->value);
 

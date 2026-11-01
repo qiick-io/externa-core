@@ -22,14 +22,14 @@ use App\Models\File;
 use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\ItemChatNotification;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Chat\ChatAttachmentUploadService;
 use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatUnreadService;
-use App\Services\Collections\CollectionItemValuesAssembler;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
 use App\Services\FileService;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\SettingsRepositoryService;
 use App\Support\Collections\CollectionLocaleResolver;
 use App\Support\Http\UserContentResponse;
 use Illuminate\Http\JsonResponse;
@@ -58,11 +58,11 @@ class ChatMessageController extends Controller
         private ChatService $chats,
         private ChatUnreadService $unread,
         private ChatAttachmentUploadService $chatUploads,
-        private CollectionPermissionEnforcer $permissionEnforcer,
-        private EffectivePermissionResolver $permissionResolver,
-        private SettingsRepository $settings,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
+        private EffectivePermissionResolverService $permissionResolver,
+        private SettingsRepositoryService $settings,
         private FileService $fileService,
-        private CollectionItemValuesAssembler $assembler,
+        private CollectionItemValuesAssemblerService $assembler,
         private UpdateCollectionItemAction $updateCollectionItemAction,
         private CollectionLocaleResolver $localeResolver,
     ) {}
@@ -429,7 +429,7 @@ class ChatMessageController extends Controller
         }
 
         $this->settings->set(
-            SettingsRepository::SCOPE_USER,
+            SettingsRepositoryService::SCOPE_USER,
             self::SETTINGS_GROUP,
             self::SETTINGS_KEY,
             $ids,
@@ -826,7 +826,7 @@ class ChatMessageController extends Controller
 
         $allowed = [];
         foreach ($users as $candidate) {
-            if ($this->chats->canUserReadCollection($candidate, $collection)) {
+            if ($this->chats->userCanReadCollection($candidate, $collection)) {
                 $allowed[] = (int) $candidate->id;
             }
         }
@@ -854,7 +854,7 @@ class ChatMessageController extends Controller
         $found = Collection::query()->whereIn('id', $ids)->get()->keyBy('id');
         foreach ($ids as $id) {
             $collection = $found->get($id);
-            if (! $collection instanceof Collection || ! $this->chats->canUserReadCollection($user, $collection)) {
+            if (! $collection instanceof Collection || ! $this->chats->userCanReadCollection($user, $collection)) {
                 throw ValidationException::withMessages([
                     'body' => 'One or more mentioned collections are invalid.',
                 ]);
@@ -924,7 +924,7 @@ class ChatMessageController extends Controller
             $collection = $chat->collection;
             abort_unless($collection instanceof Collection, 404);
             $users = $users->filter(
-                fn (User $candidate): bool => $this->chats->canUserReadCollection($candidate, $collection),
+                fn (User $candidate): bool => $this->chats->userCanReadCollection($candidate, $collection),
             );
         }
 
@@ -954,7 +954,7 @@ class ChatMessageController extends Controller
             ->get(['id', 'name']);
 
         return $collections
-            ->filter(fn (Collection $collection): bool => $this->chats->canUserReadCollection($user, $collection))
+            ->filter(fn (Collection $collection): bool => $this->chats->userCanReadCollection($user, $collection))
             ->take(20)
             ->map(fn (Collection $collection): array => [
                 'id' => (int) $collection->id,
@@ -979,7 +979,7 @@ class ChatMessageController extends Controller
             // Indexed (scope, group, key) — only notify rows, then membership in PHP
             // (sqlite whereJsonContains misses numeric JSON elements; keep driver-neutral).
             $subscriberIds = Setting::query()
-                ->where('scope', SettingsRepository::SCOPE_USER)
+                ->where('scope', SettingsRepositoryService::SCOPE_USER)
                 ->where('group', self::SETTINGS_GROUP)
                 ->where('key', self::SETTINGS_KEY)
                 ->whereNotNull('scope_id')
@@ -1213,7 +1213,7 @@ class ChatMessageController extends Controller
     private function subscribedCollectionIds(User $user): array
     {
         $value = $this->settings->get(
-            SettingsRepository::SCOPE_USER,
+            SettingsRepositoryService::SCOPE_USER,
             self::SETTINGS_GROUP,
             self::SETTINGS_KEY,
             $user->id,
@@ -1250,7 +1250,7 @@ class ChatMessageController extends Controller
         }
 
         $this->settings->set(
-            SettingsRepository::SCOPE_USER,
+            SettingsRepositoryService::SCOPE_USER,
             self::SETTINGS_GROUP,
             self::SETTINGS_KEY,
             $ids,
@@ -1304,7 +1304,7 @@ class ChatMessageController extends Controller
 
     private function mergeScalarOrList(CollectionField $field, mixed $current, int $fileId): mixed
     {
-        if (! $field->hasArrayStorage()) {
+        if (! $field->usesArrayStorage()) {
             return $fileId;
         }
 

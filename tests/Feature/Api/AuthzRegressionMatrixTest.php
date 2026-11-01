@@ -16,12 +16,12 @@ use App\Models\FilePermission;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserGroup;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Api\FilePermissionGuard;
-use App\Services\Authorization\EffectivePermissionResolver;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Api\FilePermissionGuardService;
+use App\Services\Authorization\EffectivePermissionResolverService;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Storage;
@@ -54,7 +54,7 @@ function authzGrant(Role $role, Collection $collection, array $actions, ?array $
         );
     }
 
-    app(CollectionPermissionGuard::class)->forget($role->id);
+    app(CollectionPermissionGuardService::class)->forget($role->id);
 }
 
 /**
@@ -73,7 +73,7 @@ function authzGrantFiles(Role $role, array $actions): void
         );
     }
 
-    app(FilePermissionGuard::class)->forget($role->id);
+    app(FilePermissionGuardService::class)->forget($role->id);
 }
 
 function authzMakeCollection(string $prefix = 'authz'): Collection
@@ -301,8 +301,8 @@ it('enforces published vs draft item_filter AuthZ matrix', function (
     }
     authzGrant($role, $collection, $grants, $rules);
 
-    $normalizer = app(CollectionItemDataNormalizer::class);
-    $writer = app(CollectionItemValuesWriter::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
+    $writer = app(CollectionItemValuesWriterService::class);
 
     $published = $collection->items()->create([]);
     $writer->sync($published, $collection, $normalizer->normalize($collection, [
@@ -471,7 +471,7 @@ it('enforces include=files expand AuthZ matrix', function (
     };
 
     $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection->fresh(['fields']),
         ['cover' => $file->id],
@@ -520,10 +520,10 @@ it('enforces GraphQL items AuthZ matrix', function (
     ]);
 
     $item = $collection->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
-        app(CollectionItemDataNormalizer::class)->normalize($collection, ['title' => 'Hi'], true),
+        app(CollectionItemDataNormalizerService::class)->normalize($collection, ['title' => 'Hi'], true),
     );
 
     $token = null;
@@ -625,8 +625,8 @@ it('denies GraphQL write mutations without Create/Update/Delete and honors item_
         authzGrant($bundle['role'], $collection, $grants, $rules);
     }
 
-    $normalizer = app(CollectionItemDataNormalizer::class);
-    $writer = app(CollectionItemValuesWriter::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
+    $writer = app(CollectionItemValuesWriterService::class);
 
     $item = $collection->items()->create([]);
     $writer->sync($item, $collection, $normalizer->normalize($collection, [
@@ -664,7 +664,7 @@ it('denies GraphQL write mutations without Create/Update/Delete and honors item_
         ->and(CollectionItem::query()->find($item->id))->not->toBeNull();
 
     $titleAfter = data_get(
-        app(CollectionItemValuesAssembler::class)->assemble($item->fresh()),
+        app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh()),
         'title',
     );
     expect($titleAfter)->toBe('Seed');
@@ -679,13 +679,13 @@ dataset('authz effective permission resolver', function () {
     ];
 });
 
-it('resolves EffectivePermissionResolver matrix without widening access', function (
+it('resolves EffectivePermissionResolverService matrix without widening access', function (
     string $setup,
     string $permission,
     bool $expected,
 ): void {
     $user = User::factory()->create();
-    $resolver = app(EffectivePermissionResolver::class);
+    $resolver = app(EffectivePermissionResolverService::class);
 
     if ($setup === 'super_admin') {
         $user->assignRole(RoleEnum::SuperAdmin->value);
@@ -728,7 +728,7 @@ dataset('authz file permission guard canReadFile', function () {
     ];
 });
 
-it('FilePermissionGuard canReadFile matrix names each combination', function (
+it('FilePermissionGuardService canReadFile matrix names each combination', function (
     string $fileKind,
     array $grants,
     bool $expected,
@@ -761,5 +761,5 @@ it('FilePermissionGuard canReadFile matrix names each combination', function (
         authzGrantFiles($role, $grants);
     }
 
-    expect(app(FilePermissionGuard::class)->canReadFile($role->id, $file->fresh()))->toBe($expected);
+    expect(app(FilePermissionGuardService::class)->canReadFile($role->id, $file->fresh()))->toBe($expected);
 })->with('authz file permission guard canReadFile');

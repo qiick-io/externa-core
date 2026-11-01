@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Concerns;
 
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Authorization\EffectivePermissionResolverService;
 
 /**
  * Shared helper for form requests that gate access on effective permissions.
@@ -16,7 +16,7 @@ trait AuthorizesWithPermissionTrait
     {
         $user = auth()->user();
 
-        if ($user === null || ! app(EffectivePermissionResolver::class)->hasPermission($user, $permission)) {
+        if ($user === null || ! app(EffectivePermissionResolverService::class)->hasPermission($user, $permission)) {
             abort(403);
         }
     }

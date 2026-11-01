@@ -2,7 +2,7 @@
 
 namespace App\Support\Uploads;
 
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -10,7 +10,7 @@ use Throwable;
  * Project upload allowlist layered on the hard ForbiddenUploadExtension floor.
  *
  * Empty/null project overrides keep config/files.php defaults (1.3.0 behaviour).
- * SVG is never allowed unless {@see ProjectSettings::uploadAllowSvg()} is true.
+ * SVG is never allowed unless {@see ProjectSettingsService::uploadAllowSvg()} is true.
  */
 final class UploadAllowlist
 {
@@ -22,7 +22,7 @@ final class UploadAllowlist
     public const SVG_MIME = 'image/svg+xml';
 
     public function __construct(
-        private readonly ProjectSettings $projectSettings,
+        private readonly ProjectSettingsService $projectSettings,
     ) {}
 
     public function allowSvg(): bool

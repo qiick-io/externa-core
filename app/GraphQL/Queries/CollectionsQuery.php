@@ -4,8 +4,8 @@ namespace App\GraphQL\Queries;
 
 use App\Enums\CollectionPermissionActionEnum;
 use App\Models\Collection;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Api\CollectionPermissionGuard;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Api\CollectionPermissionGuardService;
 use App\Support\Api\ApiAccess;
 
 final class CollectionsQuery
@@ -16,8 +16,8 @@ final class CollectionsQuery
     public function __invoke(mixed $_, array $args): array
     {
         $access = app(ApiAccess::class);
-        $matrix = app(CollectionPermissionGuard::class)->matrixForRole($access->roleId());
-        $enforcer = app(CollectionPermissionEnforcer::class);
+        $matrix = app(CollectionPermissionGuardService::class)->matrixForRole($access->roleId());
+        $enforcer = app(CollectionPermissionEnforcerService::class);
         $request = request();
 
         return Collection::query()

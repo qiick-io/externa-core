@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Settings\Concerns;
 
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\SettingsRepositoryService;
 use Illuminate\Http\Request;
 
 /**
@@ -27,7 +27,7 @@ trait LogsProjectSettingsUpdateTrait
             ->useLog('settings')
             ->event('settings_updated')
             ->withProperties([
-                'scope' => SettingsRepository::SCOPE_PROJECT,
+                'scope' => SettingsRepositoryService::SCOPE_PROJECT,
                 'group' => 'project',
                 'section' => $section,
                 'keys' => $keys,

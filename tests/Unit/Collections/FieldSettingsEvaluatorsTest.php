@@ -2,10 +2,10 @@
 
 use App\Enums\FieldTypeEnum;
 use App\Models\CollectionField;
-use App\Services\Collections\FieldConditionEvaluator;
-use App\Services\Collections\FieldValidationRuleEvaluator;
+use App\Services\Collections\FieldConditionEvaluatorService;
+use App\Services\Collections\FieldValidationRuleEvaluatorService;
 
-test('FieldValidationRuleEvaluator maps every operator', function (string $operator, mixed $value, int $minRules) {
+test('FieldValidationRuleEvaluatorService maps every operator', function (string $operator, mixed $value, int $minRules) {
     $field = new CollectionField([
         'name' => 'x',
         'type' => FieldTypeEnum::String,
@@ -16,7 +16,7 @@ test('FieldValidationRuleEvaluator maps every operator', function (string $opera
         ],
     ]);
 
-    $rules = app(FieldValidationRuleEvaluator::class)->rulesForField($field, 'data.x');
+    $rules = app(FieldValidationRuleEvaluatorService::class)->rulesForField($field, 'data.x');
     expect(count($rules))->toBeGreaterThanOrEqual($minRules);
 })->with([
     'required' => ['required', null, 1],
@@ -33,8 +33,8 @@ test('FieldValidationRuleEvaluator maps every operator', function (string $opera
     'unknown drops' => ['nope', null, 0],
 ]);
 
-test('FieldConditionEvaluator and/or isMatchingRules equals chain', function () {
-    $evaluator = app(FieldConditionEvaluator::class);
+test('FieldConditionEvaluatorService and/or rulesMatch equals chain', function () {
+    $evaluator = app(FieldConditionEvaluatorService::class);
     $field = new CollectionField([
         'name' => 'notes',
         'type' => FieldTypeEnum::String,
@@ -55,8 +55,8 @@ test('FieldConditionEvaluator and/or isMatchingRules equals chain', function () 
         ->and($evaluator->effectiveFlags($field, ['a' => '1', 'b' => '9'])['required'])->toBeFalse();
 });
 
-test('FieldConditionEvaluator withoutReadonlyFields strips conditional readonly', function () {
-    $evaluator = app(FieldConditionEvaluator::class);
+test('FieldConditionEvaluatorService withoutReadonlyFields strips conditional readonly', function () {
+    $evaluator = app(FieldConditionEvaluatorService::class);
     $locked = new CollectionField([
         'name' => 'notes',
         'type' => FieldTypeEnum::String,
@@ -191,14 +191,14 @@ function fieldConditionParityCases(): array
     ];
 }
 
-test('FieldConditionEvaluator parity fixtures', function (string $logic, array $rules, array $data, bool $expected) {
-    $evaluator = app(FieldConditionEvaluator::class);
+test('FieldConditionEvaluatorService parity fixtures', function (string $logic, array $rules, array $data, bool $expected) {
+    $evaluator = app(FieldConditionEvaluatorService::class);
 
-    expect($evaluator->isMatchingRules($rules, $data, $logic))->toBe($expected);
+    expect($evaluator->rulesMatch($rules, $data, $logic))->toBe($expected);
 })->with(fieldConditionParityCases());
 
-test('FieldConditionEvaluator normalizeSettings keeps or and new operators', function () {
-    $evaluator = app(FieldConditionEvaluator::class);
+test('FieldConditionEvaluatorService normalizeSettings keeps or and new operators', function () {
+    $evaluator = app(FieldConditionEvaluatorService::class);
 
     $normalized = $evaluator->normalizeSettings([
         'logic' => 'or',

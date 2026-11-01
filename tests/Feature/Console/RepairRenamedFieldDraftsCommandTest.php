@@ -6,9 +6,9 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemRevision;
 use App\Models\User;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Artisan;
 
@@ -44,8 +44,8 @@ function brokenRenameFixture(string $keep = 'KEEP ME'): array
     ]);
 
     $item = $collection->items()->create([]);
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $writer->sync($item, $collection, $normalizer->normalize($collection, [
         'title' => 'Live',
         'summary' => $keep,
@@ -68,7 +68,7 @@ function brokenRenameFixture(string $keep = 'KEEP ME'): array
         'created_at' => now(),
     ]);
 
-    // Pre-fix path: rename without CollectionFieldRenamer.
+    // Pre-fix path: rename without CollectionFieldRenamerService.
     $summary->update(['name' => 'excerpt']);
 
     return [$collection, $summary->fresh(), $item->fresh(), $revision];
@@ -113,7 +113,7 @@ test('apply remaps draft_data and revisions using rename history', function () {
         ->and($revision->data)->not->toHaveKey('summary');
 
     // Published value was always field_id-safe; still present under new name.
-    expect(app(CollectionItemValuesAssembler::class)->assemble($item)['excerpt'] ?? null)->toBe('KEEP ME');
+    expect(app(CollectionItemValuesAssemblerService::class)->assemble($item)['excerpt'] ?? null)->toBe('KEEP ME');
 });
 
 test('conflict skips remap when the new key already has a value', function () {

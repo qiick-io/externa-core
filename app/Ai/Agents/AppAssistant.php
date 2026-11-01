@@ -22,7 +22,7 @@ use App\Ai\Tools\SearchSimilarCollectionItems;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\User;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use Laravel\Ai\Attributes\Provider;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
@@ -120,7 +120,7 @@ INSTRUCTIONS;
             return [];
         }
 
-        $resolver = app(EffectivePermissionResolver::class);
+        $resolver = app(EffectivePermissionResolverService::class);
         $tools = [];
 
         if ($this->canAny($resolver, $user, [
@@ -219,7 +219,7 @@ INSTRUCTIONS;
     /**
      * @param  list<PermissionEnum>  $permissions
      */
-    private function canAny(EffectivePermissionResolver $resolver, User $user, array $permissions): bool
+    private function canAny(EffectivePermissionResolverService $resolver, User $user, array $permissions): bool
     {
         foreach ($permissions as $permission) {
             if ($resolver->hasPermission($user, $permission->value)) {
@@ -241,7 +241,7 @@ INSTRUCTIONS;
             return [];
         }
 
-        $resolver = app(EffectivePermissionResolver::class);
+        $resolver = app(EffectivePermissionResolverService::class);
         $lines = [];
 
         if ($this->canAny($resolver, $user, [

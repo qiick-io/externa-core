@@ -11,10 +11,10 @@ use App\Http\Resources\Admin\FileResource;
 use App\Jobs\DuplicateFilesJob;
 use App\Jobs\PrepareFilesZipJob;
 use App\Models\File;
-use App\Services\Files\FileWhereUsedScanner;
+use App\Services\Files\FileWhereUsedScannerService;
 use App\Services\FileService;
 use App\Services\FileTransformService;
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use App\Support\Files\FilesDisk;
 use App\Support\Uploads\UploadSizeLimiter;
 use App\Support\Validation\SearchQueryRules;
@@ -48,7 +48,7 @@ class FileController extends Controller
     public function __construct(
         protected FileService $fileService,
         protected FileTransformService $fileTransformService,
-        protected FileWhereUsedScanner $fileWhereUsedScanner,
+        protected FileWhereUsedScannerService $fileWhereUsedScanner,
     ) {}
 
     /**
@@ -276,7 +276,7 @@ class FileController extends Controller
         /** @var UploadedFile $uploaded */
         $uploaded = $validated['file'];
         $size = (int) $uploaded->getSize();
-        $maxBytes = app(ProjectSettings::class)->filesMaxUploadBytes();
+        $maxBytes = app(ProjectSettingsService::class)->filesMaxUploadBytes();
         UploadSizeLimiter::assertWithinCap($maxBytes, $size);
         UploadSizeLimiter::assertFitsPhpSingleUpload($size);
 
@@ -783,7 +783,7 @@ class FileController extends Controller
         ]);
 
         UploadSizeLimiter::assertWithinCap(
-            app(ProjectSettings::class)->filesMaxUploadBytes(),
+            app(ProjectSettingsService::class)->filesMaxUploadBytes(),
             (int) $validated['total_size'],
             'total_size',
         );

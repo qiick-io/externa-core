@@ -6,7 +6,7 @@ use App\Models\ChatAttachmentUpload;
 use App\Models\CollectionItemChatAttachment;
 use App\Models\User;
 use App\Services\FileTransformService;
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use App\Support\Uploads\ForbiddenUploadExtension;
 use App\Support\Uploads\SafeUploadMime;
 use App\Support\Uploads\UploadSizeLimiter;
@@ -27,7 +27,7 @@ class ChatAttachmentUploadService
     public const PREVIEW_MAX_EDGE = 1200;
 
     public function __construct(
-        private readonly ProjectSettings $projectSettings,
+        private readonly ProjectSettingsService $projectSettings,
         private readonly FileTransformService $transforms,
     ) {}
 

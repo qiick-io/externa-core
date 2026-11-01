@@ -7,14 +7,14 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\User;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Search\MeilisearchSyncDispatcher;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
-use App\Services\Webhooks\OutboundWebhookCatalog;
-use App\Services\Webhooks\OutboundWebhookDeliveryLog;
-use App\Services\Webhooks\OutboundWebhookDispatcher;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
+use App\Services\Search\MeilisearchSyncDispatcherService;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
+use App\Services\Webhooks\OutboundWebhookCatalogService;
+use App\Services\Webhooks\OutboundWebhookDeliveryLogService;
+use App\Services\Webhooks\OutboundWebhookDispatcherService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -28,30 +28,30 @@ beforeEach(function () {
 
 function configureOutboundWebhook(string $url = 'https://example.com/externa-hooks', string $secret = 'test-secret'): void
 {
-    $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', $url);
+    $repository = app(SettingsRepositoryService::class);
+    $repository->set(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'webhook_url', $url);
     $repository->set(
-        SettingsRepository::SCOPE_PROJECT,
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'webhook_secret',
-        ProjectSettings::encryptWebhookSecret($secret),
+        ProjectSettingsService::encryptWebhookSecret($secret),
     );
 }
 
 test('dispatcher is a no-op when webhook url is empty', function () {
     Queue::fake();
 
-    app(OutboundWebhookDispatcher::class)->dispatch('ping', []);
+    app(OutboundWebhookDispatcherService::class)->dispatch('ping', []);
 
     Queue::assertNothingPushed();
 });
 
 test('dispatcher refuses when webhook url set without secret', function () {
     Queue::fake();
-    $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://example.com/externa-hooks');
+    $repository = app(SettingsRepositoryService::class);
+    $repository->set(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'webhook_url', 'https://example.com/externa-hooks');
 
-    app(OutboundWebhookDispatcher::class)->dispatch('ping', ['ok' => true]);
+    app(OutboundWebhookDispatcherService::class)->dispatch('ping', ['ok' => true]);
 
     Queue::assertNothingPushed();
 });
@@ -60,7 +60,7 @@ test('dispatcher queues deliver job when webhook url is set', function () {
     Queue::fake();
     configureOutboundWebhook();
 
-    app(OutboundWebhookDispatcher::class)->dispatch('ping', ['ok' => true]);
+    app(OutboundWebhookDispatcherService::class)->dispatch('ping', ['ok' => true]);
 
     Queue::assertPushed(DeliverOutboundWebhookJob::class, function (DeliverOutboundWebhookJob $job): bool {
         return $job->type === 'ping'
@@ -82,7 +82,7 @@ test('deliver job posts signed payload', function () {
         ['collection_id' => 1, 'collection_slug' => 'posts', 'item_id' => 42],
     );
 
-    $job->handle(app(ProjectSettings::class));
+    $job->handle(app(ProjectSettingsService::class));
 
     Http::assertSent(function ($request): bool {
         $body = $request->body();
@@ -107,9 +107,9 @@ test('deliver job records last success and recent entry', function () {
     ]);
 
     $job = new DeliverOutboundWebhookJob('evt_01ok', 'item.created', '2026-07-24T12:00:00Z', ['item_id' => 1]);
-    $job->handle(app(ProjectSettings::class));
+    $job->handle(app(ProjectSettingsService::class));
 
-    $summary = app(OutboundWebhookDeliveryLog::class)->summary();
+    $summary = app(OutboundWebhookDeliveryLogService::class)->summary();
 
     expect($summary['last_success'])->toMatchArray([
         'event_id' => 'evt_01ok',
@@ -132,17 +132,17 @@ test('deliver job does not record success on non-2xx response', function () {
 
     $job = new DeliverOutboundWebhookJob('evt_01bad', 'ping', '2026-07-24T12:00:00Z', []);
 
-    expect(fn () => $job->handle(app(ProjectSettings::class)))
+    expect(fn () => $job->handle(app(ProjectSettingsService::class)))
         ->toThrow(RuntimeException::class, 'HTTP 500');
 
-    expect(app(OutboundWebhookDeliveryLog::class)->summary()['last_success'])->toBeNull();
+    expect(app(OutboundWebhookDeliveryLogService::class)->summary()['last_success'])->toBeNull();
 });
 
 test('failed job records last error with message', function () {
     $job = new DeliverOutboundWebhookJob('evt_01fail', 'file.deleted', '2026-07-24T12:00:00Z', []);
     $job->failed(new RuntimeException('Outbound webhook delivery failed (evt_01fail): HTTP 503'));
 
-    $summary = app(OutboundWebhookDeliveryLog::class)->summary();
+    $summary = app(OutboundWebhookDeliveryLogService::class)->summary();
 
     expect($summary['last_error'])->toMatchArray([
         'event_id' => 'evt_01fail',
@@ -155,16 +155,16 @@ test('failed job records last error with message', function () {
 });
 
 test('recent deliveries keep only the newest entries', function () {
-    $log = app(OutboundWebhookDeliveryLog::class);
+    $log = app(OutboundWebhookDeliveryLogService::class);
 
-    for ($i = 1; $i <= OutboundWebhookDeliveryLog::RECENT_LIMIT + 3; $i++) {
+    for ($i = 1; $i <= OutboundWebhookDeliveryLogService::RECENT_LIMIT + 3; $i++) {
         $log->recordSuccess("evt_{$i}", 'ping', 200, 1);
     }
 
     $recent = $log->summary()['recent'];
 
-    expect($recent)->toHaveCount(OutboundWebhookDeliveryLog::RECENT_LIMIT)
-        ->and($recent[0]['event_id'])->toBe('evt_'.(OutboundWebhookDeliveryLog::RECENT_LIMIT + 3))
+    expect($recent)->toHaveCount(OutboundWebhookDeliveryLogService::RECENT_LIMIT)
+        ->and($recent[0]['event_id'])->toBe('evt_'.(OutboundWebhookDeliveryLogService::RECENT_LIMIT + 3))
         ->and(end($recent)['event_id'])->toBe('evt_4');
 });
 
@@ -191,10 +191,10 @@ test('catalog covers every event type emitted in app code', function () {
 
     expect($emitted)->not->toBeEmpty();
     foreach ($emitted as $type) {
-        expect(OutboundWebhookCatalog::has($type))->toBeTrue("Missing catalog entry: {$type}");
+        expect(OutboundWebhookCatalogService::has($type))->toBeTrue("Missing catalog entry: {$type}");
     }
 
-    expect(OutboundWebhookCatalog::types())->toContain(
+    expect(OutboundWebhookCatalogService::types())->toContain(
         'item.created',
         'item.updated',
         'item.published',
@@ -215,7 +215,7 @@ test('dispatcher still queues unknown event types for forward compatibility', fu
     Log::spy();
     configureOutboundWebhook();
 
-    app(OutboundWebhookDispatcher::class)->dispatch('custom.thing', []);
+    app(OutboundWebhookDispatcherService::class)->dispatch('custom.thing', []);
 
     Queue::assertPushed(DeliverOutboundWebhookJob::class, fn (DeliverOutboundWebhookJob $job): bool => $job->type === 'custom.thing');
     Log::shouldHaveReceived('warning')
@@ -224,8 +224,8 @@ test('dispatcher still queues unknown event types for forward compatibility', fu
 });
 
 test('project settings page exposes webhook catalog and delivery status', function () {
-    app(OutboundWebhookDeliveryLog::class)->recordSuccess('evt_01page', 'ping', 200, 1);
-    app(OutboundWebhookDeliveryLog::class)->recordFailure('evt_01err', 'item.updated', 'HTTP 500', 3);
+    app(OutboundWebhookDeliveryLogService::class)->recordSuccess('evt_01page', 'ping', 200, 1);
+    app(OutboundWebhookDeliveryLogService::class)->recordFailure('evt_01err', 'item.updated', 'HTTP 500', 3);
 
     $user = grantProjectSettingsPermissions(User::factory()->create(), [
         PermissionEnum::CanManageProjectSettings->value,
@@ -236,7 +236,7 @@ test('project settings page exposes webhook catalog and delivery status', functi
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/project/integrations')
-            ->has('webhookEvents', count(OutboundWebhookCatalog::EVENTS))
+            ->has('webhookEvents', count(OutboundWebhookCatalogService::EVENTS))
             ->where('webhookEvents.0.type', 'item.created')
             ->where('webhookDeliveries.last_success.event_id', 'evt_01page')
             ->where('webhookDeliveries.last_error.message', 'HTTP 500')
@@ -247,8 +247,8 @@ test('project settings page exposes webhook catalog and delivery status', functi
 });
 
 test('deliver job refuses when signing secret is empty', function () {
-    $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://example.com/externa-hooks');
+    $repository = app(SettingsRepositoryService::class);
+    $repository->set(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'webhook_url', 'https://example.com/externa-hooks');
     Http::fake();
 
     $job = new DeliverOutboundWebhookJob(
@@ -258,7 +258,7 @@ test('deliver job refuses when signing secret is empty', function () {
         [],
     );
 
-    $job->handle(app(ProjectSettings::class));
+    $job->handle(app(ProjectSettingsService::class));
 
     Http::assertNothingSent();
 });
@@ -334,13 +334,13 @@ test('withoutWebhooks suppresses emission during bulk import style sync', functi
     Queue::fake();
     configureOutboundWebhook();
 
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     // Mirror bulk import (AI/CLI): suppress webhooks and Meilisearch so assertNothingPushed
     // isolates outbound webhook emission (Meili sync is orthogonal and already covered elsewhere).
-    MeilisearchSyncDispatcher::withoutMeilisearch(function () use ($collection, $writer, $normalizer): void {
-        OutboundWebhookDispatcher::withoutWebhooks(function () use ($collection, $writer, $normalizer): void {
+    MeilisearchSyncDispatcherService::withoutMeilisearch(function () use ($collection, $writer, $normalizer): void {
+        OutboundWebhookDispatcherService::withoutWebhooks(function () use ($collection, $writer, $normalizer): void {
             for ($i = 0; $i < 3; $i++) {
                 $item = $collection->items()->create([]);
                 $normalized = $normalizer->normalize($collection, ['title' => "Row {$i}"], true);
@@ -365,7 +365,7 @@ test('clearing webhook url disables outbound webhooks', function () {
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.integrations.edit'));
 
-    expect(app(ProjectSettings::class)->webhookUrl())->toBe('https://example.com/externa-hooks');
+    expect(app(ProjectSettingsService::class)->webhookUrl())->toBe('https://example.com/externa-hooks');
 
     $this->actingAs($user)
         ->put(route('project.integrations.update'), baseIntegrationsPayload([
@@ -374,8 +374,8 @@ test('clearing webhook url disables outbound webhooks', function () {
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.integrations.edit'));
 
-    expect(app(ProjectSettings::class)->webhookUrl())->toBeNull()
-        ->and(app(ProjectSettings::class)->webhookSecret())->toBe('keep-me');
+    expect(app(ProjectSettingsService::class)->webhookUrl())->toBeNull()
+        ->and(app(ProjectSettingsService::class)->webhookSecret())->toBe('keep-me');
 
     $this->actingAs($user)
         ->get(route('project.integrations.edit'))
@@ -399,17 +399,17 @@ test('project settings stores encrypted webhook secret and never shares it', fun
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.integrations.edit'));
 
-    $stored = app(SettingsRepository::class)->get(
-        SettingsRepository::SCOPE_PROJECT,
+    $stored = app(SettingsRepositoryService::class)->get(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'webhook_secret',
     );
 
     expect($stored)->toBeString()
         ->and($stored)->not->toBe('super-secret-value')
-        ->and(app(ProjectSettings::class)->webhookSecret())->toBe('super-secret-value')
-        ->and(app(ProjectSettings::class)->shared())->not->toHaveKey('webhook_secret')
-        ->and(app(ProjectSettings::class)->shared())->not->toHaveKey('webhookSecret');
+        ->and(app(ProjectSettingsService::class)->webhookSecret())->toBe('super-secret-value')
+        ->and(app(ProjectSettingsService::class)->shared())->not->toHaveKey('webhook_secret')
+        ->and(app(ProjectSettingsService::class)->shared())->not->toHaveKey('webhookSecret');
 
     $this->actingAs($user)
         ->get(route('project.integrations.edit'))
@@ -450,8 +450,8 @@ test('send test webhook flashes error when url missing', function () {
 });
 
 test('send test webhook flashes error when secret missing', function () {
-    $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://example.com/externa-hooks');
+    $repository = app(SettingsRepositoryService::class);
+    $repository->set(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'webhook_url', 'https://example.com/externa-hooks');
 
     $user = grantProjectSettingsPermissions(User::factory()->create(), [
         PermissionEnum::CanManageProjectSettings->value,

@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\User;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\SettingsRepositoryService;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
@@ -37,8 +37,8 @@ test('security page shows enforced banner props when two factor is required', fu
         'confirmPassword' => true,
     ]);
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'two_factor_required',
         true,
@@ -65,8 +65,8 @@ test('security page hides enforced banner when user has two factor enabled', fun
         'confirmPassword' => true,
     ]);
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'two_factor_required',
         true,

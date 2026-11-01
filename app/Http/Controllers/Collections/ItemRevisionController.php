@@ -8,7 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemRevision;
-use App\Services\Api\CollectionPermissionEnforcer;
+use App\Services\Api\CollectionPermissionEnforcerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,7 +26,7 @@ class ItemRevisionController extends Controller
 
     public function __construct(
         private UpdateCollectionItemAction $updateCollectionItemAction,
-        private CollectionPermissionEnforcer $permissionEnforcer,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
     ) {}
 
     public function index(Request $request, Collection $collection, CollectionItem $item): Response|JsonResponse

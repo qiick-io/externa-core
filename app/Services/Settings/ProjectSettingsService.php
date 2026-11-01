@@ -1,0 +1,1196 @@
+<?php
+
+namespace App\Services\Settings;
+
+use App\Services\Webhooks\OutboundWebhookCatalogService;
+use App\Support\Api\PublicApiOrigin;
+use App\Support\Collections\ContentLocaleCatalog;
+use App\Support\Uploads\ForbiddenUploadExtension;
+use App\Support\Uploads\UploadAllowlist;
+use App\Support\Uploads\UploadSizeLimiter;
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Validation\Rules\Password;
+
+/**
+ * Resolves project-level settings for admin forms and runtime wiring.
+ */
+class ProjectSettingsService
+{
+    public const PUBLIC_API_ORIGINS_CACHE_KEY = 'project.public_api_allowed_origins';
+
+    /** Short TTL; forgotten on project settings save. */
+    private const PUBLIC_API_ORIGINS_CACHE_TTL_SECONDS = 60;
+
+    /** @var array<string, mixed>|null Request-lifetime memo (singleton binding). */
+    private ?array $memoizedRaw = null;
+
+    public function __construct(
+        private readonly SettingsRepositoryService $settings,
+    ) {}
+
+    /**
+     * Raw project settings bag merged with defaults.
+     *
+     * @return array<string, mixed>
+     */
+    public function raw(): array
+    {
+        if ($this->memoizedRaw !== null) {
+            return $this->memoizedRaw;
+        }
+
+        $raw = $this->settings->project(
+            'project',
+            config('settings.project.defaults', []),
+        );
+
+        return $this->memoizedRaw = $this->normalize($raw);
+    }
+
+    /**
+     * Drop the request-lifetime raw bag after project settings change.
+     */
+    public function forgetRawCache(): void
+    {
+        $this->memoizedRaw = null;
+    }
+
+    /**
+     * Edit-form payload (never includes webhook secret plaintext).
+     *
+     * @return array<string, mixed>
+     */
+    public function forEdit(): array
+    {
+        $raw = $this->raw();
+        unset($raw['webhook_secret'], $raw['notifier_telegram_bot_token'], $raw['oidc_client_secret']);
+        $raw['webhook_secret_configured'] = $this->webhookSecret() !== null;
+        $raw['notifier_telegram_bot_token_configured'] = $this->notifierTelegramBotToken() !== null;
+        $raw['oidc_client_secret_configured'] = $this->oidcClientSecret() !== null;
+
+        return $raw;
+    }
+
+    /**
+     * Section-scoped edit payload (subset of {@see forEdit()}).
+     *
+     * @param  list<string>  $keys
+     * @return array<string, mixed>
+     */
+    public function forEditOnly(array $keys): array
+    {
+        return array_intersect_key($this->forEdit(), array_flip($keys));
+    }
+
+    /**
+     * Public/safe payload shared on every Inertia page.
+     *
+     * @return array{
+     *     name: string|null,
+     *     defaultLanguage: string,
+     *     isRegistrationEnabled: bool,
+     *     isEmailVerificationRequired: bool,
+     *     passwordPolicy: string,
+     *     sidebarModules: list<array{id: string, enabled: bool, locked: bool}>,
+     *     reportIssueUrl: string|null,
+     *     reportBugUrl: string|null,
+     *     reportErrorUrl: string|null,
+     *     filesMaxUploadBytes: int|null,
+     *     chatMaxUploadBytes: int|null
+     * }
+     */
+    public function shared(): array
+    {
+        $raw = $this->raw();
+
+        return [
+            'name' => $this->projectName(),
+            'defaultLanguage' => $raw['default_language'],
+            'isRegistrationEnabled' => $raw['registration_enabled'],
+            'isEmailVerificationRequired' => $raw['email_verification_required'],
+            'passwordPolicy' => $raw['password_policy'],
+            'sidebarModules' => $raw['sidebar_modules'],
+            'reportIssueUrl' => $raw['report_issue_url'],
+            'reportBugUrl' => $raw['report_bug_url'],
+            'reportErrorUrl' => $raw['report_error_url'],
+            'filesMaxUploadBytes' => $raw['files_max_upload_bytes'],
+            'chatMaxUploadBytes' => $raw['chat_max_upload_bytes'],
+        ];
+    }
+
+    public function projectName(): ?string
+    {
+        $name = $this->raw()['name'] ?? null;
+
+        return is_string($name) && trim($name) !== '' ? trim($name) : null;
+    }
+
+    public function displayName(): string
+    {
+        return $this->projectName() ?? (string) config('app.name');
+    }
+
+    public function defaultLanguage(): string
+    {
+        return $this->raw()['default_language'];
+    }
+
+    /**
+     * Ordered content locales enabled for CMS translations.
+     *
+     * @return list<string>
+     */
+    public function contentLocales(): array
+    {
+        return $this->raw()['content_locales'];
+    }
+
+    public function defaultContentLocale(): string
+    {
+        return $this->raw()['default_content_locale'];
+    }
+
+    /**
+     * Ordered fallback chain for missing translations.
+     *
+     * @return list<string>
+     */
+    public function fallbackContentLocales(): array
+    {
+        return $this->raw()['fallback_content_locales'];
+    }
+
+    /**
+     * Catalog metadata for enabled content locales (Inertia share / settings UI).
+     *
+     * @return list<array{code: string, name: string, flag: string}>
+     */
+    public function contentLocaleMeta(): array
+    {
+        return ContentLocaleCatalog::metaFor($this->contentLocales());
+    }
+
+    public function isRegistrationEnabled(): bool
+    {
+        return (bool) $this->raw()['registration_enabled'];
+    }
+
+    public function isEmailVerificationRequired(): bool
+    {
+        return (bool) $this->raw()['email_verification_required'];
+    }
+
+    public function isTwoFactorRequired(): bool
+    {
+        return (bool) $this->raw()['two_factor_required'];
+    }
+
+    public function defaultUserRole(): ?string
+    {
+        $role = $this->raw()['default_user_role'] ?? null;
+
+        return is_string($role) && $role !== '' ? $role : null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function allowedDomains(): array
+    {
+        return $this->raw()['allowed_domains'];
+    }
+
+    /**
+     * Browser origins allowed for the public API when non-empty (CORS + request gate).
+     *
+     * @return list<string>
+     */
+    public function publicApiAllowedOrigins(): array
+    {
+        /** @var list<string> */
+        return Cache::remember(
+            self::PUBLIC_API_ORIGINS_CACHE_KEY,
+            self::PUBLIC_API_ORIGINS_CACHE_TTL_SECONDS,
+            fn (): array => $this->raw()['public_api_allowed_origins'],
+        );
+    }
+
+    /**
+     * Drop the short-lived origins cache after project settings change.
+     */
+    public function forgetPublicApiAllowedOriginsCache(): void
+    {
+        Cache::forget(self::PUBLIC_API_ORIGINS_CACHE_KEY);
+        $this->forgetRawCache();
+    }
+
+    public function loginMaxAttempts(): int
+    {
+        return max(1, (int) $this->raw()['login_max_attempts']);
+    }
+
+    public function passwordPolicy(): string
+    {
+        return $this->raw()['password_policy'];
+    }
+
+    /**
+     * Password rule driven by project password_policy.
+     */
+    public function passwordRule(): Password
+    {
+        return match ($this->passwordPolicy()) {
+            'weak' => Password::min(6),
+            'strong' => Password::min(12)
+                ->mixedCase()
+                ->letters()
+                ->numbers()
+                ->symbols()
+                ->uncompromised(),
+            default => Password::min(8)->mixedCase()->numbers(),
+        };
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function allowedTransformations(): array
+    {
+        return $this->raw()['allowed_transformations'];
+    }
+
+    public function isTransformationsEnabled(): bool
+    {
+        return in_array('thumbnail', $this->allowedTransformations(), true);
+    }
+
+    /**
+     * @return list<array{
+     *     key: string,
+     *     fit: string,
+     *     width: int|null,
+     *     height: int|null,
+     *     quality: int,
+     *     without_enlargement: bool,
+     *     format: string
+     * }>
+     */
+    public function presetTransformations(): array
+    {
+        return $this->raw()['preset_transformations'];
+    }
+
+    /**
+     * @return array{
+     *     key: string,
+     *     fit: string,
+     *     width: int|null,
+     *     height: int|null,
+     *     quality: int,
+     *     without_enlargement: bool,
+     *     format: string
+     * }|null
+     */
+    public function transformPreset(string $key): ?array
+    {
+        foreach ($this->presetTransformations() as $preset) {
+            if ($preset['key'] === $key) {
+                return $preset;
+            }
+        }
+
+        return null;
+    }
+
+    public function maxTransformSize(): int
+    {
+        $presets = $this->presetTransformations();
+        $edges = [];
+
+        foreach ($presets as $preset) {
+            if (is_int($preset['width'])) {
+                $edges[] = $preset['width'];
+            }
+            if (is_int($preset['height'])) {
+                $edges[] = $preset['height'];
+            }
+        }
+
+        return $edges === [] ? 256 : max($edges);
+    }
+
+    public function webhookUrl(): ?string
+    {
+        return $this->raw()['webhook_url'];
+    }
+
+    /**
+     * Project-level Live Preview URL template (tokens allowed). Null = unset.
+     */
+    public function previewUrlDefault(): ?string
+    {
+        return $this->raw()['preview_url_default'];
+    }
+
+    /**
+     * Project default max revision count (null = unlimited until a collection overrides).
+     */
+    public function revisionRetentionCount(): ?int
+    {
+        return $this->raw()['revision_retention_count'];
+    }
+
+    /**
+     * Project default revision age in days (null = unlimited until a collection overrides).
+     */
+    public function revisionRetentionDays(): ?int
+    {
+        return $this->raw()['revision_retention_days'];
+    }
+
+    /**
+     * Max Files pool upload size in bytes (null = unlimited).
+     */
+    public function filesMaxUploadBytes(): ?int
+    {
+        return $this->raw()['files_max_upload_bytes'];
+    }
+
+    /**
+     * Max chat attachment upload size in bytes (null = unlimited).
+     */
+    public function chatMaxUploadBytes(): ?int
+    {
+        return $this->raw()['chat_max_upload_bytes'];
+    }
+
+    /**
+     * Whether a sidebar module is enabled in project settings.
+     */
+    public function isSidebarModuleEnabled(string $moduleId): bool
+    {
+        foreach ($this->raw()['sidebar_modules'] as $module) {
+            if (($module['id'] ?? null) === $moduleId) {
+                return (bool) ($module['enabled'] ?? false);
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Decrypted webhook signing secret, or null when unset/unreadable.
+     */
+    public function webhookSecret(): ?string
+    {
+        $stored = $this->settings->get(
+            SettingsRepositoryService::SCOPE_PROJECT,
+            'project',
+            'webhook_secret',
+        );
+
+        if (! is_string($stored) || $stored === '') {
+            return null;
+        }
+
+        try {
+            $plain = Crypt::decryptString($stored);
+
+            return $plain !== '' ? $plain : null;
+        } catch (DecryptException) {
+            // ponytail: reject legacy plaintext; re-save via settings UI
+            return null;
+        }
+    }
+
+    /**
+     * Encrypt a plaintext webhook secret for storage.
+     */
+    public static function encryptWebhookSecret(string $plain): string
+    {
+        return Crypt::encryptString($plain);
+    }
+
+    public function notifierSlackWebhookUrl(): ?string
+    {
+        return $this->raw()['notifier_slack_webhook_url'];
+    }
+
+    public function notifierTelegramChatId(): ?string
+    {
+        $chatId = $this->raw()['notifier_telegram_chat_id'];
+
+        return is_string($chatId) && $chatId !== '' ? $chatId : null;
+    }
+
+    public function isNotifierTelegramConfigured(): bool
+    {
+        return $this->notifierTelegramBotToken() !== null
+            && $this->notifierTelegramChatId() !== null;
+    }
+
+    /**
+     * Whether Slack/Telegram fan-out should emit this event type.
+     *
+     * `ping` always allowed (Send test). Null setting = all domain events (legacy).
+     */
+    public function canAllowNotifierEvent(string $type): bool
+    {
+        if ($type === 'ping') {
+            return true;
+        }
+
+        return in_array($type, $this->raw()['notifier_event_types'], true);
+    }
+
+    /**
+     * Decrypted Telegram bot token, or null when unset/unreadable.
+     */
+    public function notifierTelegramBotToken(): ?string
+    {
+        $stored = $this->settings->get(
+            SettingsRepositoryService::SCOPE_PROJECT,
+            'project',
+            'notifier_telegram_bot_token',
+        );
+
+        if (! is_string($stored) || $stored === '') {
+            return null;
+        }
+
+        try {
+            $plain = Crypt::decryptString($stored);
+
+            return $plain !== '' ? $plain : null;
+        } catch (DecryptException) {
+            return null;
+        }
+    }
+
+    public static function encryptNotifierTelegramBotToken(string $plain): string
+    {
+        return Crypt::encryptString($plain);
+    }
+
+    public function isOidcEnabled(): bool
+    {
+        return (bool) $this->raw()['oidc_enabled'];
+    }
+
+    public function oidcIssuer(): ?string
+    {
+        $issuer = $this->raw()['oidc_issuer'];
+
+        return is_string($issuer) && $issuer !== '' ? $issuer : null;
+    }
+
+    public function oidcClientId(): ?string
+    {
+        $id = $this->raw()['oidc_client_id'];
+
+        return is_string($id) && $id !== '' ? $id : null;
+    }
+
+    public function oidcButtonLabel(): ?string
+    {
+        $label = $this->raw()['oidc_button_label'];
+
+        return is_string($label) && trim($label) !== '' ? trim($label) : null;
+    }
+
+    public function isOidcJitProvisioningEnabled(): bool
+    {
+        return (bool) $this->raw()['oidc_jit_provisioning'];
+    }
+
+    /**
+     * True when OIDC is enabled and credentials are present (login CTA).
+     */
+    public function isOidcLoginAvailable(): bool
+    {
+        return $this->isOidcEnabled()
+            && $this->oidcIssuer() !== null
+            && $this->oidcClientId() !== null
+            && $this->oidcClientSecret() !== null;
+    }
+
+    /**
+     * Decrypted OIDC client secret, or null when unset/unreadable.
+     */
+    public function oidcClientSecret(): ?string
+    {
+        $stored = $this->settings->get(
+            SettingsRepositoryService::SCOPE_PROJECT,
+            'project',
+            'oidc_client_secret',
+        );
+
+        if (! is_string($stored) || $stored === '') {
+            return null;
+        }
+
+        try {
+            $plain = Crypt::decryptString($stored);
+
+            return $plain !== '' ? $plain : null;
+        } catch (DecryptException) {
+            return null;
+        }
+    }
+
+    public static function encryptOidcClientSecret(string $plain): string
+    {
+        return Crypt::encryptString($plain);
+    }
+
+    /**
+     * @param  array<string, mixed>  $raw
+     * @return array<string, mixed>
+     */
+    private function normalize(array $raw): array
+    {
+        $locales = array_keys(config('i18n.available_locales', ['en' => 'English']));
+        $language = is_string($raw['default_language'] ?? null) ? $raw['default_language'] : 'en';
+        if (! in_array($language, $locales, true)) {
+            $language = 'en';
+        }
+
+        $policy = is_string($raw['password_policy'] ?? null) ? $raw['password_policy'] : 'weak';
+        if (! in_array($policy, config('settings.project.password_policies', ['weak']), true)) {
+            $policy = 'weak';
+        }
+
+        $attempts = is_numeric($raw['login_max_attempts'] ?? null)
+            ? (int) $raw['login_max_attempts']
+            : 5;
+
+        return [
+            'name' => is_string($raw['name'] ?? null) && trim($raw['name']) !== ''
+                ? trim($raw['name'])
+                : null,
+            'description' => is_string($raw['description'] ?? null) ? $raw['description'] : null,
+            'url' => is_string($raw['url'] ?? null) && trim($raw['url']) !== ''
+                ? trim($raw['url'])
+                : null,
+            'default_language' => $language,
+            ...$this->normalizeContentLocales(
+                $raw['content_locales'] ?? null,
+                $raw['default_content_locale'] ?? null,
+                $raw['fallback_content_locales'] ?? null,
+            ),
+            'sidebar_modules' => $this->normalizeSidebarModules($raw['sidebar_modules'] ?? null),
+            'password_policy' => $policy,
+            'login_max_attempts' => max(1, min(100, $attempts)),
+            'registration_enabled' => (bool) ($raw['registration_enabled'] ?? false),
+            'default_user_role' => is_string($raw['default_user_role'] ?? null) && $raw['default_user_role'] !== ''
+                ? $raw['default_user_role']
+                : null,
+            'email_verification_required' => (bool) ($raw['email_verification_required'] ?? false),
+            'two_factor_required' => (bool) ($raw['two_factor_required'] ?? false),
+            'allowed_domains' => $this->normalizeDomains($raw['allowed_domains'] ?? []),
+            'public_api_allowed_origins' => $this->normalizeOrigins($raw['public_api_allowed_origins'] ?? []),
+            'allowed_transformations' => $this->normalizeTransformations($raw['allowed_transformations'] ?? null),
+            'preset_transformations' => $this->normalizePresets($raw['preset_transformations'] ?? null),
+            'report_issue_url' => $this->nullableUrl($raw['report_issue_url'] ?? null),
+            'report_bug_url' => $this->nullableUrl($raw['report_bug_url'] ?? null),
+            'report_error_url' => $this->nullableUrl($raw['report_error_url'] ?? null),
+            'webhook_url' => $this->nullableUrl($raw['webhook_url'] ?? null),
+            // Encrypted ciphertext (or null) — decrypt only via webhookSecret()
+            'webhook_secret' => is_string($raw['webhook_secret'] ?? null) && $raw['webhook_secret'] !== ''
+                ? $raw['webhook_secret']
+                : null,
+            'notifier_slack_webhook_url' => $this->nullableUrl($raw['notifier_slack_webhook_url'] ?? null),
+            'notifier_telegram_bot_token' => is_string($raw['notifier_telegram_bot_token'] ?? null)
+                && $raw['notifier_telegram_bot_token'] !== ''
+                ? $raw['notifier_telegram_bot_token']
+                : null,
+            'notifier_telegram_chat_id' => is_string($raw['notifier_telegram_chat_id'] ?? null)
+                && trim($raw['notifier_telegram_chat_id']) !== ''
+                ? trim($raw['notifier_telegram_chat_id'])
+                : null,
+            'notifier_event_types' => $this->normalizeNotifierEventTypes($raw['notifier_event_types'] ?? null),
+            'oidc_enabled' => (bool) ($raw['oidc_enabled'] ?? false),
+            'oidc_issuer' => $this->nullableUrl($raw['oidc_issuer'] ?? null),
+            'oidc_client_id' => is_string($raw['oidc_client_id'] ?? null) && trim($raw['oidc_client_id']) !== ''
+                ? trim($raw['oidc_client_id'])
+                : null,
+            'oidc_client_secret' => is_string($raw['oidc_client_secret'] ?? null)
+                && $raw['oidc_client_secret'] !== ''
+                ? $raw['oidc_client_secret']
+                : null,
+            'oidc_button_label' => is_string($raw['oidc_button_label'] ?? null) && trim($raw['oidc_button_label']) !== ''
+                ? trim($raw['oidc_button_label'])
+                : null,
+            'oidc_jit_provisioning' => (bool) ($raw['oidc_jit_provisioning'] ?? false),
+            'preview_url_default' => $this->nullablePreviewTemplate($raw['preview_url_default'] ?? null),
+            'revision_retention_count' => $this->nullablePositiveInt(
+                $raw['revision_retention_count'] ?? null,
+                1,
+                10000,
+            ),
+            'revision_retention_days' => $this->nullablePositiveInt(
+                $raw['revision_retention_days'] ?? null,
+                1,
+                3650,
+            ),
+            'files_max_upload_bytes' => $this->nullablePositiveInt(
+                $raw['files_max_upload_bytes'] ?? null,
+                1,
+                UploadSizeLimiter::SETTING_MAX_BYTES,
+            ),
+            'chat_max_upload_bytes' => $this->nullablePositiveInt(
+                $raw['chat_max_upload_bytes'] ?? null,
+                1,
+                UploadSizeLimiter::SETTING_MAX_BYTES,
+            ),
+            'upload_allowed_mimes' => $this->normalizeUploadMimeList($raw['upload_allowed_mimes'] ?? null),
+            'upload_allowed_extensions' => $this->normalizeUploadExtensionList(
+                $raw['upload_allowed_extensions'] ?? null,
+            ),
+            'upload_allow_svg' => (bool) ($raw['upload_allow_svg'] ?? false),
+        ];
+    }
+
+    public function uploadAllowSvg(): bool
+    {
+        return (bool) $this->raw()['upload_allow_svg'];
+    }
+
+    /**
+     * null = use config/files.php defaults.
+     *
+     * @return list<string>|null
+     */
+    public function uploadAllowedMimes(): ?array
+    {
+        /** @var list<string>|null $mimes */
+        $mimes = $this->raw()['upload_allowed_mimes'];
+
+        return $mimes;
+    }
+
+    /**
+     * null = no extra extension filter.
+     *
+     * @return list<string>|null
+     */
+    public function uploadAllowedExtensions(): ?array
+    {
+        /** @var list<string>|null $extensions */
+        $extensions = $this->raw()['upload_allowed_extensions'];
+
+        return $extensions;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    private function normalizeUploadMimeList(mixed $value): ?array
+    {
+        if ($value === null || $value === '' || $value === []) {
+            return null;
+        }
+
+        if (! is_array($value)) {
+            return null;
+        }
+
+        $mimes = array_values(array_unique(array_filter(array_map(
+            static fn (mixed $mime): string => strtolower(trim((string) $mime)),
+            $value,
+        ), static fn (string $mime): bool => $mime !== '' && str_contains($mime, '/'))));
+
+        return $mimes === [] ? null : $mimes;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    private function normalizeUploadExtensionList(mixed $value): ?array
+    {
+        if ($value === null || $value === '' || $value === []) {
+            return null;
+        }
+
+        if (! is_array($value)) {
+            return null;
+        }
+
+        $extensions = array_values(array_unique(array_filter(array_map(
+            static function (mixed $ext): string {
+                $normalized = strtolower(trim((string) $ext));
+                $normalized = ltrim($normalized, '.');
+
+                return preg_replace('/[^a-z0-9]/', '', $normalized) ?? '';
+            },
+            $value,
+        ), static fn (string $ext): bool => $ext !== '')));
+
+        // Hard floor extensions can never be allowlisted via settings.
+        $extensions = array_values(array_filter(
+            $extensions,
+            static fn (string $ext): bool => ! ForbiddenUploadExtension::isHardFloor("file.{$ext}")
+                || in_array($ext, UploadAllowlist::SVG_EXTENSIONS, true),
+        ));
+
+        return $extensions === [] ? null : $extensions;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeNotifierEventTypes(mixed $value): array
+    {
+        $allowed = OutboundWebhookCatalogService::notifierSelectableTypes();
+
+        if ($value === null) {
+            return $allowed;
+        }
+
+        if (! is_array($value)) {
+            return $allowed;
+        }
+
+        $selected = [];
+        foreach ($value as $type) {
+            if (! is_string($type) || $type === '' || isset($selected[$type])) {
+                continue;
+            }
+            if (! in_array($type, $allowed, true)) {
+                continue;
+            }
+            $selected[$type] = $type;
+        }
+
+        return array_values($selected);
+    }
+
+    /**
+     * @return array{
+     *     content_locales: list<string>,
+     *     default_content_locale: string,
+     *     fallback_content_locales: list<string>
+     * }
+     */
+    private function normalizeContentLocales(
+        mixed $locales,
+        mixed $default,
+        mixed $fallbacks,
+    ): array {
+        $seedLocales = $this->configLocaleList('collections.locales', ['en', 'it']);
+        $seedFallbacks = $this->configLocaleList('collections.fallback_locales', $seedLocales);
+
+        $normalized = [];
+        if (is_array($locales)) {
+            foreach ($locales as $locale) {
+                if (! is_string($locale)) {
+                    continue;
+                }
+                $code = trim($locale);
+                if ($code === '' || isset($normalized[$code])) {
+                    continue;
+                }
+                // Allow catalog codes and any already-seeded/config codes
+                if (! ContentLocaleCatalog::isKnown($code) && ! in_array($code, $seedLocales, true)) {
+                    continue;
+                }
+                $normalized[$code] = $code;
+            }
+        }
+
+        $contentLocales = array_values($normalized);
+        if ($contentLocales === []) {
+            $contentLocales = $seedLocales !== [] ? $seedLocales : ['en'];
+        }
+
+        $defaultLocale = is_string($default) && trim($default) !== '' ? trim($default) : null;
+        if ($defaultLocale === null || ! in_array($defaultLocale, $contentLocales, true)) {
+            $defaultLocale = $contentLocales[0];
+        }
+
+        $fallbackList = [];
+        if (is_array($fallbacks)) {
+            foreach ($fallbacks as $locale) {
+                if (! is_string($locale)) {
+                    continue;
+                }
+                $code = trim($locale);
+                if ($code === '' || ! in_array($code, $contentLocales, true) || in_array($code, $fallbackList, true)) {
+                    continue;
+                }
+                $fallbackList[] = $code;
+            }
+        }
+
+        if ($fallbackList === []) {
+            // default + remaining content locales in order (seed fallbacks preferred when matching)
+            $fallbackList = [$defaultLocale];
+            foreach ($seedFallbacks as $locale) {
+                if (in_array($locale, $contentLocales, true) && ! in_array($locale, $fallbackList, true)) {
+                    $fallbackList[] = $locale;
+                }
+            }
+            foreach ($contentLocales as $locale) {
+                if (! in_array($locale, $fallbackList, true)) {
+                    $fallbackList[] = $locale;
+                }
+            }
+        }
+
+        return [
+            'content_locales' => $contentLocales,
+            'default_content_locale' => $defaultLocale,
+            'fallback_content_locales' => $fallbackList,
+        ];
+    }
+
+    /**
+     * @param  list<string>  $fallback
+     * @return list<string>
+     */
+    private function configLocaleList(string $key, array $fallback): array
+    {
+        $locales = config($key, $fallback);
+
+        if (! is_array($locales)) {
+            return $fallback;
+        }
+
+        return array_values(array_filter($locales, fn (mixed $locale): bool => is_string($locale) && $locale !== ''));
+    }
+
+    /**
+     * @return list<array{id: string, enabled: bool, locked: bool}>
+     */
+    private function normalizeSidebarModules(mixed $value): array
+    {
+        /** @var list<array{id: string, enabled: bool, locked: bool}> $defaults */
+        $defaults = config('settings.project.defaults.sidebar_modules', []);
+        $known = config('settings.project.sidebar_module_ids', []);
+        $lockedIds = collect($defaults)->where('locked', true)->pluck('id')->all();
+
+        $byId = [];
+        if (is_array($value)) {
+            foreach ($value as $entry) {
+                if (! is_array($entry) || ! is_string($entry['id'] ?? null)) {
+                    continue;
+                }
+                if (! in_array($entry['id'], $known, true)) {
+                    continue;
+                }
+                $byId[$entry['id']] = [
+                    'id' => $entry['id'],
+                    'enabled' => (bool) ($entry['enabled'] ?? true),
+                    'locked' => in_array($entry['id'], $lockedIds, true),
+                ];
+            }
+        }
+
+        $ordered = [];
+        foreach ($value ?? [] as $entry) {
+            if (! is_array($entry) || ! isset($byId[$entry['id'] ?? ''])) {
+                continue;
+            }
+            $ordered[] = $byId[$entry['id']];
+            unset($byId[$entry['id']]);
+        }
+
+        foreach ($defaults as $default) {
+            if (! isset($byId[$default['id']]) && ! collect($ordered)->contains('id', $default['id'])) {
+                $ordered[] = [
+                    'id' => $default['id'],
+                    'enabled' => (bool) $default['enabled'],
+                    'locked' => (bool) $default['locked'],
+                ];
+            } elseif (isset($byId[$default['id']])) {
+                $ordered[] = $byId[$default['id']];
+                unset($byId[$default['id']]);
+            }
+        }
+
+        foreach ($byId as $remaining) {
+            $ordered[] = $remaining;
+        }
+
+        $normalized = array_values(array_map(function (array $module) use ($lockedIds): array {
+            if (in_array($module['id'], $lockedIds, true)) {
+                $module['enabled'] = true;
+                $module['locked'] = true;
+            }
+
+            return $module;
+        }, $ordered));
+
+        return $this->pinSidebarModules($normalized);
+    }
+
+    /**
+     * Force pinned modules (e.g. AI) to the front; other order is preserved.
+     *
+     * @param  list<array{id: string, enabled: bool, locked: bool}>  $modules
+     * @return list<array{id: string, enabled: bool, locked: bool}>
+     */
+    private function pinSidebarModules(array $modules): array
+    {
+        /** @var list<string> $pinnedIds */
+        $pinnedIds = config('settings.project.sidebar_pinned_module_ids', []);
+        if ($pinnedIds === []) {
+            return $modules;
+        }
+
+        $byId = [];
+        foreach ($modules as $module) {
+            $byId[$module['id']] = $module;
+        }
+
+        $pinned = [];
+        foreach ($pinnedIds as $id) {
+            if (isset($byId[$id])) {
+                $pinned[] = $byId[$id];
+                unset($byId[$id]);
+            }
+        }
+
+        $rest = [];
+        foreach ($modules as $module) {
+            if (isset($byId[$module['id']])) {
+                $rest[] = $module;
+            }
+        }
+
+        return array_values([...$pinned, ...$rest]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeDomains(mixed $value): array
+    {
+        if (is_string($value)) {
+            $value = preg_split('/[\s,]+/', $value) ?: [];
+        }
+
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return collect($value)
+            ->map(fn (mixed $domain): string => strtolower(trim((string) $domain)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeOrigins(mixed $value): array
+    {
+        if (is_string($value)) {
+            $value = preg_split('/[\s,]+/', $value) ?: [];
+        }
+
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($value as $entry) {
+            if (! is_string($entry)) {
+                continue;
+            }
+            $origin = PublicApiOrigin::normalize($entry);
+            if ($origin === null || in_array($origin, $normalized, true)) {
+                continue;
+            }
+            $normalized[] = $origin;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeTransformations(mixed $value): array
+    {
+        $allowed = config('settings.project.allowed_transformations', ['thumbnail']);
+
+        if (! is_array($value)) {
+            return $allowed;
+        }
+
+        return collect($value)
+            ->map(fn (mixed $item): string => (string) $item)
+            ->filter(fn (string $item): bool => in_array($item, $allowed, true))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{
+     *     key: string,
+     *     fit: string,
+     *     width: int|null,
+     *     height: int|null,
+     *     quality: int,
+     *     without_enlargement: bool,
+     *     format: string
+     * }>
+     */
+    private function normalizePresets(mixed $value): array
+    {
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            $value = is_array($decoded)
+                ? $decoded
+                : (preg_split('/[\s,]+/', $value) ?: []);
+        }
+
+        if (! is_array($value) || $value === []) {
+            /** @var list<array<string, mixed>> $defaults */
+            $defaults = config('settings.project.defaults.preset_transformations', []);
+            $value = $defaults;
+        }
+
+        $fits = config('settings.project.transform_fits', ['contain']);
+        $formats = config('settings.project.transform_formats', ['auto']);
+        $normalized = [];
+        $seenKeys = [];
+
+        foreach ($value as $entry) {
+            // Legacy bare sizes → square contain presets
+            if (is_numeric($entry)) {
+                $size = (int) $entry;
+                if ($size < 16 || $size > 4096) {
+                    continue;
+                }
+                $entry = [
+                    'key' => 'size-'.$size,
+                    'fit' => 'contain',
+                    'width' => $size,
+                    'height' => $size,
+                    'quality' => 82,
+                    'without_enlargement' => true,
+                    'format' => 'auto',
+                ];
+            }
+
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $key = is_string($entry['key'] ?? null)
+                ? strtolower(trim($entry['key']))
+                : '';
+            if ($key === '' || ! preg_match('/^[a-z0-9_-]+$/', $key) || isset($seenKeys[$key])) {
+                continue;
+            }
+
+            $fit = is_string($entry['fit'] ?? null) ? $entry['fit'] : 'contain';
+            if (! in_array($fit, $fits, true)) {
+                $fit = 'contain';
+            }
+
+            $format = is_string($entry['format'] ?? null) ? $entry['format'] : 'auto';
+            if (! in_array($format, $formats, true)) {
+                $format = 'auto';
+            }
+
+            $width = isset($entry['width']) && $entry['width'] !== '' && $entry['width'] !== null
+                ? (int) $entry['width']
+                : null;
+            $height = isset($entry['height']) && $entry['height'] !== '' && $entry['height'] !== null
+                ? (int) $entry['height']
+                : null;
+
+            if ($width !== null && ($width < 1 || $width > 4096)) {
+                $width = null;
+            }
+            if ($height !== null && ($height < 1 || $height > 4096)) {
+                $height = null;
+            }
+            if ($width === null && $height === null) {
+                continue;
+            }
+
+            $quality = is_numeric($entry['quality'] ?? null) ? (int) $entry['quality'] : 82;
+            $quality = max(1, min(100, $quality));
+
+            $seenKeys[$key] = true;
+            $normalized[] = [
+                'key' => $key,
+                'fit' => $fit,
+                'width' => $width,
+                'height' => $height,
+                'quality' => $quality,
+                'without_enlargement' => (bool) ($entry['without_enlargement'] ?? true),
+                'format' => $format,
+            ];
+        }
+
+        if ($normalized !== []) {
+            return $normalized;
+        }
+
+        // Hard fallback if config defaults are empty/invalid
+        return [[
+            'key' => 'thumbnail',
+            'fit' => 'contain',
+            'width' => 128,
+            'height' => 128,
+            'quality' => 82,
+            'without_enlargement' => true,
+            'format' => 'auto',
+        ]];
+    }
+
+    private function nullableUrl(mixed $value): ?string
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        return trim($value);
+    }
+
+    /**
+     * HTTP(S) URL template that may contain `{{token}}` placeholders.
+     */
+    private function nullablePreviewTemplate(mixed $value): ?string
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        if (! preg_match('/^https?:\/\/.+/i', $trimmed)) {
+            return null;
+        }
+
+        return $trimmed;
+    }
+
+    private function nullablePositiveInt(mixed $value, int $min, int $max): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (! is_numeric($value)) {
+            return null;
+        }
+
+        $int = (int) $value;
+
+        if ($int < $min || $int > $max) {
+            return null;
+        }
+
+        return $int;
+    }
+}

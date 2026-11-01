@@ -10,9 +10,9 @@ use App\Models\CollectionField;
 use App\Models\CollectionPermission;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Laravel\Ai\Tools\Request;
@@ -60,7 +60,7 @@ function aiUserWithCollectionRules(Collection $collection, array $rules, array $
         );
     }
 
-    app(CollectionPermissionGuard::class)->forget($role->id);
+    app(CollectionPermissionGuardService::class)->forget($role->id);
 
     $user = User::factory()->create();
     $user->syncRoles([$role]);
@@ -87,8 +87,8 @@ function seedArticlesForAiEnforcer(): array
         'type' => FieldTypeEnum::String,
     ]);
 
-    $normalizer = app(CollectionItemDataNormalizer::class);
-    $writer = app(CollectionItemValuesWriter::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
+    $writer = app(CollectionItemValuesWriterService::class);
 
     $published = $collection->items()->create([]);
     $writer->sync($published, $collection, $normalizer->normalize($collection, [

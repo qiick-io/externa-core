@@ -9,8 +9,8 @@ use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
 use App\Models\UserGroup;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatUnreadService;
 use App\Services\Collections\CollectionItemOptionsService;
@@ -28,8 +28,8 @@ class ChatHubController extends Controller
     public function __construct(
         private ChatService $chats,
         private ChatUnreadService $unread,
-        private CollectionPermissionEnforcer $permissionEnforcer,
-        private EffectivePermissionResolver $permissionResolver,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
+        private EffectivePermissionResolverService $permissionResolver,
         private CollectionItemOptionsService $itemOptions,
     ) {}
 
@@ -272,7 +272,7 @@ class ChatHubController extends Controller
 
         return response()->json([
             'collections' => $rows
-                ->filter(fn (Collection $collection): bool => $this->chats->canUserReadCollection($user, $collection))
+                ->filter(fn (Collection $collection): bool => $this->chats->userCanReadCollection($user, $collection))
                 ->take(20)
                 ->map(fn (Collection $collection): array => [
                     'id' => (int) $collection->id,
@@ -294,7 +294,7 @@ class ChatHubController extends Controller
         ]);
 
         $collection = Collection::query()->findOrFail($validated['collection_id']);
-        abort_unless($this->chats->canUserReadCollection($user, $collection), 404);
+        abort_unless($this->chats->userCanReadCollection($user, $collection), 404);
 
         $page = $this->itemOptions->paginateForCollection(
             $collection,
@@ -414,7 +414,7 @@ class ChatHubController extends Controller
         $collections = Collection::query()->orderBy('name')->get(['id', 'name']);
 
         foreach ($collections as $collection) {
-            if (! $this->chats->canUserReadCollection($user, $collection)) {
+            if (! $this->chats->userCanReadCollection($user, $collection)) {
                 continue;
             }
 

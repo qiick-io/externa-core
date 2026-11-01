@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Chat;
 use App\Models\Collection;
 use App\Models\User;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatUnreadService;
 use Illuminate\Http\Request;
@@ -22,7 +22,7 @@ class ChatPageController extends Controller
     public function __construct(
         private ChatService $chats,
         private ChatUnreadService $unread,
-        private EffectivePermissionResolver $permissionResolver,
+        private EffectivePermissionResolverService $permissionResolver,
     ) {}
 
     public function index(Request $request): Response

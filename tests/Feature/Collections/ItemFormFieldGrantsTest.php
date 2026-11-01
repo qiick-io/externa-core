@@ -7,9 +7,9 @@ use App\Models\CollectionField;
 use App\Models\CollectionPermission;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Inertia\Testing\AssertableInertia;
 use Spatie\Permission\Models\Permission;
@@ -57,7 +57,7 @@ function adminUserWithFieldAcl(Collection $collection, array $rules): User
         );
     }
 
-    app(CollectionPermissionGuard::class)->forget($role->id);
+    app(CollectionPermissionGuardService::class)->forget($role->id);
 
     $user = User::factory()->create();
     $user->syncRoles([$role]);
@@ -92,10 +92,10 @@ test('item form passes fieldGrants when role has field ACL', function () {
     ]);
 
     $item = $collection->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
-        app(CollectionItemDataNormalizer::class)->normalize(
+        app(CollectionItemDataNormalizerService::class)->normalize(
             $collection,
             ['title' => 'Hello', 'secret' => 'hidden'],
             true,

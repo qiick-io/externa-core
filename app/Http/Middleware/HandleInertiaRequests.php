@@ -3,12 +3,12 @@
 namespace App\Http\Middleware;
 
 use App\Enums\PermissionEnum;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Chat\ChatUnreadService;
-use App\Services\Dashboard\DashboardHealthMetrics;
-use App\Services\Settings\ProjectAppearance;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\UserNotificationPreferences;
+use App\Services\Dashboard\DashboardHealthMetricsService;
+use App\Services\Settings\ProjectAppearanceService;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\UserNotificationPreferencesService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
@@ -47,9 +47,9 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
-        $permissionResolver = app(EffectivePermissionResolver::class);
-        $projectAppearance = app(ProjectAppearance::class)->shared();
-        $projectSettings = app(ProjectSettings::class);
+        $permissionResolver = app(EffectivePermissionResolverService::class);
+        $projectAppearance = app(ProjectAppearanceService::class)->shared();
+        $projectSettings = app(ProjectSettingsService::class);
 
         return [
             ...parent::share($request),
@@ -81,7 +81,7 @@ class HandleInertiaRequests extends Middleware
                 'unread_count' => $user ? $user->unreadNotifications()->count() : 0,
             ],
             'notificationSounds' => fn (): array => $user
-                ? app(UserNotificationPreferences::class)->shared($user)
+                ? app(UserNotificationPreferencesService::class)->shared($user)
                 : [
                     'sound_chat_enabled' => false,
                     'sound_notifications_enabled' => false,
@@ -97,7 +97,7 @@ class HandleInertiaRequests extends Middleware
                 ? Cache::remember(
                     'health-badge',
                     now()->addSeconds(60),
-                    fn (): array => app(DashboardHealthMetrics::class)->badge(),
+                    fn (): array => app(DashboardHealthMetricsService::class)->badge(),
                 )
                 : null,
             'realtime' => [

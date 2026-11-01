@@ -31,7 +31,7 @@ test('image allow_multiple mime crop_to_fit persist', function () {
     ]);
 
     expect($fresh->settings)->toHaveKey('allowed_mime_types')
-        ->and($fresh->hasArrayStorage())->toBeTrue();
+        ->and($fresh->usesArrayStorage())->toBeTrue();
 });
 
 test('files allow_multiple and mime persist; single mode disables array storage', function () {
@@ -50,7 +50,7 @@ test('files allow_multiple and mime persist; single mode disables array storage'
         'allow_multiple' => false,
     ]);
 
-    expect($fresh->hasArrayStorage())->toBeFalse()
+    expect($fresh->usesArrayStorage())->toBeFalse()
         ->and($fresh->settings)->toHaveKey('allowed_mime_types');
 });
 
@@ -319,7 +319,7 @@ test('image allow_multiple false stores scalar file id shape', function () {
         'crop_to_fit' => false,
     ]);
 
-    expect($fresh->hasArrayStorage())->toBeFalse();
+    expect($fresh->usesArrayStorage())->toBeFalse();
 });
 
 test('blocks block_types and max_blocks_depth persist', function () {

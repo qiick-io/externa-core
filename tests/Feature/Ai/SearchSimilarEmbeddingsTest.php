@@ -6,7 +6,7 @@ use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemEmbedding;
 use App\Models\User;
-use App\Services\Ai\EmbeddingSimilarity;
+use App\Services\Ai\EmbeddingSimilarityService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Laravel\Ai\Embeddings;
@@ -76,7 +76,7 @@ it('uses embeddings mode when enabled and vectors exist', function () {
 });
 
 it('computes cosine similarity', function () {
-    $sim = app(EmbeddingSimilarity::class);
+    $sim = app(EmbeddingSimilarityService::class);
     expect($sim->cosine([1.0, 0.0], [1.0, 0.0]))->toBe(1.0)
         ->and($sim->cosine([1.0, 0.0], [0.0, 1.0]))->toBe(0.0);
 });

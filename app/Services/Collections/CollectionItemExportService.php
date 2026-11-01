@@ -4,7 +4,7 @@ namespace App\Services\Collections;
 
 use App\Models\Collection;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcer;
+use App\Services\Api\CollectionPermissionEnforcerService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -18,8 +18,8 @@ class CollectionItemExportService
 
     public function __construct(
         private CollectionItemQueryService $itemQueryService,
-        private CollectionItemValuesAssembler $assembler,
-        private CollectionPermissionEnforcer $permissionEnforcer,
+        private CollectionItemValuesAssemblerService $assembler,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
     ) {}
 
     /**

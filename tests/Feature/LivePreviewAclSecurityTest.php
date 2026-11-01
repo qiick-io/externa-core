@@ -10,11 +10,11 @@ use App\Models\CollectionItem;
 use App\Models\CollectionPermission;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Collections\LivePreviewToken;
-use App\Services\Collections\LivePreviewUrlBuilder;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
+use App\Services\Collections\LivePreviewTokenService;
+use App\Services\Collections\LivePreviewUrlBuilderService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 
@@ -38,13 +38,13 @@ function lpGrant(Collection $collection, Role $role, array $actions, ?array $rul
             ['allowed' => true, 'rules' => $rules],
         );
     }
-    app(CollectionPermissionGuard::class)->forget($role->id);
+    app(CollectionPermissionGuardService::class)->forget($role->id);
 }
 
 function lpSync(CollectionItem $item, Collection $collection, array $data): void
 {
-    $n = app(CollectionItemDataNormalizer::class)->normalize($collection, $data, true);
-    app(CollectionItemValuesWriter::class)->sync($item, $collection, $n);
+    $n = app(CollectionItemDataNormalizerService::class)->normalize($collection, $data, true);
+    app(CollectionItemValuesWriterService::class)->sync($item, $collection, $n);
 }
 
 /**
@@ -66,14 +66,14 @@ function lpRestrictedUser(Collection $collection, array $rules): array
 
 function lpTokenFor(User $user, Collection $collection, CollectionItem $item, string $version): string
 {
-    return app(LivePreviewToken::class)->mint(
+    return app(LivePreviewTokenService::class)->mint(
         (int) $collection->id,
         (int) $item->id,
         $version,
         null,
         now()->addMinutes(5)->getTimestamp(),
         (int) $user->id,
-        app(LivePreviewUrlBuilder::class)->contentHash($item, $version),
+        app(LivePreviewUrlBuilderService::class)->contentHash($item, $version),
     );
 }
 
@@ -187,7 +187,7 @@ test('preview enforces item_filter and collection Read for bound user', function
         ->where('collection_id', $collection->id)
         ->where('action', CollectionPermissionActionEnum::Read->value)
         ->delete();
-    app(CollectionPermissionGuard::class)->forget($role->id);
+    app(CollectionPermissionGuardService::class)->forget($role->id);
 
     $this->getJson('/api/v1/preview?token='.urlencode($token))->assertForbidden();
 });
@@ -297,10 +297,10 @@ test('preview token bindings ttl reuse and rejection cases', function () {
     $user = User::factory()->create();
     $user->givePermissionTo(PermissionEnum::CanShowCollections->value);
 
-    expect(LivePreviewUrlBuilder::TTL_SECONDS)->toBe(300);
+    expect(LivePreviewUrlBuilderService::TTL_SECONDS)->toBe(300);
 
-    $tokens = app(LivePreviewToken::class);
-    $ttl = LivePreviewUrlBuilder::TTL_SECONDS;
+    $tokens = app(LivePreviewTokenService::class);
+    $ttl = LivePreviewUrlBuilderService::TTL_SECONDS;
     $tokA = $tokens->mint(
         $c1->id,
         $a->id,
@@ -308,7 +308,7 @@ test('preview token bindings ttl reuse and rejection cases', function () {
         null,
         now()->addSeconds($ttl)->getTimestamp(),
         (int) $user->id,
-        app(LivePreviewUrlBuilder::class)->contentHash($a, 'published'),
+        app(LivePreviewUrlBuilderService::class)->contentHash($a, 'published'),
     );
     $claims = $tokens->verify($tokA);
     expect($claims)->toMatchArray([
@@ -333,7 +333,7 @@ test('preview token bindings ttl reuse and rejection cases', function () {
         null,
         now()->addMinutes(5)->getTimestamp(),
         (int) $user->id,
-        app(LivePreviewUrlBuilder::class)->contentHash($a, 'draft'),
+        app(LivePreviewUrlBuilderService::class)->contentHash($a, 'draft'),
     );
     $rMode = $this->getJson('/api/v1/preview?token='.urlencode($tokDraft).'&version=published')->assertOk();
     expect($rMode->json('meta.version'))->toBe('draft')
@@ -375,7 +375,7 @@ test('preview token bindings ttl reuse and rejection cases', function () {
         null,
         now()->addMinutes(5)->getTimestamp(),
         (int) $user->id,
-        app(LivePreviewUrlBuilder::class)->contentHash($a, 'published'),
+        app(LivePreviewUrlBuilderService::class)->contentHash($a, 'published'),
     );
     $user->update(['is_active' => false]);
     $this->getJson('/api/v1/preview?token='.urlencode($tokActive))->assertForbidden();

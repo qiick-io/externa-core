@@ -8,9 +8,9 @@ use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Search\MeilisearchSyncDispatcher;
-use App\Services\Webhooks\OutboundWebhookDispatcher;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Search\MeilisearchSyncDispatcherService;
+use App\Services\Webhooks\OutboundWebhookDispatcherService;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -156,12 +156,12 @@ trait ImportsCollectionRecordsTrait
             );
         }
 
-        $assembler = app(CollectionItemValuesAssembler::class);
+        $assembler = app(CollectionItemValuesAssemblerService::class);
         $createAction = app(CreateCollectionItemAction::class);
         $updateAction = app(UpdateCollectionItemAction::class);
 
         // ponytail: suppress per-row webhooks + Meilisearch on bulk import (ceiling: no summary event; upgrade: batched webhook / reindex)
-        return OutboundWebhookDispatcher::withoutWebhooks(function () use (
+        return OutboundWebhookDispatcherService::withoutWebhooks(function () use (
             $collection,
             $rows,
             $maxRows,
@@ -172,7 +172,7 @@ trait ImportsCollectionRecordsTrait
             $createAction,
             $updateAction,
         ): array {
-            return MeilisearchSyncDispatcher::withoutMeilisearch(function () use (
+            return MeilisearchSyncDispatcherService::withoutMeilisearch(function () use (
                 $collection,
                 $rows,
                 $maxRows,

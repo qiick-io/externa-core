@@ -3,7 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\PermissionEnum;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureCanManageFilesMiddleware
 {
     public function __construct(
-        protected EffectivePermissionResolver $permissionResolver,
+        protected EffectivePermissionResolverService $permissionResolver,
     ) {}
 
     /**

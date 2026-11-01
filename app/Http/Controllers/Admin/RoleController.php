@@ -13,8 +13,8 @@ use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\Admin\RoleResource;
 use App\Models\Role;
-use App\Services\Api\CollectionPermissionSync;
-use App\Services\Api\FilePermissionSync;
+use App\Services\Api\CollectionPermissionSyncService;
+use App\Services\Api\FilePermissionSyncService;
 use App\Support\Authorization\PermissionGrouper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -34,8 +34,8 @@ class RoleController extends Controller
 
     public function __construct(
         private readonly PermissionGrouper $permissionGrouper,
-        private readonly CollectionPermissionSync $collectionPermissionSync,
-        private readonly FilePermissionSync $filePermissionSync,
+        private readonly CollectionPermissionSyncService $collectionPermissionSync,
+        private readonly FilePermissionSyncService $filePermissionSync,
     ) {}
 
     /**

@@ -6,8 +6,8 @@ use App\Models\Collection;
 use App\Models\CollectionPermission;
 use App\Models\User;
 use App\Models\UserGroup;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
 use Spatie\Permission\Models\Permission;
@@ -295,7 +295,7 @@ test('effective permission resolver unions permissions from multiple groups', fu
     $user = User::factory()->create();
     $user->groups()->sync([$groupA->id, $groupB->id]);
 
-    $resolver = app(EffectivePermissionResolver::class);
+    $resolver = app(EffectivePermissionResolverService::class);
 
     expect($resolver->hasPermission($user, PermissionEnum::CanShowGroups->value))->toBeTrue();
     expect($resolver->hasPermission($user, PermissionEnum::CanEditUsers->value))->toBeTrue();
@@ -321,7 +321,7 @@ test('removing a user from a group removes group-derived permissions', function 
     $user = User::factory()->create();
     $user->groups()->sync([$group->id]);
 
-    $resolver = app(EffectivePermissionResolver::class);
+    $resolver = app(EffectivePermissionResolverService::class);
     expect($resolver->hasPermission($user, PermissionEnum::CanShowGroups->value))->toBeTrue();
 
     $user->groups()->sync([]);
@@ -353,7 +353,7 @@ test('collection permission rules use group-inherited roles', function () {
         ],
     ]);
 
-    app(CollectionPermissionGuard::class)->forget($editorRole->id);
+    app(CollectionPermissionGuardService::class)->forget($editorRole->id);
 
     $group = UserGroup::factory()->create(['name' => 'Editors via group']);
     $group->roles()->sync([$editorRole->id]);
@@ -363,13 +363,13 @@ test('collection permission rules use group-inherited roles', function () {
 
     expect($user->roles()->count())->toBe(0);
 
-    $rules = app(CollectionPermissionGuard::class)->rulesForUser($user, $collection->id);
+    $rules = app(CollectionPermissionGuardService::class)->rulesForUser($user, $collection->id);
 
     expect($rules)->not->toBeNull()
         ->and($rules['fields']['title']['read'] ?? null)->toBeTrue();
 
     $outsider = User::factory()->create();
-    expect(app(CollectionPermissionGuard::class)->rulesForUser($outsider, $collection->id))->toBeNull();
+    expect(app(CollectionPermissionGuardService::class)->rulesForUser($outsider, $collection->id))->toBeNull();
 });
 
 test('groups index returns json for multi-select pickers', function () {

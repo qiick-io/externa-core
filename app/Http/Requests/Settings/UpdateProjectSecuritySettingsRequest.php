@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Settings;
 
 use App\Http\Requests\Settings\Concerns\AuthorizesProjectSettingsTrait;
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -88,7 +88,7 @@ class UpdateProjectSecuritySettingsRequest extends FormRequest
         }
 
         return [
-            'oidc_client_secret' => ProjectSettings::encryptOidcClientSecret(trim($secret)),
+            'oidc_client_secret' => ProjectSettingsService::encryptOidcClientSecret(trim($secret)),
         ];
     }
 

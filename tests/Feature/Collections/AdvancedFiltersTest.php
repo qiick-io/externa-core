@@ -4,8 +4,8 @@ use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\User;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Inertia\Testing\AssertableInertia;
 
@@ -30,8 +30,8 @@ test('items index supports eq and contains operators', function () {
         'type' => FieldTypeEnum::String,
     ]);
 
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     $a = $collection->items()->create([]);
     $writer->sync($a, $collection, $normalizer->normalize($collection, [
@@ -83,8 +83,8 @@ test('items index AND-combines multi-field filters', function () {
         'type' => FieldTypeEnum::String,
     ]);
 
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     $publishedHello = $collection->items()->create([]);
     $writer->sync($publishedHello, $collection, $normalizer->normalize($collection, [
@@ -136,8 +136,8 @@ test('items index supports neq in null nnull and comparison operators', function
         'type' => FieldTypeEnum::String,
     ]);
 
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     $published = $collection->items()->create([]);
     $writer->sync($published, $collection, $normalizer->normalize($collection, [
@@ -251,8 +251,8 @@ test('items index AND-combines multi-rule filters across different field types',
         'type' => FieldTypeEnum::String,
     ]);
 
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     $match = $collection->items()->create([]);
     $writer->sync($match, $collection, $normalizer->normalize($collection, [

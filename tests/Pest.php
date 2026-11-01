@@ -12,8 +12,8 @@ use App\Models\File;
 use App\Models\FilePermission;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Api\FilePermissionGuard;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Api\FilePermissionGuardService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -91,7 +91,7 @@ function grantRoleActions(Role $role, Collection $collection, array $actions): v
         );
     }
 
-    app(CollectionPermissionGuard::class)->forget($role->id);
+    app(CollectionPermissionGuardService::class)->forget($role->id);
 }
 
 /**
@@ -153,7 +153,7 @@ function grantFileActions(Role $role, array $actions): void
         );
     }
 
-    app(FilePermissionGuard::class)->forget($role->id);
+    app(FilePermissionGuardService::class)->forget($role->id);
 }
 
 function filesPublicRole(): Role

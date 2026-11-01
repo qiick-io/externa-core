@@ -1,7 +1,7 @@
 <?php
 
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -13,7 +13,7 @@ beforeEach(function (): void {
 
 it('disables registration by default for fresh installs', function (): void {
     expect(config('settings.project.defaults.registration_enabled'))->toBeFalse()
-        ->and(app(ProjectSettings::class)->isRegistrationEnabled())->toBeFalse();
+        ->and(app(ProjectSettingsService::class)->isRegistrationEnabled())->toBeFalse();
 
     $this->get(route('register'))->assertForbidden();
 
@@ -32,14 +32,14 @@ it('disables registration by default for fresh installs', function (): void {
 });
 
 it('keeps an explicitly stored registration_enabled=true setting', function (): void {
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'registration_enabled',
         true,
     );
 
-    expect(app(ProjectSettings::class)->isRegistrationEnabled())->toBeTrue();
+    expect(app(ProjectSettingsService::class)->isRegistrationEnabled())->toBeTrue();
 });
 
 it('throttles forgot-password by IP after five attempts', function (): void {

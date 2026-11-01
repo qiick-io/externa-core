@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
 use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -19,7 +19,7 @@ use Laravel\Fortify\Features;
 class SecurityController extends Controller implements HasMiddleware
 {
     public function __construct(
-        private readonly ProjectSettings $projectSettings,
+        private readonly ProjectSettingsService $projectSettings,
     ) {}
 
     /**

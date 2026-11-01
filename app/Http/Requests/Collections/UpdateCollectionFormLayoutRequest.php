@@ -5,7 +5,7 @@ namespace App\Http\Requests\Collections;
 use App\Enums\PermissionEnum;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Models\Collection;
-use App\Services\Collections\CollectionFormLayoutNormalizer;
+use App\Services\Collections\CollectionFormLayoutNormalizerService;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -56,7 +56,7 @@ class UpdateCollectionFormLayoutRequest extends FormRequest
             return;
         }
 
-        $normalized = app(CollectionFormLayoutNormalizer::class)->normalize($layout, $collection);
+        $normalized = app(CollectionFormLayoutNormalizerService::class)->normalize($layout, $collection);
         $this->merge(['form_layout' => $normalized]);
     }
 }

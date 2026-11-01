@@ -5,9 +5,9 @@ use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
-use App\Services\Api\PublicApiResponseCache;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Api\PublicApiResponseCacheService;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\DB;
@@ -22,8 +22,8 @@ beforeEach(function (): void {
  */
 function syncPrewarmItem(CollectionItem $item, Collection $collection, array $data): void
 {
-    $normalized = app(CollectionItemDataNormalizer::class)->normalize($collection, $data, $item->wasRecentlyCreated);
-    app(CollectionItemValuesWriter::class)->sync($item, $collection, $normalized);
+    $normalized = app(CollectionItemDataNormalizerService::class)->normalize($collection, $data, $item->wasRecentlyCreated);
+    app(CollectionItemValuesWriterService::class)->sync($item, $collection, $normalized);
 }
 
 /**
@@ -120,7 +120,7 @@ function measurePrewarmListQueries(object $test, string $slug, int $perPage): ar
 
     // Warm auth / permission caches outside the measured window.
     $test->getJson($url)->assertOk();
-    app(PublicApiResponseCache::class)->bump(
+    app(PublicApiResponseCacheService::class)->bump(
         (int) Collection::query()->where('slug', $slug)->value('id')
     );
 

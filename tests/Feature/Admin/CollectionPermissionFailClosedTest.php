@@ -9,7 +9,7 @@ use App\Models\CollectionItem;
 use App\Models\CollectionPermission;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionGuard;
+use App\Services\Api\CollectionPermissionGuardService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Inertia\Testing\AssertableInertia;
@@ -39,7 +39,7 @@ function failClosedGrant(Role $role, Collection $collection, array $actions): vo
         );
     }
 
-    app(CollectionPermissionGuard::class)->forget($role->id);
+    app(CollectionPermissionGuardService::class)->forget($role->id);
 }
 
 /**

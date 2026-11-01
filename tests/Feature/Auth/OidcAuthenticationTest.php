@@ -3,10 +3,10 @@
 use App\Enums\PermissionEnum;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Auth\OidcSocialiteFactory;
-use App\Services\Auth\OidcUserResolver;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Auth\OidcSocialiteFactoryService;
+use App\Services\Auth\OidcUserResolverService;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
@@ -22,7 +22,7 @@ beforeEach(function () {
 
 function enableOidc(array $overrides = []): void
 {
-    app(SettingsRepository::class)->setMany(SettingsRepository::SCOPE_PROJECT, 'project', array_merge([
+    app(SettingsRepositoryService::class)->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'project', array_merge([
         'oidc_enabled' => true,
         'oidc_issuer' => 'https://idp.example.com/realms/externa',
         'oidc_client_id' => 'externa-app',
@@ -55,7 +55,7 @@ function fakeSocialiteUser(
 function bindOidcFactory(?SocialiteUser $user = null, bool $enabled = true): void
 {
     app()->instance(
-        OidcSocialiteFactory::class,
+        OidcSocialiteFactoryService::class,
         new FakeOidcSocialiteFactory($enabled, $user),
     );
 }
@@ -217,7 +217,7 @@ test('project settings encrypt oidc secret and never return plaintext', function
         ]))
         ->assertSessionHasNoErrors();
 
-    $project = app(ProjectSettings::class);
+    $project = app(ProjectSettingsService::class);
     expect($project->oidcClientSecret())->toBe('plain-secret-value')
         ->and($project->isOidcLoginAvailable())->toBeTrue();
 
@@ -248,7 +248,7 @@ test('resolver prefers existing oidc_sub over email', function () {
         'is_active' => true,
     ]);
 
-    $resolved = app(OidcUserResolver::class)->resolve(fakeSocialiteUser());
+    $resolved = app(OidcUserResolverService::class)->resolve(fakeSocialiteUser());
 
     expect($resolved->is($linked))->toBeTrue();
 });
@@ -262,6 +262,6 @@ test('resolver throws when email already linked to different sub', function () {
         'is_active' => true,
     ]);
 
-    expect(fn () => app(OidcUserResolver::class)->resolve(fakeSocialiteUser()))
+    expect(fn () => app(OidcUserResolverService::class)->resolve(fakeSocialiteUser()))
         ->toThrow(ValidationException::class);
 });

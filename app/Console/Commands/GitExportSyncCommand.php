@@ -4,8 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\Collection;
 use App\Models\CollectionItem;
-use App\Services\GitExport\GitExportDocumentBuilder;
-use App\Services\GitExport\GitExportRepository;
+use App\Services\GitExport\GitExportDocumentBuilderService;
+use App\Services\GitExport\GitExportRepositoryService;
 use Illuminate\Console\Command;
 
 /**
@@ -20,14 +20,14 @@ class GitExportSyncCommand extends Command
     protected $description = 'Export published collection items into the configured git-export repository';
 
     public function handle(
-        GitExportRepository $repository,
-        GitExportDocumentBuilder $builder,
+        GitExportRepositoryService $repository,
+        GitExportDocumentBuilderService $builder,
     ): int {
         if ($this->option('dry-run')) {
             config(['git_export.dry_run' => true]);
         }
 
-        if (! $repository->isEnabled() && ! $this->option('dry-run')) {
+        if (! $repository->enabled() && ! $this->option('dry-run')) {
             // Allow dry-run write against a work dir even when remote unset — still need enabled+remote for push path.
             if (! config('git_export.enabled')) {
                 $this->error('Git export disabled. Set GIT_EXPORT_ENABLED=true and GIT_EXPORT_REMOTE_URL.');
@@ -83,7 +83,7 @@ class GitExportSyncCommand extends Command
         return self::SUCCESS;
     }
 
-    private function writeLocalOnly(GitExportDocumentBuilder $builder): void
+    private function writeLocalOnly(GitExportDocumentBuilderService $builder): void
     {
         $dir = config('git_export.work_dir');
         $written = 0;

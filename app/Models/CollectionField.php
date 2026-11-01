@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Enums\FieldTypeEnum;
-use App\Services\Api\PublicApiResponseCache;
+use App\Services\Api\PublicApiResponseCacheService;
 use App\Support\Collections\CollectionLocaleResolver;
 use App\Traits\LogsApplicationActivityTrait;
 use Database\Factories\CollectionFieldFactory;
@@ -55,7 +55,7 @@ class CollectionField extends Model implements Sortable
     protected static function booted(): void
     {
         $bump = static function (CollectionField $field): void {
-            app(PublicApiResponseCache::class)->bump((int) $field->collection_id);
+            app(PublicApiResponseCacheService::class)->bump((int) $field->collection_id);
         };
 
         static::created($bump);
@@ -198,7 +198,7 @@ class CollectionField extends Model implements Sortable
     /**
      * Whether values for this field are stored as multiple rows (array storage).
      */
-    public function hasArrayStorage(): bool
+    public function usesArrayStorage(): bool
     {
         if ($this->type === FieldTypeEnum::Image) {
             return self::settingsFlagIsEnabled(data_get($this->settings, 'allow_multiple', false));

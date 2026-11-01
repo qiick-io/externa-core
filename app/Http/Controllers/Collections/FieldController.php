@@ -14,7 +14,7 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Services\Collections\ApplyFieldPackService;
 use App\Services\Collections\CollectionFieldGroupService;
-use App\Services\Collections\CollectionFieldRenamer;
+use App\Services\Collections\CollectionFieldRenamerService;
 use App\Services\Collections\CollectionFieldStorageShapeService;
 use App\Support\Collections\FieldPacks\FieldPackRegistry;
 use Illuminate\Http\RedirectResponse;
@@ -101,7 +101,7 @@ class FieldController extends Controller
         /** @var CollectionField $field */
         $field = $collection->fields()->create([
             ...$validated,
-            'translatable' => $type->isTranslatableSupported() && $request->boolean('translatable'),
+            'translatable' => $type->supportsTranslatable() && $request->boolean('translatable'),
         ]);
 
         $groupService = app(CollectionFieldGroupService::class);
@@ -133,7 +133,7 @@ class FieldController extends Controller
             : $field->translatable;
 
         // Coerce legacy true flags when type cannot be per-locale.
-        if (! $type->isTranslatableSupported()) {
+        if (! $type->supportsTranslatable()) {
             $translatable = false;
         }
 
@@ -142,7 +142,7 @@ class FieldController extends Controller
                 ->forceFullWidthForGroup($type, $validated['settings']);
         }
 
-        app(CollectionFieldRenamer::class)->update($collection, $field, [
+        app(CollectionFieldRenamerService::class)->update($collection, $field, [
             ...$validated,
             'translatable' => $translatable,
         ]);
@@ -213,7 +213,7 @@ class FieldController extends Controller
             $nextSettings = $settings === [] ? null : $settings;
 
             // ponytail: skip Eloquent update when settings unchanged — each update
-            // bumps PublicApiResponseCache + activity log.
+            // bumps PublicApiResponseCacheService + activity log.
             if ($field->settings == $nextSettings) {
                 continue;
             }

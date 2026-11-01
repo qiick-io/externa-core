@@ -10,7 +10,7 @@ use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
 use App\Models\User;
 use App\Notifications\ItemChatNotification;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\DB;
@@ -118,7 +118,7 @@ it('writes collection item values with a single bulk insert', function (): void 
         }
     });
 
-    app(CollectionItemValuesWriter::class)->sync($item, $collection, [
+    app(CollectionItemValuesWriterService::class)->sync($item, $collection, [
         'title' => 'Bulk title',
         'tags' => ['a', 'b', 'c', 'd', 'e'],
     ]);

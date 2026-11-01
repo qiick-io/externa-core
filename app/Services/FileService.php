@@ -9,7 +9,7 @@ use App\Models\FileUpload;
 use App\Models\FileVersion;
 use App\Models\User;
 use App\Services\Files\FileEffectiveAccessService;
-use App\Services\Webhooks\OutboundWebhookDispatcher;
+use App\Services\Webhooks\OutboundWebhookDispatcherService;
 use App\Support\Files\FilesDisk;
 use App\Support\Security\PlainTextSanitizer;
 use App\Support\Uploads\ForbiddenUploadExtension;
@@ -58,7 +58,7 @@ class FileService
             return $file;
         });
 
-        app(OutboundWebhookDispatcher::class)->dispatchFile('file.created', $file);
+        app(OutboundWebhookDispatcherService::class)->dispatchFile('file.created', $file);
 
         return $file;
     }
@@ -124,7 +124,7 @@ class FileService
                 return $file;
             });
 
-            app(OutboundWebhookDispatcher::class)->dispatchFile('file.created', $file);
+            app(OutboundWebhookDispatcherService::class)->dispatchFile('file.created', $file);
 
             return $file;
         } catch (\Throwable $e) {
@@ -201,7 +201,7 @@ class FileService
             // query()->update and path-only saves can skip access/parent dirty checks — force recompute.
             $this->syncEffectiveAccess($moved);
 
-            app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $moved);
+            app(OutboundWebhookDispatcherService::class)->dispatchFile('file.updated', $moved);
 
             $moved = $this->reconcilePrivacyDisk($moved);
             if ($moved->isFolder()) {
@@ -247,7 +247,7 @@ class FileService
             return $file->fresh();
         });
 
-        app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $renamed);
+        app(OutboundWebhookDispatcherService::class)->dispatchFile('file.updated', $renamed);
 
         return $renamed;
     }
@@ -305,7 +305,7 @@ class FileService
             }
         }
 
-        app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $updated);
+        app(OutboundWebhookDispatcherService::class)->dispatchFile('file.updated', $updated);
 
         return $updated;
     }
@@ -499,7 +499,7 @@ class FileService
                 return $file->fresh(['tags']);
             });
 
-            app(OutboundWebhookDispatcher::class)->dispatchFile('file.updated', $replaced);
+            app(OutboundWebhookDispatcherService::class)->dispatchFile('file.updated', $replaced);
 
             return $replaced;
         } catch (\Throwable $exception) {
@@ -883,7 +883,7 @@ class FileService
             $file->delete();
         });
 
-        app(OutboundWebhookDispatcher::class)->dispatchFile('file.deleted', $file);
+        app(OutboundWebhookDispatcherService::class)->dispatchFile('file.deleted', $file);
     }
 
     /**
@@ -920,7 +920,7 @@ class FileService
             $file->forceDelete();
         });
 
-        app(OutboundWebhookDispatcher::class)->dispatchFile('file.deleted', $file);
+        app(OutboundWebhookDispatcherService::class)->dispatchFile('file.deleted', $file);
     }
 
     /**

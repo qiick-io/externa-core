@@ -9,7 +9,7 @@ use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Services\Collections\CollectionItemQueryService;
-use App\Services\Collections\CollectionItemValuesAssembler;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -57,7 +57,7 @@ class QueryCollectionItems implements Tool
             $query = $collection->items()->getQuery();
             app(CollectionItemQueryService::class)->applyFilters($query, $collection, $filters);
             $this->applyAiItemFilter($collection, $query);
-            $assembler = app(CollectionItemValuesAssembler::class);
+            $assembler = app(CollectionItemValuesAssemblerService::class);
             $limit = min(max($request->integer('limit', 25), 1), 100);
             $rows = $query->latest('id')->limit($limit)->get()->map(
                 function (CollectionItem $item) use ($assembler, $collection): array {

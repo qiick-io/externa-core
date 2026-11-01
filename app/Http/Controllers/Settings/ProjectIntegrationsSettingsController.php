@@ -6,12 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Settings\Concerns\LogsProjectSettingsUpdateTrait;
 use App\Http\Requests\Settings\UpdateProjectIntegrationsSettingsRequest;
 use App\Jobs\DeliverTelegramOutboundNotifierJob;
-use App\Services\Notifiers\OutboundNotifierMessageFormatter;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
-use App\Services\Webhooks\OutboundWebhookCatalog;
-use App\Services\Webhooks\OutboundWebhookDeliveryLog;
-use App\Services\Webhooks\OutboundWebhookDispatcher;
+use App\Services\Notifiers\OutboundNotifierMessageFormatterService;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
+use App\Services\Webhooks\OutboundWebhookCatalogService;
+use App\Services\Webhooks\OutboundWebhookDeliveryLogService;
+use App\Services\Webhooks\OutboundWebhookDispatcherService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -25,14 +25,14 @@ class ProjectIntegrationsSettingsController extends Controller
     use LogsProjectSettingsUpdateTrait;
 
     public function __construct(
-        private readonly ProjectSettings $projectSettings,
-        private readonly SettingsRepository $settings,
+        private readonly ProjectSettingsService $projectSettings,
+        private readonly SettingsRepositoryService $settings,
     ) {}
 
     /**
      * Render the integrations settings form.
      */
-    public function edit(OutboundWebhookDeliveryLog $deliveryLog): Response
+    public function edit(OutboundWebhookDeliveryLogService $deliveryLog): Response
     {
         return Inertia::render('settings/project/integrations', [
             'project' => $this->projectSettings->forEditOnly([
@@ -43,7 +43,7 @@ class ProjectIntegrationsSettingsController extends Controller
                 'notifier_telegram_chat_id',
                 'notifier_event_types',
             ]),
-            'webhookEvents' => OutboundWebhookCatalog::all(),
+            'webhookEvents' => OutboundWebhookCatalogService::all(),
             'webhookDeliveries' => $deliveryLog->summary(),
         ]);
     }
@@ -56,7 +56,7 @@ class ProjectIntegrationsSettingsController extends Controller
         $values = $request->projectValues();
 
         $this->settings->setMany(
-            SettingsRepository::SCOPE_PROJECT,
+            SettingsRepositoryService::SCOPE_PROJECT,
             'project',
             $values,
         );
@@ -74,7 +74,7 @@ class ProjectIntegrationsSettingsController extends Controller
     /**
      * Queue a signed `ping` webhook event to the configured URL.
      */
-    public function sendTestWebhook(OutboundWebhookDispatcher $dispatcher): RedirectResponse
+    public function sendTestWebhook(OutboundWebhookDispatcherService $dispatcher): RedirectResponse
     {
         if ($this->projectSettings->webhookUrl() === null) {
             return to_route('project.integrations.edit')
@@ -95,7 +95,7 @@ class ProjectIntegrationsSettingsController extends Controller
     /**
      * Queue a `ping` notifier message to Slack when configured.
      */
-    public function sendTestSlackNotifier(OutboundWebhookDispatcher $dispatcher): RedirectResponse
+    public function sendTestSlackNotifier(OutboundWebhookDispatcherService $dispatcher): RedirectResponse
     {
         if ($this->projectSettings->notifierSlackWebhookUrl() === null) {
             return to_route('project.integrations.edit')
@@ -120,10 +120,10 @@ class ProjectIntegrationsSettingsController extends Controller
                 ->with('error', __('Configure a Telegram bot token and chat ID before sending a test message.'));
         }
 
-        $message = OutboundNotifierMessageFormatter::format(
+        $message = OutboundNotifierMessageFormatterService::format(
             'ping',
             [],
-            OutboundNotifierMessageFormatter::CHANNEL_TELEGRAM,
+            OutboundNotifierMessageFormatterService::CHANNEL_TELEGRAM,
         );
 
         try {

@@ -7,12 +7,12 @@ namespace App\Actions\Collections;
 use App\Data\Collections\CollectionItemWriteData;
 use App\Models\Collection;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemDataRuleBuilder;
-use App\Services\Collections\CollectionItemRevisionRecorder;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemDataRuleBuilderService;
+use App\Services\Collections\CollectionItemRevisionRecorderService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -28,12 +28,12 @@ use RuntimeException;
 final class UpdateCollectionItemAction
 {
     public function __construct(
-        private CollectionItemDataNormalizer $normalizer,
-        private CollectionItemDataRuleBuilder $ruleBuilder,
-        private CollectionItemValuesAssembler $assembler,
-        private CollectionItemValuesWriter $writer,
-        private CollectionItemRevisionRecorder $revisionRecorder,
-        private CollectionPermissionEnforcer $permissionEnforcer,
+        private CollectionItemDataNormalizerService $normalizer,
+        private CollectionItemDataRuleBuilderService $ruleBuilder,
+        private CollectionItemValuesAssemblerService $assembler,
+        private CollectionItemValuesWriterService $writer,
+        private CollectionItemRevisionRecorderService $revisionRecorder,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
     ) {}
 
     /**

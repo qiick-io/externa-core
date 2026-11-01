@@ -9,7 +9,7 @@ use App\Models\ChatRead;
 use App\Models\CollectionItemChatMessage;
 use App\Models\Setting;
 use App\Models\User;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\SettingsRepositoryService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Cache;
@@ -26,7 +26,7 @@ class ChatUnreadService
     private const VIEWING_TTL_SECONDS = 120;
 
     public function __construct(
-        private SettingsRepository $settings,
+        private SettingsRepositoryService $settings,
         private ChatService $chats,
     ) {}
 
@@ -293,7 +293,7 @@ class ChatUnreadService
     public function subscribedCollectionIds(User $user): array
     {
         $value = $this->settings->get(
-            SettingsRepository::SCOPE_USER,
+            SettingsRepositoryService::SCOPE_USER,
             self::NOTIFY_GROUP,
             self::NOTIFY_KEY,
             $user->id,
@@ -431,7 +431,7 @@ class ChatUnreadService
     {
         $ids = [];
         $rows = Setting::query()
-            ->where('scope', SettingsRepository::SCOPE_USER)
+            ->where('scope', SettingsRepositoryService::SCOPE_USER)
             ->where('group', self::NOTIFY_GROUP)
             ->where('key', self::NOTIFY_KEY)
             ->whereNotNull('scope_id')

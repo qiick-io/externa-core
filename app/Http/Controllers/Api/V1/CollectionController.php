@@ -8,9 +8,9 @@ use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccessTrait;
 use App\Http\Controllers\Controller;
 use App\Models\Collection;
 use App\Models\CollectionField;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Api\PublicApiResponseCache;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Api\PublicApiResponseCacheService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,13 +22,13 @@ class CollectionController extends Controller
     use AuthorizesCollectionAccessTrait;
 
     public function __construct(
-        private PublicApiResponseCache $responseCache,
+        private PublicApiResponseCacheService $responseCache,
     ) {}
 
     public function index(Request $request): JsonResponse
     {
         $access = $this->apiAccess($request);
-        $matrix = app(CollectionPermissionGuard::class)->matrixForRole($access->roleId());
+        $matrix = app(CollectionPermissionGuardService::class)->matrixForRole($access->roleId());
         $readableIds = [];
         foreach ($matrix as $collectionId => $actions) {
             if (($actions['read'] ?? false) === true) {
@@ -43,7 +43,7 @@ class CollectionController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'slug', 'is_singleton', 'sort_order', 'description', 'status', 'icon', 'color']);
 
-        $enforcer = app(CollectionPermissionEnforcer::class);
+        $enforcer = app(CollectionPermissionEnforcerService::class);
         $collections = $collections->filter(
             fn (Collection $collection): bool => $enforcer->allowsCollectionAction(
                 $request,

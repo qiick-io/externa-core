@@ -4,8 +4,8 @@ namespace App\Http\Requests\Settings;
 
 use App\Ai\Support\SafeRemoteUrlValidator;
 use App\Http\Requests\Settings\Concerns\AuthorizesProjectSettingsTrait;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Webhooks\OutboundWebhookCatalog;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Webhooks\OutboundWebhookCatalogService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -33,7 +33,7 @@ class UpdateProjectIntegrationsSettingsRequest extends FormRequest
             'notifier_event_types' => ['nullable', 'array'],
             'notifier_event_types.*' => [
                 'string',
-                Rule::in(OutboundWebhookCatalog::notifierSelectableTypes()),
+                Rule::in(OutboundWebhookCatalogService::notifierSelectableTypes()),
             ],
         ];
     }
@@ -72,7 +72,7 @@ class UpdateProjectIntegrationsSettingsRequest extends FormRequest
             // Missing key (legacy payloads) → keep all; explicit [] → notify none.
             'notifier_event_types' => array_values(
                 $validated['notifier_event_types']
-                    ?? OutboundWebhookCatalog::notifierSelectableTypes(),
+                    ?? OutboundWebhookCatalogService::notifierSelectableTypes(),
             ),
             ...$this->webhookSecretValue($validated),
             ...$this->notifierTelegramBotTokenValue($validated),
@@ -91,7 +91,7 @@ class UpdateProjectIntegrationsSettingsRequest extends FormRequest
         }
 
         return [
-            'webhook_secret' => ProjectSettings::encryptWebhookSecret(trim($secret)),
+            'webhook_secret' => ProjectSettingsService::encryptWebhookSecret(trim($secret)),
         ];
     }
 
@@ -107,7 +107,7 @@ class UpdateProjectIntegrationsSettingsRequest extends FormRequest
         }
 
         return [
-            'notifier_telegram_bot_token' => ProjectSettings::encryptNotifierTelegramBotToken(trim($token)),
+            'notifier_telegram_bot_token' => ProjectSettingsService::encryptNotifierTelegramBotToken(trim($token)),
         ];
     }
 

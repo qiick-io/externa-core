@@ -8,7 +8,7 @@ use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
 use App\Notifications\ItemApprovalNotification;
-use App\Services\Webhooks\OutboundWebhookDispatcher;
+use App\Services\Webhooks\OutboundWebhookDispatcherService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
@@ -20,7 +20,7 @@ use RuntimeException;
 class CollectionItemApprovalService
 {
     public function __construct(
-        private OutboundWebhookDispatcher $webhooks,
+        private OutboundWebhookDispatcherService $webhooks,
     ) {}
 
     public function submit(CollectionItem $item, Collection $collection, User $actor): void

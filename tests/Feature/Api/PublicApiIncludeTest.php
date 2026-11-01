@@ -12,9 +12,9 @@ use App\Models\File;
 use App\Models\FilePermission;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Api\FilePermissionGuard;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Api\FilePermissionGuardService;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Storage;
@@ -47,7 +47,7 @@ function grantIncludePublicFileActions(array $actions): void
         );
     }
 
-    app(FilePermissionGuard::class)->forget($role->id);
+    app(FilePermissionGuardService::class)->forget($role->id);
 }
 
 function makeIncludeStoredFile(string $name = 'hero.jpg'): File
@@ -73,8 +73,8 @@ function makeIncludeStoredFile(string $name = 'hero.jpg'): File
  */
 function syncIncludeItem(CollectionItem $item, Collection $collection, array $data): void
 {
-    $normalized = app(CollectionItemDataNormalizer::class)->normalize($collection, $data, $item->wasRecentlyCreated);
-    app(CollectionItemValuesWriter::class)->sync($item, $collection, $normalized);
+    $normalized = app(CollectionItemDataNormalizerService::class)->normalize($collection, $data, $item->wasRecentlyCreated);
+    app(CollectionItemValuesWriterService::class)->sync($item, $collection, $normalized);
 }
 
 it('keeps file fields as ids and users null without include', function (): void {

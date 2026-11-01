@@ -4,7 +4,7 @@ use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Api\PublicApiResponseCache;
+use App\Services\Api\PublicApiResponseCacheService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Cache;
@@ -49,7 +49,7 @@ test('authorized users can view performance settings with nested props', functio
         PermissionEnum::CanManageProjectSettings->value,
     ]);
 
-    $cache = app(PublicApiResponseCache::class);
+    $cache = app(PublicApiResponseCacheService::class);
 
     $this->actingAs($user)
         ->get(route('performance.edit'))
@@ -92,7 +92,7 @@ test('flush public api increments epoch visible in props', function () {
         PermissionEnum::CanManageProjectSettings->value,
     ]);
 
-    $cache = app(PublicApiResponseCache::class);
+    $cache = app(PublicApiResponseCacheService::class);
     $beforeEpoch = $cache->epoch();
     $beforeVersion = $cache->version(42);
 
@@ -119,7 +119,7 @@ test('flush public api increments epoch visible in props', function () {
 test('public api cache ttl comes from PUBLIC_API_CACHE_TTL env', function () {
     config(['api.response_cache_ttl' => 45]);
 
-    $cache = app(PublicApiResponseCache::class);
+    $cache = app(PublicApiResponseCacheService::class);
     expect($cache->ttlSeconds())->toBe(45);
 
     $user = grantProjectSettingsPermissions(User::factory()->create(), [
@@ -134,7 +134,7 @@ test('public api cache ttl comes from PUBLIC_API_CACHE_TTL env', function () {
 });
 
 test('public api remember increments hit and miss counters for the epoch', function () {
-    $cache = app(PublicApiResponseCache::class);
+    $cache = app(PublicApiResponseCacheService::class);
     $cache->bumpAll();
 
     $key = $cache->itemsKey('demo', $cache->version(1), 'abc');

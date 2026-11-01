@@ -7,10 +7,10 @@ namespace App\Actions\Collections;
 use App\Data\Collections\CollectionItemWriteData;
 use App\Models\Collection;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemDataRuleBuilder;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemDataRuleBuilderService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -21,10 +21,10 @@ use Illuminate\Validation\ValidationException;
 final class CreateCollectionItemAction
 {
     public function __construct(
-        private CollectionItemDataNormalizer $normalizer,
-        private CollectionItemDataRuleBuilder $ruleBuilder,
-        private CollectionItemValuesWriter $writer,
-        private CollectionPermissionEnforcer $permissionEnforcer,
+        private CollectionItemDataNormalizerService $normalizer,
+        private CollectionItemDataRuleBuilderService $ruleBuilder,
+        private CollectionItemValuesWriterService $writer,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
     ) {}
 
     /**

@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Collections\CollectionItemRevisionPruner;
+use App\Services\Collections\CollectionItemRevisionPrunerService;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -17,7 +17,7 @@ class PruneCollectionItemRevisionsCommand extends Command
     /**
      * Delete revisions past count/days retention for limited collections.
      */
-    public function handle(CollectionItemRevisionPruner $pruner): int
+    public function handle(CollectionItemRevisionPrunerService $pruner): int
     {
         $deleted = $pruner->pruneAll();
 

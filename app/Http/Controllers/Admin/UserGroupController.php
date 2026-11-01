@@ -240,7 +240,7 @@ class UserGroupController extends Controller
 
         abort_if(
             ! $superAdminGuard->canManageSuperAdmins(auth()->user())
-                && $superAdminGuard->hasSuperAdminGroup([$group->id]),
+                && $superAdminGuard->includesSuperAdminGroup([$group->id]),
             403,
         );
     }

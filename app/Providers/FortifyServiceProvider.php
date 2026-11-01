@@ -6,7 +6,7 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Http\Responses\LoginResponse;
 use App\Http\Responses\PasskeyLoginResponse;
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -60,7 +60,7 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureViews(): void
     {
         Fortify::loginView(function (Request $request) {
-            $project = app(ProjectSettings::class);
+            $project = app(ProjectSettingsService::class);
 
             return Inertia::render('auth/login', [
                 'canResetPassword' => Features::enabled(Features::resetPasswords()),
@@ -88,7 +88,7 @@ class FortifyServiceProvider extends ServiceProvider
 
         Fortify::registerView(function () {
             if (! Features::enabled(Features::registration())
-                || ! app(ProjectSettings::class)->isRegistrationEnabled()) {
+                || ! app(ProjectSettingsService::class)->isRegistrationEnabled()) {
                 abort(403);
             }
 
@@ -121,7 +121,7 @@ class FortifyServiceProvider extends ServiceProvider
 
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
-            $maxAttempts = app(ProjectSettings::class)->loginMaxAttempts();
+            $maxAttempts = app(ProjectSettingsService::class)->loginMaxAttempts();
 
             return Limit::perMinute($maxAttempts)->by($throttleKey);
         });

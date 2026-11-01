@@ -9,8 +9,8 @@ use App\Models\CollectionItem;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Api\ApiKeyOwnerService;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Support\Api\ApiAccess;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -123,7 +123,7 @@ it('backfills owner_id from created_by, else first admin, else leaves ownerless'
 
     // No admin left → stay ownerless.
     $admin->syncRoles([]);
-    app(EffectivePermissionResolver::class)->forget($admin);
+    app(EffectivePermissionResolverService::class)->forget($admin);
 
     $lonely = makeApiKeyForRole($role);
     $lonely['key']->forceFill([
@@ -237,9 +237,9 @@ it('owner role downgrade narrows key access on the next request', function (): v
         ->assertOk();
 
     $owner->syncRoles([$narrowOwnerRole]);
-    app(EffectivePermissionResolver::class)->forget($owner);
-    app(CollectionPermissionGuard::class)->forget($wideOwnerRole->id);
-    app(CollectionPermissionGuard::class)->forget($narrowOwnerRole->id);
+    app(EffectivePermissionResolverService::class)->forget($owner);
+    app(CollectionPermissionGuardService::class)->forget($wideOwnerRole->id);
+    app(CollectionPermissionGuardService::class)->forget($narrowOwnerRole->id);
 
     $this->withToken($auth['plain'])
         ->getJson("/api/v1/collections/{$pages->slug}/items/{$pageItem->id}")

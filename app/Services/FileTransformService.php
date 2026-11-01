@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\File;
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
@@ -99,7 +99,7 @@ class FileTransformService
                 return $this->ensureThumbnail($file);
             }
 
-            $preset = app(ProjectSettings::class)->transformPreset($key);
+            $preset = app(ProjectSettingsService::class)->transformPreset($key);
             if ($preset === null) {
                 throw new RuntimeException("Unknown transform preset [{$key}].");
             }
@@ -199,7 +199,7 @@ class FileTransformService
     {
         try {
             // Floor at MAX_SIZE so grid can request 512 even when project presets top out lower.
-            return max(self::MAX_SIZE, app(ProjectSettings::class)->maxTransformSize());
+            return max(self::MAX_SIZE, app(ProjectSettingsService::class)->maxTransformSize());
         } catch (\Throwable $exception) {
             report($exception);
 
@@ -210,7 +210,7 @@ class FileTransformService
     public function isTransformationsEnabled(): bool
     {
         try {
-            return app(ProjectSettings::class)->isTransformationsEnabled();
+            return app(ProjectSettingsService::class)->isTransformationsEnabled();
         } catch (\Throwable $exception) {
             report($exception);
 
@@ -292,7 +292,7 @@ class FileTransformService
         $presets = [];
 
         try {
-            $presets = app(ProjectSettings::class)->presetTransformations();
+            $presets = app(ProjectSettingsService::class)->presetTransformations();
         } catch (\Throwable $exception) {
             report($exception);
             $presets = [];

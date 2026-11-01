@@ -2,7 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Models\User;
-use App\Services\Dashboard\DashboardHealthMetrics;
+use App\Services\Dashboard\DashboardHealthMetricsService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\Models\Role;
@@ -14,7 +14,7 @@ beforeEach(function (): void {
 });
 
 test('dashboard health metrics badge returns ok warn or fail', function () {
-    $badge = app(DashboardHealthMetrics::class)->badge();
+    $badge = app(DashboardHealthMetricsService::class)->badge();
 
     expect($badge)->toHaveKeys(['status', 'label'])
         ->and($badge['status'])->toBeIn(['ok', 'warn', 'fail'])

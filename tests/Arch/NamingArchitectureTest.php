@@ -4,63 +4,13 @@ declare(strict_types=1);
 
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
-use App\Services\Ai\EmbeddingSimilarity;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Api\CollectionPermissionRules;
-use App\Services\Api\CollectionPermissionSync;
-use App\Services\Api\FileFieldExpander;
-use App\Services\Api\FilePermissionGuard;
-use App\Services\Api\FilePermissionSync;
-use App\Services\Api\PublicApiResponseCache;
-use App\Services\Api\RelationIncludeHydrator;
-use App\Services\Auth\OidcSocialiteFactory;
-use App\Services\Auth\OidcUserResolver;
-use App\Services\Authorization\EffectivePermissionResolver;
-use App\Services\Chat\ChatParticipantSync;
-use App\Services\Collections\CollectionFieldRenamer;
-use App\Services\Collections\CollectionFormLayoutNormalizer;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemDataRuleBuilder;
-use App\Services\Collections\CollectionItemPublisher;
-use App\Services\Collections\CollectionItemRevisionPruner;
-use App\Services\Collections\CollectionItemRevisionRecorder;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Collections\CollectionListColumnsNormalizer;
-use App\Services\Collections\CollectionListDisplayEnricher;
-use App\Services\Collections\FieldConditionEvaluator;
-use App\Services\Collections\FieldValidationRuleEvaluator;
-use App\Services\Collections\LivePreviewToken;
-use App\Services\Collections\LivePreviewUrlBuilder;
-use App\Services\Collections\PackFieldCreator;
-use App\Services\Collections\WysiwygHtmlSanitizer;
-use App\Services\Dashboard\DashboardHealthMetrics;
-use App\Services\Files\FileWhereUsedScanner;
-use App\Services\GitExport\GitExportDispatcher;
-use App\Services\GitExport\GitExportDocumentBuilder;
-use App\Services\GitExport\GitExportRepository;
-use App\Services\Notifiers\OutboundNotifierContextBuilder;
-use App\Services\Notifiers\OutboundNotifierFanout;
-use App\Services\Notifiers\OutboundNotifierMessageFormatter;
-use App\Services\Search\MeilisearchClient;
-use App\Services\Search\MeilisearchDocumentBuilder;
-use App\Services\Search\MeilisearchSyncDispatcher;
-use App\Services\Settings\ProjectAppearance;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
-use App\Services\Settings\UserNotificationPreferences;
-use App\Services\Webhooks\OutboundWebhookCatalog;
-use App\Services\Webhooks\OutboundWebhookDeliveryLog;
-use App\Services\Webhooks\OutboundWebhookDispatcher;
 
 /**
  * Codice Perfetto naming + architecture guardrails (issue #260).
  *
  * Scaffolding exemptions keep Laravel / Fortify / starter-kit names untouched.
- * Custom middleware use the Middleware suffix (#337). Starter-kit Handle*
- * middleware stay exempt. Legacy App\Services without Service suffix remain
- * ignored until #336 merges.
+ * App\Services use the Service suffix (#336). Custom middleware use the Middleware
+ * suffix (#337); starter-kit Handle* middleware stay exempt.
  *
  * declare(strict_types=1) across App\ is deferred until the PHP baseline is clean;
  * new and touched files must still declare it.
@@ -98,58 +48,7 @@ arch('custom Actions have an Action suffix')
 arch('Services end with Service')
     ->expect('App\Services')
     ->classes()
-    ->toHaveSuffix('Service')
-    ->ignoring([
-        EmbeddingSimilarity::class,
-        CollectionPermissionEnforcer::class,
-        CollectionPermissionGuard::class,
-        CollectionPermissionRules::class,
-        CollectionPermissionSync::class,
-        FileFieldExpander::class,
-        FilePermissionGuard::class,
-        FilePermissionSync::class,
-        PublicApiResponseCache::class,
-        RelationIncludeHydrator::class,
-        OidcSocialiteFactory::class,
-        OidcUserResolver::class,
-        EffectivePermissionResolver::class,
-        ChatParticipantSync::class,
-        CollectionFieldRenamer::class,
-        CollectionFormLayoutNormalizer::class,
-        CollectionItemDataNormalizer::class,
-        CollectionItemDataRuleBuilder::class,
-        CollectionItemPublisher::class,
-        CollectionItemRevisionPruner::class,
-        CollectionItemRevisionRecorder::class,
-        CollectionItemValuesAssembler::class,
-        CollectionItemValuesWriter::class,
-        CollectionListColumnsNormalizer::class,
-        CollectionListDisplayEnricher::class,
-        FieldConditionEvaluator::class,
-        FieldValidationRuleEvaluator::class,
-        LivePreviewToken::class,
-        LivePreviewUrlBuilder::class,
-        PackFieldCreator::class,
-        WysiwygHtmlSanitizer::class,
-        DashboardHealthMetrics::class,
-        FileWhereUsedScanner::class,
-        GitExportDispatcher::class,
-        GitExportDocumentBuilder::class,
-        GitExportRepository::class,
-        OutboundNotifierContextBuilder::class,
-        OutboundNotifierFanout::class,
-        OutboundNotifierMessageFormatter::class,
-        MeilisearchClient::class,
-        MeilisearchDocumentBuilder::class,
-        MeilisearchSyncDispatcher::class,
-        ProjectAppearance::class,
-        ProjectSettings::class,
-        SettingsRepository::class,
-        UserNotificationPreferences::class,
-        OutboundWebhookCatalog::class,
-        OutboundWebhookDeliveryLog::class,
-        OutboundWebhookDispatcher::class,
-    ]);
+    ->toHaveSuffix('Service');
 
 arch('Jobs end with Job')
     ->expect('App\Jobs')

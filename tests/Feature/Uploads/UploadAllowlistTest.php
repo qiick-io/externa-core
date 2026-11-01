@@ -1,7 +1,7 @@
 <?php
 
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
 use App\Support\Uploads\ForbiddenUploadExtension;
 use App\Support\Uploads\MimeTypeValidator;
 use App\Support\Uploads\UploadAllowlist;
@@ -9,18 +9,18 @@ use Illuminate\Validation\ValidationException;
 
 beforeEach(function (): void {
     // Reset project settings memo between cases.
-    app()->forgetInstance(ProjectSettings::class);
+    app()->forgetInstance(ProjectSettingsService::class);
     app()->forgetInstance(UploadAllowlist::class);
 });
 
 function setUploadPolicy(array $values): void
 {
-    app(SettingsRepository::class)->setMany(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->setMany(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         $values,
     );
-    app()->forgetInstance(ProjectSettings::class);
+    app()->forgetInstance(ProjectSettingsService::class);
     app()->forgetInstance(UploadAllowlist::class);
 }
 

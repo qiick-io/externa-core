@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Services\Chat\ChatParticipantSync;
+use App\Services\Chat\ChatParticipantSyncService;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
@@ -22,14 +22,14 @@ class UserGroupUser extends Pivot
     protected static function booted(): void
     {
         static::created(function (UserGroupUser $pivot): void {
-            app(ChatParticipantSync::class)->userJoinedGroup(
+            app(ChatParticipantSyncService::class)->userJoinedGroup(
                 (int) $pivot->user_group_id,
                 (int) $pivot->user_id,
             );
         });
 
         static::deleted(function (UserGroupUser $pivot): void {
-            app(ChatParticipantSync::class)->userLeftGroup(
+            app(ChatParticipantSyncService::class)->userLeftGroup(
                 (int) $pivot->user_group_id,
                 (int) $pivot->user_id,
             );

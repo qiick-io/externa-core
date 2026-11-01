@@ -7,9 +7,9 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\File;
 use App\Models\User;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Files\FileWhereUsedScanner;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
+use App\Services\Files\FileWhereUsedScannerService;
 use App\Services\FileService;
 use App\Support\Files\FilesDisk;
 use App\Support\Storage\AbsolutePath;
@@ -99,13 +99,13 @@ test('where-used finds references for files stored on s3 disk', function () {
     $this->actingAs($user);
 
     $item = $collection->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
-        app(CollectionItemDataNormalizer::class)->normalize($collection, ['cover' => $file->id], true),
+        app(CollectionItemDataNormalizerService::class)->normalize($collection, ['cover' => $file->id], true),
     );
 
-    $refs = app(FileWhereUsedScanner::class)->findReferences((int) $file->id);
+    $refs = app(FileWhereUsedScannerService::class)->findReferences((int) $file->id);
 
     expect($refs)->toHaveCount(1)
         ->and($refs[0]['item_id'])->toBe($item->id);

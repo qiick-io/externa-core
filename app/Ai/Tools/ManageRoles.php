@@ -10,9 +10,9 @@ use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Http\Controllers\Admin\RoleController;
 use App\Models\Role as AppRole;
-use App\Services\Api\CollectionPermissionSync;
-use App\Services\Api\FilePermissionSync;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Api\CollectionPermissionSyncService;
+use App\Services\Api\FilePermissionSyncService;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
@@ -132,13 +132,13 @@ class ManageRoles implements Approvable, Tool
 
         $clone->syncPermissions($source->permissions()->pluck('id')->all());
 
-        app(CollectionPermissionSync::class)->sync(
+        app(CollectionPermissionSyncService::class)->sync(
             $clone,
-            app(CollectionPermissionSync::class)->matrixForRole($source),
+            app(CollectionPermissionSyncService::class)->matrixForRole($source),
         );
-        app(FilePermissionSync::class)->sync(
+        app(FilePermissionSyncService::class)->sync(
             $clone,
-            app(FilePermissionSync::class)->matrixForRole($source),
+            app(FilePermissionSyncService::class)->matrixForRole($source),
         );
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -350,7 +350,7 @@ class ManageRoles implements Approvable, Tool
             return 'Error: Unauthenticated.';
         }
 
-        $resolver = app(EffectivePermissionResolver::class);
+        $resolver = app(EffectivePermissionResolverService::class);
         $canList = $resolver->hasPermission($user, PermissionEnum::CanShowPermissions->value)
             || $resolver->hasPermission($user, PermissionEnum::CanCreateRoles->value)
             || $resolver->hasPermission($user, PermissionEnum::CanEditRoles->value);

@@ -57,7 +57,7 @@ class BulkUserActionRequest extends FormRequest
 
             if (
                 ! $superAdminGuard->canManageSuperAdmins($this->user())
-                && $superAdminGuard->hasSuperAdminUser((array) $this->input('ids', []))
+                && $superAdminGuard->includesSuperAdminUser((array) $this->input('ids', []))
             ) {
                 $validator->errors()->add('ids', __('Only a super-admin can change super-admin accounts.'));
             }

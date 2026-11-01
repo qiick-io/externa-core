@@ -2,8 +2,8 @@
 
 use App\Enums\PermissionEnum;
 use App\Models\User;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 use Inertia\Testing\AssertableInertia;
 use Laravel\Fortify\Features;
@@ -25,7 +25,7 @@ test('project settings persist two factor required', function () {
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.security.edit'));
 
-    expect(app(ProjectSettings::class)->isTwoFactorRequired())->toBeTrue();
+    expect(app(ProjectSettingsService::class)->isTwoFactorRequired())->toBeTrue();
 
     $this->actingAs($user)
         ->withSession(['auth.password_confirmed_at' => time()])
@@ -39,8 +39,8 @@ test('project settings persist two factor required', function () {
 test('users without two factor are redirected when required', function () {
     $this->skipUnlessFortifyFeature(Features::twoFactorAuthentication());
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'two_factor_required',
         true,
@@ -61,8 +61,8 @@ test('security and password routes stay reachable when two factor is required', 
         'confirmPassword' => true,
     ]);
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'two_factor_required',
         true,
@@ -83,8 +83,8 @@ test('security and password routes stay reachable when two factor is required', 
 test('users with two factor can use the app when required', function () {
     $this->skipUnlessFortifyFeature(Features::twoFactorAuthentication());
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'two_factor_required',
         true,
@@ -100,8 +100,8 @@ test('users with two factor can use the app when required', function () {
 test('two factor is not forced when the project setting is off', function () {
     $this->skipUnlessFortifyFeature(Features::twoFactorAuthentication());
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'two_factor_required',
         false,
