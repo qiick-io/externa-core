@@ -43,7 +43,11 @@ final class RegistryMcpToolAdapter
      * MCP `tools/call` via the shared executor (permissions re-checked at call time).
      *
      * @param  array<string, mixed>  $arguments
-     * @return array{isError: bool, content: list<array{type: string, text: string}}, structuredContent: array<string, mixed>}
+     * @return array{
+     *     isError: bool,
+     *     content: list<array{type: string, text: string}>,
+     *     structuredContent: array<string, mixed>
+     * }
      */
     public function callTool(string $name, array $arguments, ?Authenticatable $actor): array
     {
