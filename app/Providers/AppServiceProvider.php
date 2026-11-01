@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\Ai\AiToolExecutorService;
+use App\Services\Ai\AiToolRegistryService;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Settings\ProjectSettingsService;
 use App\Support\Http\CurlSseStreamer;
@@ -38,6 +40,8 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(EffectivePermissionResolverService::class);
         $this->app->singleton(ProjectSettingsService::class);
+        $this->app->singleton(AiToolRegistryService::class);
+        $this->app->singleton(AiToolExecutorService::class);
     }
 
     /**
