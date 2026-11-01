@@ -976,6 +976,8 @@ class ChatMessageController extends Controller
         $subscriberIds = [];
         if ($chat->isItem() && $chat->collection_id !== null) {
             $collectionId = (int) $chat->collection_id;
+            // Indexed (scope, group, key) — only notify rows, then membership in PHP
+            // (sqlite whereJsonContains misses numeric JSON elements; keep driver-neutral).
             $subscriberIds = Setting::query()
                 ->where('scope', SettingsRepository::SCOPE_USER)
                 ->where('group', self::SETTINGS_GROUP)

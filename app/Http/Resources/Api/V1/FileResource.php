@@ -3,7 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Models\File;
-use App\Services\Settings\ProjectSettings;
+use App\Support\Files\FileTransformUrlBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -24,21 +24,9 @@ class FileResource extends JsonResource
         /** @var File $file */
         $file = $this->resource;
 
-        $transforms = [];
-        if ($file->isFile() && is_string($file->mime_type) && str_starts_with($file->mime_type, 'image/')) {
-            try {
-                foreach (app(ProjectSettings::class)->presetTransformations() as $preset) {
-                    $key = $preset['key'] ?? null;
-                    if (! is_string($key) || $key === '') {
-                        continue;
-                    }
-                    $transforms[$key] = url("/api/v1/files/{$file->id}/transforms/{$key}");
-                }
-            } catch (\Throwable $exception) {
-                // Settings unavailable — omit transforms
-                report($exception);
-            }
-        }
+        $transforms = $file->isFile()
+            ? FileTransformUrlBuilder::urlsFor((int) $file->id, $file->mime_type)
+            : [];
 
         return [
             'id' => $file->id,

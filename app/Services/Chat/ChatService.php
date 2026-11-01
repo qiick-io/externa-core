@@ -21,6 +21,7 @@ use App\Support\Collections\CollectionItemDataAccessor;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -238,16 +239,104 @@ class ChatService
     }
 
     /**
+     * Collection IDs the user may read (empty list means unrestricted Spatie-only admin:
+     * no collection_permissions grants → all collections with CanShowCollections).
+     *
+     * @return array{unrestricted: bool, ids: list<int>}
+     */
+    public function readableCollectionScope(User $user): array
+    {
+        if (! $user->is_active || ! $this->permissionResolver->hasPermission($user, PermissionEnum::CanShowCollections->value)) {
+            return ['unrestricted' => false, 'ids' => []];
+        }
+
+        if ($this->permissionResolver->isSuperAdmin($user)) {
+            return ['unrestricted' => true, 'ids' => []];
+        }
+
+        $roleIds = $this->permissionResolver->effectiveRoleIds($user);
+        $readable = [];
+        $hasAnyGrant = false;
+
+        foreach ($roleIds as $roleId) {
+            $matrix = $this->permissionGuard->matrixForRole($roleId);
+            if ($matrix !== []) {
+                $hasAnyGrant = true;
+            }
+            foreach ($matrix as $collectionId => $actions) {
+                if (($actions[CollectionPermissionActionEnum::Read->value] ?? false) === true) {
+                    $readable[(int) $collectionId] = true;
+                }
+            }
+        }
+
+        // Spatie-only: no collection_permissions rows → treat as unrestricted.
+        if (! $hasAnyGrant) {
+            return ['unrestricted' => true, 'ids' => []];
+        }
+
+        return ['unrestricted' => false, 'ids' => array_keys($readable)];
+    }
+
+    /**
      * @return Builder<Chat>
      */
     public function itemChatsFor(Request $request, User $user): Builder
     {
-        return Chat::query()
+        $query = Chat::query()
             ->where('kind', Chat::KIND_ITEM)
             ->whereHas('collection')
             ->whereHas('item')
-            ->with(['collection:id,name,icon,color', 'item'])
+            ->with([
+                'collection:id,name,icon,color',
+                // Eager labels for serializeSummary / itemLabel (avoids N+1 assemble).
+                'item.fieldValues',
+                'item.collection.fields',
+            ])
             ->orderByDesc('updated_at');
+
+        $scope = $this->readableCollectionScope($user);
+        if (! $scope['unrestricted']) {
+            // Empty whereIn → Laravel emits `0 = 1` (no raw SQL in this file).
+            $query->whereIn('collection_id', $scope['ids']);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Apply hub search in SQL (collection name, message body, participant names).
+     *
+     * @param  Builder<Chat>  $query
+     * @return Builder<Chat>
+     */
+    public function applyHubSearch(Builder $query, string $q, User $viewer): Builder
+    {
+        $needle = trim($q);
+        if ($needle === '') {
+            return $query;
+        }
+
+        $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $needle);
+        $like = '%'.$escaped.'%';
+        $likeOp = DB::getDriverName() === 'pgsql' ? 'ilike' : 'like';
+
+        return $query->where(function (Builder $outer) use ($like, $likeOp, $viewer): void {
+            $outer->whereHas('collection', function (Builder $collection) use ($like, $likeOp): void {
+                $collection->where('name', $likeOp, $like);
+            })->orWhereHas('messages', function (Builder $messages) use ($like, $likeOp): void {
+                $messages->where('body', $likeOp, $like);
+            })->orWhereHas('participants.user', function (Builder $users) use ($like, $likeOp, $viewer): void {
+                $users->where('users.id', '!=', $viewer->id)
+                    ->where(function (Builder $name) use ($like, $likeOp): void {
+                        $name->where('first_name', $likeOp, $like)
+                            ->orWhere('last_name', $likeOp, $like)
+                            ->orWhere('email', $likeOp, $like);
+                    });
+            })->orWhereHas('participants.group', function (Builder $groups) use ($like, $likeOp): void {
+                $groups->where('name', $likeOp, $like);
+            });
+        });
     }
 
     /**
