@@ -33,7 +33,7 @@ test('FieldValidationRuleEvaluator maps every operator', function (string $opera
     'unknown drops' => ['nope', null, 0],
 ]);
 
-test('FieldConditionEvaluator and/or rulesMatch equals chain', function () {
+test('FieldConditionEvaluator and/or isMatchingRules equals chain', function () {
     $evaluator = app(FieldConditionEvaluator::class);
     $field = new CollectionField([
         'name' => 'notes',
@@ -194,7 +194,7 @@ function fieldConditionParityCases(): array
 test('FieldConditionEvaluator parity fixtures', function (string $logic, array $rules, array $data, bool $expected) {
     $evaluator = app(FieldConditionEvaluator::class);
 
-    expect($evaluator->rulesMatch($rules, $data, $logic))->toBe($expected);
+    expect($evaluator->isMatchingRules($rules, $data, $logic))->toBe($expected);
 })->with(fieldConditionParityCases());
 
 test('FieldConditionEvaluator normalizeSettings keeps or and new operators', function () {

@@ -101,7 +101,7 @@ class FieldController extends Controller
         /** @var CollectionField $field */
         $field = $collection->fields()->create([
             ...$validated,
-            'translatable' => $type->supportsTranslatable() && $request->boolean('translatable'),
+            'translatable' => $type->isTranslatableSupported() && $request->boolean('translatable'),
         ]);
 
         $groupService = app(CollectionFieldGroupService::class);
@@ -133,7 +133,7 @@ class FieldController extends Controller
             : $field->translatable;
 
         // Coerce legacy true flags when type cannot be per-locale.
-        if (! $type->supportsTranslatable()) {
+        if (! $type->isTranslatableSupported()) {
             $translatable = false;
         }
 

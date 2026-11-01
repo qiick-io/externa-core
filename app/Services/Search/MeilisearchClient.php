@@ -11,7 +11,7 @@ use RuntimeException;
  */
 class MeilisearchClient
 {
-    public function enabled(): bool
+    public function isEnabled(): bool
     {
         if (! config('meilisearch.enabled')) {
             return false;
@@ -32,7 +32,7 @@ class MeilisearchClient
      */
     public function upsertDocuments(array $documents): void
     {
-        if (! $this->enabled() || $documents === []) {
+        if (! $this->isEnabled() || $documents === []) {
             return;
         }
 
@@ -60,7 +60,7 @@ class MeilisearchClient
      */
     public function ensureIndex(): void
     {
-        if (! $this->enabled()) {
+        if (! $this->isEnabled()) {
             return;
         }
 
@@ -83,7 +83,7 @@ class MeilisearchClient
 
     public function deleteDocument(string $documentId): void
     {
-        if (! $this->enabled()) {
+        if (! $this->isEnabled()) {
             return;
         }
 

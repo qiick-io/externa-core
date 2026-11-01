@@ -38,7 +38,7 @@ class WarmFileThumbnailJob implements ShouldQueue
             return;
         }
 
-        if (! $fileTransformService->transformationsEnabled()) {
+        if (! $fileTransformService->isTransformationsEnabled()) {
             return;
         }
 

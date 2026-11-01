@@ -272,7 +272,7 @@ class ChatHubController extends Controller
 
         return response()->json([
             'collections' => $rows
-                ->filter(fn (Collection $collection): bool => $this->chats->userCanReadCollection($user, $collection))
+                ->filter(fn (Collection $collection): bool => $this->chats->canUserReadCollection($user, $collection))
                 ->take(20)
                 ->map(fn (Collection $collection): array => [
                     'id' => (int) $collection->id,
@@ -294,7 +294,7 @@ class ChatHubController extends Controller
         ]);
 
         $collection = Collection::query()->findOrFail($validated['collection_id']);
-        abort_unless($this->chats->userCanReadCollection($user, $collection), 404);
+        abort_unless($this->chats->canUserReadCollection($user, $collection), 404);
 
         $page = $this->itemOptions->paginateForCollection(
             $collection,
@@ -414,7 +414,7 @@ class ChatHubController extends Controller
         $collections = Collection::query()->orderBy('name')->get(['id', 'name']);
 
         foreach ($collections as $collection) {
-            if (! $this->chats->userCanReadCollection($user, $collection)) {
+            if (! $this->chats->canUserReadCollection($user, $collection)) {
                 continue;
             }
 

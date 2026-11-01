@@ -42,7 +42,7 @@ type Props = {
     canManagePasskeys?: boolean;
     requiresConfirmation?: boolean;
     twoFactorEnabled?: boolean;
-    twoFactorRequired?: boolean;
+    isTwoFactorRequired?: boolean;
     twoFactorEnforcedForUser?: boolean;
     passkeys?: PasskeyItem[];
 };

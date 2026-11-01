@@ -43,7 +43,7 @@ class MeilisearchSyncDispatcher
 
     public function dispatchUpsert(CollectionItem $item): void
     {
-        if (self::suppressed() || ! $this->client->enabled()) {
+        if (self::suppressed() || ! $this->client->isEnabled()) {
             return;
         }
 
@@ -55,7 +55,7 @@ class MeilisearchSyncDispatcher
 
     public function dispatchDelete(CollectionItem $item): void
     {
-        if (self::suppressed() || ! $this->client->enabled()) {
+        if (self::suppressed() || ! $this->client->isEnabled()) {
             return;
         }
 

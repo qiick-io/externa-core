@@ -17,7 +17,7 @@ class GitExportDispatcher
 
     public function dispatchItem(CollectionItem $item): void
     {
-        if (! $this->repository->enabled()) {
+        if (! $this->repository->isEnabled()) {
             return;
         }
 

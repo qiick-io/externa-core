@@ -155,7 +155,7 @@ class FileWhereUsedScanner
         }
 
         // Array-storage fields (files / multi-image) store one id per value row.
-        if ($field->usesArrayStorage()
+        if ($field->hasArrayStorage()
             && in_array($type, [FieldTypeEnum::Files, FieldTypeEnum::Image], true)) {
             if (is_array($value)) {
                 foreach ($value as $entry) {

@@ -63,7 +63,7 @@ class OidcUserResolver
             return $user;
         }
 
-        if (! $this->project->oidcJitProvisioning()) {
+        if (! $this->project->isOidcJitProvisioningEnabled()) {
             throw ValidationException::withMessages([
                 'email' => __('No local account matches this SSO email. Ask an admin to create your user first.'),
             ]);

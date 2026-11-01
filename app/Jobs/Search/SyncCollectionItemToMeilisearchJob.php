@@ -37,7 +37,7 @@ class SyncCollectionItemToMeilisearchJob implements ShouldQueue
         MeilisearchClient $client,
         MeilisearchDocumentBuilder $builder,
     ): void {
-        if (! $client->enabled()) {
+        if (! $client->isEnabled()) {
             return;
         }
 
