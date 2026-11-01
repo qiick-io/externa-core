@@ -54,7 +54,7 @@ export class ExternaClient {
   readonly #fetch: typeof fetch;
 
   constructor(options: ExternaClientOptions) {
-    this.#baseUrl = options.baseUrl.replace(/\/+$/, '');
+    this.#baseUrl = trimTrailingSlashes(options.baseUrl);
     this.#apiKey = options.apiKey;
     this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
   }
@@ -152,6 +152,15 @@ export function createClient(options: ExternaClientOptions): ExternaClient {
   return new ExternaClient(options);
 }
 
+function trimTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47 /* / */) {
+    end -= 1;
+  }
+
+  return end === value.length ? value : value.slice(0, end);
+}
+
 function appendDeepObject(
   search: URLSearchParams,
   prefix: string,
@@ -159,19 +168,25 @@ function appendDeepObject(
 ): void {
   if (value === null || value === undefined) {
     search.set(prefix, '');
+
     return;
   }
+
   if (Array.isArray(value)) {
     for (const [index, entry] of value.entries()) {
       appendDeepObject(search, `${prefix}[${index}]`, entry);
     }
+
     return;
   }
+
   if (typeof value === 'object') {
     for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
       appendDeepObject(search, `${prefix}[${key}]`, entry);
     }
+
     return;
   }
+
   search.set(prefix, String(value));
 }
