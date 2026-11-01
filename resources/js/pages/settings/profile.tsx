@@ -5,12 +5,17 @@ import NotificationPreferencesController from '@/actions/App/Http/Controllers/Se
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/delete-user';
 import Heading from '@/components/heading';
-import InputError from '@/components/input-error';
 import { SettingsFormActions } from '@/components/settings-form-actions';
 import { Button } from '@/components/ui/button';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -100,74 +105,126 @@ export default function Profile({
                                 preserveScroll: true,
                             }}
                             className="space-y-6"
+                            noValidate
                         >
                             {({ processing, recentlySuccessful, errors }) => (
                                 <>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="first_name">
-                                            {t('common.firstName')}
-                                        </Label>
+                                    <FieldGroup className="gap-6">
+                                        <Field
+                                            data-invalid={
+                                                errors.first_name
+                                                    ? true
+                                                    : undefined
+                                            }
+                                        >
+                                            <FieldLabel htmlFor="first_name">
+                                                {t('common.firstName')}
+                                            </FieldLabel>
 
-                                        <Input
-                                            id="first_name"
-                                            className="mt-1 block w-full"
-                                            defaultValue={user.first_name}
-                                            name="first_name"
-                                            required
-                                            autoComplete="given-name"
-                                            placeholder={t('common.firstName')}
-                                        />
+                                            <Input
+                                                id="first_name"
+                                                className="mt-1 block w-full"
+                                                defaultValue={user.first_name}
+                                                name="first_name"
+                                                required
+                                                autoComplete="given-name"
+                                                placeholder={t(
+                                                    'common.firstName',
+                                                )}
+                                                aria-invalid={
+                                                    errors.first_name
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.first_name
+                                                        ? 'first-name-error'
+                                                        : undefined
+                                                }
+                                            />
 
-                                        <InputError
-                                            className="mt-2"
-                                            message={errors.first_name}
-                                        />
-                                    </div>
+                                            <FieldError id="first-name-error">
+                                                {errors.first_name}
+                                            </FieldError>
+                                        </Field>
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="last_name">
-                                            {t('common.lastName')}
-                                        </Label>
+                                        <Field
+                                            data-invalid={
+                                                errors.last_name
+                                                    ? true
+                                                    : undefined
+                                            }
+                                        >
+                                            <FieldLabel htmlFor="last_name">
+                                                {t('common.lastName')}
+                                            </FieldLabel>
 
-                                        <Input
-                                            id="last_name"
-                                            className="mt-1 block w-full"
-                                            defaultValue={user.last_name ?? ''}
-                                            name="last_name"
-                                            required
-                                            autoComplete="family-name"
-                                            placeholder={t('common.lastName')}
-                                        />
+                                            <Input
+                                                id="last_name"
+                                                className="mt-1 block w-full"
+                                                defaultValue={
+                                                    user.last_name ?? ''
+                                                }
+                                                name="last_name"
+                                                required
+                                                autoComplete="family-name"
+                                                placeholder={t(
+                                                    'common.lastName',
+                                                )}
+                                                aria-invalid={
+                                                    errors.last_name
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.last_name
+                                                        ? 'last-name-error'
+                                                        : undefined
+                                                }
+                                            />
 
-                                        <InputError
-                                            className="mt-2"
-                                            message={errors.last_name}
-                                        />
-                                    </div>
+                                            <FieldError id="last-name-error">
+                                                {errors.last_name}
+                                            </FieldError>
+                                        </Field>
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="email">
-                                            {t('common.emailAddress')}
-                                        </Label>
+                                        <Field
+                                            data-invalid={
+                                                errors.email ? true : undefined
+                                            }
+                                        >
+                                            <FieldLabel htmlFor="email">
+                                                {t('common.emailAddress')}
+                                            </FieldLabel>
 
-                                        <Input
-                                            id="email"
-                                            type="email"
-                                            className="mt-1 block w-full"
-                                            defaultValue={user.email}
-                                            name="email"
-                                            required
-                                            autoComplete="username"
-                                            placeholder={t(
-                                                'common.emailAddress',
-                                            )}
-                                        />
+                                            <Input
+                                                id="email"
+                                                type="email"
+                                                className="mt-1 block w-full"
+                                                defaultValue={user.email}
+                                                name="email"
+                                                required
+                                                autoComplete="username"
+                                                placeholder={t(
+                                                    'common.emailAddress',
+                                                )}
+                                                aria-invalid={
+                                                    errors.email
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.email
+                                                        ? 'email-error'
+                                                        : undefined
+                                                }
+                                            />
 
-                                        <InputError
-                                            className="mt-2"
-                                            message={errors.email}
-                                        />
-                                    </div>
+                                            <FieldError id="email-error">
+                                                {errors.email}
+                                            </FieldError>
+                                        </Field>
+                                    </FieldGroup>
 
                                     {mustVerifyEmail &&
                                         user.email_verified_at === null && (
@@ -245,7 +302,14 @@ export default function Profile({
                                         }
                                     />
 
-                                    <div className="flex items-start gap-3">
+                                    <Field
+                                        orientation="horizontal"
+                                        data-invalid={
+                                            errors.sound_chat_enabled
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
                                         <Checkbox
                                             id="sound_chat_enabled"
                                             checked={soundChatEnabled}
@@ -262,25 +326,43 @@ export default function Profile({
                                                     unlockNotificationSound();
                                                 }
                                             }}
+                                            aria-invalid={
+                                                errors.sound_chat_enabled
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.sound_chat_enabled ||
+                                                errors.sound_notifications_enabled
+                                                    ? 'notification-sounds-error'
+                                                    : 'sound-chat-hint'
+                                            }
                                         />
                                         <div className="grid gap-1">
-                                            <Label
+                                            <FieldLabel
                                                 htmlFor="sound_chat_enabled"
                                                 className="font-normal"
                                             >
                                                 {t(
                                                     'settings.notificationSounds.chat',
                                                 )}
-                                            </Label>
-                                            <p className="text-sm text-muted-foreground">
+                                            </FieldLabel>
+                                            <FieldDescription id="sound-chat-hint">
                                                 {t(
                                                     'settings.notificationSounds.chatHint',
                                                 )}
-                                            </p>
+                                            </FieldDescription>
                                         </div>
-                                    </div>
+                                    </Field>
 
-                                    <div className="flex items-start gap-3">
+                                    <Field
+                                        orientation="horizontal"
+                                        data-invalid={
+                                            errors.sound_notifications_enabled
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
                                         <Checkbox
                                             id="sound_notifications_enabled"
                                             checked={soundNotificationsEnabled}
@@ -300,30 +382,39 @@ export default function Profile({
                                                     unlockNotificationSound();
                                                 }
                                             }}
+                                            aria-invalid={
+                                                errors.sound_notifications_enabled
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.sound_chat_enabled ||
+                                                errors.sound_notifications_enabled
+                                                    ? 'notification-sounds-error'
+                                                    : 'sound-notifications-hint'
+                                            }
                                         />
                                         <div className="grid gap-1">
-                                            <Label
+                                            <FieldLabel
                                                 htmlFor="sound_notifications_enabled"
                                                 className="font-normal"
                                             >
                                                 {t(
                                                     'settings.notificationSounds.notifications',
                                                 )}
-                                            </Label>
-                                            <p className="text-sm text-muted-foreground">
+                                            </FieldLabel>
+                                            <FieldDescription id="sound-notifications-hint">
                                                 {t(
                                                     'settings.notificationSounds.notificationsHint',
                                                 )}
-                                            </p>
+                                            </FieldDescription>
                                         </div>
-                                    </div>
+                                    </Field>
 
-                                    <InputError
-                                        message={
-                                            errors.sound_chat_enabled ??
-                                            errors.sound_notifications_enabled
-                                        }
-                                    />
+                                    <FieldError id="notification-sounds-error">
+                                        {errors.sound_chat_enabled ??
+                                            errors.sound_notifications_enabled}
+                                    </FieldError>
 
                                     <div>
                                         <Button
