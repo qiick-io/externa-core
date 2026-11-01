@@ -13,6 +13,9 @@ use App\Jobs\ImportCollectionJob;
 use App\Models\Collection;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Str;
+use Laravel\Ai\Approvals\Approval;
+use Laravel\Ai\Concerns\InteractsWithApprovals;
+use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -21,10 +24,11 @@ use Throwable;
 /**
  * AI tool that imports collection records from a validated remote JSON URL.
  */
-class ImportRemoteJson implements Tool
+class ImportRemoteJson implements Approvable, Tool
 {
     use ChecksAiPermissionsTrait;
     use ImportsCollectionRecordsTrait;
+    use InteractsWithApprovals;
     use LogsAiToolUseTrait;
 
     private const DEFAULT_LIMIT = 200;
@@ -36,6 +40,14 @@ class ImportRemoteJson implements Tool
     private const MAX_BYTES = 5_242_880; // 5 MB
 
     private const ASYNC_THRESHOLD = 200;
+
+    /**
+     * Imports write collection data, so every call waits for the user's approval.
+     */
+    protected function needsApproval(Request $request): Approval|bool
+    {
+        return Approval::required('ImportRemoteJson writes collection records.');
+    }
 
     /**
      * Describe what this tool does for the model.

@@ -201,7 +201,9 @@
             "filesMedia": "Dateien & Medien",
             "api": "API",
             "integrations": "Integrationen",
-            "sidebar": "Seitenleiste"
+            "sidebar": "Seitenleiste",
+            "aiTools": "KI-Schreibwerkzeuge",
+            "pendingToolCalls": "KI-Tool-Freigaben"
         },
         "profile": {
             "breadcrumb": "Profileinstellungen",
@@ -578,6 +580,18 @@
             "lastFlushedBy": "Geleert von",
             "neverFlushed": "Nie",
             "unknownActor": "—"
+        },
+        "aiTools": {
+            "breadcrumb": "KI-Schreibwerkzeuge",
+            "head": "KI-Schreibwerkzeuge",
+            "title": "KI-Schreibwerkzeuge",
+            "description": "Wählen Sie, welche mutierenden KI-Tool-Klassen nach menschlicher Freigabe laufen dürfen. Der AI_WRITE_TOOLS-Kill-Switch muss aktiv sein.",
+            "killSwitchLabel": "Env-Kill-Switch",
+            "killSwitchOn": "aktiviert",
+            "killSwitchOff": "deaktiviert (Standard)",
+            "killSwitchHint": "Setzen Sie AI_WRITE_TOOLS=true (oder AI_TOOLS_WRITE_ENABLED=true) in der Umgebung, um Schreibwerkzeuge zuzulassen.",
+            "ttlHint": "MCP-Freigaben laufen nach {{minutes}} Minuten ab. Tool-Audit-Einträge werden {{days}} Tage aufbewahrt.",
+            "save": "Speichern"
         }
     },
     "collections": {
@@ -1709,6 +1723,7 @@
             "privateTitle": "Privat — erfordert Read private auf API-Rollen"
         }
     },
+<<<<<<< HEAD
     "confirmDestructive": {
         "typeToConfirm": "Tippe „{{name}}“ zur Bestätigung",
         "deletePermanently": "Endgültig löschen"
@@ -1753,5 +1768,18 @@
             "forceDeleteTitle": "Gruppe „{{name}}“ endgültig löschen?",
             "forceDeleteDescription": "Diese Gruppe wird dauerhaft entfernt. Das kann nicht rückgängig gemacht werden."
         }
+=======
+    "pendingToolCalls": {
+        "head": "KI-Tool-Freigaben",
+        "description": "MCP-Tool-Aufrufe, die auf einen Benutzer mit passender Berechtigung warten.",
+        "colTool": "Werkzeug",
+        "colArgs": "Argumente",
+        "colRequester": "Angefordert von",
+        "colExpires": "Läuft ab",
+        "colActions": "Aktionen",
+        "empty": "Keine ausstehenden Freigaben.",
+        "approve": "Freigeben",
+        "reject": "Ablehnen"
+>>>>>>> 0a422c4 (feat(ai): human approval + audit log for tool calls (#203))
     }
 }

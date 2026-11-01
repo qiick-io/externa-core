@@ -17,6 +17,7 @@ beforeEach(function (): void {
     config([
         'ai.tools.enabled' => true,
         'ai.tools.write_enabled' => false,
+        'ai.tools.write_allow' => [],
         'ai.tools.allow' => [],
         'ai.tools.deny' => [],
     ]);
@@ -31,7 +32,6 @@ it('lists the same read tools for chat and MCP for a show-collections user', fun
 
     $registry = app(AiToolRegistryService::class);
 
-    // MCP listing = registry without write opt-in. Chat also includes mutating tools (BC).
     $readNames = collect($registry->visibleFor($user))
         ->map->name()
         ->sort()
@@ -46,16 +46,17 @@ it('lists the same read tools for chat and MCP for a show-collections user', fun
 
     $chatNames = collect((new AppAssistant($user))->tools())
         ->map(fn ($tool): string => ToolNameResolver::resolve($tool))
+        ->sort()
+        ->values()
         ->all();
 
     expect($mcpNames)->toBe($readNames)
+        ->and($chatNames)->toBe($readNames)
         ->and($readNames)->toContain('QueryCollectionItems')
         ->and($readNames)->toContain('ExportCollection')
         ->and($readNames)->toContain('SearchSimilarCollectionItems')
         ->and($readNames)->toContain('DescribeFieldTypes')
-        ->and($readNames)->not->toContain('ManageCollections')
-        ->and($chatNames)->toContain('ManageCollections')
-        ->and($chatNames)->toContain('QueryCollectionItems');
+        ->and($readNames)->not->toContain('ManageCollections');
 });
 
 it('denies QueryCollectionItems on chat and MCP when the user lacks show collections', function (): void {
@@ -81,7 +82,6 @@ it('denies QueryCollectionItems on chat and MCP when the user lacks show collect
         'QueryCollectionItems',
         ['collection_id' => $collection->id],
         $user,
-        ['include_write' => true],
     );
 
     $mcpCall = $mcp->callTool(
@@ -109,7 +109,6 @@ it('allows QueryCollectionItems on both surfaces when the user can show collecti
         'QueryCollectionItems',
         $args,
         $user,
-        ['include_write' => true],
     );
 
     $mcpCall = app(RegistryMcpToolAdapter::class)->callTool(
@@ -123,7 +122,7 @@ it('allows QueryCollectionItems on both surfaces when the user can show collecti
         ->and($mcpCall['structuredContent']['status'] ?? null)->toBe('ok');
 });
 
-it('hides mutating tools from MCP list while chat still receives them for permitted users', function (): void {
+it('hides mutating tools from chat and MCP until the write gate allows them', function (): void {
     $user = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
         ...allCollectionPermissions(),
@@ -138,9 +137,24 @@ it('hides mutating tools from MCP list while chat still receives them for permit
         ->pluck('name')
         ->all();
 
-    expect($chatNames)->toContain('ManageCollections')
+    expect($chatNames)->not->toContain('ManageCollections')
         ->and($mcpNames)->not->toContain('ManageCollections')
         ->and($mcpNames)->toContain('QueryCollectionItems');
+
+    config([
+        'ai.tools.write_enabled' => true,
+        'ai.tools.write_allow' => ['ManageCollections'],
+    ]);
+
+    $chatEnabled = collect((new AppAssistant($user))->tools())
+        ->map(fn ($tool): string => ToolNameResolver::resolve($tool))
+        ->all();
+    $mcpEnabled = collect(app(RegistryMcpToolAdapter::class)->listTools($user))
+        ->pluck('name')
+        ->all();
+
+    expect($chatEnabled)->toContain('ManageCollections')
+        ->and($mcpEnabled)->toContain('ManageCollections');
 });
 
 it('re-checks permissions at MCP call time even if the tool was previously listed', function (): void {
@@ -160,10 +174,31 @@ it('re-checks permissions at MCP call time even if the tool was previously liste
 
     $collection = Collection::factory()->create();
 
-    // Call-time AuthZ uses the actor passed to tools/call, not a prior list snapshot.
     $this->actingAs($denied);
     $call = $mcp->callTool('QueryCollectionItems', ['collection_id' => $collection->id], $denied);
 
     expect($call['isError'])->toBeTrue()
         ->and($call['structuredContent']['status'] ?? null)->toBe('denied');
+});
+
+it('returns pending_approval for MCP mutating calls when the write gate allows the tool', function (): void {
+    config([
+        'ai.tools.write_enabled' => true,
+        'ai.tools.write_allow' => ['ManageCollections'],
+    ]);
+
+    $user = grantAiPermissions(User::factory()->create(), [
+        PermissionEnum::CanUseAi->value,
+        ...allCollectionPermissions(),
+    ]);
+
+    $call = app(RegistryMcpToolAdapter::class)->callTool(
+        'ManageCollections',
+        ['action' => 'list'],
+        $user,
+    );
+
+    expect($call['isError'])->toBeFalse()
+        ->and($call['structuredContent']['status'] ?? null)->toBe('pending_approval')
+        ->and($call['structuredContent']['pending_id'] ?? null)->not->toBeNull();
 });

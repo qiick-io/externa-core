@@ -201,7 +201,9 @@
             "filesMedia": "File e media",
             "api": "API",
             "integrations": "Integrazioni",
-            "sidebar": "Barra laterale"
+            "sidebar": "Barra laterale",
+            "aiTools": "Strumenti AI in scrittura",
+            "pendingToolCalls": "Approvazioni strumenti AI"
         },
         "profile": {
             "breadcrumb": "Impostazioni profilo",
@@ -578,6 +580,18 @@
             "codesAria": "Codici di recupero",
             "loadingAria": "Caricamento codici di recupero",
             "regenerateWarning": "Ogni codice di recupero può essere usato una sola volta e verrà rimosso dopo l'uso. Se ne servono altri, clicca <bold>Rigenera codici</bold> sopra."
+        },
+        "aiTools": {
+            "breadcrumb": "Strumenti AI in scrittura",
+            "head": "Strumenti AI in scrittura",
+            "title": "Strumenti AI in scrittura",
+            "description": "Scegli quali classi di strumenti AI mutanti possono essere eseguiti dopo l’approvazione umana. Il kill switch AI_WRITE_TOOLS deve essere attivo.",
+            "killSwitchLabel": "Kill switch env",
+            "killSwitchOn": "abilitato",
+            "killSwitchOff": "disabilitato (default)",
+            "killSwitchHint": "Imposta AI_WRITE_TOOLS=true (o AI_TOOLS_WRITE_ENABLED=true) nell’ambiente per consentire gli strumenti in scrittura.",
+            "ttlHint": "Le approvazioni MCP scadono dopo {{minutes}} minuti. Le voci di audit degli strumenti sono conservate per {{days}} giorni.",
+            "save": "Salva"
         }
     },
     "collections": {
@@ -1709,6 +1723,7 @@
             "privateTitle": "Privato — richiede Read private sui ruoli API"
         }
     },
+<<<<<<< HEAD
     "confirmDestructive": {
         "typeToConfirm": "Digita \"{{name}}\" per confermare",
         "deletePermanently": "Elimina definitivamente"
@@ -1753,5 +1768,18 @@
             "forceDeleteTitle": "Eliminare definitivamente il gruppo “{{name}}”?",
             "forceDeleteDescription": "Il gruppo verrà rimosso definitivamente. L’operazione non può essere annullata."
         }
+=======
+    "pendingToolCalls": {
+        "head": "Approvazioni strumenti AI",
+        "description": "Chiamate MCP in attesa di un utente con il permesso corrispondente.",
+        "colTool": "Strumento",
+        "colArgs": "Argomenti",
+        "colRequester": "Richiesto da",
+        "colExpires": "Scade",
+        "colActions": "Azioni",
+        "empty": "Nessuna approvazione in sospeso.",
+        "approve": "Approva",
+        "reject": "Rifiuta"
+>>>>>>> 0a422c4 (feat(ai): human approval + audit log for tool calls (#203))
     }
 }

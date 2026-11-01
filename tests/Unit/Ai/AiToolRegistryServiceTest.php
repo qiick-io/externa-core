@@ -17,6 +17,13 @@ uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
+    config([
+        'ai.tools.enabled' => true,
+        'ai.tools.write_enabled' => false,
+        'ai.tools.write_allow' => [],
+        'ai.tools.allow' => [],
+        'ai.tools.deny' => [],
+    ]);
 });
 
 it('registers default AppAssistant tools by stable name', function (): void {
@@ -29,14 +36,7 @@ it('registers default AppAssistant tools by stable name', function (): void {
         ->and($names)->toContain('QueryActivityLogs');
 });
 
-it('hides write and destructive tools unless write_enabled or include_write', function (): void {
-    config([
-        'ai.tools.enabled' => true,
-        'ai.tools.write_enabled' => false,
-        'ai.tools.allow' => [],
-        'ai.tools.deny' => [],
-    ]);
-
+it('hides write and destructive tools unless the write gate allows them', function (): void {
     $user = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
         ...allCollectionPermissions(),
@@ -44,21 +44,31 @@ it('hides write and destructive tools unless write_enabled or include_write', fu
 
     $registry = app(AiToolRegistryService::class);
 
-    $mcpVisible = collect($registry->visibleFor($user))
+    $defaultVisible = collect($registry->visibleFor($user))
         ->map->name()
         ->all();
 
-    expect($mcpVisible)->toContain('QueryCollectionItems')
-        ->and($mcpVisible)->toContain('DescribeFieldTypes')
-        ->and($mcpVisible)->not->toContain('ManageCollections')
-        ->and($mcpVisible)->not->toContain('ImportCollectionCsv');
+    expect($defaultVisible)->toContain('QueryCollectionItems')
+        ->and($defaultVisible)->toContain('DescribeFieldTypes')
+        ->and($defaultVisible)->not->toContain('ManageCollections')
+        ->and($defaultVisible)->not->toContain('ImportCollectionCsv');
 
-    $chatVisible = collect($registry->visibleFor($user, ['include_write' => true]))
+    // include_write cannot bypass the kill switch / empty allowlist.
+    expect(collect($registry->visibleFor($user, ['include_write' => true]))->map->name()->all())
+        ->not->toContain('ManageCollections');
+
+    config([
+        'ai.tools.write_enabled' => true,
+        'ai.tools.write_allow' => ['ManageCollections', 'ImportCollectionCsv'],
+    ]);
+
+    $enabledVisible = collect($registry->visibleFor($user))
         ->map->name()
         ->all();
 
-    expect($chatVisible)->toContain('ManageCollections')
-        ->and($chatVisible)->toContain('ImportCollectionCsv');
+    expect($enabledVisible)->toContain('ManageCollections')
+        ->and($enabledVisible)->toContain('ImportCollectionCsv')
+        ->and($enabledVisible)->not->toContain('ManageFiles');
 });
 
 it('respects per-tool deny and allow lists', function (): void {
@@ -68,8 +78,6 @@ it('respects per-tool deny and allow lists', function (): void {
     ]);
 
     config([
-        'ai.tools.enabled' => true,
-        'ai.tools.write_enabled' => false,
         'ai.tools.deny' => ['QueryCollectionItems'],
         'ai.tools.allow' => [],
     ]);
@@ -90,13 +98,18 @@ it('respects per-tool deny and allow lists', function (): void {
 });
 
 it('does not advertise tools the actor cannot use', function (): void {
+    config([
+        'ai.tools.write_enabled' => true,
+        'ai.tools.write_allow' => ['ManageFiles'],
+    ]);
+
     $user = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
         PermissionEnum::CanShowFiles->value,
     ]);
 
     $registry = app(AiToolRegistryService::class);
-    $names = collect($registry->visibleFor($user, ['include_write' => true]))
+    $names = collect($registry->visibleFor($user))
         ->map->name()
         ->all();
 
@@ -164,6 +177,7 @@ it('chatToolsFor unwraps LaravelAiToolDefinition instances', function (): void {
     $basenames = collect($tools)->map(fn ($tool): string => class_basename($tool))->all();
 
     expect($basenames)->toContain('QueryCollectionItems')
+        ->and($basenames)->not->toContain('ManageCollections')
         ->and(collect($tools)->every(fn ($tool) => $tool instanceof Tool))->toBeTrue();
 
     $definition = app(AiToolRegistryService::class)->get('QueryCollectionItems');

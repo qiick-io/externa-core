@@ -29,6 +29,14 @@ class ManageGroups implements Approvable, Tool
     /**
      * @return list<string>
      */
+    protected function writeActions(): array
+    {
+        return ['create', 'update', 'restore'];
+    }
+
+    /**
+     * @return list<string>
+     */
     protected function destructiveActions(): array
     {
         return ['delete', 'force_delete'];

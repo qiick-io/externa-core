@@ -38,6 +38,14 @@ class ManageCollectionItems implements Approvable, Tool
     /**
      * @return list<string>
      */
+    protected function writeActions(): array
+    {
+        return ['create', 'update', 'restore', 'bulk_update'];
+    }
+
+    /**
+     * @return list<string>
+     */
     protected function destructiveActions(): array
     {
         return ['delete', 'force_delete', 'bulk_delete'];

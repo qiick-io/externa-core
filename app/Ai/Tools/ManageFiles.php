@@ -30,6 +30,14 @@ class ManageFiles implements Approvable, Tool
     /**
      * @return list<string>
      */
+    protected function writeActions(): array
+    {
+        return ['create', 'create_folder', 'rename', 'move', 'move_many', 'restore', 'save_attachment'];
+    }
+
+    /**
+     * @return list<string>
+     */
     protected function destructiveActions(): array
     {
         return ['delete', 'force_delete'];

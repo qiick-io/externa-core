@@ -41,6 +41,23 @@ class ManageCollections implements Approvable, Tool
     /**
      * @return list<string>
      */
+    protected function writeActions(): array
+    {
+        return [
+            'create',
+            'update',
+            'restore',
+            'create_field',
+            'update_field',
+            'apply_field_pack',
+            'apply_collection_pack',
+            'duplicate',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
     protected function destructiveActions(): array
     {
         return ['delete', 'force_delete', 'delete_field'];

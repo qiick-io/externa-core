@@ -2,9 +2,13 @@
 
 namespace App\Providers;
 
+use App\Listeners\Ai\LogAiToolApprovalEventsListener;
 use App\Models\User;
+use App\Services\Ai\AiToolApprovalService;
+use App\Services\Ai\AiToolArgumentRedactorService;
 use App\Services\Ai\AiToolExecutorService;
 use App\Services\Ai\AiToolRegistryService;
+use App\Services\Ai\AiToolWriteGateService;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Settings\ProjectSettingsService;
 use App\Support\Http\CurlSseStreamer;
@@ -22,6 +26,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Ai\Events\ToolApprovalRequested;
+use Laravel\Ai\Events\ToolApprovalResolved;
 use Spatie\Activitylog\Facades\Activity;
 use Throwable;
 
@@ -40,6 +46,9 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(EffectivePermissionResolverService::class);
         $this->app->singleton(ProjectSettingsService::class);
+        $this->app->singleton(AiToolArgumentRedactorService::class);
+        $this->app->singleton(AiToolWriteGateService::class);
+        $this->app->singleton(AiToolApprovalService::class);
         $this->app->singleton(AiToolRegistryService::class);
         $this->app->singleton(AiToolExecutorService::class);
     }
@@ -54,6 +63,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
         $this->configureActivityLogging();
         $this->registerAuthActivityListeners();
+        $this->registerAiToolApprovalListeners();
         $this->configureHttpClientStreaming();
     }
 
@@ -172,6 +182,14 @@ class AppServiceProvider extends ServiceProvider
                 ])
                 ->log('Failed login attempt');
         });
+    }
+
+    protected function registerAiToolApprovalListeners(): void
+    {
+        $listener = LogAiToolApprovalEventsListener::class;
+
+        Event::listen(ToolApprovalRequested::class, [$listener, 'handleRequested']);
+        Event::listen(ToolApprovalResolved::class, [$listener, 'handleResolved']);
     }
 
     /**

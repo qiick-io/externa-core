@@ -27,6 +27,14 @@ class ManageAiSyncSources implements Approvable, Tool
     /**
      * @return list<string>
      */
+    protected function writeActions(): array
+    {
+        return ['create', 'update', 'enable', 'disable'];
+    }
+
+    /**
+     * @return list<string>
+     */
     protected function destructiveActions(): array
     {
         return ['delete'];
