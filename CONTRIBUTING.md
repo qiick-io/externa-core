@@ -66,8 +66,17 @@ Rules for changes to the admin UI (`resources/js`). The values live in the linke
   - `primary`: qiick teal by default, overridable per project via `--brand-primary` / `--brand-primary-dark` (#226), with built-in presets (#243);
   - `success`, `warning`, `danger`, `info`: status roles (#226);
   - `ai`: violet, the single accent for every AI surface such as the AI FAB, AI nav, translating fields and the AI pages (#242).
-- **Contrast:** light and dark themes must both pass WCAG 2.2 AA, meaning 4.5:1 for text and 3:1 for UI components, borders and focus indicators. Never convey status by color alone; pair it with text or an icon.
-- **Accessibility:** WCAG 2.2 AA with complete ARIA. Link every validation error to its field with `aria-describedby` and set `aria-invalid`. Keep a visible focus ring on every interactive element.
+- **Contrast:** light and dark themes must both pass WCAG 2.2 AA, meaning 4.5:1 for text and 3:1 for UI components, borders and focus indicators. Never convey status by color alone; pair it with text or an icon. Measured key pairs live in [`docs/a11y-contrast-pairs.md`](./docs/a11y-contrast-pairs.md) (light, dark, `html.high-contrast`, `html.high-contrast.dark`). Keep `prefers-contrast: more` and `html.high-contrast` token blocks in sync.
+- **Accessibility (WCAG 2.2 AA):** expand the checklist below for every UI PR. Tracking detail: [#252](https://github.com/qiick-io/externa-core/issues/252)–[#255](https://github.com/qiick-io/externa-core/issues/255).
+  - Decorative Lucide icons: `aria-hidden="true"` unless the icon alone carries meaning (then `role="img"` + translated `aria-label`).
+  - Icon-only controls: accessible name from `a11y.*` (or feature) keys in **en / de / it**.
+  - Prefer native elements (`<button>`, `<nav>`, `<main>`, `<ul>`) over ARIA roles on `div`/`span`.
+  - Forms: every control has a programmatic label; errors use `aria-invalid` + `aria-describedby` (shadcn `Field*` — #231); help text via `FieldDescription`.
+  - Focus: visible ring (≥3:1) on every interactive element; restore focus after dialogs/drawers close (#254).
+  - Live regions for async feedback; no status by colour alone.
+  - Skip link first focusable → `#main-content`; exactly one `<main>` per page.
+  - Test at 320px width and ~400% zoom; never set `maximum-scale` / `user-scalable=no` on the viewport meta.
+  - One a11y concern per PR when practical (rules, landmarks, forms, tooling).
 
 Tracking issues: [#226](https://github.com/qiick-io/externa-core/issues/226) (qiick tokens mapped onto the shadcn variables), [#242](https://github.com/qiick-io/externa-core/issues/242) (AI accent), [#243](https://github.com/qiick-io/externa-core/issues/243) (theme presets), and the rest of the 1.4.0 UI audit (#227–#241).
 
