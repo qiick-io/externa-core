@@ -35,8 +35,8 @@ import SettingsLayout from '@/layouts/settings/layout';
 import adminRoutes from '@/lib/admin-routes';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
-import { edit as editProfile } from '@/routes/profile';
 import type { AdminRoleRow, BreadcrumbItem, Paginated } from '@/types';
+import { edit as editProfile } from '@/routes/profile';
 
 /**
  * Admin roles list with permissions overview and icon row actions.
@@ -279,14 +279,12 @@ export default function AdminRolesIndex({
                         setPendingRoleId(null);
                     }
                 }}
-                title={t('roles.deleteTitle')}
-                description={
+                title={
                     pendingRole
-                        ? t('roles.deleteDescription', {
-                              name: pendingRole.name,
-                          })
+                        ? t('roles.deleteTitle', { name: pendingRole.name })
                         : t('roles.deleteFallback')
                 }
+                description={t('roles.deleteDescription')}
                 confirming={deleting}
                 onConfirm={() => {
                     if (pendingRoleId === null) {

@@ -22,8 +22,6 @@ import {
     useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
-import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
@@ -82,13 +80,11 @@ import {
 } from '@/lib/item-list-filters';
 import type { FilterRule } from '@/lib/item-list-filters';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
-import collections from '@/routes/collections';
 import type {
     BreadcrumbItem,
     CollectionFieldRow,
     CollectionView,
 } from '@/types';
-import type { QueryParams } from '@/wayfinder';
 import { alignClass, ColumnHeaderMenu } from './column-header-menu';
 import type { ColumnAlign } from './column-header-menu';
 import { ColumnPickerPopover } from './column-picker-popover';
@@ -99,6 +95,10 @@ import { ItemsCalendar } from './items-calendar';
 import type { CalendarMonthPayload } from './items-calendar';
 import { ItemsKanban } from './items-kanban';
 import type { KanbanBoard } from './items-kanban';
+import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
+import collections from '@/routes/collections';
+import type { QueryParams } from '@/wayfinder';
 
 type ListLayout = 'table' | 'kanban' | 'calendar';
 
@@ -1499,8 +1499,19 @@ export default function ItemsIndex({
                         setDeleteItemId(null);
                     }
                 }}
-                title="Delete item?"
-                description="This item will be soft-deleted and removed from the active list."
+                title={t('itemConfirm.deleteTitle', {
+                    name: (() => {
+                        const row = items.data.find(
+                            (item) => item.id === deleteItemId,
+                        );
+
+                        return (
+                            (row ? itemLabel(row) : null) ??
+                            `#${deleteItemId ?? ''}`
+                        );
+                    })(),
+                })}
+                description={t('itemConfirm.deleteDescription')}
                 confirming={confirmingDestructive}
                 onConfirm={confirmDelete}
             />
@@ -1514,18 +1525,22 @@ export default function ItemsIndex({
                 }}
                 title={
                     pendingBulkAction === 'force_delete'
-                        ? `Delete ${selected.length} selected items permanently?`
-                        : `Delete ${selected.length} selected items?`
+                        ? t('itemConfirm.bulkForceDeleteTitle', {
+                              count: selected.length,
+                          })
+                        : t('itemConfirm.bulkDeleteTitle', {
+                              count: selected.length,
+                          })
                 }
                 description={
                     pendingBulkAction === 'force_delete'
-                        ? 'Selected items will be permanently removed. This cannot be undone.'
-                        : 'Selected items will be soft-deleted and moved to trash.'
+                        ? t('itemConfirm.bulkForceDeleteDescription')
+                        : t('itemConfirm.bulkDeleteDescription')
                 }
                 confirmLabel={
                     pendingBulkAction === 'force_delete'
-                        ? 'Delete permanently'
-                        : 'Delete'
+                        ? t('confirmDestructive.deletePermanently')
+                        : t('common.delete')
                 }
                 confirming={confirmingDestructive}
                 onConfirm={() => {
@@ -1557,9 +1572,20 @@ export default function ItemsIndex({
                         setPendingForceDeleteItemId(null);
                     }
                 }}
-                title="Delete item permanently?"
-                description="This item will be permanently removed. This cannot be undone."
-                confirmLabel="Delete permanently"
+                title={t('itemConfirm.forceDeleteTitle', {
+                    name: (() => {
+                        const row = items.data.find(
+                            (item) => item.id === pendingForceDeleteItemId,
+                        );
+
+                        return (
+                            (row ? itemLabel(row) : null) ??
+                            `#${pendingForceDeleteItemId ?? ''}`
+                        );
+                    })(),
+                })}
+                description={t('itemConfirm.forceDeleteDescription')}
+                confirmLabel={t('confirmDestructive.deletePermanently')}
                 confirming={confirmingDestructive}
                 onConfirm={() => {
                     if (pendingForceDeleteItemId === null) {

@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { History } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { RevisionSnapshot } from '@/components/collections/item-revision-compare-modal';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,7 @@ export function ItemRevisionsDrawer({
     canRestore = false,
     onSelectRevision,
 }: Props) {
+    const { t } = useTranslation();
     const [revisions, setRevisions] = useState<RevisionSnapshot[]>([]);
     const [meta, setMeta] = useState<RevisionsMeta | null>(null);
     const [dateFrom, setDateFrom] = useState('');
@@ -358,8 +360,10 @@ export function ItemRevisionsDrawer({
                         setHardRestoreId(null);
                     }
                 }}
-                title="Hard restore this revision?"
-                description="Current published values will be overwritten immediately. Prefer Compare → Apply for soft restore."
+                title={t('itemConfirm.hardRestoreRevisionTitle', {
+                    name: `#${itemId}`,
+                })}
+                description={t('itemConfirm.hardRestoreRevisionDescription')}
                 confirmLabel="Hard restore"
                 confirming={restoring}
                 onConfirm={() => {

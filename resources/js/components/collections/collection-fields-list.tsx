@@ -19,7 +19,6 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import Sortable from 'sortablejs';
 import type { MoveEvent, SortableEvent } from 'sortablejs';
-import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { FIELD_TYPE_ICONS } from '@/components/collections/collection-field-form';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { Button } from '@/components/ui/button';
@@ -62,6 +61,7 @@ import type { FieldLayoutWidth } from '@/lib/collection-field-types';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { CollectionFieldRow } from '@/types';
+import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 
 /** Field-grid gap — enough air for between-item / between-group inserts. */
 const FIELD_LIST_GAP_CLASS = 'gap-5';
@@ -706,8 +706,8 @@ function CollectionFieldRowActions({
             <ConfirmDestructiveDialog
                 open={deleteOpen}
                 onOpenChange={setDeleteOpen}
-                title="Delete field?"
-                description={`Delete "${field.name}"? This cannot be undone.`}
+                title={t('fieldConfirm.deleteTitle', { name: field.name })}
+                description={t('fieldConfirm.deleteDescription')}
                 confirming={deleting}
                 onConfirm={deleteField}
             />

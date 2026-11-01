@@ -37,8 +37,8 @@
         },
         "empty": "No roles yet.",
         "systemBadge": "System",
-        "deleteTitle": "Delete role?",
-        "deleteDescription": "Delete \"{{name}}\"? This cannot be undone.",
+        "deleteTitle": "Delete role “{{name}}”?",
+        "deleteDescription": "This cannot be undone.",
         "deleteFallback": "This cannot be undone.",
         "duplicate": {
             "title": "Duplicate role",
@@ -224,7 +224,12 @@
             "filesScopeHelp": "none = no Files API; read = list/download only; all = read+write (still subject to read-only and role).",
             "filesScopeNone": "None",
             "filesScopeRead": "Read",
-            "filesScopeAll": "All"
+            "filesScopeAll": "All",
+            "confirm": {
+                "revokeTitle": "Revoke API key “{{name}}”?",
+                "revokeDescription": "This key will stop working immediately.",
+                "revokeConfirm": "Revoke"
+            }
         },
         "notificationSounds": {
             "title": "Notification sounds",
@@ -1081,7 +1086,18 @@
             "groups": "Groups"
         },
         "translatableDescription": "When enabled, editors enter a separate value for each language (e.g. English and Italian) instead of a single shared value.",
-        "translatableLockedHint": "Locked because this field already has content. Changing Translatable would not convert existing values — create a new field and migrate instead."
+        "translatableLockedHint": "Locked because this field already has content. Changing Translatable would not convert existing values — create a new field and migrate instead.",
+        "confirm": {
+            "deleteTitle": "Delete collection “{{name}}”?",
+            "deleteDescription": "This collection will be soft-deleted and moved to trash.",
+            "forceDeleteTitle": "Delete collection “{{name}}” permanently?",
+            "forceDeleteDescription": "This collection will be permanently removed. This cannot be undone.",
+            "bulkDeleteTitle": "Delete {{count}} selected collections?",
+            "bulkDeleteDescription": "Selected collections will be soft-deleted and moved to trash.",
+            "bulkForceDeleteTitle": "Delete {{count}} selected collections permanently?",
+            "bulkForceDeleteDescription": "Selected collections will be permanently removed. This cannot be undone.",
+            "bulkForceDeleteTitleNamed": "Delete collection “{{name}}” permanently?"
+        }
     },
     "ai": {
         "drawer": {
@@ -1691,6 +1707,51 @@
             "select": "Select {{name}}",
             "privateBadge": "Private",
             "privateTitle": "Private — requires Read private on API roles"
+        }
+    },
+    "confirmDestructive": {
+        "typeToConfirm": "Type \"{{name}}\" to confirm",
+        "deletePermanently": "Delete permanently"
+    },
+    "itemConfirm": {
+        "deleteTitle": "Delete item “{{name}}”?",
+        "deleteDescription": "This item will be soft-deleted and removed from the active list.",
+        "forceDeleteTitle": "Delete item “{{name}}” permanently?",
+        "forceDeleteDescription": "This item will be permanently removed. This cannot be undone.",
+        "bulkDeleteTitle": "Delete {{count}} selected items?",
+        "bulkDeleteDescription": "Selected items will be soft-deleted and removed from the active list.",
+        "bulkForceDeleteTitle": "Delete {{count}} selected items permanently?",
+        "bulkForceDeleteDescription": "Selected items will be permanently removed. This cannot be undone.",
+        "rejectDraftTitle": "Reject draft for “{{name}}”?",
+        "publishDraftTitle": "Publish draft for “{{name}}”?",
+        "publishDraftDescription": "Promote unpublished draft into published values. Draft workspace will clear.",
+        "discardDraftTitle": "Discard draft for “{{name}}”?",
+        "discardDraftDescription": "Drop unpublished draft. Published values stay unchanged.",
+        "restoreRevisionTitle": "Restore revision for “{{name}}”?",
+        "restoreRevisionDescription": "Current values will be overwritten.",
+        "hardRestoreRevisionTitle": "Hard restore revision for “{{name}}”?",
+        "hardRestoreRevisionDescription": "Current published values will be overwritten immediately. Prefer Compare → Apply for soft restore."
+    },
+    "fieldConfirm": {
+        "deleteTitle": "Delete field “{{name}}”?",
+        "deleteDescription": "This cannot be undone."
+    },
+    "users": {
+        "confirm": {
+            "bulkDeleteTitle": "Delete {{count}} selected users?",
+            "bulkDeleteDescription": "Selected users will be soft-deleted.",
+            "bulkForceDeleteTitle": "Delete {{count}} selected users permanently?",
+            "bulkForceDeleteDescription": "Selected users will be permanently removed. This cannot be undone."
+        }
+    },
+    "groups": {
+        "confirm": {
+            "bulkDeleteTitle": "Delete {{count}} selected groups?",
+            "bulkDeleteDescription": "Selected groups will be soft-deleted.",
+            "bulkForceDeleteTitle": "Delete {{count}} selected groups permanently?",
+            "bulkForceDeleteDescription": "Selected groups will be permanently removed. This cannot be undone.",
+            "forceDeleteTitle": "Delete group “{{name}}” permanently?",
+            "forceDeleteDescription": "This group will be permanently removed. This cannot be undone."
         }
     }
 }

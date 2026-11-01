@@ -1,14 +1,17 @@
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { buttonVariants } from '@/components/ui/button';
 import type { UnsavedChangesDialogCopy } from '@/lib/unsaved-changes/registry';
+import { cn } from '@/lib/utils';
 
 export type UnsavedChangesDialogProps = {
     open: boolean;
@@ -19,7 +22,8 @@ export type UnsavedChangesDialogProps = {
 
 /**
  * Keep editing / Discard confirmation for dirty forms.
- * Esc and overlay dismiss map to Keep editing (not discard).
+ * Esc dismiss maps to Keep editing (not discard). Overlay click does not
+ * dismiss (AlertDialog default).
  */
 export function UnsavedChangesDialog({
     open,
@@ -30,7 +34,7 @@ export function UnsavedChangesDialog({
     const { t } = useTranslation();
 
     return (
-        <Dialog
+        <AlertDialog
             open={open}
             onOpenChange={(next) => {
                 if (!next) {
@@ -38,37 +42,42 @@ export function UnsavedChangesDialog({
                 }
             }}
         >
-            <DialogContent
-                className="z-[100]"
-                onPointerDownOutside={(event) => {
-                    event.preventDefault();
-                    onKeepEditing();
-                }}
-                onEscapeKeyDown={(event) => {
-                    event.preventDefault();
-                    onKeepEditing();
-                }}
-            >
-                <DialogHeader>
-                    <DialogTitle>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>
                         {t(copy?.titleKey ?? 'unsavedChanges.title')}
-                    </DialogTitle>
-                    <DialogDescription>
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
                         {t(
                             copy?.descriptionKey ??
                                 'unsavedChanges.description',
                         )}
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogFooter className="gap-2 sm:justify-end">
-                    <Button type="button" variant="outline" onClick={onDiscard}>
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="gap-2 sm:justify-end">
+                    <AlertDialogAction
+                        className={cn(
+                            buttonVariants({ variant: 'outline' }),
+                            'bg-background text-foreground hover:bg-accent hover:text-accent-foreground',
+                        )}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            onDiscard();
+                        }}
+                    >
                         {t(copy?.discardKey ?? 'unsavedChanges.discard')}
-                    </Button>
-                    <Button type="button" onClick={onKeepEditing}>
+                    </AlertDialogAction>
+                    <AlertDialogCancel
+                        className={cn(buttonVariants({ variant: 'default' }))}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            onKeepEditing();
+                        }}
+                    >
                         {t('unsavedChanges.keepEditing')}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                    </AlertDialogCancel>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     );
 }

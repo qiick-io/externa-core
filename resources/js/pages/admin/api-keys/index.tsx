@@ -26,8 +26,8 @@ import SettingsLayout from '@/layouts/settings/layout';
 import adminRoutes from '@/lib/admin-routes';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
-import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem, Paginated } from '@/types';
+import { edit as editProfile } from '@/routes/profile';
 
 type ApiKeyRow = {
     id: number;
@@ -725,9 +725,13 @@ export default function AdminApiKeysIndex({
                         setPendingRevokeKeyId(null);
                     }
                 }}
-                title="Revoke this API key?"
-                description="This key will stop working immediately."
-                confirmLabel="Revoke"
+                title={t('settings.apiKeys.confirm.revokeTitle', {
+                    name:
+                        rows.find((key) => key.id === pendingRevokeKeyId)
+                            ?.name ?? '',
+                })}
+                description={t('settings.apiKeys.confirm.revokeDescription')}
+                confirmLabel={t('settings.apiKeys.confirm.revokeConfirm')}
                 confirming={revoking}
                 onConfirm={() => {
                     if (pendingRevokeKeyId === null) {

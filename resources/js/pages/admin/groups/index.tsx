@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { ArrowDownAZ, ArrowUpAZ, Plus, Trash2, UsersRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { GroupFormDrawer } from '@/components/admin/group-form-drawer';
 import { TruncatedText } from '@/components/admin/truncated-text';
@@ -69,6 +70,7 @@ export default function AdminGroupsIndex({
     filters?: Filters;
 }) {
     const groups = normalizePaginated(groupsProp);
+    const { t } = useTranslation();
     const { can } = useCan();
     const requestLeave = useRequestLeave();
     const isTrashed = filters.trashed === true;
@@ -600,18 +602,22 @@ export default function AdminGroupsIndex({
                 }}
                 title={
                     pendingBulkAction === 'force_delete'
-                        ? `Delete ${selected.length} selected groups permanently?`
-                        : `Delete ${selected.length} selected groups?`
+                        ? t('groups.confirm.bulkForceDeleteTitle', {
+                              count: selected.length,
+                          })
+                        : t('groups.confirm.bulkDeleteTitle', {
+                              count: selected.length,
+                          })
                 }
                 description={
                     pendingBulkAction === 'force_delete'
-                        ? 'Selected groups will be permanently removed. This cannot be undone.'
-                        : 'Selected groups will be soft-deleted and moved to trash.'
+                        ? t('groups.confirm.bulkForceDeleteDescription')
+                        : t('groups.confirm.bulkDeleteDescription')
                 }
                 confirmLabel={
                     pendingBulkAction === 'force_delete'
-                        ? 'Delete permanently'
-                        : 'Delete'
+                        ? t('confirmDestructive.deletePermanently')
+                        : t('common.delete')
                 }
                 confirming={confirmingDestructive}
                 onConfirm={() => {
@@ -643,13 +649,16 @@ export default function AdminGroupsIndex({
                         setPendingForceDeleteGroupId(null);
                     }
                 }}
-                title="Delete group permanently?"
-                description={
+                title={
                     pendingForceDeleteGroup
-                        ? `Delete "${pendingForceDeleteGroup.name}" permanently? This cannot be undone.`
-                        : 'This cannot be undone.'
+                        ? t('groups.confirm.forceDeleteTitle', {
+                              name: pendingForceDeleteGroup.name,
+                          })
+                        : t('groups.confirm.forceDeleteDescription')
                 }
-                confirmLabel="Delete permanently"
+                description={t('groups.confirm.forceDeleteDescription')}
+                confirmLabel={t('confirmDestructive.deletePermanently')}
+                typedConfirmation={pendingForceDeleteGroup?.name}
                 confirming={confirmingDestructive}
                 onConfirm={() => {
                     if (pendingForceDeleteGroupId === null) {

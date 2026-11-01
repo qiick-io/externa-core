@@ -13,6 +13,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Admin a11y phase 2 foundations: `Icon` decorative-by-default semantics, translated dialog/sheet Close + sidebar toggle, unread/notifications names, and new `a11y.*` keys with locale parity coverage (#253).
 
 ### Changed
+- Destructive and unsaved-changes confirms use shadcn `AlertDialog` (overlay `--overlay` token); irreversible collection force-delete requires typing the collection name (#230).
 - Collection create/edit drawer, field settings form, and dynamic item fields use shadcn `Field*` / `FieldError` with `aria-invalid` / `aria-describedby` (#231).
 - Admin users/groups drawers, API keys, and roles form use shadcn `Field*` with `aria-invalid` / `aria-describedby`; role permission groups use `FieldSet` (#231).
 - Remaining settings forms (appearance, project tabs, delete-user, two-factor setup) use shadcn `Field*` with `aria-invalid` / `aria-describedby` (#231).

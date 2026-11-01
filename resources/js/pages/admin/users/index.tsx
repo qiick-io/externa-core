@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { ArrowDownAZ, ArrowUpAZ, Trash2, UserPlus, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { UserFormDrawer } from '@/components/admin/user-form-drawer';
@@ -78,6 +79,7 @@ export default function AdminUsersIndex({
     filters?: Filters;
 }) {
     const users = normalizePaginated(usersProp);
+    const { t } = useTranslation();
     const { can } = useCan();
     const requestLeave = useRequestLeave();
     const onlineUsers = useOnlineUsers();
@@ -646,18 +648,22 @@ export default function AdminUsersIndex({
                 }}
                 title={
                     pendingBulkAction === 'force_delete'
-                        ? `Delete ${selected.length} selected users permanently?`
-                        : `Delete ${selected.length} selected users?`
+                        ? t('users.confirm.bulkForceDeleteTitle', {
+                              count: selected.length,
+                          })
+                        : t('users.confirm.bulkDeleteTitle', {
+                              count: selected.length,
+                          })
                 }
                 description={
                     pendingBulkAction === 'force_delete'
-                        ? 'Selected users will be permanently removed. This cannot be undone.'
-                        : 'Selected users will be soft-deleted and moved to trash.'
+                        ? t('users.confirm.bulkForceDeleteDescription')
+                        : t('users.confirm.bulkDeleteDescription')
                 }
                 confirmLabel={
                     pendingBulkAction === 'force_delete'
-                        ? 'Delete permanently'
-                        : 'Delete'
+                        ? t('confirmDestructive.deletePermanently')
+                        : t('common.delete')
                 }
                 confirming={confirmingBulk}
                 onConfirm={() => {
