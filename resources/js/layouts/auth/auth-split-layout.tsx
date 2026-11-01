@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import AppLogoIcon from '@/components/app-logo-icon';
+import { SkipToContent } from '@/components/skip-to-content';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
 
@@ -20,6 +21,7 @@ export default function AuthSplitLayout({
 
     return (
         <div className="relative grid h-dvh flex-col items-center justify-center px-8 sm:px-0 lg:max-w-none lg:grid-cols-2 lg:px-0">
+            <SkipToContent />
             <div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
                 <div className="absolute inset-0 bg-zinc-900" />
                 <Link
@@ -30,7 +32,7 @@ export default function AuthSplitLayout({
                     {name}
                 </Link>
             </div>
-            <div className="w-full lg:p-8">
+            <main id="main-content" tabIndex={-1} className="w-full lg:p-8">
                 <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
                     <Link
                         href={home()}
@@ -46,7 +48,7 @@ export default function AuthSplitLayout({
                     </div>
                     {children}
                 </div>
-            </div>
+            </main>
         </div>
     );
 }

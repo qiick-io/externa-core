@@ -186,7 +186,8 @@
     --overlay: color-mix(in srgb, var(--color-ink-950) 60%, transparent);
     --border: var(--color-ink-200);
     --input: var(--color-ink-400);
-    --ring: var(--brand-primary, var(--color-teal-400));
+    /* teal-500 ≥3:1 on white (teal-400 was 2.59:1); brand override still wins */
+    --ring: var(--brand-primary, var(--color-teal-500));
     --chart-1: var(--color-teal-600);
     --chart-2: var(--color-blue-500);
     --chart-3: var(--color-amber-500);

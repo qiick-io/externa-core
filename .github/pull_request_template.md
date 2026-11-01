@@ -24,7 +24,7 @@ Closes #
 - [ ] en / it / de i18n parity for user-facing strings
 - [ ] `CHANGELOG.md` updated under `## [Unreleased]` (if user-facing or noteworthy)
 - [ ] Screenshots or recording attached for UI changes
-- [ ] Accessibility checked for UI changes (focus, labels, contrast) — see #252
+- [ ] Accessibility checked for UI changes (focus, labels, contrast) — see [CONTRIBUTING → UI contributions](../CONTRIBUTING.md#ui-contributions) / #252
 
 ## Test plan
 
