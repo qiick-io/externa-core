@@ -46,7 +46,7 @@ it('keeps activity log page 2 after the search debounce window', function () {
     $page->assertSee('Activity Log')
         ->assertSee('Pagination activity')
         ->assertNoJavaScriptErrors()
-        ->click('2')
+        ->click('button[aria-label="Go to page 2"]')
         ->wait(1)
         ->assertQueryStringHas('page', '2')
         ->assertNoJavaScriptErrors();
@@ -63,7 +63,7 @@ it('paginates permissions under settings', function () {
 
     $page->assertSee('Permissions are defined')
         ->assertNoJavaScriptErrors()
-        ->click('2')
+        ->click('button[aria-label="Go to page 2"]')
         ->wait(1)
         ->assertQueryStringHas('page', '2')
         ->assertPathIs('/settings/permissions')
@@ -83,7 +83,7 @@ it('paginates users without bouncing to page 1', function () {
 
     $page->assertSee('Users')
         ->assertNoJavaScriptErrors()
-        ->click('2')
+        ->click('button[aria-label="Go to page 2"]')
         ->wait(1)
         ->assertQueryStringHas('page', '2')
         ->assertNoJavaScriptErrors();
@@ -102,7 +102,7 @@ it('paginates groups without bouncing to page 1', function () {
 
     $page->assertSee('Slug')
         ->assertNoJavaScriptErrors()
-        ->click('2')
+        ->click('button[aria-label="Go to page 2"]')
         ->wait(1)
         ->assertQueryStringHas('page', '2')
         ->assertNoJavaScriptErrors();
@@ -126,7 +126,7 @@ it('paginates roles without bouncing to page 1', function () {
 
     $page->assertSee('Name')
         ->assertNoJavaScriptErrors()
-        ->click('2')
+        ->click('button[aria-label="Go to page 2"]')
         ->wait(1)
         ->assertQueryStringHas('page', '2')
         ->assertPathIs('/settings/roles')
@@ -151,9 +151,9 @@ it('paginates collection items without bouncing to page 1', function () {
 
     $page = visit('/collections/'.$collection->id.'/items');
 
-    $page->assertSee('Data preview')
+    $page->assertSee('Actions')
         ->assertNoJavaScriptErrors()
-        ->click('2')
+        ->click('button[aria-label="Go to page 2"]')
         ->wait(1)
         ->assertQueryStringHas('page', '2')
         ->assertNoJavaScriptErrors();

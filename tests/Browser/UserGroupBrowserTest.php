@@ -62,7 +62,8 @@ it('hydrates members in the edit drawer and keeps them after a description-only 
         ->click('Browser Editors')
         ->wait(0.5)
         ->assertSee('Edit group')
-        ->assertSee('hydrated-member@example.com')
+        // Chip shows display name; email lives in option.label / dropdown only.
+        ->assertSee('Hydrated Member')
         ->assertSee('collection/file ACL')
         ->assertSee('Members inherit these roles')
         ->fill('#group_description', 'After browser save')
@@ -94,7 +95,8 @@ it('supports trash restore and force delete actions', function () {
     $page = visit('/groups');
 
     $page->assertDontSee('Trash Me Please')
-        ->click('[aria-label="Trashed groups"]')
+        // ToggleGroupItem label is "Trash" (not "Trashed groups").
+        ->click('button[aria-label="Trash"]')
         ->wait(1)
         ->assertQueryStringHas('trashed', '1')
         ->assertSee('Trash Me Please')
@@ -112,6 +114,8 @@ it('supports trash restore and force delete actions', function () {
 
     $page->assertSee('Trash Me Please')
         ->click('Delete forever')
+        ->assertSee('Delete group permanently?')
+        ->click('Delete permanently')
         ->wait(1)
         ->assertDontSee('Trash Me Please')
         ->assertNoJavaScriptErrors();

@@ -112,6 +112,30 @@ export type TablePaginationLink = {
  * @param {TablePaginationLink[]} props.links - Pagination links from the server.
  * @returns {JSX.Element | null}
  */
+function paginationAriaLabel(label: string): string | undefined {
+    // Parse as HTML so tags/entities resolve safely — regex tag-stripping
+    // reintroduces nested sequences (CodeQL js/incomplete-multi-character-sanitization).
+    const plain =
+        new DOMParser()
+            .parseFromString(label, 'text/html')
+            .body.textContent?.replace(/\s+/g, ' ')
+            .trim() ?? '';
+
+    if (/^\d+$/.test(plain)) {
+        return `Go to page ${plain}`;
+    }
+
+    if (/previous/i.test(plain)) {
+        return 'Go to previous page';
+    }
+
+    if (/next/i.test(plain)) {
+        return 'Go to next page';
+    }
+
+    return plain.length > 0 ? plain : undefined;
+}
+
 export function TablePagination({ links }: { links: TablePaginationLink[] }) {
     if (links.length === 0) {
         return null;
@@ -125,6 +149,8 @@ export function TablePagination({ links }: { links: TablePaginationLink[] }) {
                     type="button"
                     className={link.active ? 'font-semibold underline' : ''}
                     disabled={!link.url}
+                    aria-label={paginationAriaLabel(link.label)}
+                    aria-current={link.active ? 'page' : undefined}
                     onClick={() => link.url && router.visit(link.url)}
                     dangerouslySetInnerHTML={{ __html: link.label }}
                 />

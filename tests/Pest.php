@@ -14,6 +14,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\Api\CollectionPermissionGuardService;
 use App\Services\Api\FilePermissionGuardService;
+use App\Services\Settings\ProjectSettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -36,6 +37,16 @@ pest()->extend(TestCase::class)
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Browser');
+
+// Bounded Playwright waits — default 5s is tight for Inertia+AI drawer opens in CI.
+pest()->browser()->timeout(10_000);
+
+// Drop ProjectSettings memo between Browser tests — RefreshDatabase alone leaves stale two_factor_required etc.
+uses()->afterEach(function () {
+    if (app()->bound(ProjectSettingsService::class)) {
+        app(ProjectSettingsService::class)->forgetRawCache();
+    }
+})->in('Browser');
 
 pest()->extend(TestCase::class)
     ->in('Unit');

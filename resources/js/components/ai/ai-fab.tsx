@@ -112,9 +112,10 @@ export function AiFab() {
         }
 
         let cancelled = false;
+        const statusAbort = new AbortController();
 
         const refresh = async () => {
-            const next = await fetchAiStatus();
+            const next = await fetchAiStatus(statusAbort.signal);
 
             if (!cancelled) {
                 setStatus(next);
@@ -134,6 +135,7 @@ export function AiFab() {
 
         return () => {
             cancelled = true;
+            statusAbort.abort();
             abortControllerRef.current?.abort();
             recognitionRef.current?.abort();
             stopSpeaking();

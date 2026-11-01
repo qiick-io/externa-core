@@ -224,22 +224,38 @@ export function isAbortError(error: unknown): boolean {
 /**
  * Fetches whether the AI backend is reachable and which model is active.
  *
+ * @param signal - Optional abort signal (FAB cleanup / timeout)
  * @returns Online flag and optional model name
  */
-export async function fetchAiStatus(): Promise<AiStatus> {
-    const response = await fetch('/ai/status', {
-        headers: {
-            Accept: 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-        credentials: 'same-origin',
-    });
+export async function fetchAiStatus(signal?: AbortSignal): Promise<AiStatus> {
+    // ponytail: bound status probe so a stuck /ai/status cannot pin browser suites open.
+    const timeoutMs = 5_000;
+    const timeoutController = new AbortController();
+    const timer = window.setTimeout(() => timeoutController.abort(), timeoutMs);
+    const onOuterAbort = () => timeoutController.abort();
+    signal?.addEventListener('abort', onOuterAbort, { once: true });
 
-    if (!response.ok) {
+    try {
+        const response = await fetch('/ai/status', {
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+            signal: timeoutController.signal,
+        });
+
+        if (!response.ok) {
+            return { online: false };
+        }
+
+        return (await response.json()) as AiStatus;
+    } catch {
         return { online: false };
+    } finally {
+        window.clearTimeout(timer);
+        signal?.removeEventListener('abort', onOuterAbort);
     }
-
-    return (await response.json()) as AiStatus;
 }
 
 /**
