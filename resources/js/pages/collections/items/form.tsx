@@ -2007,8 +2007,10 @@ export default function ItemsForm({
                 <ConfirmDestructiveDialog
                     open={deleteOpen}
                     onOpenChange={setDeleteOpen}
-                    title="Delete item?"
-                    description="This item will be soft-deleted and removed from the active list."
+                    title={t('itemConfirm.deleteTitle', {
+                        name: `#${item.id}`,
+                    })}
+                    description={t('itemConfirm.deleteDescription')}
                     confirming={deleting}
                     onConfirm={() => {
                         setDeleting(true);
@@ -2030,7 +2032,9 @@ export default function ItemsForm({
                 <ConfirmDestructiveDialog
                     open={rejectOpen}
                     onOpenChange={setRejectOpen}
-                    title="Reject draft?"
+                    title={t('itemConfirm.rejectDraftTitle', {
+                        name: `#${item.id}`,
+                    })}
                     description={
                         <div className="grid gap-2 pt-1 text-left">
                             <p className="text-sm text-muted-foreground">
@@ -2083,8 +2087,10 @@ export default function ItemsForm({
                 <ConfirmDestructiveDialog
                     open={publishOpen}
                     onOpenChange={setPublishOpen}
-                    title="Publish draft?"
-                    description="Promote unpublished draft into published values. Draft workspace will clear."
+                    title={t('itemConfirm.publishDraftTitle', {
+                        name: `#${item.id}`,
+                    })}
+                    description={t('itemConfirm.publishDraftDescription')}
                     confirmLabel="Publish"
                     confirming={publishing}
                     onConfirm={() => {
@@ -2110,8 +2116,10 @@ export default function ItemsForm({
                 <ConfirmDestructiveDialog
                     open={discardDraftOpen}
                     onOpenChange={setDiscardDraftOpen}
-                    title="Discard draft?"
-                    description="Drop unpublished draft. Published values stay unchanged."
+                    title={t('itemConfirm.discardDraftTitle', {
+                        name: `#${item.id}`,
+                    })}
+                    description={t('itemConfirm.discardDraftDescription')}
                     confirmLabel="Discard draft"
                     confirming={discardingDraft}
                     onConfirm={() => {

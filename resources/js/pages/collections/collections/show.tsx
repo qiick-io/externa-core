@@ -1,6 +1,7 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
 import { Rows3, Save, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import {
@@ -46,6 +47,7 @@ export default function CollectionsShow({
         editableRawData: null,
     });
 
+    const { t } = useTranslation();
     const collectionForm = useCollectionEditDrawer();
     const [isDirty, setIsDirty] = useState(false);
     const [formKey, setFormKey] = useState(0);
@@ -181,8 +183,10 @@ export default function CollectionsShow({
             <ConfirmDestructiveDialog
                 open={deleteOpen}
                 onOpenChange={setDeleteOpen}
-                title="Delete collection?"
-                description={`Delete "${collection.name}"? This collection will be soft-deleted.`}
+                title={t('collections.confirm.deleteTitle', {
+                    name: collection.name,
+                })}
+                description={t('collections.confirm.deleteDescription')}
                 confirming={deleting}
                 onConfirm={() => {
                     setDeleting(true);

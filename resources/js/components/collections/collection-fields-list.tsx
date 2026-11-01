@@ -706,8 +706,8 @@ function CollectionFieldRowActions({
             <ConfirmDestructiveDialog
                 open={deleteOpen}
                 onOpenChange={setDeleteOpen}
-                title="Delete field?"
-                description={`Delete "${field.name}"? This cannot be undone.`}
+                title={t('fieldConfirm.deleteTitle', { name: field.name })}
+                description={t('fieldConfirm.deleteDescription')}
                 confirming={deleting}
                 onConfirm={deleteField}
             />

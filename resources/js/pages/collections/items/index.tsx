@@ -1499,8 +1499,19 @@ export default function ItemsIndex({
                         setDeleteItemId(null);
                     }
                 }}
-                title="Delete item?"
-                description="This item will be soft-deleted and removed from the active list."
+                title={t('itemConfirm.deleteTitle', {
+                    name: (() => {
+                        const row = items.data.find(
+                            (item) => item.id === deleteItemId,
+                        );
+
+                        return (
+                            (row ? itemLabel(row) : null) ??
+                            `#${deleteItemId ?? ''}`
+                        );
+                    })(),
+                })}
+                description={t('itemConfirm.deleteDescription')}
                 confirming={confirmingDestructive}
                 onConfirm={confirmDelete}
             />
@@ -1514,18 +1525,22 @@ export default function ItemsIndex({
                 }}
                 title={
                     pendingBulkAction === 'force_delete'
-                        ? `Delete ${selected.length} selected items permanently?`
-                        : `Delete ${selected.length} selected items?`
+                        ? t('itemConfirm.bulkForceDeleteTitle', {
+                              count: selected.length,
+                          })
+                        : t('itemConfirm.bulkDeleteTitle', {
+                              count: selected.length,
+                          })
                 }
                 description={
                     pendingBulkAction === 'force_delete'
-                        ? 'Selected items will be permanently removed. This cannot be undone.'
-                        : 'Selected items will be soft-deleted and moved to trash.'
+                        ? t('itemConfirm.bulkForceDeleteDescription')
+                        : t('itemConfirm.bulkDeleteDescription')
                 }
                 confirmLabel={
                     pendingBulkAction === 'force_delete'
-                        ? 'Delete permanently'
-                        : 'Delete'
+                        ? t('confirmDestructive.deletePermanently')
+                        : t('common.delete')
                 }
                 confirming={confirmingDestructive}
                 onConfirm={() => {
@@ -1557,9 +1572,20 @@ export default function ItemsIndex({
                         setPendingForceDeleteItemId(null);
                     }
                 }}
-                title="Delete item permanently?"
-                description="This item will be permanently removed. This cannot be undone."
-                confirmLabel="Delete permanently"
+                title={t('itemConfirm.forceDeleteTitle', {
+                    name: (() => {
+                        const row = items.data.find(
+                            (item) => item.id === pendingForceDeleteItemId,
+                        );
+
+                        return (
+                            (row ? itemLabel(row) : null) ??
+                            `#${pendingForceDeleteItemId ?? ''}`
+                        );
+                    })(),
+                })}
+                description={t('itemConfirm.forceDeleteDescription')}
+                confirmLabel={t('confirmDestructive.deletePermanently')}
                 confirming={confirmingDestructive}
                 onConfirm={() => {
                     if (pendingForceDeleteItemId === null) {

@@ -37,8 +37,8 @@
         },
         "empty": "Noch keine Rollen.",
         "systemBadge": "System",
-        "deleteTitle": "Rolle löschen?",
-        "deleteDescription": "„{{name}}“ löschen? Dies kann nicht rückgängig gemacht werden.",
+        "deleteTitle": "Rolle „{{name}}“ löschen?",
+        "deleteDescription": "Das kann nicht rückgängig gemacht werden.",
         "deleteFallback": "Dies kann nicht rückgängig gemacht werden.",
         "duplicate": {
             "title": "Rolle duplizieren",
@@ -224,7 +224,12 @@
             "filesScopeHelp": "none = keine Files-API; read = nur Liste/Download; all = lesen+schreiben (weiterhin read-only und Rolle).",
             "filesScopeNone": "Kein",
             "filesScopeRead": "Lesen",
-            "filesScopeAll": "Alles"
+            "filesScopeAll": "Alles",
+            "confirm": {
+                "revokeTitle": "API-Schlüssel „{{name}}“ widerrufen?",
+                "revokeDescription": "Dieser Schlüssel funktioniert sofort nicht mehr.",
+                "revokeConfirm": "Widerrufen"
+            }
         },
         "notificationSounds": {
             "title": "Benachrichtigungstöne",
@@ -1081,7 +1086,18 @@
             "groups": "Gruppen"
         },
         "translatableDescription": "Wenn aktiviert, geben Redakteure einen eigenen Wert je Sprache ein (z. B. Englisch und Italienisch) statt eines gemeinsamen Werts.",
-        "translatableLockedHint": "Gesperrt, weil dieses Feld bereits Inhalte hat. Eine Änderung von Übersetzbar würde vorhandene Werte nicht konvertieren — legen Sie ein neues Feld an und migrieren Sie die Inhalte."
+        "translatableLockedHint": "Gesperrt, weil dieses Feld bereits Inhalte hat. Eine Änderung von Übersetzbar würde vorhandene Werte nicht konvertieren — legen Sie ein neues Feld an und migrieren Sie die Inhalte.",
+        "confirm": {
+            "deleteTitle": "Collection „{{name}}“ löschen?",
+            "deleteDescription": "Diese Collection wird soft-gelöscht und in den Papierkorb verschoben.",
+            "forceDeleteTitle": "Collection „{{name}}“ endgültig löschen?",
+            "forceDeleteDescription": "Diese Collection wird dauerhaft entfernt. Das kann nicht rückgängig gemacht werden.",
+            "bulkDeleteTitle": "{{count}} ausgewählte Collections löschen?",
+            "bulkDeleteDescription": "Ausgewählte Collections werden soft-gelöscht und in den Papierkorb verschoben.",
+            "bulkForceDeleteTitle": "{{count}} ausgewählte Collections endgültig löschen?",
+            "bulkForceDeleteDescription": "Ausgewählte Collections werden dauerhaft entfernt. Das kann nicht rückgängig gemacht werden.",
+            "bulkForceDeleteTitleNamed": "Collection „{{name}}“ endgültig löschen?"
+        }
     },
     "ai": {
         "drawer": {
@@ -1691,6 +1707,51 @@
             "select": "{{name}} auswählen",
             "privateBadge": "Privat",
             "privateTitle": "Privat — erfordert Read private auf API-Rollen"
+        }
+    },
+    "confirmDestructive": {
+        "typeToConfirm": "Tippe „{{name}}“ zur Bestätigung",
+        "deletePermanently": "Endgültig löschen"
+    },
+    "itemConfirm": {
+        "deleteTitle": "Item „{{name}}“ löschen?",
+        "deleteDescription": "Dieses Item wird soft-gelöscht und aus der aktiven Liste entfernt.",
+        "forceDeleteTitle": "Item „{{name}}“ endgültig löschen?",
+        "forceDeleteDescription": "Dieses Item wird dauerhaft entfernt. Das kann nicht rückgängig gemacht werden.",
+        "bulkDeleteTitle": "{{count}} ausgewählte Items löschen?",
+        "bulkDeleteDescription": "Ausgewählte Items werden soft-gelöscht und aus der aktiven Liste entfernt.",
+        "bulkForceDeleteTitle": "{{count}} ausgewählte Items endgültig löschen?",
+        "bulkForceDeleteDescription": "Ausgewählte Items werden dauerhaft entfernt. Das kann nicht rückgängig gemacht werden.",
+        "rejectDraftTitle": "Entwurf für „{{name}}“ ablehnen?",
+        "publishDraftTitle": "Entwurf für „{{name}}“ veröffentlichen?",
+        "publishDraftDescription": "Unveröffentlichten Entwurf in veröffentlichte Werte übernehmen. Der Entwurfsbereich wird geleert.",
+        "discardDraftTitle": "Entwurf für „{{name}}“ verwerfen?",
+        "discardDraftDescription": "Unveröffentlichten Entwurf verwerfen. Veröffentlichte Werte bleiben unverändert.",
+        "restoreRevisionTitle": "Revision für „{{name}}“ wiederherstellen?",
+        "restoreRevisionDescription": "Aktuelle Werte werden überschrieben.",
+        "hardRestoreRevisionTitle": "Hard restore der Revision für „{{name}}“?",
+        "hardRestoreRevisionDescription": "Aktuelle veröffentlichte Werte werden sofort überschrieben. Bevorzuge Vergleichen → Anwenden für soft restore."
+    },
+    "fieldConfirm": {
+        "deleteTitle": "Feld „{{name}}“ löschen?",
+        "deleteDescription": "Das kann nicht rückgängig gemacht werden."
+    },
+    "users": {
+        "confirm": {
+            "bulkDeleteTitle": "{{count}} ausgewählte Benutzer löschen?",
+            "bulkDeleteDescription": "Ausgewählte Benutzer werden soft-gelöscht.",
+            "bulkForceDeleteTitle": "{{count}} ausgewählte Benutzer endgültig löschen?",
+            "bulkForceDeleteDescription": "Ausgewählte Benutzer werden dauerhaft entfernt. Das kann nicht rückgängig gemacht werden."
+        }
+    },
+    "groups": {
+        "confirm": {
+            "bulkDeleteTitle": "{{count}} ausgewählte Gruppen löschen?",
+            "bulkDeleteDescription": "Ausgewählte Gruppen werden soft-gelöscht.",
+            "bulkForceDeleteTitle": "{{count}} ausgewählte Gruppen endgültig löschen?",
+            "bulkForceDeleteDescription": "Ausgewählte Gruppen werden dauerhaft entfernt. Das kann nicht rückgängig gemacht werden.",
+            "forceDeleteTitle": "Gruppe „{{name}}“ endgültig löschen?",
+            "forceDeleteDescription": "Diese Gruppe wird dauerhaft entfernt. Das kann nicht rückgängig gemacht werden."
         }
     }
 }

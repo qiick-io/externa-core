@@ -725,9 +725,13 @@ export default function AdminApiKeysIndex({
                         setPendingRevokeKeyId(null);
                     }
                 }}
-                title="Revoke this API key?"
-                description="This key will stop working immediately."
-                confirmLabel="Revoke"
+                title={t('settings.apiKeys.confirm.revokeTitle', {
+                    name:
+                        rows.find((key) => key.id === pendingRevokeKeyId)
+                            ?.name ?? '',
+                })}
+                description={t('settings.apiKeys.confirm.revokeDescription')}
+                confirmLabel={t('settings.apiKeys.confirm.revokeConfirm')}
                 confirming={revoking}
                 onConfirm={() => {
                     if (pendingRevokeKeyId === null) {

@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,7 @@ export default function ItemRevisions({
         null,
     );
     const [restoring, setRestoring] = useState(false);
+    const { t } = useTranslation();
     const { can } = useCan();
     const canRestore = can(PermissionEnum.CanEditCollections);
 
@@ -439,8 +441,10 @@ export default function ItemRevisions({
                         setRestoreRevisionId(null);
                     }
                 }}
-                title="Restore this revision?"
-                description="Current values will be overwritten."
+                title={t('itemConfirm.restoreRevisionTitle', {
+                    name: `#${item.id}`,
+                })}
+                description={t('itemConfirm.restoreRevisionDescription')}
                 confirmLabel="Restore"
                 confirming={restoring}
                 onConfirm={() => {

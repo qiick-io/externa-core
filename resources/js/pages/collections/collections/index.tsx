@@ -855,18 +855,38 @@ export default function CollectionsIndex({
                 }}
                 title={
                     pendingBulkAction === 'force_delete'
-                        ? `Delete ${selected.length} selected collections permanently?`
-                        : `Delete ${selected.length} selected collections?`
+                        ? selectedRows.length === 1
+                            ? t(
+                                  'collections.confirm.bulkForceDeleteTitleNamed',
+                                  {
+                                      name: selectedRows[0]?.name ?? '',
+                                  },
+                              )
+                            : t('collections.confirm.bulkForceDeleteTitle', {
+                                  count: selected.length,
+                              })
+                        : t('collections.confirm.bulkDeleteTitle', {
+                              count: selected.length,
+                          })
                 }
                 description={
                     pendingBulkAction === 'force_delete'
-                        ? 'Selected collections will be permanently removed. This cannot be undone.'
-                        : 'Selected collections will be soft-deleted and moved to trash.'
+                        ? t('collections.confirm.bulkForceDeleteDescription')
+                        : t('collections.confirm.bulkDeleteDescription')
                 }
                 confirmLabel={
                     pendingBulkAction === 'force_delete'
-                        ? 'Delete permanently'
-                        : 'Delete'
+                        ? t('confirmDestructive.deletePermanently')
+                        : t('common.delete')
+                }
+                typedConfirmation={
+                    pendingBulkAction === 'force_delete' &&
+                    selectedRows.length === 1
+                        ? selectedRows[0]?.name
+                        : pendingBulkAction === 'force_delete' &&
+                            selectedRows.length > 1
+                          ? selectedRows.map((row) => row.name).join(', ')
+                          : undefined
                 }
                 confirming={confirmingDestructive}
                 onConfirm={() => {
@@ -899,19 +919,30 @@ export default function CollectionsIndex({
                     }
                 }}
                 title={
-                    pendingRowDelete?.force
-                        ? 'Delete collection permanently?'
-                        : 'Delete collection?'
+                    pendingRowDelete
+                        ? pendingRowDelete.force
+                            ? t('collections.confirm.forceDeleteTitle', {
+                                  name: pendingRowDelete.name,
+                              })
+                            : t('collections.confirm.deleteTitle', {
+                                  name: pendingRowDelete.name,
+                              })
+                        : ''
                 }
                 description={
                     pendingRowDelete
                         ? pendingRowDelete.force
-                            ? `Delete "${pendingRowDelete.name}" permanently? This cannot be undone.`
-                            : `Delete "${pendingRowDelete.name}"? This collection will be soft-deleted.`
+                            ? t('collections.confirm.forceDeleteDescription')
+                            : t('collections.confirm.deleteDescription')
                         : ''
                 }
                 confirmLabel={
-                    pendingRowDelete?.force ? 'Delete permanently' : 'Delete'
+                    pendingRowDelete?.force
+                        ? t('confirmDestructive.deletePermanently')
+                        : t('common.delete')
+                }
+                typedConfirmation={
+                    pendingRowDelete?.force ? pendingRowDelete.name : undefined
                 }
                 confirming={confirmingDestructive}
                 onConfirm={() => {

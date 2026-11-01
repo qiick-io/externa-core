@@ -279,14 +279,12 @@ export default function AdminRolesIndex({
                         setPendingRoleId(null);
                     }
                 }}
-                title={t('roles.deleteTitle')}
-                description={
+                title={
                     pendingRole
-                        ? t('roles.deleteDescription', {
-                              name: pendingRole.name,
-                          })
+                        ? t('roles.deleteTitle', { name: pendingRole.name })
                         : t('roles.deleteFallback')
                 }
+                description={t('roles.deleteDescription')}
                 confirming={deleting}
                 onConfirm={() => {
                     if (pendingRoleId === null) {

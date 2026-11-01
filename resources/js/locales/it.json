@@ -37,8 +37,8 @@
         },
         "empty": "Nessun ruolo.",
         "systemBadge": "Sistema",
-        "deleteTitle": "Eliminare il ruolo?",
-        "deleteDescription": "Eliminare \"{{name}}\"? L'operazione non può essere annullata.",
+        "deleteTitle": "Eliminare il ruolo “{{name}}”?",
+        "deleteDescription": "L’operazione non può essere annullata.",
         "deleteFallback": "L'operazione non può essere annullata.",
         "duplicate": {
             "title": "Duplica ruolo",
@@ -224,7 +224,12 @@
             "filesScopeHelp": "none = niente Files API; read = solo lista/download; all = lettura+scrittura (soggetto a sola lettura e ruolo).",
             "filesScopeNone": "Nessuno",
             "filesScopeRead": "Lettura",
-            "filesScopeAll": "Tutto"
+            "filesScopeAll": "Tutto",
+            "confirm": {
+                "revokeTitle": "Revocare la API key “{{name}}”?",
+                "revokeDescription": "Questa chiave smetterà di funzionare immediatamente.",
+                "revokeConfirm": "Revoca"
+            }
         },
         "notificationSounds": {
             "title": "Suoni di notifica",
@@ -1081,7 +1086,18 @@
             "groups": "Gruppi"
         },
         "translatableDescription": "Se attivo, gli editor inseriscono un valore separato per ogni lingua (es. inglese e italiano) invece di un unico valore condiviso.",
-        "translatableLockedHint": "Bloccato perché questo campo ha già dei contenuti. Cambiare Translatable non convertirebbe i valori esistenti — crea un nuovo campo e migra i contenuti."
+        "translatableLockedHint": "Bloccato perché questo campo ha già dei contenuti. Cambiare Translatable non convertirebbe i valori esistenti — crea un nuovo campo e migra i contenuti.",
+        "confirm": {
+            "deleteTitle": "Eliminare la collection “{{name}}”?",
+            "deleteDescription": "La collection verrà eliminata in modo soft e spostata nel cestino.",
+            "forceDeleteTitle": "Eliminare definitivamente la collection “{{name}}”?",
+            "forceDeleteDescription": "La collection verrà rimossa definitivamente. L’operazione non può essere annullata.",
+            "bulkDeleteTitle": "Eliminare {{count}} collection selezionate?",
+            "bulkDeleteDescription": "Le collection selezionate verranno eliminate in modo soft e spostate nel cestino.",
+            "bulkForceDeleteTitle": "Eliminare definitivamente {{count}} collection selezionate?",
+            "bulkForceDeleteDescription": "Le collection selezionate verranno rimosse definitivamente. L’operazione non può essere annullata.",
+            "bulkForceDeleteTitleNamed": "Eliminare definitivamente la collection “{{name}}”?"
+        }
     },
     "ai": {
         "drawer": {
@@ -1691,6 +1707,51 @@
             "select": "Seleziona {{name}}",
             "privateBadge": "Privato",
             "privateTitle": "Privato — richiede Read private sui ruoli API"
+        }
+    },
+    "confirmDestructive": {
+        "typeToConfirm": "Digita \"{{name}}\" per confermare",
+        "deletePermanently": "Elimina definitivamente"
+    },
+    "itemConfirm": {
+        "deleteTitle": "Eliminare l’item “{{name}}”?",
+        "deleteDescription": "L’item verrà eliminato in modo soft e rimosso dall’elenco attivo.",
+        "forceDeleteTitle": "Eliminare definitivamente l’item “{{name}}”?",
+        "forceDeleteDescription": "L’item verrà rimosso definitivamente. L’operazione non può essere annullata.",
+        "bulkDeleteTitle": "Eliminare {{count}} item selezionati?",
+        "bulkDeleteDescription": "Gli item selezionati verranno eliminati in modo soft e rimossi dall’elenco attivo.",
+        "bulkForceDeleteTitle": "Eliminare definitivamente {{count}} item selezionati?",
+        "bulkForceDeleteDescription": "Gli item selezionati verranno rimossi definitivamente. L’operazione non può essere annullata.",
+        "rejectDraftTitle": "Rifiutare la bozza di “{{name}}”?",
+        "publishDraftTitle": "Pubblicare la bozza di “{{name}}”?",
+        "publishDraftDescription": "Promuove la bozza non pubblicata nei valori pubblicati. Lo spazio bozza verrà svuotato.",
+        "discardDraftTitle": "Scartare la bozza di “{{name}}”?",
+        "discardDraftDescription": "Elimina la bozza non pubblicata. I valori pubblicati restano invariati.",
+        "restoreRevisionTitle": "Ripristinare la revisione di “{{name}}”?",
+        "restoreRevisionDescription": "I valori correnti verranno sovrascritti.",
+        "hardRestoreRevisionTitle": "Hard restore della revisione di “{{name}}”?",
+        "hardRestoreRevisionDescription": "I valori pubblicati correnti verranno sovrascritti immediatamente. Preferisci Confronta → Applica per il soft restore."
+    },
+    "fieldConfirm": {
+        "deleteTitle": "Eliminare il campo “{{name}}”?",
+        "deleteDescription": "L’operazione non può essere annullata."
+    },
+    "users": {
+        "confirm": {
+            "bulkDeleteTitle": "Eliminare {{count}} utenti selezionati?",
+            "bulkDeleteDescription": "Gli utenti selezionati verranno eliminati in modo soft.",
+            "bulkForceDeleteTitle": "Eliminare definitivamente {{count}} utenti selezionati?",
+            "bulkForceDeleteDescription": "Gli utenti selezionati verranno rimossi definitivamente. L’operazione non può essere annullata."
+        }
+    },
+    "groups": {
+        "confirm": {
+            "bulkDeleteTitle": "Eliminare {{count}} gruppi selezionati?",
+            "bulkDeleteDescription": "I gruppi selezionati verranno eliminati in modo soft.",
+            "bulkForceDeleteTitle": "Eliminare definitivamente {{count}} gruppi selezionati?",
+            "bulkForceDeleteDescription": "I gruppi selezionati verranno rimossi definitivamente. L’operazione non può essere annullata.",
+            "forceDeleteTitle": "Eliminare definitivamente il gruppo “{{name}}”?",
+            "forceDeleteDescription": "Il gruppo verrà rimosso definitivamente. L’operazione non può essere annullata."
         }
     }
 }
