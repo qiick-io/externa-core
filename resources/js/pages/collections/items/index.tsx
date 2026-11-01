@@ -1395,7 +1395,9 @@ export default function ItemsIndex({
                                                                     PermissionEnum.CanForceDeleteCollections,
                                                                 ) && (
                                                                     <DropdownMenu>
-                                                                        <DropdownMenuTrigger asChild>
+                                                                        <DropdownMenuTrigger
+                                                                            asChild
+                                                                        >
                                                                             <HeaderIconButton
                                                                                 type="button"
                                                                                 variant="ghost"
@@ -1415,7 +1417,8 @@ export default function ItemsIndex({
                                                                                     )
                                                                                 }
                                                                             >
-                                                                                Delete permanently
+                                                                                Delete
+                                                                                permanently
                                                                             </DropdownMenuItem>
                                                                         </DropdownMenuContent>
                                                                     </DropdownMenu>
@@ -1447,7 +1450,9 @@ export default function ItemsIndex({
                                                                     PermissionEnum.CanDeleteCollections,
                                                                 ) && (
                                                                     <DropdownMenu>
-                                                                        <DropdownMenuTrigger asChild>
+                                                                        <DropdownMenuTrigger
+                                                                            asChild
+                                                                        >
                                                                             <HeaderIconButton
                                                                                 type="button"
                                                                                 variant="ghost"

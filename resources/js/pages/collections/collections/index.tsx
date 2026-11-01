@@ -725,7 +725,9 @@ export default function CollectionsIndex({
                                                                     PermissionEnum.CanForceDeleteCollections,
                                                                 ) && (
                                                                     <DropdownMenu>
-                                                                        <DropdownMenuTrigger asChild>
+                                                                        <DropdownMenuTrigger
+                                                                            asChild
+                                                                        >
                                                                             <HeaderIconButton
                                                                                 type="button"
                                                                                 variant="ghost"
@@ -749,7 +751,8 @@ export default function CollectionsIndex({
                                                                                     )
                                                                                 }
                                                                             >
-                                                                                Delete permanently
+                                                                                Delete
+                                                                                permanently
                                                                             </DropdownMenuItem>
                                                                         </DropdownMenuContent>
                                                                     </DropdownMenu>
@@ -772,7 +775,9 @@ export default function CollectionsIndex({
                                                                     <Pencil className="size-3.5" />
                                                                 </HeaderIconButton>
                                                                 <DropdownMenu>
-                                                                    <DropdownMenuTrigger asChild>
+                                                                    <DropdownMenuTrigger
+                                                                        asChild
+                                                                    >
                                                                         <HeaderIconButton
                                                                             type="button"
                                                                             variant="ghost"
@@ -784,14 +789,17 @@ export default function CollectionsIndex({
                                                                         </HeaderIconButton>
                                                                     </DropdownMenuTrigger>
                                                                     <DropdownMenuContent align="end">
-                                                                        <DropdownMenuItem asChild>
+                                                                        <DropdownMenuItem
+                                                                            asChild
+                                                                        >
                                                                             <Link
                                                                                 href={FieldController.index.url(
                                                                                     c.id,
                                                                                 )}
                                                                             >
                                                                                 <Rows3 className="size-3.5" />
-                                                                                Edit fields
+                                                                                Edit
+                                                                                fields
                                                                             </Link>
                                                                         </DropdownMenuItem>
                                                                         {can(
