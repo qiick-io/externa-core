@@ -1723,7 +1723,6 @@
             "privateTitle": "Privato — richiede Read private sui ruoli API"
         }
     },
-<<<<<<< HEAD
     "confirmDestructive": {
         "typeToConfirm": "Digita \"{{name}}\" per confermare",
         "deletePermanently": "Elimina definitivamente"
@@ -1768,7 +1767,7 @@
             "forceDeleteTitle": "Eliminare definitivamente il gruppo “{{name}}”?",
             "forceDeleteDescription": "Il gruppo verrà rimosso definitivamente. L’operazione non può essere annullata."
         }
-=======
+    },
     "pendingToolCalls": {
         "head": "Approvazioni strumenti AI",
         "description": "Chiamate MCP in attesa di un utente con il permesso corrispondente.",
@@ -1780,6 +1779,5 @@
         "empty": "Nessuna approvazione in sospeso.",
         "approve": "Approva",
         "reject": "Rifiuta"
->>>>>>> 0a422c4 (feat(ai): human approval + audit log for tool calls (#203))
     }
 }

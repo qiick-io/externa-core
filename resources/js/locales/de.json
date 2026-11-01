@@ -1723,7 +1723,6 @@
             "privateTitle": "Privat — erfordert Read private auf API-Rollen"
         }
     },
-<<<<<<< HEAD
     "confirmDestructive": {
         "typeToConfirm": "Tippe „{{name}}“ zur Bestätigung",
         "deletePermanently": "Endgültig löschen"
@@ -1768,7 +1767,7 @@
             "forceDeleteTitle": "Gruppe „{{name}}“ endgültig löschen?",
             "forceDeleteDescription": "Diese Gruppe wird dauerhaft entfernt. Das kann nicht rückgängig gemacht werden."
         }
-=======
+    },
     "pendingToolCalls": {
         "head": "KI-Tool-Freigaben",
         "description": "MCP-Tool-Aufrufe, die auf einen Benutzer mit passender Berechtigung warten.",
@@ -1780,6 +1779,5 @@
         "empty": "Keine ausstehenden Freigaben.",
         "approve": "Freigeben",
         "reject": "Ablehnen"
->>>>>>> 0a422c4 (feat(ai): human approval + audit log for tool calls (#203))
     }
 }
