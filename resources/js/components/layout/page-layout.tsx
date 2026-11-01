@@ -113,7 +113,10 @@ export type TablePaginationLink = {
  * @returns {JSX.Element | null}
  */
 function paginationAriaLabel(label: string): string | undefined {
-    const plain = label.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, ' ').trim();
+    const plain = label
+        .replace(/<[^>]*>/g, '')
+        .replace(/&[^;]+;/g, ' ')
+        .trim();
 
     if (/^\d+$/.test(plain)) {
         return `Go to page ${plain}`;

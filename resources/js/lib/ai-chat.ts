@@ -227,9 +227,7 @@ export function isAbortError(error: unknown): boolean {
  * @param signal - Optional abort signal (FAB cleanup / timeout)
  * @returns Online flag and optional model name
  */
-export async function fetchAiStatus(
-    signal?: AbortSignal,
-): Promise<AiStatus> {
+export async function fetchAiStatus(signal?: AbortSignal): Promise<AiStatus> {
     // ponytail: bound status probe so a stuck /ai/status cannot pin browser suites open.
     const timeoutMs = 5_000;
     const timeoutController = new AbortController();
