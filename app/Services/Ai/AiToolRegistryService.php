@@ -132,7 +132,7 @@ class AiToolRegistryService
     {
         $tools = [];
 
-        foreach ($this->visibleFor($actor) as $definition) {
+        foreach ($this->visibleFor($actor, ['include_write' => true]) as $definition) {
             if ($definition instanceof LaravelAiToolDefinition) {
                 $tools[] = $definition->laravelTool();
 
