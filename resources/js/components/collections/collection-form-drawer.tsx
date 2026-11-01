@@ -162,9 +162,7 @@ export function CollectionFormDrawer({
                 <DrawerBody>
                     <FieldGroup className="gap-4">
                         <Field
-                            data-invalid={
-                                form.errors.name ? true : undefined
-                            }
+                            data-invalid={form.errors.name ? true : undefined}
                         >
                             <FieldLabel htmlFor="collection_drawer_name">
                                 {t('collections.meta.name')}{' '}
@@ -196,9 +194,7 @@ export function CollectionFormDrawer({
                                 {form.errors.name}
                             </FieldError>
                         </Field>
-                        <Field
-                            data-invalid={slugError ? true : undefined}
-                        >
+                        <Field data-invalid={slugError ? true : undefined}>
                             <FieldLabel htmlFor="collection_drawer_slug">
                                 {t('collections.meta.slug')}{' '}
                                 <span className="text-destructive">*</span>
@@ -245,19 +241,14 @@ export function CollectionFormDrawer({
                                 id="collection_drawer_description"
                                 value={form.data.description}
                                 onChange={(e) =>
-                                    form.setData(
-                                        'description',
-                                        e.target.value,
-                                    )
+                                    form.setData('description', e.target.value)
                                 }
                                 rows={3}
                                 placeholder={t(
                                     'collections.meta.descriptionPlaceholder',
                                 )}
                                 aria-invalid={
-                                    form.errors.description
-                                        ? true
-                                        : undefined
+                                    form.errors.description ? true : undefined
                                 }
                                 aria-describedby={
                                     form.errors.description
@@ -270,9 +261,7 @@ export function CollectionFormDrawer({
                             </FieldError>
                         </Field>
                         <Field
-                            data-invalid={
-                                form.errors.status ? true : undefined
-                            }
+                            data-invalid={form.errors.status ? true : undefined}
                         >
                             <FieldLabel htmlFor="collection_drawer_status">
                                 {t('collections.meta.status')}
@@ -290,9 +279,7 @@ export function CollectionFormDrawer({
                                     id="collection_drawer_status"
                                     className="w-full"
                                     aria-invalid={
-                                        form.errors.status
-                                            ? true
-                                            : undefined
+                                        form.errors.status ? true : undefined
                                     }
                                     aria-describedby={
                                         form.errors.status
@@ -323,9 +310,7 @@ export function CollectionFormDrawer({
                                 id="collection_drawer_icon"
                                 label={t('collections.meta.icon')}
                                 value={form.data.icon}
-                                onChange={(next) =>
-                                    form.setData('icon', next)
-                                }
+                                onChange={(next) => form.setData('icon', next)}
                             />
                             <Field
                                 data-invalid={
@@ -441,9 +426,7 @@ export function CollectionFormDrawer({
                         <div className="grid gap-3 rounded-md border p-4">
                             <Field
                                 data-invalid={
-                                    form.errors.versioning
-                                        ? true
-                                        : undefined
+                                    form.errors.versioning ? true : undefined
                                 }
                             >
                                 <div className="flex items-center gap-2">
@@ -526,9 +509,7 @@ export function CollectionFormDrawer({
                             <Field
                                 className="border-t pt-3"
                                 data-invalid={
-                                    form.errors.preview_url
-                                        ? true
-                                        : undefined
+                                    form.errors.preview_url ? true : undefined
                                 }
                             >
                                 <FieldLabel htmlFor="collection_drawer_preview_url">
@@ -582,8 +563,7 @@ export function CollectionFormDrawer({
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <Field
                                         data-invalid={
-                                            form.errors
-                                                .revision_retention_count
+                                            form.errors.revision_retention_count
                                                 ? true
                                                 : undefined
                                         }
@@ -635,8 +615,7 @@ export function CollectionFormDrawer({
                                     </Field>
                                     <Field
                                         data-invalid={
-                                            form.errors
-                                                .revision_retention_days
+                                            form.errors.revision_retention_days
                                                 ? true
                                                 : undefined
                                         }

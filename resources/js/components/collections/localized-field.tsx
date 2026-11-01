@@ -514,9 +514,7 @@ export function LocalizedField({
                         placeholder={placeholder}
                         disabled={disabled || aiTranslating}
                         aria-invalid={!!errorMessage}
-                        aria-describedby={
-                            errorMessage ? errorId : undefined
-                        }
+                        aria-describedby={errorMessage ? errorId : undefined}
                     />
                 ) : (
                     <Input
@@ -526,9 +524,7 @@ export function LocalizedField({
                         placeholder={placeholder}
                         disabled={disabled || aiTranslating}
                         aria-invalid={!!errorMessage}
-                        aria-describedby={
-                            errorMessage ? errorId : undefined
-                        }
+                        aria-describedby={errorMessage ? errorId : undefined}
                     />
                 )}
             </div>
