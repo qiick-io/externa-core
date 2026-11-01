@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,7 +16,7 @@ class ConfigurePublicApiCorsMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         if ($this->appliesTo($request)) {
-            $origins = app(ProjectSettings::class)->publicApiAllowedOrigins();
+            $origins = app(ProjectSettingsService::class)->publicApiAllowedOrigins();
             if ($origins !== []) {
                 config(['cors.allowed_origins' => $origins]);
             }

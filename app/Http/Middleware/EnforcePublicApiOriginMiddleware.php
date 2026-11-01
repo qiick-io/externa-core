@@ -3,7 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\ApiKey;
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use App\Support\Api\PublicApiOrigin;
 use Closure;
 use Illuminate\Http\Request;
@@ -16,7 +16,7 @@ class EnforcePublicApiOriginMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $allowlist = app(ProjectSettings::class)->publicApiAllowedOrigins();
+        $allowlist = app(ProjectSettingsService::class)->publicApiAllowedOrigins();
         if ($allowlist === []) {
             return $next($request);
         }

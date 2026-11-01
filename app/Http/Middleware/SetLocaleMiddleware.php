@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -42,7 +42,7 @@ class SetLocaleMiddleware
             return $cookieLocale;
         }
 
-        $projectLocale = app(ProjectSettings::class)->defaultLanguage();
+        $projectLocale = app(ProjectSettingsService::class)->defaultLanguage();
         if (in_array($projectLocale, $available, true)) {
             return $projectLocale;
         }

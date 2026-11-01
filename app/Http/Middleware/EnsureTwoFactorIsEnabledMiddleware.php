@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use Closure;
 use Illuminate\Http\Request;
 use Laravel\Fortify\Features;
@@ -43,7 +43,7 @@ class EnsureTwoFactorIsEnabledMiddleware
     ];
 
     public function __construct(
-        private readonly ProjectSettings $projectSettings,
+        private readonly ProjectSettingsService $projectSettings,
     ) {}
 
     /**

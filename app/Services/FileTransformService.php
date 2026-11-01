@@ -207,7 +207,7 @@ class FileTransformService
         }
     }
 
-    public function transformationsEnabled(): bool
+    public function isTransformationsEnabled(): bool
     {
         try {
             return app(ProjectSettingsService::class)->isTransformationsEnabled();
