@@ -30,6 +30,7 @@ import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialo
 import { PageLayout, TablePanel } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Drawer } from '@/components/ui/drawer';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -37,7 +38,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Drawer } from '@/components/ui/drawer';
 import {
     Select,
     SelectContent,
