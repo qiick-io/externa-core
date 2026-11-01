@@ -10,6 +10,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ## [Unreleased]
 
 ### Added
+- Shared permission-aware AI tool registry (`AiToolRegistryService` / `AiToolExecutorService`) with chat + MCP adapters, config gates (`ai.tools.*`), and AuthZ parity tests (#202).
 - Admin a11y phase 2 foundations: `Icon` decorative-by-default semantics, translated dialog/sheet Close + sidebar toggle, unread/notifications names, and new `a11y.*` keys with locale parity coverage (#253).
 
 ### Changed

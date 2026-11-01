@@ -2,26 +2,10 @@
 
 namespace App\Ai\Agents;
 
-use App\Ai\Tools\DescribeFieldTypes;
-use App\Ai\Tools\ExportCollection;
-use App\Ai\Tools\ExtractPdfText;
-use App\Ai\Tools\GetImportJobStatus;
-use App\Ai\Tools\ImportCollectionCsv;
-use App\Ai\Tools\ImportRemoteJson;
-use App\Ai\Tools\ManageAiSyncSources;
-use App\Ai\Tools\ManageCollectionItems;
-use App\Ai\Tools\ManageCollections;
-use App\Ai\Tools\ManageFiles;
-use App\Ai\Tools\ManageGroups;
-use App\Ai\Tools\ManageRoles;
-use App\Ai\Tools\ManageUsers;
-use App\Ai\Tools\QueryActivityLogs;
-use App\Ai\Tools\QueryCollectionItems;
-use App\Ai\Tools\RollbackLastAiTurn;
-use App\Ai\Tools\SearchSimilarCollectionItems;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\User;
+use App\Services\Ai\AiToolRegistryService;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use Laravel\Ai\Attributes\Provider;
 use Laravel\Ai\Concerns\RemembersConversations;
@@ -114,95 +98,8 @@ INSTRUCTIONS;
      */
     public function tools(): iterable
     {
-        $user = $this->resolveUser();
-
-        if ($user === null) {
-            return [];
-        }
-
-        $resolver = app(EffectivePermissionResolverService::class);
-        $tools = [];
-
-        if ($this->canAny($resolver, $user, [
-            PermissionEnum::CanShowCollections,
-            PermissionEnum::CanCreateCollections,
-            PermissionEnum::CanEditCollections,
-            PermissionEnum::CanDeleteCollections,
-            PermissionEnum::CanRestoreCollections,
-            PermissionEnum::CanForceDeleteCollections,
-        ])) {
-            $tools[] = new ManageCollections;
-            $tools[] = new ManageCollectionItems;
-            $tools[] = new DescribeFieldTypes;
-        }
-
-        if ($resolver->hasPermission($user, PermissionEnum::CanCreateCollections->value)) {
-            $tools[] = new ImportCollectionCsv;
-            $tools[] = new ImportRemoteJson;
-            $tools[] = new ExtractPdfText;
-            $tools[] = new GetImportJobStatus;
-            $tools[] = new ManageAiSyncSources;
-        }
-
-        if ($resolver->hasPermission($user, PermissionEnum::CanShowCollections->value)) {
-            $tools[] = new QueryCollectionItems;
-            $tools[] = new ExportCollection;
-            $tools[] = new SearchSimilarCollectionItems;
-        }
-
-        if ($resolver->hasPermission($user, PermissionEnum::CanDeleteCollections->value)) {
-            $tools[] = new RollbackLastAiTurn;
-        }
-
-        // ponytail: config('ai.mcp.enabled') stays opt-in until laravel/ai exposes stable agent MCP wiring.
-
-        if ($this->canAny($resolver, $user, [
-            PermissionEnum::CanShowFiles,
-            PermissionEnum::CanCreateFiles,
-            PermissionEnum::CanEditFiles,
-            PermissionEnum::CanDeleteFiles,
-            PermissionEnum::CanRestoreFiles,
-            PermissionEnum::CanForceDeleteFiles,
-        ])) {
-            $tools[] = new ManageFiles;
-        }
-
-        if ($this->canAny($resolver, $user, [
-            PermissionEnum::CanShowUsers,
-            PermissionEnum::CanCreateUsers,
-            PermissionEnum::CanEditUsers,
-            PermissionEnum::CanDeleteUsers,
-            PermissionEnum::CanRestoreUsers,
-            PermissionEnum::CanForceDeleteUsers,
-        ])) {
-            $tools[] = new ManageUsers;
-        }
-
-        if ($this->canAny($resolver, $user, [
-            PermissionEnum::CanShowRoles,
-            PermissionEnum::CanCreateRoles,
-            PermissionEnum::CanEditRoles,
-            PermissionEnum::CanDeleteRoles,
-        ])) {
-            $tools[] = new ManageRoles;
-        }
-
-        if ($this->canAny($resolver, $user, [
-            PermissionEnum::CanShowGroups,
-            PermissionEnum::CanCreateGroups,
-            PermissionEnum::CanEditGroups,
-            PermissionEnum::CanDeleteGroups,
-            PermissionEnum::CanRestoreGroups,
-            PermissionEnum::CanForceDeleteGroups,
-        ])) {
-            $tools[] = new ManageGroups;
-        }
-
-        if ($resolver->hasPermission($user, PermissionEnum::CanShowActivityLogs->value)) {
-            $tools[] = new QueryActivityLogs;
-        }
-
-        return $tools;
+        // Shared registry (same definitions as MCP). Chat always opts into write tools for BC.
+        return app(AiToolRegistryService::class)->chatToolsFor($this->resolveUser());
     }
 
     private function resolveUser(): ?User

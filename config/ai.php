@@ -78,6 +78,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Shared AI / MCP tool registry (#202)
+    |--------------------------------------------------------------------------
+    |
+    | Write / destructive tools are hidden unless write_enabled is true (or the
+    | chat adapter opts in via include_write). Per-tool allow/deny lists are
+    | empty by default (all registered tools eligible subject to AuthZ).
+    |
+    */
+
+    'tools' => [
+        'enabled' => (bool) env('AI_TOOLS_ENABLED', true),
+        'write_enabled' => (bool) env('AI_TOOLS_WRITE_ENABLED', false),
+        'allow' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('AI_TOOLS_ALLOW', '')),
+        ))),
+        'deny' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('AI_TOOLS_DENY', '')),
+        ))),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | AI Providers
     |--------------------------------------------------------------------------
     |
