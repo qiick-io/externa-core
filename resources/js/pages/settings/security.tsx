@@ -7,14 +7,18 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import Heading from '@/components/heading';
-import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TwoFactorRecoveryCodes from '@/components/two-factor-recovery-codes';
 import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 import {
@@ -161,6 +165,7 @@ export default function Security({
                                 }
                             }}
                             className="space-y-6"
+                            noValidate
                         >
                             {({
                                 errors: formErrors,
@@ -168,73 +173,123 @@ export default function Security({
                                 recentlySuccessful,
                             }) => (
                                 <>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="current_password">
-                                            {t(
-                                                'settings.security.currentPassword',
-                                            )}
-                                        </Label>
-
-                                        <PasswordInput
-                                            id="current_password"
-                                            ref={currentPasswordInput}
-                                            name="current_password"
-                                            className="mt-1 block w-full"
-                                            autoComplete="current-password"
-                                            placeholder={t(
-                                                'settings.security.currentPassword',
-                                            )}
-                                        />
-
-                                        <InputError
-                                            message={
+                                    <FieldGroup className="gap-6">
+                                        <Field
+                                            data-invalid={
                                                 formErrors.current_password
+                                                    ? true
+                                                    : undefined
                                             }
-                                        />
-                                    </div>
+                                        >
+                                            <FieldLabel htmlFor="current_password">
+                                                {t(
+                                                    'settings.security.currentPassword',
+                                                )}
+                                            </FieldLabel>
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="password">
-                                            {t('settings.security.newPassword')}
-                                        </Label>
+                                            <PasswordInput
+                                                id="current_password"
+                                                ref={currentPasswordInput}
+                                                name="current_password"
+                                                className="mt-1 block w-full"
+                                                autoComplete="current-password"
+                                                placeholder={t(
+                                                    'settings.security.currentPassword',
+                                                )}
+                                                aria-invalid={
+                                                    formErrors.current_password
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    formErrors.current_password
+                                                        ? 'current-password-error'
+                                                        : undefined
+                                                }
+                                            />
 
-                                        <PasswordInput
-                                            id="password"
-                                            ref={passwordInput}
-                                            name="password"
-                                            className="mt-1 block w-full"
-                                            autoComplete="new-password"
-                                            placeholder={t(
-                                                'settings.security.newPassword',
-                                            )}
-                                        />
+                                            <FieldError id="current-password-error">
+                                                {formErrors.current_password}
+                                            </FieldError>
+                                        </Field>
 
-                                        <InputError
-                                            message={formErrors.password}
-                                        />
-                                    </div>
+                                        <Field
+                                            data-invalid={
+                                                formErrors.password
+                                                    ? true
+                                                    : undefined
+                                            }
+                                        >
+                                            <FieldLabel htmlFor="password">
+                                                {t(
+                                                    'settings.security.newPassword',
+                                                )}
+                                            </FieldLabel>
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="password_confirmation">
-                                            {t('common.confirmPassword')}
-                                        </Label>
+                                            <PasswordInput
+                                                id="password"
+                                                ref={passwordInput}
+                                                name="password"
+                                                className="mt-1 block w-full"
+                                                autoComplete="new-password"
+                                                placeholder={t(
+                                                    'settings.security.newPassword',
+                                                )}
+                                                aria-invalid={
+                                                    formErrors.password
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    formErrors.password
+                                                        ? 'password-error'
+                                                        : undefined
+                                                }
+                                            />
 
-                                        <PasswordInput
-                                            id="password_confirmation"
-                                            name="password_confirmation"
-                                            className="mt-1 block w-full"
-                                            autoComplete="new-password"
-                                            placeholder={t(
-                                                'common.confirmPassword',
-                                            )}
-                                        />
+                                            <FieldError id="password-error">
+                                                {formErrors.password}
+                                            </FieldError>
+                                        </Field>
 
-                                        <InputError
-                                            message={
+                                        <Field
+                                            data-invalid={
                                                 formErrors.password_confirmation
+                                                    ? true
+                                                    : undefined
                                             }
-                                        />
-                                    </div>
+                                        >
+                                            <FieldLabel htmlFor="password_confirmation">
+                                                {t('common.confirmPassword')}
+                                            </FieldLabel>
+
+                                            <PasswordInput
+                                                id="password_confirmation"
+                                                name="password_confirmation"
+                                                className="mt-1 block w-full"
+                                                autoComplete="new-password"
+                                                placeholder={t(
+                                                    'common.confirmPassword',
+                                                )}
+                                                aria-invalid={
+                                                    formErrors.password_confirmation
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    formErrors.password_confirmation
+                                                        ? 'password-confirmation-error'
+                                                        : undefined
+                                                }
+                                            />
+
+                                            <FieldError id="password-confirmation-error">
+                                                {
+                                                    formErrors.password_confirmation
+                                                }
+                                            </FieldError>
+                                        </Field>
+                                    </FieldGroup>
 
                                     <div className="flex items-center gap-4">
                                         <Button
@@ -455,10 +510,10 @@ export default function Security({
                                 )}
 
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                                    <div className="grid flex-1 gap-2">
-                                        <Label htmlFor="passkey_name">
+                                    <Field className="min-w-0 flex-1">
+                                        <FieldLabel htmlFor="passkey_name">
                                             {t('settings.security.passkeyName')}
-                                        </Label>
+                                        </FieldLabel>
                                         <Input
                                             id="passkey_name"
                                             value={passkeyName}
@@ -475,8 +530,13 @@ export default function Security({
                                                 registeringPasskey
                                             }
                                             data-test="passkey-name-input"
+                                            aria-describedby={
+                                                registerErrorMessage
+                                                    ? 'passkey-register-error'
+                                                    : undefined
+                                            }
                                         />
-                                    </div>
+                                    </Field>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <span className="inline-flex">
@@ -522,7 +582,9 @@ export default function Security({
                                     </Tooltip>
                                 </div>
 
-                                <InputError message={registerErrorMessage} />
+                                <FieldError id="passkey-register-error">
+                                    {registerErrorMessage}
+                                </FieldError>
                             </div>
                         </>
                     )}
