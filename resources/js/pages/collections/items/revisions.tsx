@@ -10,8 +10,8 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import { jsonRequestHeaders } from '@/lib/csrf';
-import type { BreadcrumbItem } from '@/types';
 import collections from '@/routes/collections';
+import type { BreadcrumbItem } from '@/types';
 
 type RevisionRow = {
     id: number;

@@ -2,6 +2,8 @@ import { Form, Head, Link, router } from '@inertiajs/react';
 import { Rows3, Save, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
+import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import {
     CollectionEditButton,
     CollectionEditDrawer,
@@ -18,8 +20,6 @@ import AppLayout from '@/layouts/app-layout';
 import { collectCollectionDataErrorMessages } from '@/lib/collection-data-errors';
 import { collectionToFormRow } from '@/types';
 import type { CollectionView } from '@/types/collections';
-import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
-import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 
 const COLLECTION_CONTENT_FORM_ID = 'collection-content-form';
 
