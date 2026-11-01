@@ -10,6 +10,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ## [Unreleased]
 
 ### Changed
+- Admin users/groups drawers, API keys, and roles form use shadcn `Field*` with `aria-invalid` / `aria-describedby`; role permission groups use `FieldSet` (#231).
 - Calm destructive row/bulk actions (outline/ghost), shared collections/items row menu pattern, and button size scale (`sm`/`default`/`lg`/`icon`/`icon-sm`) (#229).
 - Settings profile and security password forms use shadcn `Field*` with `aria-invalid` / `aria-describedby` (#231).
 - Admin a11y foundations: CONTRIBUTING rules, contrast pair table, zoom-safe viewport guard, skip/`main` on auth card+split layouts, light `--ring` teal-500 for 3:1 (#252).

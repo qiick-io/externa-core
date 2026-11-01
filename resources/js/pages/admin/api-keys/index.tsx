@@ -3,12 +3,17 @@ import { KeyRound, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
-import InputError from '@/components/input-error';
 import { TablePagination } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -207,230 +212,394 @@ export default function AdminApiKeysIndex({
 
                         <form
                             onSubmit={submit}
-                            className="grid gap-4 rounded-xl border border-sidebar-border/70 p-4 md:grid-cols-2 dark:border-sidebar-border"
+                            noValidate
+                            className="rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border"
                         >
-                            <div className="grid gap-2">
-                                <Label htmlFor="api_key_name">Name</Label>
-                                <Input
-                                    id="api_key_name"
-                                    value={form.data.name}
-                                    onChange={(e) =>
-                                        form.setData('name', e.target.value)
-                                    }
-                                    required
-                                />
-                                <InputError message={form.errors.name} />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label>Role</Label>
-                                <Select
-                                    value={form.data.role_id}
-                                    onValueChange={(v) =>
-                                        form.setData('role_id', v)
+                            <FieldGroup className="grid gap-4 md:grid-cols-2">
+                                <Field
+                                    data-invalid={
+                                        form.errors.name ? true : undefined
                                     }
                                 >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select role" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {roles.map((role) => (
-                                            <SelectItem
-                                                key={role.id}
-                                                value={String(role.id)}
-                                            >
-                                                {role.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={form.errors.role_id} />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label>{t('settings.apiKeys.owner')}</Label>
-                                <Select
-                                    value={form.data.owner_id}
-                                    onValueChange={(v) =>
-                                        form.setData('owner_id', v)
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue
-                                            placeholder={t(
-                                                'settings.apiKeys.owner',
-                                            )}
-                                        />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {owners.map((owner) => (
-                                            <SelectItem
-                                                key={owner.id}
-                                                value={String(owner.id)}
-                                            >
-                                                {owner.name} ({owner.email})
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <p className="text-xs text-muted-foreground">
-                                    {t('settings.apiKeys.ownerHelp')}
-                                </p>
-                                <InputError message={form.errors.owner_id} />
-                            </div>
-                            <div className="grid gap-2 md:col-span-2">
-                                <Label htmlFor="collection_slugs">
-                                    {t('settings.apiKeys.collectionSlugs')}
-                                </Label>
-                                <Input
-                                    id="collection_slugs"
-                                    value={collectionSlugsText}
-                                    onChange={(e) => {
-                                        const next = e.target.value;
-                                        setCollectionSlugsText(next);
-
-                                        if (!filesScopeTouched) {
-                                            form.setData(
-                                                'files_scope',
-                                                defaultFilesScope(
-                                                    next,
-                                                    form.data.read_only,
-                                                ),
-                                            );
+                                    <FieldLabel htmlFor="api_key_name">
+                                        Name
+                                    </FieldLabel>
+                                    <Input
+                                        id="api_key_name"
+                                        value={form.data.name}
+                                        onChange={(e) =>
+                                            form.setData('name', e.target.value)
                                         }
-                                    }}
-                                    placeholder="posts, pages"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    {t('settings.apiKeys.collectionSlugsHelp')}
-                                </p>
-                                <InputError
-                                    message={form.errors.collection_slugs}
-                                />
-                            </div>
-                            <div className="flex items-center gap-2 md:col-span-2">
-                                <Checkbox
-                                    id="read_only"
-                                    checked={form.data.read_only}
-                                    onCheckedChange={(checked) => {
-                                        const readOnly = checked === true;
-                                        form.setData('read_only', readOnly);
+                                        required
+                                        aria-invalid={
+                                            form.errors.name ? true : undefined
+                                        }
+                                        aria-describedby={
+                                            form.errors.name
+                                                ? 'api-key-name-error'
+                                                : undefined
+                                        }
+                                    />
+                                    <FieldError id="api-key-name-error">
+                                        {form.errors.name}
+                                    </FieldError>
+                                </Field>
+                                <Field
+                                    data-invalid={
+                                        form.errors.role_id ? true : undefined
+                                    }
+                                >
+                                    <FieldLabel>Role</FieldLabel>
+                                    <Select
+                                        value={form.data.role_id}
+                                        onValueChange={(v) =>
+                                            form.setData('role_id', v)
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            aria-invalid={
+                                                form.errors.role_id
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                form.errors.role_id
+                                                    ? 'api-key-role-error'
+                                                    : undefined
+                                            }
+                                        >
+                                            <SelectValue placeholder="Select role" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {roles.map((role) => (
+                                                <SelectItem
+                                                    key={role.id}
+                                                    value={String(role.id)}
+                                                >
+                                                    {role.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FieldError id="api-key-role-error">
+                                        {form.errors.role_id}
+                                    </FieldError>
+                                </Field>
+                                <Field
+                                    data-invalid={
+                                        form.errors.owner_id ? true : undefined
+                                    }
+                                >
+                                    <FieldLabel>
+                                        {t('settings.apiKeys.owner')}
+                                    </FieldLabel>
+                                    <Select
+                                        value={form.data.owner_id}
+                                        onValueChange={(v) =>
+                                            form.setData('owner_id', v)
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            aria-invalid={
+                                                form.errors.owner_id
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                form.errors.owner_id
+                                                    ? 'api-key-owner-error'
+                                                    : 'api-key-owner-hint'
+                                            }
+                                        >
+                                            <SelectValue
+                                                placeholder={t(
+                                                    'settings.apiKeys.owner',
+                                                )}
+                                            />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {owners.map((owner) => (
+                                                <SelectItem
+                                                    key={owner.id}
+                                                    value={String(owner.id)}
+                                                >
+                                                    {owner.name} ({owner.email})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FieldDescription id="api-key-owner-hint">
+                                        {t('settings.apiKeys.ownerHelp')}
+                                    </FieldDescription>
+                                    <FieldError id="api-key-owner-error">
+                                        {form.errors.owner_id}
+                                    </FieldError>
+                                </Field>
+                                <Field
+                                    className="md:col-span-2"
+                                    data-invalid={
+                                        form.errors.collection_slugs
+                                            ? true
+                                            : undefined
+                                    }
+                                >
+                                    <FieldLabel htmlFor="collection_slugs">
+                                        {t('settings.apiKeys.collectionSlugs')}
+                                    </FieldLabel>
+                                    <Input
+                                        id="collection_slugs"
+                                        value={collectionSlugsText}
+                                        onChange={(e) => {
+                                            const next = e.target.value;
+                                            setCollectionSlugsText(next);
 
-                                        if (!filesScopeTouched) {
-                                            form.setData(
-                                                'files_scope',
-                                                defaultFilesScope(
-                                                    collectionSlugsText,
+                                            if (!filesScopeTouched) {
+                                                form.setData(
+                                                    'files_scope',
+                                                    defaultFilesScope(
+                                                        next,
+                                                        form.data.read_only,
+                                                    ),
+                                                );
+                                            }
+                                        }}
+                                        placeholder="posts, pages"
+                                        aria-invalid={
+                                            form.errors.collection_slugs
+                                                ? true
+                                                : undefined
+                                        }
+                                        aria-describedby={
+                                            form.errors.collection_slugs
+                                                ? 'api-key-collection-slugs-error'
+                                                : 'api-key-collection-slugs-hint'
+                                        }
+                                    />
+                                    <FieldDescription id="api-key-collection-slugs-hint">
+                                        {t(
+                                            'settings.apiKeys.collectionSlugsHelp',
+                                        )}
+                                    </FieldDescription>
+                                    <FieldError id="api-key-collection-slugs-error">
+                                        {form.errors.collection_slugs}
+                                    </FieldError>
+                                </Field>
+                                <Field
+                                    className="md:col-span-2"
+                                    data-invalid={
+                                        form.errors.read_only ? true : undefined
+                                    }
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox
+                                            id="read_only"
+                                            checked={form.data.read_only}
+                                            onCheckedChange={(checked) => {
+                                                const readOnly =
+                                                    checked === true;
+                                                form.setData(
+                                                    'read_only',
                                                     readOnly,
-                                                ),
+                                                );
+
+                                                if (!filesScopeTouched) {
+                                                    form.setData(
+                                                        'files_scope',
+                                                        defaultFilesScope(
+                                                            collectionSlugsText,
+                                                            readOnly,
+                                                        ),
+                                                    );
+                                                }
+                                            }}
+                                        />
+                                        <FieldLabel
+                                            htmlFor="read_only"
+                                            className="font-normal"
+                                        >
+                                            {t('settings.apiKeys.readOnly')}
+                                        </FieldLabel>
+                                    </div>
+                                    <FieldError id="api-key-read-only-error">
+                                        {form.errors.read_only}
+                                    </FieldError>
+                                </Field>
+                                <Field
+                                    className="md:col-span-2"
+                                    data-invalid={
+                                        form.errors.files_scope
+                                            ? true
+                                            : undefined
+                                    }
+                                >
+                                    <FieldLabel htmlFor="files_scope">
+                                        {t('settings.apiKeys.filesScope')}
+                                    </FieldLabel>
+                                    <Select
+                                        value={form.data.files_scope}
+                                        onValueChange={(value) => {
+                                            setFilesScopeTouched(true);
+                                            form.setData(
+                                                'files_scope',
+                                                value as
+                                                    'none' | 'read' | 'all',
                                             );
+                                        }}
+                                    >
+                                        <SelectTrigger
+                                            id="files_scope"
+                                            aria-invalid={
+                                                form.errors.files_scope
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                form.errors.files_scope
+                                                    ? 'api-key-files-scope-error'
+                                                    : 'api-key-files-scope-hint'
+                                            }
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">
+                                                {t(
+                                                    'settings.apiKeys.filesScopeNone',
+                                                )}
+                                            </SelectItem>
+                                            <SelectItem value="read">
+                                                {t(
+                                                    'settings.apiKeys.filesScopeRead',
+                                                )}
+                                            </SelectItem>
+                                            <SelectItem value="all">
+                                                {t(
+                                                    'settings.apiKeys.filesScopeAll',
+                                                )}
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FieldDescription id="api-key-files-scope-hint">
+                                        {t('settings.apiKeys.filesScopeHelp')}
+                                    </FieldDescription>
+                                    <FieldError id="api-key-files-scope-error">
+                                        {form.errors.files_scope}
+                                    </FieldError>
+                                </Field>
+                                <Field
+                                    className="md:col-span-2"
+                                    data-invalid={
+                                        form.errors.ip_allowlist
+                                            ? true
+                                            : undefined
+                                    }
+                                >
+                                    <FieldLabel htmlFor="ip_allowlist">
+                                        IP allowlist (optional, comma-separated)
+                                    </FieldLabel>
+                                    <Input
+                                        id="ip_allowlist"
+                                        value={ipText}
+                                        onChange={(e) =>
+                                            setIpText(e.target.value)
                                         }
-                                    }}
-                                />
-                                <Label
-                                    htmlFor="read_only"
-                                    className="font-normal"
-                                >
-                                    {t('settings.apiKeys.readOnly')}
-                                </Label>
-                                <InputError message={form.errors.read_only} />
-                            </div>
-                            <div className="grid gap-2 md:col-span-2">
-                                <Label htmlFor="files_scope">
-                                    {t('settings.apiKeys.filesScope')}
-                                </Label>
-                                <Select
-                                    value={form.data.files_scope}
-                                    onValueChange={(value) => {
-                                        setFilesScopeTouched(true);
-                                        form.setData(
-                                            'files_scope',
-                                            value as 'none' | 'read' | 'all',
-                                        );
-                                    }}
-                                >
-                                    <SelectTrigger id="files_scope">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">
-                                            {t(
-                                                'settings.apiKeys.filesScopeNone',
-                                            )}
-                                        </SelectItem>
-                                        <SelectItem value="read">
-                                            {t(
-                                                'settings.apiKeys.filesScopeRead',
-                                            )}
-                                        </SelectItem>
-                                        <SelectItem value="all">
-                                            {t(
-                                                'settings.apiKeys.filesScopeAll',
-                                            )}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <p className="text-xs text-muted-foreground">
-                                    {t('settings.apiKeys.filesScopeHelp')}
-                                </p>
-                                <InputError message={form.errors.files_scope} />
-                            </div>
-                            <div className="grid gap-2 md:col-span-2">
-                                <Label htmlFor="ip_allowlist">
-                                    IP allowlist (optional, comma-separated)
-                                </Label>
-                                <Input
-                                    id="ip_allowlist"
-                                    value={ipText}
-                                    onChange={(e) => setIpText(e.target.value)}
-                                    placeholder="127.0.0.1, 10.0.0.0/8"
-                                />
-                                <InputError
-                                    message={form.errors.ip_allowlist}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="rate_limit">
-                                    Rate limit / minute (optional)
-                                </Label>
-                                <Input
-                                    id="rate_limit"
-                                    type="number"
-                                    min={1}
-                                    value={form.data.rate_limit_per_minute}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'rate_limit_per_minute',
-                                            e.target.value,
-                                        )
+                                        placeholder="127.0.0.1, 10.0.0.0/8"
+                                        aria-invalid={
+                                            form.errors.ip_allowlist
+                                                ? true
+                                                : undefined
+                                        }
+                                        aria-describedby={
+                                            form.errors.ip_allowlist
+                                                ? 'api-key-ip-allowlist-error'
+                                                : undefined
+                                        }
+                                    />
+                                    <FieldError id="api-key-ip-allowlist-error">
+                                        {form.errors.ip_allowlist}
+                                    </FieldError>
+                                </Field>
+                                <Field
+                                    data-invalid={
+                                        form.errors.rate_limit_per_minute
+                                            ? true
+                                            : undefined
                                     }
-                                />
-                                <InputError
-                                    message={form.errors.rate_limit_per_minute}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="expires_at">Expires at</Label>
-                                <Input
-                                    id="expires_at"
-                                    type="datetime-local"
-                                    value={form.data.expires_at}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'expires_at',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError message={form.errors.expires_at} />
-                            </div>
-                            <div className="md:col-span-2">
-                                <Button
-                                    type="submit"
-                                    disabled={form.processing}
                                 >
-                                    <KeyRound className="mr-2 size-4" />
-                                    Create API key
-                                </Button>
-                            </div>
+                                    <FieldLabel htmlFor="rate_limit">
+                                        Rate limit / minute (optional)
+                                    </FieldLabel>
+                                    <Input
+                                        id="rate_limit"
+                                        type="number"
+                                        min={1}
+                                        value={form.data.rate_limit_per_minute}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'rate_limit_per_minute',
+                                                e.target.value,
+                                            )
+                                        }
+                                        aria-invalid={
+                                            form.errors.rate_limit_per_minute
+                                                ? true
+                                                : undefined
+                                        }
+                                        aria-describedby={
+                                            form.errors.rate_limit_per_minute
+                                                ? 'api-key-rate-limit-error'
+                                                : undefined
+                                        }
+                                    />
+                                    <FieldError id="api-key-rate-limit-error">
+                                        {form.errors.rate_limit_per_minute}
+                                    </FieldError>
+                                </Field>
+                                <Field
+                                    data-invalid={
+                                        form.errors.expires_at
+                                            ? true
+                                            : undefined
+                                    }
+                                >
+                                    <FieldLabel htmlFor="expires_at">
+                                        Expires at
+                                    </FieldLabel>
+                                    <Input
+                                        id="expires_at"
+                                        type="datetime-local"
+                                        value={form.data.expires_at}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'expires_at',
+                                                e.target.value,
+                                            )
+                                        }
+                                        aria-invalid={
+                                            form.errors.expires_at
+                                                ? true
+                                                : undefined
+                                        }
+                                        aria-describedby={
+                                            form.errors.expires_at
+                                                ? 'api-key-expires-at-error'
+                                                : undefined
+                                        }
+                                    />
+                                    <FieldError id="api-key-expires-at-error">
+                                        {form.errors.expires_at}
+                                    </FieldError>
+                                </Field>
+                                <div className="md:col-span-2">
+                                    <Button
+                                        type="submit"
+                                        disabled={form.processing}
+                                    >
+                                        <KeyRound className="mr-2 size-4" />
+                                        Create API key
+                                    </Button>
+                                </div>
+                            </FieldGroup>
                         </form>
 
                         <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
