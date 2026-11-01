@@ -10,6 +10,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ## [Unreleased]
 
 ### Changed
+- Collection create/edit drawer, field settings form, and dynamic item fields use shadcn `Field*` / `FieldError` with `aria-invalid` / `aria-describedby` (#231).
 - Admin users/groups drawers, API keys, and roles form use shadcn `Field*` with `aria-invalid` / `aria-describedby`; role permission groups use `FieldSet` (#231).
 - Bump `laravel/mcp` to `^1.1.2` (GHSA-m25c-38v7-94p8), `laravel/boost` to 2.10.4, `laravel/framework` to 13.39.0, and `laravel/wayfinder` to 0.1.23 (#375).
 - Calm destructive row/bulk actions (outline/ghost), shared collections/items row menu pattern, and button size scale (`sm`/`default`/`lg`/`icon`/`icon-sm`) (#229).

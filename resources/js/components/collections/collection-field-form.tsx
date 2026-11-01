@@ -67,7 +67,6 @@ import {
     TextNumbersSettings,
 } from '@/components/collections/field-settings/type-settings/text-numbers';
 import { ValidationRuleBuilder } from '@/components/collections/field-settings/validation-rule-builder';
-import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     DrawerBody,
@@ -76,6 +75,11 @@ import {
     DrawerHeader,
     DrawerTitle,
 } from '@/components/ui/drawer';
+import {
+    Field,
+    FieldError,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
@@ -1551,10 +1555,10 @@ function FieldConfigPanel({
                 description={t('collections.generalDescription')}
             >
                 <div className="space-y-6">
-                    <div className="grid gap-2.5">
-                        <Label htmlFor={`field_name_${mode}`}>
+                    <Field data-invalid={keyError ? true : undefined}>
+                        <FieldLabel htmlFor={`field_name_${mode}`}>
                             Key <span className="text-destructive">*</span>
-                        </Label>
+                        </FieldLabel>
                         <Input
                             id={`field_name_${mode}`}
                             name="name"
@@ -1575,9 +1579,16 @@ function FieldConfigPanel({
                             pattern="[a-z0-9]+(?:[-_][a-z0-9]+)*"
                             className="w-full"
                             aria-invalid={Boolean(keyError)}
+                            aria-describedby={
+                                keyError
+                                    ? `field-name-${mode}-error`
+                                    : undefined
+                            }
                         />
-                        <InputError message={keyError} />
-                    </div>
+                        <FieldError id={`field-name-${mode}-error`}>
+                            {keyError}
+                        </FieldError>
+                    </Field>
 
                     <TranslatedInput
                         idPrefix={`display_name_${mode}`}
@@ -1668,11 +1679,17 @@ function FieldConfigPanel({
                 />
             </SettingsPanel>
 
-            <InputError message={errors.type} />
-            <InputError message={errors.settings} />
-            <InputError message={errors.translatable} />
+            <FieldError id={`field-type-${mode}-error`}>
+                {errors.type}
+            </FieldError>
+            <FieldError id={`field-settings-${mode}-error`}>
+                {errors.settings}
+            </FieldError>
+            <FieldError id={`field-translatable-${mode}-error`}>
+                {errors.translatable}
+            </FieldError>
             {nestedSettingsErrors.map((message) => (
-                <InputError key={message} message={message} />
+                <FieldError key={message}>{message}</FieldError>
             ))}
         </div>
     );

@@ -14,6 +14,7 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -50,6 +51,8 @@ export type LocalizedFieldProps = {
     onTranslateFromLocale?: (fromLocale: string) => void | Promise<void>;
     aiTranslating?: boolean;
     errorMessage?: string;
+    /** Stable id for FieldError / aria-describedby */
+    errorId?: string;
     /** Extra controls on the title row (right, beside locale) — e.g. markdown edit/preview. */
     headerActions?: ReactNode;
     /** Controls beside the label (left) — e.g. field value caret menu. */
@@ -102,6 +105,7 @@ export function LocalizedField({
     onTranslateFromLocale,
     aiTranslating = false,
     errorMessage,
+    errorId = 'localized-field-error',
     headerActions,
     labelAddon,
 }: LocalizedFieldProps) {
@@ -510,6 +514,9 @@ export function LocalizedField({
                         placeholder={placeholder}
                         disabled={disabled || aiTranslating}
                         aria-invalid={!!errorMessage}
+                        aria-describedby={
+                            errorMessage ? errorId : undefined
+                        }
                     />
                 ) : (
                     <Input
@@ -519,6 +526,9 @@ export function LocalizedField({
                         placeholder={placeholder}
                         disabled={disabled || aiTranslating}
                         aria-invalid={!!errorMessage}
+                        aria-describedby={
+                            errorMessage ? errorId : undefined
+                        }
                     />
                 )}
             </div>
@@ -532,9 +542,7 @@ export function LocalizedField({
                 </p>
             ) : null}
 
-            {errorMessage && (
-                <p className="text-sm text-destructive">{errorMessage}</p>
-            )}
+            <FieldError id={errorId}>{errorMessage}</FieldError>
         </div>
     );
 }
