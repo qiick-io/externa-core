@@ -28,6 +28,7 @@ import {
 } from '@/components/collections/field-settings/lucide-icon-picker';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { PageLayout, TablePanel } from '@/components/layout/page-layout';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Drawer } from '@/components/ui/drawer';
@@ -659,29 +660,25 @@ export default function CollectionsIndex({
                                                     )}
                                                 </td>
                                                 <td className="p-3">
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <span
-                                                                className="inline-flex size-6 items-center justify-center"
-                                                                aria-label={
-                                                                    statusLabel
-                                                                }
-                                                            >
-                                                                <span
-                                                                    className={cn(
-                                                                        'size-2.5 rounded-full',
-                                                                        isActive
-                                                                            ? 'bg-emerald-500'
-                                                                            : 'bg-red-500',
-                                                                    )}
-                                                                    aria-hidden
-                                                                />
-                                                            </span>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            {statusLabel}
-                                                        </TooltipContent>
-                                                    </Tooltip>
+                                                    <Badge
+                                                        variant={
+                                                            isActive
+                                                                ? 'success'
+                                                                : 'muted'
+                                                        }
+                                                        className="gap-1.5"
+                                                    >
+                                                        <span
+                                                            className={cn(
+                                                                'size-1.5 rounded-full',
+                                                                isActive
+                                                                    ? 'bg-success'
+                                                                    : 'bg-muted-foreground',
+                                                            )}
+                                                            aria-hidden
+                                                        />
+                                                        {statusLabel}
+                                                    </Badge>
                                                 </td>
                                                 <td className="p-3 text-right">
                                                     <div

@@ -86,13 +86,13 @@ export default function PasswordInput({
         : null;
     const meterColor =
         strength?.level === 'strong'
-            ? 'bg-emerald-500'
+            ? 'bg-success'
             : strength?.level === 'medium'
-              ? 'bg-amber-500'
+              ? 'bg-warning'
               : 'bg-red-500';
     const strengthLabelColor =
         strength?.level === 'strong'
-            ? 'text-emerald-600'
+            ? 'text-success'
             : strength?.level === 'medium'
               ? 'text-amber-600'
               : 'text-muted-foreground';
@@ -166,7 +166,7 @@ export default function PasswordInput({
                             className={cn(
                                 'text-xs',
                                 strength.meetsPolicy
-                                    ? 'text-emerald-600'
+                                    ? 'text-success'
                                     : 'text-muted-foreground',
                             )}
                         >

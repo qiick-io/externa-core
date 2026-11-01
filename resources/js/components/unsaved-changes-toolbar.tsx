@@ -26,11 +26,7 @@ export function UnsavedChangesToolbar({
 
     return (
         <div className={className} data-test="unsaved-changes-toolbar">
-            <Badge
-                variant="outline"
-                className="border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200"
-                data-test="unsaved-badge"
-            >
+            <Badge variant="warning" data-test="unsaved-badge">
                 {t('unsavedChanges.badge')}
             </Badge>
             <Button

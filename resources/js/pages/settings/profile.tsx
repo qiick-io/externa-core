@@ -246,7 +246,7 @@ export default function Profile({
 
                                                 {status ===
                                                     'verification-link-sent' && (
-                                                    <div className="mt-2 text-sm font-medium text-green-600">
+                                                    <div className="mt-2 text-sm font-medium text-success">
                                                         {t(
                                                             'settings.profile.linkSent',
                                                         )}
