@@ -209,7 +209,12 @@
             "ownerHelp": "Berechtigungsobergrenze: der Schlüssel kann nicht mehr als dieser Benutzer. Standard: Sie.",
             "readOnly": "Nur Lesen (Create, Update und Delete blockieren)",
             "readOnlyBadge": "nur lesen",
-            "scopes": "Scopes"
+            "scopes": "Scopes",
+            "filesScope": "Datei-Zugriff",
+            "filesScopeHelp": "none = keine Files-API; read = nur Liste/Download; all = lesen+schreiben (weiterhin read-only und Rolle).",
+            "filesScopeNone": "Kein",
+            "filesScopeRead": "Lesen",
+            "filesScopeAll": "Alles"
         },
         "notificationSounds": {
             "title": "Benachrichtigungstöne",

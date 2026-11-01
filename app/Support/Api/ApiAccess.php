@@ -2,6 +2,7 @@
 
 namespace App\Support\Api;
 
+use App\Enums\ApiKeyFilesScopeEnum;
 use App\Models\ApiKey;
 use App\Models\Role;
 
@@ -29,10 +30,10 @@ final class ApiAccess
     /**
      * Factors that partition public response caches beyond role_id.
      *
-     * Keys that share a role but differ in collection_slugs / read_only must
-     * not share cached payloads (includes and field ACL intersect with scopes).
+     * Keys that share a role but differ in collection_slugs / read_only /
+     * files_scope must not share cached payloads.
      *
-     * @return array{api_key_scopes: array{collection_slugs: list<string>|null, read_only: bool, owner_id: int|null}|null}
+     * @return array{api_key_scopes: array{collection_slugs: list<string>|null, read_only: bool, files_scope: string, owner_id: int|null}|null}
      */
     public function responseCacheScopeFactors(): array
     {
@@ -51,10 +52,16 @@ final class ApiAccess
             sort($normalized);
         }
 
+        $filesScope = $apiKey->files_scope;
+        $filesScopeValue = $filesScope instanceof ApiKeyFilesScopeEnum
+            ? $filesScope->value
+            : (string) ($filesScope ?? ApiKeyFilesScopeEnum::All->value);
+
         return [
             'api_key_scopes' => [
                 'collection_slugs' => $normalized,
                 'read_only' => (bool) $apiKey->read_only,
+                'files_scope' => $filesScopeValue,
                 'owner_id' => $apiKey->owner_id !== null ? (int) $apiKey->owner_id : null,
             ],
         ];

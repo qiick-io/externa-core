@@ -23,11 +23,10 @@ trait AuthorizesFileAccessTrait
     }
 
     /**
-     * Role file ACL ∩ API key scopes (read_only blocks writes).
+     * Role file ACL ∩ API key scopes ({@see ApiKey::allowsFileAction()}).
      *
-     * Uses {@see ApiKey::allowsAction()} — same read_only rule as collections.
-     * Explicit: {@see ApiKey::$collection_slugs} does not gate `/api/v1/files`
-     * (files stay outside collection scopes; product may revisit later).
+     * {@see ApiKey::$collection_slugs} still does not gate `/api/v1/files`;
+     * use {@see ApiKey::$files_scope} instead.
      */
     protected function authorizeFile(
         Request $request,
@@ -44,7 +43,7 @@ trait AuthorizesFileAccessTrait
         }
 
         $apiKey = $access->apiKey;
-        if ($apiKey !== null && ! $apiKey->allowsAction($action)) {
+        if ($apiKey !== null && ! $apiKey->allowsFileAction($action)) {
             abort(403, 'This action is unauthorized for files.');
         }
 

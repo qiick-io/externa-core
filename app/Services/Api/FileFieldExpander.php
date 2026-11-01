@@ -14,7 +14,8 @@ use App\Support\Files\FileTransformUrlBuilder;
  * Expand image/file/files field values to public file payloads on API responses.
  *
  * Private files without read_private are redacted (null / omitted) — no id leak.
- * Public files without read return { id, access: "denied" }.
+ * Public files without role read return { id, access: "denied" }.
+ * API keys with files_scope=none return bare ids (no expand).
  */
 class FileFieldExpander
 {
@@ -60,7 +61,7 @@ class FileFieldExpander
             }
 
             if ($type === FieldTypeEnum::Blocks) {
-                $data[$key] = $this->expandBlocks($data[$key], $field, $filesById, $roleId);
+                $data[$key] = $this->expandBlocks($data[$key], $field, $filesById, $roleId, $access);
 
                 continue;
             }
@@ -79,7 +80,7 @@ class FileFieldExpander
                     if ($id === null) {
                         continue;
                     }
-                    $payload = $this->expandOne($id, $filesById->get($id), $roleId);
+                    $payload = $this->expandOne($id, $filesById->get($id), $roleId, $access);
                     if ($payload !== null) {
                         $expanded[] = $payload;
                     }
@@ -96,7 +97,7 @@ class FileFieldExpander
                 continue;
             }
 
-            $data[$key] = $this->expandOne($id, $filesById->get($id), $roleId);
+            $data[$key] = $this->expandOne($id, $filesById->get($id), $roleId, $access);
         }
 
         return $data;
@@ -143,7 +144,7 @@ class FileFieldExpander
     /**
      * @param  \Illuminate\Support\Collection<int, File>  $filesById
      */
-    private function expandBlocks(mixed $rawBlocks, CollectionField $blocksField, $filesById, ?int $roleId): mixed
+    private function expandBlocks(mixed $rawBlocks, CollectionField $blocksField, $filesById, ?int $roleId, ?ApiAccess $access): mixed
     {
         if (! is_array($rawBlocks)) {
             return [];
@@ -151,7 +152,7 @@ class FileFieldExpander
 
         $types = $this->blocksFieldSchema->blockTypeMap($blocksField);
 
-        return array_map(function ($block) use ($types, $filesById, $roleId) {
+        return array_map(function ($block) use ($types, $filesById, $roleId, $access) {
             if (! is_array($block)) {
                 return $block;
             }
@@ -176,7 +177,7 @@ class FileFieldExpander
 
                 if ($nestedType === FieldTypeEnum::Blocks) {
                     $nestedField = $this->blocksFieldSchema->toFieldDefinition($definition);
-                    $data[$name] = $this->expandBlocks($nestedValue, $nestedField, $filesById, $roleId);
+                    $data[$name] = $this->expandBlocks($nestedValue, $nestedField, $filesById, $roleId, $access);
 
                     continue;
                 }
@@ -200,13 +201,13 @@ class FileFieldExpander
 
                 if (($definition['translatable'] ?? false) === true && is_array($nestedValue)) {
                     foreach ($nestedValue as $locale => $localeValue) {
-                        $data[$name][$locale] = $this->expandNestedFileValue($nestedType, $localeValue, $filesById, $roleId);
+                        $data[$name][$locale] = $this->expandNestedFileValue($nestedType, $localeValue, $filesById, $roleId, $access);
                     }
 
                     continue;
                 }
 
-                $data[$name] = $this->expandNestedFileValue($nestedType, $nestedValue, $filesById, $roleId);
+                $data[$name] = $this->expandNestedFileValue($nestedType, $nestedValue, $filesById, $roleId, $access);
             }
 
             $block['data'] = $data;
@@ -289,7 +290,7 @@ class FileFieldExpander
     /**
      * @param  \Illuminate\Support\Collection<int, File>  $filesById
      */
-    private function expandNestedFileValue(FieldTypeEnum $type, mixed $value, $filesById, ?int $roleId): mixed
+    private function expandNestedFileValue(FieldTypeEnum $type, mixed $value, $filesById, ?int $roleId, ?ApiAccess $access): mixed
     {
         if ($type === FieldTypeEnum::Files && is_array($value)) {
             $expanded = [];
@@ -298,7 +299,7 @@ class FileFieldExpander
                 if ($id === null) {
                     continue;
                 }
-                $payload = $this->expandOne($id, $filesById->get($id), $roleId);
+                $payload = $this->expandOne($id, $filesById->get($id), $roleId, $access);
                 if ($payload !== null) {
                     $expanded[] = $payload;
                 }
@@ -313,7 +314,7 @@ class FileFieldExpander
 
         $id = $this->normalizeId($value);
 
-        return $id === null ? null : $this->expandOne($id, $filesById->get($id), $roleId);
+        return $id === null ? null : $this->expandOne($id, $filesById->get($id), $roleId, $access);
     }
 
     /**
@@ -409,12 +410,18 @@ class FileFieldExpander
     }
 
     /**
-     * @return array<string, mixed>|null
+     * @return array<string, mixed>|int|null Bare int when API key files_scope blocks read.
      */
-    private function expandOne(int $id, mixed $file, ?int $roleId): ?array
+    private function expandOne(int $id, mixed $file, ?int $roleId, ?ApiAccess $access): array|int|null
     {
         if (! $file instanceof File || $file->trashed() || ! $file->isFile()) {
             return null;
+        }
+
+        $apiKey = $access?->apiKey;
+        if ($apiKey !== null && ! $apiKey->canReadFiles()) {
+            // Scoped key with files:none — bare id only (no expand / no denial shape).
+            return $id;
         }
 
         $isPrivate = $file->isEffectivelyPrivate();

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ApiKeyFilesScopeEnum;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FilePermissionActionEnum;
 use App\Traits\LogsApplicationActivityTrait;
@@ -14,8 +15,8 @@ use Spatie\Activitylog\Support\LogOptions;
 /**
  * Project API key authenticated via Bearer token; permissions come from role_id.
  *
- * Optional scopes only narrow the role: collection_slugs allowlist and read_only.
- * Optional owner_id adds a permission ceiling (key ≤ owner). Null owner = legacy.
+ * Optional scopes only narrow the role: collection_slugs allowlist, read_only,
+ * and files_scope (none|read|all). Optional owner_id adds a permission ceiling.
  *
  * @property string $uuid
  * @property string $name
@@ -25,6 +26,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property int|null $owner_id
  * @property list<string>|null $collection_slugs
  * @property bool $read_only
+ * @property ApiKeyFilesScopeEnum $files_scope
  * @property list<string>|null $ip_allowlist
  * @property int|null $rate_limit_per_minute
  */
@@ -43,6 +45,7 @@ class ApiKey extends Model
         'role_id',
         'collection_slugs',
         'read_only',
+        'files_scope',
         'ip_allowlist',
         'rate_limit_per_minute',
         'expires_at',
@@ -67,6 +70,7 @@ class ApiKey extends Model
         return [
             'collection_slugs' => 'array',
             'read_only' => 'boolean',
+            'files_scope' => ApiKeyFilesScopeEnum::class,
             'ip_allowlist' => 'array',
             'rate_limit_per_minute' => 'integer',
             'expires_at' => 'datetime',
@@ -100,11 +104,21 @@ class ApiKey extends Model
      *
      * Shared by collection and file public API gates. Read-family actions
      * ({@see CollectionPermissionActionEnum::Read}, {@see FilePermissionActionEnum::Read},
-     * {@see FilePermissionActionEnum::ReadPrivate}) remain allowed.
+     * {@see FilePermissionActionEnum::ReadPrivate}) remain allowed when read_only.
+     * File actions are further gated by {@see self::allowsFileAction()}.
      */
     public function allowsAction(
         CollectionPermissionActionEnum|FilePermissionActionEnum|string $action,
     ): bool {
+        if ($action instanceof FilePermissionActionEnum
+            || (is_string($action) && in_array($action, FilePermissionActionEnum::values(), true))) {
+            return $this->allowsFileAction(
+                $action instanceof FilePermissionActionEnum
+                    ? $action
+                    : FilePermissionActionEnum::from($action),
+            );
+        }
+
         if (! $this->read_only) {
             return true;
         }
@@ -113,11 +127,50 @@ class ApiKey extends Model
             ? $action->value
             : $action;
 
-        return in_array($value, [
-            CollectionPermissionActionEnum::Read->value,
+        return $value === CollectionPermissionActionEnum::Read->value;
+    }
+
+    /**
+     * File ACL for this key: files_scope ∩ read_only.
+     *
+     * - none: deny all file actions
+     * - read: Read / ReadPrivate only
+     * - all: full file actions subject to read_only
+     */
+    public function allowsFileAction(FilePermissionActionEnum|string $action): bool
+    {
+        $scope = $this->files_scope instanceof ApiKeyFilesScopeEnum
+            ? $this->files_scope
+            : ApiKeyFilesScopeEnum::All;
+
+        if ($scope === ApiKeyFilesScopeEnum::None) {
+            return false;
+        }
+
+        $value = $action instanceof BackedEnum
+            ? $action->value
+            : $action;
+
+        $isReadFamily = in_array($value, [
             FilePermissionActionEnum::Read->value,
             FilePermissionActionEnum::ReadPrivate->value,
         ], true);
+
+        if ($scope === ApiKeyFilesScopeEnum::Read) {
+            return $isReadFamily;
+        }
+
+        // all
+        if (! $this->read_only) {
+            return true;
+        }
+
+        return $isReadFamily;
+    }
+
+    public function canReadFiles(): bool
+    {
+        return $this->allowsFileAction(FilePermissionActionEnum::Read);
     }
 
     public function getActivitylogOptions(): LogOptions
