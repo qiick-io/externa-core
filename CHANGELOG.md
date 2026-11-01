@@ -9,6 +9,9 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+### Changed
+- Faster PR → `develop` CI: path-aware stubs for required checks; Pest PHP 8.4-only + Vitest on code PRs; full matrix + browser on push/`main`/nightly (#381).
+
 
 ### Added
 - Add `@qiick/externa-sdk` TypeScript Public CMS client under `packages/sdk` (OpenAPI-generated types + CI freshness check); initial package version `0.1.0` (#119).
