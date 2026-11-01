@@ -13,7 +13,7 @@ beforeEach(function (): void {
 
 it('disables registration by default for fresh installs', function (): void {
     expect(config('settings.project.defaults.registration_enabled'))->toBeFalse()
-        ->and(app(ProjectSettings::class)->registrationEnabled())->toBeFalse();
+        ->and(app(ProjectSettings::class)->isRegistrationEnabled())->toBeFalse();
 
     $this->get(route('register'))->assertForbidden();
 
@@ -39,7 +39,7 @@ it('keeps an explicitly stored registration_enabled=true setting', function (): 
         true,
     );
 
-    expect(app(ProjectSettings::class)->registrationEnabled())->toBeTrue();
+    expect(app(ProjectSettings::class)->isRegistrationEnabled())->toBeTrue();
 });
 
 it('throttles forgot-password by IP after five attempts', function (): void {
