@@ -1,0 +1,36 @@
+{
+  "name": "@qiick/externa-sdk",
+  "version": "0.1.0",
+  "description": "Typed TypeScript client for the Externa Public CMS API",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "generate": "node ./scripts/generate.mjs",
+    "check:fresh": "node ./scripts/check-fresh.mjs",
+    "build": "tsc -p tsconfig.json",
+    "types:check": "tsc -p tsconfig.json --noEmit",
+    "check": "npm run check:fresh && npm run types:check"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.10.1",
+    "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
