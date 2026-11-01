@@ -21,6 +21,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Share `.env` helpers via `ManagesDotEnv` between install and AI webhook token rotate commands (#339).
 - Share `.env` helpers via `ManagesDotEnvTrait` between install and AI webhook token rotate commands (#339).
 - Rename domain boolean helpers to `is*` / `has*` / `can*` / `should*` prefixes (#335).
+- Rename custom HTTP middleware to `*Middleware` suffix; Arch ignore keeps only starter-kit Handle* (#337).
 - Stream SHA-256 hashing for file uploads and chunk finalize (`hash_file` / `hash_update`) so large files are not loaded into a PHP string for hashing (#189).
 - Denormalize `files.effective_access` (with backfill command) so file list AuthZ no longer loads the full tree (#186).
 - Route web, REST, GraphQL, AI, import, chat, revision restore, and publish through shared `CreateCollectionItemAction` / `UpdateCollectionItemAction` so validation and draft versioning stay in parity (#269).

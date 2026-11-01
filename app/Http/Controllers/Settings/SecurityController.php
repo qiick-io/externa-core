@@ -62,7 +62,7 @@ class SecurityController extends Controller implements HasMiddleware
             // ponytail: do not call Fortify ensureStateIsValid() here.
             // It disables unfinished enrollment on any later security.edit in a
             // different Unix second (InteractsWithTwoFactorState), which races
-            // Inertia redirects/prefetch and EnsureTwoFactorIsEnabled while the
+            // Inertia redirects/prefetch and EnsureTwoFactorIsEnabledMiddleware while the
             // QR modal still shows the old secret — OTP then never verifies.
             // Abandoned secrets stay usable via Enable (no-op) + QR endpoints.
             $twoFactorEnabled = $user->hasEnabledTwoFactorAuthentication();

@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * When project origin allowlist is active: browsers must match; non-browser calls need a valid API key.
  */
-class EnforcePublicApiOrigin
+class EnforcePublicApiOriginMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {

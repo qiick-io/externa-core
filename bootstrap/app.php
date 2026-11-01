@@ -1,14 +1,14 @@
 <?php
 
 use App\Http\Exceptions\RenderNotFoundResponse;
-use App\Http\Middleware\ConfigurePublicApiCors;
-use App\Http\Middleware\EnsureCanManageFiles;
-use App\Http\Middleware\EnsureSidebarModuleEnabled;
-use App\Http\Middleware\EnsureTwoFactorIsEnabled;
-use App\Http\Middleware\EnsureUserHasPermission;
+use App\Http\Middleware\ConfigurePublicApiCorsMiddleware;
+use App\Http\Middleware\EnsureCanManageFilesMiddleware;
+use App\Http\Middleware\EnsureSidebarModuleEnabledMiddleware;
+use App\Http\Middleware\EnsureTwoFactorIsEnabledMiddleware;
+use App\Http\Middleware\EnsureUserHasPermissionMiddleware;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
-use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\SetLocaleMiddleware;
 use App\Http\Middleware\SetSecurityHeadersMiddleware;
 use App\Http\Middleware\ThrottleAuthSensitiveMiddleware;
 use App\Support\Auth\HomePath;
@@ -33,16 +33,16 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'permission' => EnsureUserHasPermission::class,
-            'can.manage.files' => EnsureCanManageFiles::class,
-            'module' => EnsureSidebarModuleEnabled::class,
+            'permission' => EnsureUserHasPermissionMiddleware::class,
+            'can.manage.files' => EnsureCanManageFilesMiddleware::class,
+            'module' => EnsureSidebarModuleEnabledMiddleware::class,
         ]);
 
         $middleware->redirectGuestsTo('/login');
         $middleware->redirectUsersTo(fn (Request $request) => HomePath::for($request->user()));
 
         // Before HandleCors so project allowlist can override cors.allowed_origins
-        $middleware->prepend(ConfigurePublicApiCors::class);
+        $middleware->prepend(ConfigurePublicApiCorsMiddleware::class);
 
         $middleware->encryptCookies(except: [
             'appearance',
@@ -59,10 +59,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             HandleAppearance::class,
-            SetLocale::class,
+            SetLocaleMiddleware::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
-            EnsureTwoFactorIsEnabled::class,
+            EnsureTwoFactorIsEnabledMiddleware::class,
             ThrottleAuthSensitiveMiddleware::class,
             SetSecurityHeadersMiddleware::class,
         ]);

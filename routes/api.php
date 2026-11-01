@@ -6,8 +6,8 @@ use App\Http\Controllers\Api\V1\FileController;
 use App\Http\Controllers\Api\V1\LivePreviewController;
 use App\Http\Controllers\Api\V1\OpenApiController;
 use App\Http\Middleware\ApiRequestCostMiddleware;
-use App\Http\Middleware\EnforcePublicApiOrigin;
-use App\Http\Middleware\ResolveApiAccess;
+use App\Http\Middleware\EnforcePublicApiOriginMiddleware;
+use App\Http\Middleware\ResolveApiAccessMiddleware;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')
@@ -18,7 +18,7 @@ Route::prefix('v1')
     });
 
 Route::prefix('v1')
-    ->middleware(['throttle:api', EnforcePublicApiOrigin::class])
+    ->middleware(['throttle:api', EnforcePublicApiOriginMiddleware::class])
     ->group(function (): void {
         // Signed Live Preview token — no API key (token is the credential).
         Route::get('preview', LivePreviewController::class);
@@ -27,8 +27,8 @@ Route::prefix('v1')
 Route::prefix('v1')
     ->middleware([
         'throttle:api',
-        EnforcePublicApiOrigin::class,
-        ResolveApiAccess::class,
+        EnforcePublicApiOriginMiddleware::class,
+        ResolveApiAccessMiddleware::class,
         ApiRequestCostMiddleware::class,
     ])
     ->group(function (): void {

@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Map file-manager routes and bulk actions to the matching file permission.
  */
-class EnsureCanManageFiles
+class EnsureCanManageFilesMiddleware
 {
     public function __construct(
         protected EffectivePermissionResolver $permissionResolver,

@@ -1,5 +1,5 @@
 """
-Public CMS GraphQL API — same auth/permissions as /api/v1 (ResolveApiAccess + CollectionPermissionGuard).
+Public CMS GraphQL API — same auth/permissions as /api/v1 (ResolveApiAccessMiddleware + CollectionPermissionGuard).
 """
 
 scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")

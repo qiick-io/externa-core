@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
  * When project public_api_allowed_origins is non-empty, override CORS allowed_origins.
  * Runs before HandleCors so Fruitcake reads the effective list.
  */
-class ConfigurePublicApiCors
+class ConfigurePublicApiCorsMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {

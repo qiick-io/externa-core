@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Abort with 403 when the authenticated user lacks a named permission.
  */
-class EnsureUserHasPermission
+class EnsureUserHasPermissionMiddleware
 {
     public function __construct(
         private readonly EffectivePermissionResolver $permissionResolver,

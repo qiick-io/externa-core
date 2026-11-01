@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Abort with 403 when a project sidebar module is disabled.
  */
-class EnsureSidebarModuleEnabled
+class EnsureSidebarModuleEnabledMiddleware
 {
     public function __construct(
         private readonly ProjectSettings $projectSettings,
