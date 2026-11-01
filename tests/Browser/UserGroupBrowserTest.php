@@ -62,7 +62,8 @@ it('hydrates members in the edit drawer and keeps them after a description-only 
         ->click('Browser Editors')
         ->wait(0.5)
         ->assertSee('Edit group')
-        ->assertSee('hydrated-member@example.com')
+        // Chip shows display name; email lives in option.label / dropdown only.
+        ->assertSee('Hydrated Member')
         ->assertSee('collection/file ACL')
         ->assertSee('Members inherit these roles')
         ->fill('#group_description', 'After browser save')

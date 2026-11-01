@@ -37,6 +37,16 @@ pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Browser');
 
+// Bounded Playwright waits — default 5s is tight for Inertia+AI drawer opens in CI.
+pest()->browser()->timeout(10_000);
+
+// Drop ProjectSettings memo between Browser tests — RefreshDatabase alone leaves stale two_factor_required etc.
+uses()->afterEach(function () {
+    if (app()->bound(\App\Services\Settings\ProjectSettingsService::class)) {
+        app(\App\Services\Settings\ProjectSettingsService::class)->forgetRawCache();
+    }
+})->in('Browser');
+
 pest()->extend(TestCase::class)
     ->in('Unit');
 

@@ -40,6 +40,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - **Docker workers as www-data (#320):** existing bind-mounted `storage/` / `bootstrap/cache` volumes that were created as root may need a one-time `chown -R www-data:www-data storage bootstrap/cache` (or recreate the volume). The entrypoint still `chown`s when it starts as root.
 
 ### Fixed
+- Stabilize Browser Pest suite waits/selectors and clear ProjectSettings memo between tests (#345).
 - Add job timeouts/retries/`failed()` notifications and `report()` on soft-fail catches; make embedding job unique (#279).
 - Make scheduled publish atomic (`lockForUpdate` + transaction) and prevent schedule command overlap (#270).
 - Fix flaky `ImportRemoteJsonTest` on PostgreSQL by selecting the imported item by slug (#331).

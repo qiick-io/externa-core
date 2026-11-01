@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { FilesActionsOverflow } from '@/components/admin/files/files-actions-overflow';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,9 @@ export function FilesSelectionToolbar({
     onAction,
 }: FilesSelectionToolbarProps) {
     const { t } = useTranslation();
+    // Pin Ask AI like collections bulk toolbar — overflow alone hid the CTA from browser tests + users.
+    const askAi = actions.find((action) => action.key === 'ask_ai');
+    const overflowActions = actions.filter((action) => action.key !== 'ask_ai');
 
     return (
         <div className="flex min-w-0 items-center gap-3">
@@ -41,7 +44,23 @@ export function FilesSelectionToolbar({
                     <X className="size-4" />
                 </Button>
             </div>
-            <FilesActionsOverflow actions={actions} onAction={onAction} />
+            {askAi ? (
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onAction('ask_ai')}
+                >
+                    <Sparkles className="size-3.5" />
+                    {askAi.label}
+                </Button>
+            ) : null}
+            {overflowActions.length > 0 ? (
+                <FilesActionsOverflow
+                    actions={overflowActions}
+                    onAction={onAction}
+                />
+            ) : null}
         </div>
     );
 }

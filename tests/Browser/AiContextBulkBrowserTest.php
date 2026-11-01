@@ -34,17 +34,20 @@ it('opens the assistant FAB with a seeded row prompt on collections', function (
     $user = grantBrowserAiAndCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
-    Collection::factory()->create([
+    $collection = Collection::factory()->create([
         'name' => 'Newsroom',
         'slug' => 'newsroom',
     ]);
 
+    $expected = "Working on collection «Newsroom» (collection_id={$collection->id}, slug=newsroom).";
+
     $page = visit('/collections');
 
     $page->assertSee('Newsroom')
-        ->assertSee('Ask AI')
+        ->assertPresent('button[aria-label="Ask AI"]')
         ->click('button[aria-label="Ask AI"]')
-        ->assertSee('Working on collection «Newsroom»')
+        ->assertPresent('textarea[aria-label="Message"]')
+        ->assertValue('textarea[aria-label="Message"]', $expected)
         ->assertNoJavaScriptErrors();
 });
 
@@ -52,8 +55,8 @@ it('seeds bulk Ask AI from multi-selected collections and hides sort chrome', fu
     $user = grantBrowserAiAndCollectionPermissions(User::factory()->create());
     $this->actingAs($user);
 
-    Collection::factory()->create(['name' => 'Alpha Pack', 'slug' => 'alpha-pack']);
-    Collection::factory()->create(['name' => 'Beta Pack', 'slug' => 'beta-pack']);
+    $alpha = Collection::factory()->create(['name' => 'Alpha Pack', 'slug' => 'alpha-pack']);
+    $beta = Collection::factory()->create(['name' => 'Beta Pack', 'slug' => 'beta-pack']);
 
     $page = visit('/collections');
 
@@ -65,8 +68,14 @@ it('seeds bulk Ask AI from multi-selected collections and hides sort chrome', fu
         ->assertSee('2 selected')
         ->assertMissing('button[aria-label="Sort by"]')
         ->click('Ask AI')
-        ->assertSee('Working on 2 collections')
-        ->assertSee('alpha-pack')
+        ->assertPresent('textarea[aria-label="Message"]')
+        ->assertValue(
+            'textarea[aria-label="Message"]',
+            'Working on 2 collections: '.json_encode([
+                ['id' => $alpha->id, 'name' => 'Alpha Pack', 'slug' => 'alpha-pack'],
+                ['id' => $beta->id, 'name' => 'Beta Pack', 'slug' => 'beta-pack'],
+            ]).".\nHelp me with these selected collections:",
+        )
         ->assertNoJavaScriptErrors();
 });
 
@@ -95,7 +104,12 @@ it('hides files sort and trash chrome when selecting and shows Ask AI', function
         ->assertMissing('button[aria-label="Sort by"]')
         ->assertMissing('button[aria-label="Trash"]')
         ->click('Ask AI')
-        ->assertSee('Working on 1 files')
-        ->assertSee('brief.pdf')
+        ->assertPresent('textarea[aria-label="Message"]')
+        ->assertValue(
+            'textarea[aria-label="Message"]',
+            'Working on 1 files: '.json_encode([
+                ['id' => $file->id, 'name' => 'brief.pdf'],
+            ]).".\nHelp me with these selected files:",
+        )
         ->assertNoJavaScriptErrors();
 });

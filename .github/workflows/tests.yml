@@ -424,3 +424,5 @@ jobs:
         run: ./vendor/bin/pest tests/Browser
         env:
           QUEUE_CONNECTION: sync
+          # Fast-fail AI probe; no local LM in CI (status path still exercised).
+          LOCAL_AI_URL: http://127.0.0.1:9/v1
