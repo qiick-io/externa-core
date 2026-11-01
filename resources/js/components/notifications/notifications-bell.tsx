@@ -1,6 +1,7 @@
 import { usePage } from '@inertiajs/react';
 import { Bell } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { NotificationsDrawer } from '@/components/notifications/notifications-drawer';
 import { SidebarUnreadBadge } from '@/components/sidebar-unread-badge';
 import {
@@ -21,6 +22,7 @@ const UNREAD_POLL_INTERVAL_MS = 60_000;
  * Sidebar bell trigger for the notifications drawer.
  */
 export function NotificationsBell() {
+    const { t } = useTranslation();
     const page = usePage();
     const sharedUnreadCount = page.props.notifications?.unread_count ?? 0;
     const realtimeOn = isRealtimeEnabled(page.props.realtime);
@@ -111,20 +113,28 @@ export function NotificationsBell() {
         return null;
     }
 
+    const notificationsLabel =
+        unreadCount > 0
+            ? t('a11y.notificationsUnread', { count: unreadCount })
+            : t('a11y.notifications');
+
     return (
         <>
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton
                         type="button"
-                        tooltip={{ children: 'Notifications' }}
+                        tooltip={{ children: t('a11y.notifications') }}
                         onClick={() => setDrawerOpen(true)}
                         className="relative"
                         data-test="notifications-bell"
+                        aria-label={notificationsLabel}
+                        aria-expanded={drawerOpen}
+                        aria-haspopup="dialog"
                     >
-                        <Bell />
-                        <span>Notifications</span>
-                        <SidebarUnreadBadge count={unreadCount} />
+                        <Bell aria-hidden="true" />
+                        <span>{t('a11y.notifications')}</span>
+                        <SidebarUnreadBadge count={unreadCount} decorative />
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>

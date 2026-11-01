@@ -97,7 +97,17 @@
         "dismissUpload": "Chiudi caricamento",
         "clearSelection": "Cancella selezione",
         "removeTab": "Rimuovi scheda",
-        "removeSection": "Rimuovi sezione"
+        "removeSection": "Rimuovi sezione",
+        "close": "Chiudi",
+        "toggleSidebar": "Attiva/disattiva barra laterale",
+        "loading": "Caricamento",
+        "notifications": "Notifiche",
+        "notificationsUnread": "Notifiche, {{count}} non lette",
+        "unreadCount": "{{count}} non lette",
+        "moreActions": "Altre azioni",
+        "configureColumns": "Configura colonne",
+        "columnOptions": "Opzioni colonna {{label}}",
+        "fieldActions": "Azioni campo"
     },
     "auth": {
         "login": {

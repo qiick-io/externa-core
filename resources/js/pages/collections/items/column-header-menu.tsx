@@ -7,6 +7,7 @@ import {
     ChevronDown,
     EyeOff,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -43,6 +44,8 @@ export function ColumnHeaderMenu({
     onAlign,
     onHide,
 }: ColumnHeaderMenuProps) {
+    const { t } = useTranslation();
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -54,7 +57,7 @@ export function ColumnHeaderMenu({
                         'size-6 shrink-0 text-muted-foreground hover:text-foreground',
                         sortActive && 'text-foreground',
                     )}
-                    aria-label={`${label} column options`}
+                    aria-label={t('a11y.columnOptions', { label })}
                     onClick={(event) => event.stopPropagation()}
                     onPointerDown={(event) => event.stopPropagation()}
                 >

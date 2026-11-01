@@ -286,11 +286,18 @@ export function AiComposer({
                                             disabled={disabled || isStreaming}
                                             onClick={onToggleVoice}
                                             aria-label={t('ai.dictationAria')}
+                                            aria-pressed={isListening}
                                         >
                                             {isListening ? (
-                                                <MicOff className="size-4" />
+                                                <MicOff
+                                                    className="size-4"
+                                                    aria-hidden="true"
+                                                />
                                             ) : (
-                                                <Mic className="size-4" />
+                                                <Mic
+                                                    className="size-4"
+                                                    aria-hidden="true"
+                                                />
                                             )}
                                         </Button>
                                     </TooltipTrigger>

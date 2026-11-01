@@ -1,5 +1,6 @@
 import { Check, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -52,6 +53,7 @@ export function ColumnPickerPopover({
     relatedFieldsCatalog,
     onChange,
 }: ColumnPickerPopoverProps) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [drillField, setDrillField] = useState<CollectionFieldRow | null>(
@@ -139,9 +141,11 @@ export function ColumnPickerPopover({
                     variant="ghost"
                     size="icon"
                     className="size-7"
-                    aria-label="Configure columns"
+                    aria-label={t('a11y.configureColumns')}
+                    aria-expanded={open}
+                    aria-haspopup="dialog"
                 >
-                    <Plus className="size-3.5" />
+                    <Plus className="size-3.5" aria-hidden="true" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-72 p-0" align="end">
