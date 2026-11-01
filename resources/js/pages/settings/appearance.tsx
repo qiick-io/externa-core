@@ -5,11 +5,15 @@ import { useTranslation } from 'react-i18next';
 import AppearanceSettingsController from '@/actions/App/Http/Controllers/Settings/AppearanceSettingsController';
 import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
 import Heading from '@/components/heading';
-import InputError from '@/components/input-error';
 import { SettingsFormActions } from '@/components/settings-form-actions';
 import { Button } from '@/components/ui/button';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -269,6 +273,7 @@ export default function Appearance({
                     options={{ preserveScroll: true }}
                     className="space-y-10"
                     onSuccess={() => setIsDirty(false)}
+                    noValidate
                 >
                     {({ processing, recentlySuccessful, errors }) => (
                         <>
@@ -283,159 +288,220 @@ export default function Appearance({
                                     )}
                                 />
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="project_color">
-                                        {t('settings.appearance.projectColor')}
-                                    </Label>
-                                    <div className="flex h-9 max-w-[220px] items-center gap-2 rounded-md border border-input bg-transparent px-3 shadow-xs has-[:focus-visible]:border-ring has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-inset dark:border-white/25">
-                                        <Input
-                                            id="project_color"
-                                            type="color"
-                                            className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
-                                            value={projectColor}
-                                            onChange={(event) =>
-                                                setProjectColor(
-                                                    event.target.value,
-                                                )
-                                            }
-                                        />
-                                        <Input
-                                            name="project_color"
-                                            value={projectColor}
-                                            onChange={(event) =>
-                                                setProjectColor(
-                                                    event.target.value,
-                                                )
-                                            }
-                                            className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono shadow-none focus-visible:ring-0"
-                                            placeholder="#0E7C86"
-                                        />
-                                    </div>
-                                    <InputError
-                                        message={errors.project_color}
-                                    />
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label htmlFor="project_color_dark">
-                                        {t(
-                                            'settings.appearance.projectColorDark',
-                                        )}
-                                    </Label>
-                                    <div className="flex h-9 max-w-[220px] items-center gap-2 rounded-md border border-input bg-transparent px-3 shadow-xs has-[:focus-visible]:border-ring has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-inset dark:border-white/25">
-                                        <Input
-                                            id="project_color_dark"
-                                            type="color"
-                                            className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
-                                            value={projectColorDark}
-                                            onChange={(event) =>
-                                                setProjectColorDark(
-                                                    event.target.value,
-                                                )
-                                            }
-                                        />
-                                        <Input
-                                            name="project_color_dark"
-                                            value={projectColorDark}
-                                            onChange={(event) =>
-                                                setProjectColorDark(
-                                                    event.target.value,
-                                                )
-                                            }
-                                            aria-label={t(
-                                                'settings.appearance.projectColorDark',
+                                <FieldGroup className="gap-6">
+                                    <Field
+                                        data-invalid={
+                                            errors.project_color
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
+                                        <FieldLabel htmlFor="project_color">
+                                            {t(
+                                                'settings.appearance.projectColor',
                                             )}
-                                            className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono shadow-none focus-visible:ring-0"
-                                            placeholder="#1A95A2"
-                                        />
-                                    </div>
-                                    <InputError
-                                        message={errors.project_color_dark}
-                                    />
-                                </div>
-
-                                {fileFields.map((field) => {
-                                    const selected = files[field.key];
-
-                                    return (
-                                        <div
-                                            key={field.key}
-                                            className="grid gap-2"
-                                        >
-                                            <Label>{field.label}</Label>
-                                            <input
-                                                type="hidden"
-                                                name={field.inputName}
-                                                value={selected?.id ?? ''}
+                                        </FieldLabel>
+                                        <div className="flex h-9 max-w-[220px] items-center gap-2 rounded-md border border-input bg-transparent px-3 shadow-xs has-[:focus-visible]:border-ring has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-inset dark:border-white/25">
+                                            <Input
+                                                id="project_color"
+                                                type="color"
+                                                className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
+                                                value={projectColor}
+                                                onChange={(event) =>
+                                                    setProjectColor(
+                                                        event.target.value,
+                                                    )
+                                                }
                                             />
-                                            {selected ? (
-                                                <div className="flex items-center gap-3 rounded-md border p-3">
-                                                    {selected.url ? (
-                                                        <img
-                                                            src={selected.url}
-                                                            alt={selected.name}
-                                                            className="size-12 rounded object-cover"
-                                                        />
-                                                    ) : null}
-                                                    <span className="text-sm font-medium">
-                                                        {selected.name}
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                <p className="text-sm text-muted-foreground">
-                                                    {t(
-                                                        'settings.appearance.noFile',
-                                                    )}
-                                                </p>
-                                            )}
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        setPickerField(
-                                                            field.key,
-                                                        )
-                                                    }
-                                                >
-                                                    {selected
-                                                        ? t(
-                                                              'settings.appearance.changeFile',
-                                                          )
-                                                        : t(
-                                                              'settings.appearance.chooseFile',
-                                                          )}
-                                                </Button>
-                                                {selected ? (
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            setFiles(
-                                                                (current) => ({
-                                                                    ...current,
-                                                                    [field.key]:
-                                                                        null,
-                                                                }),
-                                                            )
-                                                        }
-                                                    >
-                                                        {t(
-                                                            'settings.appearance.clearFile',
-                                                        )}
-                                                    </Button>
-                                                ) : null}
-                                            </div>
-                                            <InputError
-                                                message={
-                                                    errors[field.inputName]
+                                            <Input
+                                                name="project_color"
+                                                value={projectColor}
+                                                onChange={(event) =>
+                                                    setProjectColor(
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono shadow-none focus-visible:ring-0"
+                                                placeholder="#0E7C86"
+                                                aria-invalid={
+                                                    errors.project_color
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.project_color
+                                                        ? 'project-color-error'
+                                                        : undefined
                                                 }
                                             />
                                         </div>
-                                    );
-                                })}
+                                        <FieldError id="project-color-error">
+                                            {errors.project_color}
+                                        </FieldError>
+                                    </Field>
+
+                                    <Field
+                                        data-invalid={
+                                            errors.project_color_dark
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
+                                        <FieldLabel htmlFor="project_color_dark">
+                                            {t(
+                                                'settings.appearance.projectColorDark',
+                                            )}
+                                        </FieldLabel>
+                                        <div className="flex h-9 max-w-[220px] items-center gap-2 rounded-md border border-input bg-transparent px-3 shadow-xs has-[:focus-visible]:border-ring has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-inset dark:border-white/25">
+                                            <Input
+                                                id="project_color_dark"
+                                                type="color"
+                                                className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
+                                                value={projectColorDark}
+                                                onChange={(event) =>
+                                                    setProjectColorDark(
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                            <Input
+                                                name="project_color_dark"
+                                                value={projectColorDark}
+                                                onChange={(event) =>
+                                                    setProjectColorDark(
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                aria-label={t(
+                                                    'settings.appearance.projectColorDark',
+                                                )}
+                                                className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono shadow-none focus-visible:ring-0"
+                                                placeholder="#1A95A2"
+                                                aria-invalid={
+                                                    errors.project_color_dark
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.project_color_dark
+                                                        ? 'project-color-dark-error'
+                                                        : undefined
+                                                }
+                                            />
+                                        </div>
+                                        <FieldError id="project-color-dark-error">
+                                            {errors.project_color_dark}
+                                        </FieldError>
+                                    </Field>
+
+                                    {fileFields.map((field) => {
+                                        const selected = files[field.key];
+                                        const errorId = `${field.inputName.replaceAll('_', '-')}-error`;
+
+                                        return (
+                                            <Field
+                                                key={field.key}
+                                                data-invalid={
+                                                    errors[field.inputName]
+                                                        ? true
+                                                        : undefined
+                                                }
+                                            >
+                                                <FieldLabel>
+                                                    {field.label}
+                                                </FieldLabel>
+                                                <input
+                                                    type="hidden"
+                                                    name={field.inputName}
+                                                    value={selected?.id ?? ''}
+                                                />
+                                                {selected ? (
+                                                    <div className="flex items-center gap-3 rounded-md border p-3">
+                                                        {selected.url ? (
+                                                            <img
+                                                                src={
+                                                                    selected.url
+                                                                }
+                                                                alt={
+                                                                    selected.name
+                                                                }
+                                                                className="size-12 rounded object-cover"
+                                                            />
+                                                        ) : null}
+                                                        <span className="text-sm font-medium">
+                                                            {selected.name}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {t(
+                                                            'settings.appearance.noFile',
+                                                        )}
+                                                    </p>
+                                                )}
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            setPickerField(
+                                                                field.key,
+                                                            )
+                                                        }
+                                                        aria-invalid={
+                                                            errors[
+                                                                field.inputName
+                                                            ]
+                                                                ? true
+                                                                : undefined
+                                                        }
+                                                        aria-describedby={
+                                                            errors[
+                                                                field.inputName
+                                                            ]
+                                                                ? errorId
+                                                                : undefined
+                                                        }
+                                                    >
+                                                        {selected
+                                                            ? t(
+                                                                  'settings.appearance.changeFile',
+                                                              )
+                                                            : t(
+                                                                  'settings.appearance.chooseFile',
+                                                              )}
+                                                    </Button>
+                                                    {selected ? (
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                setFiles(
+                                                                    (
+                                                                        current,
+                                                                    ) => ({
+                                                                        ...current,
+                                                                        [field.key]:
+                                                                            null,
+                                                                    }),
+                                                                )
+                                                            }
+                                                        >
+                                                            {t(
+                                                                'settings.appearance.clearFile',
+                                                            )}
+                                                        </Button>
+                                                    ) : null}
+                                                </div>
+                                                <FieldError id={errorId}>
+                                                    {errors[field.inputName]}
+                                                </FieldError>
+                                            </Field>
+                                        );
+                                    })}
+                                </FieldGroup>
                             </div>
 
                             <Separator />
@@ -451,53 +517,75 @@ export default function Appearance({
                                     )}
                                 />
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="default_appearance">
-                                        {t(
-                                            'settings.appearance.defaultAppearance',
-                                        )}
-                                    </Label>
-                                    <input
-                                        type="hidden"
-                                        name="default_appearance"
-                                        value={defaultAppearance}
-                                    />
-                                    <Select
-                                        value={defaultAppearance}
-                                        onValueChange={(value) => {
-                                            if (
-                                                value === 'system' ||
-                                                value === 'light' ||
-                                                value === 'dark'
-                                            ) {
-                                                setDefaultAppearance(value);
-                                            }
-                                        }}
+                                <FieldGroup>
+                                    <Field
+                                        data-invalid={
+                                            errors.default_appearance
+                                                ? true
+                                                : undefined
+                                        }
                                     >
-                                        <SelectTrigger
-                                            id="default_appearance"
-                                            className="w-full"
+                                        <FieldLabel htmlFor="default_appearance">
+                                            {t(
+                                                'settings.appearance.defaultAppearance',
+                                            )}
+                                        </FieldLabel>
+                                        <input
+                                            type="hidden"
+                                            name="default_appearance"
+                                            value={defaultAppearance}
+                                        />
+                                        <Select
+                                            value={defaultAppearance}
+                                            onValueChange={(value) => {
+                                                if (
+                                                    value === 'system' ||
+                                                    value === 'light' ||
+                                                    value === 'dark'
+                                                ) {
+                                                    setDefaultAppearance(value);
+                                                }
+                                            }}
                                         >
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="system">
-                                                {t(
-                                                    'settings.appearance.system',
-                                                )}
-                                            </SelectItem>
-                                            <SelectItem value="light">
-                                                {t('settings.appearance.light')}
-                                            </SelectItem>
-                                            <SelectItem value="dark">
-                                                {t('settings.appearance.dark')}
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <InputError
-                                        message={errors.default_appearance}
-                                    />
-                                </div>
+                                            <SelectTrigger
+                                                id="default_appearance"
+                                                className="w-full"
+                                                aria-invalid={
+                                                    errors.default_appearance
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.default_appearance
+                                                        ? 'default-appearance-error'
+                                                        : undefined
+                                                }
+                                            >
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="system">
+                                                    {t(
+                                                        'settings.appearance.system',
+                                                    )}
+                                                </SelectItem>
+                                                <SelectItem value="light">
+                                                    {t(
+                                                        'settings.appearance.light',
+                                                    )}
+                                                </SelectItem>
+                                                <SelectItem value="dark">
+                                                    {t(
+                                                        'settings.appearance.dark',
+                                                    )}
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FieldError id="default-appearance-error">
+                                            {errors.default_appearance}
+                                        </FieldError>
+                                    </Field>
+                                </FieldGroup>
                             </div>
 
                             <SettingsFormActions

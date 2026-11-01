@@ -3,7 +3,6 @@ import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Heading from '@/components/heading';
-import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,12 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
 
 /**
@@ -70,27 +74,50 @@ export default function DeleteUser() {
                             onError={() => passwordInput.current?.focus()}
                             resetOnSuccess
                             className="space-y-6"
+                            noValidate
                         >
                             {({ resetAndClearErrors, processing, errors }) => (
                                 <>
-                                    <div className="grid gap-2">
-                                        <Label
-                                            htmlFor="password"
-                                            className="sr-only"
+                                    <FieldGroup>
+                                        <Field
+                                            data-invalid={
+                                                errors.password
+                                                    ? true
+                                                    : undefined
+                                            }
                                         >
-                                            {t('common.password')}
-                                        </Label>
+                                            <FieldLabel
+                                                htmlFor="password"
+                                                className="sr-only"
+                                            >
+                                                {t('common.password')}
+                                            </FieldLabel>
 
-                                        <PasswordInput
-                                            id="password"
-                                            name="password"
-                                            ref={passwordInput}
-                                            placeholder={t('common.password')}
-                                            autoComplete="current-password"
-                                        />
+                                            <PasswordInput
+                                                id="password"
+                                                name="password"
+                                                ref={passwordInput}
+                                                placeholder={t(
+                                                    'common.password',
+                                                )}
+                                                autoComplete="current-password"
+                                                aria-invalid={
+                                                    errors.password
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.password
+                                                        ? 'delete-user-password-error'
+                                                        : undefined
+                                                }
+                                            />
 
-                                        <InputError message={errors.password} />
-                                    </div>
+                                            <FieldError id="delete-user-password-error">
+                                                {errors.password}
+                                            </FieldError>
+                                        </Field>
+                                    </FieldGroup>
 
                                     <DialogFooter className="gap-2">
                                         <DialogClose asChild>

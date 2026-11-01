@@ -4,7 +4,6 @@ import { Check, Copy, ScanLine } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AlertError from '@/components/alert-error';
-import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -13,6 +12,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Field, FieldError } from '@/components/ui/field';
 import {
     InputOTP,
     InputOTPGroup,
@@ -170,6 +170,7 @@ function TwoFactorVerificationStep({
             onError={() => setCode('')}
             resetOnError
             resetOnSuccess
+            noValidate
         >
             {({
                 processing,
@@ -195,7 +196,10 @@ function TwoFactorVerificationStep({
                                 <AlertError errors={[codeError]} />
                             ) : null}
 
-                            <div className="flex w-full flex-col items-center space-y-3 py-2">
+                            <Field
+                                className="flex w-full flex-col items-center space-y-3 py-2"
+                                data-invalid={codeError ? true : undefined}
+                            >
                                 <InputOTP
                                     id="otp"
                                     name="code"
@@ -205,6 +209,14 @@ function TwoFactorVerificationStep({
                                     disabled={processing}
                                     pattern={REGEXP_ONLY_DIGITS}
                                     autoFocus
+                                    aria-invalid={
+                                        codeError ? true : undefined
+                                    }
+                                    aria-describedby={
+                                        codeError
+                                            ? 'two-factor-code-error'
+                                            : undefined
+                                    }
                                 >
                                     <InputOTPGroup>
                                         {Array.from(
@@ -218,8 +230,10 @@ function TwoFactorVerificationStep({
                                         )}
                                     </InputOTPGroup>
                                 </InputOTP>
-                                <InputError message={codeError} />
-                            </div>
+                                <FieldError id="two-factor-code-error">
+                                    {codeError}
+                                </FieldError>
+                            </Field>
 
                             <div className="flex w-full space-x-5">
                                 <Button
