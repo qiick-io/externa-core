@@ -75,3 +75,9 @@ jobs:
 
       - name: Frontend unit tests (Vitest)
         run: npm run test:unit
+
+      - name: Public CMS SDK typecheck + OpenAPI freshness
+        working-directory: packages/sdk
+        run: |
+          npm ci
+          npm run check

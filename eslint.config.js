@@ -122,6 +122,8 @@ export default [
             'resources/js/components/ui/*',
             'resources/js/routes/**',
             'resources/js/wayfinder/**',
+            // Independent Node package with its own toolchain (openapi-typescript + tsc).
+            'packages/sdk/**',
         ],
     },
     prettier, // Turn off all rules that might conflict with Prettier
