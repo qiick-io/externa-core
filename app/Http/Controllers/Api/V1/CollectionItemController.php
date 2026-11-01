@@ -16,6 +16,8 @@ use App\Services\Api\PublicApiResponseCacheService;
 use App\Services\Api\RelationIncludeHydratorService;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Support\Api\PublicApiIncludeParser;
+use App\Support\Api\PublicItemSortParser;
+use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -32,6 +34,7 @@ class CollectionItemController extends Controller
         private UpdateCollectionItemAction $updateCollectionItemAction,
         private CollectionPermissionEnforcerService $permissionEnforcer,
         private PublicApiResponseCacheService $responseCache,
+        private PublicItemSortParser $sortParser,
     ) {}
 
     public function index(Request $request, string $slug): JsonResponse
@@ -58,6 +61,7 @@ class CollectionItemController extends Controller
         $maxPerPage = max(1, (int) config('api.max_per_page', 100));
         $perPage = min(max($request->integer('per_page', 15), 1), $maxPerPage);
         $page = max($request->integer('page', 1), 1);
+        $sortKeys = $this->sortParser->parseRest($request, $collection);
 
         $version = $this->responseCache->version((int) $collection->id);
         $access = $this->apiAccess($request);
@@ -66,6 +70,7 @@ class CollectionItemController extends Controller
             'filter' => $stringFilters,
             'page' => $page,
             'per_page' => $perPage,
+            'sort' => $this->sortParser->cacheKey($sortKeys),
             'locale' => $request->query('locale'),
             'include_all_translations' => $request->boolean('include_all_translations'),
             'include' => app(PublicApiIncludeParser::class)->parse($request->query('include')),
@@ -77,8 +82,12 @@ class CollectionItemController extends Controller
         ]);
         $key = $this->responseCache->itemsKey($slug, $version, $hash);
 
-        $payload = $this->responseCache->remember($key, function () use ($request, $collection, $stringFilters, $perPage, $page): array {
+        $payload = $this->responseCache->remember($key, function () use ($request, $collection, $stringFilters, $perPage, $page, $sortKeys): array {
             $collection->load(['fields' => fn ($q) => $q->ordered()]);
+
+            $queryLocale = $request->query('locale');
+            $localeOverride = is_string($queryLocale) && $queryLocale !== '' ? $queryLocale : null;
+            $locale = app(CollectionLocaleResolver::class)->resolve($localeOverride);
 
             $query = CollectionItem::query()
                 ->where('collection_id', $collection->id)
@@ -90,8 +99,9 @@ class CollectionItemController extends Controller
                 ]);
             $this->itemQueryService->applyFilters($query, $collection, $stringFilters);
             $this->permissionEnforcer->applyItemFilterToQuery($request, $collection, $query);
+            $this->itemQueryService->applyPublicSort($query, $collection, $sortKeys, $locale);
 
-            $paginator = $query->latest('id')->paginate($perPage, ['*'], 'page', $page);
+            $paginator = $query->paginate($perPage, ['*'], 'page', $page);
             $pageItems = $paginator->getCollection();
             $include = app(PublicApiIncludeParser::class)->parse($request->query('include'));
             if ($include !== []) {

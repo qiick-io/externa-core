@@ -419,6 +419,72 @@ class CollectionItemQueryService
         return ['sort' => 'id', 'direction' => 'desc'];
     }
 
+    /**
+     * Public CMS API multi-key sort. Empty keys → latest(id). Always ends with id tiebreaker.
+     * Nulls sort last in both directions.
+     *
+     * @param  Builder<CollectionItem>  $query
+     * @param  list<array{name: string, direction: 'asc'|'desc', field: ?CollectionField}>  $keys
+     */
+    public function applyPublicSort(
+        Builder $query,
+        Collection $collection,
+        array $keys,
+        ?string $locale = null,
+    ): void {
+        if ($keys === []) {
+            $query->latest('id');
+
+            return;
+        }
+
+        $locale ??= $this->localeResolver->resolve();
+
+        foreach ($keys as $key) {
+            $direction = $key['direction'] === 'asc' ? 'asc' : 'desc';
+            $field = $key['field'];
+
+            if ($field instanceof CollectionField) {
+                $valueSql = $this->publicValueOrderSql($field);
+                $sub = CollectionItemValue::query()
+                    // raw-sql: reviewed — public sort; field id/locale bound; SQL from driver helpers
+                    ->selectRaw($valueSql)
+                    ->whereColumn('collections_items_values.item_id', 'collections_items.id')
+                    ->where('field_id', $field->id)
+                    ->where('position', 0)
+                    ->limit(1);
+
+                if ($field->translatable) {
+                    $sub->where('locale', $locale);
+                } else {
+                    $sub->whereNull('locale');
+                }
+
+                // Nulls last: missing translation / empty value after the keyed rows.
+                // raw-sql: reviewed — subquery bindings rebound via orderBy
+                $query->orderByRaw('('.$sub->toSql().') is null asc', $sub->getBindings())
+                    ->orderBy($sub, $direction);
+
+                continue;
+            }
+
+            $column = $key['name'];
+            // raw-sql: reviewed — column from allowlist only (PublicItemSortParser::SYSTEM_COLUMNS)
+            $query->orderByRaw($column.' is null asc')
+                ->orderBy($column, $direction);
+        }
+
+        $query->orderByDesc('id');
+    }
+
+    /**
+     * Whether a collection field may be used as a Public API sort key.
+     */
+    public function isPubliclySortableField(CollectionField $field): bool
+    {
+        return $this->isSortableField($field);
+    }
+
     private function isSortableField(CollectionField $field): bool
     {
         $type = $field->type instanceof FieldTypeEnum
@@ -442,6 +508,19 @@ class CollectionItemQueryService
             FieldTypeEnum::Markdown,
             FieldTypeEnum::Code,
         ], true);
+    }
+
+    private function publicValueOrderSql(CollectionField $field): string
+    {
+        $type = $field->type instanceof FieldTypeEnum
+            ? $field->type
+            : FieldTypeEnum::tryFrom((string) $field->type);
+
+        if (in_array($type, [FieldTypeEnum::Number, FieldTypeEnum::Slider], true)) {
+            return $this->valueNumericSql();
+        }
+
+        return $this->valueTextSql();
     }
 
     private function valueLikeSql(): string
