@@ -2,16 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Http\Middleware\ConfigurePublicApiCors;
-use App\Http\Middleware\EnforcePublicApiOrigin;
-use App\Http\Middleware\EnsureCanManageFiles;
-use App\Http\Middleware\EnsureSidebarModuleEnabled;
-use App\Http\Middleware\EnsureTwoFactorIsEnabled;
-use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
-use App\Http\Middleware\ResolveApiAccess;
-use App\Http\Middleware\SetLocale;
 use App\Services\Ai\EmbeddingSimilarity;
 use App\Services\Api\CollectionPermissionEnforcer;
 use App\Services\Api\CollectionPermissionGuard;
@@ -66,9 +58,9 @@ use App\Services\Webhooks\OutboundWebhookDispatcher;
  * Codice Perfetto naming + architecture guardrails (issue #260).
  *
  * Scaffolding exemptions keep Laravel / Fortify / starter-kit names untouched.
- * Legacy App\Services classes without a Service suffix and pre-existing custom
- * middleware without a Middleware suffix are ignored so new classes must comply
- * while #260 stays a mechanical rename (no Service/Middleware mass rename).
+ * Custom middleware use the Middleware suffix (#337). Starter-kit Handle*
+ * middleware stay exempt. Legacy App\Services without Service suffix remain
+ * ignored until #336 merges.
  *
  * declare(strict_types=1) across App\ is deferred until the PHP baseline is clean;
  * new and touched files must still declare it.
@@ -217,15 +209,6 @@ arch('Middleware end with Middleware')
         // Starter-kit scaffolding (never rename).
         HandleAppearance::class,
         HandleInertiaRequests::class,
-        // Pre-#260 custom middleware; new middleware must use the Middleware suffix.
-        ConfigurePublicApiCors::class,
-        EnforcePublicApiOrigin::class,
-        EnsureCanManageFiles::class,
-        EnsureSidebarModuleEnabled::class,
-        EnsureTwoFactorIsEnabled::class,
-        EnsureUserHasPermission::class,
-        ResolveApiAccess::class,
-        SetLocale::class,
     ]);
 
 arch('custom Traits end with Trait')

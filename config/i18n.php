@@ -7,7 +7,7 @@ return [
     | Available UI Locales
     |--------------------------------------------------------------------------
     |
-    | Locales exposed to the language switcher and accepted by SetLocale /
+    | Locales exposed to the language switcher and accepted by SetLocaleMiddleware /
     | the locale settings endpoint. Separate from collections.locales (CMS).
     |
     */

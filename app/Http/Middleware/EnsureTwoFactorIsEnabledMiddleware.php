@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Satisfied by confirmed TOTP or at least one registered passkey.
  */
-class EnsureTwoFactorIsEnabled
+class EnsureTwoFactorIsEnabledMiddleware
 {
     /**
      * Routes needed to enroll (or leave) without a 2FA loop.

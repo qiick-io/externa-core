@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Resolve public vs API-key actor for /api/v1 and bind ApiAccess on the container.
  */
-class ResolveApiAccess
+class ResolveApiAccessMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {

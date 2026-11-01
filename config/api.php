@@ -19,7 +19,7 @@ return [
     | Request cost budget (60 s window)
     |--------------------------------------------------------------------------
     |
-    | Extra abuse control stacked after ResolveApiAccess. 0 = disabled
+    | Extra abuse control stacked after ResolveApiAccessMiddleware. 0 = disabled
     | (open default until operators set API_COST_LIMIT).
     |
     */

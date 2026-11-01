@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Cost-bucket limiter for Public CMS API + GraphQL (after ResolveApiAccess).
+ * Cost-bucket limiter for Public CMS API + GraphQL (after ResolveApiAccessMiddleware).
  *
  * Stacks with throttle:api and per-key rate_limit_per_minute; disabled when
  * config('api.cost_limit') is 0.

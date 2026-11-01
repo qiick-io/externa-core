@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 use App\Http\Middleware\ApiRequestCostMiddleware;
-use App\Http\Middleware\EnforcePublicApiOrigin;
-use App\Http\Middleware\ResolveApiAccess;
+use App\Http\Middleware\EnforcePublicApiOriginMiddleware;
+use App\Http\Middleware\ResolveApiAccessMiddleware;
 use GraphQL\Error\DebugFlag;
 use GraphQL\Validator\Rules\DisableIntrospection;
 use GraphQL\Validator\Rules\QueryComplexity;
@@ -54,8 +54,8 @@ return [
         'middleware' => [
             AcceptJson::class,
             'throttle:api',
-            EnforcePublicApiOrigin::class,
-            ResolveApiAccess::class,
+            EnforcePublicApiOriginMiddleware::class,
+            ResolveApiAccessMiddleware::class,
             ApiRequestCostMiddleware::class,
         ],
 

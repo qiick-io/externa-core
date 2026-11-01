@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Resolve the active UI locale from the user, cookie, or app default.
  */
-class SetLocale
+class SetLocaleMiddleware
 {
     /**
      * Set App locale for the request (UI + Laravel validation/auth messages).
