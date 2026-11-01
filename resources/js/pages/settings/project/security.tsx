@@ -377,37 +377,40 @@ export default function ProjectSecuritySettingsPage({
 
                                 <FieldGroup className="gap-6">
                                     <Field
-                                        orientation="horizontal"
                                         data-invalid={
                                             errors.oidc_enabled
                                                 ? true
                                                 : undefined
                                         }
                                     >
-                                        <Checkbox
-                                            id="oidc_enabled"
-                                            checked={form.oidc_enabled}
-                                            onCheckedChange={(checked) =>
-                                                setForm((current) => ({
-                                                    ...current,
-                                                    oidc_enabled:
-                                                        checked === true,
-                                                }))
-                                            }
-                                            aria-invalid={
-                                                errors.oidc_enabled
-                                                    ? true
-                                                    : undefined
-                                            }
-                                            aria-describedby={
-                                                errors.oidc_enabled
-                                                    ? 'oidc-enabled-error'
-                                                    : undefined
-                                            }
-                                        />
-                                        <FieldLabel htmlFor="oidc_enabled">
-                                            {t('settings.project.oidcEnabled')}
-                                        </FieldLabel>
+                                        <div className="flex items-center gap-3">
+                                            <Checkbox
+                                                id="oidc_enabled"
+                                                checked={form.oidc_enabled}
+                                                onCheckedChange={(checked) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        oidc_enabled:
+                                                            checked === true,
+                                                    }))
+                                                }
+                                                aria-invalid={
+                                                    errors.oidc_enabled
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.oidc_enabled
+                                                        ? 'oidc-enabled-error'
+                                                        : undefined
+                                                }
+                                            />
+                                            <FieldLabel htmlFor="oidc_enabled">
+                                                {t(
+                                                    'settings.project.oidcEnabled',
+                                                )}
+                                            </FieldLabel>
+                                        </div>
                                         <FieldError id="oidc-enabled-error">
                                             {errors.oidc_enabled}
                                         </FieldError>
@@ -669,39 +672,42 @@ export default function ProjectSecuritySettingsPage({
 
                                 <FieldGroup className="gap-6">
                                     <Field
-                                        orientation="horizontal"
                                         data-invalid={
                                             errors.registration_enabled
                                                 ? true
                                                 : undefined
                                         }
                                     >
-                                        <Checkbox
-                                            id="registration_enabled"
-                                            checked={form.registration_enabled}
-                                            onCheckedChange={(checked) =>
-                                                setForm((current) => ({
-                                                    ...current,
-                                                    registration_enabled:
-                                                        checked === true,
-                                                }))
-                                            }
-                                            aria-invalid={
-                                                errors.registration_enabled
-                                                    ? true
-                                                    : undefined
-                                            }
-                                            aria-describedby={
-                                                errors.registration_enabled
-                                                    ? 'registration-enabled-error'
-                                                    : undefined
-                                            }
-                                        />
-                                        <FieldLabel htmlFor="registration_enabled">
-                                            {t(
-                                                'settings.project.registrationEnabled',
-                                            )}
-                                        </FieldLabel>
+                                        <div className="flex items-center gap-3">
+                                            <Checkbox
+                                                id="registration_enabled"
+                                                checked={
+                                                    form.registration_enabled
+                                                }
+                                                onCheckedChange={(checked) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        registration_enabled:
+                                                            checked === true,
+                                                    }))
+                                                }
+                                                aria-invalid={
+                                                    errors.registration_enabled
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.registration_enabled
+                                                        ? 'registration-enabled-error'
+                                                        : undefined
+                                                }
+                                            />
+                                            <FieldLabel htmlFor="registration_enabled">
+                                                {t(
+                                                    'settings.project.registrationEnabled',
+                                                )}
+                                            </FieldLabel>
+                                        </div>
                                         <FieldError id="registration-enabled-error">
                                             {errors.registration_enabled}
                                         </FieldError>
@@ -773,41 +779,42 @@ export default function ProjectSecuritySettingsPage({
                                     </Field>
 
                                     <Field
-                                        orientation="horizontal"
                                         data-invalid={
                                             errors.email_verification_required
                                                 ? true
                                                 : undefined
                                         }
                                     >
-                                        <Checkbox
-                                            id="email_verification_required"
-                                            checked={
-                                                form.email_verification_required
-                                            }
-                                            onCheckedChange={(checked) =>
-                                                setForm((current) => ({
-                                                    ...current,
-                                                    email_verification_required:
-                                                        checked === true,
-                                                }))
-                                            }
-                                            aria-invalid={
-                                                errors.email_verification_required
-                                                    ? true
-                                                    : undefined
-                                            }
-                                            aria-describedby={
-                                                errors.email_verification_required
-                                                    ? 'email-verification-required-error'
-                                                    : undefined
-                                            }
-                                        />
-                                        <FieldLabel htmlFor="email_verification_required">
-                                            {t(
-                                                'settings.project.emailVerificationRequired',
-                                            )}
-                                        </FieldLabel>
+                                        <div className="flex items-center gap-3">
+                                            <Checkbox
+                                                id="email_verification_required"
+                                                checked={
+                                                    form.email_verification_required
+                                                }
+                                                onCheckedChange={(checked) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        email_verification_required:
+                                                            checked === true,
+                                                    }))
+                                                }
+                                                aria-invalid={
+                                                    errors.email_verification_required
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.email_verification_required
+                                                        ? 'email-verification-required-error'
+                                                        : undefined
+                                                }
+                                            />
+                                            <FieldLabel htmlFor="email_verification_required">
+                                                {t(
+                                                    'settings.project.emailVerificationRequired',
+                                                )}
+                                            </FieldLabel>
+                                        </div>
                                         <FieldError id="email-verification-required-error">
                                             {
                                                 errors.email_verification_required
