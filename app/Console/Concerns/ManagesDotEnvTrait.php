@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\File;
 /**
  * Shared .env read/write helpers for artisan installers and token rotators.
  */
-trait ManagesDotEnv
+trait ManagesDotEnvTrait
 {
     private function looksLikeProduction(): bool
     {

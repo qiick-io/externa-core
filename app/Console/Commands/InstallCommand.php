@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Console\Concerns\ManagesDotEnv;
+use App\Console\Concerns\ManagesDotEnvTrait;
 use Illuminate\Console\Command;
 use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +20,7 @@ use function Laravel\Prompts\text;
 #[AsCommand(name: 'externa:install')]
 class InstallCommand extends Command
 {
-    use ManagesDotEnv;
+    use ManagesDotEnvTrait;
 
     protected $signature = 'externa:install
         {--force : Allow overwriting an existing .env / running when APP_ENV looks like production}

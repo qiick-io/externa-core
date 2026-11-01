@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands\Ai;
 
-use App\Console\Concerns\ManagesDotEnv;
+use App\Console\Concerns\ManagesDotEnvTrait;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
@@ -15,7 +15,7 @@ use Throwable;
 #[AsCommand(name: 'ai:rotate-webhook-token')]
 class RotateWebhookTokenCommand extends Command
 {
-    use ManagesDotEnv;
+    use ManagesDotEnvTrait;
 
     protected $signature = 'ai:rotate-webhook-token
         {--grace=24h : Grace window for the previous token (e.g. 30m, 24h, 7d)}
