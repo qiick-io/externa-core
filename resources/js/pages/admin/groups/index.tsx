@@ -263,7 +263,7 @@ export default function AdminGroupsIndex({
                                         can(PermissionEnum.CanDeleteGroups) && (
                                             <Button
                                                 type="button"
-                                                variant="destructive"
+                                                variant="destructive-outline"
                                                 size="sm"
                                                 onClick={() =>
                                                     setPendingBulkAction(
@@ -293,7 +293,7 @@ export default function AdminGroupsIndex({
                                         ) && (
                                             <Button
                                                 type="button"
-                                                variant="destructive"
+                                                variant="destructive-outline"
                                                 size="sm"
                                                 onClick={() =>
                                                     setPendingBulkAction(
@@ -345,8 +345,7 @@ export default function AdminGroupsIndex({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="icon"
-                                    className="size-8"
+                                    size="icon-sm"
                                     aria-label={
                                         direction === 'asc'
                                             ? 'Sort ascending'
@@ -546,7 +545,7 @@ export default function AdminGroupsIndex({
                                                         ) && (
                                                             <Button
                                                                 type="button"
-                                                                variant="destructive"
+                                                                variant="destructive-outline"
                                                                 size="sm"
                                                                 onClick={() =>
                                                                     setPendingForceDeleteGroupId(

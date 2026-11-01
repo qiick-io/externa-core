@@ -5,6 +5,7 @@ import {
     Box,
     FolderOpen,
     PackagePlus,
+    MoreHorizontal,
     Pencil,
     Plus,
     RotateCcw,
@@ -29,6 +30,13 @@ import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialo
 import { PageLayout, TablePanel } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Drawer } from '@/components/ui/drawer';
 import {
     Select,
@@ -303,7 +311,7 @@ export default function CollectionsIndex({
                                         ) && (
                                             <Button
                                                 type="button"
-                                                variant="destructive"
+                                                variant="destructive-outline"
                                                 size="sm"
                                                 onClick={() =>
                                                     setPendingBulkAction(
@@ -333,7 +341,7 @@ export default function CollectionsIndex({
                                         ) && (
                                             <Button
                                                 type="button"
-                                                variant="destructive"
+                                                variant="destructive-outline"
                                                 size="sm"
                                                 onClick={() =>
                                                     setPendingBulkAction(
@@ -389,7 +397,7 @@ export default function CollectionsIndex({
                                     type="button"
                                     variant="outline"
                                     size="icon"
-                                    className="size-8"
+                                    size="icon-sm"
                                     aria-label={
                                         direction === 'asc'
                                             ? 'Sort ascending'
@@ -700,8 +708,7 @@ export default function CollectionsIndex({
                                                                     <HeaderIconButton
                                                                         type="button"
                                                                         variant="outline"
-                                                                        size="icon"
-                                                                        className="size-8"
+                                                                        size="icon-sm"
                                                                         label="Restore"
                                                                         onClick={() =>
                                                                             router.post(
@@ -717,49 +724,45 @@ export default function CollectionsIndex({
                                                                 {can(
                                                                     PermissionEnum.CanForceDeleteCollections,
                                                                 ) && (
-                                                                    <HeaderIconButton
-                                                                        type="button"
-                                                                        variant="destructive"
-                                                                        size="icon"
-                                                                        className="size-8"
-                                                                        label="Delete permanently"
-                                                                        onClick={() =>
-                                                                            setPendingRowDelete(
-                                                                                {
-                                                                                    id: c.id,
-                                                                                    name: c.name,
-                                                                                    force: true,
-                                                                                },
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <Trash2 className="size-3.5" />
-                                                                    </HeaderIconButton>
+                                                                    <DropdownMenu>
+                                                                        <DropdownMenuTrigger asChild>
+                                                                            <HeaderIconButton
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="icon-sm"
+                                                                                label="More actions"
+                                                                                data-test={`collection-row-menu-${c.id}`}
+                                                                            >
+                                                                                <MoreHorizontal className="size-3.5" />
+                                                                            </HeaderIconButton>
+                                                                        </DropdownMenuTrigger>
+                                                                        <DropdownMenuContent align="end">
+                                                                            <DropdownMenuItem
+                                                                                variant="destructive"
+                                                                                onSelect={() =>
+                                                                                    setPendingRowDelete(
+                                                                                        {
+                                                                                            id: c.id,
+                                                                                            name: c.name,
+                                                                                            force: true,
+                                                                                        },
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                Delete permanently
+                                                                            </DropdownMenuItem>
+                                                                        </DropdownMenuContent>
+                                                                    </DropdownMenu>
                                                                 )}
                                                             </>
                                                         ) : (
                                                             <>
                                                                 <HeaderIconButton
-                                                                    variant="outline"
-                                                                    size="icon"
-                                                                    className="size-8"
-                                                                    label="Edit fields"
-                                                                    asChild
-                                                                >
-                                                                    <Link
-                                                                        href={FieldController.index.url(
-                                                                            c.id,
-                                                                        )}
-                                                                    >
-                                                                        <Rows3 className="size-3.5" />
-                                                                    </Link>
-                                                                </HeaderIconButton>
-                                                                <HeaderIconButton
                                                                     type="button"
                                                                     variant="outline"
-                                                                    size="icon"
-                                                                    className="size-8"
+                                                                    size="icon-sm"
                                                                     label="Edit"
+                                                                    data-test={`collection-row-edit-${c.id}`}
                                                                     onClick={() =>
                                                                         openEdit(
                                                                             c,
@@ -768,28 +771,53 @@ export default function CollectionsIndex({
                                                                 >
                                                                     <Pencil className="size-3.5" />
                                                                 </HeaderIconButton>
-                                                                {can(
-                                                                    PermissionEnum.CanDeleteCollections,
-                                                                ) && (
-                                                                    <HeaderIconButton
-                                                                        type="button"
-                                                                        variant="destructive"
-                                                                        size="icon"
-                                                                        className="size-8"
-                                                                        label="Delete"
-                                                                        onClick={() =>
-                                                                            setPendingRowDelete(
-                                                                                {
-                                                                                    id: c.id,
-                                                                                    name: c.name,
-                                                                                    force: false,
-                                                                                },
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <Trash2 className="size-3.5" />
-                                                                    </HeaderIconButton>
-                                                                )}
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger asChild>
+                                                                        <HeaderIconButton
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon-sm"
+                                                                            label="More actions"
+                                                                            data-test={`collection-row-menu-${c.id}`}
+                                                                        >
+                                                                            <MoreHorizontal className="size-3.5" />
+                                                                        </HeaderIconButton>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent align="end">
+                                                                        <DropdownMenuItem asChild>
+                                                                            <Link
+                                                                                href={FieldController.index.url(
+                                                                                    c.id,
+                                                                                )}
+                                                                            >
+                                                                                <Rows3 className="size-3.5" />
+                                                                                Edit fields
+                                                                            </Link>
+                                                                        </DropdownMenuItem>
+                                                                        {can(
+                                                                            PermissionEnum.CanDeleteCollections,
+                                                                        ) && (
+                                                                            <>
+                                                                                <DropdownMenuSeparator />
+                                                                                <DropdownMenuItem
+                                                                                    variant="destructive"
+                                                                                    data-test={`collection-row-delete-${c.id}`}
+                                                                                    onSelect={() =>
+                                                                                        setPendingRowDelete(
+                                                                                            {
+                                                                                                id: c.id,
+                                                                                                name: c.name,
+                                                                                                force: false,
+                                                                                            },
+                                                                                        )
+                                                                                    }
+                                                                                >
+                                                                                    Delete
+                                                                                </DropdownMenuItem>
+                                                                            </>
+                                                                        )}
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
                                                             </>
                                                         )}
                                                     </div>
