@@ -4,11 +4,16 @@ import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import ProjectSecuritySettingsController from '@/actions/App/Http/Controllers/Settings/ProjectSecuritySettingsController';
 import Heading from '@/components/heading';
-import InputError from '@/components/input-error';
 import { SettingsFormActions } from '@/components/settings-form-actions';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -117,6 +122,7 @@ export default function ProjectSecuritySettingsPage({
                     options={{ preserveScroll: true }}
                     className="space-y-10"
                     onSuccess={() => setIsDirty(false)}
+                    noValidate
                 >
                     {({ processing, recentlySuccessful, errors }) => (
                         <>
@@ -167,134 +173,195 @@ export default function ProjectSecuritySettingsPage({
                                     )}
                                 />
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="password_policy">
-                                        {t('settings.project.passwordPolicy')}
-                                    </Label>
-                                    <Select
-                                        value={form.password_policy}
-                                        onValueChange={(value) => {
-                                            if (
-                                                value === 'weak' ||
-                                                value === 'medium' ||
-                                                value === 'strong'
-                                            ) {
-                                                setForm((current) => ({
-                                                    ...current,
-                                                    password_policy: value,
-                                                }));
-                                            }
-                                        }}
+                                <FieldGroup className="gap-6">
+                                    <Field
+                                        data-invalid={
+                                            errors.password_policy
+                                                ? true
+                                                : undefined
+                                        }
                                     >
-                                        <SelectTrigger
-                                            id="password_policy"
-                                            className="w-full"
+                                        <FieldLabel htmlFor="password_policy">
+                                            {t(
+                                                'settings.project.passwordPolicy',
+                                            )}
+                                        </FieldLabel>
+                                        <Select
+                                            value={form.password_policy}
+                                            onValueChange={(value) => {
+                                                if (
+                                                    value === 'weak' ||
+                                                    value === 'medium' ||
+                                                    value === 'strong'
+                                                ) {
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        password_policy: value,
+                                                    }));
+                                                }
+                                            }}
                                         >
-                                            <SelectValue>
-                                                {t(
-                                                    `settings.project.passwordPolicies.${form.password_policy}.label`,
-                                                )}
-                                            </SelectValue>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {passwordPolicies.map((policy) => (
-                                                <SelectItem
-                                                    key={policy}
-                                                    value={policy}
-                                                    textValue={t(
-                                                        `settings.project.passwordPolicies.${policy}.label`,
+                                            <SelectTrigger
+                                                id="password_policy"
+                                                className="w-full"
+                                                aria-invalid={
+                                                    errors.password_policy
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.password_policy
+                                                        ? 'password-policy-error'
+                                                        : undefined
+                                                }
+                                            >
+                                                <SelectValue>
+                                                    {t(
+                                                        `settings.project.passwordPolicies.${form.password_policy}.label`,
                                                     )}
-                                                    className="items-start py-2"
-                                                >
-                                                    <span className="flex flex-col gap-0.5 text-left">
-                                                        <span>
-                                                            {t(
+                                                </SelectValue>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {passwordPolicies.map(
+                                                    (policy) => (
+                                                        <SelectItem
+                                                            key={policy}
+                                                            value={policy}
+                                                            textValue={t(
                                                                 `settings.project.passwordPolicies.${policy}.label`,
                                                             )}
-                                                        </span>
-                                                        <span className="text-xs font-normal whitespace-normal text-muted-foreground">
-                                                            {t(
-                                                                `settings.project.passwordPolicies.${policy}.description`,
-                                                            )}
-                                                        </span>
-                                                    </span>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                                        {passwordPolicies.map((policy) => (
-                                            <li key={`hint-${policy}`}>
-                                                <span className="font-medium text-foreground">
-                                                    {t(
-                                                        `settings.project.passwordPolicies.${policy}.label`,
-                                                    )}
-                                                    :
-                                                </span>{' '}
-                                                {t(
-                                                    `settings.project.passwordPolicies.${policy}.description`,
+                                                            className="items-start py-2"
+                                                        >
+                                                            <span className="flex flex-col gap-0.5 text-left">
+                                                                <span>
+                                                                    {t(
+                                                                        `settings.project.passwordPolicies.${policy}.label`,
+                                                                    )}
+                                                                </span>
+                                                                <span className="text-xs font-normal whitespace-normal text-muted-foreground">
+                                                                    {t(
+                                                                        `settings.project.passwordPolicies.${policy}.description`,
+                                                                    )}
+                                                                </span>
+                                                            </span>
+                                                        </SelectItem>
+                                                    ),
                                                 )}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                    <InputError
-                                        message={errors.password_policy}
-                                    />
-                                </div>
+                                            </SelectContent>
+                                        </Select>
+                                        <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                                            {passwordPolicies.map((policy) => (
+                                                <li key={`hint-${policy}`}>
+                                                    <span className="font-medium text-foreground">
+                                                        {t(
+                                                            `settings.project.passwordPolicies.${policy}.label`,
+                                                        )}
+                                                        :
+                                                    </span>{' '}
+                                                    {t(
+                                                        `settings.project.passwordPolicies.${policy}.description`,
+                                                    )}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        <FieldError id="password-policy-error">
+                                            {errors.password_policy}
+                                        </FieldError>
+                                    </Field>
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="login_max_attempts">
-                                        {t('settings.project.loginMaxAttempts')}
-                                    </Label>
-                                    <Input
-                                        id="login_max_attempts"
-                                        name="login_max_attempts"
-                                        type="number"
-                                        min={1}
-                                        max={100}
-                                        value={form.login_max_attempts}
-                                        onChange={(event) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                login_max_attempts: Number(
-                                                    event.target.value,
-                                                ),
-                                            }))
+                                    <Field
+                                        data-invalid={
+                                            errors.login_max_attempts
+                                                ? true
+                                                : undefined
                                         }
-                                    />
-                                    <InputError
-                                        message={errors.login_max_attempts}
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-3">
-                                        <Checkbox
-                                            id="two_factor_required"
-                                            checked={form.two_factor_required}
-                                            onCheckedChange={(checked) =>
+                                    >
+                                        <FieldLabel htmlFor="login_max_attempts">
+                                            {t(
+                                                'settings.project.loginMaxAttempts',
+                                            )}
+                                        </FieldLabel>
+                                        <Input
+                                            id="login_max_attempts"
+                                            name="login_max_attempts"
+                                            type="number"
+                                            min={1}
+                                            max={100}
+                                            value={form.login_max_attempts}
+                                            onChange={(event) =>
                                                 setForm((current) => ({
                                                     ...current,
-                                                    two_factor_required:
-                                                        checked === true,
+                                                    login_max_attempts: Number(
+                                                        event.target.value,
+                                                    ),
                                                 }))
                                             }
+                                            aria-invalid={
+                                                errors.login_max_attempts
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.login_max_attempts
+                                                    ? 'login-max-attempts-error'
+                                                    : undefined
+                                            }
                                         />
-                                        <Label htmlFor="two_factor_required">
+                                        <FieldError id="login-max-attempts-error">
+                                            {errors.login_max_attempts}
+                                        </FieldError>
+                                    </Field>
+
+                                    <Field
+                                        data-invalid={
+                                            errors.two_factor_required
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Checkbox
+                                                id="two_factor_required"
+                                                checked={
+                                                    form.two_factor_required
+                                                }
+                                                onCheckedChange={(checked) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        two_factor_required:
+                                                            checked === true,
+                                                    }))
+                                                }
+                                                aria-invalid={
+                                                    errors.two_factor_required
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.two_factor_required
+                                                        ? 'two-factor-required-error'
+                                                        : 'two-factor-required-hint'
+                                                }
+                                            />
+                                            <FieldLabel htmlFor="two_factor_required">
+                                                {t(
+                                                    'settings.project.twoFactorRequired',
+                                                )}
+                                            </FieldLabel>
+                                        </div>
+                                        <FieldDescription
+                                            id="two-factor-required-hint"
+                                            className="pl-7"
+                                        >
                                             {t(
-                                                'settings.project.twoFactorRequired',
+                                                'settings.project.twoFactorRequiredHint',
                                             )}
-                                        </Label>
-                                    </div>
-                                    <p className="pl-7 text-sm text-muted-foreground">
-                                        {t(
-                                            'settings.project.twoFactorRequiredHint',
-                                        )}
-                                    </p>
-                                    <InputError
-                                        message={errors.two_factor_required}
-                                    />
-                                </div>
+                                        </FieldDescription>
+                                        <FieldError id="two-factor-required-error">
+                                            {errors.two_factor_required}
+                                        </FieldError>
+                                    </Field>
+                                </FieldGroup>
                             </div>
 
                             <Separator />
@@ -308,156 +375,275 @@ export default function ProjectSecuritySettingsPage({
                                     )}
                                 />
 
-                                <div className="flex items-center gap-3">
-                                    <Checkbox
-                                        id="oidc_enabled"
-                                        checked={form.oidc_enabled}
-                                        onCheckedChange={(checked) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                oidc_enabled: checked === true,
-                                            }))
-                                        }
-                                    />
-                                    <Label htmlFor="oidc_enabled">
-                                        {t('settings.project.oidcEnabled')}
-                                    </Label>
-                                </div>
-                                <InputError message={errors.oidc_enabled} />
-
-                                <div className="grid gap-2">
-                                    <Label htmlFor="oidc_issuer">
-                                        {t('settings.project.oidcIssuer')}
-                                    </Label>
-                                    <Input
-                                        id="oidc_issuer"
-                                        name="oidc_issuer"
-                                        type="url"
-                                        placeholder="https://idp.example.com/realms/externa"
-                                        value={form.oidc_issuer}
-                                        onChange={(event) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                oidc_issuer: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                    <p className="text-sm text-muted-foreground">
-                                        {t('settings.project.oidcIssuerHint')}
-                                    </p>
-                                    <InputError message={errors.oidc_issuer} />
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label htmlFor="oidc_client_id">
-                                        {t('settings.project.oidcClientId')}
-                                    </Label>
-                                    <Input
-                                        id="oidc_client_id"
-                                        name="oidc_client_id"
-                                        value={form.oidc_client_id}
-                                        onChange={(event) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                oidc_client_id:
-                                                    event.target.value,
-                                            }))
-                                        }
-                                    />
-                                    <InputError
-                                        message={errors.oidc_client_id}
-                                    />
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label htmlFor="oidc_client_secret">
-                                        {t('settings.project.oidcClientSecret')}
-                                    </Label>
-                                    <Input
-                                        id="oidc_client_secret"
-                                        name="oidc_client_secret"
-                                        type="password"
-                                        autoComplete="new-password"
-                                        value={form.oidc_client_secret}
-                                        onChange={(event) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                oidc_client_secret:
-                                                    event.target.value,
-                                            }))
-                                        }
-                                        placeholder={
-                                            project.oidc_client_secret_configured
-                                                ? '••••••••'
+                                <FieldGroup className="gap-6">
+                                    <Field
+                                        data-invalid={
+                                            errors.oidc_enabled
+                                                ? true
                                                 : undefined
                                         }
-                                    />
-                                    <p className="text-sm text-muted-foreground">
-                                        {project.oidc_client_secret_configured
-                                            ? t(
-                                                  'settings.project.oidcSecretConfiguredHint',
-                                              )
-                                            : t(
-                                                  'settings.project.oidcSecretEmptyHint',
-                                              )}
-                                    </p>
-                                    <InputError
-                                        message={errors.oidc_client_secret}
-                                    />
-                                </div>
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Checkbox
+                                                id="oidc_enabled"
+                                                checked={form.oidc_enabled}
+                                                onCheckedChange={(checked) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        oidc_enabled:
+                                                            checked === true,
+                                                    }))
+                                                }
+                                                aria-invalid={
+                                                    errors.oidc_enabled
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.oidc_enabled
+                                                        ? 'oidc-enabled-error'
+                                                        : undefined
+                                                }
+                                            />
+                                            <FieldLabel htmlFor="oidc_enabled">
+                                                {t(
+                                                    'settings.project.oidcEnabled',
+                                                )}
+                                            </FieldLabel>
+                                        </div>
+                                        <FieldError id="oidc-enabled-error">
+                                            {errors.oidc_enabled}
+                                        </FieldError>
+                                    </Field>
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="oidc_button_label">
-                                        {t('settings.project.oidcButtonLabel')}
-                                    </Label>
-                                    <Input
-                                        id="oidc_button_label"
-                                        name="oidc_button_label"
-                                        value={form.oidc_button_label}
-                                        onChange={(event) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                oidc_button_label:
-                                                    event.target.value,
-                                            }))
+                                    <Field
+                                        data-invalid={
+                                            errors.oidc_issuer
+                                                ? true
+                                                : undefined
                                         }
-                                        placeholder={t(
-                                            'settings.project.oidcButtonLabelPlaceholder',
-                                        )}
-                                    />
-                                    <InputError
-                                        message={errors.oidc_button_label}
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-3">
-                                        <Checkbox
-                                            id="oidc_jit_provisioning"
-                                            checked={form.oidc_jit_provisioning}
-                                            onCheckedChange={(checked) =>
+                                    >
+                                        <FieldLabel htmlFor="oidc_issuer">
+                                            {t('settings.project.oidcIssuer')}
+                                        </FieldLabel>
+                                        <Input
+                                            id="oidc_issuer"
+                                            name="oidc_issuer"
+                                            type="url"
+                                            placeholder="https://idp.example.com/realms/externa"
+                                            value={form.oidc_issuer}
+                                            onChange={(event) =>
                                                 setForm((current) => ({
                                                     ...current,
-                                                    oidc_jit_provisioning:
-                                                        checked === true,
+                                                    oidc_issuer:
+                                                        event.target.value,
                                                 }))
                                             }
+                                            aria-invalid={
+                                                errors.oidc_issuer
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.oidc_issuer
+                                                    ? 'oidc-issuer-error'
+                                                    : 'oidc-issuer-hint'
+                                            }
                                         />
-                                        <Label htmlFor="oidc_jit_provisioning">
+                                        <FieldDescription id="oidc-issuer-hint">
                                             {t(
-                                                'settings.project.oidcJitProvisioning',
+                                                'settings.project.oidcIssuerHint',
                                             )}
-                                        </Label>
-                                    </div>
-                                    <p className="pl-7 text-sm text-muted-foreground">
-                                        {t(
-                                            'settings.project.oidcJitProvisioningHint',
-                                        )}
-                                    </p>
-                                    <InputError
-                                        message={errors.oidc_jit_provisioning}
-                                    />
-                                </div>
+                                        </FieldDescription>
+                                        <FieldError id="oidc-issuer-error">
+                                            {errors.oidc_issuer}
+                                        </FieldError>
+                                    </Field>
+
+                                    <Field
+                                        data-invalid={
+                                            errors.oidc_client_id
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
+                                        <FieldLabel htmlFor="oidc_client_id">
+                                            {t('settings.project.oidcClientId')}
+                                        </FieldLabel>
+                                        <Input
+                                            id="oidc_client_id"
+                                            name="oidc_client_id"
+                                            value={form.oidc_client_id}
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    oidc_client_id:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                            aria-invalid={
+                                                errors.oidc_client_id
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.oidc_client_id
+                                                    ? 'oidc-client-id-error'
+                                                    : undefined
+                                            }
+                                        />
+                                        <FieldError id="oidc-client-id-error">
+                                            {errors.oidc_client_id}
+                                        </FieldError>
+                                    </Field>
+
+                                    <Field
+                                        data-invalid={
+                                            errors.oidc_client_secret
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
+                                        <FieldLabel htmlFor="oidc_client_secret">
+                                            {t(
+                                                'settings.project.oidcClientSecret',
+                                            )}
+                                        </FieldLabel>
+                                        <Input
+                                            id="oidc_client_secret"
+                                            name="oidc_client_secret"
+                                            type="password"
+                                            autoComplete="new-password"
+                                            value={form.oidc_client_secret}
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    oidc_client_secret:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                            placeholder={
+                                                project.oidc_client_secret_configured
+                                                    ? '••••••••'
+                                                    : undefined
+                                            }
+                                            aria-invalid={
+                                                errors.oidc_client_secret
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.oidc_client_secret
+                                                    ? 'oidc-client-secret-error'
+                                                    : 'oidc-client-secret-hint'
+                                            }
+                                        />
+                                        <FieldDescription id="oidc-client-secret-hint">
+                                            {project.oidc_client_secret_configured
+                                                ? t(
+                                                      'settings.project.oidcSecretConfiguredHint',
+                                                  )
+                                                : t(
+                                                      'settings.project.oidcSecretEmptyHint',
+                                                  )}
+                                        </FieldDescription>
+                                        <FieldError id="oidc-client-secret-error">
+                                            {errors.oidc_client_secret}
+                                        </FieldError>
+                                    </Field>
+
+                                    <Field
+                                        data-invalid={
+                                            errors.oidc_button_label
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
+                                        <FieldLabel htmlFor="oidc_button_label">
+                                            {t(
+                                                'settings.project.oidcButtonLabel',
+                                            )}
+                                        </FieldLabel>
+                                        <Input
+                                            id="oidc_button_label"
+                                            name="oidc_button_label"
+                                            value={form.oidc_button_label}
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    oidc_button_label:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                            placeholder={t(
+                                                'settings.project.oidcButtonLabelPlaceholder',
+                                            )}
+                                            aria-invalid={
+                                                errors.oidc_button_label
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.oidc_button_label
+                                                    ? 'oidc-button-label-error'
+                                                    : undefined
+                                            }
+                                        />
+                                        <FieldError id="oidc-button-label-error">
+                                            {errors.oidc_button_label}
+                                        </FieldError>
+                                    </Field>
+
+                                    <Field
+                                        data-invalid={
+                                            errors.oidc_jit_provisioning
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Checkbox
+                                                id="oidc_jit_provisioning"
+                                                checked={
+                                                    form.oidc_jit_provisioning
+                                                }
+                                                onCheckedChange={(checked) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        oidc_jit_provisioning:
+                                                            checked === true,
+                                                    }))
+                                                }
+                                                aria-invalid={
+                                                    errors.oidc_jit_provisioning
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.oidc_jit_provisioning
+                                                        ? 'oidc-jit-provisioning-error'
+                                                        : 'oidc-jit-provisioning-hint'
+                                                }
+                                            />
+                                            <FieldLabel htmlFor="oidc_jit_provisioning">
+                                                {t(
+                                                    'settings.project.oidcJitProvisioning',
+                                                )}
+                                            </FieldLabel>
+                                        </div>
+                                        <FieldDescription
+                                            id="oidc-jit-provisioning-hint"
+                                            className="pl-7"
+                                        >
+                                            {t(
+                                                'settings.project.oidcJitProvisioningHint',
+                                            )}
+                                        </FieldDescription>
+                                        <FieldError id="oidc-jit-provisioning-error">
+                                            {errors.oidc_jit_provisioning}
+                                        </FieldError>
+                                    </Field>
+                                </FieldGroup>
 
                                 <p className="text-sm text-muted-foreground">
                                     {t('settings.project.oidcRedirectHint', {
@@ -482,123 +668,201 @@ export default function ProjectSecuritySettingsPage({
                                     )}
                                 />
 
-                                <div className="flex items-center gap-3">
-                                    <Checkbox
-                                        id="registration_enabled"
-                                        checked={form.registration_enabled}
-                                        onCheckedChange={(checked) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                registration_enabled:
-                                                    checked === true,
-                                            }))
-                                        }
-                                    />
-                                    <Label htmlFor="registration_enabled">
-                                        {t(
-                                            'settings.project.registrationEnabled',
-                                        )}
-                                    </Label>
-                                </div>
-                                <InputError
-                                    message={errors.registration_enabled}
-                                />
-
-                                <div className="grid gap-2">
-                                    <Label htmlFor="default_user_role">
-                                        {t('settings.project.defaultUserRole')}
-                                    </Label>
-                                    <Select
-                                        value={
-                                            form.default_user_role === ''
-                                                ? '__none__'
-                                                : form.default_user_role
-                                        }
-                                        onValueChange={(value) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                default_user_role:
-                                                    value === '__none__'
-                                                        ? ''
-                                                        : value,
-                                            }))
+                                <FieldGroup className="gap-6">
+                                    <Field
+                                        data-invalid={
+                                            errors.registration_enabled
+                                                ? true
+                                                : undefined
                                         }
                                     >
-                                        <SelectTrigger
-                                            id="default_user_role"
-                                            className="w-full"
+                                        <div className="flex items-center gap-3">
+                                            <Checkbox
+                                                id="registration_enabled"
+                                                checked={
+                                                    form.registration_enabled
+                                                }
+                                                onCheckedChange={(checked) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        registration_enabled:
+                                                            checked === true,
+                                                    }))
+                                                }
+                                                aria-invalid={
+                                                    errors.registration_enabled
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.registration_enabled
+                                                        ? 'registration-enabled-error'
+                                                        : undefined
+                                                }
+                                            />
+                                            <FieldLabel htmlFor="registration_enabled">
+                                                {t(
+                                                    'settings.project.registrationEnabled',
+                                                )}
+                                            </FieldLabel>
+                                        </div>
+                                        <FieldError id="registration-enabled-error">
+                                            {errors.registration_enabled}
+                                        </FieldError>
+                                    </Field>
+
+                                    <Field
+                                        data-invalid={
+                                            errors.default_user_role
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
+                                        <FieldLabel htmlFor="default_user_role">
+                                            {t(
+                                                'settings.project.defaultUserRole',
+                                            )}
+                                        </FieldLabel>
+                                        <Select
+                                            value={
+                                                form.default_user_role === ''
+                                                    ? '__none__'
+                                                    : form.default_user_role
+                                            }
+                                            onValueChange={(value) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    default_user_role:
+                                                        value === '__none__'
+                                                            ? ''
+                                                            : value,
+                                                }))
+                                            }
                                         >
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="__none__">
-                                                {t('settings.project.noRole')}
-                                            </SelectItem>
-                                            {roles.map((role) => (
-                                                <SelectItem
-                                                    key={role.id}
-                                                    value={role.name}
-                                                >
-                                                    {role.name}
+                                            <SelectTrigger
+                                                id="default_user_role"
+                                                className="w-full"
+                                                aria-invalid={
+                                                    errors.default_user_role
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.default_user_role
+                                                        ? 'default-user-role-error'
+                                                        : undefined
+                                                }
+                                            >
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="__none__">
+                                                    {t(
+                                                        'settings.project.noRole',
+                                                    )}
                                                 </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <InputError
-                                        message={errors.default_user_role}
-                                    />
-                                </div>
+                                                {roles.map((role) => (
+                                                    <SelectItem
+                                                        key={role.id}
+                                                        value={role.name}
+                                                    >
+                                                        {role.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FieldError id="default-user-role-error">
+                                            {errors.default_user_role}
+                                        </FieldError>
+                                    </Field>
 
-                                <div className="flex items-center gap-3">
-                                    <Checkbox
-                                        id="email_verification_required"
-                                        checked={
-                                            form.email_verification_required
+                                    <Field
+                                        data-invalid={
+                                            errors.email_verification_required
+                                                ? true
+                                                : undefined
                                         }
-                                        onCheckedChange={(checked) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                email_verification_required:
-                                                    checked === true,
-                                            }))
-                                        }
-                                    />
-                                    <Label htmlFor="email_verification_required">
-                                        {t(
-                                            'settings.project.emailVerificationRequired',
-                                        )}
-                                    </Label>
-                                </div>
-                                <InputError
-                                    message={errors.email_verification_required}
-                                />
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Checkbox
+                                                id="email_verification_required"
+                                                checked={
+                                                    form.email_verification_required
+                                                }
+                                                onCheckedChange={(checked) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        email_verification_required:
+                                                            checked === true,
+                                                    }))
+                                                }
+                                                aria-invalid={
+                                                    errors.email_verification_required
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-describedby={
+                                                    errors.email_verification_required
+                                                        ? 'email-verification-required-error'
+                                                        : undefined
+                                                }
+                                            />
+                                            <FieldLabel htmlFor="email_verification_required">
+                                                {t(
+                                                    'settings.project.emailVerificationRequired',
+                                                )}
+                                            </FieldLabel>
+                                        </div>
+                                        <FieldError id="email-verification-required-error">
+                                            {errors.email_verification_required}
+                                        </FieldError>
+                                    </Field>
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="allowed_domains">
-                                        {t('settings.project.allowedDomains')}
-                                    </Label>
-                                    <Textarea
-                                        id="allowed_domains"
-                                        name="allowed_domains"
-                                        value={form.allowed_domains}
-                                        onChange={(event) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                allowed_domains:
-                                                    event.target.value,
-                                            }))
+                                    <Field
+                                        data-invalid={
+                                            errors.allowed_domains
+                                                ? true
+                                                : undefined
                                         }
-                                        placeholder="example.com, company.org"
-                                    />
-                                    <p className="text-sm text-muted-foreground">
-                                        {t(
-                                            'settings.project.allowedDomainsHint',
-                                        )}
-                                    </p>
-                                    <InputError
-                                        message={errors.allowed_domains}
-                                    />
-                                </div>
+                                    >
+                                        <FieldLabel htmlFor="allowed_domains">
+                                            {t(
+                                                'settings.project.allowedDomains',
+                                            )}
+                                        </FieldLabel>
+                                        <Textarea
+                                            id="allowed_domains"
+                                            name="allowed_domains"
+                                            value={form.allowed_domains}
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    allowed_domains:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                            placeholder="example.com, company.org"
+                                            aria-invalid={
+                                                errors.allowed_domains
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.allowed_domains
+                                                    ? 'allowed-domains-error'
+                                                    : 'allowed-domains-hint'
+                                            }
+                                        />
+                                        <FieldDescription id="allowed-domains-hint">
+                                            {t(
+                                                'settings.project.allowedDomainsHint',
+                                            )}
+                                        </FieldDescription>
+                                        <FieldError id="allowed-domains-error">
+                                            {errors.allowed_domains}
+                                        </FieldError>
+                                    </Field>
+                                </FieldGroup>
                             </div>
 
                             <SettingsFormActions

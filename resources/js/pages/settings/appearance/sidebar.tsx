@@ -5,10 +5,9 @@ import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import AppearanceSidebarSettingsController from '@/actions/App/Http/Controllers/Settings/AppearanceSidebarSettingsController';
 import Heading from '@/components/heading';
-import InputError from '@/components/input-error';
 import { SettingsFormActions } from '@/components/settings-form-actions';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -70,16 +69,16 @@ function ModuleRowContent({
                 disabled={module.locked}
                 onCheckedChange={(checked) => onToggle(checked === true)}
             />
-            <Label
+            <FieldLabel
                 htmlFor={`module-${module.id}`}
                 className={cn(
-                    'flex-1',
+                    'flex-1 font-normal',
                     module.locked && 'text-muted-foreground',
                 )}
             >
                 {label}
                 {module.locked ? ' *' : ''}
-            </Label>
+            </FieldLabel>
         </>
     );
 }
@@ -272,6 +271,7 @@ export default function AppearanceSidebarSettingsPage({ project }: Props) {
                     options={{ preserveScroll: true }}
                     className="space-y-10"
                     onSuccess={() => setIsDirty(false)}
+                    noValidate
                 >
                     {({ processing, recentlySuccessful, errors }) => (
                         <>
@@ -291,23 +291,16 @@ export default function AppearanceSidebarSettingsPage({ project }: Props) {
                                         'settings.project.sidebarDescription',
                                     )}
                                 />
-                                <div className="space-y-2">
-                                    {pinnedModules.map((module) => (
-                                        <PinnedModuleRow
-                                            key={module.id}
-                                            module={module}
-                                            label={moduleLabel(module.id)}
-                                            onToggle={(enabled) =>
-                                                toggleModule(module.id, enabled)
-                                            }
-                                        />
-                                    ))}
-                                    <div
-                                        ref={sortableModulesRef}
-                                        className="space-y-2"
-                                    >
-                                        {sortableModules.map((module) => (
-                                            <ModuleRow
+                                <Field
+                                    data-invalid={
+                                        errors.sidebar_modules
+                                            ? true
+                                            : undefined
+                                    }
+                                >
+                                    <div className="space-y-2">
+                                        {pinnedModules.map((module) => (
+                                            <PinnedModuleRow
                                                 key={module.id}
                                                 module={module}
                                                 label={moduleLabel(module.id)}
@@ -319,9 +312,31 @@ export default function AppearanceSidebarSettingsPage({ project }: Props) {
                                                 }
                                             />
                                         ))}
+                                        <div
+                                            ref={sortableModulesRef}
+                                            className="space-y-2"
+                                        >
+                                            {sortableModules.map((module) => (
+                                                <ModuleRow
+                                                    key={module.id}
+                                                    module={module}
+                                                    label={moduleLabel(
+                                                        module.id,
+                                                    )}
+                                                    onToggle={(enabled) =>
+                                                        toggleModule(
+                                                            module.id,
+                                                            enabled,
+                                                        )
+                                                    }
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                                <InputError message={errors.sidebar_modules} />
+                                    <FieldError id="sidebar-modules-error">
+                                        {errors.sidebar_modules}
+                                    </FieldError>
+                                </Field>
                             </div>
 
                             <SettingsFormActions

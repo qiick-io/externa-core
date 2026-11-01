@@ -4,10 +4,14 @@ import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import ProjectContentSettingsController from '@/actions/App/Http/Controllers/Settings/ProjectContentSettingsController';
 import Heading from '@/components/heading';
-import InputError from '@/components/input-error';
 import { SettingsFormActions } from '@/components/settings-form-actions';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
@@ -76,6 +80,7 @@ export default function ProjectContentSettingsPage({ project }: Props) {
                     options={{ preserveScroll: true }}
                     className="space-y-10"
                     onSuccess={() => setIsDirty(false)}
+                    noValidate
                 >
                     {({ processing, recentlySuccessful, errors }) => (
                         <>
@@ -90,13 +95,19 @@ export default function ProjectContentSettingsPage({ project }: Props) {
                                     )}
                                 />
 
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="revision_retention_count">
+                                <FieldGroup className="grid gap-4 sm:grid-cols-2">
+                                    <Field
+                                        data-invalid={
+                                            errors.revision_retention_count
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
+                                        <FieldLabel htmlFor="revision_retention_count">
                                             {t(
                                                 'settings.project.revisionRetentionCount',
                                             )}
-                                        </Label>
+                                        </FieldLabel>
                                         <Input
                                             id="revision_retention_count"
                                             name="revision_retention_count"
@@ -120,19 +131,33 @@ export default function ProjectContentSettingsPage({ project }: Props) {
                                                               ),
                                                 }))
                                             }
-                                        />
-                                        <InputError
-                                            message={
+                                            aria-invalid={
                                                 errors.revision_retention_count
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.revision_retention_count
+                                                    ? 'revision-retention-count-error'
+                                                    : undefined
                                             }
                                         />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="revision_retention_days">
+                                        <FieldError id="revision-retention-count-error">
+                                            {errors.revision_retention_count}
+                                        </FieldError>
+                                    </Field>
+                                    <Field
+                                        data-invalid={
+                                            errors.revision_retention_days
+                                                ? true
+                                                : undefined
+                                        }
+                                    >
+                                        <FieldLabel htmlFor="revision_retention_days">
                                             {t(
                                                 'settings.project.revisionRetentionDays',
                                             )}
-                                        </Label>
+                                        </FieldLabel>
                                         <Input
                                             id="revision_retention_days"
                                             name="revision_retention_days"
@@ -156,14 +181,22 @@ export default function ProjectContentSettingsPage({ project }: Props) {
                                                               ),
                                                 }))
                                             }
-                                        />
-                                        <InputError
-                                            message={
+                                            aria-invalid={
                                                 errors.revision_retention_days
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.revision_retention_days
+                                                    ? 'revision-retention-days-error'
+                                                    : undefined
                                             }
                                         />
-                                    </div>
-                                </div>
+                                        <FieldError id="revision-retention-days-error">
+                                            {errors.revision_retention_days}
+                                        </FieldError>
+                                    </Field>
+                                </FieldGroup>
                                 <p className="text-sm text-muted-foreground">
                                     {t(
                                         'settings.project.revisionRetentionHint',
@@ -184,34 +217,52 @@ export default function ProjectContentSettingsPage({ project }: Props) {
                                     )}
                                 />
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="preview_url_default">
-                                        {t(
-                                            'settings.project.previewUrlDefault',
-                                        )}
-                                    </Label>
-                                    <Input
-                                        id="preview_url_default"
-                                        name="preview_url_default"
-                                        type="url"
-                                        autoComplete="off"
-                                        data-1p-ignore
-                                        data-lpignore="true"
-                                        value={form.preview_url_default}
-                                        onChange={(event) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                preview_url_default:
-                                                    event.target.value,
-                                            }))
+                                <FieldGroup>
+                                    <Field
+                                        data-invalid={
+                                            errors.preview_url_default
+                                                ? true
+                                                : undefined
                                         }
-                                        placeholder="https://example.com/preview/{{collection}}/{{id}}?token={{token}}"
-                                        data-test="project-preview-url-default"
-                                    />
-                                    <InputError
-                                        message={errors.preview_url_default}
-                                    />
-                                </div>
+                                    >
+                                        <FieldLabel htmlFor="preview_url_default">
+                                            {t(
+                                                'settings.project.previewUrlDefault',
+                                            )}
+                                        </FieldLabel>
+                                        <Input
+                                            id="preview_url_default"
+                                            name="preview_url_default"
+                                            type="url"
+                                            autoComplete="off"
+                                            data-1p-ignore
+                                            data-lpignore="true"
+                                            value={form.preview_url_default}
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    preview_url_default:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                            placeholder="https://example.com/preview/{{collection}}/{{id}}?token={{token}}"
+                                            data-test="project-preview-url-default"
+                                            aria-invalid={
+                                                errors.preview_url_default
+                                                    ? true
+                                                    : undefined
+                                            }
+                                            aria-describedby={
+                                                errors.preview_url_default
+                                                    ? 'preview-url-default-error'
+                                                    : undefined
+                                            }
+                                        />
+                                        <FieldError id="preview-url-default-error">
+                                            {errors.preview_url_default}
+                                        </FieldError>
+                                    </Field>
+                                </FieldGroup>
                             </div>
 
                             <SettingsFormActions
