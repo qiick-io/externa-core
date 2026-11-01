@@ -86,12 +86,15 @@ test('deliver job posts signed payload', function () {
 
     Http::assertSent(function ($request): bool {
         $body = $request->body();
-        $expected = 'sha256='.hash_hmac('sha256', $body, 'test-secret');
+        $timestamp = $request->header('X-Externa-Timestamp')[0] ?? '';
+        $legacy = 'sha256='.hash_hmac('sha256', $body, 'test-secret');
+        $v2 = 'sha256='.hash_hmac('sha256', $timestamp.'.'.$body, 'test-secret');
 
         return $request->url() === 'https://example.com/externa-hooks'
-            && $request->hasHeader('X-Externa-Signature', $expected)
+            && $request->hasHeader('X-Externa-Signature', $legacy)
+            && $request->hasHeader('X-Externa-Signature-V2', $v2)
             && $request->hasHeader('X-Externa-Event-Id', 'evt_01test')
-            && $request->hasHeader('X-Externa-Timestamp')
+            && $timestamp !== ''
             && $request->header('Content-Type')[0] === 'application/json'
             && str_contains($body, '"type":"item.updated"');
     });
@@ -499,10 +502,13 @@ test('end-to-end item create delivers signed http request with sync queue', func
     Http::assertSent(function ($request): bool {
         $body = $request->body();
         $payload = json_decode($body, true);
-        $expected = 'sha256='.hash_hmac('sha256', $body, 'e2e-secret');
+        $timestamp = $request->header('X-Externa-Timestamp')[0] ?? '';
+        $legacy = 'sha256='.hash_hmac('sha256', $body, 'e2e-secret');
+        $v2 = 'sha256='.hash_hmac('sha256', $timestamp.'.'.$body, 'e2e-secret');
 
         return $request->url() === 'https://example.com/externa-hooks'
-            && $request->header('X-Externa-Signature')[0] === $expected
+            && $request->header('X-Externa-Signature')[0] === $legacy
+            && $request->header('X-Externa-Signature-V2')[0] === $v2
             && ($payload['type'] ?? null) === 'item.created'
             && ($payload['data']['collection_slug'] ?? null) === 'posts'
             && isset($payload['data']['item_id']);
