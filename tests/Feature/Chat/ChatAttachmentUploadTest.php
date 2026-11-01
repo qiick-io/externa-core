@@ -7,8 +7,8 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemChatAttachment;
 use App\Models\User;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -96,14 +96,14 @@ test('chat upload respects chat_max_upload_bytes setting', function () {
     ['user' => $user, 'collection' => $collection, 'item' => $item] = chatUploadKitchen();
     $this->actingAs($user);
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'chat_max_upload_bytes',
         1024,
     );
 
-    expect(app(ProjectSettings::class)->chatMaxUploadBytes())->toBe(1024);
+    expect(app(ProjectSettingsService::class)->chatMaxUploadBytes())->toBe(1024);
 
     $this->postJson(route('collections.items.chat.attachments.store', [$collection, $item]), [
         'file' => UploadedFile::fake()->createWithContent('big.txt', str_repeat('x', 2048)),
@@ -173,8 +173,8 @@ test('files upload init respects files_max_upload_bytes', function () {
     ]);
     $this->actingAs($user);
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'files_max_upload_bytes',
         500,

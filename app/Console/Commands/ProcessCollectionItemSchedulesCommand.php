@@ -6,8 +6,8 @@ use App\Enums\PermissionEnum;
 use App\Models\CollectionItem;
 use App\Models\User;
 use App\Notifications\ItemScheduleFailedNotification;
-use App\Services\Collections\CollectionItemPublisher;
-use App\Services\Webhooks\OutboundWebhookDispatcher;
+use App\Services\Collections\CollectionItemPublisherService;
+use App\Services\Webhooks\OutboundWebhookDispatcherService;
 use Carbon\CarbonInterface;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -28,8 +28,8 @@ class ProcessCollectionItemSchedulesCommand extends Command
     private const int MAX_BATCHES = 50;
 
     public function handle(
-        CollectionItemPublisher $publisher,
-        OutboundWebhookDispatcher $webhooks,
+        CollectionItemPublisherService $publisher,
+        OutboundWebhookDispatcherService $webhooks,
     ): int {
         $now = now();
         $published = 0;
@@ -44,8 +44,8 @@ class ProcessCollectionItemSchedulesCommand extends Command
     }
 
     private function processDuePublishes(
-        CollectionItemPublisher $publisher,
-        OutboundWebhookDispatcher $webhooks,
+        CollectionItemPublisherService $publisher,
+        OutboundWebhookDispatcherService $webhooks,
         CarbonInterface $now,
     ): int {
         $published = 0;

@@ -5,8 +5,8 @@ use App\Enums\PermissionEnum;
 use App\Jobs\DeliverOutboundWebhookJob;
 use App\Jobs\DeliverSlackOutboundNotifierJob;
 use App\Models\User;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Http;
@@ -68,12 +68,12 @@ it('refuses delivery when stored webhook url is private', function (): void {
     Http::fake();
     Log::spy();
 
-    $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'http://127.0.0.1/hook');
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_secret', 'secret');
+    $repository = app(SettingsRepositoryService::class);
+    $repository->set(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'webhook_url', 'http://127.0.0.1/hook');
+    $repository->set(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'webhook_secret', 'secret');
 
     (new DeliverOutboundWebhookJob('evt_ssrf', 'ping', now()->toIso8601String(), []))->handle(
-        app(ProjectSettings::class),
+        app(ProjectSettingsService::class),
     );
 
     Http::assertNothingSent();
@@ -82,10 +82,10 @@ it('refuses delivery when stored webhook url is private', function (): void {
 it('refuses slack delivery when url is private', function (): void {
     Http::fake();
 
-    $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'notifier_slack_webhook_url', 'http://10.1.2.3/slack');
+    $repository = app(SettingsRepositoryService::class);
+    $repository->set(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'notifier_slack_webhook_url', 'http://10.1.2.3/slack');
 
-    (new DeliverSlackOutboundNotifierJob('item.created', 'hello'))->handle(app(ProjectSettings::class));
+    (new DeliverSlackOutboundNotifierJob('item.created', 'hello'))->handle(app(ProjectSettingsService::class));
 
     Http::assertNothingSent();
 });
@@ -101,17 +101,17 @@ it('posts without following redirects on delivery', function (): void {
         'https://example.com/*' => Http::response('ok', 200),
     ]);
 
-    $repository = app(SettingsRepository::class);
-    $repository->set(SettingsRepository::SCOPE_PROJECT, 'project', 'webhook_url', 'https://example.com/externa-hooks');
+    $repository = app(SettingsRepositoryService::class);
+    $repository->set(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'webhook_url', 'https://example.com/externa-hooks');
     $repository->set(
-        SettingsRepository::SCOPE_PROJECT,
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'webhook_secret',
-        ProjectSettings::encryptWebhookSecret('secret'),
+        ProjectSettingsService::encryptWebhookSecret('secret'),
     );
 
     (new DeliverOutboundWebhookJob('evt_ok', 'ping', now()->toIso8601String(), []))->handle(
-        app(ProjectSettings::class),
+        app(ProjectSettingsService::class),
     );
 
     Http::assertSent(function ($request): bool {

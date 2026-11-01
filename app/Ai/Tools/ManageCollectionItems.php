@@ -15,8 +15,8 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Services\Collections\CollectionItemOptionsService;
 use App\Services\Collections\CollectionItemQueryService;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\FieldConditionEvaluator;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\FieldConditionEvaluatorService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Validation\ValidationException;
@@ -108,7 +108,7 @@ class ManageCollectionItems implements Approvable, Tool
         }
 
         $limit = min(max($request->integer('limit', 25), 1), 100);
-        $assembler = app(CollectionItemValuesAssembler::class);
+        $assembler = app(CollectionItemValuesAssemblerService::class);
 
         $query = $collection->items()
             ->when($request->boolean('trashed'), fn ($query) => $query->onlyTrashed())
@@ -153,7 +153,7 @@ class ManageCollectionItems implements Approvable, Tool
         return json_encode([
             'id' => $item->id,
             'collection_id' => $item->collection_id,
-            'data' => $this->stripAiItemData($collection, app(CollectionItemValuesAssembler::class)->assemble($item)),
+            'data' => $this->stripAiItemData($collection, app(CollectionItemValuesAssemblerService::class)->assemble($item)),
         ], JSON_PRETTY_PRINT) ?: '{}';
     }
 
@@ -198,7 +198,7 @@ class ManageCollectionItems implements Approvable, Tool
                 'collection_id' => $item->collection_id,
                 'data' => $this->stripAiItemData(
                     $collection,
-                    app(CollectionItemValuesAssembler::class)->assemble($item),
+                    app(CollectionItemValuesAssemblerService::class)->assemble($item),
                 ),
             ],
         ], JSON_PRETTY_PRINT) ?: '{}';
@@ -463,10 +463,10 @@ class ManageCollectionItems implements Approvable, Tool
     private function patchItem(CollectionItem $item, array $incoming): array
     {
         $collection = $item->collection;
-        $assembler = app(CollectionItemValuesAssembler::class);
+        $assembler = app(CollectionItemValuesAssemblerService::class);
         $data = $assembler->assemble($item);
 
-        $incoming = app(FieldConditionEvaluator::class)->withoutReadonlyFields(
+        $incoming = app(FieldConditionEvaluatorService::class)->withoutReadonlyFields(
             $collection->fields,
             array_replace($data, $incoming),
             $incoming,

@@ -5,7 +5,7 @@ namespace App\Http\Requests\Settings;
 use App\Enums\FileTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\File;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -24,7 +24,7 @@ class UpdateAppearanceSettingsRequest extends FormRequest
         $user = $this->user();
 
         return $user !== null
-            && app(EffectivePermissionResolver::class)
+            && app(EffectivePermissionResolverService::class)
                 ->hasPermission($user, PermissionEnum::CanManageProjectSettings->value);
     }
 

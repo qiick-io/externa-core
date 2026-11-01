@@ -18,10 +18,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Scale chat hub and file transforms: shared `FileTransformUrlBuilder`, SQL-scoped/paginated hub listing with eager item labels, queued chat notifications with JSON-contains subscriber lookup, bulk `collections_items_values` inserts (#280).
 - Extract shared `MiniUserMapper` for Public API `user_created` / `user_updated` payloads (#338).
 - Move job-monitor and AI conversation DB access out of controllers into `JobMonitorQueryService` / `AiConversationMutationService` (#334).
-- Share `.env` helpers via `ManagesDotEnv` between install and AI webhook token rotate commands (#339).
-- Share `.env` helpers via `ManagesDotEnvTrait` between install and AI webhook token rotate commands (#339).
-- Rename domain boolean helpers to `is*` / `has*` / `can*` / `should*` prefixes (#335).
-- Rename custom HTTP middleware to `*Middleware` suffix; Arch ignore keeps only starter-kit Handle* (#337).
+- Rename legacy `App\Services` classes to `*Service` suffix; empty Arch Services ignore list (#336).
 - Stream SHA-256 hashing for file uploads and chunk finalize (`hash_file` / `hash_update`) so large files are not loaded into a PHP string for hashing (#189).
 - Denormalize `files.effective_access` (with backfill command) so file list AuthZ no longer loads the full tree (#186).
 - Route web, REST, GraphQL, AI, import, chat, revision restore, and publish through shared `CreateCollectionItemAction` / `UpdateCollectionItemAction` so validation and draft versioning stay in parity (#269).
@@ -34,7 +31,6 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Harden `SafeRemoteUrlValidator`: explicit CIDR denylist (CGNAT 100.64/10), DNS pin via `CURLOPT_RESOLVE`, streamed byte-capped downloads, generic user errors, OIDC discovery/endpoint SSRF checks (`OIDC_ALLOW_PRIVATE_HOSTS`) (#274).
 - Harden `SafeRemoteUrlValidator`: explicit CIDR denylist (CGNAT 100.64/10), DNS pin via `CURLOPT_RESOLVE`, DNS-pinned byte-capped downloads, generic user errors, OIDC discovery/endpoint SSRF checks (`OIDC_ALLOW_PRIVATE_HOSTS`) (#274).
 - Run Horizon, Reverb, scheduler, Pulse and queue workers as `www-data` (via `setpriv`) instead of root in the production image entrypoint (#320).
-- Add SetSecurityHeadersMiddleware on the web stack (CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy); skip API and existing user-content CSP (#187).
 - Bind API keys to an optional owner (`owner_id`) so effective access is key role ∩ scopes ∩ owner ACL; revoke keys when the owner is deactivated or deleted (#215).
 - Add per-key `files_scope` (`none`|`read`|`all`) so scoped API keys can opt out of Files API access; migration defaults existing keys to `all`; response cache factors include the setting (#322).
 - Add project Files upload allowlist (extensions/MIME) with SVG opt-in; hard floor still blocks executables/HTML/SSI even if listed (#327).

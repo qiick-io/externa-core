@@ -493,40 +493,40 @@ parameters:
 			path: app/Models/UserGroup.php
 
 		-
-			message: '#^Method App\\Services\\Ai\\EmbeddingSimilarity\:\:topMatches\(\) should return Illuminate\\Support\\Collection\<int, array\{collection_item_id\: int, score\: float\}\> but returns Illuminate\\Support\\Collection\<int, array\{collection_item_id\: int\<0, max\>, score\: float\}\>\.$#'
+			message: '#^Method App\\Services\\Ai\\EmbeddingSimilarityService\:\:topMatches\(\) should return Illuminate\\Support\\Collection\<int, array\{collection_item_id\: int, score\: float\}\> but returns Illuminate\\Support\\Collection\<int, array\{collection_item_id\: int\<0, max\>, score\: float\}\>\.$#'
 			identifier: return.type
 			count: 1
-			path: app/Services/Ai/EmbeddingSimilarity.php
+			path: app/Services/Ai/EmbeddingSimilarityService.php
 
 		-
 			message: '#^Offset int on array\<int, array\<mixed, mixed\>\> on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
 			count: 1
-			path: app/Services/Api/CollectionPermissionGuard.php
+			path: app/Services/Api/CollectionPermissionGuardService.php
 
 		-
 			message: '#^Cannot cast App\\Enums\\FieldTypeEnum to string\.$#'
 			identifier: cast.string
 			count: 1
-			path: app/Services/Api/CollectionPermissionSync.php
+			path: app/Services/Api/CollectionPermissionSyncService.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
-			path: app/Services/Api/CollectionPermissionSync.php
+			path: app/Services/Api/CollectionPermissionSyncService.php
 
 		-
-			message: '#^Method App\\Services\\Api\\RelationIncludeHydrator\:\:fieldType\(\) never returns null so it can be removed from the return type\.$#'
+			message: '#^Method App\\Services\\Api\\RelationIncludeHydratorService\:\:fieldType\(\) never returns null so it can be removed from the return type\.$#'
 			identifier: return.unusedType
 			count: 1
-			path: app/Services/Api/RelationIncludeHydrator.php
+			path: app/Services/Api/RelationIncludeHydratorService.php
 
 		-
-			message: '#^Parameter &\$serializedCache by\-ref type of method App\\Services\\Api\\RelationIncludeHydrator\:\:serializeNested\(\) expects array\<int, array\<string, mixed\>\>, array\<int\|string, array\<string, mixed\>\> given\.$#'
+			message: '#^Parameter &\$serializedCache by\-ref type of method App\\Services\\Api\\RelationIncludeHydratorService\:\:serializeNested\(\) expects array\<int, array\<string, mixed\>\>, array\<int\|string, array\<string, mixed\>\> given\.$#'
 			identifier: parameterByRef.type
 			count: 1
-			path: app/Services/Api/RelationIncludeHydrator.php
+			path: app/Services/Api/RelationIncludeHydratorService.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
@@ -538,25 +538,25 @@ parameters:
 			message: '#^Call to an undefined method App\\Support\\Collections\\CollectionLocaleResolver\:\:defaultLocale\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: app/Services/Collections/CollectionFormLayoutNormalizer.php
+			path: app/Services/Collections/CollectionFormLayoutNormalizerService.php
 
 		-
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: app/Services/Collections/CollectionItemDataRuleBuilder.php
+			path: app/Services/Collections/CollectionItemDataRuleBuilderService.php
 
 		-
 			message: '#^Match expression does not handle remaining values\: App\\Enums\\FieldTypeEnum\:\:GroupAccordion\|App\\Enums\\FieldTypeEnum\:\:GroupDetail\|App\\Enums\\FieldTypeEnum\:\:GroupRaw\|App\\Enums\\FieldTypeEnum\:\:GroupTabs$#'
 			identifier: match.unhandled
 			count: 2
-			path: app/Services/Collections/CollectionItemDataRuleBuilder.php
+			path: app/Services/Collections/CollectionItemDataRuleBuilderService.php
 
 		-
 			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
 			identifier: identical.alwaysFalse
 			count: 1
-			path: app/Services/Collections/CollectionItemDataRuleBuilder.php
+			path: app/Services/Collections/CollectionItemDataRuleBuilderService.php
 
 		-
 			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<int, App\\Models\\CollectionItem\>\:\:through\(\)\.$#'
@@ -574,25 +574,25 @@ parameters:
 			message: '#^Cannot cast App\\Enums\\FieldTypeEnum to string\.$#'
 			identifier: cast.string
 			count: 1
-			path: app/Services/Collections/CollectionListColumnsNormalizer.php
+			path: app/Services/Collections/CollectionListColumnsNormalizerService.php
 
 		-
-			message: '#^Method App\\Services\\Collections\\CollectionListColumnsNormalizer\:\:fieldType\(\) never returns null so it can be removed from the return type\.$#'
+			message: '#^Method App\\Services\\Collections\\CollectionListColumnsNormalizerService\:\:fieldType\(\) never returns null so it can be removed from the return type\.$#'
 			identifier: return.unusedType
 			count: 1
-			path: app/Services/Collections/CollectionListColumnsNormalizer.php
+			path: app/Services/Collections/CollectionListColumnsNormalizerService.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
-			path: app/Services/Collections/CollectionListColumnsNormalizer.php
+			path: app/Services/Collections/CollectionListColumnsNormalizerService.php
 
 		-
 			message: '#^Strict comparison using \=\=\= between App\\Enums\\FieldTypeEnum and null will always evaluate to false\.$#'
 			identifier: identical.alwaysFalse
 			count: 1
-			path: app/Services/Collections/CollectionListDisplayEnricher.php
+			path: app/Services/Collections/CollectionListDisplayEnricherService.php
 
 		-
 			message: '#^Parameter \#2 \$usedNames of method App\\Services\\Collections\\MigrateFormLayoutToGroupsService\:\:uniqueName\(\) expects array\<string, true\>, array\<mixed, \(int\|string\)\> given\.$#'
@@ -628,25 +628,25 @@ parameters:
 			message: '#^Strict comparison using \=\=\= between App\\Enums\\FieldTypeEnum and null will always evaluate to false\.$#'
 			identifier: identical.alwaysFalse
 			count: 1
-			path: app/Services/Files/FileWhereUsedScanner.php
+			path: app/Services/Files/FileWhereUsedScannerService.php
 
 		-
 			message: '#^Parameter \#1 \$array \(list\) of array_values is already a list, call has no effect\.$#'
 			identifier: arrayValues.list
 			count: 1
-			path: app/Services/Settings/ProjectSettings.php
+			path: app/Services/Settings/ProjectSettingsService.php
 
 		-
 			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 2
-			path: app/Services/Settings/ProjectSettings.php
+			path: app/Services/Settings/ProjectSettingsService.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
-			path: app/Services/Settings/SettingsRepository.php
+			path: app/Services/Settings/SettingsRepositoryService.php
 
 		-
 			message: '#^Call to an undefined method App\\Support\\Collections\\CollectionFieldSettingsPipeline\:\:input\(\)\.$#'

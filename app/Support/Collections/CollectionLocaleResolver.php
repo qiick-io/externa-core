@@ -2,7 +2,7 @@
 
 namespace App\Support\Collections;
 
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use Illuminate\Http\Request;
 
 /**
@@ -12,7 +12,7 @@ class CollectionLocaleResolver
 {
     public function __construct(
         private Request $request,
-        private ProjectSettings $projectSettings,
+        private ProjectSettingsService $projectSettings,
     ) {}
 
     /**

@@ -2,7 +2,7 @@
 
 namespace App\Support\Files;
 
-use App\Services\Settings\ProjectSettings;
+use App\Services\Settings\ProjectSettingsService;
 use Throwable;
 
 /**
@@ -21,7 +21,7 @@ final class FileTransformUrlBuilder
 
         try {
             $transforms = [];
-            foreach (app(ProjectSettings::class)->presetTransformations() as $preset) {
+            foreach (app(ProjectSettingsService::class)->presetTransformations() as $preset) {
                 $key = $preset['key'] ?? null;
                 if (! is_string($key) || $key === '') {
                     continue;

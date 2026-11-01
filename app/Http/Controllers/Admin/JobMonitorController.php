@@ -6,7 +6,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
 use App\Services\Admin\JobMonitorQueryService;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -30,7 +30,7 @@ class JobMonitorController extends Controller
             'pending_count' => $snapshot['pending_count'],
             'pending' => $snapshot['pending'],
             'failed' => $snapshot['failed'],
-            'can_manage' => app(EffectivePermissionResolver::class)
+            'can_manage' => app(EffectivePermissionResolverService::class)
                 ->hasPermission($request->user(), PermissionEnum::CanManageJobs->value),
         ]);
     }

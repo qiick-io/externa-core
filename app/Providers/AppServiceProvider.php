@@ -3,8 +3,8 @@
 namespace App\Providers;
 
 use App\Models\User;
-use App\Services\Authorization\EffectivePermissionResolver;
-use App\Services\Settings\ProjectSettings;
+use App\Services\Authorization\EffectivePermissionResolverService;
+use App\Services\Settings\ProjectSettingsService;
 use App\Support\Http\CurlSseStreamer;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
@@ -36,8 +36,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(EffectivePermissionResolver::class);
-        $this->app->singleton(ProjectSettings::class);
+        $this->app->singleton(EffectivePermissionResolverService::class);
+        $this->app->singleton(ProjectSettingsService::class);
     }
 
     /**
@@ -95,7 +95,7 @@ class AppServiceProvider extends ServiceProvider
                 return null;
             }
 
-            if (app(EffectivePermissionResolver::class)->isSuperAdmin($user)) {
+            if (app(EffectivePermissionResolverService::class)->isSuperAdmin($user)) {
                 return true;
             }
 
@@ -107,7 +107,7 @@ class AppServiceProvider extends ServiceProvider
                 return false;
             }
 
-            return app(EffectivePermissionResolver::class)->isSuperAdmin($user);
+            return app(EffectivePermissionResolverService::class)->isSuperAdmin($user);
         });
     }
 
@@ -181,6 +181,6 @@ class AppServiceProvider extends ServiceProvider
             app()->isProduction(),
         );
 
-        Password::defaults(fn (): Password => app(ProjectSettings::class)->passwordRule());
+        Password::defaults(fn (): Password => app(ProjectSettingsService::class)->passwordRule());
     }
 }

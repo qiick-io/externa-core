@@ -1,13 +1,13 @@
 <?php
 
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\SettingsRepositoryService;
 use Laravel\Fortify\Features;
 
 beforeEach(function () {
     $this->skipUnlessFortifyFeature(Features::registration());
     $this->withoutVite();
 
-    app(SettingsRepository::class)->set(
+    app(SettingsRepositoryService::class)->set(
         SettingsRepository::SCOPE_PROJECT,
         'project',
         'registration_enabled',

@@ -10,9 +10,9 @@ use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
 use App\Models\File;
 use App\Models\User;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\Request;
 use Inertia\Testing\AssertableInertia;
@@ -71,7 +71,7 @@ test('authenticated verified users can create collections fields and items', fun
 
     $item = CollectionItem::query()->first();
     expect($item)->not->toBeNull();
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($assembled['title']['en'])->toBe('Hello');
 });
 
@@ -90,14 +90,14 @@ test('items can be filtered by translatable field', function () {
     $item = CollectionItem::factory()->create([
         'collection_id' => $collection->id,
     ]);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $normalized = $normalizer->normalize($collection, [
         'title' => [
             'en' => 'UniqueHelloWord',
             'it' => 'Altro',
         ],
     ]);
-    app(CollectionItemValuesWriter::class)->sync($item, $collection, $normalized);
+    app(CollectionItemValuesWriterService::class)->sync($item, $collection, $normalized);
 
     $response = $this->get(route('collections.items.index', [
         'collection' => $collection->id,
@@ -122,14 +122,14 @@ test('item resource flattens translations for current locale', function () {
     $item = CollectionItem::factory()->create([
         'collection_id' => $collection->id,
     ]);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
     $normalized = $normalizer->normalize($collection, [
         'title' => [
             'en' => 'Hello',
             'it' => 'Ciao',
         ],
     ]);
-    app(CollectionItemValuesWriter::class)->sync($item, $collection, $normalized);
+    app(CollectionItemValuesWriterService::class)->sync($item, $collection, $normalized);
 
     $item->load(['collection.fields']);
 
@@ -299,7 +299,7 @@ test('item update with save_action copy creates a new item', function () {
     $item = CollectionItem::factory()->create([
         'collection_id' => $collection->id,
     ]);
-    app(CollectionItemValuesWriter::class)->sync($item, $collection, app(CollectionItemDataNormalizer::class)->normalize($collection, ['title' => 'Old']));
+    app(CollectionItemValuesWriterService::class)->sync($item, $collection, app(CollectionItemDataNormalizerService::class)->normalize($collection, ['title' => 'Old']));
 
     $response = $this->put(route('collections.items.update', [$collection, $item]), [
         'data' => ['title' => 'Copy'],
@@ -308,8 +308,8 @@ test('item update with save_action copy creates a new item', function () {
 
     $items = CollectionItem::query()->where('collection_id', $collection->id)->orderBy('id')->get();
     expect($items)->toHaveCount(2);
-    expect(app(CollectionItemValuesAssembler::class)->assemble($items[0])['title'])->toBe('Old');
-    expect(app(CollectionItemValuesAssembler::class)->assemble($items[1])['title'])->toBe('Copy');
+    expect(app(CollectionItemValuesAssemblerService::class)->assemble($items[0])['title'])->toBe('Old');
+    expect(app(CollectionItemValuesAssemblerService::class)->assemble($items[1])['title'])->toBe('Copy');
     $response->assertRedirect(route('collections.items.show', [$collection, $items[1]]));
 });
 
@@ -330,7 +330,7 @@ test('item update copy requires create permission', function () {
     $item = CollectionItem::factory()->create([
         'collection_id' => $collection->id,
     ]);
-    app(CollectionItemValuesWriter::class)->sync($item, $collection, app(CollectionItemDataNormalizer::class)->normalize($collection, ['title' => 'Old']));
+    app(CollectionItemValuesWriterService::class)->sync($item, $collection, app(CollectionItemDataNormalizerService::class)->normalize($collection, ['title' => 'Old']));
 
     $this->put(route('collections.items.update', [$collection, $item]), [
         'data' => ['title' => 'Copy'],
@@ -354,7 +354,7 @@ test('item update redirects to item edit', function () {
     $item = CollectionItem::factory()->create([
         'collection_id' => $collection->id,
     ]);
-    app(CollectionItemValuesWriter::class)->sync($item, $collection, app(CollectionItemDataNormalizer::class)->normalize($collection, ['title' => 'Old']));
+    app(CollectionItemValuesWriterService::class)->sync($item, $collection, app(CollectionItemDataNormalizerService::class)->normalize($collection, ['title' => 'Old']));
 
     $response = $this->put(route('collections.items.update', [$collection, $item]), [
         'data' => ['title' => 'New'],
@@ -386,7 +386,7 @@ test('singleton content can be upserted from the singleton route', function () {
 
     $item = CollectionItem::query()->where('collection_id', $collection->id)->first();
     expect($item)->not->toBeNull();
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($assembled['title'])->toBe('Updated');
 });
 
@@ -1153,7 +1153,7 @@ test('hash field value is auto generated on item create', function () {
 
     expect($item)->not->toBeNull();
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
 
     expect($assembled['token'] ?? null)
         ->toBeString()
@@ -1211,7 +1211,7 @@ test('string field trim and slugify are applied when saving item content', funct
     ])->assertRedirect();
 
     $item = CollectionItem::query()->where('collection_id', $collection->id)->first();
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($assembled['slug'])->toBe('hello-world');
 });
 
@@ -1347,7 +1347,7 @@ test('readonly field value cannot be overwritten on item update', function () {
         'data' => ['locked_title' => 'Changed'],
     ])->assertRedirect();
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh());
     expect($assembled['locked_title'])->toBe('Original');
 });
 
@@ -1398,7 +1398,7 @@ test('default value is applied on item create when field is omitted', function (
 
     $item = CollectionItem::query()->where('collection_id', $collection->id)->first();
     expect($item)->not->toBeNull();
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($assembled['subtitle'])->toBe('Default subtitle');
 });
 
@@ -1414,10 +1414,10 @@ test('many to one relation value is saved and assembled', function () {
     ]);
 
     $authorItem = CollectionItem::factory()->create(['collection_id' => $authors->id]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $authorItem,
         $authors,
-        app(CollectionItemDataNormalizer::class)->normalize($authors, ['name' => 'Jane Doe']),
+        app(CollectionItemDataNormalizerService::class)->normalize($authors, ['name' => 'Jane Doe']),
     );
 
     $posts = Collection::factory()->create(['slug' => 'posts']);
@@ -1438,7 +1438,7 @@ test('many to one relation value is saved and assembled', function () {
     $postItem = CollectionItem::query()->where('collection_id', $posts->id)->first();
     expect($postItem)->not->toBeNull();
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($postItem);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($postItem);
     expect($assembled['author'])->toBe($authorItem->id);
 });
 
@@ -1478,7 +1478,7 @@ test('many to many relation values are saved as array storage rows', function ()
         ['related_item_id' => $secondTag->id, 'meta' => []],
     ]);
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($article);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($article);
     expect($assembled['related_tags'])->toEqual([
         ['related_item_id' => $firstTag->id, 'meta' => []],
         ['related_item_id' => $secondTag->id, 'meta' => []],
@@ -1514,7 +1514,7 @@ test('many to many accepts junction metadata objects', function () {
     ])->assertRedirect();
 
     $article = CollectionItem::query()->where('collection_id', $articles->id)->firstOrFail();
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($article);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($article);
     expect($assembled['related_tags'])->toEqual([
         ['related_item_id' => $tag->id, 'meta' => ['sort' => 1]],
     ]);
@@ -1558,7 +1558,7 @@ test('m2a blocks are saved and assembled in order', function () {
     $entry = CollectionItem::query()->where('collection_id', $builder->id)->first();
     expect($entry)->not->toBeNull();
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($entry);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($entry);
     expect($assembled['content'])->toEqual([
         [
             'related_collection_id' => $blocks->id,
@@ -1676,7 +1676,7 @@ test('blocks field values are saved and assembled in order', function () {
     $this->post(route('collections.items.store', $collection), ['data' => $payload])->assertRedirect();
 
     $item = CollectionItem::query()->where('collection_id', $collection->id)->firstOrFail();
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
 
     expect($assembled['content'])->toEqual($payload['content']);
     expect(
@@ -1740,7 +1740,7 @@ test('blocks field update replaces blocks instead of appending', function () {
         ],
     ])->assertRedirect();
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh());
 
     expect($assembled['content'])->toHaveCount(1)
         ->and($assembled['content'][0]['id'])->toBe('33333333-3333-3333-3333-333333333333')
@@ -1865,7 +1865,7 @@ test('nested blocks inside block types are saved and assembled', function () {
     $this->post(route('collections.items.store', $collection), ['data' => $payload])->assertRedirect();
 
     $item = CollectionItem::query()->where('collection_id', $collection->id)->firstOrFail();
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
 
     expect($assembled['body'])->toHaveCount(2)
         ->and($assembled['body'][0]['data']['title'])->toBe('Intro')
@@ -2106,7 +2106,7 @@ test('nested m2a inside blocks is saved and assembled', function () {
     $this->post(route('collections.items.store', $articles), ['data' => $payload])->assertRedirect();
 
     $item = CollectionItem::query()->where('collection_id', $articles->id)->firstOrFail();
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
 
     expect($assembled['body'])->toHaveCount(1)
         ->and($assembled['body'][0]['data']['heading'])->toBe('Reuse')
@@ -2211,7 +2211,7 @@ test('nested m2m inside blocks is saved as json links not junction rows', functi
     $this->post(route('collections.items.store', $articles), ['data' => $payload])->assertRedirect();
 
     $item = CollectionItem::query()->where('collection_id', $articles->id)->firstOrFail();
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
 
     expect($assembled['body'][0]['data']['articles'])->toEqual([
         [
@@ -2367,7 +2367,7 @@ test('nested block field conditions hide and require against block siblings', fu
     ])->assertRedirect();
 
     $item = CollectionItem::query()->where('collection_id', $articles->id)->firstOrFail();
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($assembled['body'][0]['data']['video_url'])->toBe('https://example.com/v.mp4');
 });
 
@@ -2454,7 +2454,7 @@ test('files field stores multiple file ids', function () {
     ])->assertRedirect();
 
     $item = CollectionItem::query()->where('collection_id', $collection->id)->first();
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($assembled['attachments'])->toBe([$firstFile->id, $secondFile->id]);
 });
 
@@ -2481,20 +2481,20 @@ test('relation options endpoint supports display template and filter', function 
     ]);
 
     $published = CollectionItem::factory()->create(['collection_id' => $related->id]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $published,
         $related,
-        app(CollectionItemDataNormalizer::class)->normalize($related, [
+        app(CollectionItemDataNormalizerService::class)->normalize($related, [
             'title' => 'Visible item',
             'status' => 'published',
         ]),
     );
 
     $draft = CollectionItem::factory()->create(['collection_id' => $related->id]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $draft,
         $related,
-        app(CollectionItemDataNormalizer::class)->normalize($related, [
+        app(CollectionItemDataNormalizerService::class)->normalize($related, [
             'title' => 'Hidden item',
             'status' => 'draft',
         ]),
@@ -2551,7 +2551,7 @@ test('checkbox group tree leaf combining keeps only leaf values on save', functi
     ])->assertRedirect();
 
     $item = CollectionItem::query()->where('collection_id', $collection->id)->first();
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($assembled['categories'])->toBe(['leaf-a']);
 });
 
@@ -2575,7 +2575,7 @@ test('tag field lowercase and alphabetize settings are applied on save', functio
     ])->assertRedirect();
 
     $item = CollectionItem::query()->where('collection_id', $collection->id)->first();
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($assembled['keywords'])->toBe(['alpha', 'beta']);
 });
 

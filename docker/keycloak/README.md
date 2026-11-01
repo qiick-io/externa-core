@@ -48,12 +48,12 @@ Re-import: remove volume `externa_keycloak` then `up` again (`docker volume rm e
 
 ```bash
 docker compose -f compose.yaml -f compose.oidc.yaml --profile oidc exec app php artisan tinker --execute="
-\$s = app(\\App\\Services\\Settings\\SettingsRepository::class);
+\$s = app(\\App\\Services\\Settings\\SettingsRepositoryService::class);
 \$s->setMany('project', 'project', [
   'oidc_enabled' => true,
   'oidc_issuer' => 'http://localhost:8080/realms/externa',
   'oidc_client_id' => 'externa-app',
-  'oidc_client_secret' => \\App\\Services\\Settings\\ProjectSettings::encryptOidcClientSecret('externa-oidc-qa-secret'),
+  'oidc_client_secret' => \\App\\Services\\Settings\\ProjectSettingsService::encryptOidcClientSecret('externa-oidc-qa-secret'),
   'oidc_button_label' => 'Sign in with SSO',
   'oidc_jit_provisioning' => false,
 ]);

@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
 class MigrateFormLayoutToGroupsService
 {
     public function __construct(
-        private CollectionFormLayoutNormalizer $layoutNormalizer,
+        private CollectionFormLayoutNormalizerService $layoutNormalizer,
         private CollectionFieldGroupService $groupService,
     ) {}
 

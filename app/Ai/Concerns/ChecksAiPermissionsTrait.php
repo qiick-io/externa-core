@@ -4,7 +4,7 @@ namespace App\Ai\Concerns;
 
 use App\Enums\PermissionEnum;
 use App\Models\User;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Authorization\EffectivePermissionResolverService;
 
 /**
  * Permission gate helpers for AI tools returning English machine-error strings.
@@ -22,7 +22,7 @@ trait ChecksAiPermissionsTrait
             return 'Error: Unauthenticated.';
         }
 
-        if (! app(EffectivePermissionResolver::class)->hasPermission($user, $permission->value)) {
+        if (! app(EffectivePermissionResolverService::class)->hasPermission($user, $permission->value)) {
             return 'Error: Missing permission ('.$permission->value.'). You cannot perform this operation.';
         }
 

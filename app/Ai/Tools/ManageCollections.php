@@ -14,9 +14,9 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Services\Collections\ApplyCollectionPackService;
 use App\Services\Collections\ApplyFieldPackService;
-use App\Services\Collections\CollectionFieldRenamer;
+use App\Services\Collections\CollectionFieldRenamerService;
 use App\Services\Collections\CollectionFieldStorageShapeService;
-use App\Services\Collections\CollectionItemValuesAssembler;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
 use App\Support\Collections\CollectionFieldSettingsPipeline;
 use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
 use App\Support\Collections\FieldPacks\FieldPackRegistry;
@@ -356,7 +356,7 @@ class ManageCollections implements Approvable, Tool
 
         if ($request->boolean('with_sample')) {
             $duplicate->load('fields');
-            $assembler = app(CollectionItemValuesAssembler::class);
+            $assembler = app(CollectionItemValuesAssemblerService::class);
             $createAction = app(CreateCollectionItemAction::class);
 
             foreach ($source->items()->oldest('id')->limit(5)->get() as $sourceItem) {
@@ -520,7 +520,7 @@ class ManageCollections implements Approvable, Tool
             return $settings;
         }
 
-        $translatable = $type->isTranslatableSupported() && $request->boolean('translatable');
+        $translatable = $type->supportsTranslatable() && $request->boolean('translatable');
 
         $field = $collection->fields()->create([
             'name' => $name,
@@ -632,7 +632,7 @@ class ManageCollections implements Approvable, Tool
         }
 
         $resultingType = $attributes['type'] ?? $field->type;
-        if ($resultingType instanceof FieldTypeEnum && ! $resultingType->isTranslatableSupported()) {
+        if ($resultingType instanceof FieldTypeEnum && ! $resultingType->supportsTranslatable()) {
             $attributes['translatable'] = false;
         }
 
@@ -643,7 +643,7 @@ class ManageCollections implements Approvable, Tool
             return 'Error: Collection not found for field.';
         }
 
-        $field = app(CollectionFieldRenamer::class)->update($collection, $field, $attributes);
+        $field = app(CollectionFieldRenamerService::class)->update($collection, $field, $attributes);
         $this->logAiMutation($field, 'update_field');
 
         return json_encode([

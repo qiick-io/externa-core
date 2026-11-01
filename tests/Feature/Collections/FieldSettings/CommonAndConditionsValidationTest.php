@@ -2,8 +2,8 @@
 
 use App\Enums\FieldTypeEnum;
 use App\Models\CollectionField;
-use App\Services\Collections\FieldConditionEvaluator;
-use App\Services\Collections\FieldValidationRuleEvaluator;
+use App\Services\Collections\FieldConditionEvaluatorService;
+use App\Services\Collections\FieldValidationRuleEvaluatorService;
 use Database\Seeders\PermissionSeeder;
 use Tests\Support\FieldSettingsTestHelpers as H;
 
@@ -162,7 +162,7 @@ test('conditions hide require readonly with string sibling equals', function (st
         "conditions.{$effect}" => true,
     ]);
 
-    $evaluator = app(FieldConditionEvaluator::class);
+    $evaluator = app(FieldConditionEvaluatorService::class);
     $fresh = $target->fresh();
 
     expect($evaluator->effectiveFlags($fresh, ['kind' => 'custom'])[$effect])->toBeTrue()
@@ -222,7 +222,7 @@ test('conditions with boolean sibling equals', function () {
         ],
     ]);
 
-    $evaluator = app(FieldConditionEvaluator::class);
+    $evaluator = app(FieldConditionEvaluatorService::class);
     expect($evaluator->effectiveFlags($target, ['featured' => true])['required'])->toBeTrue()
         ->and($evaluator->effectiveFlags($target, ['featured' => false])['required'])->toBeFalse();
 
@@ -234,7 +234,7 @@ test('conditions with boolean sibling equals', function () {
 });
 
 test('conditions operators not_equals empty not_empty', function (string $operator, mixed $matchValue, mixed $missValue, mixed $ruleValue = null) {
-    $evaluator = app(FieldConditionEvaluator::class);
+    $evaluator = app(FieldConditionEvaluatorService::class);
     $rule = ['field' => 'kind', 'operator' => $operator];
     if ($ruleValue !== null) {
         $rule['value'] = $ruleValue;
@@ -260,7 +260,7 @@ test('conditions operators not_equals empty not_empty', function (string $operat
 ]);
 
 test('conditions show-when hidden false hides until match', function () {
-    $evaluator = app(FieldConditionEvaluator::class);
+    $evaluator = app(FieldConditionEvaluatorService::class);
     $field = new CollectionField([
         'name' => 'video_url',
         'type' => FieldTypeEnum::String,
@@ -469,8 +469,8 @@ test('validation_message custom text is resolved by evaluator', function () {
     ]);
 
     app()->setLocale('en');
-    expect(app(FieldValidationRuleEvaluator::class)->customMessage($field))->toBe('Please fix title');
+    expect(app(FieldValidationRuleEvaluatorService::class)->customMessage($field))->toBe('Please fix title');
 
     app()->setLocale('it');
-    expect(app(FieldValidationRuleEvaluator::class)->customMessage($field))->toBe('Sistema il titolo');
+    expect(app(FieldValidationRuleEvaluatorService::class)->customMessage($field))->toBe('Sistema il titolo');
 });

@@ -28,11 +28,11 @@ trait GuardsSuperAdminGrantsTrait
 
         $message = __('Only a super-admin can grant super-admin access.');
 
-        if ($superAdminGuard->hasSuperAdminRole((array) $this->input('role_ids', []))) {
+        if ($superAdminGuard->includesSuperAdminRole((array) $this->input('role_ids', []))) {
             $validator->errors()->add('role_ids', $message);
         }
 
-        if ($superAdminGuard->hasSuperAdminGroup((array) $this->input('group_ids', []))) {
+        if ($superAdminGuard->includesSuperAdminGroup((array) $this->input('group_ids', []))) {
             $validator->errors()->add('group_ids', $message);
         }
     }

@@ -8,7 +8,7 @@ use App\Enums\CollectionPermissionActionEnum;
 use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcer;
+use App\Services\Api\CollectionPermissionEnforcerService;
 
 final class UpdateItem
 {
@@ -32,7 +32,7 @@ final class UpdateItem
         }
 
         $request = request();
-        app(CollectionPermissionEnforcer::class)->assertItemWritable($request, $collection, $item);
+        app(CollectionPermissionEnforcerService::class)->assertItemWritable($request, $collection, $item);
 
         $data = is_array($args['data'] ?? null) ? $args['data'] : [];
 

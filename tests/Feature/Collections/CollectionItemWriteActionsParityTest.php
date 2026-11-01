@@ -5,9 +5,9 @@ use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 
@@ -47,11 +47,11 @@ function makeVersionedWriteCollection(string $slug = 'parity-posts'): array
     ]);
 
     $item = $collection->items()->create([]);
-    $normalized = app(CollectionItemDataNormalizer::class)->normalize($collection, [
+    $normalized = app(CollectionItemDataNormalizerService::class)->normalize($collection, [
         'title' => 'Published title',
         'body' => 'Published body',
     ], true);
-    app(CollectionItemValuesWriter::class)->sync($item, $collection, $normalized);
+    app(CollectionItemValuesWriterService::class)->sync($item, $collection, $normalized);
 
     return [$collection->fresh(), $item->fresh()];
 }
@@ -94,7 +94,7 @@ it('writes draft_data on versioned REST updates instead of published values', fu
     $item->refresh();
     expect($item->draft_data)->toBeArray()
         ->and($item->draft_data['title'] ?? null)->toBe('Draft title')
-        ->and(app(CollectionItemValuesAssembler::class)->assemble($item)['title'])->toBe('Published title');
+        ->and(app(CollectionItemValuesAssemblerService::class)->assemble($item)['title'])->toBe('Published title');
 });
 
 it('writes draft_data on versioned GraphQL updateItem', function (): void {
@@ -112,7 +112,7 @@ it('writes draft_data on versioned GraphQL updateItem', function (): void {
     $item->refresh();
     expect($item->draft_data)->toBeArray()
         ->and($item->draft_data['title'] ?? null)->toBe('Draft title gql')
-        ->and(app(CollectionItemValuesAssembler::class)->assemble($item)['title'])->toBe('Published title');
+        ->and(app(CollectionItemValuesAssemblerService::class)->assemble($item)['title'])->toBe('Published title');
 });
 
 it('keeps omitted fields on partial REST update through the shared Action', function (): void {

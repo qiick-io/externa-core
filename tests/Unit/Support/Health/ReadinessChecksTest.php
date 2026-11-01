@@ -24,7 +24,7 @@ test('redis is required when queue uses redis', function () {
         'broadcasting.default' => 'null',
     ]);
 
-    expect(app(ReadinessChecks::class)->isRedisRequired())->toBeTrue();
+    expect(app(ReadinessChecks::class)->redisRequired())->toBeTrue();
 });
 
 test('redis is not required for sync queue and array cache', function () {
@@ -35,5 +35,5 @@ test('redis is not required for sync queue and array cache', function () {
         'broadcasting.default' => 'null',
     ]);
 
-    expect(app(ReadinessChecks::class)->isRedisRequired())->toBeFalse();
+    expect(app(ReadinessChecks::class)->redisRequired())->toBeFalse();
 });

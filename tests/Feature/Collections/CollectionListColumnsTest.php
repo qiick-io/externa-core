@@ -8,10 +8,10 @@ use App\Models\CollectionItem;
 use App\Models\File;
 use App\Models\Setting;
 use App\Models\User;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Collections\CollectionListColumnsNormalizer;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
+use App\Services\Collections\CollectionListColumnsNormalizerService;
+use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 use Inertia\Testing\AssertableInertia;
 
@@ -55,7 +55,7 @@ test('list columns normalizer drops invalid paths and keeps nested relation and 
         'sort_order' => 4,
     ]);
 
-    $normalizer = app(CollectionListColumnsNormalizer::class);
+    $normalizer = app(CollectionListColumnsNormalizerService::class);
 
     $normalized = $normalizer->normalize([
         'id',
@@ -127,8 +127,8 @@ test('put list-columns persists user-scoped preferences', function () {
         ])
         ->assertRedirect();
 
-    $stored = app(SettingsRepository::class)->get(
-        SettingsRepository::SCOPE_USER,
+    $stored = app(SettingsRepositoryService::class)->get(
+        SettingsRepositoryService::SCOPE_USER,
         'collection_list',
         'collection_'.$collection->id,
         $user->id,
@@ -136,8 +136,8 @@ test('put list-columns persists user-scoped preferences', function () {
 
     expect($stored)->toBe(['id', 'slug', 'title']);
 
-    $aligns = app(SettingsRepository::class)->get(
-        SettingsRepository::SCOPE_USER,
+    $aligns = app(SettingsRepositoryService::class)->get(
+        SettingsRepositoryService::SCOPE_USER,
         'collection_list',
         'collection_'.$collection->id.'_aligns',
         $user->id,
@@ -149,8 +149,8 @@ test('put list-columns persists user-scoped preferences', function () {
     ]);
 
     $other = grantCollectionPermissions(User::factory()->create());
-    $otherStored = app(SettingsRepository::class)->get(
-        SettingsRepository::SCOPE_USER,
+    $otherStored = app(SettingsRepositoryService::class)->get(
+        SettingsRepositoryService::SCOPE_USER,
         'collection_list',
         'collection_'.$collection->id,
         $other->id,
@@ -159,7 +159,7 @@ test('put list-columns persists user-scoped preferences', function () {
 
     expect(
         Setting::query()
-            ->where('scope', SettingsRepository::SCOPE_USER)
+            ->where('scope', SettingsRepositoryService::SCOPE_USER)
             ->where('scope_id', $user->id)
             ->where('group', 'collection_list')
             ->where('key', 'collection_'.$collection->id)
@@ -178,8 +178,8 @@ test('items index sorts by system and scalar fields', function () {
         'type' => FieldTypeEnum::String,
     ]);
 
-    $writer = app(CollectionItemValuesWriter::class);
-    $normalizer = app(CollectionItemDataNormalizer::class);
+    $writer = app(CollectionItemValuesWriterService::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
 
     $beta = CollectionItem::factory()->create(['collection_id' => $collection->id]);
     $writer->sync($beta, $collection, $normalizer->normalize($collection, [
@@ -229,10 +229,10 @@ test('items index includes list_columns and resolved relation displays', functio
     ]);
 
     $author = CollectionItem::factory()->create(['collection_id' => $authors->id]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $author,
         $authors,
-        app(CollectionItemDataNormalizer::class)->normalize($authors, [
+        app(CollectionItemDataNormalizerService::class)->normalize($authors, [
             'title' => 'Ada Lovelace',
         ]),
     );
@@ -272,8 +272,8 @@ test('items index includes list_columns and resolved relation displays', functio
         'sort_order' => 3,
     ]);
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_USER,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_USER,
         'collection_list',
         'collection_'.$posts->id,
         ['id', 'title', 'author', 'author.title', 'cover.filename_download'],
@@ -281,10 +281,10 @@ test('items index includes list_columns and resolved relation displays', functio
     );
 
     $post = CollectionItem::factory()->create(['collection_id' => $posts->id]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $post,
         $posts,
-        app(CollectionItemDataNormalizer::class)->normalize($posts, [
+        app(CollectionItemDataNormalizerService::class)->normalize($posts, [
             'title' => 'Notes',
             'author' => $author->id,
             'cover' => $file->id,

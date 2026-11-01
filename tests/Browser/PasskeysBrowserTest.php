@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\User;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 use Laravel\Fortify\Features;
 
@@ -98,8 +98,8 @@ it('shows the two factor required banner mentioning passkeys', function () {
     ]);
     Features::passkeys(['confirmPassword' => true]);
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'two_factor_required',
         true,

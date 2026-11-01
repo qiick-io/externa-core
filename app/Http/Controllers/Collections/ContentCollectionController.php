@@ -14,11 +14,11 @@ use App\Http\Requests\Collections\UpdateContentCollectionRequest;
 use App\Http\Requests\Collections\UpsertSingletonCollectionItemRequest;
 use App\Models\Collection;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcer;
+use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Collections\ApplyCollectionPackService;
 use App\Services\Collections\CollectionItemOptionsService;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\FieldConditionEvaluator;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\FieldConditionEvaluatorService;
 use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
 use App\Support\Collections\UniqueCollectionSlugGenerator;
 use App\Support\Validation\SearchQueryRules;
@@ -48,10 +48,10 @@ class ContentCollectionController extends Controller
     public function __construct(
         private CreateCollectionItemAction $createCollectionItemAction,
         private UpdateCollectionItemAction $updateCollectionItemAction,
-        private CollectionItemValuesAssembler $collectionItemValuesAssembler,
+        private CollectionItemValuesAssemblerService $collectionItemValuesAssembler,
         private CollectionItemOptionsService $collectionItemOptionsService,
-        private CollectionPermissionEnforcer $permissionEnforcer,
-        private FieldConditionEvaluator $fieldConditionEvaluator,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
+        private FieldConditionEvaluatorService $fieldConditionEvaluator,
     ) {}
 
     /**
@@ -119,7 +119,7 @@ class ContentCollectionController extends Controller
         $generator = app(UniqueCollectionSlugGenerator::class);
         $available = $slug !== ''
             && (bool) preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)
-            && $generator->isAvailable($slug, $excludeId);
+            && $generator->available($slug, $excludeId);
 
         return response()->json([
             'available' => $available,

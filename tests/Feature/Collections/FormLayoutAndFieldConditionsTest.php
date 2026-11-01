@@ -5,9 +5,9 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\User;
-use App\Services\Collections\CollectionFormLayoutNormalizer;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\FieldConditionEvaluator;
+use App\Services\Collections\CollectionFormLayoutNormalizerService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\FieldConditionEvaluatorService;
 use Database\Seeders\PermissionSeeder;
 
 beforeEach(function () {
@@ -70,7 +70,7 @@ test('form layout persists on collection and normalizes field ids', function () 
         ],
     ]);
 
-    $groups = app(CollectionFormLayoutNormalizer::class)->resolveRenderGroups(
+    $groups = app(CollectionFormLayoutNormalizerService::class)->resolveRenderGroups(
         $collection->form_layout,
         $collection,
     );
@@ -131,7 +131,7 @@ test('conditional required is enforced when rules match', function () {
 });
 
 test('field condition evaluator matches equals empty and not_empty', function () {
-    $evaluator = app(FieldConditionEvaluator::class);
+    $evaluator = app(FieldConditionEvaluatorService::class);
     $field = new CollectionField([
         'name' => 'notes',
         'type' => FieldTypeEnum::String,
@@ -208,7 +208,7 @@ test('select allow_other accepts values outside options', function () {
     ])->assertRedirect()->assertSessionHasNoErrors();
 
     $item = CollectionItem::query()->where('collection_id', $collection->id)->first();
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($assembled['status'])->toBe('custom-status');
 });
 

@@ -11,8 +11,8 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\User;
 use App\Models\UserGroup;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Event;
 use Inertia\Testing\AssertableInertia;
@@ -348,10 +348,10 @@ test('item picker groups readable items by collection', function () {
     ]);
     $otherItem = $other->items()->create([]);
 
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
-        app(CollectionItemDataNormalizer::class)->normalize($collection, [
+        app(CollectionItemDataNormalizerService::class)->normalize($collection, [
             'title' => 'Sink Widget',
         ], true),
     );

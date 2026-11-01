@@ -11,7 +11,7 @@ use App\Models\CollectionItem;
 use App\Models\CollectionItemChatAttachment;
 use App\Models\CollectionItemChatMessage;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionEnforcer;
+use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatUnreadService;
 use Illuminate\Http\JsonResponse;
@@ -29,7 +29,7 @@ class ItemChatController extends Controller
         private ChatHubController $hub,
         private ChatService $chats,
         private ChatUnreadService $unread,
-        private CollectionPermissionEnforcer $permissionEnforcer,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
     ) {}
 
     public function index(Request $request, Collection $collection, CollectionItem $item): JsonResponse

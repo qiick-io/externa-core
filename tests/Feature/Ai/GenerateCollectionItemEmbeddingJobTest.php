@@ -4,7 +4,7 @@ use App\Jobs\Ai\GenerateCollectionItemEmbeddingJob;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemEmbedding;
-use App\Services\Collections\CollectionItemValuesAssembler;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Log;
@@ -21,7 +21,7 @@ it('stores an embedding vector on success', function () {
     $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
 
     (new GenerateCollectionItemEmbeddingJob($item->id))->handle(
-        app(CollectionItemValuesAssembler::class),
+        app(CollectionItemValuesAssemblerService::class),
     );
 
     $row = CollectionItemEmbedding::query()->where('collection_item_id', $item->id)->first();
@@ -42,7 +42,7 @@ it('reports provider failures without writing a row', function () {
     $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
 
     (new GenerateCollectionItemEmbeddingJob($item->id))->handle(
-        app(CollectionItemValuesAssembler::class),
+        app(CollectionItemValuesAssemblerService::class),
     );
 
     expect(CollectionItemEmbedding::query()->where('collection_item_id', $item->id)->exists())->toBeFalse();
@@ -73,7 +73,7 @@ it('no-ops when the collection item is missing', function () {
     ]);
 
     (new GenerateCollectionItemEmbeddingJob(9_999_999))->handle(
-        app(CollectionItemValuesAssembler::class),
+        app(CollectionItemValuesAssemblerService::class),
     );
 
     expect(CollectionItemEmbedding::query()->count())->toBe(0);

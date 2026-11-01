@@ -5,10 +5,10 @@ use App\Enums\FieldTypeEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
+use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +17,7 @@ beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
 
-    app(SettingsRepository::class)->setMany(SettingsRepository::SCOPE_PROJECT, 'project', [
+    app(SettingsRepositoryService::class)->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'project', [
         'content_locales' => ['en', 'it'],
         'default_content_locale' => 'en',
         'fallback_content_locales' => ['en', 'it'],
@@ -43,16 +43,16 @@ beforeEach(function (): void {
     ]);
 
     $this->item = $this->collection->items()->create([]);
-    $normalized = app(CollectionItemDataNormalizer::class)->normalize($this->collection, [
+    $normalized = app(CollectionItemDataNormalizerService::class)->normalize($this->collection, [
         'title' => ['en' => 'Hello', 'it' => 'Ciao'],
         'body' => 'Keep me',
     ], true);
-    app(CollectionItemValuesWriter::class)->sync($this->item, $this->collection, $normalized);
+    app(CollectionItemValuesWriterService::class)->sync($this->item, $this->collection, $normalized);
 });
 
 function partialItemValues(CollectionItem $item): array
 {
-    return app(CollectionItemValuesAssembler::class)->assemble($item->fresh());
+    return app(CollectionItemValuesAssemblerService::class)->assemble($item->fresh());
 }
 
 it('keeps omitted fields and locales on public API PATCH', function (): void {
@@ -87,12 +87,12 @@ it('rolls back the value sync when an insert fails', function (): void {
         }
     });
 
-    $normalized = app(CollectionItemDataNormalizer::class)->normalize($this->collection, [
+    $normalized = app(CollectionItemDataNormalizerService::class)->normalize($this->collection, [
         'title' => ['en' => 'New'],
         'body' => 'boom',
     ]);
 
-    expect(fn () => app(CollectionItemValuesWriter::class)->sync($this->item, $this->collection, $normalized))
+    expect(fn () => app(CollectionItemValuesWriterService::class)->sync($this->item, $this->collection, $normalized))
         ->toThrow(RuntimeException::class);
 
     expect(partialItemValues($this->item))->toMatchArray([

@@ -21,22 +21,22 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Authorization\EffectivePermissionResolver;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Collections\CollectionItemApprovalService;
-use App\Services\Collections\CollectionItemDataNormalizer;
+use App\Services\Collections\CollectionItemDataNormalizerService;
 use App\Services\Collections\CollectionItemExportService;
 use App\Services\Collections\CollectionItemOptionsService;
-use App\Services\Collections\CollectionItemPublisher;
+use App\Services\Collections\CollectionItemPublisherService;
 use App\Services\Collections\CollectionItemQueryService;
-use App\Services\Collections\CollectionItemRevisionRecorder;
-use App\Services\Collections\CollectionItemValuesAssembler;
-use App\Services\Collections\CollectionListColumnsNormalizer;
-use App\Services\Collections\CollectionListDisplayEnricher;
-use App\Services\Collections\FieldConditionEvaluator;
+use App\Services\Collections\CollectionItemRevisionRecorderService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
+use App\Services\Collections\CollectionListColumnsNormalizerService;
+use App\Services\Collections\CollectionListDisplayEnricherService;
+use App\Services\Collections\FieldConditionEvaluatorService;
 use App\Services\Collections\ItemRolePreviewService;
-use App\Services\Collections\LivePreviewUrlBuilder;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Collections\LivePreviewUrlBuilderService;
+use App\Services\Settings\SettingsRepositoryService;
 use App\Support\Http\SafeReturnUrl;
 use App\Support\Validation\SearchQueryRules;
 use Illuminate\Database\Eloquent\Builder;
@@ -65,23 +65,23 @@ class ItemController extends Controller
 
     public function __construct(
         private CollectionItemQueryService $itemQueryService,
-        private CollectionItemDataNormalizer $itemDataNormalizer,
+        private CollectionItemDataNormalizerService $itemDataNormalizer,
         private CreateCollectionItemAction $createCollectionItemAction,
         private UpdateCollectionItemAction $updateCollectionItemAction,
-        private CollectionItemValuesAssembler $collectionItemValuesAssembler,
+        private CollectionItemValuesAssemblerService $collectionItemValuesAssembler,
         private CollectionItemOptionsService $collectionItemOptionsService,
-        private CollectionListColumnsNormalizer $listColumnsNormalizer,
-        private CollectionListDisplayEnricher $listDisplayEnricher,
-        private SettingsRepository $settingsRepository,
-        private CollectionPermissionEnforcer $permissionEnforcer,
+        private CollectionListColumnsNormalizerService $listColumnsNormalizer,
+        private CollectionListDisplayEnricherService $listDisplayEnricher,
+        private SettingsRepositoryService $settingsRepository,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
         private CollectionItemExportService $itemExportService,
         private ItemRolePreviewService $itemRolePreviewService,
-        private LivePreviewUrlBuilder $livePreviewUrlBuilder,
-        private CollectionItemPublisher $itemPublisher,
-        private CollectionItemRevisionRecorder $revisionRecorder,
+        private LivePreviewUrlBuilderService $livePreviewUrlBuilder,
+        private CollectionItemPublisherService $itemPublisher,
+        private CollectionItemRevisionRecorderService $revisionRecorder,
         private CollectionItemApprovalService $itemApprovals,
-        private EffectivePermissionResolver $permissionResolver,
-        private FieldConditionEvaluator $fieldConditionEvaluator,
+        private EffectivePermissionResolverService $permissionResolver,
+        private FieldConditionEvaluatorService $fieldConditionEvaluator,
     ) {}
 
     /**
@@ -436,7 +436,7 @@ class ItemController extends Controller
         abort_if($user === null, 403);
 
         $this->settingsRepository->set(
-            SettingsRepository::SCOPE_USER,
+            SettingsRepositoryService::SCOPE_USER,
             'collection_list',
             'collection_'.$collection->id,
             $request->input('columns'),
@@ -444,7 +444,7 @@ class ItemController extends Controller
         );
 
         $this->settingsRepository->set(
-            SettingsRepository::SCOPE_USER,
+            SettingsRepositoryService::SCOPE_USER,
             'collection_list',
             'collection_'.$collection->id.'_aligns',
             $request->input('aligns', []),
@@ -453,7 +453,7 @@ class ItemController extends Controller
 
         if ($request->exists('layout')) {
             $this->settingsRepository->set(
-                SettingsRepository::SCOPE_USER,
+                SettingsRepositoryService::SCOPE_USER,
                 'collection_list',
                 'collection_'.$collection->id.'_layout',
                 $request->input('layout') ?? 'table',
@@ -463,7 +463,7 @@ class ItemController extends Controller
 
         if ($request->exists('kanban_field')) {
             $this->settingsRepository->set(
-                SettingsRepository::SCOPE_USER,
+                SettingsRepositoryService::SCOPE_USER,
                 'collection_list',
                 'collection_'.$collection->id.'_kanban_field',
                 $request->input('kanban_field'),
@@ -473,7 +473,7 @@ class ItemController extends Controller
 
         if ($request->exists('calendar_field')) {
             $this->settingsRepository->set(
-                SettingsRepository::SCOPE_USER,
+                SettingsRepositoryService::SCOPE_USER,
                 'collection_list',
                 'collection_'.$collection->id.'_calendar_field',
                 $request->input('calendar_field'),
@@ -1900,7 +1900,7 @@ class ItemController extends Controller
         $user = $request->user();
         $stored = $user !== null
             ? $this->settingsRepository->get(
-                SettingsRepository::SCOPE_USER,
+                SettingsRepositoryService::SCOPE_USER,
                 'collection_list',
                 'collection_'.$collection->id,
                 $user->id,
@@ -1923,7 +1923,7 @@ class ItemController extends Controller
         $user = $request->user();
         $stored = $user !== null
             ? $this->settingsRepository->get(
-                SettingsRepository::SCOPE_USER,
+                SettingsRepositoryService::SCOPE_USER,
                 'collection_list',
                 'collection_'.$collection->id.'_layout',
                 $user->id,
@@ -1938,7 +1938,7 @@ class ItemController extends Controller
         $user = $request->user();
         $stored = $user !== null
             ? $this->settingsRepository->get(
-                SettingsRepository::SCOPE_USER,
+                SettingsRepositoryService::SCOPE_USER,
                 'collection_list',
                 'collection_'.$collection->id.'_kanban_field',
                 $user->id,
@@ -1974,7 +1974,7 @@ class ItemController extends Controller
         $user = $request->user();
         $stored = $user !== null
             ? $this->settingsRepository->get(
-                SettingsRepository::SCOPE_USER,
+                SettingsRepositoryService::SCOPE_USER,
                 'collection_list',
                 'collection_'.$collection->id.'_calendar_field',
                 $user->id,
@@ -2010,7 +2010,7 @@ class ItemController extends Controller
         }
 
         $stored = $this->settingsRepository->get(
-            SettingsRepository::SCOPE_USER,
+            SettingsRepositoryService::SCOPE_USER,
             'collection_list',
             'collection_'.$collection->id.'_aligns',
             $user->id,

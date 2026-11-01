@@ -13,10 +13,10 @@ use App\Models\CollectionItemChatAttachment;
 use App\Models\CollectionItemChatMessage;
 use App\Models\User;
 use App\Models\UserGroup;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Authorization\EffectivePermissionResolver;
-use App\Services\Collections\CollectionItemValuesAssembler;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Authorization\EffectivePermissionResolverService;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
 use App\Support\Collections\CollectionItemDataAccessor;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -30,10 +30,10 @@ use Illuminate\Validation\ValidationException;
 class ChatService
 {
     public function __construct(
-        private CollectionPermissionEnforcer $permissionEnforcer,
-        private CollectionPermissionGuard $permissionGuard,
-        private EffectivePermissionResolver $permissionResolver,
-        private ChatParticipantSync $participantSync,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
+        private CollectionPermissionGuardService $permissionGuard,
+        private EffectivePermissionResolverService $permissionResolver,
+        private ChatParticipantSyncService $participantSync,
         private CollectionItemDataAccessor $itemDataAccessor,
     ) {}
 
@@ -210,7 +210,7 @@ class ChatService
         return $userCount > 2;
     }
 
-    public function canUserReadCollection(User $user, Collection $collection): bool
+    public function userCanReadCollection(User $user, Collection $collection): bool
     {
         if (! $user->is_active) {
             return false;
@@ -482,7 +482,7 @@ class ChatService
             return trim($title);
         }
 
-        $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+        $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
         foreach (['name', 'label', 'heading'] as $field) {
             $value = $assembled[$field] ?? null;
             if (is_string($value) && trim($value) !== '') {
@@ -552,7 +552,7 @@ class ChatService
         return $out;
     }
 
-    public function isMatchingQuery(Chat $chat, string $q, User $viewer): bool
+    public function matchesQuery(Chat $chat, string $q, User $viewer): bool
     {
         $needle = mb_strtolower($q);
         $hay = mb_strtolower($this->titleFor($chat, $viewer));
@@ -604,7 +604,7 @@ class ChatService
                 return false;
             }
 
-            if (! $this->canUserReadCollection($user, $collection)) {
+            if (! $this->userCanReadCollection($user, $collection)) {
                 return false;
             }
 

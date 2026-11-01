@@ -2,8 +2,8 @@
 
 use App\Enums\PermissionEnum;
 use App\Models\User;
-use App\Services\Settings\ProjectSettings;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Settings\ProjectSettingsService;
+use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia;
@@ -151,34 +151,34 @@ test('authorized users can view and update project settings', function () {
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.content.edit'));
 
-    $repository = app(SettingsRepository::class);
+    $repository = app(SettingsRepositoryService::class);
 
-    expect($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'name'))
+    expect($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'name'))
         ->toBe('Externa HQ')
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'default_language'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'default_language'))
         ->toBe('it')
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'registration_enabled'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'registration_enabled'))
         ->toBeFalse()
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'password_policy'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'password_policy'))
         ->toBe('strong')
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'login_max_attempts'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'login_max_attempts'))
         ->toBe(8)
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'default_user_role'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'default_user_role'))
         ->toBe('member')
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'preset_transformations'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'preset_transformations'))
         ->toEqual($presets)
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'public_api_allowed_origins'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'public_api_allowed_origins'))
         ->toBe(['https://www.example.com', 'https://app.example.com'])
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'revision_retention_count'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'revision_retention_count'))
         ->toBe(50)
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'revision_retention_days'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'revision_retention_days'))
         ->toBe(90)
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'files_max_upload_bytes'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'files_max_upload_bytes'))
         ->toBe(20 * 1024 * 1024)
-        ->and($repository->get(SettingsRepository::SCOPE_PROJECT, 'project', 'chat_max_upload_bytes'))
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'project', 'chat_max_upload_bytes'))
         ->toBe(15 * 1024 * 1024);
 
-    $project = app(ProjectSettings::class);
+    $project = app(ProjectSettingsService::class);
     expect($project->maxTransformSize())->toBe(800)
         ->and($project->transformPreset('hero')['fit'])->toBe('cover')
         ->and($project->passwordPolicy())->toBe('strong')
@@ -194,7 +194,7 @@ test('authorized users can view and update project settings', function () {
             ->where('project.name', 'Externa HQ')
             ->where('name', 'Externa HQ')
             ->where('projectSettings.name', 'Externa HQ')
-            ->where('projectSettings.isRegistrationEnabled', false)
+            ->where('projectSettings.registrationEnabled', false)
             ->where('projectSettings.reportIssueUrl', 'https://example.com/issues')
         );
 
@@ -215,12 +215,12 @@ test('authorized users can view and update project settings', function () {
 });
 
 test('legacy bare preset sizes are normalized into structured presets', function () {
-    $repository = app(SettingsRepository::class);
-    $repository->setMany(SettingsRepository::SCOPE_PROJECT, 'project', [
+    $repository = app(SettingsRepositoryService::class);
+    $repository->setMany(SettingsRepositoryService::SCOPE_PROJECT, 'project', [
         'preset_transformations' => [64, 128],
     ]);
 
-    $presets = app(ProjectSettings::class)->presetTransformations();
+    $presets = app(ProjectSettingsService::class)->presetTransformations();
 
     expect($presets)->toHaveCount(2)
         ->and($presets[0]['key'])->toBe('size-64')
@@ -291,7 +291,7 @@ test('telegram bot token must look like a BotFather token', function () {
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('project.integrations.edit'));
 
-    expect(app(ProjectSettings::class)->notifierTelegramBotToken())
+    expect(app(ProjectSettingsService::class)->notifierTelegramBotToken())
         ->toBe('123456789:AAExampleToken_Value-1');
 });
 
@@ -300,15 +300,15 @@ test('telegram notifier test surfaces bot api errors immediately', function () {
         PermissionEnum::CanManageProjectSettings->value,
     ]);
 
-    $repository = app(SettingsRepository::class);
+    $repository = app(SettingsRepositoryService::class);
     $repository->set(
-        SettingsRepository::SCOPE_PROJECT,
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'notifier_telegram_bot_token',
-        ProjectSettings::encryptNotifierTelegramBotToken('123456:ABC'),
+        ProjectSettingsService::encryptNotifierTelegramBotToken('123456:ABC'),
     );
     $repository->set(
-        SettingsRepository::SCOPE_PROJECT,
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'notifier_telegram_chat_id',
         '-100123',
@@ -335,15 +335,15 @@ test('telegram notifier test reports success when bot api accepts the message', 
         PermissionEnum::CanManageProjectSettings->value,
     ]);
 
-    $repository = app(SettingsRepository::class);
+    $repository = app(SettingsRepositoryService::class);
     $repository->set(
-        SettingsRepository::SCOPE_PROJECT,
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'notifier_telegram_bot_token',
-        ProjectSettings::encryptNotifierTelegramBotToken('123456:ABC'),
+        ProjectSettingsService::encryptNotifierTelegramBotToken('123456:ABC'),
     );
     $repository->set(
-        SettingsRepository::SCOPE_PROJECT,
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'notifier_telegram_chat_id',
         '-100123',
@@ -367,15 +367,15 @@ test('deprecated telegram notifier test alias still works', function () {
         PermissionEnum::CanManageProjectSettings->value,
     ]);
 
-    $repository = app(SettingsRepository::class);
+    $repository = app(SettingsRepositoryService::class);
     $repository->set(
-        SettingsRepository::SCOPE_PROJECT,
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'notifier_telegram_bot_token',
-        ProjectSettings::encryptNotifierTelegramBotToken('123456:ABC'),
+        ProjectSettingsService::encryptNotifierTelegramBotToken('123456:ABC'),
     );
     $repository->set(
-        SettingsRepository::SCOPE_PROJECT,
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'notifier_telegram_chat_id',
         '-100123',

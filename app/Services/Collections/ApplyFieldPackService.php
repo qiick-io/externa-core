@@ -12,7 +12,7 @@ use InvalidArgumentException;
 final class ApplyFieldPackService
 {
     public function __construct(
-        private readonly PackFieldCreator $packFieldCreator,
+        private readonly PackFieldCreatorService $packFieldCreator,
     ) {}
 
     /**

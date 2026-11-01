@@ -1,4 +1,4 @@
-/** Field form conditions (mirrors PHP FieldConditionEvaluator). */
+/** Field form conditions (mirrors PHP FieldConditionEvaluatorService). */
 
 export type FieldConditionOperator =
     | 'equals'
@@ -267,7 +267,7 @@ function singleRuleMatches(
     }
 }
 
-function isMatchingRules(
+function rulesMatch(
     rules: FieldConditionRule[],
     data: Record<string, unknown>,
     logic: 'and' | 'or',
@@ -381,7 +381,7 @@ export function evaluateFieldFlags(
         return flags;
     }
 
-    const matches = isMatchingRules(conditions.rules, data, conditions.logic);
+    const matches = rulesMatch(conditions.rules, data, conditions.logic);
 
     if (!matches) {
         // Show-when: explicit hidden:false means visible only while rules match.

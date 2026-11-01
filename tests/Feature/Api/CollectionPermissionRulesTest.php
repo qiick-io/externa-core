@@ -7,9 +7,9 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionPermission;
 use App\Models\Role;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 
@@ -41,7 +41,7 @@ function grantWithRules(Collection $collection, array $actions, array $rules): v
         );
     }
 
-    app(CollectionPermissionGuard::class)->forget($role->id);
+    app(CollectionPermissionGuardService::class)->forget($role->id);
 }
 
 test('field rules strip unreadables and item_filter hides non-matching items', function () {
@@ -81,8 +81,8 @@ test('field rules strip unreadables and item_filter hides non-matching items', f
         CollectionPermissionActionEnum::Create,
     ], $rules);
 
-    $normalizer = app(CollectionItemDataNormalizer::class);
-    $writer = app(CollectionItemValuesWriter::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
+    $writer = app(CollectionItemValuesWriterService::class);
 
     $published = $collection->items()->create([]);
     $writer->sync($published, $collection, $normalizer->normalize($collection, [
@@ -136,10 +136,10 @@ test('empty field map leaves all fields readable', function () {
     ]);
 
     $item = $collection->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
-        app(CollectionItemDataNormalizer::class)->normalize($collection, ['body' => 'Hello'], true),
+        app(CollectionItemDataNormalizerService::class)->normalize($collection, ['body' => 'Hello'], true),
     );
 
     $this->getJson('/api/v1/collections/notes/items/'.$item->id)
@@ -175,8 +175,8 @@ test('item_filter SQL pushdown returns coherent totals and pages', function () {
         ],
     ]);
 
-    $normalizer = app(CollectionItemDataNormalizer::class);
-    $writer = app(CollectionItemValuesWriter::class);
+    $normalizer = app(CollectionItemDataNormalizerService::class);
+    $writer = app(CollectionItemValuesWriterService::class);
 
     $publishedIds = [];
     for ($i = 0; $i < 5; $i++) {

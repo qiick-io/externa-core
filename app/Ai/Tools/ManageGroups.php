@@ -308,7 +308,7 @@ class ManageGroups implements Approvable, Tool
 
         if (
             ! $superAdminGuard->canManageSuperAdmins($this->authenticatedUser())
-            && $superAdminGuard->hasSuperAdminGroup([$group->id])
+            && $superAdminGuard->includesSuperAdminGroup([$group->id])
         ) {
             return 'Error: Only a super-admin can change a group that grants super-admin.';
         }
@@ -326,7 +326,7 @@ class ManageGroups implements Approvable, Tool
 
         if (
             is_array($decoded)
-            && $superAdminGuard->hasSuperAdminRoleName(array_map(fn ($name): string => is_string($name) ? trim($name) : '', $decoded))
+            && $superAdminGuard->includesSuperAdminRoleName(array_map(fn ($name): string => is_string($name) ? trim($name) : '', $decoded))
             && ! $superAdminGuard->canManageSuperAdmins($this->authenticatedUser())
         ) {
             return 'Error: Only a super-admin can grant super-admin access.';

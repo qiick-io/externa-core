@@ -4,9 +4,9 @@ use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
-use App\Services\Collections\LivePreviewToken;
-use App\Services\Collections\LivePreviewUrlBuilder;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Collections\LivePreviewTokenService;
+use App\Services\Collections\LivePreviewUrlBuilderService;
+use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 
 beforeEach(function () {
@@ -23,7 +23,7 @@ function grantLivePreviewPermissions(User $user): User
 }
 
 test('live preview token round-trips and rejects tampering', function () {
-    $tokens = app(LivePreviewToken::class);
+    $tokens = app(LivePreviewTokenService::class);
     $minted = $tokens->mint(3, 9, 'draft', 'en', now()->addMinutes(10)->getTimestamp(), 42);
 
     $claims = $tokens->verify($minted);
@@ -40,7 +40,7 @@ test('live preview token round-trips and rejects tampering', function () {
 });
 
 test('live preview token rejects expired claims', function () {
-    $tokens = app(LivePreviewToken::class);
+    $tokens = app(LivePreviewTokenService::class);
     $minted = $tokens->mint(1, 2, 'published', null, now()->subMinute()->getTimestamp(), 1);
 
     expect($tokens->verify($minted))->toBeNull();
@@ -57,7 +57,7 @@ test('live preview token without user claim is rejected', function () {
     $body = rtrim(strtr(base64_encode(json_encode($payload)), '+/', '-_'), '=');
     $sig = rtrim(strtr(base64_encode(hash_hmac('sha256', $body, (string) config('app.key'), true)), '+/', '-_'), '=');
 
-    expect(app(LivePreviewToken::class)->verify($body.'.'.$sig))->toBeNull();
+    expect(app(LivePreviewTokenService::class)->verify($body.'.'.$sig))->toBeNull();
 });
 
 test('url builder expands tokens and falls back to project default', function () {
@@ -69,14 +69,14 @@ test('url builder expands tokens and falls back to project default', function ()
     $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
     $user = User::factory()->create();
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'preview_url_default',
         'https://site.test/p/{{collection}}/{{id}}?v={{version}}&token={{token}}&locale={{locale}}',
     );
 
-    $built = app(LivePreviewUrlBuilder::class)->build($collection, $item, 'draft', 'it', $user);
+    $built = app(LivePreviewUrlBuilderService::class)->build($collection, $item, 'draft', 'it', $user);
 
     expect($built['url'])
         ->toStartWith('https://site.test/p/posts/'.$item->id.'?')
@@ -85,7 +85,7 @@ test('url builder expands tokens and falls back to project default', function ()
         ->and($built['url'])->toContain('token=')
         ->and($built['expires_at'])->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/');
 
-    expect(LivePreviewUrlBuilder::TTL_SECONDS)->toBe(300);
+    expect(LivePreviewUrlBuilderService::TTL_SECONDS)->toBe(300);
 });
 
 test('collection preview_url overrides project default', function () {
@@ -96,14 +96,14 @@ test('collection preview_url overrides project default', function () {
     $item = CollectionItem::factory()->create(['collection_id' => $collection->id]);
     $user = User::factory()->create();
 
-    app(SettingsRepository::class)->set(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->set(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         'preview_url_default',
         'https://default.test/{{id}}',
     );
 
-    $built = app(LivePreviewUrlBuilder::class)->build($collection, $item, 'published', null, $user);
+    $built = app(LivePreviewUrlBuilderService::class)->build($collection, $item, 'published', null, $user);
 
     expect($built['url'])->toStartWith('https://override.test/pages/'.$item->id.'?token=');
 });
@@ -145,14 +145,14 @@ test('public api preview returns draft data with valid token', function () {
     ]);
     $user = grantLivePreviewPermissions(User::factory()->create());
 
-    $token = app(LivePreviewToken::class)->mint(
+    $token = app(LivePreviewTokenService::class)->mint(
         $collection->id,
         $item->id,
         'draft',
         null,
         now()->addMinutes(5)->getTimestamp(),
         (int) $user->id,
-        app(LivePreviewUrlBuilder::class)->contentHash($item, 'draft'),
+        app(LivePreviewUrlBuilderService::class)->contentHash($item, 'draft'),
     );
 
     $this->getJson('/api/v1/preview?token='.urlencode($token))

@@ -28,8 +28,8 @@ parameters:
             allowIn:
                 - 'app/Services/Collections/CollectionItemQueryService.php'
                 - 'app/Services/Collections/CollectionItemOptionsService.php'
-                - 'app/Services/Collections/FieldValidationRuleEvaluator.php'
-                - 'app/Services/Files/FileWhereUsedScanner.php'
+                - 'app/Services/Collections/FieldValidationRuleEvaluatorService.php'
+                - 'app/Services/Files/FileWhereUsedScannerService.php'
                 - 'app/Services/Chat/ChatUnreadService.php'
                 - 'app/Support/Health/ReadinessChecks.php'
                 - 'app/Http/Controllers/DashboardController.php'

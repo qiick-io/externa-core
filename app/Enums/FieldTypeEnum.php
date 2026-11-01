@@ -119,7 +119,7 @@ enum FieldTypeEnum: string
      * Hash fingerprints and relation IDs are shared across locales; enabling
      * the flag is useless / misleading for those types.
      */
-    public function isTranslatableSupported(): bool
+    public function supportsTranslatable(): bool
     {
         return match ($this) {
             self::Hash,

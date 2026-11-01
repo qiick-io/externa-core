@@ -7,10 +7,10 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\User;
-use App\Services\Api\PublicApiResponseCache;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
-use App\Services\Settings\SettingsRepository;
+use App\Services\Api\PublicApiResponseCacheService;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
+use App\Services\Settings\SettingsRepositoryService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\DB;
@@ -50,8 +50,8 @@ function freshnessCollection(string $slugPrefix = 'fresh'): array
 
 function syncItemValues(CollectionItem $item, Collection $collection, array $data): void
 {
-    $normalized = app(CollectionItemDataNormalizer::class)->normalize($collection, $data, $item->wasRecentlyCreated);
-    app(CollectionItemValuesWriter::class)->sync($item, $collection, $normalized);
+    $normalized = app(CollectionItemDataNormalizerService::class)->normalize($collection, $data, $item->wasRecentlyCreated);
+    app(CollectionItemValuesWriterService::class)->sync($item, $collection, $normalized);
 }
 
 /**
@@ -275,8 +275,8 @@ it('updates filtered GraphQL list when item leaves the filter', function (): voi
 });
 
 it('keeps locale and include_all_translations reads fresh after translation update', function (): void {
-    app(SettingsRepository::class)->setMany(
-        SettingsRepository::SCOPE_PROJECT,
+    app(SettingsRepositoryService::class)->setMany(
+        SettingsRepositoryService::SCOPE_PROJECT,
         'project',
         [
             'content_locales' => ['en', 'it'],
@@ -345,7 +345,7 @@ it('eager-loads fieldValues so list query count does not scale 1:1 with items', 
     $this->getJson("/api/v1/collections/{$slug}/items?per_page=5")->assertOk();
 
     // Force miss so remember callback runs (bump version).
-    app(PublicApiResponseCache::class)->bump((int) $collection->id);
+    app(PublicApiResponseCacheService::class)->bump((int) $collection->id);
 
     DB::flushQueryLog();
     DB::enableQueryLog();

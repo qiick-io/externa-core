@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Services\Auth\OidcSocialiteFactory;
-use App\Services\Auth\OidcUserResolver;
+use App\Services\Auth\OidcSocialiteFactoryService;
+use App\Services\Auth\OidcUserResolverService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,20 +18,20 @@ use Throwable;
  */
 class OidcController extends Controller
 {
-    public function redirect(OidcSocialiteFactory $factory): RedirectResponse
+    public function redirect(OidcSocialiteFactoryService $factory): RedirectResponse
     {
-        abort_unless($factory->isEnabled(), 404);
+        abort_unless($factory->enabled(), 404);
 
         return $factory->driver()->redirect();
     }
 
     public function callback(
         Request $request,
-        OidcSocialiteFactory $factory,
-        OidcUserResolver $resolver,
+        OidcSocialiteFactoryService $factory,
+        OidcUserResolverService $resolver,
         LoginResponseContract $loginResponse,
     ): Response {
-        abort_unless($factory->isEnabled(), 404);
+        abort_unless($factory->enabled(), 404);
 
         try {
             $socialiteUser = $factory->driver()->user();

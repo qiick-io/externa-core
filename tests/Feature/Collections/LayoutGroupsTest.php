@@ -7,7 +7,7 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
 use App\Models\User;
-use App\Services\Collections\CollectionItemValuesAssembler;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
 use App\Services\Collections\MigrateFormLayoutToGroupsService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -329,7 +329,7 @@ test('item save does not store values for layout groups', function () {
     $wrapField = CollectionField::query()->where('collection_id', $collection->id)->where('name', 'wrap')->first();
     expect(CollectionItemValue::query()->where('item_id', $item->id)->where('field_id', $wrapField->id)->count())->toBe(0);
 
-    $assembled = app(CollectionItemValuesAssembler::class)->assemble($item);
+    $assembled = app(CollectionItemValuesAssemblerService::class)->assemble($item);
     expect($assembled)->toHaveKey('title')
         ->and($assembled)->not->toHaveKey('wrap');
 });

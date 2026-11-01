@@ -3,9 +3,9 @@
 namespace App\Http\Resources;
 
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Api\FileFieldExpander;
-use App\Services\Api\RelationIncludeHydrator;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Api\FileFieldExpanderService;
+use App\Services\Api\RelationIncludeHydratorService;
 use App\Support\Api\ApiAccess;
 use App\Support\Api\MiniUserMapper;
 use App\Support\Api\PublicApiIncludeParser;
@@ -63,15 +63,15 @@ class CollectionItemResource extends JsonResource
                 }
             }
 
-            $data = app(FileFieldExpander::class)->expand($data, $item->collection, $access);
+            $data = app(FileFieldExpanderService::class)->expand($data, $item->collection, $access);
         }
 
         if ($isPublicV1 && $item->collection !== null && $include !== []) {
-            $data = app(RelationIncludeHydrator::class)->hydrate($data, $item->collection, $include, $request);
+            $data = app(RelationIncludeHydratorService::class)->hydrate($data, $item->collection, $include, $request);
         }
 
         if ($item->collection !== null) {
-            $data = app(CollectionPermissionEnforcer::class)
+            $data = app(CollectionPermissionEnforcerService::class)
                 ->stripData($request, $item->collection, $data);
         }
 

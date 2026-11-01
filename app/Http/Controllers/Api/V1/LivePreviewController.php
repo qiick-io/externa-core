@@ -7,9 +7,9 @@ use App\Http\Resources\CollectionItemResource;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Collections\LivePreviewToken;
-use App\Services\Collections\LivePreviewUrlBuilder;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Collections\LivePreviewTokenService;
+use App\Services\Collections\LivePreviewUrlBuilderService;
 use App\Support\Collections\CollectionLocaleResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,10 +23,10 @@ class LivePreviewController extends Controller
 {
     public function __invoke(
         Request $request,
-        LivePreviewToken $tokens,
-        LivePreviewUrlBuilder $urlBuilder,
+        LivePreviewTokenService $tokens,
+        LivePreviewUrlBuilderService $urlBuilder,
         CollectionLocaleResolver $locales,
-        CollectionPermissionEnforcer $permissionEnforcer,
+        CollectionPermissionEnforcerService $permissionEnforcer,
     ): JsonResponse {
         $token = (string) $request->query('token', '');
         if ($token === '') {

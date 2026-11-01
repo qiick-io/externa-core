@@ -4,21 +4,21 @@ namespace App\Ai\Concerns;
 
 use App\Models\Collection;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcer;
+use App\Services\Api\CollectionPermissionEnforcerService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
- * Apply CollectionPermissionEnforcer (field ACL / item_filter) inside AI tools.
+ * Apply CollectionPermissionEnforcerService (field ACL / item_filter) inside AI tools.
  * Returns English Error strings instead of HTTP aborts.
  */
 trait EnforcesAiCollectionPermissionsTrait
 {
-    protected function collectionPermissionEnforcer(): CollectionPermissionEnforcer
+    protected function collectionPermissionEnforcer(): CollectionPermissionEnforcerService
     {
-        return app(CollectionPermissionEnforcer::class);
+        return app(CollectionPermissionEnforcerService::class);
     }
 
     protected function aiPermissionRequest(): Request

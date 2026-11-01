@@ -4,7 +4,7 @@ namespace App\Jobs\Ai;
 
 use App\Models\CollectionItem;
 use App\Models\CollectionItemEmbedding;
-use App\Services\Collections\CollectionItemValuesAssembler;
+use App\Services\Collections\CollectionItemValuesAssemblerService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -40,7 +40,7 @@ class GenerateCollectionItemEmbeddingJob implements ShouldBeUnique, ShouldQueue
         return [10, 30, 60];
     }
 
-    public function handle(CollectionItemValuesAssembler $assembler): void
+    public function handle(CollectionItemValuesAssemblerService $assembler): void
     {
         if (! config('ai.embeddings.enabled')) {
             return;

@@ -82,8 +82,8 @@ export type WebhookDeliverySummary = {
 export type SharedProjectSettings = {
     name: string | null;
     defaultLanguage: string;
-    isRegistrationEnabled: boolean;
-    isEmailVerificationRequired: boolean;
+    registrationEnabled: boolean;
+    emailVerificationRequired: boolean;
     passwordPolicy: 'weak' | 'medium' | 'strong';
     sidebarModules: SidebarModuleSetting[];
     reportIssueUrl: string | null;

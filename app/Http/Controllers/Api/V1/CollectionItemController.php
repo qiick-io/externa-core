@@ -10,10 +10,10 @@ use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccessTrait;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
-use App\Services\Api\CollectionPermissionEnforcer;
-use App\Services\Api\FilePermissionGuard;
-use App\Services\Api\PublicApiResponseCache;
-use App\Services\Api\RelationIncludeHydrator;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Api\FilePermissionGuardService;
+use App\Services\Api\PublicApiResponseCacheService;
+use App\Services\Api\RelationIncludeHydratorService;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Support\Api\PublicApiIncludeParser;
 use Illuminate\Http\JsonResponse;
@@ -30,8 +30,8 @@ class CollectionItemController extends Controller
         private CollectionItemQueryService $itemQueryService,
         private CreateCollectionItemAction $createCollectionItemAction,
         private UpdateCollectionItemAction $updateCollectionItemAction,
-        private CollectionPermissionEnforcer $permissionEnforcer,
-        private PublicApiResponseCache $responseCache,
+        private CollectionPermissionEnforcerService $permissionEnforcer,
+        private PublicApiResponseCacheService $responseCache,
     ) {}
 
     public function index(Request $request, string $slug): JsonResponse
@@ -71,7 +71,7 @@ class CollectionItemController extends Controller
             'include' => app(PublicApiIncludeParser::class)->parse($request->query('include')),
             'role_id' => $roleId,
             // File field expansion depends on file grants, not only role_id.
-            'file_grants' => $roleId === null ? [] : app(FilePermissionGuard::class)->grantsForRole($roleId),
+            'file_grants' => $roleId === null ? [] : app(FilePermissionGuardService::class)->grantsForRole($roleId),
             ...$access->responseCacheScopeFactors(),
             'surface' => 'rest',
         ]);
@@ -95,7 +95,7 @@ class CollectionItemController extends Controller
             $pageItems = $paginator->getCollection();
             $include = app(PublicApiIncludeParser::class)->parse($request->query('include'));
             if ($include !== []) {
-                app(RelationIncludeHydrator::class)->prewarm($pageItems, $collection, $include, $request);
+                app(RelationIncludeHydratorService::class)->prewarm($pageItems, $collection, $include, $request);
             }
 
             return [
@@ -128,7 +128,7 @@ class CollectionItemController extends Controller
             'include_all_translations' => $request->boolean('include_all_translations'),
             'include' => app(PublicApiIncludeParser::class)->parse($request->query('include')),
             'role_id' => $roleId,
-            'file_grants' => $roleId === null ? [] : app(FilePermissionGuard::class)->grantsForRole($roleId),
+            'file_grants' => $roleId === null ? [] : app(FilePermissionGuardService::class)->grantsForRole($roleId),
             ...$access->responseCacheScopeFactors(),
             'surface' => 'rest',
         ]);

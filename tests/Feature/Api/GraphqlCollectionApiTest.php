@@ -7,9 +7,9 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionPermission;
 use App\Models\Role;
-use App\Services\Api\CollectionPermissionGuard;
-use App\Services\Collections\CollectionItemDataNormalizer;
-use App\Services\Collections\CollectionItemValuesWriter;
+use App\Services\Api\CollectionPermissionGuardService;
+use App\Services\Collections\CollectionItemDataNormalizerService;
+use App\Services\Collections\CollectionItemValuesWriterService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 
@@ -40,13 +40,13 @@ test('graphql items query respects collection permissions', function () {
         ],
         ['allowed' => true, 'rules' => null],
     );
-    app(CollectionPermissionGuard::class)->forget($role->id);
+    app(CollectionPermissionGuardService::class)->forget($role->id);
 
     $item = $collection->items()->create([]);
-    app(CollectionItemValuesWriter::class)->sync(
+    app(CollectionItemValuesWriterService::class)->sync(
         $item,
         $collection,
-        app(CollectionItemDataNormalizer::class)->normalize($collection, ['title' => 'Hi'], true),
+        app(CollectionItemDataNormalizerService::class)->normalize($collection, ['title' => 'Hi'], true),
     );
 
     $response = $this->postJson('/api/graphql', [

@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Console\Concerns\ManagesDotEnvTrait;
 use Illuminate\Console\Command;
 use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Facades\DB;
@@ -20,8 +19,6 @@ use function Laravel\Prompts\text;
 #[AsCommand(name: 'externa:install')]
 class InstallCommand extends Command
 {
-    use ManagesDotEnvTrait;
-
     protected $signature = 'externa:install
         {--force : Allow overwriting an existing .env / running when APP_ENV looks like production}
         {--no-npm : Skip npm install / build}
@@ -144,6 +141,42 @@ class InstallCommand extends Command
         $this->line('Docs: https://docs.externa.qiick.io/docs/installation');
 
         return self::SUCCESS;
+    }
+
+    private function looksLikeProduction(): bool
+    {
+        if (app()->environment('production')) {
+            return true;
+        }
+
+        if (! File::exists(base_path('.env'))) {
+            return false;
+        }
+
+        $env = File::get(base_path('.env'));
+
+        return (bool) preg_match('/^APP_ENV\s*=\s*production\s*$/mi', $env);
+    }
+
+    private function setEnv(string $env, string $key, string $value): string
+    {
+        $escaped = $this->escapeEnvValue($value);
+        $pattern = '/^'.preg_quote($key, '/').'=.*$/m';
+
+        if (preg_match($pattern, $env)) {
+            return preg_replace($pattern, $key.'='.$escaped, $env) ?? $env;
+        }
+
+        return rtrim($env)."\n{$key}={$escaped}\n";
+    }
+
+    private function escapeEnvValue(string $value): string
+    {
+        if ($value === '' || preg_match('/[\s#"\']/', $value)) {
+            return '"'.str_replace(['\\', '"'], ['\\\\', '\\"'], $value).'"';
+        }
+
+        return $value;
     }
 
     private function applyDatabase(string $env, string $db): string
