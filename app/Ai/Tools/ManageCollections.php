@@ -21,6 +21,7 @@ use App\Support\Collections\CollectionFieldSettingsPipeline;
 use App\Support\Collections\CollectionPacks\CollectionPackRegistry;
 use App\Support\Collections\FieldPacks\FieldPackRegistry;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Laravel\Ai\Contracts\Approvable;
@@ -326,59 +327,63 @@ class ManageCollections implements Approvable, Tool
             return 'Error: Collection not found.';
         }
 
-        $name = $source->name.' Copy';
-        $baseSlug = Str::slug($name);
-        $slug = $baseSlug;
-        $suffix = 2;
+        $payload = DB::transaction(function () use ($request, $source): array {
+            $name = $source->name.' Copy';
+            $baseSlug = Str::slug($name);
+            $slug = $baseSlug;
+            $suffix = 2;
 
-        while (Collection::query()->withTrashed()->where('slug', $slug)->exists()) {
-            $slug = $baseSlug.'-'.$suffix;
-            $suffix++;
-        }
-
-        $duplicate = Collection::query()->create([
-            'name' => $name,
-            'slug' => $slug,
-            'is_singleton' => $source->is_singleton,
-        ]);
-
-        foreach ($source->fields as $field) {
-            $duplicate->fields()->create([
-                'name' => $field->name,
-                'type' => $field->type,
-                'translatable' => $field->translatable,
-                'settings' => $field->settings,
-                'sort_order' => $field->sort_order,
-            ]);
-        }
-
-        $sampleCount = 0;
-
-        if ($request->boolean('with_sample')) {
-            $duplicate->load('fields');
-            $assembler = app(CollectionItemValuesAssemblerService::class);
-            $createAction = app(CreateCollectionItemAction::class);
-
-            foreach ($source->items()->oldest('id')->limit(5)->get() as $sourceItem) {
-                /** @var CollectionItem $sourceItem */
-                $createAction->execute(new CollectionItemWriteData(
-                    collection: $duplicate,
-                    data: $assembler->assemble($sourceItem),
-                    creating: true,
-                    shouldValidate: false,
-                ));
-                $sampleCount++;
+            while (Collection::query()->withTrashed()->where('slug', $slug)->lockForUpdate()->exists()) {
+                $slug = $baseSlug.'-'.$suffix;
+                $suffix++;
             }
-        }
 
-        $this->logAiMutation($duplicate, 'duplicate_collection');
+            $duplicate = Collection::query()->create([
+                'name' => $name,
+                'slug' => $slug,
+                'is_singleton' => $source->is_singleton,
+            ]);
 
-        return json_encode([
-            'ok' => true,
-            'collection' => $duplicate->only(['id', 'name', 'slug', 'is_singleton']),
-            'fields_copied' => $source->fields->count(),
-            'sample_items_copied' => $sampleCount,
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '{}';
+            foreach ($source->fields as $field) {
+                $duplicate->fields()->create([
+                    'name' => $field->name,
+                    'type' => $field->type,
+                    'translatable' => $field->translatable,
+                    'settings' => $field->settings,
+                    'sort_order' => $field->sort_order,
+                ]);
+            }
+
+            $sampleCount = 0;
+
+            if ($request->boolean('with_sample')) {
+                $duplicate->load('fields');
+                $assembler = app(CollectionItemValuesAssemblerService::class);
+                $createAction = app(CreateCollectionItemAction::class);
+
+                foreach ($source->items()->oldest('id')->limit(5)->get() as $sourceItem) {
+                    /** @var CollectionItem $sourceItem */
+                    $createAction->execute(new CollectionItemWriteData(
+                        collection: $duplicate,
+                        data: $assembler->assemble($sourceItem),
+                        creating: true,
+                        shouldValidate: false,
+                    ));
+                    $sampleCount++;
+                }
+            }
+
+            $this->logAiMutation($duplicate, 'duplicate_collection');
+
+            return [
+                'ok' => true,
+                'collection' => $duplicate->only(['id', 'name', 'slug', 'is_singleton']),
+                'fields_copied' => $source->fields->count(),
+                'sample_items_copied' => $sampleCount,
+            ];
+        });
+
+        return json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '{}';
     }
 
     private function listFieldPacks(): string
