@@ -98,7 +98,8 @@ return [
             // ponytail: weak matches prior non-prod Password::defaults(null); tighten via settings UI
             'password_policy' => 'weak',
             'login_max_attempts' => 5,
-            'registration_enabled' => true,
+            // Secure-by-default for fresh installs; existing DB-stored values win (#272).
+            'registration_enabled' => false,
             'default_user_role' => null,
             'email_verification_required' => false,
             'two_factor_required' => false,

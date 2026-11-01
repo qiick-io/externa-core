@@ -74,7 +74,7 @@ test('authorized users can view and update project settings', function () {
         ->get(route('project.security.edit'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('project.registration_enabled', true)
+            ->where('project.registration_enabled', false)
         );
 
     $this->actingAs($user)

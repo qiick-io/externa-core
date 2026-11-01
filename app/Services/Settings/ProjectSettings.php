@@ -581,7 +581,7 @@ class ProjectSettings
             'sidebar_modules' => $this->normalizeSidebarModules($raw['sidebar_modules'] ?? null),
             'password_policy' => $policy,
             'login_max_attempts' => max(1, min(100, $attempts)),
-            'registration_enabled' => (bool) ($raw['registration_enabled'] ?? true),
+            'registration_enabled' => (bool) ($raw['registration_enabled'] ?? false),
             'default_user_role' => is_string($raw['default_user_role'] ?? null) && $raw['default_user_role'] !== ''
                 ? $raw['default_user_role']
                 : null,

@@ -1,9 +1,18 @@
 <?php
 
+use App\Services\Settings\SettingsRepository;
 use Laravel\Fortify\Features;
 
 beforeEach(function () {
     $this->skipUnlessFortifyFeature(Features::registration());
+    $this->withoutVite();
+
+    app(SettingsRepository::class)->set(
+        SettingsRepository::SCOPE_PROJECT,
+        'project',
+        'registration_enabled',
+        true,
+    );
 });
 
 test('registration screen can be rendered', function () {
