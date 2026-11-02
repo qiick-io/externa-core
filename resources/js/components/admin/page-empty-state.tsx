@@ -14,7 +14,8 @@ import { cn } from '@/lib/utils';
 
 type PageEmptyStateProps = {
     icon: LucideIcon;
-    title: string;
+    /** Plain copy, or wrapped in `EmptyStatus` when the empty result follows a search or filter change. */
+    title: ReactNode;
     description: string;
     action?: ReactNode;
     docsHref?: string;

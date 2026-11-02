@@ -15,6 +15,7 @@ Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegro
 | muted-foreground / background        | `#516370` (ink-600)  | `#ffffff`             | 6.23  | 4.5  | PASS   |
 | muted-foreground / card              | `#516370`            | `#ffffff`             | 6.23  | 4.5  | PASS   |
 | primary-foreground / primary         | `#ffffff`            | `#0e7c86` (teal-600)  | 4.95  | 4.5  | PASS   |
+| primary-foreground / primary-hover   | `#ffffff`            | teal-600 + 12% black  | 6.54  | 4.5  | PASS   |
 | destructive-foreground / destructive | `#ffffff`            | `#bd1f2c` (red-600)   | 6.18  | 4.5  | PASS   |
 | success-foreground / success         | `#ffffff`            | `#15803d` (green-600) | 5.02  | 4.5  | PASS   |
 | warning-foreground / warning         | `#ffffff`            | `#b45309` (amber-600) | 5.02  | 4.5  | PASS   |
@@ -31,6 +32,7 @@ Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegro
 | muted-foreground / background        | `#b3c2cc` (ink-300)  | `#0e171e`             | 9.92  | 4.5  | PASS   |
 | muted-foreground / card              | `#b3c2cc`            | `#17232c` (ink-900)   | 8.76  | 4.5  | PASS   |
 | primary-foreground / primary         | `#0e171e`            | `#1a95a2` (teal-500)  | 5.06  | 4.5  | PASS   |
+| primary-foreground / primary-hover   | `#0e171e`            | teal-500 + 12% white  | 6.03  | 4.5  | PASS   |
 | destructive-foreground / destructive | `#0e171e`            | `#f0848c` (red-300)   | 7.23  | 4.5  | PASS   |
 | success-foreground / success         | `#0e171e`            | `#3bb872` (green-400) | 7.14  | 4.5  | PASS   |
 | warning-foreground / warning         | `#0e171e`            | `#f09a1a` (amber-400) | 8.05  | 4.5  | PASS   |

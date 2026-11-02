@@ -11,7 +11,8 @@ pre-commit:
       stage_fixed: true
     eslint:
       glob: "resources/js/**/*.{js,jsx,ts,tsx}"
-      run: npx eslint {staged_files} --max-warnings=0
+      # --no-warn-ignored: staged shadcn primitives (components/ui) are ESLint-ignored by design.
+      run: npx eslint {staged_files} --max-warnings=0 --no-warn-ignored
     prettier:
       glob: "resources/**/*.{js,jsx,ts,tsx,css}"
       run: npx prettier --write {staged_files}
