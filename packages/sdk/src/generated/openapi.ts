@@ -540,7 +540,23 @@ export interface operations {
                  * @example -published_at,title
                  */
                 sort?: components["parameters"]["Sort"];
-                /** @description Advanced field filters (same dialect as admin/GraphQL) */
+                /**
+                 * @description Advanced field filters (same dialect as admin/GraphQL).
+                 *     Operators: bare value = `_contains`; `_eq`, `_neq`, `_contains`, `_in`,
+                 *     `_null`, `_nnull`, `_gt`, `_gte`, `_lt`, `_lte`.
+                 *     System columns `id`, `created_at`, `updated_at`, `published_at` are also
+                 *     accepted (e.g. `filter[published_at][_gte]=2026-01-01`, `filter[id][_in]=1,2`).
+                 *     `id` allows `_eq`/`_neq`/`_in`/`_gt`/`_gte`/`_lt`/`_lte`; datetimes allow
+                 *     `_eq`/`_gt`/`_gte`/`_lt`/`_lte`/`_null`/`_nnull` (`published_at` may be null).
+                 *     Date-only values are start-of-day UTC; invalid values or unsupported
+                 *     operators (e.g. `_contains` on a system key) → 422. When a collection field
+                 *     shares a system key name, the system column wins. System keys count toward
+                 *     the 32-key filter limit. Depth-1 relational paths are supported:
+                 *     `filter[author.name][_eq]=Ada` (one relation hop; `a.b.c` → 422). The related
+                 *     collection must be readable for the caller (same rules as `?include=`);
+                 *     otherwise the filter matches nothing. Each dotted key counts toward
+                 *     `API_COST_FILTER_RELATION` when the optional cost budget is enabled.
+                 */
                 filter?: {
                     [key: string]: unknown;
                 };
