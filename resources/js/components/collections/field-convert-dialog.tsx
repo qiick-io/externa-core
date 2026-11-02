@@ -192,7 +192,7 @@ export function FieldConvertDialog({
                     : t('collections.convert.queued'),
             );
             onOpenChange(false);
-            router.reload({ preserveScroll: true });
+            router.reload();
         } catch {
             toast.error(t('collections.convert.convertFailed'));
         } finally {
