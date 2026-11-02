@@ -10,6 +10,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 ## [Unreleased]
 
 ### Added
+- Public REST/GraphQL system-column filters on items (`filter[id]`, `filter[created_at]`, `filter[updated_at]`, `filter[published_at]`) with typed operators and ISO-8601 datetime validation (#333).
 - Public REST/GraphQL depth-1 relational filters (`filter[author.name][_eq]=…`); hard cap on join depth (422 above), related-collection readability gate (same as `?include=`), OpenAPI notes, and `API_COST_FILTER_RELATION` cost-budget interaction (#124).
 - Prompt-injection and denied-permission Pest suite for chat + MCP (`tests/Feature/Ai/Security/*`) with scripted compromised-LLM driver, ≥20 payloads × roles × surfaces, audit/approval assertions, and SECURITY checklist link (#204).
 - Human approval + audit log for AI tool calls: write/destructive tools denied by default (`AI_WRITE_TOOLS` kill switch + per-tool allowlist), chat `Approvable` for write actions, MCP `PendingToolCall` admin inbox (15m TTL), redacted `ai_tool` audit trail with retention prune (`ai:prune-tool-audit`) (#203).
