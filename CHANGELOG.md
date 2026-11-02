@@ -9,6 +9,10 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [Unreleased]
 
+
+
+## [1.4.0] - 2026-11-02
+
 ### Changed
 - Shared UI helpers: `lib/http` (`parseError`/`assertOk`/`requestJson`), `lib/format` (bytes/initials/datetime-local), `useDebouncedServerSearch`; admin pages use Wayfinder instead of `lib/admin-routes`; shared `FieldDef`/`ItemRow`/`EchoInstance` types; re-enable `no-explicit-any` and lint against hard-coded admin paths (#284).
 
@@ -363,7 +367,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 [GitHub Release](https://github.com/qiick-io/externa-core/releases/tag/v1.0.0-beta.1)
 
-[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/qiick-io/externa-core/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.4.0
 [1.3.0]: https://github.com/qiick-io/externa-core/releases/tag/v1.3.0
 [1.2.3]: https://github.com/qiick-io/externa-core/releases/tag/v1.2.3
 [1.2.2]: https://github.com/qiick-io/externa-core/releases/tag/v1.2.2
