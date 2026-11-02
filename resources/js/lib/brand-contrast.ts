@@ -42,6 +42,17 @@ export function brandPassesAa(
     return true;
 }
 
+/**
+ * Whether a colour meets the WCAG 1.4.11 non-text minimum (3:1) on a surface,
+ * e.g. a focus ring on the page background (mirrors BrandColorDerivation::meetsUiContrast).
+ */
+export function meetsUiContrast(
+    hex: string,
+    surfaceBackground: string,
+): boolean {
+    return contrastRatio(hex, surfaceBackground) >= UI_CONTRAST_MIN;
+}
+
 function pickForeground(hex: string): string | null {
     const contrastWhite = contrastRatio(hex, FOREGROUND_LIGHT);
     const contrastInk = contrastRatio(hex, FOREGROUND_DARK);

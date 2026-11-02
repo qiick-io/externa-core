@@ -1,3 +1,4 @@
+import { meetsUiContrast } from '@/lib/brand-contrast';
 import { contrastingForeground } from '@/lib/contrasting-foreground';
 import {
     AI_OVERRIDE_DARK,
@@ -16,6 +17,13 @@ const BRAND_LINKED_KEYS = [
     'sidebar-primary-foreground',
     'sidebar-ring',
 ] as const;
+
+/**
+ * Contrast-safe focus rings (#227) used when the brand colour is below 3:1 on
+ * the page background (#453). Mirrors ThemePresetService and app.css.
+ */
+const FALLBACK_RING_LIGHT = 'var(--color-teal-600)';
+const FALLBACK_RING_DARK = 'var(--color-teal-400)';
 
 /** Id of the theme `<style>` element rendered by `app.blade.php`. */
 export const THEME_STYLE_ELEMENT_ID = 'externa-theme-css';
@@ -108,12 +116,26 @@ export function buildPreviewThemeCss(
 
     if (hasCustomLight && projectColor) {
         brandPrimaryForeground = contrastingForeground(projectColor);
-        light = stripBrandLinkedKeys(light);
+        light = {
+            ...stripBrandLinkedKeys(light),
+            ...ringTokens(
+                projectColor,
+                light.background ?? '#FFFFFF',
+                FALLBACK_RING_LIGHT,
+            ),
+        };
     }
 
     if (effectiveDark && (hasCustomLight || hasCustomDark)) {
         brandPrimaryDarkForeground = contrastingForeground(effectiveDark);
-        dark = stripBrandLinkedKeys(dark);
+        dark = {
+            ...stripBrandLinkedKeys(dark),
+            ...ringTokens(
+                effectiveDark,
+                dark.background ?? '#0E171E',
+                FALLBACK_RING_DARK,
+            ),
+        };
     }
 
     return {
@@ -125,6 +147,23 @@ export function buildPreviewThemeCss(
         brandPrimaryForeground,
         brandPrimaryDarkForeground,
     };
+}
+
+/**
+ * Focus ring tokens for a custom brand: the brand when it keeps 3:1 on the page
+ * background, else the teal fallback. Always set so a light ring cannot leak
+ * into `.dark` through the `:root` block.
+ */
+function ringTokens(
+    brandHex: string,
+    background: string,
+    fallbackRing: string,
+): ThemePresetTokens {
+    const ring = meetsUiContrast(brandHex, background)
+        ? brandHex
+        : fallbackRing;
+
+    return { ring, 'sidebar-ring': ring };
 }
 
 function stripBrandLinkedKeys(tokens: ThemePresetTokens): ThemePresetTokens {

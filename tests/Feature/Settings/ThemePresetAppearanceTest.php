@@ -3,6 +3,7 @@
 use App\Enums\PermissionEnum;
 use App\Models\User;
 use App\Services\Settings\SettingsRepositoryService;
+use App\Services\Settings\ThemePresetService;
 use Database\Seeders\PermissionSeeder;
 use Inertia\Testing\AssertableInertia;
 use Spatie\Permission\Models\Role;
@@ -198,4 +199,58 @@ test('an unknown theme_preset is rejected and the stored preset is kept', functi
 
     expect($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'theme_preset'))
         ->toBe('indigo');
+});
+
+test('low-contrast brand colour falls back to the teal focus ring in dark mode', function () {
+    $user = grantThemePresetPermissions(User::factory()->create());
+
+    // #0F172A is ~1.1:1 on the dark background #0E171E but ~17:1 on white (#453).
+    $this->actingAs($user)
+        ->put(route('appearance.update'), [
+            'theme_preset' => 'teal',
+            'project_color' => '#0F172A',
+            'project_color_dark' => null,
+            'default_appearance' => 'dark',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($user)
+        ->get(route('appearance.edit'))
+        ->assertOk()
+        ->assertSeeInOrder([':root {', '--ring: #0F172A;', '--sidebar-ring: #0F172A;', '.dark {'], false)
+        ->assertSeeInOrder(['.dark {', '--ring: var(--color-teal-400);', '--sidebar-ring: var(--color-teal-400);'], false)
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('projectAppearance.themeCss.light.ring', '#0F172A')
+            ->where('projectAppearance.themeCss.dark.ring', 'var(--color-teal-400)')
+        );
+});
+
+test('brand colours with at least 3:1 contrast are used as the focus ring', function () {
+    $user = grantThemePresetPermissions(User::factory()->create());
+
+    $this->actingAs($user)
+        ->put(route('appearance.update'), [
+            'theme_preset' => 'indigo',
+            'project_color' => '#0f172a',
+            'project_color_dark' => '#38bdf8',
+            'default_appearance' => 'system',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($user)
+        ->get(route('appearance.edit'))
+        ->assertOk()
+        ->assertSeeInOrder(['.dark {', '--ring: #38bdf8;', '--sidebar-ring: #38bdf8;'], false)
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('projectAppearance.themeCss.light.ring', '#0f172a')
+            ->where('projectAppearance.themeCss.dark.ring', '#38bdf8')
+        );
+});
+
+test('low-contrast light brand colour falls back to the teal focus ring in light mode', function () {
+    $resolved = app(ThemePresetService::class)->resolve('teal', '#F5F5F5', '#38bdf8');
+
+    expect($resolved['light']['ring'])->toBe('var(--color-teal-600)')
+        ->and($resolved['light']['sidebar-ring'])->toBe('var(--color-teal-600)')
+        ->and($resolved['dark']['ring'])->toBe('#38bdf8');
 });
