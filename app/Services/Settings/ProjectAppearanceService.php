@@ -2,6 +2,7 @@
 
 namespace App\Services\Settings;
 
+use App\Enums\ThemePresetEnum;
 use App\Models\File;
 use App\Services\FileTransformService;
 use App\Support\Css\ContrastingForeground;
@@ -15,6 +16,7 @@ class ProjectAppearanceService
     public function __construct(
         private readonly SettingsRepositoryService $settings,
         private readonly FileTransformService $fileTransform,
+        private readonly ThemePresetService $themePresets,
     ) {}
 
     /**
@@ -41,7 +43,18 @@ class ProjectAppearanceService
      *     logoUrl: string|null,
      *     logoDarkUrl: string|null,
      *     faviconUrl: string|null,
-     *     defaultAppearance: string
+     *     defaultAppearance: string,
+     *     themePreset: string,
+     *     brandPassesAa: bool,
+     *     aiOverrideApplied: bool,
+     *     themeCss: array{
+     *         light: array<string, string>,
+     *         dark: array<string, string>,
+     *         brandPrimary: string|null,
+     *         brandPrimaryDark: string|null,
+     *         brandPrimaryForeground: string|null,
+     *         brandPrimaryDarkForeground: string|null
+     *     }
      * }
      */
     public function shared(): array
@@ -64,15 +77,41 @@ class ProjectAppearanceService
             ? $raw['project_color_dark']
             : $projectColor;
 
+        $themePreset = ThemePresetEnum::tryFromNullable(
+            is_string($raw['theme_preset'] ?? null) ? $raw['theme_preset'] : null,
+        )->value;
+
+        $resolved = $this->themePresets->resolve(
+            $themePreset,
+            $projectColor,
+            is_string($raw['project_color_dark'] ?? null) ? $raw['project_color_dark'] : null,
+        );
+
+        $primaryForeground = $resolved['brandPrimaryForeground']
+            ?? ContrastingForeground::forHex($projectColor);
+        $primaryForegroundDark = $resolved['brandPrimaryDarkForeground']
+            ?? ContrastingForeground::forHex($projectColorDark);
+
         return [
             'projectColor' => $projectColor,
             'projectColorDark' => $projectColorDark,
-            'primaryForeground' => ContrastingForeground::forHex($projectColor),
-            'primaryForegroundDark' => ContrastingForeground::forHex($projectColorDark),
+            'primaryForeground' => $primaryForeground,
+            'primaryForegroundDark' => $primaryForegroundDark,
             'logoUrl' => $urls['logo'],
             'logoDarkUrl' => $urls['logoDark'],
             'faviconUrl' => $urls['favicon'],
             'defaultAppearance' => $default,
+            'themePreset' => $themePreset,
+            'brandPassesAa' => $resolved['brandPassesAa'],
+            'aiOverrideApplied' => $resolved['aiOverrideApplied'],
+            'themeCss' => [
+                'light' => $resolved['light'],
+                'dark' => $resolved['dark'],
+                'brandPrimary' => $resolved['brandPrimary'],
+                'brandPrimaryDark' => $resolved['brandPrimaryDark'],
+                'brandPrimaryForeground' => $resolved['brandPrimaryForeground'],
+                'brandPrimaryDarkForeground' => $resolved['brandPrimaryDarkForeground'],
+            ],
         ];
     }
 
@@ -80,12 +119,21 @@ class ProjectAppearanceService
      * Edit-form payload including file meta for pickers.
      *
      * @return array{
+     *     theme_preset: string,
      *     project_color: string|null,
      *     project_color_dark: string|null,
      *     default_appearance: string,
      *     project_logo: array{id: int, name: string, url: string|null}|null,
      *     project_logo_dark: array{id: int, name: string, url: string|null}|null,
-     *     public_favicon: array{id: int, name: string, url: string|null}|null
+     *     public_favicon: array{id: int, name: string, url: string|null}|null,
+     *     theme_presets: list<array{
+     *         slug: string,
+     *         name: string,
+     *         aiOverride: bool,
+     *         swatchLight: string,
+     *         swatchDark: string
+     *     }>,
+     *     brand_passes_aa: bool
      * }
      */
     public function forEdit(): array
@@ -102,13 +150,24 @@ class ProjectAppearanceService
             $default = 'system';
         }
 
+        $projectColor = is_string($raw['project_color'] ?? null) ? $raw['project_color'] : null;
+        $projectColorDark = is_string($raw['project_color_dark'] ?? null) ? $raw['project_color_dark'] : null;
+        $themePreset = ThemePresetEnum::tryFromNullable(
+            is_string($raw['theme_preset'] ?? null) ? $raw['theme_preset'] : null,
+        )->value;
+
+        $resolved = $this->themePresets->resolve($themePreset, $projectColor, $projectColorDark);
+
         return [
-            'project_color' => is_string($raw['project_color'] ?? null) ? $raw['project_color'] : null,
-            'project_color_dark' => is_string($raw['project_color_dark'] ?? null) ? $raw['project_color_dark'] : null,
+            'theme_preset' => $themePreset,
+            'project_color' => $projectColor,
+            'project_color_dark' => $projectColorDark,
             'default_appearance' => $default,
             'project_logo' => $this->fileMeta($files->get($this->intOrNull($raw['project_logo'] ?? null))),
             'project_logo_dark' => $this->fileMeta($files->get($this->intOrNull($raw['project_logo_dark'] ?? null))),
             'public_favicon' => $this->fileMeta($files->get($this->intOrNull($raw['public_favicon'] ?? null))),
+            'theme_presets' => $this->themePresets->catalog(),
+            'brand_passes_aa' => $resolved['brandPassesAa'],
         ];
     }
 
@@ -133,9 +192,10 @@ class ProjectAppearanceService
     public function forMail(): array
     {
         $shared = $this->shared();
+        $themeCss = $shared['themeCss'];
         $primary = is_string($shared['projectColor'] ?? null) && $shared['projectColor'] !== ''
             ? $shared['projectColor']
-            : '#0E7C86';
+            : ($themeCss['light']['primary'] ?? '#0E7C86');
         $foreground = ContrastingForeground::forHex($primary) ?? ContrastingForeground::WHITE;
 
         return [

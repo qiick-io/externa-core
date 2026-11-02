@@ -9,11 +9,13 @@ import { SettingsFormActions } from '@/components/settings-form-actions';
 import { Button } from '@/components/ui/button';
 import {
     Field,
+    FieldDescription,
     FieldError,
     FieldGroup,
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Select,
     SelectContent,
@@ -25,111 +27,41 @@ import { Separator } from '@/components/ui/separator';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import { contrastingForeground } from '@/lib/contrasting-foreground';
+import { brandPassesAa } from '@/lib/brand-contrast';
+import { applyThemeCss, buildPreviewThemeCss } from '@/lib/theme-css';
+import {
+    DEFAULT_THEME_PRESET,
+    themePresetBySlug,
+    type ThemePresetSlug,
+} from '@/lib/theme-presets';
 import { edit as editAppearance } from '@/routes/appearance';
 import type {
     AppearanceFileMeta,
     AppearanceSettings,
     BreadcrumbItem,
+    ProjectAppearance,
 } from '@/types';
 import type { AdminFileRow } from '@/types/files';
 
 type FileFieldKey = 'project_logo' | 'project_logo_dark' | 'public_favicon';
 
-/** Externa mark v3 body (light); WCAG AA with white foreground. */
-const DEFAULT_PROJECT_COLOR = '#0E7C86';
-
-/** Externa mark v3 body (dark); WCAG AA with black foreground. */
-const DEFAULT_PROJECT_COLOR_DARK = '#1A95A2';
-
-/**
- * Apply draft brand colors to CSS vars for live preview.
- */
-function applyBrandPreview(light: string, dark: string): void {
-    document.documentElement.style.setProperty('--brand-primary', light);
-    document.documentElement.style.setProperty('--brand-primary-dark', dark);
-    document.documentElement.style.removeProperty('--primary');
-    document.documentElement.style.removeProperty('--primary-foreground');
-
-    const lightFg = contrastingForeground(light);
-
-    if (lightFg) {
-        document.documentElement.style.setProperty(
-            '--brand-primary-foreground',
-            lightFg,
-        );
-    }
-
-    const darkFg = contrastingForeground(dark);
-
-    if (darkFg) {
-        document.documentElement.style.setProperty(
-            '--brand-primary-dark-foreground',
-            darkFg,
-        );
-    }
-}
+const PRESET_NAME_KEYS: Record<ThemePresetSlug, string> = {
+    teal: 'settings.appearance.themePresetTeal',
+    indigo: 'settings.appearance.themePresetIndigo',
+    violet: 'settings.appearance.themePresetViolet',
+    rose: 'settings.appearance.themePresetRose',
+    slate: 'settings.appearance.themePresetSlate',
+};
 
 /**
- * Restore saved branding CSS vars (or clear if unset).
+ * Restore saved theme CSS from shared Inertia props on leave.
  */
-function restoreBrandFromAppearance(
-    appearance:
-        | {
-              projectColor: string | null;
-              projectColorDark: string | null;
-              primaryForeground: string | null;
-              primaryForegroundDark: string | null;
-          }
-        | undefined,
+function restoreThemeFromAppearance(
+    appearance: ProjectAppearance | undefined,
 ): void {
-    if (appearance?.projectColor) {
-        document.documentElement.style.setProperty(
-            '--brand-primary',
-            appearance.projectColor,
-        );
-    } else {
-        document.documentElement.style.removeProperty('--brand-primary');
+    if (appearance?.themeCss) {
+        applyThemeCss(appearance.themeCss);
     }
-
-    if (appearance?.primaryForeground) {
-        document.documentElement.style.setProperty(
-            '--brand-primary-foreground',
-            appearance.primaryForeground,
-        );
-    } else {
-        document.documentElement.style.removeProperty(
-            '--brand-primary-foreground',
-        );
-    }
-
-    const darkColor = appearance?.projectColorDark ?? appearance?.projectColor;
-
-    if (darkColor) {
-        document.documentElement.style.setProperty(
-            '--brand-primary-dark',
-            darkColor,
-        );
-    } else {
-        document.documentElement.style.removeProperty('--brand-primary-dark');
-    }
-
-    const darkFg =
-        appearance?.primaryForegroundDark ?? appearance?.primaryForeground;
-
-    if (darkFg) {
-        document.documentElement.style.setProperty(
-            '--brand-primary-dark-foreground',
-            darkFg,
-        );
-    } else {
-        document.documentElement.style.removeProperty(
-            '--brand-primary-dark-foreground',
-        );
-    }
-
-    document.documentElement.style.removeProperty('--primary');
-    document.documentElement.style.removeProperty('--primary-foreground');
 }
 
 /**
@@ -143,12 +75,11 @@ export default function Appearance({
     const { t } = useTranslation();
     const { projectAppearance } = usePage().props;
 
-    const initialColor = appearance.project_color ?? DEFAULT_PROJECT_COLOR;
-    const initialColorDark =
-        appearance.project_color_dark ??
-        (appearance.project_color
-            ? appearance.project_color
-            : DEFAULT_PROJECT_COLOR_DARK);
+    const catalog = appearance.theme_presets;
+    const initialPreset =
+        appearance.theme_preset ?? DEFAULT_THEME_PRESET;
+    const initialColor = appearance.project_color;
+    const initialColorDark = appearance.project_color_dark;
     const initialAppearance = appearance.default_appearance;
     const initialFiles = useMemo(
         () => ({
@@ -159,9 +90,14 @@ export default function Appearance({
         [appearance],
     );
 
-    const [projectColor, setProjectColorState] = useState(initialColor);
-    const [projectColorDark, setProjectColorDarkState] =
-        useState(initialColorDark);
+    const [themePreset, setThemePresetState] =
+        useState<ThemePresetSlug>(initialPreset);
+    const [projectColor, setProjectColorState] = useState<string | null>(
+        initialColor,
+    );
+    const [projectColorDark, setProjectColorDarkState] = useState<
+        string | null
+    >(initialColorDark);
     const [defaultAppearance, setDefaultAppearanceState] =
         useState(initialAppearance);
     const [files, setFilesState] =
@@ -169,11 +105,25 @@ export default function Appearance({
     const [pickerField, setPickerField] = useState<FileFieldKey | null>(null);
     const [isDirty, setIsDirty] = useState(false);
 
-    const setProjectColor = (value: string): void => {
+    const selectedPreset = themePresetBySlug(themePreset);
+    const displayColor = projectColor ?? selectedPreset.swatchLight;
+    const displayColorDark =
+        projectColorDark ?? projectColor ?? selectedPreset.swatchDark;
+
+    const passesAa = brandPassesAa(projectColor, projectColorDark);
+
+    const setThemePreset = (value: ThemePresetSlug): void => {
+        setIsDirty(true);
+        setThemePresetState(value);
+        // Selecting a preset clears custom hex so the palette applies fully.
+        setProjectColorState(null);
+        setProjectColorDarkState(null);
+    };
+    const setProjectColor = (value: string | null): void => {
         setIsDirty(true);
         setProjectColorState(value);
     };
-    const setProjectColorDark = (value: string): void => {
+    const setProjectColorDark = (value: string | null): void => {
         setIsDirty(true);
         setProjectColorDarkState(value);
     };
@@ -194,6 +144,7 @@ export default function Appearance({
         scope: 'page',
         isDirty,
         onDiscard: () => {
+            setThemePresetState(initialPreset);
             setProjectColorState(initialColor);
             setProjectColorDarkState(initialColorDark);
             setDefaultAppearanceState(initialAppearance);
@@ -202,14 +153,15 @@ export default function Appearance({
         },
     });
 
-    // Live preview: CSS picks light vs dark brand from .dark class.
     useEffect(() => {
-        applyBrandPreview(projectColor, projectColorDark);
-    }, [projectColor, projectColorDark]);
+        applyThemeCss(
+            buildPreviewThemeCss(themePreset, projectColor, projectColorDark),
+        );
+    }, [themePreset, projectColor, projectColorDark]);
 
     useEffect(() => {
         return () => {
-            restoreBrandFromAppearance(projectAppearance);
+            restoreThemeFromAppearance(projectAppearance);
         };
     }, [projectAppearance]);
 
@@ -281,6 +233,104 @@ export default function Appearance({
                                 <Heading
                                     variant="small"
                                     title={t(
+                                        'settings.appearance.themePresetTitle',
+                                    )}
+                                    description={t(
+                                        'settings.appearance.themePresetDescription',
+                                    )}
+                                />
+
+                                <input
+                                    type="hidden"
+                                    name="theme_preset"
+                                    value={themePreset}
+                                />
+
+                                <RadioGroup
+                                    value={themePreset}
+                                    onValueChange={(value) => {
+                                        if (
+                                            value === 'teal' ||
+                                            value === 'indigo' ||
+                                            value === 'violet' ||
+                                            value === 'rose' ||
+                                            value === 'slate'
+                                        ) {
+                                            setThemePreset(value);
+                                        }
+                                    }}
+                                    className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                                    aria-label={t(
+                                        'settings.appearance.themePresetTitle',
+                                    )}
+                                >
+                                    {catalog.map((preset) => {
+                                        const selected =
+                                            themePreset === preset.slug;
+
+                                        return (
+                                            <label
+                                                key={preset.slug}
+                                                htmlFor={`theme-preset-${preset.slug}`}
+                                                className={`flex cursor-pointer flex-col gap-3 rounded-lg border p-3 transition-colors ${
+                                                    selected
+                                                        ? 'border-ring ring-2 ring-ring/40'
+                                                        : 'border-border hover:border-ring/50'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <RadioGroupItem
+                                                        id={`theme-preset-${preset.slug}`}
+                                                        value={preset.slug}
+                                                    />
+                                                    <span className="text-sm font-medium">
+                                                        {t(
+                                                            PRESET_NAME_KEYS[
+                                                                preset.slug
+                                                            ],
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <span
+                                                        className="flex h-8 flex-1 items-center justify-center rounded-md text-[10px] font-medium text-white"
+                                                        style={{
+                                                            backgroundColor:
+                                                                preset.swatchLight,
+                                                        }}
+                                                    >
+                                                        {t(
+                                                            'settings.appearance.presetPreviewLight',
+                                                        )}
+                                                    </span>
+                                                    <span
+                                                        className="flex h-8 flex-1 items-center justify-center rounded-md text-[10px] font-medium"
+                                                        style={{
+                                                            backgroundColor:
+                                                                preset.swatchDark,
+                                                            color: '#0E171E',
+                                                        }}
+                                                    >
+                                                        {t(
+                                                            'settings.appearance.presetPreviewDark',
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </RadioGroup>
+                                <FieldError id="theme-preset-error">
+                                    {errors.theme_preset}
+                                </FieldError>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <Heading
+                                    variant="small"
+                                    title={t(
                                         'settings.appearance.brandingTitle',
                                     )}
                                     description={t(
@@ -289,6 +339,19 @@ export default function Appearance({
                                 />
 
                                 <FieldGroup className="gap-6">
+                                    <div className="space-y-2">
+                                        <p className="text-sm font-medium">
+                                            {t(
+                                                'settings.appearance.customColorTitle',
+                                            )}
+                                        </p>
+                                        <FieldDescription>
+                                            {t(
+                                                'settings.appearance.customColorDescription',
+                                            )}
+                                        </FieldDescription>
+                                    </div>
+
                                     <Field
                                         data-invalid={
                                             errors.project_color
@@ -306,7 +369,7 @@ export default function Appearance({
                                                 id="project_color"
                                                 type="color"
                                                 className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
-                                                value={projectColor}
+                                                value={displayColor}
                                                 onChange={(event) =>
                                                     setProjectColor(
                                                         event.target.value,
@@ -315,14 +378,17 @@ export default function Appearance({
                                             />
                                             <Input
                                                 name="project_color"
-                                                value={projectColor}
+                                                value={projectColor ?? ''}
                                                 onChange={(event) =>
                                                     setProjectColor(
-                                                        event.target.value,
+                                                        event.target.value ||
+                                                            null,
                                                     )
                                                 }
                                                 className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono shadow-none focus-visible:ring-0"
-                                                placeholder="#0E7C86"
+                                                placeholder={
+                                                    selectedPreset.swatchLight
+                                                }
                                                 aria-invalid={
                                                     errors.project_color
                                                         ? true
@@ -331,7 +397,10 @@ export default function Appearance({
                                                 aria-describedby={
                                                     errors.project_color
                                                         ? 'project-color-error'
-                                                        : undefined
+                                                        : !passesAa &&
+                                                            projectColor
+                                                          ? 'brand-contrast-warning'
+                                                          : undefined
                                                 }
                                             />
                                         </div>
@@ -357,7 +426,7 @@ export default function Appearance({
                                                 id="project_color_dark"
                                                 type="color"
                                                 className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
-                                                value={projectColorDark}
+                                                value={displayColorDark}
                                                 onChange={(event) =>
                                                     setProjectColorDark(
                                                         event.target.value,
@@ -366,17 +435,20 @@ export default function Appearance({
                                             />
                                             <Input
                                                 name="project_color_dark"
-                                                value={projectColorDark}
+                                                value={projectColorDark ?? ''}
                                                 onChange={(event) =>
                                                     setProjectColorDark(
-                                                        event.target.value,
+                                                        event.target.value ||
+                                                            null,
                                                     )
                                                 }
                                                 aria-label={t(
                                                     'settings.appearance.projectColorDark',
                                                 )}
                                                 className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono shadow-none focus-visible:ring-0"
-                                                placeholder="#1A95A2"
+                                                placeholder={
+                                                    selectedPreset.swatchDark
+                                                }
                                                 aria-invalid={
                                                     errors.project_color_dark
                                                         ? true
@@ -393,6 +465,36 @@ export default function Appearance({
                                             {errors.project_color_dark}
                                         </FieldError>
                                     </Field>
+
+                                    {(projectColor || projectColorDark) && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="w-fit"
+                                            onClick={() => {
+                                                setProjectColor(null);
+                                                setProjectColorDark(null);
+                                            }}
+                                        >
+                                            {t(
+                                                'settings.appearance.clearCustomColor',
+                                            )}
+                                        </Button>
+                                    )}
+
+                                    {!passesAa &&
+                                        (projectColor || projectColorDark) && (
+                                            <p
+                                                id="brand-contrast-warning"
+                                                role="status"
+                                                className="text-sm text-warning"
+                                            >
+                                                {t(
+                                                    'settings.appearance.brandContrastWarning',
+                                                )}
+                                            </p>
+                                        )}
 
                                     {fileFields.map((field) => {
                                         const selected = files[field.key];
@@ -610,8 +712,8 @@ export default function Appearance({
                         pickerField === 'project_logo_dark'
                     }
                     title={t('settings.appearance.chooseFile')}
-                    onSelect={(files) => {
-                        const first = files[0];
+                    onSelect={(picked) => {
+                        const first = picked[0];
 
                         if (first) {
                             selectFile(first);

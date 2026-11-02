@@ -44,6 +44,7 @@ class HandleAppearance
         View::share('projectColorForeground', $projectAppearance['primaryForeground']);
         View::share('projectColorDark', $projectAppearance['projectColorDark']);
         View::share('projectColorDarkForeground', $projectAppearance['primaryForegroundDark']);
+        View::share('projectThemeCss', $projectAppearance['themeCss']);
         View::share('projectName', app(ProjectSettingsService::class)->displayName());
 
         return $next($request);

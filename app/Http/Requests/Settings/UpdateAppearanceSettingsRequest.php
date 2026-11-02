@@ -4,6 +4,7 @@ namespace App\Http\Requests\Settings;
 
 use App\Enums\FileTypeEnum;
 use App\Enums\PermissionEnum;
+use App\Enums\ThemePresetEnum;
 use App\Models\File;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -34,6 +35,7 @@ class UpdateAppearanceSettingsRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'theme_preset' => ['required', 'string', Rule::in(ThemePresetEnum::values())],
             'project_color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'project_color_dark' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'project_logo_id' => ['nullable', 'integer', 'exists:files,id'],
@@ -71,6 +73,7 @@ class UpdateAppearanceSettingsRequest extends FormRequest
 
     /**
      * @return array{
+     *     theme_preset: string,
      *     project_color: string|null,
      *     project_color_dark: string|null,
      *     project_logo: int|null,
@@ -84,6 +87,7 @@ class UpdateAppearanceSettingsRequest extends FormRequest
         $validated = $this->validated();
 
         return [
+            'theme_preset' => $validated['theme_preset'],
             'project_color' => $validated['project_color'] ?? null,
             'project_color_dark' => $validated['project_color_dark'] ?? null,
             'project_logo' => isset($validated['project_logo_id']) ? (int) $validated['project_logo_id'] : null,
@@ -109,6 +113,10 @@ class UpdateAppearanceSettingsRequest extends FormRequest
             if ($this->has($field) && $this->input($field) === '') {
                 $merge[$field] = null;
             }
+        }
+
+        if (! $this->filled('theme_preset')) {
+            $merge['theme_preset'] = ThemePresetEnum::default()->value;
         }
 
         if ($merge !== []) {

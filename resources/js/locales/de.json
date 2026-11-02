@@ -569,7 +569,20 @@
             "sidebar": {
                 "breadcrumb": "Seitenleisten-Einstellungen",
                 "head": "Seitenleisten-Einstellungen"
-            }
+            },
+            "themePresetTitle": "Theme-Preset",
+            "themePresetDescription": "Wähle eine integrierte Palette für das Admin. Eine eigene Markenfarbe überschreibt weiterhin Primary.",
+            "themePresetTeal": "qiick Teal (Standard)",
+            "themePresetIndigo": "Indigo",
+            "themePresetViolet": "Violett",
+            "themePresetRose": "Rose",
+            "themePresetSlate": "Schiefer",
+            "customColorTitle": "Eigene Markenfarbe",
+            "customColorDescription": "Optionaler Override für Primary. Leer lassen, um den gewählten Preset zu nutzen.",
+            "clearCustomColor": "Eigene Farbe entfernen",
+            "brandContrastWarning": "Diese Markenfarbe erfüllt nicht den WCAG-AA-Kontrast (4.5:1 Text / 3:1 UI). Bitte eine dunklere oder hellere Nuance wählen.",
+            "presetPreviewLight": "Hell",
+            "presetPreviewDark": "Dunkel"
         },
         "deleteUser": {
             "title": "Konto löschen",

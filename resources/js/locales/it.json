@@ -569,7 +569,20 @@
             "sidebar": {
                 "breadcrumb": "Impostazioni barra laterale",
                 "head": "Impostazioni barra laterale"
-            }
+            },
+            "themePresetTitle": "Preset tema",
+            "themePresetDescription": "Scegli una palette integrata per l’admin. Un colore brand personalizzato ha comunque priorità sul primary.",
+            "themePresetTeal": "qiick Teal (predefinito)",
+            "themePresetIndigo": "Indaco",
+            "themePresetViolet": "Viola",
+            "themePresetRose": "Rosa",
+            "themePresetSlate": "Ardesia",
+            "customColorTitle": "Colore brand personalizzato",
+            "customColorDescription": "Override opzionale del primary. Lascia vuoto per usare il preset selezionato.",
+            "clearCustomColor": "Rimuovi colore personalizzato",
+            "brandContrastWarning": "Questo colore brand non rispetta il contrasto WCAG AA (4.5:1 testo / 3:1 UI). Prova una tonalità più scura o più chiara.",
+            "presetPreviewLight": "Chiaro",
+            "presetPreviewDark": "Scuro"
         },
         "performance": {
             "breadcrumb": "Impostazioni performance",
