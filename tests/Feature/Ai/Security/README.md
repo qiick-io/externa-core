@@ -13,6 +13,7 @@ Deterministic Pest coverage under `tests/Feature/Ai/Security/*`. No live model c
 | Privilege escalation | Emits `ManageUsers` / `ManageRoles` / `ManageGroups` | Registry ability callbacks | `denied` for viewer/editor/limited |
 | Prompt / audit disclosure | Emits `QueryActivityLogs` | `CanShowActivityLogs` | `denied` unless admin |
 | Cross-collection read | Emits `QueryCollectionItems` / `ExportCollection` / `SearchSimilar…` on a “private” collection | Spatie `CanShowCollections` (and collection ACL when configured) | Files-only (“limited”) actor denied |
+| Scoped API key over MCP (#435) | Calls MCP resources / tools on collections, items, or files outside the key, or `publish_item` / `tag_file` directly | Collection ACL + field ACL + key `collection_slugs`, file ACL + `read_private` + `files_scope`, `read_only`, executor write gate + approval | `McpAuthorizationParityTest`: not found / denied, no unreadable fields, writes `pending_approval` only |
 | Instruction-override / encoding variants | CMS body contains ignore-previous, base64, RTL, zero-width, HTML comments | Same as mapped tool threats — model compliance is irrelevant | Scripted driver still hits AuthZ |
 
 ## Surfaces & roles

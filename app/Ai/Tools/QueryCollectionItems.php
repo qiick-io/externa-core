@@ -44,7 +44,7 @@ class QueryCollectionItems implements Tool
 
             $collection = Collection::query()->with('fields')->find($request->integer('collection_id'));
 
-            if ($collection === null) {
+            if ($collection === null || ! $this->isAiCollectionReadable($collection)) {
                 return 'Error: Collection not found.';
             }
 

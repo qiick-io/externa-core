@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Resources;
 
+use App\Ai\Concerns\EnforcesAiCollectionPermissionsTrait;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionItem as CollectionItemModel;
@@ -23,10 +24,12 @@ use Laravel\Mcp\Support\UriTemplate;
 
 #[Name('collection_item')]
 #[Title('Collection item')]
-#[Description('A single collection item by collection slug and item id.')]
+#[Description('A single collection item by collection slug and item id (permission-aware, same as get_item).')]
 #[MimeType('application/json')]
 class CollectionItem extends Resource implements HasUriTemplate
 {
+    use EnforcesAiCollectionPermissionsTrait;
+
     public function uriTemplate(): UriTemplate
     {
         return new UriTemplate('externa://items/{collection}/{id}');
@@ -58,11 +61,11 @@ class CollectionItem extends Resource implements HasUriTemplate
             ->whereKey($itemId)
             ->first();
 
-        if ($item === null) {
+        if ($item === null || $this->guardAiItemReadable($collection, $item) !== null) {
             return Response::error('Item not found.');
         }
 
-        $data = app(CollectionItemValuesAssemblerService::class)->assemble($item);
+        $data = $this->stripAiItemData($collection, app(CollectionItemValuesAssemblerService::class)->assemble($item));
 
         return Response::structured([
             'id' => $item->id,
