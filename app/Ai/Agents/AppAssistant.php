@@ -11,6 +11,7 @@ use Laravel\Ai\Attributes\Provider;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
+use Laravel\Ai\Contracts\HasSkills;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Promptable;
@@ -20,7 +21,7 @@ use Stringable;
 /**
  * Primary in-app AI assistant agent with tools for admin and content workflows.
  */
-class AppAssistant implements Agent, Conversational, HasTools
+class AppAssistant implements Agent, Conversational, HasSkills, HasTools
 {
     use Promptable;
     use RemembersConversations;
@@ -41,6 +42,18 @@ class AppAssistant implements Agent, Conversational, HasTools
     public function timeout(): int
     {
         return 300;
+    }
+
+    /**
+     * CMS/operator playbooks loaded on demand via LoadSkill (resources/skills).
+     *
+     * @return list<string>
+     */
+    public function skills(): iterable
+    {
+        return [
+            resource_path('skills'),
+        ];
     }
 
     /**
