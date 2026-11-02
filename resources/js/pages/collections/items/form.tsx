@@ -1903,7 +1903,7 @@ export default function ItemsForm({
                                                             <TableRow
                                                                 key={row.id}
                                                             >
-                                                                <TableCell className="text-sm whitespace-nowrap">
+                                                                <TableCell className="text-sm whitespace-nowrap tabular-nums">
                                                                     {row.created_at
                                                                         ? new Date(
                                                                               row.created_at,

@@ -35,8 +35,8 @@ import SettingsLayout from '@/layouts/settings/layout';
 import adminRoutes from '@/lib/admin-routes';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
-import { edit as editProfile } from '@/routes/profile';
 import type { AdminRoleRow, BreadcrumbItem, Paginated } from '@/types';
+import { edit as editProfile } from '@/routes/profile';
 
 /**
  * Admin roles list with permissions overview and icon row actions.
@@ -164,7 +164,7 @@ export default function AdminRolesIndex({
                                     <TableHead>
                                         {t('roles.columns.name')}
                                     </TableHead>
-                                    <TableHead>
+                                    <TableHead className="text-right">
                                         {t('roles.columns.permissions')}
                                     </TableHead>
                                     <TableHead className="text-right">
@@ -197,7 +197,7 @@ export default function AdminRolesIndex({
                                                     )}
                                                 </span>
                                             </TableCell>
-                                            <TableCell className="text-muted-foreground">
+                                            <TableCell className="text-right text-muted-foreground tabular-nums">
                                                 {role.permissions_count ?? '—'}
                                             </TableCell>
                                             <TableCell className="text-right">

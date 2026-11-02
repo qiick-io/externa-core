@@ -6,12 +6,20 @@ import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import { jsonRequestHeaders } from '@/lib/csrf';
-import collections from '@/routes/collections';
 import type { BreadcrumbItem } from '@/types';
+import collections from '@/routes/collections';
 
 type RevisionRow = {
     id: number;
@@ -396,38 +404,38 @@ export default function ItemRevisions({
                                 Select two revisions to see field diffs.
                             </p>
                         ) : (
-                            <div className="overflow-x-auto rounded-xl border border-sidebar-border/70">
-                                <table className="w-full text-xs">
-                                    <thead>
-                                        <tr className="border-b bg-muted/40 text-left">
-                                            <th className="p-2">Field</th>
-                                            <th className="p-2">A</th>
-                                            <th className="p-2">B</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
+                            <div className="overflow-x-auto rounded-xl bg-card">
+                                <Table className="text-xs">
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Field</TableHead>
+                                            <TableHead>A</TableHead>
+                                            <TableHead>B</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
                                         {compared.map((row) => (
-                                            <tr
+                                            <TableRow
                                                 key={row.key}
                                                 className={
                                                     row.changed
-                                                        ? 'bg-amber-500/10'
+                                                        ? 'bg-warning/10'
                                                         : undefined
                                                 }
                                             >
-                                                <td className="p-2 font-medium">
+                                                <TableCell className="font-medium">
                                                     {row.key}
-                                                </td>
-                                                <td className="p-2 font-mono break-all">
+                                                </TableCell>
+                                                <TableCell className="font-mono break-all">
                                                     {row.left}
-                                                </td>
-                                                <td className="p-2 font-mono break-all">
+                                                </TableCell>
+                                                <TableCell className="font-mono break-all">
                                                     {row.right}
-                                                </td>
-                                            </tr>
+                                                </TableCell>
+                                            </TableRow>
                                         ))}
-                                    </tbody>
-                                </table>
+                                    </TableBody>
+                                </Table>
                             </div>
                         )}
                     </div>

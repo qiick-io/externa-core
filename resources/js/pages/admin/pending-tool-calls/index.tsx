@@ -3,10 +3,18 @@ import { useTranslation } from 'react-i18next';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { PageLayout, TablePanel } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem } from '@/types';
+import { edit as editProfile } from '@/routes/profile';
 
 type PendingRow = {
     id: number;
@@ -43,62 +51,62 @@ export default function PendingToolCallsIndex({
             <SettingsLayout wide>
                 <PageLayout description={t('pendingToolCalls.description')}>
                     <TablePanel>
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b text-left">
-                                    <th className="p-2">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>
                                         {t('pendingToolCalls.colTool')}
-                                    </th>
-                                    <th className="p-2">
+                                    </TableHead>
+                                    <TableHead>
                                         {t('pendingToolCalls.colArgs')}
-                                    </th>
-                                    <th className="p-2">
+                                    </TableHead>
+                                    <TableHead>
                                         {t('pendingToolCalls.colRequester')}
-                                    </th>
-                                    <th className="p-2">
+                                    </TableHead>
+                                    <TableHead className="text-right">
                                         {t('pendingToolCalls.colExpires')}
-                                    </th>
-                                    <th className="p-2 text-right">
+                                    </TableHead>
+                                    <TableHead className="text-right">
                                         {t('pendingToolCalls.colActions')}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
                                 {pending.length === 0 ? (
-                                    <tr>
-                                        <td
+                                    <TableRow>
+                                        <TableCell
                                             colSpan={5}
-                                            className="p-3 text-muted-foreground"
+                                            className="text-muted-foreground"
                                         >
                                             {t('pendingToolCalls.empty')}
-                                        </td>
-                                    </tr>
+                                        </TableCell>
+                                    </TableRow>
                                 ) : (
                                     pending.map((row) => (
-                                        <tr
+                                        <TableRow
                                             key={row.uuid}
-                                            className="border-b align-top last:border-0"
+                                            className="align-top"
                                         >
-                                            <td className="p-2 font-medium">
+                                            <TableCell className="font-medium">
                                                 {row.tool}
                                                 <div className="text-xs text-muted-foreground">
                                                     {row.surface}
                                                 </div>
-                                            </td>
-                                            <td className="max-w-md p-2 font-mono text-xs text-muted-foreground">
+                                            </TableCell>
+                                            <TableCell className="max-w-md font-mono text-xs text-muted-foreground">
                                                 <TruncatedText
                                                     text={JSON.stringify(
                                                         row.arguments ?? {},
                                                     )}
                                                 />
-                                            </td>
-                                            <td className="p-2">
+                                            </TableCell>
+                                            <TableCell>
                                                 {row.requester?.name ?? '—'}
-                                            </td>
-                                            <td className="p-2 whitespace-nowrap">
+                                            </TableCell>
+                                            <TableCell className="text-right whitespace-nowrap tabular-nums">
                                                 {row.expires_at ?? '—'}
-                                            </td>
-                                            <td className="space-x-2 p-2 text-right whitespace-nowrap">
+                                            </TableCell>
+                                            <TableCell className="space-x-2 text-right whitespace-nowrap">
                                                 <Button
                                                     type="button"
                                                     size="sm"
@@ -127,12 +135,12 @@ export default function PendingToolCallsIndex({
                                                         'pendingToolCalls.reject',
                                                     )}
                                                 </Button>
-                                            </td>
-                                        </tr>
+                                            </TableCell>
+                                        </TableRow>
                                     ))
                                 )}
-                            </tbody>
-                        </table>
+                            </TableBody>
+                        </Table>
                     </TablePanel>
                 </PageLayout>
             </SettingsLayout>

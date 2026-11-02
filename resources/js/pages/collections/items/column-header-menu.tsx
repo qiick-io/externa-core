@@ -139,7 +139,7 @@ export function alignClass(align: ColumnAlign | undefined): string {
         case 'center':
             return 'text-center';
         case 'right':
-            return 'text-right';
+            return 'text-right tabular-nums';
         default:
             return 'text-left';
     }

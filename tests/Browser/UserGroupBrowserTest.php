@@ -57,7 +57,7 @@ it('hydrates members in the edit drawer and keeps them after a description-only 
     $page = visit('/groups');
 
     $page->assertSee('Browser Editors')
-        ->assertSee('Slug')
+        ->assertSee('Members')
         ->assertNoJavaScriptErrors()
         ->click('Browser Editors')
         ->wait(0.5)
