@@ -1,4 +1,3 @@
-import { Transition } from '@headlessui/react';
 import { Form, Head, router } from '@inertiajs/react';
 import { UserCancelledError } from '@laravel/passkeys';
 import { usePasskeyRegister } from '@laravel/passkeys/react';
@@ -301,17 +300,11 @@ export default function Security({
                                             )}
                                         </Button>
 
-                                        <Transition
-                                            show={recentlySuccessful}
-                                            enter="transition ease-in-out"
-                                            enterFrom="opacity-0"
-                                            leave="transition ease-in-out"
-                                            leaveTo="opacity-0"
-                                        >
-                                            <p className="text-sm text-neutral-600">
+                                        {recentlySuccessful ? (
+                                            <p className="animate-in text-sm text-muted-foreground duration-200 ease-in-out fade-in">
                                                 {t('common.saved')}
                                             </p>
-                                        </Transition>
+                                        ) : null}
                                     </div>
                                 </>
                             )}

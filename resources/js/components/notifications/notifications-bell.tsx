@@ -156,7 +156,6 @@ export function NotificationsBell() {
                         type="button"
                         tooltip={{ children: t('a11y.notifications') }}
                         onClick={() => setDrawerOpen(true)}
-                        className="relative"
                         data-test="notifications-bell"
                         aria-label={notificationsLabel}
                         aria-expanded={drawerOpen}
@@ -164,8 +163,8 @@ export function NotificationsBell() {
                     >
                         <Bell aria-hidden="true" />
                         <span>{t('a11y.notifications')}</span>
-                        <SidebarUnreadBadge count={unreadCount} decorative />
                     </SidebarMenuButton>
+                    <SidebarUnreadBadge count={unreadCount} decorative />
                 </SidebarMenuItem>
             </SidebarMenu>
 
