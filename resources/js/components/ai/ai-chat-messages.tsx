@@ -1,5 +1,6 @@
 import { Paperclip, RefreshCw } from 'lucide-react';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef  } from 'react';
+import type {ReactNode} from 'react';
 import { useTranslation } from 'react-i18next';
 import { AiFileCards } from '@/components/ai/ai-file-cards';
 import type { AiFileCardItem } from '@/components/ai/ai-file-cards';
@@ -15,8 +16,8 @@ import {
     MessageFooter,
 } from '@/components/ui/message';
 import type { AiChatAttachment, AiPendingApproval } from '@/lib/ai-chat';
-import { announce } from '@/lib/live-announcer';
 import { suggestedActionsForTools } from '@/lib/ai-suggested-actions';
+import { announce } from '@/lib/live-announcer';
 import { cn } from '@/lib/utils';
 
 export type AiChatMessageView = {
