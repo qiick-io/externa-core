@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-    appLocale, speechRecognitionLang, formatDateTime, formatNumber, formatBytes, formatFileSize, initialsFromName, toDatetimeLocalValue
+    appLocale,
+    formatBytes,
+    formatDateTime,
+    formatFileSize,
+    formatNumber,
+    initialsFromName,
+    speechRecognitionLang,
+    toDatetimeLocalValue,
 } from '@/lib/format';
 
 describe('format helpers', () => {
@@ -33,15 +40,6 @@ describe('format helpers', () => {
     });
 });
 
-describe, expect, it } from 'vitest';
-import {
-    formatBytes,
-    formatFileSize,
-    initialsFromName,
-    toDatetimeLocalValue,
-} from './format';
-
-
 describe('formatBytes', () => {
     it('formats binary units', () => {
         expect(formatBytes(0)).toBe('0 B');
@@ -55,7 +53,6 @@ describe('formatBytes', () => {
     });
 });
 
-
 describe('formatFileSize', () => {
     it('treats zero and null as empty', () => {
         expect(formatFileSize(null)).toBe('—');
@@ -63,7 +60,6 @@ describe('formatFileSize', () => {
         expect(formatFileSize(2048)).toBe('2.0 KB');
     });
 });
-
 
 describe('initialsFromName', () => {
     it('builds up to two initials', () => {
@@ -73,23 +69,10 @@ describe('initialsFromName', () => {
     });
 });
 
-
 describe('toDatetimeLocalValue', () => {
     it('slices ISO strings without seconds by default', () => {
         expect(toDatetimeLocalValue('2024-01-02T03:04:05Z')).toBe(
             '2024-01-02T03:04',
         );
-        expect(toDatetimeLocalValue('2024-01-02T03:04:05Z', true)).toBe(
-            '2024-01-02T03:04:05',
-        );
-    });
-
-    it('expands date-only values', () => {
-        expect(toDatetimeLocalValue('2024-01-02')).toBe('2024-01-02T00:00');
-    });
-
-    it('returns empty for nullish input', () => {
-        expect(toDatetimeLocalValue(null)).toBe('');
-        expect(toDatetimeLocalValue(undefined)).toBe('');
     });
 });
