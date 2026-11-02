@@ -42,6 +42,8 @@ export type ProjectSettingsForm = {
     notifier_telegram_chat_id: string | null;
     notifier_telegram_bot_token_configured: boolean;
     notifier_event_types: string[];
+    deploy_hooks: DeployHookFormEntry[];
+    deploy_on_publish: boolean;
     oidc_enabled: boolean;
     oidc_issuer: string | null;
     oidc_client_id: string | null;
@@ -77,6 +79,29 @@ export type WebhookDeliverySummary = {
     last_success: WebhookDeliveryEntry | null;
     last_error: WebhookDeliveryEntry | null;
     recent: WebhookDeliveryEntry[];
+};
+
+export type DeployHookFormEntry = {
+    id: string;
+    name: string;
+    url_configured: boolean;
+};
+
+export type DeployLastRun = {
+    hook_id: string;
+    hook_name: string;
+    outcome: 'success' | 'failed' | string;
+    status: number | null;
+    message: string | null;
+    source: string;
+    hook_ids: string[];
+    at: string;
+};
+
+export type SharedDeployProps = {
+    canTrigger: boolean;
+    hooks: Array<{ id: string; name: string }>;
+    lastRun: DeployLastRun | null;
 };
 
 export type SharedProjectSettings = {

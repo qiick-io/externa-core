@@ -51,6 +51,7 @@ export enum PermissionEnum {
     CanShowChat = 'can-show-chat',
     CanCreateDirectChats = 'can-create-direct-chats',
     CanManageProjectSettings = 'can-manage-project-settings',
+    DeployTrigger = 'deploy.trigger',
     CanShowApiKeys = 'can-show-api-keys',
     CanManageApiKeys = 'can-manage-api-keys',
 }

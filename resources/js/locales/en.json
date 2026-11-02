@@ -503,6 +503,21 @@
             "notifierTelegramSendTest": "Send Telegram test",
             "notifierTelegramSendTestHint": "Save chat ID and token first, then send a ping immediately (no queue worker needed).",
             "notifiersPrivacyNote": "Event metadata is sent to Slack or Telegram when configured. Review your provider’s data handling for self-hosted deployments.",
+            "deployTitle": "Deploy hooks",
+            "deployDescription": "Named URLs for Vercel, Netlify, Cloudflare Pages, or Forge deploy hooks. URLs are stored encrypted.",
+            "deployHookLabel": "Hook {{number}}",
+            "deployHookName": "Name",
+            "deployHookUrl": "Deploy hook URL",
+            "deployHookUrlHint": "Paste the provider deploy hook URL. It is encrypted at rest and never shown again.",
+            "deployHookUrlConfigured": "A URL is already configured. Leave blank to keep it, or paste a new URL to replace it.",
+            "deployHookAdd": "Add deploy hook",
+            "deployHookRemove": "Remove deploy hook",
+            "deployOnPublish": "Deploy on publish",
+            "deployOnPublishHint": "When enabled, every item publish triggers all configured deploy hooks once.",
+            "deployTrigger": "Deploy now",
+            "deployTriggerHint": "Queues a POST to each configured hook. Requires the deploy.trigger permission and a queue worker unless QUEUE_CONNECTION=sync.",
+            "deployLastRunTitle": "Last deploy run",
+            "deployLastRunNone": "No deploy has been triggered yet.",
             "modules": {
                 "dashboard": "Dashboard",
                 "ai": "Assistant",
@@ -1912,5 +1927,8 @@
         "empty": "No pending tool approvals.",
         "approve": "Approve",
         "reject": "Reject"
+    },
+    "deploy": {
+        "button": "Deploy"
     }
 }

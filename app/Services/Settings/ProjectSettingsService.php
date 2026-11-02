@@ -2,6 +2,7 @@
 
 namespace App\Services\Settings;
 
+use App\Data\Deploy\DeployHookData;
 use App\Services\Webhooks\OutboundWebhookCatalogService;
 use App\Support\Api\PublicApiOrigin;
 use App\Support\Collections\ContentLocaleCatalog;
@@ -69,6 +70,8 @@ class ProjectSettingsService
         $raw['webhook_secret_configured'] = $this->webhookSecret() !== null;
         $raw['notifier_telegram_bot_token_configured'] = $this->notifierTelegramBotToken() !== null;
         $raw['oidc_client_secret_configured'] = $this->oidcClientSecret() !== null;
+        $raw['deploy_hooks'] = $this->deployHooksForEdit();
+        $raw['deploy_on_publish'] = $this->isDeployOnPublishEnabled();
 
         return $raw;
     }
@@ -546,6 +549,100 @@ class ProjectSettingsService
     }
 
     /**
+     * Decryptable deploy hooks for runtime delivery.
+     *
+     * @return list<DeployHookData>
+     */
+    public function deployHooks(): array
+    {
+        $hooks = [];
+
+        foreach ($this->raw()['deploy_hooks'] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $id = is_string($row['id'] ?? null) ? $row['id'] : null;
+            $name = is_string($row['name'] ?? null) ? trim($row['name']) : '';
+            $cipher = is_string($row['url'] ?? null) ? $row['url'] : null;
+
+            if ($id === null || $name === '' || $cipher === null || $cipher === '') {
+                continue;
+            }
+
+            try {
+                $url = Crypt::decryptString($cipher);
+            } catch (DecryptException) {
+                continue;
+            }
+
+            if ($url === '') {
+                continue;
+            }
+
+            $hooks[] = new DeployHookData($id, $name, $url);
+        }
+
+        return $hooks;
+    }
+
+    public function deployHookById(string $hookId): ?DeployHookData
+    {
+        foreach ($this->deployHooks() as $hook) {
+            if ($hook->id === $hookId) {
+                return $hook;
+            }
+        }
+
+        return null;
+    }
+
+    public function isDeployOnPublishEnabled(): bool
+    {
+        return (bool) $this->raw()['deploy_on_publish'];
+    }
+
+    /**
+     * Edit-safe deploy hooks (never includes plaintext URLs).
+     *
+     * @return list<array{id: string, name: string, url_configured: bool}>
+     */
+    public function deployHooksForEdit(): array
+    {
+        $hooks = [];
+
+        foreach ($this->raw()['deploy_hooks'] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $id = is_string($row['id'] ?? null) ? $row['id'] : null;
+            $name = is_string($row['name'] ?? null) ? trim($row['name']) : '';
+            $cipher = is_string($row['url'] ?? null) ? $row['url'] : null;
+
+            if ($id === null || $name === '') {
+                continue;
+            }
+
+            $hooks[] = [
+                'id' => $id,
+                'name' => $name,
+                'url_configured' => is_string($cipher) && $cipher !== '',
+            ];
+        }
+
+        return $hooks;
+    }
+
+    /**
+     * Encrypt a plaintext deploy-hook URL for storage.
+     */
+    public static function encryptDeployHookUrl(string $plain): string
+    {
+        return Crypt::encryptString($plain);
+    }
+
+    /**
      * @param  array<string, mixed>  $raw
      * @return array<string, mixed>
      */
@@ -611,6 +708,8 @@ class ProjectSettingsService
                 ? trim($raw['notifier_telegram_chat_id'])
                 : null,
             'notifier_event_types' => $this->normalizeNotifierEventTypes($raw['notifier_event_types'] ?? null),
+            'deploy_hooks' => $this->normalizeDeployHooks($raw['deploy_hooks'] ?? null),
+            'deploy_on_publish' => (bool) ($raw['deploy_on_publish'] ?? false),
             'oidc_enabled' => (bool) ($raw['oidc_enabled'] ?? false),
             'oidc_issuer' => $this->nullableUrl($raw['oidc_issuer'] ?? null),
             'oidc_client_id' => is_string($raw['oidc_client_id'] ?? null) && trim($raw['oidc_client_id']) !== ''
@@ -765,6 +864,46 @@ class ProjectSettingsService
         }
 
         return array_values($selected);
+    }
+
+    /**
+     * Stored deploy hooks (ciphertext URLs). Max 10 named hooks.
+     *
+     * @return list<array{id: string, name: string, url: string}>
+     */
+    private function normalizeDeployHooks(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $hooks = [];
+
+        foreach ($value as $row) {
+            if (! is_array($row) || count($hooks) >= 10) {
+                break;
+            }
+
+            $id = is_string($row['id'] ?? null) ? trim($row['id']) : '';
+            $name = is_string($row['name'] ?? null) ? trim($row['name']) : '';
+            $url = is_string($row['url'] ?? null) ? $row['url'] : '';
+
+            if ($id === '' || $name === '' || $url === '') {
+                continue;
+            }
+
+            if (strlen($name) > 120) {
+                $name = substr($name, 0, 120);
+            }
+
+            $hooks[] = [
+                'id' => $id,
+                'name' => $name,
+                'url' => $url,
+            ];
+        }
+
+        return $hooks;
     }
 
     /**

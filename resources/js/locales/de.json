@@ -499,6 +499,21 @@
             "notifierTelegramSendTest": "Telegram-Test senden",
             "notifierTelegramSendTestHint": "Chat-ID und Token speichern, dann Ping sofort senden (kein Queue-Worker nötig).",
             "notifiersPrivacyNote": "Event-Metadaten werden bei Konfiguration an Slack oder Telegram gesendet. Datenschutz des Anbieters bei Self-Hosting prüfen.",
+            "deployTitle": "Deploy-Hooks",
+            "deployDescription": "Benannte URLs für Vercel-, Netlify-, Cloudflare-Pages- oder Forge-Deploy-Hooks. URLs werden verschlüsselt gespeichert.",
+            "deployHookLabel": "Hook {{number}}",
+            "deployHookName": "Name",
+            "deployHookUrl": "Deploy-Hook-URL",
+            "deployHookUrlHint": "Provider-Deploy-Hook-URL einfügen. Sie wird verschlüsselt gespeichert und nicht erneut angezeigt.",
+            "deployHookUrlConfigured": "Eine URL ist bereits konfiguriert. Leer lassen zum Behalten oder neue URL zum Ersetzen einfügen.",
+            "deployHookAdd": "Deploy-Hook hinzufügen",
+            "deployHookRemove": "Deploy-Hook entfernen",
+            "deployOnPublish": "Bei Veröffentlichung deployen",
+            "deployOnPublishHint": "Wenn aktiv, löst jede Item-Veröffentlichung alle konfigurierten Deploy-Hooks einmal aus.",
+            "deployTrigger": "Jetzt deployen",
+            "deployTriggerHint": "Stellt einen POST an jeden konfigurierten Hook in die Warteschlange. Erfordert die Berechtigung deploy.trigger und einen Queue-Worker, außer QUEUE_CONNECTION=sync.",
+            "deployLastRunTitle": "Letzter Deploy-Lauf",
+            "deployLastRunNone": "Noch kein Deploy ausgelöst.",
             "modules": {
                 "dashboard": "Dashboard",
                 "ai": "Assistent",
@@ -1912,5 +1927,8 @@
         "empty": "Keine ausstehenden Freigaben.",
         "approve": "Freigeben",
         "reject": "Ablehnen"
+    },
+    "deploy": {
+        "button": "Deploy"
     }
 }
