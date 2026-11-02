@@ -56,7 +56,7 @@ class CollectionItemValuesAssemblerService
      */
     private function assembleTranslatable(CollectionField $field, $rows): array
     {
-        if ($field->usesArrayStorage()) {
+        if ($field->hasArrayStorage()) {
             $out = [];
             foreach ($rows->groupBy('locale') as $locale => $localeRows) {
                 /** @var string $locale */
@@ -81,7 +81,7 @@ class CollectionItemValuesAssemblerService
      */
     private function assembleNonTranslatable(CollectionField $field, $rows): mixed
     {
-        if ($field->usesArrayStorage()) {
+        if ($field->hasArrayStorage()) {
             return $rows->whereNull('locale')->sortBy('position')->values()->map(fn ($r) => $r->value)->all();
         }
 

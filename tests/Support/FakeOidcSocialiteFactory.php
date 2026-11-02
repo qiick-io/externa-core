@@ -20,7 +20,7 @@ class FakeOidcSocialiteFactory extends OidcSocialiteFactoryService
         // Skip parent constructor — tests never call discovery via this fake.
     }
 
-    public function enabled(): bool
+    public function isEnabled(): bool
     {
         return $this->isEnabled;
     }

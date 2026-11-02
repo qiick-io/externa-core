@@ -557,7 +557,7 @@ class ManageCollections implements Approvable, ClassifiesToolActionsInterface, T
             return $settings;
         }
 
-        $translatable = $type->supportsTranslatable() && $request->boolean('translatable');
+        $translatable = $type->isTranslatableSupported() && $request->boolean('translatable');
 
         $field = $collection->fields()->create([
             'name' => $name,
@@ -669,7 +669,7 @@ class ManageCollections implements Approvable, ClassifiesToolActionsInterface, T
         }
 
         $resultingType = $attributes['type'] ?? $field->type;
-        if ($resultingType instanceof FieldTypeEnum && ! $resultingType->supportsTranslatable()) {
+        if ($resultingType instanceof FieldTypeEnum && ! $resultingType->isTranslatableSupported()) {
             $attributes['translatable'] = false;
         }
 

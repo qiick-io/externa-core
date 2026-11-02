@@ -192,7 +192,7 @@ class CollectionPermissionEnforcerService
 
         $data = $this->assembler->assemble($item);
 
-        return $this->rulesService->itemMatchesMerged($rules, $data);
+        return $this->rulesService->isMatchingMergedItem($rules, $data);
     }
 
     public function assertItemWritable(Request $request, Collection $collection, CollectionItem $item): void
@@ -205,7 +205,7 @@ class CollectionPermissionEnforcerService
         }
 
         $data = $this->assembler->assemble($item);
-        if (! $this->rulesService->itemMatchesMerged($rules, $data)) {
+        if (! $this->rulesService->isMatchingMergedItem($rules, $data)) {
             abort(403, __('This item is outside your permission filter.'));
         }
     }
