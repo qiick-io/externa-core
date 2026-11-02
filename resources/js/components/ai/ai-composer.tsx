@@ -20,8 +20,8 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import type { AiPendingContextAttachment } from '@/lib/ai-context';
 import type { AiChatAttachment } from '@/lib/ai-chat';
+import type { AiPendingContextAttachment } from '@/lib/ai-context';
 import { cn } from '@/lib/utils';
 
 const MIN_TEXTAREA_HEIGHT_PX = 40;
