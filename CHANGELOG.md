@@ -54,7 +54,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 
 ### Fixed
-- Axe smoke: Playwright `inDarkMode`/`inLightMode` first paint + sync `color-scheme` with `.dark` (CSS + boot script); underline uses `decoration-muted-foreground`; dashboard overflow panels keyboard-focusable (`tabIndex={0}`) (#255).
+- Axe smoke: Playwright `inDarkMode`/`inLightMode` first paint + sync `color-scheme` with `.dark` (CSS + boot script); underline uses `decoration-muted-foreground`; dashboard overflow panels are named `region` landmarks with `tabIndex={0}` (scrollable-region-focusable) (#255).
 - Dark primary button AA: `.dark` `--primary-foreground` uses dark brand fg / ink-950 (not light `#fff`); placeholder opacity 1; darker dark `--muted-foreground` (ink-200) for axe smoke (#255).
 - Visible focus ring (offset, full-opacity `--ring`) and 3:1 `--input` borders on `button`/`input`/`textarea`/`checkbox`/`select`/`badge` (WCAG 1.4.11 / 2.4.7) (#227).
 

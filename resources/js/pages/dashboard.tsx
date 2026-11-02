@@ -294,6 +294,10 @@ export default function Dashboard({
                                 </CardHeader>
                                 <CardContent>
                                     <div
+                                        role="region"
+                                        aria-label={t(
+                                            'dashboard.insightsCollections',
+                                        )}
                                         className="max-h-64 overflow-auto rounded-md border"
                                         tabIndex={0}
                                     >
@@ -500,6 +504,10 @@ export default function Dashboard({
                                     </CardHeader>
                                     <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
                                         <div
+                                            role="region"
+                                            aria-label={t(
+                                                'dashboard.latestActivity',
+                                            )}
                                             className="max-h-[20rem] min-h-[10rem] overflow-auto rounded-md border xl:max-h-none xl:min-h-0 xl:flex-1"
                                             tabIndex={0}
                                         >
@@ -713,6 +721,10 @@ export default function Dashboard({
                                                 }
                                             >
                                                 <div
+                                                    role="region"
+                                                    aria-label={t(
+                                                        'dashboard.largestFiles',
+                                                    )}
                                                     className="max-h-[20rem] min-h-[10rem] overflow-auto rounded-md border xl:max-h-none xl:min-h-0 xl:flex-1"
                                                     tabIndex={0}
                                                 >
@@ -830,6 +842,10 @@ export default function Dashboard({
                                                 }
                                             >
                                                 <div
+                                                    role="region"
+                                                    aria-label={t(
+                                                        'dashboard.storageTrend',
+                                                    )}
                                                     className="max-h-[20rem] min-h-[10rem] overflow-auto rounded-md border xl:max-h-none xl:min-h-0 xl:flex-1"
                                                     tabIndex={0}
                                                 >

@@ -55,6 +55,16 @@ const jsxA11yKeyRules = {
         },
     ],
     'jsx-a11y/no-autofocus': 'error',
+    // Scrollable overflow panels need tabindex for axe scrollable-region-focusable;
+    // allow on named `region` landmarks (dashboard tables, etc.).
+    'jsx-a11y/no-noninteractive-tabindex': [
+        'error',
+        {
+            tags: [],
+            roles: ['tabpanel', 'region'],
+            allowExpressionValues: true,
+        },
+    ],
     // Drag-and-drop targets keep a visible file-picker alternative; exclude drag handlers.
     'jsx-a11y/no-static-element-interactions': [
         'error',
