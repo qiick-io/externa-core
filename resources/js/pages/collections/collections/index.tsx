@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
@@ -60,10 +61,9 @@ import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
 import AppLayout from '@/layouts/app-layout';
 import { seedCollectionPrompt, seedCollectionsBulkPrompt } from '@/lib/ai-open';
 import { cn } from '@/lib/utils';
+import collectionRoutes from '@/routes/collections';
 import { resolveCollectionColor } from '@/types';
 import type { BreadcrumbItem, CollectionRow } from '@/types';
-import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
-import collectionRoutes from '@/routes/collections';
 
 type CollectionSortField = 'name' | 'slug' | 'status' | 'updated_at';
 type CollectionSortDirection = 'asc' | 'desc';

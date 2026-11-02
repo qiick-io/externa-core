@@ -23,6 +23,8 @@ import {
     useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
@@ -82,11 +84,13 @@ import {
 } from '@/lib/item-list-filters';
 import type { FilterRule } from '@/lib/item-list-filters';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
+import collections from '@/routes/collections';
 import type {
     BreadcrumbItem,
     CollectionFieldRow,
     CollectionView,
 } from '@/types';
+import type { QueryParams } from '@/wayfinder';
 import { alignClass, ColumnHeaderMenu } from './column-header-menu';
 import type { ColumnAlign } from './column-header-menu';
 import { ColumnPickerPopover } from './column-picker-popover';
@@ -97,10 +101,6 @@ import { ItemsCalendar } from './items-calendar';
 import type { CalendarMonthPayload } from './items-calendar';
 import { ItemsKanban } from './items-kanban';
 import type { KanbanBoard } from './items-kanban';
-import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
-import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
-import collections from '@/routes/collections';
-import type { QueryParams } from '@/wayfinder';
 
 type ListLayout = 'table' | 'kanban' | 'calendar';
 

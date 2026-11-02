@@ -25,6 +25,8 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
@@ -106,11 +108,9 @@ import type { LaravelPaginated } from '@/lib/pagination';
 import { readReturnParam } from '@/lib/safe-return-url';
 import { toast } from '@/lib/toast';
 import { wayfinderInertiaFormProps } from '@/lib/wayfinder-form';
+import collections from '@/routes/collections';
 import type { AdminActivityLogRow, BreadcrumbItem, Paginated } from '@/types';
 import type { CollectionView } from '@/types/collections';
-import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
-import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
-import collections from '@/routes/collections';
 
 const COLLECTION_ITEM_FORM_ID = 'collection-item-form';
 const DRAFT_DEBOUNCE_MS = 800;

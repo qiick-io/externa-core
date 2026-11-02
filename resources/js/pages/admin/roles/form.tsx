@@ -22,9 +22,9 @@ import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import adminRoutes from '@/lib/admin-routes';
 import { cn } from '@/lib/utils';
-import type { AdminRoleRow, BreadcrumbItem, PermissionGroup } from '@/types';
 import collectionRoutes from '@/routes/collections';
 import { edit as editProfile } from '@/routes/profile';
+import type { AdminRoleRow, BreadcrumbItem, PermissionGroup } from '@/types';
 
 type RoleFormRole = AdminRoleRow & {
     permissions?: { id: number; name: string }[];
