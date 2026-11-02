@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { ChevronDown, ChevronRight, Download } from 'lucide-react';
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { UserMultiSelect } from '@/components/admin/user-multi-select';
@@ -26,12 +26,13 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import AppLayout from '@/layouts/app-layout';
-import adminRoutes from '@/lib/admin-routes';
 import { seedActivityLogPrompt } from '@/lib/ai-open';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { cn } from '@/lib/utils';
+import activityLogsRoutes from '@/routes/activity-logs';
 import type {
     AdminActivityLogRow,
     AdminUserRow,
@@ -99,7 +100,7 @@ export default function AdminActivityLogsIndex({
         () => [
             {
                 title: t('activityLog.title'),
-                href: adminRoutes.activityLogs.index(),
+                href: activityLogsRoutes.index.url(),
             },
         ],
         [t],
@@ -123,7 +124,7 @@ export default function AdminActivityLogsIndex({
                 overrides.date_to !== undefined ? overrides.date_to : dateTo;
 
             router.get(
-                adminRoutes.activityLogs.index({
+                activityLogsRoutes.index.url({
                     query: {
                         search: nextSearch || undefined,
                         user_ids:
@@ -145,7 +146,7 @@ export default function AdminActivityLogsIndex({
 
     const exportHref = useCallback(
         (format: 'csv' | 'json') =>
-            adminRoutes.activityLogs.export({
+            activityLogsRoutes.export.url({
                 query: {
                     format,
                     search: search || undefined,
@@ -160,19 +161,11 @@ export default function AdminActivityLogsIndex({
         [search, userIds, event, logName, dateFrom, dateTo],
     );
 
-    useEffect(() => {
-        // Only refetch when the user changes search. Mount / pagination remounts
-        // leave search === filters.search; visiting without `page` would reset to page 1.
-        if (search === (filters.search ?? '')) {
-            return;
-        }
+    const onDebouncedSearch = useCallback((value: string): void => {
+        visit({ search: value || undefined });
+    }, [visit]);
 
-        const timer = setTimeout(() => {
-            visit({ search: search || undefined });
-        }, 350);
-
-        return () => clearTimeout(timer);
-    }, [search, filters.search]); // eslint-disable-line react-hooks/exhaustive-deps
+    useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
 
     const toggleExpanded = (id: number): void => {
         setExpandedIds((previous) =>

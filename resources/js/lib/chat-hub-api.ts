@@ -1,4 +1,5 @@
 import { formRequestHeaders, jsonRequestHeaders } from '@/lib/csrf';
+import { assertOk } from '@/lib/http';
 import { useChatStore } from '@/stores/chat/store';
 
 export type ChatSummary = {
@@ -43,27 +44,6 @@ export function applyChatUnread(payload: ChatUnreadShare): void {
     useChatStore.getState().setUnread(payload);
 }
 
-async function assertOk(response: Response, fallback: string): Promise<void> {
-    if (response.ok) {
-        return;
-    }
-
-    try {
-        const payload = (await response.json()) as {
-            message?: string;
-            errors?: Record<string, string[]>;
-        };
-        const first = Object.values(payload.errors ?? {})[0]?.[0];
-
-        throw new Error(payload.message ?? first ?? fallback);
-    } catch (error) {
-        if (error instanceof Error && error.message !== fallback) {
-            throw error;
-        }
-
-        throw new Error(fallback);
-    }
-}
 
 export async function fetchChatThreads(options: {
     tab: 'collection' | 'private';

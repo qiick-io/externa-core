@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { FileIcon, FolderOpen } from 'lucide-react';
-import adminRoutes from '@/lib/admin-routes';
 import { filePublicUrl, isImageFile } from '@/lib/files-api';
+import filesRoutes from '@/routes/files';
 import type { AdminFileRow } from '@/types/files';
 
 export type AiFileCardItem = {
@@ -73,8 +73,8 @@ export function AiFileCards({ files }: Props) {
                 const folderId = isFolder ? file.id : (file.parent_id ?? null);
                 const href =
                     folderId != null
-                        ? adminRoutes.files.index(folderId)
-                        : adminRoutes.files.index();
+                        ? filesRoutes.index.url(folderId)
+                        : filesRoutes.index.url();
 
                 return (
                     <Link

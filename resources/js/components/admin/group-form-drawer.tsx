@@ -20,8 +20,8 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
-import adminRoutes from '@/lib/admin-routes';
 import { STRING_LIMITS } from '@/lib/string-limits';
+import groups from '@/routes/groups';
 import type { AdminGroupRow } from '@/types/admin';
 
 const EMPTY_GROUP_FORM = {
@@ -98,9 +98,9 @@ export function GroupFormDrawer({
         };
 
         if (editing) {
-            form.put(adminRoutes.groups.update(editing.id), opts);
+            form.put(groups.update.url(editing.id), opts);
         } else {
-            form.post(adminRoutes.groups.store(), opts);
+            form.post(groups.store.url(), opts);
         }
     };
 

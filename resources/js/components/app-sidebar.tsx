@@ -35,13 +35,16 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useChatUnread } from '@/hooks/use-chat-unread';
 import { useCurrentUrl } from '@/hooks/use-current-url';
-import adminRoutes from '@/lib/admin-routes';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
+import activityLogs from '@/routes/activity-logs';
 import { index as aiIndex } from '@/routes/ai';
 import { index as chatIndex } from '@/routes/chat';
 import collections from '@/routes/collections';
+import files from '@/routes/files';
+import groups from '@/routes/groups';
 import { edit as editProfile } from '@/routes/profile';
+import users from '@/routes/users';
 import type { NavItem, SidebarModuleSetting } from '@/types';
 
 type ModuleDef = {
@@ -85,7 +88,7 @@ export function AppSidebar() {
             files: {
                 id: 'files',
                 titleKey: 'nav.files',
-                href: adminRoutes.files.index(),
+                href: files.index.url(),
                 icon: Folder,
                 permission: PermissionEnum.CanShowFiles,
             },
@@ -106,21 +109,21 @@ export function AppSidebar() {
             activity: {
                 id: 'activity',
                 titleKey: 'nav.activityLog',
-                href: adminRoutes.activityLogs.index(),
+                href: activityLogs.index.url(),
                 icon: ScrollText,
                 permission: PermissionEnum.CanShowActivityLogs,
             },
             users: {
                 id: 'users',
                 titleKey: 'nav.users',
-                href: adminRoutes.users.index(),
+                href: users.index.url(),
                 icon: Users,
                 permission: PermissionEnum.CanShowUsers,
             },
             groups: {
                 id: 'groups',
                 titleKey: 'nav.groups',
-                href: adminRoutes.groups.index(),
+                href: groups.index.url(),
                 icon: UsersRound,
                 permission: PermissionEnum.CanShowGroups,
             },

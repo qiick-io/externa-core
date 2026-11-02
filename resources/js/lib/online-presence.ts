@@ -1,11 +1,9 @@
-import type Echo from 'laravel-echo';
+import type { EchoInstance } from '@/lib/echo';
 
 type PresenceUser = {
     id: number;
     name?: string;
 };
-
-type EchoInstance = Echo<'reverb'>;
 
 let onlineIds = new Set<number>();
 const listeners = new Set<(ids: Set<number>) => void>();

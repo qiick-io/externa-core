@@ -324,6 +324,9 @@ export default function AiIndexPage({
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const lastSelectedIndexRef = useRef<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const importPollTimeoutRef = useRef<number | null>(null);
+    const importPollJobIdRef = useRef<string | null>(null);
+    const importPollActiveRef = useRef(false);
 
     // Sync Inertia props when the selected conversation changes — never while streaming.
     useEffect(() => {
@@ -700,18 +703,83 @@ export default function AiIndexPage({
         }
     };
 
-    const pollImportJob = async (jobId: string): Promise<void> => {
+    const clearImportPoll = (): void => {
+        if (importPollTimeoutRef.current != null) {
+            window.clearTimeout(importPollTimeoutRef.current);
+            importPollTimeoutRef.current = null;
+        }
+    };
+
+    const runImportPollRef = useRef<(jobId: string) => Promise<void>>(
+        async () => {},
+    );
+
+    runImportPollRef.current = async (jobId: string): Promise<void> => {
+        if (importPollJobIdRef.current !== jobId) {
+            return;
+        }
+
+        if (document.hidden) {
+            return;
+        }
+
         try {
             const status = await fetchAiImportJobStatus(jobId);
+
+            if (importPollJobIdRef.current !== jobId) {
+                return;
+            }
+
             setImportJobStatus(status);
 
             if (status.status === 'queued' || status.status === 'running') {
-                window.setTimeout(() => void pollImportJob(jobId), 2000);
+                clearImportPoll();
+                importPollTimeoutRef.current = window.setTimeout(() => {
+                    void runImportPollRef.current(jobId);
+                }, 2000);
+            } else {
+                importPollActiveRef.current = false;
             }
         } catch {
-            setImportJobStatus(null);
+            if (importPollJobIdRef.current === jobId) {
+                setImportJobStatus(null);
+                importPollActiveRef.current = false;
+            }
         }
     };
+
+    const startImportPoll = (jobId: string): void => {
+        clearImportPoll();
+        importPollJobIdRef.current = jobId;
+        importPollActiveRef.current = true;
+        void runImportPollRef.current(jobId);
+    };
+
+    useEffect(() => {
+        const onVisibilityChange = (): void => {
+            const jobId = importPollJobIdRef.current;
+
+            if (
+                !document.hidden &&
+                jobId &&
+                importPollActiveRef.current
+            ) {
+                void runImportPollRef.current(jobId);
+            }
+        };
+
+        document.addEventListener('visibilitychange', onVisibilityChange);
+
+        return () => {
+            document.removeEventListener(
+                'visibilitychange',
+                onVisibilityChange,
+            );
+            clearImportPoll();
+            importPollJobIdRef.current = null;
+            importPollActiveRef.current = false;
+        };
+    }, []);
 
     const markAssistantError = (
         assistantMessageId: string,
@@ -817,7 +885,7 @@ export default function AiIndexPage({
                         const jobId = importJobIdFromToolResult(result);
 
                         if (jobId) {
-                            void pollImportJob(jobId);
+                            startImportPoll(jobId);
                         }
 
                         const cards = fileCardsFromToolResult(toolName, result);

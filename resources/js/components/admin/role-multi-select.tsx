@@ -1,4 +1,4 @@
-import adminRoutes from '@/lib/admin-routes';
+import roles from '@/routes/roles';
 import type { AdminSelectOption } from '@/types/admin';
 import { PaginatedMultiSelect } from './paginated-multi-select';
 import type { PaginatedMultiSelectProps } from './paginated-multi-select';
@@ -29,7 +29,7 @@ export function RoleMultiSelect({
 
     return (
         <PaginatedMultiSelect
-            fetchUrl={adminRoutes.roles.index()}
+            fetchUrl={roles.index.url()}
             placeholder={placeholder}
             initialOptions={resolvedInitial}
             {...props}

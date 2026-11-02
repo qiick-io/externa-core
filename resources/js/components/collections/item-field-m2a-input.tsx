@@ -8,17 +8,11 @@ import { parseM2aFieldSettings } from '@/lib/collection-field-types';
 import type { RelatedCollectionOption } from '@/lib/collection-field-types';
 import { createSortableList } from '@/lib/create-sortable-list';
 import { cn } from '@/lib/utils';
+import type { FieldDef } from '@/types';
 
 const inputLike =
-    'border-input bg-background ring-offset-background focus-visible:border-ring focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none';
+    'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
 
-type FieldDef = {
-    id: number;
-    name: string;
-    type: string;
-    translatable: boolean;
-    settings?: Record<string, unknown> | null;
-};
 
 type M2aBlock = {
     id: string;

@@ -4,14 +4,8 @@ import { PaginatedMultiSelect } from '@/components/admin/paginated-multi-select'
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { parseRelationFieldSettings } from '@/lib/collection-field-types';
+import type { FieldDef } from '@/types';
 
-type FieldDef = {
-    id: number;
-    name: string;
-    type: string;
-    translatable: boolean;
-    settings?: Record<string, unknown> | null;
-};
 
 type DefaultValue =
     | string

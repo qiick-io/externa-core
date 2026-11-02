@@ -27,9 +27,9 @@ import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import adminRoutes from '@/lib/admin-routes';
 import { cn } from '@/lib/utils';
 import { edit as editProfile } from '@/routes/profile';
+import rolesRoutes from '@/routes/roles';
 import type { AdminRoleRow, BreadcrumbItem, PermissionGroup } from '@/types';
 
 type RoleFormRole = AdminRoleRow & {
@@ -219,13 +219,13 @@ export default function AdminRoleForm({
             },
             {
                 title: t('settings.layout.roles'),
-                href: adminRoutes.roles.index(),
+                href: rolesRoutes.index.url(),
             },
             {
                 title: isEdit ? 'Edit role' : 'New role',
                 href: isEdit
-                    ? adminRoutes.roles.edit(role!.id)
-                    : adminRoutes.roles.create(),
+                    ? rolesRoutes.edit.url(role!.id)
+                    : rolesRoutes.create.url(),
             },
         ],
         [isEdit, role, t],
@@ -346,9 +346,9 @@ export default function AdminRoleForm({
         const opts = { preserveScroll: true };
 
         if (isEdit) {
-            form.put(adminRoutes.roles.update(role!.id), opts);
+            form.put(rolesRoutes.update.url(role!.id), opts);
         } else {
-            form.post(adminRoutes.roles.store(), opts);
+            form.post(rolesRoutes.store.url(), opts);
         }
     };
 
@@ -384,7 +384,7 @@ export default function AdminRoleForm({
                                     className="flex items-center gap-2"
                                 />
                                 <Button variant="outline" asChild>
-                                    <Link href={adminRoutes.roles.index()}>
+                                    <Link href={rolesRoutes.index.url()}>
                                         Cancel
                                     </Link>
                                 </Button>

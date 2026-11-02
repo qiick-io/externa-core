@@ -71,6 +71,7 @@ import {
 } from '@/components/ui/tooltip';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
+import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import AppLayout from '@/layouts/app-layout';
 import { seedItemPrompt, seedItemsBulkPrompt } from '@/lib/ai-open';
 import { getFieldDisplayName } from '@/lib/collection-field-types';
@@ -88,6 +89,7 @@ import type {
     BreadcrumbItem,
     CollectionFieldRow,
     CollectionView,
+    ItemRow,
 } from '@/types';
 import type { QueryParams } from '@/wayfinder';
 import { alignClass, ColumnHeaderMenu } from './column-header-menu';
@@ -103,20 +105,6 @@ import type { KanbanBoard } from './items-kanban';
 
 type ListLayout = 'table' | 'kanban' | 'calendar';
 
-type ItemRow = {
-    id: number;
-    collection_id: number;
-    data: Record<string, unknown>;
-    created_at?: string | null;
-    updated_at?: string | null;
-    user_created?: { id: number; name: string; email?: string | null } | null;
-    user_updated?: { id: number; name: string; email?: string | null } | null;
-    displays?: Record<string, string | null>;
-    thumbs?: Record<string, string | null>;
-    has_draft?: boolean;
-    schedule_failed?: boolean;
-    approval_status?: string | null;
-};
 
 type Paginator<T> = {
     data: T[];
@@ -552,22 +540,23 @@ export default function ItemsIndex({
         setSelected([]);
     }, [isTrashed, collection.id]);
 
-    useEffect(() => {
-        if (filterTitle === titleContainsFromFilters(filters)) {
-            return;
-        }
-
-        const timer = setTimeout(() => {
+    const onDebouncedTitleSearch = useCallback(
+        (value: string): void => {
             setFilterRules((current) => {
-                const nextRules = rulesWithTitleSearch(current, filterTitle);
+                const nextRules = rulesWithTitleSearch(current, value);
                 visit({ rules: nextRules });
 
                 return nextRules;
             });
-        }, 350);
+        },
+        [visit],
+    );
 
-        return () => clearTimeout(timer);
-    }, [filterTitle]); // eslint-disable-line react-hooks/exhaustive-deps
+    useDebouncedServerSearch(
+        filterTitle,
+        titleContainsFromFilters(filters),
+        onDebouncedTitleSearch,
+    );
 
     const clearFilters = useCallback(() => {
         setFilterTitle('');

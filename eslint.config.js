@@ -133,7 +133,7 @@ export default [
             },
         },
         rules: {
-            '@typescript-eslint/no-explicit-any': 'off',
+            '@typescript-eslint/no-explicit-any': 'error',
             // ponytail: recommended-latest enables this; fixing all sync setState-in-effect call sites is out of scope for a dep bump
             'react-hooks/set-state-in-effect': 'off',
             '@typescript-eslint/consistent-type-imports': [
@@ -163,6 +163,16 @@ export default [
             'import/consistent-type-specifier-style': [
                 'error',
                 'prefer-top-level',
+            ],
+            // Prefer Wayfinder `@/routes/*` helpers over hard-coded admin paths (#284).
+            'no-restricted-syntax': [
+                'error',
+                {
+                    selector:
+                        "Literal[value=/^\\/(users|groups|files|activity-logs|settings\\/(roles|api-keys|permissions))(\\/|$)/]",
+                    message:
+                        'Use Wayfinder route helpers (@/routes/...) instead of hard-coded admin paths.',
+                },
             ],
         },
     },

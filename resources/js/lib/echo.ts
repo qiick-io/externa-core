@@ -9,7 +9,8 @@ export type EchoConnectionState =
     | 'failed'
     | 'disconnected';
 
-type EchoInstance = Echo<'reverb'>;
+/** Shared Laravel Echo (Reverb) instance type. */
+export type EchoInstance = Echo<'reverb'>;
 
 declare global {
     interface Window {

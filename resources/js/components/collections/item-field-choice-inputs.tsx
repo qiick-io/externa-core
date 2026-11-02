@@ -69,40 +69,8 @@ export function defaultBooleanChecked(value: DefaultValue): boolean {
     return value === true || value === 1 || value === '1';
 }
 
-export function toDatetimeLocalValue(
-    value: DefaultValue,
-    includeSeconds: boolean,
-): string {
-    if (value === null || value === undefined || value === '') {
-        return '';
-    }
+export { toDatetimeLocalValue } from '@/lib/format';
 
-    const stringValue = String(value);
-
-    if (/^\d{4}-\d{2}-\d{2}T/.test(stringValue)) {
-        return includeSeconds
-            ? stringValue.slice(0, 19)
-            : stringValue.slice(0, 16);
-    }
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) {
-        return `${stringValue}T00:00${includeSeconds ? ':00' : ''}`;
-    }
-
-    const parsedDate = new Date(stringValue);
-
-    if (Number.isNaN(parsedDate.getTime())) {
-        return stringValue;
-    }
-
-    const pad = (part: number) => String(part).padStart(2, '0');
-
-    const formatted = `${parsedDate.getFullYear()}-${pad(parsedDate.getMonth() + 1)}-${pad(parsedDate.getDate())}T${pad(parsedDate.getHours())}:${pad(parsedDate.getMinutes())}`;
-
-    return includeSeconds
-        ? `${formatted}:${pad(parsedDate.getSeconds())}`
-        : formatted;
-}
 
 export function toDateInputValue(value: DefaultValue): string {
     if (value === null || value === undefined || value === '') {

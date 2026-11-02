@@ -32,9 +32,9 @@ import {
 } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import adminRoutes from '@/lib/admin-routes';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
+import apiKeysRoutes from '@/routes/api-keys';
 import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem, Paginated } from '@/types';
 
@@ -151,7 +151,7 @@ export default function AdminApiKeysIndex({
         },
         {
             title: t('settings.layout.apiKeys'),
-            href: adminRoutes.apiKeys.index(),
+            href: apiKeysRoutes.index.url(),
         },
     ];
 
@@ -180,7 +180,7 @@ export default function AdminApiKeysIndex({
                 : null,
             expires_at: data.expires_at || null,
         }));
-        form.post(adminRoutes.apiKeys.store(), {
+        form.post(apiKeysRoutes.store.url(), {
             preserveScroll: true,
             onSuccess: () => {
                 resetCreateForm();
@@ -793,7 +793,7 @@ export default function AdminApiKeysIndex({
 
                     setRevoking(true);
                     router.delete(
-                        adminRoutes.apiKeys.destroy(pendingRevokeKeyId),
+                        apiKeysRoutes.destroy.url(pendingRevokeKeyId),
                         {
                             onFinish: () => setRevoking(false),
                             onSuccess: () => setPendingRevokeKeyId(null),

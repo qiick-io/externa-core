@@ -76,9 +76,12 @@ const mediaQuery = (): MediaQueryList | null => {
 
 const handleSystemThemeChange = (): void => applyTheme(currentAppearance);
 
+let isSystemThemeListenerBound = false;
+
 /**
  * Applies stored personal preference, else the project default (no localStorage write).
  * Call once from `app.tsx` after Inertia props are available.
+ * Binds the prefers-color-scheme listener at most once for the page lifetime.
  *
  * @param {Appearance} [projectDefault='system'] - Project default when user has no preference
  * @returns {void}
@@ -95,7 +98,24 @@ export function initializeTheme(projectDefault: Appearance = 'system'): void {
     currentAppearance = stored ?? fallback;
     applyTheme(currentAppearance);
 
-    mediaQuery()?.addEventListener('change', handleSystemThemeChange);
+    if (!isSystemThemeListenerBound) {
+        mediaQuery()?.addEventListener('change', handleSystemThemeChange);
+        isSystemThemeListenerBound = true;
+    }
+}
+
+/**
+ * Removes the prefers-color-scheme listener bound by {@link initializeTheme}.
+ *
+ * @returns {void}
+ */
+export function teardownTheme(): void {
+    if (!isSystemThemeListenerBound) {
+        return;
+    }
+
+    mediaQuery()?.removeEventListener('change', handleSystemThemeChange);
+    isSystemThemeListenerBound = false;
 }
 
 /**

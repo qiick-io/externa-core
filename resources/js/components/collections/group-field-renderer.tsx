@@ -6,13 +6,8 @@ import type { FieldTreeNode } from '@/lib/collection-field-groups';
 import { isLayoutGroupType } from '@/lib/collection-field-groups';
 import { getFieldDisplayName } from '@/lib/collection-field-types';
 import { cn } from '@/lib/utils';
+import type { FieldDef } from '@/types';
 
-type FieldDef = {
-    id: number;
-    name: string;
-    type: string;
-    settings?: Record<string, unknown> | null;
-};
 
 type RenderFieldsOptions = {
     /** Hide field labels (accordion/tab leaf sections — header is the label). */

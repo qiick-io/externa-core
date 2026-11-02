@@ -14,11 +14,12 @@ import {
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
-import adminRoutes from '@/lib/admin-routes';
 import { cn, toUrl } from '@/lib/utils';
+import apiKeys from '@/routes/api-keys';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editSidebar } from '@/routes/appearance/sidebar';
 import { edit as editPerformance } from '@/routes/performance';
+import permissions from '@/routes/permissions';
 import { edit } from '@/routes/profile';
 import { edit as editProject } from '@/routes/project';
 import { edit as editApi } from '@/routes/project/api';
@@ -27,6 +28,7 @@ import { edit as editFiles } from '@/routes/project/files';
 import { edit as editIntegrations } from '@/routes/project/integrations';
 import { edit as editLocalization } from '@/routes/project/localization';
 import { edit as editProjectSecurity } from '@/routes/project/security';
+import roles from '@/routes/roles';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
 
@@ -130,7 +132,7 @@ export default function SettingsLayout({
             ? [
                   {
                       title: t('settings.layout.roles'),
-                      href: adminRoutes.roles.index(),
+                      href: roles.index.url(),
                       icon: null,
                   },
               ]
@@ -139,7 +141,7 @@ export default function SettingsLayout({
             ? [
                   {
                       title: t('settings.layout.permissions'),
-                      href: adminRoutes.permissions.index(),
+                      href: permissions.index.url(),
                       icon: null,
                   },
               ]
@@ -148,7 +150,7 @@ export default function SettingsLayout({
             ? [
                   {
                       title: t('settings.layout.apiKeys'),
-                      href: adminRoutes.apiKeys.index(),
+                      href: apiKeys.index.url(),
                       icon: null,
                   },
               ]

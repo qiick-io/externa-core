@@ -56,6 +56,7 @@ import {
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useCollections } from '@/hooks/use-collections';
+import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
 import AppLayout from '@/layouts/app-layout';
 import { seedCollectionPrompt, seedCollectionsBulkPrompt } from '@/lib/ai-open';
@@ -212,17 +213,11 @@ export default function CollectionsIndex({
         setDirection(filters.direction ?? 'asc');
     }, [filters.search, filters.sort, filters.direction]);
 
-    useEffect(() => {
-        if (search === (filters.search ?? '')) {
-            return;
-        }
+    const onDebouncedSearch = useCallback((value: string): void => {
+        visit({ search: value || undefined });
+    }, [visit]);
 
-        const timer = setTimeout(() => {
-            visit({ search: search || undefined });
-        }, 350);
-
-        return () => clearTimeout(timer);
-    }, [search, filters.search]); // eslint-disable-line react-hooks/exhaustive-deps
+    useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
 
     useEffect(() => {
         setSelected([]);
