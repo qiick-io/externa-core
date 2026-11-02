@@ -212,8 +212,8 @@
     --overlay: color-mix(in srgb, var(--color-ink-950) 60%, transparent);
     --border: var(--color-ink-200);
     --input: var(--color-ink-400);
-    /* teal-500 ≥3:1 on white (teal-400 was 2.59:1); brand override still wins */
-    --ring: var(--brand-primary, var(--color-teal-500));
+    /* teal-600 ≥3:1 on white (qiick #226 / #227); brand override still wins */
+    --ring: var(--brand-primary, var(--color-teal-600));
     --chart-1: var(--color-teal-600);
     --chart-2: var(--color-blue-500);
     --chart-3: var(--color-amber-500);
@@ -278,9 +278,10 @@
     --overlay: color-mix(in srgb, var(--color-ink-950) 70%, transparent);
     --border: var(--color-ink-800);
     --input: var(--color-ink-500);
+    /* teal-400 ≥3:1 on ink-950 (#227); brand override still wins */
     --ring: var(
         --brand-primary-dark,
-        var(--brand-primary, var(--color-teal-300))
+        var(--brand-primary, var(--color-teal-400))
     );
     --chart-1: var(--color-teal-400);
     --chart-2: var(--color-blue-400);

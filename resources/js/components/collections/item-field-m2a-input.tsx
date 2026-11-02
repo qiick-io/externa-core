@@ -3,10 +3,13 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { PaginatedMultiSelect } from '@/components/admin/paginated-multi-select';
 import { Button } from '@/components/ui/button';
-import { NativeSelect } from '@/components/ui/native-select';
 import { parseM2aFieldSettings } from '@/lib/collection-field-types';
 import type { RelatedCollectionOption } from '@/lib/collection-field-types';
 import { createSortableList } from '@/lib/create-sortable-list';
+import { cn } from '@/lib/utils';
+
+const inputLike =
+    'border-input bg-background ring-offset-background focus-visible:border-ring focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none';
 
 type FieldDef = {
     id: number;
@@ -235,8 +238,8 @@ export function M2aFieldInput({
                                         <GripVertical className="size-4" />
                                     </button>
                                 ) : null}
-                                <NativeSelect
-                                    className="max-w-xs"
+                                <select
+                                    className={cn(inputLike, 'max-w-xs')}
                                     value={block.related_collection_id}
                                     disabled={readonly}
                                     onChange={(event) =>
@@ -256,7 +259,7 @@ export function M2aFieldInput({
                                             {collection.name}
                                         </option>
                                     ))}
-                                </NativeSelect>
+                                </select>
                                 {!readonly ? (
                                     <div className="ml-auto flex gap-1">
                                         <Button
