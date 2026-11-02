@@ -4,6 +4,7 @@ namespace App\Ai\Tools;
 
 use App\Actions\Collections\CreateCollectionItemAction;
 use App\Ai\Concerns\ChecksAiPermissionsTrait;
+use App\Ai\Concerns\EnforcesAiCollectionPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Data\Collections\CollectionItemWriteData;
@@ -37,6 +38,7 @@ use Stringable;
 class ManageCollections implements Approvable, Tool
 {
     use ChecksAiPermissionsTrait;
+    use EnforcesAiCollectionPermissionsTrait;
     use LogsAiToolUseTrait;
     use RequiresDestructiveApprovalTrait;
 
@@ -143,14 +145,16 @@ class ManageCollections implements Approvable, Tool
             ->get(['id', 'name', 'slug', 'is_singleton', 'sort_order', 'deleted_at']);
 
         return json_encode([
-            'collections' => $collections->map(fn (Collection $collection): array => [
+            'collections' => $collections->filter(
+                fn (Collection $collection): bool => $this->isAiCollectionReadable($collection),
+            )->map(fn (Collection $collection): array => [
                 'id' => $collection->id,
                 'name' => $collection->name,
                 'slug' => $collection->slug,
                 'is_singleton' => $collection->is_singleton,
                 'sort_order' => $collection->sort_order,
                 'deleted_at' => $collection->deleted_at,
-                'fields' => $collection->fields->map(fn (CollectionField $field): array => [
+                'fields' => $this->readableAiFields($collection)->map(fn (CollectionField $field): array => [
                     'id' => $field->id,
                     'name' => $field->name,
                     'type' => $field->type instanceof FieldTypeEnum ? $field->type->value : (string) $field->type,
@@ -170,7 +174,7 @@ class ManageCollections implements Approvable, Tool
             ->withCount('items')
             ->find($collectionId);
 
-        if ($collection === null) {
+        if ($collection === null || ! $this->isAiCollectionReadable($collection)) {
             return 'Error: Collection not found.';
         }
 
@@ -181,7 +185,7 @@ class ManageCollections implements Approvable, Tool
             'url' => route('collections.show', $collection),
             'is_singleton' => $collection->is_singleton,
             'items_count' => $collection->items_count,
-            'fields' => $collection->fields->map(fn ($field): array => [
+            'fields' => $this->readableAiFields($collection)->map(fn ($field): array => [
                 'id' => $field->id,
                 'name' => $field->name,
                 'type' => $field->type?->value ?? $field->type,

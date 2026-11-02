@@ -50,6 +50,10 @@ class SearchSimilarCollectionItems implements Tool
                 return 'Error: collection_id and query are required.';
             }
 
+            if (! $this->isAiCollectionReadable($collection)) {
+                return 'Error: Collection not found.';
+            }
+
             $assembler = app(CollectionItemValuesAssemblerService::class);
             $limit = min(max($request->integer('limit', 10), 1), 50);
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Resources;
 
+use App\Ai\Concerns\EnforcesAiCollectionPermissionsTrait;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\User;
@@ -20,11 +21,13 @@ use Laravel\Mcp\Server\Resource;
 
 #[Name('collections')]
 #[Title('Collections index')]
-#[Description('Collections visible to the authenticated identity.')]
+#[Description('Collections visible to the authenticated identity (collection ACL and API key collection_slugs).')]
 #[Uri('externa://collections')]
 #[MimeType('application/json')]
 class CollectionsIndex extends Resource
 {
+    use EnforcesAiCollectionPermissionsTrait;
+
     public function handle(Request $request): Response|ResponseFactory
     {
         $user = auth()->user();
@@ -41,6 +44,7 @@ class CollectionsIndex extends Resource
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get(['id', 'name', 'slug', 'is_singleton'])
+            ->filter(fn (Collection $collection): bool => $this->isAiCollectionReadable($collection))
             ->map(static fn (Collection $collection): array => [
                 'id' => $collection->id,
                 'name' => $collection->name,
