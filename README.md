@@ -229,7 +229,7 @@ Copy from `.env.example` and tune. Full reference: [Environment variables](https
 | **Broadcast / Reverb** | `BROADCAST_CONNECTION`, `REVERB_*`, `VITE_REVERB_*` | Full: `reverb`. Minimal: `log` (60s notification poll). Restart Vite after `VITE_REVERB_*` changes. |
 | **Pulse** | `PULSE_ENABLED`, `PULSE_INGEST_DRIVER`, `PULSE_*` | Prefer redis ingest + `pulse:work`. Disable with `PULSE_ENABLED=false` when not using Redis. |
 | **AI** | `AI_DEFAULT_PROVIDER`, `LOCAL_AI_URL`, `LOCAL_AI_MODEL`, … | Optional; defaults target a local OpenAI-compatible gateway. |
-| **Files** | `FILES_DISK`, `FILES_DUPLICATE_SYNC_MAX_BYTES`, `FILES_ZIP_*`, `AWS_*` | File manager disk (`assets` or `s3`). Async zip / large duplicate need a queue worker. Zip archives stay on the shared local `storage` volume. |
+| **Files** | `FILES_DISK`, `FILES_DUPLICATE_SYNC_MAX_BYTES`, `FILES_ZIP_*`, `AWS_*`, `GOOGLE_CLOUD_*`, `AZURE_STORAGE_*` | File manager disk: `assets` (local), `s3` (S3/MinIO/R2), `gcs` (Google Cloud Storage), or `azure` (Azure Blob). Async zip / large duplicate need a queue worker. Zip archives stay on the shared local `storage` volume. |
 
 See `.env.example` for every key and inline comments.
 
