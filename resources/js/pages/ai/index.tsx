@@ -7,7 +7,6 @@ import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer'
 import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
 import { AiComposer } from '@/components/ai/ai-composer';
-import { AiContextAttachDialog } from '@/components/ai/ai-context-attach-dialog';
 import {
     fileCardsFromToolResult,
     fileCardsFromToolResults,
@@ -50,15 +49,14 @@ import type {
     AiImportJobStatus,
     AiPendingApproval,
 } from '@/lib/ai-chat';
-import type { AiPendingContextAttachment } from '@/lib/ai-context';
-import { contextIdsFromPending } from '@/lib/ai-context';
+import { speechRecognitionLang } from '@/lib/format';
+import i18n from '@/lib/i18n';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
-import { index as aiIndex, show as aiShow } from '@/routes/ai';
-import type { BreadcrumbItem } from '@/types';
 import type { Paginated } from '@/types/admin';
+import { index as aiIndex, show as aiShow } from '@/routes/ai';
 
 type ConversationSummary = AiConversationSummary;
 
@@ -117,13 +115,6 @@ type ConversationSection = {
     conversations: ConversationSummary[];
 };
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Assistant',
-        href: aiIndex.url(),
-    },
-];
-
 function isPersistedMessageId(messageId: string): boolean {
     return !messageId.startsWith('local-');
 }
@@ -175,30 +166,30 @@ function conversationDateGroup(updatedAt: string | null | undefined): {
     const dayDelta = daysBetween(updated, now);
 
     if (dayDelta <= 0) {
-        return { key: 'today', label: 'Today', order: 0 };
+        return { key: 'today', label: i18n.t('ai.today'), order: 0 };
     }
 
     if (dayDelta === 1) {
-        return { key: 'yesterday', label: 'Yesterday', order: 1 };
+        return { key: 'yesterday', label: i18n.t('ai.yesterday'), order: 1 };
     }
 
     if (dayDelta === 2) {
-        return { key: '2-days', label: '2 days ago', order: 2 };
+        return { key: '2-days', label: i18n.t('ai.twoDaysAgo'), order: 2 };
     }
 
     if (dayDelta < 7) {
-        return { key: 'week', label: 'This week', order: 3 };
+        return { key: 'week', label: i18n.t('ai.thisWeek'), order: 3 };
     }
 
     if (dayDelta < 14) {
-        return { key: 'last-week', label: 'A week ago', order: 4 };
+        return { key: 'last-week', label: i18n.t('ai.aWeekAgo'), order: 4 };
     }
 
     if (dayDelta < 30) {
-        return { key: 'month', label: 'This month', order: 5 };
+        return { key: 'month', label: i18n.t('ai.thisMonth'), order: 5 };
     }
 
-    return { key: 'older', label: 'Older', order: 6 };
+    return { key: 'older', label: i18n.t('ai.older'), order: 6 };
 }
 
 function groupConversations(
@@ -272,7 +263,7 @@ export default function AiIndexPage({
     selectedConversation,
     messages: initialMessages,
 }: Props) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const page = usePage();
     const initialPaginated = normalizePaginated(conversationsProp);
     const [composer, setComposer] = useState('');
@@ -304,10 +295,6 @@ export default function AiIndexPage({
     const [pendingAttachments, setPendingAttachments] = useState<
         AiChatAttachment[]
     >([]);
-    const [pendingContextAttachments, setPendingContextAttachments] = useState<
-        AiPendingContextAttachment[]
-    >([]);
-    const [contextAttachOpen, setContextAttachOpen] = useState(false);
     const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
     const [dryRunMode, setDryRunMode] = useState(false);
     const [presetsOpen, setPresetsOpen] = useState(false);
@@ -466,7 +453,7 @@ export default function AiIndexPage({
                 { preserveState: false },
             );
         } catch {
-            toast.error('Unable to start a new chat');
+            toast.error(t('ai.unableStartChat'));
         }
     };
 
@@ -511,11 +498,11 @@ export default function AiIndexPage({
     const handleDelete = async (id: string) => {
         try {
             await deleteAiConversation(id);
-            toast.success('Chat eliminata');
+            toast.success(t('ai.chatDeleted'));
             removeConversationsFromSidebar([id]);
             refreshConversationsAfterDelete(conversationId === id);
         } catch {
-            toast.error('Unable to delete the chat');
+            toast.error(t('ai.unableDeleteChat'));
         }
     };
 
@@ -526,7 +513,7 @@ export default function AiIndexPage({
                 only: ['conversations', 'selectedConversation'],
             });
         } catch {
-            toast.error('Unable to update pin');
+            toast.error(t('ai.unableUpdatePin'));
         }
     };
 
@@ -599,7 +586,7 @@ export default function AiIndexPage({
             setListPage(nextPage.current_page);
             setListLastPage(nextPage.last_page);
         } catch {
-            toast.error('Unable to load more chats');
+            toast.error(t('ai.unableLoadMoreChats'));
         } finally {
             setIsLoadingMore(false);
         }
@@ -618,8 +605,8 @@ export default function AiIndexPage({
             await bulkDeleteAiConversations(ids);
             toast.success(
                 ids.length === 1
-                    ? 'Chat eliminata'
-                    : `${ids.length} chat eliminate`,
+                    ? t('ai.chatDeleted')
+                    : t('ai.chatsDeleted', { count: ids.length }),
             );
 
             removeConversationsFromSidebar(ids);
@@ -630,7 +617,7 @@ export default function AiIndexPage({
 
             refreshConversationsAfterDelete(selectedWasDeleted);
         } catch {
-            toast.error('Unable to delete selected chats');
+            toast.error(t('ai.unableDeleteSelectedChats'));
         } finally {
             setIsBulkDeleting(false);
         }
@@ -800,13 +787,10 @@ export default function AiIndexPage({
             conversationIdForStream: string | null;
             baseMessages: ChatMessage[];
             attachments?: AiChatAttachment[];
-            contextAttachments?: AiPendingContextAttachment[];
             approvals?: AiApprovalDecision[];
         },
     ): Promise<boolean> => {
         const attachmentsForMessage = options.attachments ?? [];
-        const contextForMessage = options.contextAttachments ?? [];
-        const contextIds = contextIdsFromPending(contextForMessage);
         const approvalDecisions = options.approvals ?? [];
         const isResume = approvalDecisions.length > 0;
         let approvalsRequested: AiPendingApproval[] = [];
@@ -1004,9 +988,9 @@ export default function AiIndexPage({
 
                             markAssistantError(
                                 assistantMessageId,
-                                'No response from the assistant. Try again.',
+                                t('ai.responseTryAgain'),
                             );
-                            toast.error('No response from the assistant');
+                            toast.error(t('ai.noResponse'));
 
                             return;
                         }
@@ -1038,17 +1022,12 @@ export default function AiIndexPage({
                         setToolHint(null);
                         markAssistantError(
                             assistantMessageId,
-                            error.message || 'Error during response',
+                            error.message || i18n.t('ai.responseError'),
                         );
                     },
                 },
                 attachmentsForMessage.map((attachment) => attachment.id),
                 approvalDecisions,
-                {
-                    itemIds: contextIds.contextItemIds,
-                    fileIds: contextIds.contextFileIds,
-                    promptIds: contextIds.contextPromptIds,
-                },
             );
 
             // Stop: streamAiChat swallows AbortError; handleStop already rolled back UI.
@@ -1086,8 +1065,7 @@ export default function AiIndexPage({
                             entry.id === assistantMessageId
                                 ? {
                                       ...entry,
-                                      content:
-                                          'No response from the assistant. Try again.',
+                                      content: t('ai.responseTryAgain'),
                                       isError: true,
                                   }
                                 : entry,
@@ -1120,9 +1098,7 @@ export default function AiIndexPage({
             setToolHint(null);
 
             const messageText =
-                error instanceof Error
-                    ? error.message
-                    : 'Error during response';
+                error instanceof Error ? error.message : t('ai.responseError');
 
             markAssistantError(assistantMessageId, messageText);
             toast.error(messageText);
@@ -1132,7 +1108,7 @@ export default function AiIndexPage({
     };
 
     const handlePickAttachment = () => {
-        setContextAttachOpen(true);
+        fileInputRef.current?.click();
     };
 
     const handleAttachmentFiles = async (files: FileList | File[]) => {
@@ -1160,7 +1136,7 @@ export default function AiIndexPage({
             toast.error(
                 uploadError instanceof Error
                     ? uploadError.message
-                    : 'Attachment upload failed',
+                    : t('ai.attachmentUploadFailed'),
             );
         } finally {
             setIsUploadingAttachment(false);
@@ -1186,25 +1162,11 @@ export default function AiIndexPage({
         );
     };
 
-    const removePendingContextAttachment = (
-        kind: AiPendingContextAttachment['kind'],
-        id: number,
-    ) => {
-        setPendingContextAttachments((current) =>
-            current.filter(
-                (attachment) =>
-                    !(attachment.kind === kind && attachment.id === id),
-            ),
-        );
-    };
-
     const handleSend = async () => {
         const message = composer.trim();
 
         if (
-            (!message &&
-                pendingAttachments.length === 0 &&
-                pendingContextAttachments.length === 0) ||
+            (!message && pendingAttachments.length === 0) ||
             isStreamingRef.current ||
             isUploadingAttachment
         ) {
@@ -1212,30 +1174,27 @@ export default function AiIndexPage({
         }
 
         if (!message) {
-            toast.error('Write a message in addition to attachments');
+            toast.error(t('ai.writeMessageWithAttachments'));
 
             return;
         }
 
         const attachmentsToSend = pendingAttachments;
-        const contextToSend = pendingContextAttachments;
         const prompt = dryRunMode
             ? `[SIMULATION MODE] Run dry_run=true only; do not write data.\n\n${message}`
             : message;
         setComposer('');
         setPendingAttachments([]);
-        setPendingContextAttachments([]);
 
         try {
             await runStream(prompt, {
                 conversationIdForStream: conversationIdRef.current,
                 baseMessages: messages,
                 attachments: attachmentsToSend,
-                contextAttachments: contextToSend,
             });
         } catch (error) {
             const messageText =
-                error instanceof Error ? error.message : 'Error while sending';
+                error instanceof Error ? error.message : t('ai.sendError');
             toast.error(messageText);
         }
     };
@@ -1296,7 +1255,7 @@ export default function AiIndexPage({
         const userMessage = findPrecedingUserMessage(assistantMessageId);
 
         if (!userMessage) {
-            toast.error('No user message to regenerate');
+            toast.error(t('ai.noUserMessageToRegenerate'));
 
             return;
         }
@@ -1319,7 +1278,7 @@ export default function AiIndexPage({
                     userMessage.id,
                 );
             } catch {
-                toast.error('Unable to prepare regeneration');
+                toast.error(t('ai.unablePrepareRegeneration'));
 
                 return;
             }
@@ -1336,7 +1295,7 @@ export default function AiIndexPage({
         });
 
         if (succeeded && options.asRetry) {
-            toast.success('Message resent');
+            toast.success(t('ai.messageResent'));
         }
     };
 
@@ -1358,7 +1317,7 @@ export default function AiIndexPage({
         const draft = editingDraft.trim();
 
         if (!draft) {
-            toast.error('Message cannot be empty');
+            toast.error(t('ai.messageCannotBeEmpty'));
 
             return;
         }
@@ -1381,7 +1340,7 @@ export default function AiIndexPage({
             try {
                 await truncateAiConversationFrom(conversationId, messageId);
             } catch {
-                toast.error('Unable to edit the message');
+                toast.error(t('ai.unableEditMessage'));
 
                 return;
             }
@@ -1400,7 +1359,7 @@ export default function AiIndexPage({
         const Recognition = getSpeechRecognitionConstructor();
 
         if (!Recognition) {
-            toast.error('Dictation is not supported in this browser');
+            toast.error(t('ai.dictationUnsupported'));
 
             return;
         }
@@ -1413,7 +1372,7 @@ export default function AiIndexPage({
         }
 
         const recognition = new Recognition();
-        recognition.lang = 'it-IT';
+        recognition.lang = speechRecognitionLang(i18n.language);
         recognition.continuous = false;
         recognition.interimResults = false;
         recognitionRef.current = recognition;
@@ -1446,7 +1405,7 @@ export default function AiIndexPage({
         recognition.addEventListener('error', () => {
             setIsListening(false);
             recognitionRef.current = null;
-            toast.error('Dictation error');
+            toast.error(t('ai.dictationError'));
         });
 
         recognition.addEventListener('end', () => {
@@ -1459,20 +1418,22 @@ export default function AiIndexPage({
             setIsListening(true);
         } catch {
             setIsListening(false);
-            toast.error('Unable to start dictation');
+            toast.error(t('ai.unableStartDictation'));
         }
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Assistant" />
+        <AppLayout
+            breadcrumbs={[{ title: t('nav.assistant'), href: aiIndex.url() }]}
+        >
+            <Head title={t('nav.assistant')} />
 
             <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border bg-card">
                 <aside className="flex w-72 shrink-0 flex-col border-r">
                     <div className="flex items-center justify-between gap-2 border-b p-3">
                         <div className="flex items-center gap-2 text-sm font-medium">
-                            <Sparkles className="size-4 text-ai" />
-                            Chat
+                            <Sparkles className="size-4 text-orange-500" />
+                            {t('ai.chat')}
                         </div>
                         <div className="flex items-center gap-1">
                             <Button
@@ -1483,7 +1444,7 @@ export default function AiIndexPage({
                                     selectedIds.size === 0 || isBulkDeleting
                                 }
                                 onClick={() => setConfirmBulkDeleteOpen(true)}
-                                aria-label={t('a11y.deleteSelectedChats')}
+                                aria-label="Delete selected chats"
                             >
                                 <Trash2 className="size-3.5" />
                             </Button>
@@ -1582,12 +1543,8 @@ export default function AiIndexPage({
                                                             }
                                                             aria-label={
                                                                 conversation.pinned_at
-                                                                    ? t(
-                                                                          'a11y.unpinChat',
-                                                                      )
-                                                                    : t(
-                                                                          'a11y.pinChat',
-                                                                      )
+                                                                    ? 'Unpin'
+                                                                    : 'Pin chat'
                                                             }
                                                         >
                                                             <Pin
@@ -1607,9 +1564,7 @@ export default function AiIndexPage({
                                                                     conversation.id,
                                                                 )
                                                             }
-                                                            aria-label={t(
-                                                                'a11y.deleteChat',
-                                                            )}
+                                                            aria-label="Delete chat"
                                                         >
                                                             <Trash2 className="size-3.5" />
                                                         </Button>
@@ -1632,7 +1587,7 @@ export default function AiIndexPage({
                                     >
                                         {isLoadingMore
                                             ? 'Loading…'
-                                            : 'Load more'}
+                                            : t('ai.loadMore')}
                                     </Button>
                                 ) : null}
                             </>
@@ -1731,10 +1686,6 @@ export default function AiIndexPage({
                                 isStreaming={isStreaming}
                                 attachments={pendingAttachments}
                                 onRemoveAttachment={removePendingAttachment}
-                                contextAttachments={pendingContextAttachments}
-                                onRemoveContextAttachment={
-                                    removePendingContextAttachment
-                                }
                                 onAttach={handlePickAttachment}
                                 isUploadingAttachment={isUploadingAttachment}
                                 attachDisabled={
@@ -1752,34 +1703,6 @@ export default function AiIndexPage({
                     </AiChatDropZone>
                 </section>
             </div>
-
-            <AiContextAttachDialog
-                open={contextAttachOpen}
-                onOpenChange={setContextAttachOpen}
-                onAttach={(entries) => {
-                    setPendingContextAttachments((current) => {
-                        const next = [...current];
-
-                        for (const entry of entries) {
-                            if (
-                                !next.some(
-                                    (row) =>
-                                        row.kind === entry.kind &&
-                                        row.id === entry.id,
-                                )
-                            ) {
-                                next.push(entry);
-                            }
-                        }
-
-                        return next;
-                    });
-                }}
-                onPickUploadFiles={() => {
-                    setContextAttachOpen(false);
-                    fileInputRef.current?.click();
-                }}
-            />
 
             <AiActionPresetsDrawer
                 open={presetsOpen}

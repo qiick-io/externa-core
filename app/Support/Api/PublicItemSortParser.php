@@ -45,7 +45,7 @@ final class PublicItemSortParser
 
         if (! is_string($raw)) {
             throw ValidationException::withMessages([
-                'sort' => 'The sort parameter must be a comma-separated string of field names.',
+                'sort' => __('The sort parameter must be a comma-separated string of field names.'),
             ]);
         }
 
@@ -68,7 +68,7 @@ final class PublicItemSortParser
         foreach ($tokens as $token) {
             if (! is_string($token)) {
                 throw ValidationException::withMessages([
-                    'sort' => 'Each sort token must be a string.',
+                    'sort' => __('Each sort token must be a string.'),
                 ]);
             }
             $normalized[] = $token;
@@ -102,7 +102,7 @@ final class PublicItemSortParser
     {
         if (count($tokens) > self::MAX_KEYS) {
             throw ValidationException::withMessages([
-                'sort' => 'A maximum of '.self::MAX_KEYS.' sort keys is allowed.',
+                'sort' => __('A maximum of :max sort keys is allowed.', ['max' => self::MAX_KEYS]),
             ]);
         }
 
@@ -114,7 +114,7 @@ final class PublicItemSortParser
             $token = trim($token);
             if ($token === '' || $token === '-') {
                 throw ValidationException::withMessages([
-                    'sort' => 'Sort tokens must not be empty.',
+                    'sort' => __('Sort tokens must not be empty.'),
                 ]);
             }
 
@@ -127,7 +127,7 @@ final class PublicItemSortParser
 
             if ($name === '' || ! preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $name)) {
                 throw ValidationException::withMessages([
-                    'sort' => "Invalid sort token [{$token}].",
+                    'sort' => __('Invalid sort token [:token].', ['token' => $token]),
                 ]);
             }
 
@@ -140,19 +140,19 @@ final class PublicItemSortParser
             $field = $collection->fields->firstWhere('name', $name);
             if (! $field instanceof CollectionField) {
                 throw ValidationException::withMessages([
-                    'sort' => "Unknown sort field [{$name}].",
+                    'sort' => __('Unknown sort field [:name].', ['name' => $name]),
                 ]);
             }
 
             if (! $this->itemQueryService->isPubliclySortableField($field)) {
                 throw ValidationException::withMessages([
-                    'sort' => "Field [{$name}] is not sortable.",
+                    'sort' => __('Field [:name] is not sortable.', ['name' => $name]),
                 ]);
             }
 
             if ($rules !== null && ! $this->rulesService->fieldAllowed($rules, $name, 'read')) {
                 throw ValidationException::withMessages([
-                    'sort' => "Field [{$name}] is not readable for this role.",
+                    'sort' => __('Field [:name] is not readable for this role.', ['name' => $name]),
                 ]);
             }
 

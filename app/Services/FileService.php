@@ -1120,7 +1120,7 @@ class FileService
         $hash = hash_file('sha256', $absolutePath);
         if ($hash === false) {
             throw ValidationException::withMessages([
-                'file' => ['Unable to hash uploaded file.'],
+                'file' => [__('Unable to hash uploaded file.')],
             ]);
         }
 
@@ -1137,7 +1137,7 @@ class FileService
         $path = $uploadedFile->getRealPath();
         if ($path === false || $path === '') {
             throw ValidationException::withMessages([
-                $field => ['Unable to read uploaded file.'],
+                $field => [__('Unable to read uploaded file.')],
             ]);
         }
 

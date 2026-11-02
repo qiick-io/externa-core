@@ -104,7 +104,7 @@ final class UploadAllowlist
         $extension = SafeUploadMime::extensionOf($fileName);
         if ($extension === '' || ! in_array($extension, $allowed, true)) {
             throw ValidationException::withMessages([
-                $field => ['This file extension is not in the project upload allowlist.'],
+                $field => [__('This file extension is not in the project upload allowlist.')],
             ]);
         }
     }

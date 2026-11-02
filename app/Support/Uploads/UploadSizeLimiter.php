@@ -27,10 +27,7 @@ final class UploadSizeLimiter
 
         if ($size > $maxBytes) {
             throw ValidationException::withMessages([
-                $field => [sprintf(
-                    'The file exceeds the %s upload limit.',
-                    self::formatBytes($maxBytes),
-                )],
+                $field => [__('The file exceeds the :limit upload limit.', ['limit' => self::formatBytes($maxBytes)])],
             ]);
         }
     }
@@ -46,10 +43,7 @@ final class UploadSizeLimiter
 
         if ($size > $phpMax) {
             throw ValidationException::withMessages([
-                $field => [sprintf(
-                    'File is larger than the PHP upload limit (%s). Use chunked upload or raise upload_max_filesize / post_max_size.',
-                    self::formatBytes($phpMax),
-                )],
+                $field => [__('File is larger than the PHP upload limit (:limit). Use chunked upload or raise upload_max_filesize / post_max_size.', ['limit' => self::formatBytes($phpMax)])],
             ]);
         }
     }

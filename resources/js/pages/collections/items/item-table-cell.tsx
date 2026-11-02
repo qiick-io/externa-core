@@ -1,7 +1,7 @@
 import { Check, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { getFieldDisplayName } from '@/lib/collection-field-types';
-import i18n from '@/lib/i18n';
+import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { CollectionFieldRow } from '@/types';
 
@@ -39,7 +39,7 @@ function formatDate(value: unknown): string | null {
         return value;
     }
 
-    return date.toLocaleString();
+    return formatDateTime(date);
 }
 
 function empty(): string {
@@ -146,17 +146,9 @@ function renderTypedValue(type: string, value: unknown): ReactNode {
     switch (type) {
         case 'boolean':
             return value === true || value === 1 || value === '1' ? (
-                <Check
-                    className="size-4 text-foreground"
-                    role="img"
-                    aria-label={i18n.t('a11y.yes')}
-                />
+                <Check className="size-4 text-foreground" aria-label="Yes" />
             ) : (
-                <X
-                    className="size-4 text-muted-foreground"
-                    role="img"
-                    aria-label={i18n.t('a11y.no')}
-                />
+                <X className="size-4 text-muted-foreground" aria-label="No" />
             );
         case 'date':
             return (

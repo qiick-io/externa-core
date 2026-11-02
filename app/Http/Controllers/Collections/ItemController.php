@@ -389,7 +389,7 @@ class ItemController extends Controller
 
         $format = strtolower((string) $request->query('format', 'csv'));
         if (! in_array($format, ['csv', 'json'], true)) {
-            abort(422, 'format must be csv or json.');
+            abort(422, __('format must be csv or json.'));
         }
 
         $filters = $request->query('filter', []);

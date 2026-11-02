@@ -16,72 +16,17 @@
         "hide": "Hide",
         "view": "View",
         "export": "Export",
-        "clearFilters": "Clear filters",
-        "learnMore": "Learn more"
-    },
-    "emptyState": {
-        "collections": {
-            "title": "No collections yet",
-            "description": "Collections group your content fields and items. Create one to get started.",
-            "cta": "Create your first collection",
-            "filteredTitle": "No collections match",
-            "filteredDescription": "Try a different search or clear filters to see all collections.",
-            "trashTitle": "Trash is empty",
-            "trashDescription": "Deleted collections will appear here until you restore or permanently remove them."
-        },
-        "items": {
-            "title": "No items yet",
-            "description": "Add your first content item to this collection.",
-            "cta": "Create your first item",
-            "filteredTitle": "No items match",
-            "filteredDescription": "Try a different search or clear filters to see all items.",
-            "trashTitle": "Trash is empty",
-            "trashDescription": "Deleted items will appear here until you restore or permanently remove them."
-        },
-        "users": {
-            "title": "No users yet",
-            "description": "Invite teammates so they can manage content and settings.",
-            "cta": "Create your first user",
-            "filteredTitle": "No users found",
-            "filteredDescription": "Try a different search or clear filters to see all users.",
-            "trashTitle": "Trash is empty",
-            "trashDescription": "Deleted users will appear here until you restore or permanently remove them."
-        },
-        "apiKeys": {
-            "title": "No API keys yet",
-            "description": "Create an API key to let external apps access the Public CMS API.",
-            "cta": "Create API key"
-        },
-        "roleCollections": {
-            "title": "No collections yet",
-            "description": "Create a collection first, then grant this role access to it.",
-            "cta": "Go to collections",
-            "filteredTitle": "No collections match",
-            "filteredDescription": "Try a different search or clear the filter to see all collections."
-        },
-        "fields": {
-            "title": "No fields yet",
-            "description": "Define field types before entering content for this collection.",
-            "cta": "Add fields"
-        },
-        "dashboard": {
-            "collectionsDescription": "Create a collection to start tracking content volume here.",
-            "collectionsCta": "Create collection",
-            "activityDescription": "Activity will show up as you and your team work in Externa.",
-            "activityCta": "View activity log",
-            "filesDescription": "Upload files to see storage insights on the dashboard.",
-            "filesCta": "Open files",
-            "genericDescription": "Nothing to show here yet."
-        },
-        "files": {
-            "title": "This folder is empty",
-            "description": "Drop files here or use Upload to add media to this folder.",
-            "cta": "Upload file",
-            "trashTitle": "Trash is empty",
-            "trashDescription": "Deleted files and folders will appear here until you restore or permanently remove them.",
-            "dropTitle": "Drop files to upload",
-            "dropDescription": "Release to start uploading, or use the Upload button in the toolbar."
-        }
+        "restore": "Restore",
+        "deletePermanently": "Delete permanently",
+        "created": "Created",
+        "updated": "Updated",
+        "search": "Search",
+        "online": "Online",
+        "offline": "Offline",
+        "sortAscending": "Sort ascending",
+        "sortDescending": "Sort descending",
+        "active": "Active",
+        "name": "Name"
     },
     "roles": {
         "names": {
@@ -157,8 +102,6 @@
     "a11y": {
         "skipToContent": "Skip to content",
         "mainNav": "Main navigation",
-        "breadcrumb": "Breadcrumb",
-        "chatThreadList": "Chat threads",
         "openMenu": "Open menu",
         "search": "Search",
         "removeConditionRule": "Remove condition rule",
@@ -546,21 +489,6 @@
             "notifierTelegramSendTest": "Send Telegram test",
             "notifierTelegramSendTestHint": "Save chat ID and token first, then send a ping immediately (no queue worker needed).",
             "notifiersPrivacyNote": "Event metadata is sent to Slack or Telegram when configured. Review your provider’s data handling for self-hosted deployments.",
-            "deployTitle": "Deploy hooks",
-            "deployDescription": "Named URLs for Vercel, Netlify, Cloudflare Pages, or Forge deploy hooks. URLs are stored encrypted.",
-            "deployHookLabel": "Hook {{number}}",
-            "deployHookName": "Name",
-            "deployHookUrl": "Deploy hook URL",
-            "deployHookUrlHint": "Paste the provider deploy hook URL. It is encrypted at rest and never shown again.",
-            "deployHookUrlConfigured": "A URL is already configured. Leave blank to keep it, or paste a new URL to replace it.",
-            "deployHookAdd": "Add deploy hook",
-            "deployHookRemove": "Remove deploy hook",
-            "deployOnPublish": "Deploy on publish",
-            "deployOnPublishHint": "When enabled, every item publish triggers all configured deploy hooks once.",
-            "deployTrigger": "Deploy now",
-            "deployTriggerHint": "Queues a POST to each configured hook. Requires the deploy.trigger permission and a queue worker unless QUEUE_CONNECTION=sync.",
-            "deployLastRunTitle": "Last deploy run",
-            "deployLastRunNone": "No deploy has been triggered yet.",
             "modules": {
                 "dashboard": "Dashboard",
                 "ai": "Assistant",
@@ -627,20 +555,7 @@
             "sidebar": {
                 "breadcrumb": "Sidebar settings",
                 "head": "Sidebar settings"
-            },
-            "themePresetTitle": "Theme preset",
-            "themePresetDescription": "Pick a built-in palette for the admin. A custom brand colour still overrides primary.",
-            "themePresetTeal": "qiick Teal (default)",
-            "themePresetIndigo": "Indigo",
-            "themePresetViolet": "Violet",
-            "themePresetRose": "Rose",
-            "themePresetSlate": "Slate",
-            "customColorTitle": "Custom brand colour",
-            "customColorDescription": "Optional override for primary. Leave empty to use the selected preset.",
-            "clearCustomColor": "Clear custom colour",
-            "brandContrastWarning": "This brand colour does not meet WCAG AA contrast (4.5:1 text / 3:1 UI). Try a darker or lighter shade.",
-            "presetPreviewLight": "Light",
-            "presetPreviewDark": "Dark"
+            }
         },
         "performance": {
             "breadcrumb": "Performance settings",
@@ -864,10 +779,6 @@
             "previewAs": "Preview as…",
             "livePreview": "Live Preview",
             "livePreviewError": "Could not open Live Preview. Check the collection preview URL.",
-            "livePreviewAt": "Preview at…",
-            "livePreviewAtHint": "Render the item as it will look when scheduled changes go live (max 90 days ahead).",
-            "livePreviewAtOpen": "Open preview",
-            "livePreviewAtInvalid": "Choose a valid time within the next 90 days.",
             "chat": "Chat",
             "revisions": "Revisions",
             "editFields": "Edit fields",
@@ -1252,22 +1163,6 @@
             "bulkForceDeleteTitle": "Delete {{count}} selected collections permanently?",
             "bulkForceDeleteDescription": "Selected collections will be permanently removed. This cannot be undone.",
             "bulkForceDeleteTitleNamed": "Delete collection “{{name}}” permanently?"
-        },
-        "translatableLockedHintConvert": "Locked here because this field already has content. Use Change type / convert to migrate values safely (or create a new field).",
-        "convert": {
-            "menuLabel": "Change type…",
-            "title": "Convert field “{{name}}”",
-            "description": "Migrate stored values to a supported type or translatable shape. Dry-run first to preview failures.",
-            "targetType": "Target type",
-            "translatableHint": "Move values into the default locale, or collapse to a single locale.",
-            "dryRun": "Dry run",
-            "confirm": "Convert",
-            "previewSummary": "ok {{ok}} · failed {{failed}} · drafts {{drafts}} · skipped {{skipped}}",
-            "loadTargetsFailed": "Could not load conversion targets.",
-            "previewFailed": "Dry run failed.",
-            "convertFailed": "Conversion failed.",
-            "success": "Field converted.",
-            "queued": "Field conversion queued."
         }
     },
     "ai": {
@@ -1469,40 +1364,35 @@
         "simulation": "Simulation",
         "simulationHint": "Does not write data",
         "dictationUnsupported": "Dictation is not supported in this browser",
-        "context": {
-            "title": "Attach context",
-            "description": "Add collection items, library files, or saved prompts the assistant should use for this message.",
-            "attachTooltip": "Attach items, files, or saved prompts",
-            "tabs": {
-                "items": "Items",
-                "files": "Files",
-                "prompts": "Prompts"
-            },
-            "searchPlaceholder": "Search…",
-            "searchAria": "Search context",
-            "collectionAria": "Collection",
-            "uploadImport": "Upload import file",
-            "newPrompt": "New prompt",
-            "loading": "Loading…",
-            "emptyItems": "No readable items found.",
-            "emptyFiles": "No files found.",
-            "emptyPrompts": "No saved prompts yet.",
-            "selectedCount": "{{count}} selected",
-            "cancel": "Cancel",
-            "attachSelected": "Attach selected",
-            "promptName": "Name",
-            "promptDescription": "Description",
-            "promptBody": "Prompt body",
-            "savePrompt": "Save prompt",
-            "editPrompt": "Edit prompt",
-            "deletePrompt": "Delete prompt",
-            "promptRequired": "Name and body are required.",
-            "promptSaved": "Prompt saved",
-            "promptSaveFailed": "Could not save prompt",
-            "promptDeleted": "Prompt deleted",
-            "promptDeleteFailed": "Could not delete prompt",
-            "loadFailed": "Could not load context"
-        }
+        "unableStartChat": "Unable to start a new chat",
+        "chatDeleted": "Chat deleted",
+        "unableDeleteChat": "Unable to delete the chat",
+        "unableUpdatePin": "Unable to update pin",
+        "unableLoadMoreChats": "Unable to load more chats",
+        "chatsDeleted": "{{count}} chats deleted",
+        "unableDeleteSelectedChats": "Unable to delete selected chats",
+        "noResponse": "No response from the assistant",
+        "responseError": "Error during response",
+        "attachmentUploadFailed": "Attachment upload failed",
+        "writeMessageWithAttachments": "Write a message in addition to attachments",
+        "noUserMessageToRegenerate": "No user message to regenerate",
+        "unablePrepareRegeneration": "Unable to prepare regeneration",
+        "messageResent": "Message resent",
+        "messageCannotBeEmpty": "Message cannot be empty",
+        "unableEditMessage": "Unable to edit the message",
+        "dictationError": "Dictation error",
+        "unableStartDictation": "Unable to start dictation",
+        "chat": "Chat",
+        "responseTryAgain": "No response from the assistant. Try again.",
+        "sendError": "Error while sending",
+        "loadMore": "Load more",
+        "yesterday": "Yesterday",
+        "thisWeek": "This week",
+        "aWeekAgo": "A week ago",
+        "thisMonth": "This month",
+        "today": "Today",
+        "twoDaysAgo": "2 days ago",
+        "older": "Older"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1947,6 +1837,19 @@
             "bulkDeleteDescription": "Selected users will be soft-deleted.",
             "bulkForceDeleteTitle": "Delete {{count}} selected users permanently?",
             "bulkForceDeleteDescription": "Selected users will be permanently removed. This cannot be undone."
+        },
+        "title": "Users",
+        "newUser": "New user",
+        "searchPlaceholder": "Search users…",
+        "searchTrashPlaceholder": "Search trash…",
+        "sortBy": "Sort by",
+        "activeUsers": "Active users",
+        "columns": {
+            "lastName": "Last name",
+            "firstName": "First name",
+            "email": "Email",
+            "created": "Created",
+            "updated": "Updated"
         }
     },
     "groups": {
@@ -1957,7 +1860,12 @@
             "bulkForceDeleteDescription": "Selected groups will be permanently removed. This cannot be undone.",
             "forceDeleteTitle": "Delete group “{{name}}” permanently?",
             "forceDeleteDescription": "This group will be permanently removed. This cannot be undone."
-        }
+        },
+        "title": "Groups",
+        "newGroup": "New group",
+        "searchPlaceholder": "Search groups…",
+        "searchTrashPlaceholder": "Search trash…",
+        "sortBy": "Sort by"
     },
     "pendingToolCalls": {
         "head": "AI tool approvals",
@@ -1971,7 +1879,27 @@
         "approve": "Approve",
         "reject": "Reject"
     },
-    "deploy": {
-        "button": "Deploy"
+    "richText": {
+        "bold": "Bold",
+        "italic": "Italic",
+        "heading": "Heading",
+        "heading2": "Heading 2",
+        "heading3": "Heading 3",
+        "edit": "Edit",
+        "preview": "Preview",
+        "image": "Image",
+        "chooseImages": "Choose images",
+        "addTag": "Add tag…",
+        "strikethrough": "Strikethrough",
+        "link": "Link",
+        "bulletList": "Bullet list",
+        "orderedList": "Ordered list",
+        "quote": "Quote",
+        "code": "Code",
+        "undo": "Undo",
+        "redo": "Redo",
+        "table": "Table",
+        "linkUrl": "Link URL",
+        "headingLevel": "Heading {{level}}"
     }
 }

@@ -109,7 +109,7 @@ class CollectionPermissionEnforcerService
             return;
         }
 
-        abort(403, 'This action is unauthorized for the collection.');
+        abort(403, __('This action is unauthorized for the collection.'));
     }
 
     /**
@@ -206,7 +206,7 @@ class CollectionPermissionEnforcerService
 
         $data = $this->assembler->assemble($item);
         if (! $this->rulesService->itemMatchesMerged($rules, $data)) {
-            abort(403, 'This item is outside your permission filter.');
+            abort(403, __('This item is outside your permission filter.'));
         }
     }
 
@@ -228,7 +228,7 @@ class CollectionPermissionEnforcerService
         }
 
         throw ValidationException::withMessages([
-            'data' => ['You cannot write fields: '.implode(', ', $denied)],
+            'data' => [__('You cannot write fields: :fields', ['fields' => implode(', ', $denied)])],
         ]);
     }
 
@@ -301,12 +301,12 @@ class CollectionPermissionEnforcerService
     {
         $access = $request->attributes->get('apiAccess');
         if ($access instanceof ApiAccess) {
-            abort(403, 'This action is unauthorized for the collection.');
+            abort(403, __('This action is unauthorized for the collection.'));
         }
 
         $user = $request->user();
         if ($user instanceof User && $this->userHasAnyCollectionGrant($user)) {
-            abort(403, 'This action is unauthorized for the collection.');
+            abort(403, __('This action is unauthorized for the collection.'));
         }
     }
 

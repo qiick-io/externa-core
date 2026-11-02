@@ -12,7 +12,7 @@ trait AuthorizesGraphqlCollectionTrait
     {
         $collection = Collection::query()->where('slug', $slug)->first();
         if ($collection === null) {
-            abort(404, 'Collection not found.');
+            abort(404, __('Collection not found.'));
         }
 
         return $collection;

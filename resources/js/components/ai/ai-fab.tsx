@@ -49,6 +49,7 @@ import type { AiPendingContextAttachment } from '@/lib/ai-context';
 import { contextIdsFromPending } from '@/lib/ai-context';
 import { AI_OPEN_EVENT } from '@/lib/ai-open';
 import type { AiOpenDetail } from '@/lib/ai-open';
+import { speechRecognitionLang } from '@/lib/format';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { index as aiIndex } from '@/routes/ai';
@@ -70,7 +71,7 @@ type InFlightTurn = {
  * @returns {JSX.Element}
  */
 export function AiFab() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { can } = useCan();
     const page = usePage();
     const canUseAi = can(PermissionEnum.CanUseAi);
@@ -416,9 +417,7 @@ export function AiFab() {
             inFlightTurnRef.current = null;
 
             const messageText =
-                error instanceof Error
-                    ? error.message
-                    : 'Error during response';
+                error instanceof Error ? error.message : t('ai.responseError');
 
             setMessages((current) =>
                 current.map((entry) =>
@@ -482,7 +481,7 @@ export function AiFab() {
             toast.error(
                 uploadError instanceof Error
                     ? uploadError.message
-                    : 'Attachment upload failed',
+                    : t('ai.attachmentUploadFailed'),
             );
         } finally {
             setIsUploadingAttachment(false);
@@ -552,7 +551,7 @@ export function AiFab() {
         const userMessage = findPrecedingUserMessage(assistantMessageId);
 
         if (!userMessage) {
-            toast.error('No user message to regenerate');
+            toast.error(t('ai.noUserMessageToRegenerate'));
 
             return;
         }
@@ -581,7 +580,7 @@ export function AiFab() {
 
         if (succeeded && options.asRetry) {
             setComposer('');
-            toast.success('Message resent');
+            toast.success(t('ai.messageResent'));
         }
     };
 
@@ -603,7 +602,7 @@ export function AiFab() {
         const draft = editingDraft.trim();
 
         if (!draft) {
-            toast.error('Message cannot be empty');
+            toast.error(t('ai.messageCannotBeEmpty'));
 
             return;
         }
@@ -633,7 +632,7 @@ export function AiFab() {
         const Recognition = getSpeechRecognitionConstructor();
 
         if (!Recognition) {
-            toast.error('Dictation is not supported in this browser');
+            toast.error(t('ai.dictationUnsupported'));
 
             return;
         }
@@ -646,7 +645,7 @@ export function AiFab() {
         }
 
         const recognition = new Recognition();
-        recognition.lang = 'it-IT';
+        recognition.lang = speechRecognitionLang(i18n.language);
         recognition.continuous = false;
         recognition.interimResults = false;
         recognitionRef.current = recognition;
@@ -679,7 +678,7 @@ export function AiFab() {
         recognition.addEventListener('error', () => {
             setIsListening(false);
             recognitionRef.current = null;
-            toast.error('Dictation error');
+            toast.error(t('ai.dictationError'));
         });
 
         recognition.addEventListener('end', () => {
@@ -692,7 +691,7 @@ export function AiFab() {
             setIsListening(true);
         } catch {
             setIsListening(false);
-            toast.error('Unable to start dictation');
+            toast.error(t('ai.unableStartDictation'));
         }
     };
 

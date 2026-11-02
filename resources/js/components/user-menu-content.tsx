@@ -23,11 +23,11 @@ import type { Appearance } from '@/hooks/use-appearance';
 import { useAppearance } from '@/hooks/use-appearance';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import i18n from '@/lib/i18n';
+import { resetChatStore } from '@/stores/chat/reset';
+import type { User } from '@/types';
 import { logout } from '@/routes';
 import { update as updateLocale } from '@/routes/locale';
 import { edit } from '@/routes/profile';
-import { resetChatStore } from '@/stores/chat/reset';
-import type { User } from '@/types';
 
 type Props = {
     user: User;
@@ -69,7 +69,9 @@ export function UserMenuContent({ user }: Props) {
             {
                 preserveScroll: true,
                 onSuccess: () => {
-                    void i18n.changeLanguage(next);
+                    void i18n.changeLanguage(next).then(() => {
+                        document.documentElement.lang = next.replace('_', '-');
+                    });
                 },
             },
         );

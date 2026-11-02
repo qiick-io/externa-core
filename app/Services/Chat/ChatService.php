@@ -75,7 +75,7 @@ class ChatService
 
         if (count($userIds) < 2 && $groupIds === []) {
             throw ValidationException::withMessages([
-                'user_ids' => 'Add at least one other person or a group.',
+                'user_ids' => __('Add at least one other person or a group.'),
             ]);
         }
 
@@ -91,14 +91,14 @@ class ChatService
 
         if ($users->count() !== count($userIds)) {
             throw ValidationException::withMessages([
-                'user_ids' => 'One or more users are invalid.',
+                'user_ids' => __('One or more users are invalid.'),
             ]);
         }
 
         $groups = UserGroup::query()->whereIn('id', $groupIds)->get();
         if ($groups->count() !== count($groupIds)) {
             throw ValidationException::withMessages([
-                'group_ids' => 'One or more groups are invalid.',
+                'group_ids' => __('One or more groups are invalid.'),
             ]);
         }
 
@@ -659,14 +659,14 @@ class ChatService
 
         if ($users->count() !== count($userIds)) {
             throw ValidationException::withMessages([
-                'user_ids' => 'One or more users are invalid.',
+                'user_ids' => __('One or more users are invalid.'),
             ]);
         }
 
         $groups = UserGroup::query()->whereIn('id', $groupIds)->get();
         if ($groups->count() !== count($groupIds)) {
             throw ValidationException::withMessages([
-                'group_ids' => 'One or more groups are invalid.',
+                'group_ids' => __('One or more groups are invalid.'),
             ]);
         }
 

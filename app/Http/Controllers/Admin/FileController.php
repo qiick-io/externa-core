@@ -322,13 +322,13 @@ class FileController extends Controller
             );
         } catch (\Throwable $exception) {
             throw ValidationException::withMessages([
-                'url' => ['Failed to download URL.'],
+                'url' => [__('Failed to download URL.')],
             ]);
         }
 
         if ($fetched['status'] >= 400) {
             throw ValidationException::withMessages([
-                'url' => ['Remote download failed.'],
+                'url' => [__('Remote download failed.')],
             ]);
         }
 
@@ -336,7 +336,7 @@ class FileController extends Controller
 
         if ($body === '' || strlen($body) > $maxBytes) {
             throw ValidationException::withMessages([
-                'url' => [$body === '' ? 'Remote file is empty.' : 'Remote file is too large (max 25 MB).'],
+                'url' => [$body === '' ? __('Remote file is empty.') : __('Remote file is too large (max 25 MB).')],
             ]);
         }
 
@@ -368,7 +368,7 @@ class FileController extends Controller
 
         if ($tmpPath === false) {
             throw ValidationException::withMessages([
-                'url' => ['Could not create a temporary file.'],
+                'url' => [__('Could not create a temporary file.')],
             ]);
         }
 
@@ -420,7 +420,7 @@ class FileController extends Controller
     {
         if (! $file->isFile()) {
             throw ValidationException::withMessages([
-                'file' => ['Only files can be replaced.'],
+                'file' => [__('Only files can be replaced.')],
             ]);
         }
 
@@ -521,7 +521,7 @@ class FileController extends Controller
     public function thumbnail(Request $request, File $file): StreamedResponse|Response
     {
         if (! $this->fileTransformService->isImage($file)) {
-            abort(422, 'Thumbnails are only available for image files.');
+            abort(422, __('Thumbnails are only available for image files.'));
         }
 
         $validated = $request->validate([
@@ -979,7 +979,7 @@ class FileController extends Controller
         if ($expectedExtension !== null) {
             if ($uploadedExtension !== $expectedExtension) {
                 throw ValidationException::withMessages([
-                    'file' => ["Replacement must use the .{$expectedExtension} extension."],
+                    'file' => [__('Replacement must use the .:extension extension.', ['extension' => $expectedExtension])],
                 ]);
             }
 
@@ -998,7 +998,7 @@ class FileController extends Controller
 
         if ($expectedFamily !== '' && $expectedFamily !== $uploadedFamily) {
             throw ValidationException::withMessages([
-                'file' => ["Replacement must be a {$expectedFamily} file."],
+                'file' => [__('Replacement must be a :family file.', ['family' => $expectedFamily])],
             ]);
         }
     }

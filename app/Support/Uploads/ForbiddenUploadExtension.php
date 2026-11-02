@@ -64,13 +64,13 @@ final class ForbiddenUploadExtension
     {
         if (self::isHardFloor($fileName)) {
             throw ValidationException::withMessages([
-                $field => ['This file type is blocked by the security floor and cannot be enabled.'],
+                $field => [__('This file type is blocked by the security floor and cannot be enabled.')],
             ]);
         }
 
         if (self::isSvgExtension($fileName) && ! app(UploadAllowlist::class)->allowSvg()) {
             throw ValidationException::withMessages([
-                $field => ['SVG uploads are disabled. Enable SVG in Files project settings to allow them (XSS risk).'],
+                $field => [__('SVG uploads are disabled. Enable SVG in Files project settings to allow them (XSS risk).')],
             ]);
         }
     }
