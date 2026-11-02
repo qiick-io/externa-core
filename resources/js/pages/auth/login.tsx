@@ -256,9 +256,15 @@ export default function Login({
                                 type="submit"
                                 className="mt-4 w-full"
                                 disabled={processing}
+                                aria-busy={processing || undefined}
                                 data-test="login-button"
                             >
                                 {processing && <Spinner />}
+                                {processing ? (
+                                    <span className="sr-only" role="status">
+                                        {t('a11y.loading')}
+                                    </span>
+                                ) : null}
                                 {t('auth.login.submit')}
                             </Button>
                         </FieldGroup>
@@ -276,7 +282,11 @@ export default function Login({
             </Form>
 
             {status && (
-                <div className="mb-4 text-center text-sm font-medium text-success">
+                <div
+                    className="mb-4 text-center text-sm font-medium text-success"
+                    role="status"
+                    aria-live="polite"
+                >
                     {status}
                 </div>
             )}

@@ -148,7 +148,13 @@ export default function TwoFactorChallenge() {
                                 type="submit"
                                 className="w-full"
                                 disabled={processing}
+                                aria-busy={processing || undefined}
                             >
+                                {processing ? (
+                                    <span className="sr-only" role="status">
+                                        {t('a11y.loading')}
+                                    </span>
+                                ) : null}
                                 {t('common.continue')}
                             </Button>
 

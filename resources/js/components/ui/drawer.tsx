@@ -45,6 +45,7 @@ function DrawerContent({
     className,
     children,
     showOverlay = true,
+    onOpenAutoFocus,
     ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Content> & {
     showOverlay?: boolean;
@@ -57,6 +58,24 @@ function DrawerContent({
                 'data-[vaul-drawer-direction=right]:inset-y-0 data-[vaul-drawer-direction=right]:right-0 data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:max-w-md data-[vaul-drawer-direction=right]:rounded-l-xl data-[vaul-drawer-direction=right]:border-l',
                 className,
             )}
+            onOpenAutoFocus={(event) => {
+                onOpenAutoFocus?.(event);
+
+                if (event.defaultPrevented) {
+                    return;
+                }
+
+                // Prefer first field/control; fall back to the drawer root so
+                // focus is never left on the trigger (jsdom / reduced-motion).
+                const container = event.currentTarget;
+                const focusTarget =
+                    container.querySelector<HTMLElement>(
+                        'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+                    ) ?? container;
+
+                event.preventDefault();
+                focusTarget.focus();
+            }}
             {...props}
         >
             {children}

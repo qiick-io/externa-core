@@ -175,7 +175,9 @@
         "moreActions": "More actions",
         "configureColumns": "Configure columns",
         "columnOptions": "{{label}} column options",
-        "fieldActions": "Field actions"
+        "fieldActions": "Field actions",
+        "saving": "Saving",
+        "aiAnswerReady": "Assistant reply: {{preview}}"
     },
     "auth": {
         "login": {

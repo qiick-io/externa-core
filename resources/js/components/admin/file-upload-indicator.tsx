@@ -157,18 +157,30 @@ export function FileUploadIndicator({
                 'fixed right-4 bottom-4 z-50 w-full max-w-sm',
                 className,
             )}
+            role="status"
+            aria-live="polite"
+            aria-busy={activeCount > 0 || undefined}
         >
             <Collapsible open={expanded} onOpenChange={setExpanded}>
                 <div className="overflow-hidden rounded-xl border bg-card shadow-xl">
                     <div className="flex items-center gap-2 border-b px-3 py-2.5">
                         {activeCount > 0 ? (
-                            <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
+                            <Loader2
+                                className="size-4 shrink-0 animate-spin text-primary"
+                                aria-hidden="true"
+                            />
                         ) : uploads.some(
                               (upload) => upload.status === 'error',
                           ) ? (
-                            <XCircle className="size-4 shrink-0 text-destructive" />
+                            <XCircle
+                                className="size-4 shrink-0 text-destructive"
+                                aria-hidden="true"
+                            />
                         ) : (
-                            <CheckCircle2 className="size-4 shrink-0 text-success" />
+                            <CheckCircle2
+                                className="size-4 shrink-0 text-success"
+                                aria-hidden="true"
+                            />
                         )}
                         <p className="min-w-0 flex-1 truncate text-sm font-medium">
                             {summaryLabel}
