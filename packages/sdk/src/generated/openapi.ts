@@ -56,6 +56,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/collections/{slug}/items/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Batch create items
+         * @description Create up to `API_MAX_BATCH_SIZE` (default 100) items in one request.
+         *     Each entry is atomic via CreateCollectionItemAction (same validation, activity log,
+         *     and `item.created` webhook as single create). Partial success returns 200 with
+         *     per-index `ok` / `error` results — no separate batch webhook types.
+         */
+        post: operations["batchCreateItems"];
+        /**
+         * Batch soft-delete items
+         * @description Soft-delete up to `API_MAX_BATCH_SIZE` items by id. Each success emits `item.deleted`
+         *     (same model path as single DELETE). Missing ids appear as per-entry failures.
+         */
+        delete: operations["batchDeleteItems"];
+        options?: never;
+        head?: never;
+        /**
+         * Batch update items
+         * @description Update up to `API_MAX_BATCH_SIZE` items. Each entry uses UpdateCollectionItemAction
+         *     (same draft/versioning rules as single PATCH). Emits `item.updated` per success.
+         */
+        patch: operations["batchUpdateItems"];
+        trace?: never;
+    };
     "/collections/{slug}/items/{id}": {
         parameters: {
             query?: never;
@@ -251,6 +284,57 @@ export interface components {
             data: {
                 [key: string]: unknown;
             };
+        };
+        BatchCreateCollectionItemsRequest: {
+            items: {
+                data?: {
+                    [key: string]: unknown;
+                };
+            }[];
+        };
+        BatchUpdateCollectionItemsRequest: {
+            items: {
+                id: number;
+                data?: {
+                    [key: string]: unknown;
+                };
+            }[];
+        };
+        BatchDeleteCollectionItemsRequest: {
+            ids: number[];
+        };
+        BatchResultMeta: {
+            total: number;
+            succeeded: number;
+            failed: number;
+        };
+        BatchItemError: {
+            message: string;
+            status: number;
+            errors?: {
+                [key: string]: string[];
+            };
+        };
+        BatchWriteItemResult: {
+            index: number;
+            ok: boolean;
+            item?: components["schemas"]["CollectionItemResource"];
+            id?: number;
+            error?: components["schemas"]["BatchItemError"];
+        };
+        BatchDeleteItemResult: {
+            index: number;
+            ok: boolean;
+            id?: number;
+            error?: components["schemas"]["BatchItemError"];
+        };
+        BatchWriteItemsResponse: {
+            data: components["schemas"]["BatchWriteItemResult"][];
+            meta: components["schemas"]["BatchResultMeta"];
+        };
+        BatchDeleteItemsResponse: {
+            data: components["schemas"]["BatchDeleteItemResult"][];
+            meta: components["schemas"]["BatchResultMeta"];
         };
         ExpandedFileField: {
             id: number;
@@ -505,6 +589,93 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ItemShowResponse"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    batchCreateItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: components["parameters"]["CollectionSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchCreateCollectionItemsRequest"];
+            };
+        };
+        responses: {
+            /** @description Per-item results (partial success allowed) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchWriteItemsResponse"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    batchDeleteItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: components["parameters"]["CollectionSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchDeleteCollectionItemsRequest"];
+            };
+        };
+        responses: {
+            /** @description Per-id results (partial success allowed) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchDeleteItemsResponse"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    batchUpdateItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: components["parameters"]["CollectionSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchUpdateCollectionItemsRequest"];
+            };
+        };
+        responses: {
+            /** @description Per-item results (partial success allowed) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchWriteItemsResponse"];
                 };
             };
             403: components["responses"]["Forbidden"];
