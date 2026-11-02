@@ -30,6 +30,7 @@ import type {
 import { createSortableList } from '@/lib/create-sortable-list';
 import { evaluateFieldFlags } from '@/lib/field-conditions';
 import { cn } from '@/lib/utils';
+import type { FieldDef } from '@/types';
 
 const inputLike =
     'border-input bg-background ring-offset-background focus-visible:border-ring focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none';
@@ -40,14 +41,6 @@ const SUMMARY_TEXT_TYPES = new Set([
     'wysiwyg',
     'markdown',
 ]);
-
-type FieldDef = {
-    id: number;
-    name: string;
-    type: string;
-    translatable: boolean;
-    settings?: Record<string, unknown> | null;
-};
 
 type DefaultValue =
     | string

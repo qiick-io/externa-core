@@ -34,13 +34,14 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
+import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
-import adminRoutes from '@/lib/admin-routes';
 import { seedGroupPrompt, seedGroupsBulkPrompt } from '@/lib/ai-open';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
+import groupsRoutes from '@/routes/groups';
 import type { AdminGroupRow, BreadcrumbItem, Paginated } from '@/types';
 
 type GroupSortField = 'name' | 'created_at' | 'updated_at';
@@ -116,7 +117,7 @@ export default function AdminGroupsIndex({
     });
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
-        () => [{ title: 'Groups', href: adminRoutes.groups.index() }],
+        () => [{ title: 'Groups', href: groupsRoutes.index.url() }],
         [],
     );
 
@@ -130,7 +131,7 @@ export default function AdminGroupsIndex({
                 overrides.trashed !== undefined ? overrides.trashed : isTrashed;
 
             router.get(
-                adminRoutes.groups.index({
+                groupsRoutes.index.url({
                     query: {
                         search: nextSearch || undefined,
                         sort: nextSort,
@@ -151,19 +152,14 @@ export default function AdminGroupsIndex({
         setDirection(filters.direction ?? 'asc');
     }, [filters.search, filters.sort, filters.direction]);
 
-    useEffect(() => {
-        // Only refetch when the user changes search. Mount / pagination remounts
-        // leave search === filters.search; visiting without `page` would reset to page 1.
-        if (search === (filters.search ?? '')) {
-            return;
-        }
+    const onDebouncedSearch = useCallback(
+        (value: string): void => {
+            visit({ search: value || undefined });
+        },
+        [visit],
+    );
 
-        const timer = setTimeout(() => {
-            visit({ search: search || undefined });
-        }, 350);
-
-        return () => clearTimeout(timer);
-    }, [search, filters.search]); // eslint-disable-line react-hooks/exhaustive-deps
+    useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
 
     useEffect(() => {
         setSelected([]);
@@ -205,7 +201,7 @@ export default function AdminGroupsIndex({
 
     const bulk = (action: string): void => {
         router.post(
-            adminRoutes.groups.bulkActions(),
+            groupsRoutes.bulkActions.url(),
             { ids: selected, action },
             {
                 preserveScroll: true,
@@ -528,7 +524,7 @@ export default function AdminGroupsIndex({
                                                                 size="sm"
                                                                 onClick={() =>
                                                                     router.post(
-                                                                        adminRoutes.groups.restore(
+                                                                        groupsRoutes.restore.url(
                                                                             group.id,
                                                                         ),
                                                                         {},
@@ -626,7 +622,7 @@ export default function AdminGroupsIndex({
 
                     setConfirmingDestructive(true);
                     router.post(
-                        adminRoutes.groups.bulkActions(),
+                        groupsRoutes.bulkActions.url(),
                         { ids: selected, action: pendingBulkAction },
                         {
                             preserveScroll: true,
@@ -666,9 +662,7 @@ export default function AdminGroupsIndex({
 
                     setConfirmingDestructive(true);
                     router.delete(
-                        adminRoutes.groups.forceDelete(
-                            pendingForceDeleteGroupId,
-                        ),
+                        groupsRoutes.forceDelete.url(pendingForceDeleteGroupId),
                         {
                             preserveScroll: true,
                             onFinish: () => setConfirmingDestructive(false),

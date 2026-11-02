@@ -1,4 +1,5 @@
 import { jsonRequestHeaders } from '@/lib/csrf';
+import { requestJson } from '@/lib/http';
 
 /** Custom event name fired when unread notification counts may have changed. */
 export const NOTIFICATIONS_UPDATED_EVENT = 'notifications:updated';
@@ -38,34 +39,6 @@ export type AppNotification = {
     created_at: string;
 };
 
-async function parseResponseError(
-    response: Response,
-    fallbackMessage: string,
-): Promise<string> {
-    try {
-        const payload = (await response.json()) as {
-            message?: string;
-        };
-
-        if (payload.message) {
-            return payload.message;
-        }
-    } catch {
-        /* Non-JSON error body — use fallback message */
-    }
-
-    return fallbackMessage;
-}
-
-async function assertOkResponse(
-    response: Response,
-    fallbackMessage: string,
-): Promise<void> {
-    if (!response.ok) {
-        throw new Error(await parseResponseError(response, fallbackMessage));
-    }
-}
-
 /**
  * Fetches a paginated page of notifications for the authenticated user.
  *
@@ -78,19 +51,14 @@ export async function fetchNotifications(page = 1): Promise<{
     last_page: number;
     total: number;
 }> {
-    const response = await fetch(`/notifications?page=${page}`, {
-        headers: jsonRequestHeaders(),
-        credentials: 'same-origin',
-    });
-
-    await assertOkResponse(response, 'Failed to load notifications');
-
-    return (await response.json()) as {
-        data: AppNotification[];
-        current_page: number;
-        last_page: number;
-        total: number;
-    };
+    return requestJson(
+        `/notifications?page=${page}`,
+        {
+            headers: jsonRequestHeaders(),
+            credentials: 'same-origin',
+        },
+        'Failed to load notifications',
+    );
 }
 
 /**
@@ -99,14 +67,14 @@ export async function fetchNotifications(page = 1): Promise<{
  * @returns Unread count
  */
 export async function fetchUnreadNotificationCount(): Promise<number> {
-    const response = await fetch('/notifications/unread-count', {
-        headers: jsonRequestHeaders(),
-        credentials: 'same-origin',
-    });
-
-    await assertOkResponse(response, 'Failed to load unread count');
-
-    const payload = (await response.json()) as { count: number };
+    const payload = await requestJson<{ count: number }>(
+        '/notifications/unread-count',
+        {
+            headers: jsonRequestHeaders(),
+            credentials: 'same-origin',
+        },
+        'Failed to load unread count',
+    );
 
     return payload.count;
 }
@@ -121,19 +89,19 @@ export async function markNotificationsRead(options?: {
     ids?: string[];
     all?: boolean;
 }): Promise<number> {
-    const response = await fetch('/notifications/read', {
-        method: 'POST',
-        headers: jsonRequestHeaders(),
-        credentials: 'same-origin',
-        body: JSON.stringify({
-            ids: options?.ids,
-            all: options?.all ?? false,
-        }),
-    });
-
-    await assertOkResponse(response, 'Failed to mark notifications read');
-
-    const payload = (await response.json()) as { unread_count: number };
+    const payload = await requestJson<{ unread_count: number }>(
+        '/notifications/read',
+        {
+            method: 'POST',
+            headers: jsonRequestHeaders(),
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                ids: options?.ids,
+                all: options?.all ?? false,
+            }),
+        },
+        'Failed to mark notifications read',
+    );
 
     return payload.unread_count;
 }
@@ -145,16 +113,16 @@ export async function markNotificationsRead(options?: {
  * @returns Updated unread count after the operation
  */
 export async function markNotificationsUnread(ids: string[]): Promise<number> {
-    const response = await fetch('/notifications/unread', {
-        method: 'POST',
-        headers: jsonRequestHeaders(),
-        credentials: 'same-origin',
-        body: JSON.stringify({ ids }),
-    });
-
-    await assertOkResponse(response, 'Failed to mark notifications unread');
-
-    const payload = (await response.json()) as { unread_count: number };
+    const payload = await requestJson<{ unread_count: number }>(
+        '/notifications/unread',
+        {
+            method: 'POST',
+            headers: jsonRequestHeaders(),
+            credentials: 'same-origin',
+            body: JSON.stringify({ ids }),
+        },
+        'Failed to mark notifications unread',
+    );
 
     return payload.unread_count;
 }

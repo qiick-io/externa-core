@@ -9,7 +9,6 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
-import adminRoutes from '@/lib/admin-routes';
 import { downloadPreparedZipUrl } from '@/lib/files-api';
 import {
     fetchNotifications,
@@ -19,6 +18,7 @@ import {
 } from '@/lib/notifications-api';
 import type { AppNotification } from '@/lib/notifications-api';
 import { cn } from '@/lib/utils';
+import files from '@/routes/files';
 
 type NotificationsDrawerProps = {
     open: boolean;
@@ -255,9 +255,7 @@ export function NotificationsDrawer({
                                             className="h-auto px-0 text-muted-foreground hover:text-foreground"
                                         >
                                             <Link
-                                                href={adminRoutes.files.index(
-                                                    folderId,
-                                                )}
+                                                href={files.index.url(folderId)}
                                                 onClick={() =>
                                                     onOpenChange(false)
                                                 }

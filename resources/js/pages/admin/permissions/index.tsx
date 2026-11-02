@@ -20,9 +20,9 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import adminRoutes from '@/lib/admin-routes';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
+import permissionsRoutes from '@/routes/permissions';
 import { edit as editProfile } from '@/routes/profile';
 import type { AdminPermissionRow, BreadcrumbItem, Paginated } from '@/types';
 
@@ -49,18 +49,14 @@ export default function AdminPermissionsIndex({
             },
             {
                 title: t('settings.layout.permissions'),
-                href: adminRoutes.permissions.index(),
+                href: permissionsRoutes.index.url(),
             },
         ],
         [t],
     );
 
     const sync = (): void => {
-        router.post(
-            adminRoutes.permissions.sync(),
-            {},
-            { preserveScroll: true },
-        );
+        router.post(permissionsRoutes.sync.url(), {}, { preserveScroll: true });
     };
 
     return (

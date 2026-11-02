@@ -21,8 +21,8 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
-import adminRoutes from '@/lib/admin-routes';
 import { STRING_LIMITS } from '@/lib/string-limits';
+import users from '@/routes/users';
 import type { AdminUserRow } from '@/types/admin';
 
 const EMPTY_USER_FORM = {
@@ -113,9 +113,9 @@ export function UserFormDrawer({
                 ...data,
                 password: data.password || undefined,
             }));
-            form.put(adminRoutes.users.update(editing.id), opts);
+            form.put(users.update.url(editing.id), opts);
         } else {
-            form.post(adminRoutes.users.store(), opts);
+            form.post(users.store.url(), opts);
         }
     };
 

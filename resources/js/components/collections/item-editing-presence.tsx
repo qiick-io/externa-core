@@ -1,21 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { initialsFromName } from '@/lib/format';
 import type { ItemPresenceUser } from '@/lib/item-presence';
-
-function initials(name: string): string {
-    const parts = name.trim().split(/\s+/).filter(Boolean);
-
-    if (parts.length === 0) {
-        return '?';
-    }
-
-    if (parts.length === 1) {
-        return parts[0]!.slice(0, 2).toUpperCase();
-    }
-
-    return `${parts[0]![0] ?? ''}${parts[1]![0] ?? ''}`.toUpperCase();
-}
 
 /**
  * Avatars + soft-lock take-over for other editors on the same item.
@@ -52,7 +39,7 @@ export function ItemEditingPresence({
                                 className="size-7 border-2 border-background"
                             >
                                 <AvatarFallback className="text-[10px]">
-                                    {initials(
+                                    {initialsFromName(
                                         editor.name ?? `User ${editor.id}`,
                                     )}
                                 </AvatarFallback>

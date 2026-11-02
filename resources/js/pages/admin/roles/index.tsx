@@ -32,10 +32,10 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import adminRoutes from '@/lib/admin-routes';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { edit as editProfile } from '@/routes/profile';
+import rolesRoutes from '@/routes/roles';
 import type { AdminRoleRow, BreadcrumbItem, Paginated } from '@/types';
 
 /**
@@ -79,7 +79,7 @@ export default function AdminRolesIndex({
             },
             {
                 title: t('settings.layout.roles'),
-                href: adminRoutes.roles.index(),
+                href: rolesRoutes.index.url(),
             },
         ],
         [t],
@@ -113,7 +113,7 @@ export default function AdminRolesIndex({
         setDuplicateError(null);
 
         router.post(
-            adminRoutes.roles.duplicate(duplicateRoleId),
+            rolesRoutes.duplicate.url(duplicateRoleId),
             { name: trimmed },
             {
                 preserveScroll: true,
@@ -139,7 +139,7 @@ export default function AdminRolesIndex({
             headerActions={
                 can(PermissionEnum.CanCreateRoles) ? (
                     <Button asChild>
-                        <Link href={adminRoutes.roles.create()}>
+                        <Link href={rolesRoutes.create.url()}>
                             <Plus className="mr-1 size-4" />
                             {t('roles.actions.newRole')}
                         </Link>
@@ -214,7 +214,7 @@ export default function AdminRolesIndex({
                                                             asChild
                                                         >
                                                             <Link
-                                                                href={adminRoutes.roles.edit(
+                                                                href={rolesRoutes.edit.url(
                                                                     role.id,
                                                                 )}
                                                             >
@@ -292,7 +292,7 @@ export default function AdminRolesIndex({
                     }
 
                     setDeleting(true);
-                    router.delete(adminRoutes.roles.destroy(pendingRoleId), {
+                    router.delete(rolesRoutes.destroy.url(pendingRoleId), {
                         preserveScroll: true,
                         onFinish: () => setDeleting(false),
                         onSuccess: () => setPendingRoleId(null),

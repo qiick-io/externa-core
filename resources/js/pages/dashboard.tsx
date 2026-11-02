@@ -30,9 +30,11 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import adminRoutes from '@/lib/admin-routes';
+import { formatBytes } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
+import activityLogs from '@/routes/activity-logs';
+import files from '@/routes/files';
 import type { BreadcrumbItem } from '@/types';
 
 type LatestActivityItem = {
@@ -164,26 +166,6 @@ type DashboardProps = {
 };
 
 type DashboardTab = 'overview' | 'health';
-
-/**
- * Formats a byte count using binary units (B through TB).
- * @param {number} bytes - Raw byte count.
- * @returns {string} Human-readable size string.
- */
-function formatBytes(bytes: number): string {
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    let unitIndex = 0;
-    let value = bytes;
-
-    while (value >= 1024 && unitIndex < units.length - 1) {
-        value = value / 1024;
-        unitIndex += 1;
-    }
-
-    const rounded = unitIndex === 0 ? value.toFixed(0) : value.toFixed(1);
-
-    return `${rounded} ${units[unitIndex]}`;
-}
 
 /**
  * Main dashboard with activity, storage, and upload health widgets.
@@ -595,7 +577,7 @@ export default function Dashboard({
                                                                             size="sm"
                                                                         >
                                                                             <Link
-                                                                                href={adminRoutes.activityLogs.index()}
+                                                                                href={activityLogs.index.url()}
                                                                             >
                                                                                 {t(
                                                                                     'emptyState.dashboard.activityCta',
@@ -614,7 +596,7 @@ export default function Dashboard({
                                         </div>
                                         <div className="flex justify-end">
                                             <Link
-                                                href={adminRoutes.activityLogs.index()}
+                                                href={activityLogs.index.url()}
                                                 className="text-sm underline underline-offset-4"
                                             >
                                                 {t('dashboard.viewAll')}
@@ -802,7 +784,9 @@ export default function Dashboard({
                                                                                     asChild
                                                                                     size="sm"
                                                                                 >
-                                                                                    <Link href="/files">
+                                                                                    <Link
+                                                                                        href={files.index.url()}
+                                                                                    >
                                                                                         {t(
                                                                                             'emptyState.dashboard.filesCta',
                                                                                         )}

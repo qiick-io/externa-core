@@ -74,11 +74,7 @@ export function chatAvatarStackPlan(
     return { shown, overflow: total - shown };
 }
 
-export function initialsFromName(name: string): string {
-    const parts = name.trim().split(/\s+/);
-
-    return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?';
-}
+export { initialsFromName } from '@/lib/format';
 
 function firstString(value: unknown): string {
     if (typeof value === 'string' && value.trim() !== '') {

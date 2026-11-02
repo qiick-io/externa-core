@@ -1,4 +1,4 @@
-import type Echo from 'laravel-echo';
+import type { EchoInstance } from '@/lib/echo';
 import {
     applyLockWhisper,
     buildLockClaim,
@@ -12,8 +12,6 @@ export type ItemPresenceUser = {
     id: number;
     name?: string;
 };
-
-type EchoInstance = Echo<'reverb'>;
 
 type PresenceChannel = {
     here: (cb: (users: ItemPresenceUser[]) => void) => PresenceChannel;

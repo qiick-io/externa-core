@@ -8,17 +8,8 @@ import { Button } from '@/components/ui/button';
 import { createSortableList } from '@/lib/create-sortable-list';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
 import collections from '@/routes/collections';
-import type { CollectionView } from '@/types';
+import type { CollectionView, ItemRow } from '@/types';
 import type { QueryParams } from '@/wayfinder';
-
-type ItemRow = {
-    id: number;
-    data: Record<string, unknown>;
-    displays?: Record<string, string | null>;
-    updated_at?: string | null;
-    has_draft?: boolean;
-    approval_status?: string | null;
-};
 
 export type KanbanColumnPage = {
     value: string;

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/popover';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { formatBytes } from '@/lib/format';
 import type { ChatAttachment } from '@/lib/item-chat-api';
 import { collectionMentionLabel } from '@/lib/item-chat-mentions';
 
@@ -30,18 +31,6 @@ export type AttachCaptionMentionHit =
 
 function isMediaFile(file: File): boolean {
     return file.type.startsWith('image/') || file.type.startsWith('video/');
-}
-
-function formatBytes(size: number): string {
-    if (size < 1024) {
-        return `${size} B`;
-    }
-
-    if (size < 1024 * 1024) {
-        return `${(size / 1024).toFixed(1)} KB`;
-    }
-
-    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function fileExtension(name: string): string {

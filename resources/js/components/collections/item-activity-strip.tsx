@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { History, ScrollText } from 'lucide-react';
-import adminRoutes from '@/lib/admin-routes';
+import activityLogs from '@/routes/activity-logs';
 
 type ActivityEntry = {
     id: number;
@@ -28,7 +28,7 @@ export function ItemActivityStrip({
     userUpdatedName,
     recentActivity = [],
 }: ItemActivityStripProps) {
-    const activityHref = adminRoutes.activityLogs.index({
+    const activityHref = activityLogs.index.url({
         query: {
             subject_type: 'App\\Models\\CollectionItem',
             subject_id: itemId,

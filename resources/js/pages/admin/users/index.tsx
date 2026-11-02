@@ -36,16 +36,17 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
+import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
 import { getInitialsFromParts } from '@/hooks/use-initials';
 import { useOnlineUsers } from '@/hooks/use-online-users';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
-import adminRoutes from '@/lib/admin-routes';
 import { seedUserPrompt, seedUsersBulkPrompt } from '@/lib/ai-open';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { cn } from '@/lib/utils';
+import usersRoutes from '@/routes/users';
 import type { AdminUserRow, BreadcrumbItem, Paginated } from '@/types';
 
 type UserSortField =
@@ -126,7 +127,7 @@ export default function AdminUsersIndex({
     });
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
-        () => [{ title: 'Users', href: adminRoutes.users.index() }],
+        () => [{ title: 'Users', href: usersRoutes.index.url() }],
         [],
     );
 
@@ -140,7 +141,7 @@ export default function AdminUsersIndex({
                 overrides.trashed !== undefined ? overrides.trashed : isTrashed;
 
             router.get(
-                adminRoutes.users.index({
+                usersRoutes.index.url({
                     query: {
                         search: nextSearch || undefined,
                         sort: nextSort,
@@ -161,19 +162,14 @@ export default function AdminUsersIndex({
         setDirection(filters.direction ?? 'desc');
     }, [filters.search, filters.sort, filters.direction]);
 
-    useEffect(() => {
-        // Only refetch when the user changes search. Mount / pagination remounts
-        // leave search === filters.search; visiting without `page` would reset to page 1.
-        if (search === (filters.search ?? '')) {
-            return;
-        }
+    const onDebouncedSearch = useCallback(
+        (value: string): void => {
+            visit({ search: value || undefined });
+        },
+        [visit],
+    );
 
-        const timer = setTimeout(() => {
-            visit({ search: search || undefined });
-        }, 350);
-
-        return () => clearTimeout(timer);
-    }, [search, filters.search]); // eslint-disable-line react-hooks/exhaustive-deps
+    useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
 
     useEffect(() => {
         setSelected([]);
@@ -225,7 +221,7 @@ export default function AdminUsersIndex({
 
     const bulk = (action: string): void => {
         router.post(
-            adminRoutes.users.bulkActions(),
+            usersRoutes.bulkActions.url(),
             { ids: selected, action },
             {
                 preserveScroll: true,
@@ -678,7 +674,7 @@ export default function AdminUsersIndex({
 
                     setConfirmingBulk(true);
                     router.post(
-                        adminRoutes.users.bulkActions(),
+                        usersRoutes.bulkActions.url(),
                         { ids: selected, action: pendingBulkAction },
                         {
                             preserveScroll: true,

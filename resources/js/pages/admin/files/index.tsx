@@ -57,7 +57,6 @@ import { useCan } from '@/hooks/use-can';
 import { useRegisterActiveUploads } from '@/hooks/use-register-active-uploads';
 import AppLayout from '@/layouts/app-layout';
 import { getQueryParam, patchLocationQuery } from '@/lib/admin-query-params';
-import adminRoutes from '@/lib/admin-routes';
 import { openAiWithPrompt, seedFilesBulkPrompt } from '@/lib/ai-open';
 import {
     addFileUpload,
@@ -104,6 +103,7 @@ import {
     notifyNotificationsUpdated,
 } from '@/lib/notifications-api';
 import { toast } from '@/lib/toast';
+import filesRoutes from '@/routes/files';
 import type { BreadcrumbItem } from '@/types';
 import type {
     AdminFileRow,
@@ -419,7 +419,7 @@ export default function AdminFilesIndex({
         const crumbs: BreadcrumbItem[] = [
             {
                 title: t('files.title'),
-                href: adminRoutes.files.index({ query: listQuery }),
+                href: filesRoutes.index.url(undefined, { query: listQuery }),
             },
         ];
 
@@ -427,7 +427,7 @@ export default function AdminFilesIndex({
             for (const crumb of initialBreadcrumbs) {
                 crumbs.push({
                     title: crumb.name,
-                    href: adminRoutes.files.index(crumb.id, {
+                    href: filesRoutes.index.url(crumb.id, {
                         query: listQuery,
                     }),
                 });
@@ -626,10 +626,10 @@ export default function AdminFilesIndex({
             };
 
             if (nextTrashed === 'trashed' || folderId === null) {
-                return adminRoutes.files.index({ query });
+                return filesRoutes.index.url(undefined, { query });
             }
 
-            return adminRoutes.files.index(folderId, { query });
+            return filesRoutes.index.url(folderId, { query });
         },
         [direction, parentId, selectedTagIds, sort, trashed],
     );

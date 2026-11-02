@@ -1,4 +1,5 @@
 import { formRequestHeaders, jsonRequestHeaders } from '@/lib/csrf';
+import { assertOk, parseError } from '@/lib/http';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import type { Paginated } from '@/types/admin';
@@ -278,20 +279,7 @@ export async function uploadAiAttachment(
     });
 
     if (!response.ok) {
-        let detail = 'Attachment upload failed';
-
-        try {
-            const payload = (await response.json()) as {
-                message?: string;
-                errors?: { file?: string[] };
-            };
-
-            detail = payload.errors?.file?.[0] ?? payload.message ?? detail;
-        } catch {
-            /* Use default English error message when response body is not JSON */
-        }
-
-        throw new Error(detail);
+        throw new Error(await parseError(response, 'Attachment upload failed'));
     }
 
     const payload = (await response.json()) as {
@@ -367,18 +355,10 @@ export async function streamAiChat(
     }
 
     if (!response.ok) {
-        let detail = `Chat send failed (${response.status})`;
-
-        try {
-            const payload = (await response.json()) as { message?: string };
-
-            if (payload.message) {
-                detail = payload.message;
-            }
-        } catch {
-            /* Use default error message when response body is not JSON */
-        }
-
+        const detail = await parseError(
+            response,
+            `Chat send failed (${response.status})`,
+        );
         const error = new Error(detail);
         handlers.onError?.(error);
 
@@ -587,9 +567,7 @@ export async function fetchAiImportJobStatus(
         credentials: 'same-origin',
     });
 
-    if (!response.ok) {
-        throw new Error('Unable to read import status');
-    }
+    await assertOk(response, 'Unable to read import status');
 
     return (await response.json()) as AiImportJobStatus;
 }
@@ -629,9 +607,7 @@ export async function fetchAiConversationsPage(
         credentials: 'same-origin',
     });
 
-    if (!response.ok) {
-        throw new Error('Unable to load conversations');
-    }
+    await assertOk(response, 'Unable to load conversations');
 
     const payload = (await response.json()) as
         | LaravelPaginated<AiConversationSummary>
@@ -660,9 +636,7 @@ export async function createAiConversation(
         body: JSON.stringify({ title: title ?? null }),
     });
 
-    if (!response.ok) {
-        throw new Error('Unable to create conversation');
-    }
+    await assertOk(response, 'Unable to create conversation');
 
     const payload = (await response.json()) as {
         conversation: { id: string; title: string };
@@ -686,9 +660,7 @@ export async function deleteAiConversation(
         credentials: 'same-origin',
     });
 
-    if (!response.ok) {
-        throw new Error('Unable to delete chat');
-    }
+    await assertOk(response, 'Unable to delete chat');
 }
 
 /**
@@ -707,9 +679,7 @@ export async function bulkDeleteAiConversations(
         body: JSON.stringify({ ids: conversationIds }),
     });
 
-    if (!response.ok) {
-        throw new Error('Unable to delete selected chats');
-    }
+    await assertOk(response, 'Unable to delete selected chats');
 
     return (await response.json()) as { deleted: number };
 }
@@ -731,9 +701,7 @@ export async function toggleAiConversationPin(conversationId: string): Promise<{
         credentials: 'same-origin',
     });
 
-    if (!response.ok) {
-        throw new Error('Unable to update pin');
-    }
+    await assertOk(response, 'Unable to update pin');
 
     const payload = (await response.json()) as {
         conversation: {
@@ -767,9 +735,7 @@ export async function truncateAiConversationFrom(
         },
     );
 
-    if (!response.ok) {
-        throw new Error('Could not truncate conversation');
-    }
+    await assertOk(response, 'Could not truncate conversation');
 
     return (await response.json()) as { deleted: number };
 }

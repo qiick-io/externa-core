@@ -21,14 +21,8 @@ import { createSortableList } from '@/lib/create-sortable-list';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
 import { cn } from '@/lib/utils';
 import collections from '@/routes/collections';
-import type { CollectionFieldRow, CollectionView } from '@/types';
+import type { CollectionFieldRow, CollectionView, ItemRow } from '@/types';
 import type { QueryParams } from '@/wayfinder';
-
-type ItemRow = {
-    id: number;
-    data: Record<string, unknown>;
-    displays?: Record<string, string | null>;
-};
 
 export type CalendarMonthPayload = {
     field: string;
