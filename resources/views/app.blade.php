@@ -51,15 +51,36 @@
         @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         @inertiaHead
 
-        {{-- Brand hex as-is; .dark switches to --brand-primary-dark via app.css --}}
-        @if (! empty($projectColor))
+        {{-- Theme preset CSS variables (+ optional custom brand hex via --brand-primary) --}}
+        @php
+            $themeCss = $projectThemeCss ?? null;
+            $themeLight = is_array($themeCss['light'] ?? null) ? $themeCss['light'] : [];
+            $themeDark = is_array($themeCss['dark'] ?? null) ? $themeCss['dark'] : [];
+            $brandPrimary = $themeCss['brandPrimary'] ?? $projectColor ?? null;
+            $brandPrimaryDark = $themeCss['brandPrimaryDark'] ?? $projectColorDark ?? $brandPrimary;
+            $brandPrimaryForeground = $themeCss['brandPrimaryForeground'] ?? $projectColorForeground ?? null;
+            $brandPrimaryDarkForeground = $themeCss['brandPrimaryDarkForeground'] ?? $projectColorDarkForeground ?? $brandPrimaryForeground;
+        @endphp
+        @if ($themeLight !== [] || $themeDark !== [] || ! empty($brandPrimary))
             <style>
                 :root {
-                    --brand-primary: {{ $projectColor }};
-                    --brand-primary-foreground: {{ $projectColorForeground ?? '#ffffff' }};
-                    --brand-primary-dark: {{ $projectColorDark ?? $projectColor }};
-                    --brand-primary-dark-foreground: {{ $projectColorDarkForeground ?? $projectColorForeground ?? '#ffffff' }};
+                    @foreach ($themeLight as $cssVar => $cssValue)
+                        --{{ $cssVar }}: {{ $cssValue }};
+                    @endforeach
+                    @if (! empty($brandPrimary))
+                        --brand-primary: {{ $brandPrimary }};
+                        --brand-primary-foreground: {{ $brandPrimaryForeground ?? '#ffffff' }};
+                        --brand-primary-dark: {{ $brandPrimaryDark ?? $brandPrimary }};
+                        --brand-primary-dark-foreground: {{ $brandPrimaryDarkForeground ?? $brandPrimaryForeground ?? '#ffffff' }};
+                    @endif
                 }
+                @if ($themeDark !== [])
+                .dark {
+                    @foreach ($themeDark as $cssVar => $cssValue)
+                        --{{ $cssVar }}: {{ $cssValue }};
+                    @endforeach
+                }
+                @endif
             </style>
         @endif
     </head>

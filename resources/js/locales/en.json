@@ -569,7 +569,20 @@
             "sidebar": {
                 "breadcrumb": "Sidebar settings",
                 "head": "Sidebar settings"
-            }
+            },
+            "themePresetTitle": "Theme preset",
+            "themePresetDescription": "Pick a built-in palette for the admin. A custom brand colour still overrides primary.",
+            "themePresetTeal": "qiick Teal (default)",
+            "themePresetIndigo": "Indigo",
+            "themePresetViolet": "Violet",
+            "themePresetRose": "Rose",
+            "themePresetSlate": "Slate",
+            "customColorTitle": "Custom brand colour",
+            "customColorDescription": "Optional override for primary. Leave empty to use the selected preset.",
+            "clearCustomColor": "Clear custom colour",
+            "brandContrastWarning": "This brand colour does not meet WCAG AA contrast (4.5:1 text / 3:1 UI). Try a darker or lighter shade.",
+            "presetPreviewLight": "Light",
+            "presetPreviewDark": "Dark"
         },
         "performance": {
             "breadcrumb": "Performance settings",

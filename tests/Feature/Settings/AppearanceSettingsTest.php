@@ -123,8 +123,8 @@ test('authorized users can view and update appearance settings', function () {
             ->where('appearance.project_logo_dark.id', $logoDark->id)
             ->where('projectAppearance.projectColor', '#112233')
             ->where('projectAppearance.projectColorDark', '#aabbcc')
-            ->where('projectAppearance.primaryForeground', '#ffffff')
-            ->where('projectAppearance.primaryForegroundDark', '#000000')
+            ->where('projectAppearance.primaryForeground', '#FFFFFF')
+            ->where('projectAppearance.primaryForegroundDark', '#0E171E')
             ->where('projectAppearance.defaultAppearance', 'dark')
             ->where('projectAppearance.logoUrl', fn ($url) => is_string($url) && $url !== '')
             ->where('projectAppearance.logoDarkUrl', fn ($url) => is_string($url) && $url !== '')
@@ -154,8 +154,8 @@ test('light project color yields dark primary foreground in shared appearance', 
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('projectAppearance.projectColor', '#f8fafc')
             ->where('projectAppearance.projectColorDark', '#0f172a')
-            ->where('projectAppearance.primaryForeground', '#000000')
-            ->where('projectAppearance.primaryForegroundDark', '#ffffff')
+            ->where('projectAppearance.primaryForeground', '#0E171E')
+            ->where('projectAppearance.primaryForegroundDark', '#FFFFFF')
         );
 });
 

@@ -10,6 +10,7 @@ return [
 
     'appearance' => [
         'keys' => [
+            'theme_preset',
             'project_color',
             'project_color_dark',
             'project_logo',
@@ -18,6 +19,7 @@ return [
             'default_appearance',
         ],
         'defaults' => [
+            'theme_preset' => 'teal',
             'project_color' => null,
             'project_color_dark' => null,
             'project_logo' => null,
