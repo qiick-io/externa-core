@@ -45,7 +45,9 @@ class FilePermissionGuardService
      * Restrict a files query to rows the role may see when listing.
      * Admin / roles with read_private see everything.
      *
-     * Uses denormalized `effective_access` (no full-tree load).
+     * Uses denormalized `effective_access` (no full-tree load). Fails closed:
+     * only rows resolved to `public` are listed, so a NULL (not yet backfilled)
+     * row is hidden until `files:backfill-effective-access` computes it.
      *
      * @param  Builder<File>  $query
      * @return Builder<File>
@@ -56,10 +58,7 @@ class FilePermissionGuardService
             return $query;
         }
 
-        return $query->where(function (Builder $nested): void {
-            $nested->where('effective_access', '!=', FileAccessEnum::Private->value)
-                ->orWhereNull('effective_access');
-        });
+        return $query->where('effective_access', FileAccessEnum::Public->value);
     }
 
     /**

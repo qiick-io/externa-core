@@ -103,3 +103,67 @@ it('backfill command is idempotent', function (): void {
     $changed = app(FileEffectiveAccessService::class)->backfillAll();
     expect($changed)->toBe(0);
 });
+
+/**
+ * Build the state of a 1.3.0 install right after the column migration: every
+ * row has NULL effective_access (private folder, inheriting child, private file,
+ * public file).
+ *
+ * @return array{hiddenNames: list<string>, publicName: string}
+ */
+function seedUpgradedFromOneThreeZeroFiles(): array
+{
+    $privateFolder = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'legacy-vault',
+        'path' => '/legacy-vault',
+        'disk' => 'assets',
+        'access' => FileAccessEnum::Private->value,
+    ]);
+
+    $inheritingChild = makeStoredFile('legacy-inside-vault.jpg');
+    $inheritingChild->update([
+        'parent_id' => $privateFolder->id,
+        'access' => null,
+        'path' => '/legacy-vault/legacy-inside-vault.jpg',
+    ]);
+
+    makeStoredFile('legacy-private.jpg')->update(['access' => FileAccessEnum::Private->value]);
+    makeStoredFile('legacy-public.jpg');
+
+    File::query()->update(['effective_access' => null]);
+
+    return [
+        'hiddenNames' => ['legacy-inside-vault.jpg', 'legacy-private.jpg'],
+        'publicName' => 'legacy-public.jpg',
+    ];
+}
+
+it('fails closed on NULL effective_access for roles without read_private', function (): void {
+    grantPublicFileActions([FilePermissionActionEnum::Read]);
+    $dataset = seedUpgradedFromOneThreeZeroFiles();
+
+    $response = $this->getJson('/api/v1/files')->assertOk();
+
+    foreach ([...$dataset['hiddenNames'], $dataset['publicName']] as $hiddenName) {
+        $response->assertJsonMissing(['filename' => $hiddenName]);
+    }
+});
+
+it('computes effective_access for a 1.3.0 dataset in the upgrade migration', function (): void {
+    grantPublicFileActions([FilePermissionActionEnum::Read]);
+    $dataset = seedUpgradedFromOneThreeZeroFiles();
+
+    $migration = require database_path('migrations/2026_11_02_174600_backfill_effective_access_on_files_table.php');
+    $migration->up();
+
+    expect(File::query()->whereNull('effective_access')->count())->toBe(0);
+
+    $response = $this->getJson('/api/v1/files')
+        ->assertOk()
+        ->assertJsonFragment(['filename' => $dataset['publicName']]);
+
+    foreach ($dataset['hiddenNames'] as $hiddenName) {
+        $response->assertJsonMissing(['filename' => $hiddenName]);
+    }
+});
