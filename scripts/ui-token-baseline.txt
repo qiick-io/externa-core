@@ -26,4 +26,3 @@ resources/js/components/nav-footer.tsx:palette:text-neutral-800:1
 resources/js/components/realtime/connection-dot.tsx:palette:bg-amber-400:1
 resources/js/components/realtime/connection-dot.tsx:palette:bg-emerald-500:1
 resources/js/pages/admin/users/index.tsx:palette:bg-emerald-500:1
-resources/js/pages/ai/index.tsx:palette:text-orange-500:1

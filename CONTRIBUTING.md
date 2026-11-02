@@ -71,7 +71,7 @@ Rules for changes to the admin UI (`resources/js`). The values live in the linke
   - Spacing: prefer `2` / `3` / `4` / `6` / `8` / `12` for `p` / `m` / `gap` / `space-*`. Avoid off-scale steps (`1.5`, `2.5`, `5`, `7`, `9`, `10`) unless layout-coupled (for example icon-offset `pl-9`).
   - `components/ui` stock primitives are exempt; leave their internals alone.
   - Guardrail: `npm run lint:ui-tokens` (also part of `npm run lint:check`) fails on new arbitrary font sizes and on new/increased raw palette or `#hex` in `className` outside `components/ui` (see `scripts/ui-token-baseline.txt` for existing debt to pay down).
-- **Contrast:** light and dark themes must both pass WCAG 2.2 AA, meaning 4.5:1 for text and 3:1 for UI components, borders and focus indicators. Never convey status by color alone; pair it with text or an icon. Measured key pairs live in [`docs/a11y-contrast-pairs.md`](./docs/a11y-contrast-pairs.md) (light, dark, `html.high-contrast`, `html.high-contrast.dark`). Keep `prefers-contrast: more` and `html.high-contrast` token blocks in sync.
+- **Contrast:** light and dark themes must both pass WCAG 2.2 AA, meaning 4.5:1 for text and 3:1 for UI components, borders and focus indicators. Never convey status by color alone; pair it with text or an icon. Measured key pairs live in [`docs/a11y-contrast-pairs.md`](./docs/a11y-contrast-pairs.md) (light, dark, `html.high-contrast`, `html.high-contrast.dark`); CI runs `npm run a11y:contrast`. Keep `prefers-contrast: more` and `html.high-contrast` token blocks in sync.
 - **Accessibility (WCAG 2.2 AA):** expand the checklist below for every UI PR. Tracking detail: [#252](https://github.com/qiick-io/externa-core/issues/252)–[#255](https://github.com/qiick-io/externa-core/issues/255).
   - Decorative Lucide icons: `aria-hidden="true"` unless the icon alone carries meaning (then `role="img"` + translated `aria-label`).
   - Icon-only controls: accessible name from `a11y.*` (or feature) keys in **en / de / it**.
@@ -79,9 +79,14 @@ Rules for changes to the admin UI (`resources/js`). The values live in the linke
   - Forms: every control has a programmatic label; errors use `aria-invalid` + `aria-describedby` (shadcn `Field*` — #231); help text via `FieldDescription`.
   - Focus: visible ring (≥3:1) on every interactive element; restore focus after dialogs/drawers close (#254).
   - Live regions for async feedback; no status by colour alone.
+  - Reduced motion: OS `prefers-reduced-motion` always wins; `html.reduce-motion` can force on. Prefer targeted overlay `animation: none` over global `*` duration overrides so Radix/vaul Presence still unmounts (#254).
   - Skip link first focusable → `#main-content`; exactly one `<main>` per page.
   - Test at 320px width and ~400% zoom; never set `maximum-scale` / `user-scalable=no` on the viewport meta.
   - One a11y concern per PR when practical (rules, landmarks, forms, tooling).
+  - Lint: `eslint-plugin-jsx-a11y` errors on `components/` / `layouts/` / `hooks/` (shadcn `components/ui/*` ignored — covered by axe); warnings elsewhere with `--max-warnings 0`.
+  - Axe smoke: `tests/Browser/A11ySmokeBrowserTest.php` (critical/serious) gates the `browser` CI check on code PRs.
+  - Manual AT pass: [`docs/a11y-screen-reader-checklist.md`](./docs/a11y-screen-reader-checklist.md) before release.
+  - Third-party limits (TipTap, CodeMirror, Leaflet, …): [`docs/a11y-third-party-limits.md`](./docs/a11y-third-party-limits.md) — labelled wrappers + keyboard alternatives, no forks.
 
 Tracking issues: [#226](https://github.com/qiick-io/externa-core/issues/226) (qiick tokens mapped onto the shadcn variables), [#242](https://github.com/qiick-io/externa-core/issues/242) (AI accent), [#243](https://github.com/qiick-io/externa-core/issues/243) (theme presets), and the rest of the 1.4.0 UI audit (#227–#241).
 
