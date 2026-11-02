@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Resources;
 
+use App\Ai\Concerns\EnforcesAiFileAccessTrait;
 use App\Enums\PermissionEnum;
 use App\Models\File;
 use App\Models\User;
@@ -21,10 +22,12 @@ use Laravel\Mcp\Support\UriTemplate;
 
 #[Name('file_metadata')]
 #[Title('File metadata')]
-#[Description('File metadata by id (no binary payload).')]
+#[Description('File metadata by id (no binary payload). Honors file ACL, read_private, and API key files_scope.')]
 #[MimeType('application/json')]
 class FileMetadata extends Resource implements HasUriTemplate
 {
+    use EnforcesAiFileAccessTrait;
+
     public function uriTemplate(): UriTemplate
     {
         return new UriTemplate('externa://files/{id}');
@@ -45,7 +48,7 @@ class FileMetadata extends Resource implements HasUriTemplate
         $fileId = (int) $request->get('id', 0);
         $file = File::query()->with('tags')->find($fileId);
 
-        if ($file === null) {
+        if ($file === null || $this->guardAiFileReadable($file) !== null) {
             return Response::error('File not found.');
         }
 

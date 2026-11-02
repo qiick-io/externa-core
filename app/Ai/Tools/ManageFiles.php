@@ -3,9 +3,11 @@
 namespace App\Ai\Tools;
 
 use App\Ai\Concerns\ChecksAiPermissionsTrait;
+use App\Ai\Concerns\EnforcesAiFileAccessTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\AiToolJsonDecoder;
+use App\Enums\FilePermissionActionEnum;
 use App\Enums\FileTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\AiChatAttachment;
@@ -24,6 +26,7 @@ use Stringable;
 class ManageFiles implements Approvable, Tool
 {
     use ChecksAiPermissionsTrait;
+    use EnforcesAiFileAccessTrait;
     use LogsAiToolUseTrait;
     use RequiresDestructiveApprovalTrait;
 
@@ -32,7 +35,7 @@ class ManageFiles implements Approvable, Tool
      */
     protected function writeActions(): array
     {
-        return ['create', 'create_folder', 'rename', 'move', 'move_many', 'restore', 'save_attachment'];
+        return ['create', 'create_folder', 'rename', 'move', 'move_many', 'restore', 'save_attachment', 'tag'];
     }
 
     /**
@@ -48,7 +51,7 @@ class ManageFiles implements Approvable, Tool
      */
     public function description(): Stringable|string
     {
-        return 'File manager tool. Actions: list/search, create_folder (alias create), rename, move (one file), move_many (bulk: file_ids_json OR source_parent_id into target_parent_id), delete, restore, force_delete, save_attachment. Prefer move_many when relocating multiple items. Never claim move is unavailable.';
+        return 'File manager tool. Actions: list/search, create_folder (alias create), rename, move (one file), tag (replace tags: tags_json), move_many (bulk: file_ids_json OR source_parent_id into target_parent_id), delete, restore, force_delete, save_attachment. Prefer move_many when relocating multiple items. Never claim move is unavailable.';
     }
 
     /**
@@ -65,11 +68,12 @@ class ManageFiles implements Approvable, Tool
                 'rename' => $this->rename($request),
                 'move' => $this->move($request),
                 'move_many' => $this->moveMany($request),
+                'tag' => $this->tag($request),
                 'delete' => $this->softDelete($request->integer('file_id')),
                 'restore' => $this->restore($request->integer('file_id')),
                 'force_delete' => $this->forceDelete($request->integer('file_id')),
                 'save_attachment' => $this->saveAttachment($request),
-                default => 'Error: Unknown action. Use list, search, create_folder, rename, move, move_many, delete, restore, force_delete, or save_attachment.',
+                default => 'Error: Unknown action. Use list, search, create_folder, rename, move, move_many, tag, delete, restore, force_delete, or save_attachment.',
             };
         });
     }
@@ -81,10 +85,11 @@ class ManageFiles implements Approvable, Tool
     {
         return [
             'action' => $schema->string()->required()->description(
-                'list|search|create_folder|create|rename|move|move_many|delete|restore|force_delete|save_attachment'
+                'list|search|create_folder|create|rename|move|move_many|tag|delete|restore|force_delete|save_attachment'
             ),
             'file_id' => $schema->integer()->description('Required for rename, move, delete, restore, force_delete'),
             'file_ids_json' => $schema->string()->description('JSON array of file ids for move_many, e.g. [1,2,3]'),
+            'tags_json' => $schema->string()->description('JSON array of tag names for tag, e.g. ["hero","draft"]'),
             'attachment_id' => $schema->string(),
             'parent_id' => $schema->integer()->description('Parent folder id for list/create_folder; 0 or omit = root'),
             'source_parent_id' => $schema->integer()->description('For move_many without file_ids_json: move all direct children of this folder; 0 = root'),
@@ -118,6 +123,10 @@ class ManageFiles implements Approvable, Tool
             $query->whereNull('parent_id');
         }
 
+        if ($error = $this->constrainAiReadableFiles($query)) {
+            return $error;
+        }
+
         if ($request->filled('query')) {
             $term = '%'.trim((string) $request->string('query')).'%';
             $query->where(function ($inner) use ($term): void {
@@ -140,6 +149,7 @@ class ManageFiles implements Approvable, Tool
                 'storage_path',
                 'mime_type',
                 'size',
+                'effective_access',
                 'deleted_at',
             ]);
 
@@ -213,6 +223,10 @@ class ManageFiles implements Approvable, Tool
             return $error;
         }
 
+        if ($error = $this->guardAiFileAction(FilePermissionActionEnum::Update)) {
+            return $error;
+        }
+
         $file = File::query()->find($request->integer('file_id'));
 
         if ($file === null) {
@@ -241,6 +255,44 @@ class ManageFiles implements Approvable, Tool
             'file' => $this->serializeFile($file),
             'url' => route('files.index', array_filter(['folder' => $file->parent_id])),
         ], JSON_PRETTY_PRINT) ?: '{}';
+    }
+
+    private function tag(Request $request): string
+    {
+        if ($error = $this->requirePermission(PermissionEnum::CanEditFiles)) {
+            return $error;
+        }
+
+        if ($error = $this->guardAiFileAction(FilePermissionActionEnum::Update)) {
+            return $error;
+        }
+
+        $file = File::query()->find($request->integer('file_id'));
+
+        if ($file === null) {
+            return 'Error: File not found.';
+        }
+
+        $decoded = json_decode((string) $request->string('tags_json', '[]'), true);
+
+        if (! is_array($decoded)) {
+            return 'Error: tags_json must be a JSON array of strings.';
+        }
+
+        /** @var list<string> $tagNames */
+        $tagNames = array_values(array_filter(array_map(
+            static fn (mixed $tag): string => is_string($tag) ? trim($tag) : '',
+            $decoded,
+        ), static fn (string $tag): bool => $tag !== ''));
+
+        $file = app(FileService::class)->syncTags($file, $tagNames);
+        $this->logAiMutation($file, 'tag_file');
+
+        return json_encode([
+            'ok' => true,
+            'file_id' => $file->id,
+            'tags' => $file->tags->pluck('name')->values()->all(),
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '{}';
     }
 
     private function moveMany(Request $request): string
