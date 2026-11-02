@@ -1,4 +1,3 @@
-import { index as aiIndex, show as aiShow } from '@/routes/ai';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Pin, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -56,6 +55,7 @@ import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
+import { index as aiIndex, show as aiShow } from '@/routes/ai';
 import type { Paginated } from '@/types/admin';
 
 type ConversationSummary = AiConversationSummary;

@@ -1,6 +1,3 @@
-import { logout } from '@/routes';
-import { update as updateLocale } from '@/routes/locale';
-import { edit } from '@/routes/profile';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     Accessibility,
@@ -26,6 +23,9 @@ import type { Appearance } from '@/hooks/use-appearance';
 import { useAppearance } from '@/hooks/use-appearance';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import i18n from '@/lib/i18n';
+import { logout } from '@/routes';
+import { update as updateLocale } from '@/routes/locale';
+import { edit } from '@/routes/profile';
 import { resetChatStore } from '@/stores/chat/reset';
 import type { User } from '@/types';
 
