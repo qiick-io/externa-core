@@ -340,7 +340,7 @@ export default function ItemRevisions({
                                                         )
                                                     }
                                                 >
-                                                    <span className="font-medium">
+                                                    <span className="font-mono font-medium">
                                                         #{revision.id}
                                                         {active
                                                             ? ' · selected'

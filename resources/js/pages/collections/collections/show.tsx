@@ -104,8 +104,9 @@ export default function CollectionsShow({
             <PageLayout
                 description={
                     <>
-                        {collection.slug} · Singleton collection. Values for
-                        this entry. Define field types and order under{' '}
+                        <span className="font-mono">{collection.slug}</span> ·
+                        Singleton collection. Values for this entry. Define
+                        field types and order under{' '}
                         <Link
                             className="text-primary underline-offset-4 hover:underline"
                             href={FieldController.index.url(collection.id)}
