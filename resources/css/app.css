@@ -220,8 +220,11 @@
     --overlay: color-mix(in srgb, var(--color-ink-950) 60%, transparent);
     --border: var(--color-ink-200);
     --input: var(--color-ink-400);
-    /* teal-600 ≥3:1 on white (qiick #226 / #227); brand override still wins */
-    --ring: var(--brand-primary, var(--color-teal-600));
+    /*
+     * teal-600 ≥3:1 on white (#227). Not tied to the brand variable; a custom
+     * brand reaches the ring only via the theme block when it is ≥3:1 (#453).
+     */
+    --ring: var(--color-teal-600);
     --chart-1: var(--color-teal-600);
     --chart-2: var(--color-blue-500);
     --chart-3: var(--color-amber-500);
@@ -235,7 +238,7 @@
     --sidebar-accent: var(--color-teal-50);
     --sidebar-accent-foreground: var(--color-teal-800);
     --sidebar-border: var(--color-ink-200);
-    --sidebar-ring: var(--brand-primary, var(--color-teal-600));
+    --sidebar-ring: var(--color-teal-600);
     /* AI accent (violet only — never brand/primary) */
     --ai: var(--color-violet-600);
     --ai-hover: var(--color-violet-700);
@@ -288,11 +291,8 @@
     --overlay: color-mix(in srgb, var(--color-ink-950) 70%, transparent);
     --border: var(--color-ink-800);
     --input: var(--color-ink-500);
-    /* teal-400 ≥3:1 on ink-950 (#227); brand override still wins */
-    --ring: var(
-        --brand-primary-dark,
-        var(--brand-primary, var(--color-teal-400))
-    );
+    /* teal-400 ≥3:1 on ink-950 (#227); contrast-checked brand ring via theme block (#453) */
+    --ring: var(--color-teal-400);
     --chart-1: var(--color-teal-400);
     --chart-2: var(--color-blue-400);
     --chart-3: var(--color-amber-400);
@@ -305,10 +305,7 @@
     --sidebar-accent: var(--color-teal-950);
     --sidebar-accent-foreground: var(--color-teal-200);
     --sidebar-border: var(--color-ink-800);
-    --sidebar-ring: var(
-        --brand-primary-dark,
-        var(--brand-primary, var(--color-teal-400))
-    );
+    --sidebar-ring: var(--color-teal-400);
     /* AI accent dark: light violet fill + ink foreground for AA */
     --ai: var(--color-violet-300);
     --ai-hover: var(--color-violet-200);

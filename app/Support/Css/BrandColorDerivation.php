@@ -85,6 +85,15 @@ final class BrandColorDerivation
             : self::FOREGROUND_DARK;
     }
 
+    /**
+     * Whether a colour meets the WCAG 1.4.11 non-text minimum (3:1) on a surface,
+     * e.g. a focus ring or focused border on the page background.
+     */
+    public static function meetsUiContrast(string $hex, string $surfaceBackground): bool
+    {
+        return self::contrastRatio($hex, $surfaceBackground) >= self::UI_CONTRAST_MIN;
+    }
+
     public static function contrastRatio(string $backgroundHex, string $foregroundHex): float
     {
         $l1 = self::relativeLuminance($backgroundHex);
