@@ -1,5 +1,6 @@
 # Baseline of known raw Tailwind palette / #hex className usages outside components/ui.
 # Maintained with scripts/check-ui-tokens.mjs (#240). Do not grow counts; fix call sites instead.
+# Ratchet (#452): counts must match the scan exactly; remove or lower entries once debt is paid.
 # Format: path:kind:token:count
 # Excluded: components/ui/*, pages/welcome.tsx, components/app-logo-icon.tsx
 resources/js/components/admin/file-picker-drawer.tsx:palette:text-amber-500:1
@@ -7,26 +8,11 @@ resources/js/components/admin/files/file-card.tsx:palette:fill-amber-400:1
 resources/js/components/admin/files/file-card.tsx:palette:text-amber-400:1
 resources/js/components/admin/files/file-preview.tsx:palette:text-amber-500:1
 resources/js/components/admin/files/folder-picker-dialog.tsx:palette:text-amber-500:1
-resources/js/components/ai/ai-fab.tsx:palette:bg-zinc-400:1
-resources/js/components/ai/ai-fab.tsx:palette:from-orange-500:1
-resources/js/components/ai/ai-fab.tsx:palette:ring-orange-300:1
-resources/js/components/ai/ai-fab.tsx:palette:to-amber-400:1
-resources/js/components/ai/ai-fab.tsx:palette:via-rose-500:1
 resources/js/components/ai/ai-file-cards.tsx:palette:text-amber-500:1
 resources/js/components/app-header.tsx:palette:bg-neutral-800:1
 resources/js/components/app-header.tsx:palette:text-neutral-100:1
 resources/js/components/app-header.tsx:palette:text-neutral-500:1
 resources/js/components/app-header.tsx:palette:text-neutral-900:1
-resources/js/components/app-sidebar.tsx:palette:text-orange-300:3
-resources/js/components/app-sidebar.tsx:palette:text-orange-700:3
-resources/js/components/appearance-tabs.tsx:palette:bg-neutral-100:1
-resources/js/components/appearance-tabs.tsx:palette:bg-neutral-200/60:1
-resources/js/components/appearance-tabs.tsx:palette:bg-neutral-700:1
-resources/js/components/appearance-tabs.tsx:palette:bg-neutral-700/60:1
-resources/js/components/appearance-tabs.tsx:palette:bg-neutral-800:1
-resources/js/components/appearance-tabs.tsx:palette:text-neutral-100:1
-resources/js/components/appearance-tabs.tsx:palette:text-neutral-400:1
-resources/js/components/appearance-tabs.tsx:palette:text-neutral-500:1
 resources/js/components/chat/chat-outgoing-attach-preview.tsx:palette:bg-emerald-500/80:1
 resources/js/components/collections/dynamic-item-fields.tsx:palette:text-amber-500:1
 resources/js/components/collections/item-editing-presence.tsx:palette:text-amber-400:1
@@ -37,21 +23,7 @@ resources/js/components/nav-footer.tsx:palette:text-neutral-100:1
 resources/js/components/nav-footer.tsx:palette:text-neutral-300:1
 resources/js/components/nav-footer.tsx:palette:text-neutral-600:1
 resources/js/components/nav-footer.tsx:palette:text-neutral-800:1
-resources/js/components/password-input.tsx:palette:bg-red-500:1
-resources/js/components/password-input.tsx:palette:text-amber-600:1
 resources/js/components/realtime/connection-dot.tsx:palette:bg-amber-400:1
 resources/js/components/realtime/connection-dot.tsx:palette:bg-emerald-500:1
-resources/js/components/settings-form-actions.tsx:palette:text-neutral-400:1
-resources/js/components/settings-form-actions.tsx:palette:text-neutral-600:1
-resources/js/components/sidebar-unread-badge.tsx:palette:bg-red-500:1
-resources/js/components/text-link.tsx:palette:decoration-neutral-300:1
-resources/js/components/text-link.tsx:palette:decoration-neutral-500:1
-resources/js/layouts/auth/auth-split-layout.tsx:palette:bg-zinc-900:1
 resources/js/pages/admin/users/index.tsx:palette:bg-emerald-500:1
 resources/js/pages/ai/index.tsx:palette:text-orange-500:1
-resources/js/pages/auth/two-factor-challenge.tsx:palette:decoration-neutral-300:1
-resources/js/pages/auth/two-factor-challenge.tsx:palette:decoration-neutral-500:1
-resources/js/pages/collections/items/revisions.tsx:palette:bg-amber-500/10:1
-resources/js/pages/settings/profile.tsx:palette:decoration-neutral-300:1
-resources/js/pages/settings/profile.tsx:palette:decoration-neutral-500:1
-resources/js/pages/settings/security.tsx:palette:text-neutral-600:1
