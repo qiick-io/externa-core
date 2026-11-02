@@ -16,7 +16,6 @@ import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import adminRoutes from '@/lib/admin-routes';
 import { cn, toUrl } from '@/lib/utils';
-import type { NavItem } from '@/types';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editSidebar } from '@/routes/appearance/sidebar';
 import { edit as editPerformance } from '@/routes/performance';
@@ -29,6 +28,7 @@ import { edit as editIntegrations } from '@/routes/project/integrations';
 import { edit as editLocalization } from '@/routes/project/localization';
 import { edit as editProjectSecurity } from '@/routes/project/security';
 import { edit as editSecurity } from '@/routes/security';
+import type { NavItem } from '@/types';
 
 const DEFAULT_REPORT_BUG_URL =
     'https://github.com/qiick-io/externa-core/issues/new?template=bug_report.yml';
