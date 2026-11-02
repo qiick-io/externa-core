@@ -13,11 +13,25 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 ## [1.4.0] - 2026-11-02
 
-### Changed
-- Shared UI helpers: `lib/http` (`parseError`/`assertOk`/`requestJson`), `lib/format` (bytes/initials/datetime-local), `useDebouncedServerSearch`; admin pages use Wayfinder instead of `lib/admin-routes`; shared `FieldDef`/`ItemRow`/`EchoInstance` types; re-enable `no-explicit-any` and lint against hard-coded admin paths (#284).
+### Upgrade notes
+- **Docker workers as www-data (#320):** existing bind-mounted `storage/` / `bootstrap/cache` volumes that were created as root may need a one-time `chown -R www-data:www-data storage bootstrap/cache` (or recreate the volume). The entrypoint still `chown`s when it starts as root.
+- **Run `php artisan externa:upgrade`** (or `migrate` + `permissions:sync`). It now computes `files.effective_access` for existing files (no manual backfill), re-owns API keys created by deactivated users to the first active super-admin, and grants the built-in `admin` role the new `deploy.trigger` and `ai.prompts.manage` permissions (#434, #439).
+- **AI write tools are denied by default** (#203): chat keeps the read actions of `Manage*` tools; writes need `AI_WRITE_TOOLS=true` plus the per-tool allowlist and human approval (#439).
+- **Security headers are on by default** (#187): review `SECURITY_*` if you embed the admin in a frame or need a custom CSP.
+- **PostgreSQL 15 or later** is required for the `collections_items_values` null-locale unique index (`NULLS NOT DISTINCT`, #278).
 
-### Fixed
-- AI import-job polling cancels on unmount/new job and pauses while the tab is hidden; theme prefers-color-scheme listener binds once and can be torn down (#284).
+### Security
+- Secure-by-default install: registration off for fresh installs, IP throttle (5/min) on register/forgot/reset, passkeys limiter keyed on IP, Docker entrypoint refuses `change-me` DB passwords in production, safer `.env.example` (`APP_DEBUG=false`, webhook token guidance) (#272).
+- Outbound webhooks send `X-Externa-Signature-V2` over `"{timestamp}.{body}"` (legacy `X-Externa-Signature` kept for one minor); inbound collection-import requires `X-AI-Webhook-Timestamp` within 300s, signs `"{timestamp}.{body}"`, and rejects replayed signatures (#273).
+- Harden `SafeRemoteUrlValidator`: explicit CIDR denylist (CGNAT 100.64/10), DNS pin via `CURLOPT_RESOLVE`, DNS-pinned byte-capped downloads, generic user errors, OIDC discovery/endpoint SSRF checks (`OIDC_ALLOW_PRIVATE_HOSTS`) (#274).
+- Run Horizon, Reverb, scheduler, Pulse and queue workers as `www-data` (via `setpriv`) instead of root in the production image entrypoint (#320).
+- Bind API keys to an optional owner (`owner_id`) so effective access is key role ∩ scopes ∩ owner ACL; revoke keys when the owner is deactivated or deleted (#215).
+- Add per-key `files_scope` (`none`|`read`|`all`) so scoped API keys can opt out of Files API access; migration defaults existing keys to `all`; response cache factors include the setting (#322).
+- Add project Files upload allowlist (extensions/MIME) with SVG opt-in; hard floor still blocks executables/HTML/SSI even if listed (#327).
+- Bump production npm deps for `follow-redirects` / `qs` audit findings (#341).
+- **Files API:** on installs upgraded from 1.3.0, `GET /api/v1/files` no longer lists private files, or files in private folders, to roles without `read_private`; a file whose `effective_access` is not computed yet is hidden instead of treated as public (#434).
+- **MCP authorization parity:** MCP resources and tools enforce the same collection, item, field and file permissions as the chat tools, plus the API key's `collection_slugs`, `files_scope` and `read_only`. `publish_item` and `tag_file` run through the AI tool executor (kill switch, allowlist, human approval) and the admin publish checks, so publishing no longer fires deploy hooks without approval (#435).
+- **Security headers for the admin UI** (#187): `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and a default `Content-Security-Policy` on web/Inertia responses (API, GraphQL and responses with their own CSP are skipped). Env keys: `SECURITY_HEADERS_ENABLED` (default `true`), `SECURITY_CSP`, `SECURITY_X_FRAME_OPTIONS` (default `DENY`), `SECURITY_REFERRER_POLICY` (default `strict-origin-when-cross-origin`), `SECURITY_PERMISSIONS_POLICY` (default `camera=(), microphone=(self), geolocation=(), payment=(), usb=()`).
 
 ### Added
 - Optional first-party MCP server (`/mcp`, `laravel/mcp`): `AI_MCP_ENABLED` / `AI_MCP_WRITE_ENABLED`, owned API keys with `mcp:read`/`mcp:write` scopes, permission-aware tools/resources over the shared AI tool registry, dedicated `mcp` rate limiter; OAuth/Passport deferred (#121).
@@ -40,8 +54,14 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Shared permission-aware AI tool registry (`AiToolRegistryService` / `AiToolExecutorService`) with chat + MCP adapters, config gates (`ai.tools.*`), and AuthZ parity tests (#202).
 - Admin a11y phase 2 controls: `html lang` sync on locale change, content-locale `lang` + flag text alternatives, native field-row button, required-field text marker, and expanded `a11y.*` icon-only labels (en/de/it) (#253).
 - Admin a11y phase 2 foundations: `Icon` decorative-by-default semantics, translated dialog/sheet Close + sidebar toggle, unread/notifications names, and new `a11y.*` keys with locale parity coverage (#253).
+- Add `@qiick/externa-sdk` TypeScript Public CMS client under `packages/sdk` (OpenAPI-generated types + CI freshness check); initial package version `0.1.0` (#119).
+- Public CMS `sort` query param (REST CSV / GraphQL `[String!]`, max 3 keys, `-` = desc) for system `id`/`created_at`/`updated_at`/`published_at` and sortable fields; expose `published_at` on item payloads; indexes on `(collection_id, published_at|created_at|updated_at)` (#224).
+- Add Vitest frontend unit runner and CI step for `resources/js` lib/hook tests (#285).
+- Add Pest coverage for GraphQL write AuthZ, chat ownership routes, cleanup commands, and embedding job (#286).
+- AI tool actions `ManageCollectionItems` `publish` and `ManageFiles` `tag` (write actions, approval required) (#435).
 
 ### Changed
+- Shared UI helpers: `lib/http` (`parseError`/`assertOk`/`requestJson`), `lib/format` (bytes/initials/datetime-local), `useDebouncedServerSearch`; admin pages use Wayfinder instead of `lib/admin-routes`; shared `FieldDef`/`ItemRow`/`EchoInstance` types; re-enable `no-explicit-any` and lint against hard-coded admin paths (#284).
 - Self-host Geist / Geist Mono via `@fontsource-variable/*` (Vite-bundled); drop Instrument Sans and `fonts.bunny.net` from the admin shell; apply `font-mono` to obvious slugs, IDs, API paths, and versions (#228).
 - Replace hand-styled native `<select>` with shadcn `NativeSelect` (activity-log filters, role form, item filters, field settings, layout editor, blocks/m2a, chat drawer) (#232).
 - Sidebar brand active state uses teal `--sidebar-accent*` tokens with de-emphasized inactive items (`ink-600`), a 3px teal left bar on `data-[active=true]`, and settings secondary nav aligned to `SidebarMenu` / `SidebarGroupLabel` styling (#238).
@@ -64,23 +84,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Admin a11y landmarks polish: real `<nav aria-label>` in sidebar (desktop + mobile Sheet) and header variant, labelled file-detail/chat asides, translated breadcrumb + item-chat drawer names (#252).
 - Auth forms use shadcn `Field` / `FieldLabel` / `FieldError` with `aria-invalid` + `aria-describedby` and `noValidate` (#231).
 - Semantic status Badge/Alert variants (`success`/`warning`/`info`/`muted`) and replace hardcoded green/emerald/amber/red status surfaces with theme tokens (#235).
-
 - Faster PR → `develop` CI: path-aware stubs for required checks; Pest PHP 8.4-only + Vitest on code PRs; full matrix + browser on push/`main`/nightly (#381).
-
-
-### Fixed
-- Axe smoke: Playwright `inDarkMode`/`inLightMode` first paint + sync `color-scheme` with `.dark` (CSS + boot script); underline uses `decoration-muted-foreground`; dashboard overflow panels are named `region` landmarks with `tabIndex={0}` (scrollable-region-focusable) (#255).
-- Dark primary button AA: `.dark` `--primary-foreground` uses dark brand fg / ink-950 (not light `#fff`); placeholder opacity 1; darker dark `--muted-foreground` (ink-200) for axe smoke (#255).
-- Visible focus ring (offset, full-opacity `--ring`) and 3:1 `--input` borders on `button`/`input`/`textarea`/`checkbox`/`select`/`badge` (WCAG 1.4.11 / 2.4.7) (#227).
-- Visible focus ring (offset, full-opacity `--ring` teal-600/teal-400) and 3:1 `--input` (ink-400/500) borders on shadcn UI controls, item-form chrome, and password affordances (WCAG 1.4.11 / 2.4.7) (#227).
-
-### Added
-- Add `@qiick/externa-sdk` TypeScript Public CMS client under `packages/sdk` (OpenAPI-generated types + CI freshness check); initial package version `0.1.0` (#119).
-- Public CMS `sort` query param (REST CSV / GraphQL `[String!]`, max 3 keys, `-` = desc) for system `id`/`created_at`/`updated_at`/`published_at` and sortable fields; expose `published_at` on item payloads; indexes on `(collection_id, published_at|created_at|updated_at)` (#224).
-- Add Vitest frontend unit runner and CI step for `resources/js` lib/hook tests (#285).
-- Add Pest coverage for GraphQL write AuthZ, chat ownership routes, cleanup commands, and embedding job (#286).
-
-### Changed
 - Scale chat hub and file transforms: shared `FileTransformUrlBuilder`, SQL-scoped/paginated hub listing with eager item labels, queued chat notifications with JSON-contains subscriber lookup, bulk `collections_items_values` inserts (#280).
 - Extract shared `MiniUserMapper` for Public API `user_created` / `user_updated` payloads (#338).
 - Move job-monitor and AI conversation DB access out of controllers into `JobMonitorQueryService` / `AiConversationMutationService` (#334).
@@ -90,27 +94,28 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Route web, REST, GraphQL, AI, import, chat, revision restore, and publish through shared `CreateCollectionItemAction` / `UpdateCollectionItemAction` so validation and draft versioning stay in parity (#269).
 - Bump `laravel/ai` constraint to `^1.1` (resolved v1.3.0) (#180).
 - Harden CI: parallel Pest, shared Vite artifact, caches, concurrency/timeouts, SHA-pinned actions, Dependabot, hard browser gate (#289).
-
-### Security
-- Secure-by-default install: registration off for fresh installs, IP throttle (5/min) on register/forgot/reset, passkeys limiter keyed on IP, Docker entrypoint refuses `change-me` DB passwords in production, safer `.env.example` (`APP_DEBUG=false`, webhook token guidance) (#272).
-- Outbound webhooks send `X-Externa-Signature-V2` over `"{timestamp}.{body}"` (legacy `X-Externa-Signature` kept for one minor); inbound collection-import requires `X-AI-Webhook-Timestamp` within 300s, signs `"{timestamp}.{body}"`, and rejects replayed signatures (#273).
-- Harden `SafeRemoteUrlValidator`: explicit CIDR denylist (CGNAT 100.64/10), DNS pin via `CURLOPT_RESOLVE`, streamed byte-capped downloads, generic user errors, OIDC discovery/endpoint SSRF checks (`OIDC_ALLOW_PRIVATE_HOSTS`) (#274).
-- Harden `SafeRemoteUrlValidator`: explicit CIDR denylist (CGNAT 100.64/10), DNS pin via `CURLOPT_RESOLVE`, DNS-pinned byte-capped downloads, generic user errors, OIDC discovery/endpoint SSRF checks (`OIDC_ALLOW_PRIVATE_HOSTS`) (#274).
-- Run Horizon, Reverb, scheduler, Pulse and queue workers as `www-data` (via `setpriv`) instead of root in the production image entrypoint (#320).
-- Bind API keys to an optional owner (`owner_id`) so effective access is key role ∩ scopes ∩ owner ACL; revoke keys when the owner is deactivated or deleted (#215).
-- Add per-key `files_scope` (`none`|`read`|`all`) so scoped API keys can opt out of Files API access; migration defaults existing keys to `all`; response cache factors include the setting (#322).
-- Add project Files upload allowlist (extensions/MIME) with SVG opt-in; hard floor still blocks executables/HTML/SSI even if listed (#327).
-- Bump production npm deps for `follow-redirects` / `qs` audit findings (#341).
-
-### Upgrade notes
-- **Docker workers as www-data (#320):** existing bind-mounted `storage/` / `bootstrap/cache` volumes that were created as root may need a one-time `chown -R www-data:www-data storage bootstrap/cache` (or recreate the volume). The entrypoint still `chown`s when it starts as root.
+- `check-ui-tokens` fails on stale baseline entries, so allowances for fixed raw palette and hex usage cannot hide a later regression (#452).
+- New `--primary-hover` token for primary button and link-badge hover (AA in light and dark) (#449).
 
 ### Fixed
+- AI import-job polling cancels on unmount/new job and pauses while the tab is hidden; theme prefers-color-scheme listener binds once and can be torn down (#284).
+- Axe smoke: Playwright `inDarkMode`/`inLightMode` first paint + sync `color-scheme` with `.dark` (CSS + boot script); underline uses `decoration-muted-foreground`; dashboard overflow panels are named `region` landmarks with `tabIndex={0}` (scrollable-region-focusable) (#255).
+- Dark primary button AA: `.dark` `--primary-foreground` uses dark brand fg / ink-950 (not light `#fff`); placeholder opacity 1; darker dark `--muted-foreground` (ink-200) for axe smoke (#255).
+- Visible focus ring (offset, full-opacity `--ring` teal-600/teal-400) and 3:1 `--input` (ink-400/500) borders on shadcn UI controls, item-form chrome, and password affordances (WCAG 1.4.11 / 2.4.7) (#227).
 - Wrap chat message create, direct-chat create, bulk item actions, kanban rank shifts, and AI collection duplicate in transactions/`lockForUpdate`; authorize bulk items before mutate; report (not 500) broadcast failures after a saved write; Postgres `collections_items_values` unique uses `NULLS NOT DISTINCT` with dedupe (#278).
 - Stabilize Browser Pest suite waits/selectors and clear ProjectSettings memo between tests (#345).
 - Add job timeouts/retries/`failed()` notifications and `report()` on soft-fail catches; make embedding job unique (#279).
 - Make scheduled publish atomic (`lockForUpdate` + transaction) and prevent schedule command overlap (#270).
 - Fix flaky `ImportRemoteJsonTest` on PostgreSQL by selecting the imported item by slug (#331).
+- Security headers allow AI chat voice input (`microphone=(self)`) and image/video previews from the configured files disk (S3 / GCS / Azure / CDN origin in `media-src` and `img-src`); in local dev the Vite origin, including Herd HTTPS, is read from `public/hot` (#440).
+- AI chat: `Manage*` tools are available again for their read actions while AI write tools are off (#439).
+- API keys: the `owner_id` backfill no longer assigns a key to a deactivated creator, so existing keys keep working after the upgrade (#439).
+- Relational API filters (`filter[relation.field]`) work on PostgreSQL and MySQL/MariaDB: many-to-one no longer fails with `text = bigint`; many-to-many and one-to-many match the exact related id and check every linked item (#436).
+- Appearance settings: the theme preset picker and live preview are back, saving keeps the selected preset, a custom brand colour is stored only when set, and the preview keeps the dark palette in dark mode (#437).
+- Focus ring and focused input border stay at least 3:1 when the custom brand colour has low contrast; otherwise the teal ring is used (#453).
+- Restored work that stale squash merges had reverted (#449, #452, #457): sidebar `<nav aria-label>` landmark and violet AI accent on the Assistant item; shared empty states (collections, users, API keys, roles, items, file grid); collections table name/slug cell; settings save bar status announcements; full-opacity focus ring on colour fields; appearance `ToggleGroup` and `ink-950` auth panel; Assistant context picker; item form field sizing and read-only style; translated a11y labels; `lucide-react` ^1.61 without `react-file-icon`; `is/has/can` boolean method names (guarded by an Arch test).
+- Collection row menu: "Delete" opens the confirm dialog instead of navigating into the collection (#438).
+- CI: the full browser suite completes (no silent 20-minute hang), a failing `assets` job fails the required checks, and `resources/skills/**` changes run the full gate (#438).
 
 ## [1.3.0] - 2026-10-24
 
