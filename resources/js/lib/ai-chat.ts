@@ -279,9 +279,7 @@ export async function uploadAiAttachment(
     });
 
     if (!response.ok) {
-        throw new Error(
-            await parseError(response, 'Attachment upload failed'),
-        );
+        throw new Error(await parseError(response, 'Attachment upload failed'));
     }
 
     const payload = (await response.json()) as {

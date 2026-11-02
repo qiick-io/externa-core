@@ -103,7 +103,6 @@ function roots(scope: ChatScope): { thread: string; root: string } {
     return { thread: base, root: base };
 }
 
-
 export async function fetchMessages(
     scope: ChatScope,
     options?: { beforeId?: number; perPage?: number },

@@ -759,11 +759,7 @@ export default function AiIndexPage({
         const onVisibilityChange = (): void => {
             const jobId = importPollJobIdRef.current;
 
-            if (
-                !document.hidden &&
-                jobId &&
-                importPollActiveRef.current
-            ) {
+            if (!document.hidden && jobId && importPollActiveRef.current) {
                 void runImportPollRef.current(jobId);
             }
         };

@@ -13,7 +13,6 @@ import type { FieldDef } from '@/types';
 const inputLike =
     'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
 
-
 type M2aBlock = {
     id: string;
     related_collection_id: number;

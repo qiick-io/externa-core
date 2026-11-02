@@ -50,8 +50,7 @@ describe('useDebouncedServerSearch', () => {
         const onSearch = vi.fn();
 
         const { rerender } = renderHook(
-            ({ search }) =>
-                useDebouncedServerSearch(search, '', onSearch, 350),
+            ({ search }) => useDebouncedServerSearch(search, '', onSearch, 350),
             { initialProps: { search: 'a' } },
         );
 

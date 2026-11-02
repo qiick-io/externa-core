@@ -93,8 +93,6 @@ export function isPlayableVideo(file: AdminFileRow): boolean {
     return file.mime_type === 'video/mp4' || file.mime_type === 'video/webm';
 }
 
-
-
 async function request(
     input: RequestInfo | URL,
     init: RequestInit,

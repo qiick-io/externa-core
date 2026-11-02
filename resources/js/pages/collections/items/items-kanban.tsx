@@ -11,7 +11,6 @@ import collections from '@/routes/collections';
 import type { CollectionView, ItemRow } from '@/types';
 import type { QueryParams } from '@/wayfinder';
 
-
 export type KanbanColumnPage = {
     value: string;
     label: string;

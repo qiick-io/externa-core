@@ -24,7 +24,6 @@ import collections from '@/routes/collections';
 import type { CollectionFieldRow, CollectionView, ItemRow } from '@/types';
 import type { QueryParams } from '@/wayfinder';
 
-
 export type CalendarMonthPayload = {
     field: string;
     month: string;

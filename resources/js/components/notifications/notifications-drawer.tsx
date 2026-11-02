@@ -255,9 +255,7 @@ export function NotificationsDrawer({
                                             className="h-auto px-0 text-muted-foreground hover:text-foreground"
                                         >
                                             <Link
-                                                href={files.index.url(
-                                                    folderId,
-                                                )}
+                                                href={files.index.url(folderId)}
                                                 onClick={() =>
                                                     onOpenChange(false)
                                                 }

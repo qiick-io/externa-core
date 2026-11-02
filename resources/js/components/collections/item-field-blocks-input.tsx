@@ -42,7 +42,6 @@ const SUMMARY_TEXT_TYPES = new Set([
     'markdown',
 ]);
 
-
 type DefaultValue =
     | string
     | number

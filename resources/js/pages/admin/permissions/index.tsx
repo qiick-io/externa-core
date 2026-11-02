@@ -56,11 +56,7 @@ export default function AdminPermissionsIndex({
     );
 
     const sync = (): void => {
-        router.post(
-            permissionsRoutes.sync.url(),
-            {},
-            { preserveScroll: true },
-        );
+        router.post(permissionsRoutes.sync.url(), {}, { preserveScroll: true });
     };
 
     return (

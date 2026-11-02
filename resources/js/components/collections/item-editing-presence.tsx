@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { initialsFromName } from '@/lib/format';
 import type { ItemPresenceUser } from '@/lib/item-presence';
 
-
 /**
  * Avatars + soft-lock take-over for other editors on the same item.
  */

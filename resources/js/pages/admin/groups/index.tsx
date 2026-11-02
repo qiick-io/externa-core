@@ -152,9 +152,12 @@ export default function AdminGroupsIndex({
         setDirection(filters.direction ?? 'asc');
     }, [filters.search, filters.sort, filters.direction]);
 
-    const onDebouncedSearch = useCallback((value: string): void => {
-        visit({ search: value || undefined });
-    }, [visit]);
+    const onDebouncedSearch = useCallback(
+        (value: string): void => {
+            visit({ search: value || undefined });
+        },
+        [visit],
+    );
 
     useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
 
@@ -659,9 +662,7 @@ export default function AdminGroupsIndex({
 
                     setConfirmingDestructive(true);
                     router.delete(
-                        groupsRoutes.forceDelete.url(
-                            pendingForceDeleteGroupId,
-                        ),
+                        groupsRoutes.forceDelete.url(pendingForceDeleteGroupId),
                         {
                             preserveScroll: true,
                             onFinish: () => setConfirmingDestructive(false),

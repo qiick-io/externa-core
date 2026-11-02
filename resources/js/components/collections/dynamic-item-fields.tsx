@@ -101,7 +101,6 @@ const ITEM_FORM_ID = 'collection-item-form';
 const inputLike =
     'border-input bg-background ring-offset-background focus-visible:border-ring focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none';
 
-
 type DefaultValue =
     | string
     | number

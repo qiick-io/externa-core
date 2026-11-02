@@ -85,8 +85,8 @@ describe('requestJson', () => {
             ),
         );
 
-        await expect(
-            requestJson('/x', undefined, 'fallback'),
-        ).rejects.toThrow('Boom');
+        await expect(requestJson('/x', undefined, 'fallback')).rejects.toThrow(
+            'Boom',
+        );
     });
 });

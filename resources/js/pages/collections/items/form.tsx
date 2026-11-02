@@ -173,7 +173,6 @@ type ItemPayload = {
  * @returns {JSX.Element}
  */
 
-
 function fromDatetimeLocalValue(local: string): string {
     const date = new Date(local);
 

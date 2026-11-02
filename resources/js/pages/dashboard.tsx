@@ -166,7 +166,6 @@ type DashboardProps = {
 
 type DashboardTab = 'overview' | 'health';
 
-
 /**
  * Main dashboard with activity, storage, and upload health widgets.
  * @returns {JSX.Element}

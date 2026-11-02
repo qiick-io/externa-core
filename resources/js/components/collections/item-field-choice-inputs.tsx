@@ -71,7 +71,6 @@ export function defaultBooleanChecked(value: DefaultValue): boolean {
 
 export { toDatetimeLocalValue } from '@/lib/format';
 
-
 export function toDateInputValue(value: DefaultValue): string {
     if (value === null || value === undefined || value === '') {
         return '';

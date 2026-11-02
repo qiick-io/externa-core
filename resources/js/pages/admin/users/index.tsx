@@ -162,9 +162,12 @@ export default function AdminUsersIndex({
         setDirection(filters.direction ?? 'desc');
     }, [filters.search, filters.sort, filters.direction]);
 
-    const onDebouncedSearch = useCallback((value: string): void => {
-        visit({ search: value || undefined });
-    }, [visit]);
+    const onDebouncedSearch = useCallback(
+        (value: string): void => {
+            visit({ search: value || undefined });
+        },
+        [visit],
+    );
 
     useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
 

@@ -170,7 +170,6 @@ type Props = {
     canCreateDirect?: boolean;
 };
 
-
 function renderMessageBody(
     body: string,
     mentions: ChatUser[],

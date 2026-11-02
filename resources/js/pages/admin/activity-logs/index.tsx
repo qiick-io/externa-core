@@ -161,9 +161,12 @@ export default function AdminActivityLogsIndex({
         [search, userIds, event, logName, dateFrom, dateTo],
     );
 
-    const onDebouncedSearch = useCallback((value: string): void => {
-        visit({ search: value || undefined });
-    }, [visit]);
+    const onDebouncedSearch = useCallback(
+        (value: string): void => {
+            visit({ search: value || undefined });
+        },
+        [visit],
+    );
 
     useDebouncedServerSearch(search, filters.search ?? '', onDebouncedSearch);
 

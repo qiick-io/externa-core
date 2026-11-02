@@ -105,7 +105,6 @@ import type { KanbanBoard } from './items-kanban';
 
 type ListLayout = 'table' | 'kanban' | 'calendar';
 
-
 type Paginator<T> = {
     data: T[];
     current_page: number;

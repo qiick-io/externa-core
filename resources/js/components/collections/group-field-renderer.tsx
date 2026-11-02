@@ -8,7 +8,6 @@ import { getFieldDisplayName } from '@/lib/collection-field-types';
 import { cn } from '@/lib/utils';
 import type { FieldDef } from '@/types';
 
-
 type RenderFieldsOptions = {
     /** Hide field labels (accordion/tab leaf sections — header is the label). */
     hideLabels?: boolean;

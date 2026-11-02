@@ -44,7 +44,6 @@ export function applyChatUnread(payload: ChatUnreadShare): void {
     useChatStore.getState().setUnread(payload);
 }
 
-
 export async function fetchChatThreads(options: {
     tab: 'collection' | 'private';
     q?: string;

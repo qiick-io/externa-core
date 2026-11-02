@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { parseRelationFieldSettings } from '@/lib/collection-field-types';
 import type { FieldDef } from '@/types';
 
-
 type DefaultValue =
     | string
     | number

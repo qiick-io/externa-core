@@ -33,7 +33,6 @@ function isMediaFile(file: File): boolean {
     return file.type.startsWith('image/') || file.type.startsWith('video/');
 }
 
-
 function fileExtension(name: string): string {
     const parts = name.split('.');
 
