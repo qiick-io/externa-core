@@ -186,8 +186,10 @@ export default function AdminApiKeysIndex({
                             </h1>
                             <p className="text-sm text-muted-foreground">
                                 Bearer tokens for{' '}
-                                <code className="text-xs">/api/v1</code>.
-                                Permissions come from the selected role (use
+                                <code className="font-mono text-xs">
+                                    /api/v1
+                                </code>
+                                . Permissions come from the selected role (use
                                 Public for anonymous-equivalent access).
                             </p>
                         </div>

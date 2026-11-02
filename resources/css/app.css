@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 
 @import 'tw-animate-css';
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
 /* Leaflet CSS is imported from map-coordinate-input.tsx — Tailwind v4 drops this @import. */
 
 @source '../views';
@@ -10,9 +12,12 @@
 
 @theme {
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+        'Geist Variable', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+    --font-mono:
+        'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, Monaco,
+        Consolas, 'Liberation Mono', 'Courier New', monospace;
 
     /* qiick scales (shared with externa-website / externa-docs) */
     --color-teal-50: #ecfdfd;

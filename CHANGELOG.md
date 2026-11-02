@@ -17,6 +17,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Admin a11y phase 2 foundations: `Icon` decorative-by-default semantics, translated dialog/sheet Close + sidebar toggle, unread/notifications names, and new `a11y.*` keys with locale parity coverage (#253).
 
 ### Changed
+- Self-host Geist / Geist Mono via `@fontsource-variable/*` (Vite-bundled); drop Instrument Sans and `fonts.bunny.net` from the admin shell; apply `font-mono` to obvious slugs, IDs, API paths, and versions (#228).
 - Boolean ("Toggle") item fields and appearance sidebar module toggles use shadcn `Switch`; `radio_group` item fields use shadcn `RadioGroup` instead of native radios (#233).
 - Destructive and unsaved-changes confirms use shadcn `AlertDialog` (overlay `--overlay` token); irreversible collection force-delete requires typing the collection name (#230).
 - Collection create/edit drawer, field settings form, and dynamic item fields use shadcn `Field*` / `FieldError` with `aria-invalid` / `aria-describedby` (#231).

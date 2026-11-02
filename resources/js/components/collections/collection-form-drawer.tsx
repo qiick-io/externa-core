@@ -218,6 +218,7 @@ export function CollectionFormDrawer({
                                 required
                                 placeholder="my-collection"
                                 pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                                className="font-mono"
                                 aria-invalid={Boolean(slugError)}
                                 aria-describedby={
                                     slugError

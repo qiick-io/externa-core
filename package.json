@@ -55,6 +55,8 @@
         "@codemirror/lang-markdown": "^6.5.2",
         "@codemirror/lang-sql": "^6.10.0",
         "@codemirror/lang-xml": "^6.1.0",
+        "@fontsource-variable/geist": "^5.3.0",
+        "@fontsource-variable/geist-mono": "^5.3.0",
         "@headlessui/react": "^2.2.10",
         "@inertiajs/react": "^2.3.28",
         "@laravel/passkeys": "^0.4.0",

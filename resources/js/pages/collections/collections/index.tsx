@@ -607,7 +607,7 @@ export default function CollectionsIndex({
                                                         />
                                                     </div>
                                                 </td>
-                                                <td className="p-3 text-muted-foreground">
+                                                <td className="p-3 font-mono text-muted-foreground">
                                                     {c.slug}
                                                 </td>
                                                 <td className="max-w-[16rem] p-3 text-muted-foreground">

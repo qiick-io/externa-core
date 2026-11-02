@@ -587,7 +587,7 @@ export default function AdminRoleForm({
                                                 <div className="font-medium">
                                                     Files
                                                 </div>
-                                                <div className="text-xs text-muted-foreground">
+                                                <div className="font-mono text-xs text-muted-foreground">
                                                     /api/v1/files
                                                 </div>
                                             </td>
@@ -751,7 +751,7 @@ export default function AdminRoleForm({
                                                                             collection.name
                                                                         }
                                                                     </div>
-                                                                    <div className="text-xs text-muted-foreground">
+                                                                    <div className="font-mono text-xs text-muted-foreground">
                                                                         {
                                                                             collection.slug
                                                                         }
