@@ -58,7 +58,8 @@ Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegro
 
 ## Related
 
-- Token mapping: #226
-- Focus ring / input borders: #227
+- Token mapping: #226 (closed)
+- Focus ring / input borders: #227 (landed via #383; keep issue tick when closed)
 - Semantic status Badge/Alert: #235
-- AI accent pair: #242 (add when that lands)
+- AI accent pair: #242 (add measured rows when that lands — open PR #412)
+- Phase 4 CI reads this table: #255

@@ -22,7 +22,17 @@ test('a11y locale keys exist in en, de, and it', function () {
         ->and($it)->toEqual($en)
         ->and($de)->toEqual($en);
 
-    foreach (['close', 'toggleSidebar', 'loading', 'notifications', 'moreActions'] as $required) {
+    foreach ([
+        'close',
+        'toggleSidebar',
+        'loading',
+        'notifications',
+        'moreActions',
+        'mainNav',
+        'breadcrumb',
+        'chatThreadList',
+        'skipToContent',
+    ] as $required) {
         expect($en)->toContain($required);
     }
 });

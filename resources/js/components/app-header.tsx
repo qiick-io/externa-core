@@ -105,12 +105,15 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                 className="flex h-full w-64 flex-col items-stretch justify-between bg-sidebar"
                             >
                                 <SheetTitle className="sr-only">
-                                    Navigation menu
+                                    {t('a11y.mainNav')}
                                 </SheetTitle>
                                 <SheetHeader className="flex justify-start text-left">
                                     <AppLogoIcon className="h-6 w-6" />
                                 </SheetHeader>
-                                <div className="flex h-full flex-1 flex-col space-y-4 p-4">
+                                <nav
+                                    aria-label={t('a11y.mainNav')}
+                                    className="flex h-full flex-1 flex-col space-y-4 p-4"
+                                >
                                     <div className="flex h-full flex-col justify-between text-sm">
                                         <div className="flex flex-col space-y-4">
                                             {mainNavItems.map((item) => (
@@ -144,7 +147,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                             ))}
                                         </div>
                                     </div>
-                                </div>
+                                </nav>
                             </SheetContent>
                         </Sheet>
                     </div>
@@ -157,7 +160,10 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                         <AppLogo />
                     </Link>
                     <div className="ml-6 hidden h-full items-center space-x-6 lg:flex">
-                        <NavigationMenu className="flex h-full items-stretch">
+                        <NavigationMenu
+                            className="flex h-full items-stretch"
+                            aria-label={t('a11y.mainNav')}
+                        >
                             <NavigationMenuList className="flex h-full items-stretch space-x-2">
                                 {mainNavItems.map((item, index) => (
                                     <NavigationMenuItem

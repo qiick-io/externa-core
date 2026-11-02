@@ -209,55 +209,59 @@ export function AppSidebar() {
     );
 
     return (
-        <Sidebar
-            collapsible="icon"
-            variant="inset"
-            role="navigation"
-            aria-label={t('a11y.mainNav')}
-        >
-            <SidebarHeader>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
-                                <AppLogo />
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarHeader>
+        <Sidebar collapsible="icon" variant="inset">
+            {/*
+              Real <nav> (not role=navigation on a div) so desktop chrome and the
+              mobile Sheet both expose a labelled navigation landmark (#252).
+            */}
+            <nav
+                aria-label={t('a11y.mainNav')}
+                className="flex h-full w-full flex-col"
+            >
+                <SidebarHeader>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton size="lg" asChild>
+                                <Link href={dashboard()} prefetch>
+                                    <AppLogo />
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarHeader>
 
-            <SidebarContent>
-                {pinnedModules.length > 0 ? (
-                    <SidebarGroup className="px-2 py-0">
-                        <SidebarMenu>
-                            {pinnedModules.map(renderModuleItem)}
-                        </SidebarMenu>
-                    </SidebarGroup>
-                ) : null}
+                <SidebarContent>
+                    {pinnedModules.length > 0 ? (
+                        <SidebarGroup className="px-2 py-0">
+                            <SidebarMenu>
+                                {pinnedModules.map(renderModuleItem)}
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    ) : null}
 
-                {platformModules.length > 0 ? (
-                    <SidebarGroup className="px-2 py-0">
-                        <SidebarGroupLabel>
-                            {t('nav.platform')}
-                        </SidebarGroupLabel>
-                        <SidebarMenu>
-                            {platformModules.map(renderModuleItem)}
-                        </SidebarMenu>
-                    </SidebarGroup>
-                ) : null}
-            </SidebarContent>
+                    {platformModules.length > 0 ? (
+                        <SidebarGroup className="px-2 py-0">
+                            <SidebarGroupLabel>
+                                {t('nav.platform')}
+                            </SidebarGroupLabel>
+                            <SidebarMenu>
+                                {platformModules.map(renderModuleItem)}
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    ) : null}
+                </SidebarContent>
 
-            <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
-                <NotificationsBell />
-                <NavUser />
-                {appVersion ? (
-                    <p className="truncate px-2 text-center text-[10px] leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
-                        v{appVersion}
-                    </p>
-                ) : null}
-            </SidebarFooter>
+                <SidebarFooter>
+                    <NavFooter items={footerNavItems} className="mt-auto" />
+                    <NotificationsBell />
+                    <NavUser />
+                    {appVersion ? (
+                        <p className="truncate px-2 text-center text-[10px] leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
+                            v{appVersion}
+                        </p>
+                    ) : null}
+                </SidebarFooter>
+            </nav>
         </Sidebar>
     );
 }

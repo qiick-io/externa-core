@@ -365,6 +365,7 @@ export function FileDetailPanel({
 
     return (
         <aside
+            aria-label={t('files.detail.title')}
             className={cn(
                 'flex flex-col bg-card',
                 presentation === 'aside' &&

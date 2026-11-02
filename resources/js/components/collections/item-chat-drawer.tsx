@@ -2826,6 +2826,9 @@ export function ItemChatDrawer({
                     <DrawerContent
                         data-test="item-chat-drawer"
                         className="data-[vaul-drawer-direction=right]:max-w-md"
+                        aria-label={
+                            thread?.title ?? t('collections.itemChat.title')
+                        }
                     >
                         {threadShell}
                     </DrawerContent>
