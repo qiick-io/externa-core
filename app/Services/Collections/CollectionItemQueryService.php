@@ -441,6 +441,8 @@ class CollectionItemQueryService
     /**
      * Match parent M2O field values whose JSON scalar id is in the related-ids subquery.
      *
+     * The stored id is compared numerically so PostgreSQL does not reject `text = bigint`.
+     *
      * @param  Builder<CollectionItem>  $query
      * @param  Builder<CollectionItem>  $relatedIdsQuery
      */
@@ -456,14 +458,17 @@ class CollectionItemQueryService
 
             // raw-sql: reviewed — relational deep filter; subquery bindings rebound; SQL from driver helpers
             $fv->whereRaw(
-                $this->valueTextSql().' IN ('.$relatedIdsQuery->toSql().')',
+                $this->valueNumericSql().' IN ('.$relatedIdsQuery->toSql().')',
                 $relatedIdsQuery->getBindings(),
             );
         });
     }
 
     /**
-     * Match parent M2M/O2M JSON links that reference any id from the related-ids subquery.
+     * Match parent M2M/O2M links whose `related_item_id` is in the related-ids subquery.
+     *
+     * Array storage writes one `{"related_item_id": N, "meta": {...}}` row per position,
+     * so every position is checked and the id is compared as an integer (1 never matches 12 or 100).
      *
      * @param  Builder<CollectionItem>  $query
      * @param  Builder<CollectionItem>  $relatedIdsQuery
@@ -475,28 +480,28 @@ class CollectionItemQueryService
     ): void {
         $query->whereHas('fieldValues', function (Builder $fv) use ($relationField, $relatedIdsQuery): void {
             $fv->where('field_id', $relationField->id)
-                ->where('position', 0)
-                ->whereNull('locale')
-                ->whereExists(function ($sub) use ($relatedIdsQuery): void {
-                    $sub->selectRaw('1')
-                        ->from('collections_items as related_match')
-                        ->whereIn('related_match.id', $relatedIdsQuery)
-                        // raw-sql: reviewed — M2M deep filter; id from subquery; LIKE needle built from bound id expr
-                        ->whereRaw($this->jsonContainsRelatedItemIdSql());
-                });
+                ->whereNull('locale');
+
+            // raw-sql: reviewed — M2M deep filter; subquery bindings rebound; SQL from driver helper
+            $fv->whereRaw(
+                $this->valueRelatedItemIdSql().' IN ('.$relatedIdsQuery->toSql().')',
+                $relatedIdsQuery->getBindings(),
+            );
         });
     }
 
     /**
-     * Portable JSON text containment for `{"related_item_id":N,...}` against `related_match.id`.
+     * Integer `related_item_id` of a junction-object value; NULL when the value is not such an object.
+     *
+     * ponytail: legacy bare-int link rows (pre junction objects) yield NULL and never match;
+     * the normalizer rewrites them on save, so add a scalar fallback only if such rows reappear.
      */
-    private function jsonContainsRelatedItemIdSql(): string
+    private function valueRelatedItemIdSql(): string
     {
         return match (DB::getDriverName()) {
-            'pgsql' => "collections_items_values.value::text LIKE '%\"related_item_id\":' || related_match.id::text || '%'",
-            'sqlite' => "CAST(collections_items_values.value AS TEXT) LIKE '%\"related_item_id\":' || related_match.id || '%'",
-            'mysql', 'mariadb' => "CAST(collections_items_values.value AS CHAR) LIKE CONCAT('%\\\"related_item_id\\\":', related_match.id, '%')",
-            default => "CAST(collections_items_values.value AS TEXT) LIKE '%\"related_item_id\":' || CAST(related_match.id AS TEXT) || '%'",
+            'pgsql' => "(value ->> 'related_item_id')::bigint",
+            'mysql', 'mariadb' => "CAST(JSON_VALUE(value, '$.related_item_id') AS UNSIGNED)",
+            default => "json_extract(value, '$.related_item_id')",
         };
     }
 
