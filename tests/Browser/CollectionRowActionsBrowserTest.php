@@ -34,3 +34,21 @@ it('deletes a collection through the row menu and confirm dialog', function (): 
         ->assertDontSee('Delete Via Menu')
         ->assertNoJavaScriptErrors();
 });
+
+it('shows the collection name and slug in one combined cell', function (): void {
+    $user = User::factory()->create();
+    $user->assignRole(RoleEnum::SuperAdmin->value);
+    $this->actingAs($user);
+
+    Collection::factory()->create([
+        'name' => 'Combined Cell',
+        'slug' => 'combined-cell',
+    ]);
+
+    $page = visit('/collections');
+
+    $page->assertSee('Combined Cell')
+        ->assertScript("document.querySelectorAll('thead th').length === 4")
+        ->assertScript("document.querySelector('tbody tr td:nth-child(2)').textContent.includes('combined-cell')")
+        ->assertNoJavaScriptErrors();
+});
