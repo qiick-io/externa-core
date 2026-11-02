@@ -161,10 +161,10 @@ class CollectionItemDataNormalizerService
             FieldTypeEnum::CheckboxGroupTree,
             FieldTypeEnum::Tag => $this->normalizeSelectionArray($field, $value),
             FieldTypeEnum::Map => $this->normalizeMapCoordinates($field, $value),
-            FieldTypeEnum::Image => $field->usesArrayStorage()
+            FieldTypeEnum::Image => $field->hasArrayStorage()
                 ? $this->normalizeIntegerArray($value)
                 : $this->normalizeFileId($value),
-            FieldTypeEnum::Files => $field->usesArrayStorage()
+            FieldTypeEnum::Files => $field->hasArrayStorage()
                 ? $this->normalizeIntegerArray($value)
                 : $this->normalizeFileId($value),
             FieldTypeEnum::M2a => $this->normalizeM2aBlocks($value),

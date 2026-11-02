@@ -181,7 +181,7 @@ class CollectionItemDataRuleBuilderService
             $rules[$prefix][] = $this->manyToManyArrayRule($field);
         }
 
-        if ($field->usesArrayStorage()
+        if ($field->hasArrayStorage()
             && in_array($field->type, [FieldTypeEnum::Files, FieldTypeEnum::Image], true)) {
             $rules[$prefix.'.*'] = ['integer', Rule::exists('files', 'id')];
         }
@@ -277,10 +277,10 @@ class CollectionItemDataRuleBuilderService
                     $extraRules,
                 ),
             ],
-            FieldTypeEnum::Image => $field->usesArrayStorage()
+            FieldTypeEnum::Image => $field->hasArrayStorage()
                 ? [$prefix => [$presence, 'array'], $prefix.'.*' => ['integer', Rule::exists('files', 'id')]]
                 : [$prefix => [$presence, 'integer', Rule::exists('files', 'id')]],
-            FieldTypeEnum::Files => $field->usesArrayStorage()
+            FieldTypeEnum::Files => $field->hasArrayStorage()
                 ? [$prefix => [$presence, 'array'], $prefix.'.*' => ['integer', Rule::exists('files', 'id')]]
                 : [$prefix => [$presence, 'integer', Rule::exists('files', 'id')]],
             FieldTypeEnum::M2a => [
@@ -352,10 +352,10 @@ class CollectionItemDataRuleBuilderService
             FieldTypeEnum::CheckboxGroupTree,
             FieldTypeEnum::Tag => array_merge([$presence, 'array'], $extraRules),
             FieldTypeEnum::Map => [$presence, 'array', $this->mapGeometryRule()],
-            FieldTypeEnum::Image => $field->usesArrayStorage()
+            FieldTypeEnum::Image => $field->hasArrayStorage()
                 ? [$presence, 'array']
                 : [$presence, 'integer', Rule::exists('files', 'id')],
-            FieldTypeEnum::Files => $field->usesArrayStorage()
+            FieldTypeEnum::Files => $field->hasArrayStorage()
                 ? [$presence, 'array']
                 : [$presence, 'integer', Rule::exists('files', 'id')],
             FieldTypeEnum::M2a => [$presence, 'array'],

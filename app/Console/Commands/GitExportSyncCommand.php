@@ -27,7 +27,7 @@ class GitExportSyncCommand extends Command
             config(['git_export.dry_run' => true]);
         }
 
-        if (! $repository->enabled() && ! $this->option('dry-run')) {
+        if (! $repository->isEnabled() && ! $this->option('dry-run')) {
             // Allow dry-run write against a work dir even when remote unset — still need enabled+remote for push path.
             if (! config('git_export.enabled')) {
                 $this->error('Git export disabled. Set GIT_EXPORT_ENABLED=true and GIT_EXPORT_REMOTE_URL.');

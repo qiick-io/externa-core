@@ -37,7 +37,7 @@ class ExportCollectionItemToGitJob implements ShouldQueue
         GitExportRepositoryService $repository,
         GitExportDocumentBuilderService $builder,
     ): void {
-        if (! $repository->enabled()) {
+        if (! $repository->isEnabled()) {
             return;
         }
 

@@ -19,7 +19,7 @@ class OidcSocialiteFactoryService
         private readonly ProjectSettingsService $project,
     ) {}
 
-    public function enabled(): bool
+    public function isEnabled(): bool
     {
         return $this->project->isOidcEnabled()
             && $this->project->oidcIssuer() !== null
@@ -29,7 +29,7 @@ class OidcSocialiteFactoryService
 
     public function driver(): AbstractProvider
     {
-        if (! $this->enabled()) {
+        if (! $this->isEnabled()) {
             throw new RuntimeException('OIDC is not configured.');
         }
 

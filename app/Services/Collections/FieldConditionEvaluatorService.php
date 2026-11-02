@@ -68,7 +68,7 @@ class FieldConditionEvaluatorService
             $logic = 'and';
         }
 
-        if (! $this->rulesMatch($rules, $data, $logic)) {
+        if (! $this->isMatchingRules($rules, $data, $logic)) {
             // Show-when: explicit hidden=false means visible only while rules match.
             if (array_key_exists('hidden', $conditions)
                 && ! CollectionField::settingsFlagIsEnabled($conditions['hidden'])) {
@@ -91,7 +91,7 @@ class FieldConditionEvaluatorService
      * @param  list<mixed>  $rules
      * @param  array<string, mixed>  $data
      */
-    public function rulesMatch(array $rules, array $data, string $logic = 'and'): bool
+    public function isMatchingRules(array $rules, array $data, string $logic = 'and'): bool
     {
         if ($rules === []) {
             return true;

@@ -150,7 +150,7 @@ final class PublicItemSortParser
                 ]);
             }
 
-            if ($rules !== null && ! $this->rulesService->fieldAllowed($rules, $name, 'read')) {
+            if ($rules !== null && ! $this->rulesService->isFieldAllowed($rules, $name, 'read')) {
                 throw ValidationException::withMessages([
                     'sort' => __('Field [:name] is not readable for this role.', ['name' => $name]),
                 ]);

@@ -59,7 +59,7 @@ class CollectionPermissionRulesService
     /**
      * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}  $normalized
      */
-    public function fieldAllowed(array $normalized, string $fieldName, string $operation): bool
+    public function isFieldAllowed(array $normalized, string $fieldName, string $operation): bool
     {
         $fields = $normalized['fields'];
 
@@ -91,7 +91,7 @@ class CollectionPermissionRulesService
             if (! is_string($key)) {
                 continue;
             }
-            if ($this->fieldAllowed($normalized, $key, 'read')) {
+            if ($this->isFieldAllowed($normalized, $key, 'read')) {
                 $out[$key] = $value;
             }
         }
@@ -117,7 +117,7 @@ class CollectionPermissionRulesService
             if (! is_string($key)) {
                 continue;
             }
-            if (! $this->fieldAllowed($normalized, $key, $operation)) {
+            if (! $this->isFieldAllowed($normalized, $key, $operation)) {
                 $denied[] = $key;
             }
         }
@@ -129,7 +129,7 @@ class CollectionPermissionRulesService
      * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}  $normalized
      * @param  array<string, mixed>  $data
      */
-    public function itemMatches(array $normalized, array $data): bool
+    public function isMatchingItem(array $normalized, array $data): bool
     {
         $filter = $normalized['item_filter'];
         if ($filter === null) {
@@ -141,7 +141,7 @@ class CollectionPermissionRulesService
             return true;
         }
 
-        return $this->conditionEvaluator->rulesMatch($rules, $data);
+        return $this->conditionEvaluator->isMatchingRules($rules, $data);
     }
 
     /**
@@ -206,7 +206,7 @@ class CollectionPermissionRulesService
      * @param  array{fields: array<string, array{read: bool, create: bool, update: bool}>, item_filter: ?array}  $normalized
      * @param  array<string, mixed>  $data
      */
-    public function itemMatchesMerged(array $normalized, array $data): bool
+    public function isMatchingMergedItem(array $normalized, array $data): bool
     {
         $filter = $normalized['item_filter'];
         if ($filter === null) {
@@ -219,7 +219,7 @@ class CollectionPermissionRulesService
                     continue;
                 }
                 $rules = $candidate['rules'] ?? [];
-                if (! is_array($rules) || $rules === [] || $this->conditionEvaluator->rulesMatch($rules, $data)) {
+                if (! is_array($rules) || $rules === [] || $this->conditionEvaluator->isMatchingRules($rules, $data)) {
                     return true;
                 }
             }
@@ -227,6 +227,6 @@ class CollectionPermissionRulesService
             return false;
         }
 
-        return $this->itemMatches($normalized, $data);
+        return $this->isMatchingItem($normalized, $data);
     }
 }

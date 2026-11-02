@@ -33,7 +33,7 @@ class UpdateUserGroupRequest extends FormRequest
 
         abort_if(
             ! $superAdminGuard->canManageSuperAdmins($this->user())
-                && $superAdminGuard->includesSuperAdminGroup([$group->id]),
+                && $superAdminGuard->hasSuperAdminGroup([$group->id]),
             403,
         );
 

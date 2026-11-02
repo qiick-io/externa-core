@@ -119,7 +119,7 @@ class ContentCollectionController extends Controller
         $generator = app(UniqueCollectionSlugGenerator::class);
         $available = $slug !== ''
             && (bool) preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)
-            && $generator->available($slug, $excludeId);
+            && $generator->isAvailable($slug, $excludeId);
 
         return response()->json([
             'available' => $available,

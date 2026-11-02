@@ -20,7 +20,7 @@ class ReadinessChecks
             'database' => $this->database(),
         ];
 
-        if ($this->redisRequired()) {
+        if ($this->isRedisRequired()) {
             $checks['redis'] = $this->redis();
         }
 
@@ -51,7 +51,7 @@ class ReadinessChecks
         }
     }
 
-    public function redisRequired(): bool
+    public function isRedisRequired(): bool
     {
         return $this->usesRedisDriver(config('queue.default'))
             || $this->usesRedisDriver(config('cache.default'))
