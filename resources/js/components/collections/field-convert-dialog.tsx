@@ -1,7 +1,6 @@
 import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -17,6 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { fieldTypeLabel } from '@/lib/collection-field-types';
 import { toast } from '@/lib/toast';
 import type { CollectionFieldRow } from '@/types';
+import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 
 type ConvertPreview = {
     supported: boolean;
@@ -89,6 +89,7 @@ export function FieldConvertDialog({
             })
             .then((payload) => {
                 setTargets(payload.targets ?? []);
+
                 if (payload.targets?.length && !payload.targets.includes(field.type)) {
                     setToType(payload.targets[0] ?? field.type);
                 }
@@ -100,6 +101,7 @@ export function FieldConvertDialog({
 
     const fetchPreview = async (): Promise<void> => {
         setLoading(true);
+
         try {
             const token = document
                 .querySelector('meta[name="csrf-token"]')
@@ -128,6 +130,7 @@ export function FieldConvertDialog({
             );
             const payload = (await response.json()) as ConvertPreview;
             setPreview(payload);
+
             if (payload.error) {
                 toast.error(payload.error);
             }
@@ -140,6 +143,7 @@ export function FieldConvertDialog({
 
     const applyConvert = async (): Promise<void> => {
         setConverting(true);
+
         try {
             const token = document
                 .querySelector('meta[name="csrf-token"]')
