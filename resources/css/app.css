@@ -180,6 +180,8 @@
 }
 
 :root {
+    /* Keep UA form controls / scrollbars in sync with theme tokens (axe + Chrome). */
+    color-scheme: light;
     /* Surface stays white; sidebar frame uses ink-50 Paper */
     --background: #ffffff;
     --foreground: var(--color-ink-950);
@@ -236,6 +238,7 @@
 }
 
 .dark {
+    color-scheme: dark;
     --background: var(--color-ink-950);
     --foreground: var(--color-ink-100);
     --card: var(--color-ink-900);

@@ -23,17 +23,20 @@
                         document.documentElement.classList.add('dark');
                     }
                 }
+
+                document.documentElement.style.colorScheme =
+                    document.documentElement.classList.contains('dark') ? 'dark' : 'light';
             })();
         </script>
 
-        {{-- Inline style to set the HTML background color based on our theme in app.css --}}
+        {{-- FOUC: match ink surfaces from app.css (not default shadcn oklch) --}}
         <style>
             html {
-                background-color: oklch(1 0 0);
+                background-color: #ffffff;
             }
 
             html.dark {
-                background-color: oklch(0.145 0 0);
+                background-color: #0e171e;
             }
         </style>
 

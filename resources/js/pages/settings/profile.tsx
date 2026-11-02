@@ -236,7 +236,7 @@ export default function Profile({
                                                     <Link
                                                         href={send()}
                                                         as="button"
-                                                        className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                                                        className="text-foreground underline decoration-muted-foreground underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current!"
                                                     >
                                                         {t(
                                                             'settings.profile.resend',

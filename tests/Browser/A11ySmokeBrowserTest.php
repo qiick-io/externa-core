@@ -19,31 +19,50 @@ beforeEach(function (): void {
 });
 
 /**
+ * Visit with Playwright color-scheme matching the a11y mode so `.dark` / tokens
+ * apply on first paint (toggling `.dark` after hydration leaves stale control colors).
+ *
+ * @param  'light'|'dark'|'high-contrast'  $mode
+ */
+function visitA11y(string $path, string $mode)
+{
+    $page = $mode === 'dark'
+        ? visit($path)->inDarkMode()
+        : visit($path)->inLightMode();
+
+    return applyA11yMode($page, $mode);
+}
+
+/**
+ * Force theme class + `color-scheme` together after first paint.
+ *
  * @param  'light'|'dark'|'high-contrast'  $mode
  */
 function applyA11yMode($page, string $mode)
 {
     if ($mode === 'light') {
-        return $page;
+        return $page->assertScript(
+            '() => { const root = document.documentElement; root.classList.remove("dark", "high-contrast"); root.style.colorScheme = "light"; return !root.classList.contains("dark") && root.style.colorScheme === "light"; }',
+            true,
+        );
     }
 
     if ($mode === 'dark') {
         return $page->assertScript(
-            '() => { document.documentElement.classList.add("dark"); document.documentElement.classList.remove("high-contrast"); return document.documentElement.classList.contains("dark"); }',
+            '() => { const root = document.documentElement; root.classList.add("dark"); root.classList.remove("high-contrast"); root.style.colorScheme = "dark"; return root.classList.contains("dark") && root.style.colorScheme === "dark"; }',
             true,
         );
     }
 
     return $page->assertScript(
-        '() => { document.documentElement.classList.add("high-contrast"); document.documentElement.classList.remove("dark"); return document.documentElement.classList.contains("high-contrast"); }',
+        '() => { const root = document.documentElement; root.classList.add("high-contrast"); root.classList.remove("dark"); root.style.colorScheme = "light"; return root.classList.contains("high-contrast") && !root.classList.contains("dark") && root.style.colorScheme === "light"; }',
         true,
     );
 }
 
 it('has no critical/serious axe issues on login in light, dark, and high-contrast', function () {
     foreach (['light', 'dark', 'high-contrast'] as $mode) {
-        $page = visit('/login');
-        applyA11yMode($page, $mode)
+        visitA11y('/login', $mode)
             ->assertPresent('#main-content')
             ->assertNoAccessibilityIssues(1)
             ->assertNoJavaScriptErrors();
@@ -81,8 +100,7 @@ it('has no critical/serious axe issues on key authenticated routes in light and 
 
     foreach ($routes as $path) {
         foreach (['light', 'dark'] as $mode) {
-            $page = visit($path);
-            applyA11yMode($page, $mode)
+            visitA11y($path, $mode)
                 ->assertPresent('#main-content')
                 ->assertNoAccessibilityIssues(1)
                 ->assertNoJavaScriptErrors();
@@ -95,8 +113,7 @@ it('has no critical/serious axe issues on dashboard with high-contrast', functio
     $user->assignRole(RoleEnum::SuperAdmin->value);
     $this->actingAs($user);
 
-    $page = visit('/dashboard');
-    applyA11yMode($page, 'high-contrast')
+    visitA11y('/dashboard', 'high-contrast')
         ->assertPresent('#main-content')
         ->assertNoAccessibilityIssues(1)
         ->assertNoJavaScriptErrors();
