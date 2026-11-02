@@ -333,7 +333,6 @@
             "create": "API-Schlüssel erstellen",
             "createTitle": "API-Schlüssel erstellen",
             "createDescription": "Namen vergeben, Rolle und Besitzer wählen, optional Scopes einschränken.",
-            "empty": "Noch keine API-Schlüssel.",
             "secretBanner": "Schlüssel jetzt kopieren — er wird nicht erneut angezeigt.",
             "collectionSlugs": "Collection-Allowlist (optional, Slugs kommagetrennt)",
             "collectionSlugsHelp": "Leer lassen, um alle Collections der Rolle zuzulassen. Scopes schränken nur ein.",
@@ -1813,10 +1812,6 @@
             "updated": "Aktualisiert"
         },
         "empty": {
-            "trash": "Papierkorb ist leer",
-            "dropToUpload": "Dateien hier ablegen zum Hochladen",
-            "folderEmpty": "Dieser Ordner ist leer",
-            "orUseUpload": "Oder den Hochladen-Button oben nutzen",
             "contextNewFolder": "Neuer Ordner",
             "contextUploadFile": "Datei hochladen",
             "contextUploadFolder": "Ordner hochladen"

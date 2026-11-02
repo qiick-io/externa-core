@@ -333,7 +333,6 @@
             "create": "Create API key",
             "createTitle": "Create API key",
             "createDescription": "Name the key, pick a role and owner, then optionally narrow scopes.",
-            "empty": "No API keys yet.",
             "secretBanner": "Copy this key now — it will not be shown again.",
             "collectionSlugs": "Collection allowlist (optional, comma-separated slugs)",
             "collectionSlugsHelp": "Leave empty to allow every collection the role can access. Scopes only narrow access.",
@@ -1813,10 +1812,6 @@
             "updated": "Updated"
         },
         "empty": {
-            "trash": "Trash is empty",
-            "dropToUpload": "Drop files anywhere to upload",
-            "folderEmpty": "This folder is empty",
-            "orUseUpload": "Or use the Upload button above",
             "contextNewFolder": "New Folder",
             "contextUploadFile": "Upload File",
             "contextUploadFolder": "Upload Folder"
