@@ -34,6 +34,7 @@ import { formatBytes } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import activityLogs from '@/routes/activity-logs';
+import files from '@/routes/files';
 import type { BreadcrumbItem } from '@/types';
 
 type LatestActivityItem = {
@@ -576,7 +577,7 @@ export default function Dashboard({
                                                                             size="sm"
                                                                         >
                                                                             <Link
-                                                                                href={adminRoutes.activityLogs.index()}
+                                                                                href={activityLogs.index.url()}
                                                                             >
                                                                                 {t(
                                                                                     'emptyState.dashboard.activityCta',
@@ -783,7 +784,7 @@ export default function Dashboard({
                                                                                     asChild
                                                                                     size="sm"
                                                                                 >
-                                                                                    <Link href="/files">
+                                                                                    <Link href={files.index.url()}>
                                                                                         {t(
                                                                                             'emptyState.dashboard.filesCta',
                                                                                         )}
