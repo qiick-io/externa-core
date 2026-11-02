@@ -784,7 +784,9 @@ export default function Dashboard({
                                                                                     asChild
                                                                                     size="sm"
                                                                                 >
-                                                                                    <Link href={files.index.url()}>
+                                                                                    <Link
+                                                                                        href={files.index.url()}
+                                                                                    >
                                                                                         {t(
                                                                                             'emptyState.dashboard.filesCta',
                                                                                         )}
