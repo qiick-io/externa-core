@@ -15,7 +15,73 @@
         "lastName": "Cognome",
         "hide": "Nascondi",
         "view": "Mostra",
-        "export": "Esporta"
+        "export": "Esporta",
+        "clearFilters": "Cancella filtri",
+        "learnMore": "Scopri di più"
+    },
+    "emptyState": {
+        "collections": {
+            "title": "Nessuna collection ancora",
+            "description": "Le collection raggruppano campi e contenuti. Creane una per iniziare.",
+            "cta": "Crea la tua prima collection",
+            "filteredTitle": "Nessuna collection corrispondente",
+            "filteredDescription": "Prova un'altra ricerca o cancella i filtri per vedere tutte le collection.",
+            "trashTitle": "Il cestino è vuoto",
+            "trashDescription": "Le collection eliminate compariranno qui finché non le ripristini o le rimuovi definitivamente."
+        },
+        "items": {
+            "title": "Nessun elemento ancora",
+            "description": "Aggiungi il primo contenuto a questa collection.",
+            "cta": "Crea il tuo primo elemento",
+            "filteredTitle": "Nessun elemento corrispondente",
+            "filteredDescription": "Prova un'altra ricerca o cancella i filtri per vedere tutti gli elementi.",
+            "trashTitle": "Il cestino è vuoto",
+            "trashDescription": "Gli elementi eliminati compariranno qui finché non li ripristini o li rimuovi definitivamente."
+        },
+        "users": {
+            "title": "Nessun utente ancora",
+            "description": "Invita i colleghi per gestire contenuti e impostazioni.",
+            "cta": "Crea il tuo primo utente",
+            "filteredTitle": "Nessun utente trovato",
+            "filteredDescription": "Prova un'altra ricerca o cancella i filtri per vedere tutti gli utenti.",
+            "trashTitle": "Il cestino è vuoto",
+            "trashDescription": "Gli utenti eliminati compariranno qui finché non li ripristini o li rimuovi definitivamente."
+        },
+        "apiKeys": {
+            "title": "Nessuna API key ancora",
+            "description": "Crea un'API key per consentire alle app esterne di accedere alla Public CMS API.",
+            "cta": "Crea API key"
+        },
+        "roleCollections": {
+            "title": "Nessuna collection ancora",
+            "description": "Crea prima una collection, poi concedi a questo ruolo l'accesso.",
+            "cta": "Vai alle collection",
+            "filteredTitle": "Nessuna collection corrispondente",
+            "filteredDescription": "Prova un'altra ricerca o cancella il filtro per vedere tutte le collection."
+        },
+        "fields": {
+            "title": "Nessun campo ancora",
+            "description": "Definisci i tipi di campo prima di inserire i contenuti di questa collection.",
+            "cta": "Aggiungi campi"
+        },
+        "dashboard": {
+            "collectionsDescription": "Crea una collection per iniziare a vedere i volumi di contenuto qui.",
+            "collectionsCta": "Crea collection",
+            "activityDescription": "L'attività apparirà mentre tu e il tuo team lavorate in Externa.",
+            "activityCta": "Vedi registro attività",
+            "filesDescription": "Carica file per vedere le informazioni sullo storage nella dashboard.",
+            "filesCta": "Apri file",
+            "genericDescription": "Non c'è ancora nulla da mostrare."
+        },
+        "files": {
+            "title": "Questa cartella è vuota",
+            "description": "Trascina i file qui o usa Carica per aggiungere media a questa cartella.",
+            "cta": "Carica file",
+            "trashTitle": "Il cestino è vuoto",
+            "trashDescription": "File e cartelle eliminati compariranno qui finché non li ripristini o li rimuovi definitivamente.",
+            "dropTitle": "Rilascia i file per caricarli",
+            "dropDescription": "Rilascia per avviare il caricamento, oppure usa il pulsante Carica nella barra degli strumenti."
+        }
     },
     "roles": {
         "names": {

@@ -15,7 +15,73 @@
         "lastName": "Last name",
         "hide": "Hide",
         "view": "View",
-        "export": "Export"
+        "export": "Export",
+        "clearFilters": "Clear filters",
+        "learnMore": "Learn more"
+    },
+    "emptyState": {
+        "collections": {
+            "title": "No collections yet",
+            "description": "Collections group your content fields and items. Create one to get started.",
+            "cta": "Create your first collection",
+            "filteredTitle": "No collections match",
+            "filteredDescription": "Try a different search or clear filters to see all collections.",
+            "trashTitle": "Trash is empty",
+            "trashDescription": "Deleted collections will appear here until you restore or permanently remove them."
+        },
+        "items": {
+            "title": "No items yet",
+            "description": "Add your first content item to this collection.",
+            "cta": "Create your first item",
+            "filteredTitle": "No items match",
+            "filteredDescription": "Try a different search or clear filters to see all items.",
+            "trashTitle": "Trash is empty",
+            "trashDescription": "Deleted items will appear here until you restore or permanently remove them."
+        },
+        "users": {
+            "title": "No users yet",
+            "description": "Invite teammates so they can manage content and settings.",
+            "cta": "Create your first user",
+            "filteredTitle": "No users found",
+            "filteredDescription": "Try a different search or clear filters to see all users.",
+            "trashTitle": "Trash is empty",
+            "trashDescription": "Deleted users will appear here until you restore or permanently remove them."
+        },
+        "apiKeys": {
+            "title": "No API keys yet",
+            "description": "Create an API key to let external apps access the Public CMS API.",
+            "cta": "Create API key"
+        },
+        "roleCollections": {
+            "title": "No collections yet",
+            "description": "Create a collection first, then grant this role access to it.",
+            "cta": "Go to collections",
+            "filteredTitle": "No collections match",
+            "filteredDescription": "Try a different search or clear the filter to see all collections."
+        },
+        "fields": {
+            "title": "No fields yet",
+            "description": "Define field types before entering content for this collection.",
+            "cta": "Add fields"
+        },
+        "dashboard": {
+            "collectionsDescription": "Create a collection to start tracking content volume here.",
+            "collectionsCta": "Create collection",
+            "activityDescription": "Activity will show up as you and your team work in Externa.",
+            "activityCta": "View activity log",
+            "filesDescription": "Upload files to see storage insights on the dashboard.",
+            "filesCta": "Open files",
+            "genericDescription": "Nothing to show here yet."
+        },
+        "files": {
+            "title": "This folder is empty",
+            "description": "Drop files here or use Upload to add media to this folder.",
+            "cta": "Upload file",
+            "trashTitle": "Trash is empty",
+            "trashDescription": "Deleted files and folders will appear here until you restore or permanently remove them.",
+            "dropTitle": "Drop files to upload",
+            "dropDescription": "Release to start uploading, or use the Upload button in the toolbar."
+        }
     },
     "roles": {
         "names": {

@@ -2,6 +2,7 @@ import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { KeyRound, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { TablePagination } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
@@ -26,8 +27,8 @@ import SettingsLayout from '@/layouts/settings/layout';
 import adminRoutes from '@/lib/admin-routes';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
-import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem, Paginated } from '@/types';
+import { edit as editProfile } from '@/routes/profile';
 
 type ApiKeyRow = {
     id: number;
@@ -635,11 +636,38 @@ export default function AdminApiKeysIndex({
                                     <tbody>
                                         {rows.length === 0 ? (
                                             <tr>
-                                                <td
-                                                    colSpan={7}
-                                                    className="px-3 py-6 text-center text-muted-foreground"
-                                                >
-                                                    No API keys yet.
+                                                <td colSpan={7} className="p-4">
+                                                    <PageEmptyState
+                                                        icon={KeyRound}
+                                                        title={t(
+                                                            'emptyState.apiKeys.title',
+                                                        )}
+                                                        description={t(
+                                                            'emptyState.apiKeys.description',
+                                                        )}
+                                                        action={
+                                                            <Button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    document
+                                                                        .getElementById(
+                                                                            'api_key_name',
+                                                                        )
+                                                                        ?.focus();
+                                                                }}
+                                                            >
+                                                                <KeyRound className="size-4" />
+                                                                {t(
+                                                                    'emptyState.apiKeys.cta',
+                                                                )}
+                                                            </Button>
+                                                        }
+                                                        docsHref="https://docs.externa.qiick.io"
+                                                        docsLabel={t(
+                                                            'common.learnMore',
+                                                        )}
+                                                        compact
+                                                    />
                                                 </td>
                                             </tr>
                                         ) : (

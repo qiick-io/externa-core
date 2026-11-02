@@ -15,7 +15,73 @@
         "lastName": "Nachname",
         "hide": "Ausblenden",
         "view": "Anzeigen",
-        "export": "Exportieren"
+        "export": "Exportieren",
+        "clearFilters": "Filter zurücksetzen",
+        "learnMore": "Mehr erfahren"
+    },
+    "emptyState": {
+        "collections": {
+            "title": "Noch keine Collections",
+            "description": "Collections gruppieren Felder und Inhalte. Erstelle eine, um zu starten.",
+            "cta": "Erste Collection erstellen",
+            "filteredTitle": "Keine passenden Collections",
+            "filteredDescription": "Andere Suche versuchen oder Filter zurücksetzen, um alle Collections zu sehen.",
+            "trashTitle": "Papierkorb ist leer",
+            "trashDescription": "Gelöschte Collections erscheinen hier, bis du sie wiederherstellst oder endgültig entfernst."
+        },
+        "items": {
+            "title": "Noch keine Einträge",
+            "description": "Füge den ersten Inhaltseintrag zu dieser Collection hinzu.",
+            "cta": "Ersten Eintrag erstellen",
+            "filteredTitle": "Keine passenden Einträge",
+            "filteredDescription": "Andere Suche versuchen oder Filter zurücksetzen, um alle Einträge zu sehen.",
+            "trashTitle": "Papierkorb ist leer",
+            "trashDescription": "Gelöschte Einträge erscheinen hier, bis du sie wiederherstellst oder endgültig entfernst."
+        },
+        "users": {
+            "title": "Noch keine Benutzer",
+            "description": "Lade Teammitglieder ein, damit sie Inhalte und Einstellungen verwalten können.",
+            "cta": "Ersten Benutzer erstellen",
+            "filteredTitle": "Keine Benutzer gefunden",
+            "filteredDescription": "Andere Suche versuchen oder Filter zurücksetzen, um alle Benutzer zu sehen.",
+            "trashTitle": "Papierkorb ist leer",
+            "trashDescription": "Gelöschte Benutzer erscheinen hier, bis du sie wiederherstellst oder endgültig entfernst."
+        },
+        "apiKeys": {
+            "title": "Noch keine API-Schlüssel",
+            "description": "Erstelle einen API-Schlüssel, damit externe Apps die Public-CMS-API nutzen können.",
+            "cta": "API-Schlüssel erstellen"
+        },
+        "roleCollections": {
+            "title": "Noch keine Collections",
+            "description": "Erstelle zuerst eine Collection und gewähre dieser Rolle dann Zugriff.",
+            "cta": "Zu den Collections",
+            "filteredTitle": "Keine passenden Collections",
+            "filteredDescription": "Andere Suche versuchen oder Filter zurücksetzen, um alle Collections zu sehen."
+        },
+        "fields": {
+            "title": "Noch keine Felder",
+            "description": "Definiere Feldtypen, bevor du Inhalte für diese Collection eingibst.",
+            "cta": "Felder hinzufügen"
+        },
+        "dashboard": {
+            "collectionsDescription": "Erstelle eine Collection, um Inhaltsvolumen hier zu verfolgen.",
+            "collectionsCta": "Collection erstellen",
+            "activityDescription": "Aktivität erscheint, sobald du und dein Team in Externa arbeiten.",
+            "activityCta": "Aktivitätsprotokoll anzeigen",
+            "filesDescription": "Lade Dateien hoch, um Speicher-Insights im Dashboard zu sehen.",
+            "filesCta": "Dateien öffnen",
+            "genericDescription": "Hier ist noch nichts anzuzeigen."
+        },
+        "files": {
+            "title": "Dieser Ordner ist leer",
+            "description": "Dateien hier ablegen oder Hochladen nutzen, um Medien hinzuzufügen.",
+            "cta": "Datei hochladen",
+            "trashTitle": "Papierkorb ist leer",
+            "trashDescription": "Gelöschte Dateien und Ordner erscheinen hier, bis du sie wiederherstellst oder endgültig entfernst.",
+            "dropTitle": "Dateien zum Hochladen ablegen",
+            "dropDescription": "Loslassen, um den Upload zu starten, oder die Schaltfläche Hochladen in der Toolbar nutzen."
+        }
     },
     "roles": {
         "names": {
