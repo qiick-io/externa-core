@@ -681,7 +681,15 @@ export default function CollectionsIndex({
                                                         {statusLabel}
                                                     </Badge>
                                                 </td>
-                                                <td className="p-3 text-right">
+                                                <td
+                                                    className="p-3 text-right"
+                                                    onClick={(event) =>
+                                                        event.stopPropagation()
+                                                    }
+                                                    onKeyDown={(event) =>
+                                                        event.stopPropagation()
+                                                    }
+                                                >
                                                     <div
                                                         className="flex flex-nowrap items-center justify-end gap-1"
                                                         onPointerDown={(
