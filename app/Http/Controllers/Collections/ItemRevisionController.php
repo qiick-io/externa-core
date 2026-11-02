@@ -9,6 +9,7 @@ use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemRevision;
 use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Services\Collections\CollectionFieldConvertService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,6 +28,7 @@ class ItemRevisionController extends Controller
     public function __construct(
         private UpdateCollectionItemAction $updateCollectionItemAction,
         private CollectionPermissionEnforcerService $permissionEnforcer,
+        private CollectionFieldConvertService $fieldConvert,
     ) {}
 
     public function index(Request $request, Collection $collection, CollectionItem $item): Response|JsonResponse
@@ -157,6 +159,8 @@ class ItemRevisionController extends Controller
         );
 
         $collection->load(['fields' => fn ($q) => $q->ordered()]);
+        // Pre-conversion snapshots may not match the current field type (#220).
+        $data = $this->fieldConvert->adaptSnapshotData($collection, $data);
         $item = $this->updateCollectionItemAction->execute(new CollectionItemWriteData(
             collection: $collection,
             data: $data,

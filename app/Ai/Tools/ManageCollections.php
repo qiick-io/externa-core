@@ -7,6 +7,7 @@ use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Data\Collections\CollectionItemWriteData;
+use App\Data\Collections\FieldConvertOptionsData;
 use App\Enums\FieldTypeEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
@@ -14,6 +15,7 @@ use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Services\Collections\ApplyCollectionPackService;
 use App\Services\Collections\ApplyFieldPackService;
+use App\Services\Collections\CollectionFieldConvertService;
 use App\Services\Collections\CollectionFieldRenamerService;
 use App\Services\Collections\CollectionFieldStorageShapeService;
 use App\Services\Collections\CollectionItemValuesAssemblerService;
@@ -49,6 +51,7 @@ class ManageCollections implements Approvable, Tool
             'restore',
             'create_field',
             'update_field',
+            'convert_field',
             'apply_field_pack',
             'apply_collection_pack',
             'duplicate',
@@ -68,7 +71,7 @@ class ManageCollections implements Approvable, Tool
      */
     public function description(): Stringable|string
     {
-        return 'List, get, create, update, soft-delete, restore, or force-delete content collections; create/update/delete fields; list or apply field packs and collection packs (e.g. SEO entity, Articles).';
+        return 'List, get, create, update, soft-delete, restore, or force-delete content collections; create/update/delete/convert fields (convert_field migrates stored values for safe type pairs); list or apply field packs and collection packs (e.g. SEO entity, Articles).';
     }
 
     /**
@@ -89,13 +92,14 @@ class ManageCollections implements Approvable, Tool
                 'force_delete' => $this->forceDeleteCollection($request->integer('collection_id')),
                 'create_field' => $this->createField($request),
                 'update_field' => $this->updateField($request),
+                'convert_field' => $this->convertField($request),
                 'delete_field' => $this->deleteField($request),
                 'list_field_packs' => $this->listFieldPacks(),
                 'apply_field_pack' => $this->applyFieldPack($request),
                 'list_collection_packs' => $this->listCollectionPacks(),
                 'apply_collection_pack' => $this->applyCollectionPack($request),
                 'duplicate' => $this->duplicateCollection($request),
-                default => 'Error: Unknown action. Use list, get, create, update, delete, restore, force_delete, create_field, update_field, delete_field, list_field_packs, apply_field_pack, list_collection_packs, apply_collection_pack, or duplicate.',
+                default => 'Error: Unknown action. Use list, get, create, update, delete, restore, force_delete, create_field, update_field, convert_field, delete_field, list_field_packs, apply_field_pack, list_collection_packs, apply_collection_pack, or duplicate.',
             };
         });
     }
@@ -107,7 +111,7 @@ class ManageCollections implements Approvable, Tool
     {
         return [
             'action' => $schema->string()->required()->description(
-                'list|get|create|update|delete|restore|force_delete|create_field|update_field|delete_field|list_field_packs|apply_field_pack|list_collection_packs|apply_collection_pack|duplicate'
+                'list|get|create|update|delete|restore|force_delete|create_field|update_field|convert_field|delete_field|list_field_packs|apply_field_pack|list_collection_packs|apply_collection_pack|duplicate'
             ),
             'collection_id' => $schema->integer(),
             'trashed' => $schema->boolean()->description('For list, return only soft-deleted collections'),
@@ -117,6 +121,8 @@ class ManageCollections implements Approvable, Tool
             'is_singleton' => $schema->boolean(),
             'type' => $schema->string()->description('Field type enum value, e.g. string, textarea, boolean'),
             'translatable' => $schema->boolean(),
+            'locale' => $schema->string()->description('For convert_field when collapsing translatable → non-translatable: locale to keep'),
+            'dry_run' => $schema->boolean()->description('For convert_field: preview without writing'),
             'settings_json' => $schema->string()->description('Optional JSON object for field settings'),
             'pack' => $schema->string()->description('Pack key for apply_field_pack (e.g. seo_inline, publishing) or apply_collection_pack (e.g. seo, articles). Call list_*_packs first if unsure.'),
             'with_sample' => $schema->boolean()->description('For duplicate, copy up to five sample items'),
@@ -674,10 +680,72 @@ class ManageCollections implements Approvable, Tool
                 'id' => $field->id,
                 'collection_id' => $field->collection_id,
                 'name' => $field->name,
-                'type' => $field->type->value,
+                'type' => $field->type instanceof FieldTypeEnum ? $field->type->value : (string) $field->type,
                 'translatable' => $field->translatable,
                 'settings' => $field->settings,
             ],
+        ], JSON_PRETTY_PRINT) ?: '{}';
+    }
+
+    /**
+     * Convert a field type / translatable flag and migrate stored values (#220).
+     */
+    private function convertField(Request $request): string
+    {
+        if ($error = $this->requirePermission(PermissionEnum::CanEditCollections)) {
+            return $error;
+        }
+
+        $field = $this->findField($request);
+
+        if (is_string($field)) {
+            return $field;
+        }
+
+        $typeRaw = trim((string) $request->string('type'));
+        $toType = $typeRaw !== ''
+            ? FieldTypeEnum::tryFrom($typeRaw)
+            : $field->type;
+
+        if ($toType === null) {
+            return 'Error: Invalid field type. Use one of: '.implode(', ', FieldTypeEnum::values()).'.';
+        }
+
+        $toTranslatable = $request->has('translatable')
+            ? (bool) $request->boolean('translatable')
+            : (bool) $field->translatable;
+
+        $locale = $request->filled('locale') ? trim((string) $request->string('locale')) : null;
+        $dryRun = (bool) $request->boolean('dry_run');
+
+        $settings = null;
+        if ($request->filled('settings_json')) {
+            $decoded = $this->decodeSettings($request);
+            if (is_string($decoded)) {
+                return $decoded;
+            }
+            $settings = $decoded;
+        }
+
+        $result = app(CollectionFieldConvertService::class)->run($field, new FieldConvertOptionsData(
+            toType: $toType,
+            toTranslatable: $toTranslatable,
+            locale: $locale,
+            settings: $settings,
+            dryRun: $dryRun,
+        ));
+
+        if (! $result->supported || $result->error !== null) {
+            return 'Error: '.($result->error ?? 'Unsupported conversion.');
+        }
+
+        if ($result->applied) {
+            $this->logAiMutation($field->fresh() ?? $field, 'convert_field');
+        }
+
+        return json_encode([
+            'ok' => true,
+            'convert' => $result->toArray(),
         ], JSON_PRETTY_PRINT) ?: '{}';
     }
 

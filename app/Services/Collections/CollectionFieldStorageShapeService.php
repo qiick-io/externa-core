@@ -13,7 +13,7 @@ use Illuminate\Support\Collection as SupportCollection;
 
 /**
  * Detects whether a field already has stored content that would break if type or
- * translatable storage shape changed (no conversion tooling yet — see #220).
+ * translatable storage shape changed without going through {@see CollectionFieldConvertService} (#220).
  */
 class CollectionFieldStorageShapeService
 {

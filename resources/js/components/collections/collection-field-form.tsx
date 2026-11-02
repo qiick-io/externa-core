@@ -1724,7 +1724,7 @@ function TranslatableField({
                         {t('collections.translatable')}
                     </Label>
                     <p className="text-sm leading-relaxed text-muted-foreground">
-                        {t('collections.translatableLockedHint')}
+                        {t('collections.translatableLockedHintConvert')}
                     </p>
                 </div>
             </div>

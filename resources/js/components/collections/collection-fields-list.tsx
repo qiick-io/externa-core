@@ -21,6 +21,7 @@ import Sortable from 'sortablejs';
 import type { MoveEvent, SortableEvent } from 'sortablejs';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { FIELD_TYPE_ICONS } from '@/components/collections/collection-field-form';
+import { FieldConvertDialog } from '@/components/collections/field-convert-dialog';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -524,6 +525,7 @@ function CollectionFieldRowActions({
     const { t } = useTranslation();
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [convertOpen, setConvertOpen] = useState(false);
     const hiddenInForm = isFieldHiddenInForm(field.settings);
     const layoutWidth = getFieldLayoutWidth(field.settings);
     const isGroup = isLayoutGroupType(field.type);
@@ -607,6 +609,17 @@ function CollectionFieldRowActions({
                         <Pencil className="size-4" />
                         Modifica Campo
                     </DropdownMenuItem>
+                    {field.has_stored_values && !isGroup ? (
+                        <DropdownMenuItem
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setConvertOpen(true);
+                            }}
+                        >
+                            <Type className="size-4" />
+                            {t('collections.convert.menuLabel')}
+                        </DropdownMenuItem>
+                    ) : null}
                     <DropdownMenuItem
                         onClick={(event) => {
                             event.stopPropagation();
@@ -711,6 +724,15 @@ function CollectionFieldRowActions({
                 confirming={deleting}
                 onConfirm={deleteField}
             />
+
+            {field.has_stored_values && !isGroup ? (
+                <FieldConvertDialog
+                    open={convertOpen}
+                    onOpenChange={setConvertOpen}
+                    collectionId={collectionId}
+                    field={field}
+                />
+            ) : null}
         </>
     );
 }
