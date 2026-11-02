@@ -1,3 +1,6 @@
+import { logout } from '@/routes';
+import { update as updateLocale } from '@/routes/locale';
+import { edit } from '@/routes/profile';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     Accessibility,
@@ -25,9 +28,6 @@ import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import i18n from '@/lib/i18n';
 import { resetChatStore } from '@/stores/chat/reset';
 import type { User } from '@/types';
-import { logout } from '@/routes';
-import { update as updateLocale } from '@/routes/locale';
-import { edit } from '@/routes/profile';
 
 type Props = {
     user: User;
