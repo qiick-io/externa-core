@@ -85,12 +85,12 @@ class FieldConvertCommand extends Command
             ? (string) $this->option('locale')
             : null;
 
-        /** @var Collection|null $collection */
+        /** @var Collection $collection */
         $collection = $field->collection;
         $this->info(sprintf(
             'externa:field-convert field#%d (%s.%s) %s → %s [translatable %s → %s]%s',
             $field->id,
-            $collection?->slug ?? '?',
+            $collection->slug,
             $field->name,
             $field->type->value,
             $toType->value,
