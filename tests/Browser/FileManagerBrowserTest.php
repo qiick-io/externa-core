@@ -130,7 +130,7 @@ it('shows create and upload actions on empty grid area context menu', function (
 
     $page = visit('/files');
 
-    $page->assertSee('Drop files anywhere to upload')
+    $page->assertSee('Drop files to upload')
         ->rightClick('[data-testid="files-grid-area"]')
         ->assertPresent('[data-testid="files-empty-area-context-menu"]')
         ->assertSee('New Folder')
