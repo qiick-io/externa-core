@@ -68,6 +68,11 @@ function DrawerContent({
                 // Prefer first field/control; fall back to the drawer root so
                 // focus is never left on the trigger (jsdom / reduced-motion).
                 const container = event.currentTarget;
+
+                if (!(container instanceof HTMLElement)) {
+                    return;
+                }
+
                 const focusTarget =
                     container.querySelector<HTMLElement>(
                         'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
