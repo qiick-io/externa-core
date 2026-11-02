@@ -137,3 +137,65 @@ test('violet-ish custom hex applies AI override on teal preset', function () {
             ->where('projectAppearance.themeCss.light.ai', '#0E7C86')
         );
 });
+
+test('saving appearance keeps the stored preset when theme_preset is omitted', function () {
+    $user = grantThemePresetPermissions(User::factory()->create());
+    $repository = app(SettingsRepositoryService::class);
+
+    $this->actingAs($user)
+        ->put(route('appearance.update'), [
+            'theme_preset' => 'slate',
+            'default_appearance' => 'system',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($user)
+        ->put(route('appearance.update'), [
+            'project_color' => null,
+            'project_color_dark' => null,
+            'default_appearance' => 'dark',
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('appearance.edit'));
+
+    expect($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'theme_preset'))
+        ->toBe('slate')
+        ->and($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'default_appearance'))
+        ->toBe('dark');
+});
+
+test('first save without theme_preset stores the default preset', function () {
+    $user = grantThemePresetPermissions(User::factory()->create());
+
+    $this->actingAs($user)
+        ->put(route('appearance.update'), [
+            'default_appearance' => 'light',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(app(SettingsRepositoryService::class)->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'theme_preset'))
+        ->toBe('teal');
+});
+
+test('an unknown theme_preset is rejected and the stored preset is kept', function () {
+    $user = grantThemePresetPermissions(User::factory()->create());
+    $repository = app(SettingsRepositoryService::class);
+
+    $this->actingAs($user)
+        ->put(route('appearance.update'), [
+            'theme_preset' => 'indigo',
+            'default_appearance' => 'system',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($user)
+        ->from(route('appearance.edit'))
+        ->put(route('appearance.update'), [
+            'theme_preset' => 'neon',
+            'default_appearance' => 'system',
+        ])
+        ->assertSessionHasErrors('theme_preset');
+
+    expect($repository->get(SettingsRepositoryService::SCOPE_PROJECT, 'appearance', 'theme_preset'))
+        ->toBe('indigo');
+});
