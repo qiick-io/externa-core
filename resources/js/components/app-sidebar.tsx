@@ -187,11 +187,9 @@ export function AppSidebar() {
                         : item.accent
                           ? cn(
                                 'sidebar-ai-nav relative overflow-hidden',
-                                'text-orange-700 hover:text-orange-700',
-                                'dark:text-orange-300 dark:hover:text-orange-300',
+                                'text-ai-text hover:text-ai-text',
                                 'data-[active=true]:font-medium',
-                                'data-[active=true]:text-orange-700',
-                                'dark:data-[active=true]:text-orange-300',
+                                'data-[active=true]:text-ai-text',
                             )
                           : undefined
                 }

@@ -386,7 +386,7 @@ export function LocalizedField({
                                                     className="gap-2"
                                                     disabled={aiTranslating}
                                                 >
-                                                    <Sparkles className="size-3.5" />
+                                                    <Sparkles className="size-3.5 text-ai" />
                                                     {aiTranslating
                                                         ? t(
                                                               'collections.localized.translateWithAiBusy',
@@ -438,7 +438,7 @@ export function LocalizedField({
                                                     }}
                                                     className="gap-2"
                                                 >
-                                                    <Sparkles className="size-3.5" />
+                                                    <Sparkles className="size-3.5 text-ai" />
                                                     {aiTranslating
                                                         ? t(
                                                               'collections.localized.translateWithAiBusy',
