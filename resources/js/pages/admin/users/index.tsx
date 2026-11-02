@@ -492,7 +492,7 @@ export default function AdminUsersIndex({
                                                     onCheckedChange={() =>
                                                         toggleRow(user.id)
                                                     }
-                                                    aria-label={`Select ${user.name}`}
+                                                    aria-label={`Select ${userDisplayName(user)}`}
                                                 />
                                             </TableCell>
                                             <TableCell className="max-w-[12rem] font-medium">
