@@ -1918,33 +1918,15 @@
             "icons": [
                 "Angry",
                 "Annoyed",
-                "Chromium",
-                "Codepen",
-                "Codesandbox",
-                "Dribbble",
-                "Facebook",
-                "Figma",
-                "Framer",
                 "Frown",
-                "Github",
-                "Gitlab",
                 "History",
-                "Instagram",
                 "Laugh",
-                "Linkedin",
                 "Meh",
-                "Pocket",
                 "Podcast",
-                "RailSymbol",
-                "Slack",
                 "Smile",
                 "SmilePlus",
                 "TextSelect",
-                "Trello",
-                "Twitch",
-                "Twitter",
-                "Waves",
-                "Youtube"
+                "Waves"
             ]
         }
     ]

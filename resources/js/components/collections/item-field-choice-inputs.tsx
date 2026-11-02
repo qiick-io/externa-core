@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronsUpDown } from 'lucide-react';
 import {
     Fragment,
     useCallback,
@@ -1077,19 +1077,10 @@ export function MultiselectWithOtherInput({
                             })}
                         </div>
                     )}
-                    <svg
-                        className="size-4 shrink-0 opacity-50"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                        />
-                    </svg>
+                    <ChevronsUpDown
+                        className="size-4 shrink-0 text-muted-foreground"
+                        aria-hidden
+                    />
                 </button>
                 {open && !readonly && (
                     <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-md border bg-popover p-1 shadow-md">

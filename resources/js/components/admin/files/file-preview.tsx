@@ -1,6 +1,16 @@
-import { FolderOpen } from 'lucide-react';
-import { useEffect, useRef } from 'react';
-import { FileIcon, defaultStyles } from 'react-file-icon';
+import {
+    File,
+    FileArchive,
+    FileAudio,
+    FileCode,
+    FileImage,
+    FileSpreadsheet,
+    FileText,
+    FileVideo,
+    FolderOpen,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { createElement, useEffect, useRef } from 'react';
 import { withSearchParam } from '@/lib/file-field-image';
 import { filePublicUrl, isImageFile, isPlayableVideo } from '@/lib/files-api';
 import { cn } from '@/lib/utils';
@@ -24,6 +34,81 @@ const sizeClass = {
 
 /** Grid cover ~2× typical card CSS px; matches FileTransformService::MAX_SIZE / card preset. */
 const GRID_COVER_THUMB_SIZE = 512;
+
+const EXTENSION_ICONS: Record<string, LucideIcon> = {
+    // Documents
+    pdf: FileText,
+    txt: FileText,
+    md: FileText,
+    rtf: FileText,
+    doc: FileText,
+    docx: FileText,
+    odt: FileText,
+    pages: FileText,
+    // Spreadsheets
+    csv: FileSpreadsheet,
+    xls: FileSpreadsheet,
+    xlsx: FileSpreadsheet,
+    ods: FileSpreadsheet,
+    numbers: FileSpreadsheet,
+    // Archives
+    zip: FileArchive,
+    rar: FileArchive,
+    '7z': FileArchive,
+    tar: FileArchive,
+    gz: FileArchive,
+    tgz: FileArchive,
+    bz2: FileArchive,
+    // Audio
+    mp3: FileAudio,
+    wav: FileAudio,
+    flac: FileAudio,
+    aac: FileAudio,
+    m4a: FileAudio,
+    ogg: FileAudio,
+    // Video
+    mp4: FileVideo,
+    mov: FileVideo,
+    webm: FileVideo,
+    mkv: FileVideo,
+    avi: FileVideo,
+    m4v: FileVideo,
+    // Images (fallback when no thumbnail URL)
+    png: FileImage,
+    jpg: FileImage,
+    jpeg: FileImage,
+    gif: FileImage,
+    webp: FileImage,
+    svg: FileImage,
+    avif: FileImage,
+    // Code
+    js: FileCode,
+    jsx: FileCode,
+    ts: FileCode,
+    tsx: FileCode,
+    json: FileCode,
+    html: FileCode,
+    css: FileCode,
+    scss: FileCode,
+    php: FileCode,
+    py: FileCode,
+    rb: FileCode,
+    go: FileCode,
+    rs: FileCode,
+    java: FileCode,
+    xml: FileCode,
+    yml: FileCode,
+    yaml: FileCode,
+    sh: FileCode,
+    sql: FileCode,
+};
+
+/**
+ * Picks a Lucide file glyph for an extension (tinted tile fallback when media is unavailable).
+ */
+export function fileIconForExtension(extension: string): LucideIcon {
+    return EXTENSION_ICONS[extension.toLowerCase()] ?? File;
+}
 
 /**
  * Thumbnail or icon preview for a file row.
@@ -120,15 +205,22 @@ export function FilePreview({
         file.name.split('.').pop() ||
         'file'
     ).toLowerCase();
-    const style =
-        defaultStyles[extension as keyof typeof defaultStyles] ??
-        defaultStyles.txt;
+    const Icon = fileIconForExtension(extension);
 
     return (
-        <div className={boxClass}>
-            <div className="flex h-full w-full items-center justify-center [&_svg]:h-full [&_svg]:max-h-full [&_svg]:w-full [&_svg]:max-w-full">
-                <FileIcon extension={extension} {...style} />
-            </div>
+        <div
+            className={cn(
+                boxClass,
+                !isCover && 'rounded-md bg-muted text-muted-foreground',
+            )}
+        >
+            {createElement(Icon, {
+                className: cn(
+                    size === 'lg' ? 'size-16' : 'size-1/2',
+                    'max-h-full max-w-full',
+                ),
+                'aria-hidden': true,
+            })}
         </div>
     );
 }

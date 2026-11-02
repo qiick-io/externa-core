@@ -21,6 +21,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Self-host Geist / Geist Mono via `@fontsource-variable/*` (Vite-bundled); drop Instrument Sans and `fonts.bunny.net` from the admin shell; apply `font-mono` to obvious slugs, IDs, API paths, and versions (#228).
 - Replace hand-styled native `<select>` with shadcn `NativeSelect` (activity-log filters, role form, item filters, field settings, layout editor, blocks/m2a, chat drawer) (#232).
 - Sidebar brand active state uses teal `--sidebar-accent*` tokens with de-emphasized inactive items (`ink-600`), a 3px teal left bar on `data-[active=true]`, and settings secondary nav aligned to `SidebarMenu` / `SidebarGroupLabel` styling (#238).
+- Lucide-only icon cleanup: replace hand-drawn multi-select chevron with `ChevronsUpDown`, switch the icon picker to `lucide-react/dynamic` (`DynamicIcon`, no full `icons` map), upgrade `lucide-react` to ^1.61, and replace `react-file-icon` with Lucide `File*` glyphs on a muted tile (#241).
 - Boolean ("Toggle") item fields and appearance sidebar module toggles use shadcn `Switch`; `radio_group` item fields use shadcn `RadioGroup` instead of native radios (#233).
 - Destructive and unsaved-changes confirms use shadcn `AlertDialog` (overlay `--overlay` token); irreversible collection force-delete requires typing the collection name (#230).
 - Collection create/edit drawer, field settings form, and dynamic item fields use shadcn `Field*` / `FieldError` with `aria-invalid` / `aria-describedby` (#231).
