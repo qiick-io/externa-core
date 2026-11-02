@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { TranslatedInput } from '@/components/collections/field-settings/translated-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,8 +19,6 @@ type ValidationRuleBuilderProps = {
 
 /**
  * UI for assembling collection field validation rules.
- * @param {*} props - Component props.
- * @returns {JSX.Element}
  */
 export function ValidationRuleBuilder({
     rules,
@@ -27,6 +26,8 @@ export function ValidationRuleBuilder({
     onRulesChange,
     onValidationMessageChange,
 }: ValidationRuleBuilderProps) {
+    const { t } = useTranslation();
+
     return (
         <div className="space-y-5">
             <div className="space-y-3">
@@ -100,7 +101,7 @@ export function ValidationRuleBuilder({
                                     type="button"
                                     variant="outline"
                                     size="icon"
-                                    aria-label="Remove rule"
+                                    aria-label={t('a11y.removeRule')}
                                     onClick={() =>
                                         onRulesChange(
                                             rules.filter(

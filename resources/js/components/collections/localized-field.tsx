@@ -1,5 +1,6 @@
 import { Copy, Languages, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { useContentLocale } from '@/components/collections/content-locale-provider';
@@ -110,6 +111,7 @@ export function LocalizedField({
     labelAddon,
 }: LocalizedFieldProps) {
     const { t } = useTranslation();
+    const generatedId = useId();
     const localeEntries = normalizeLocales(localesProp);
     const localeCodes = localeEntries.map((entry) => entry.code);
     const shared = useContentLocale(localeCodes);
@@ -119,6 +121,9 @@ export function LocalizedField({
         (localeCodes.includes(shared.locale)
             ? shared.locale
             : (localeCodes[0] ?? 'en'));
+    const controlId = idPrefix
+        ? `${idPrefix}_${locale}`
+        : `${generatedId}_${locale}`;
 
     const setLocale = (next: string): void => {
         onLocaleChange?.(next);
@@ -267,7 +272,11 @@ export function LocalizedField({
             {/* min-h-8 matches Button/ToggleGroup sm so half-width siblings align with/without headerActions */}
             <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-1 items-center gap-0.5">
-                    {label ? <Label>{label}</Label> : null}
+                    {label ? (
+                        <Label htmlFor={children ? undefined : controlId}>
+                            {label}
+                        </Label>
+                    ) : null}
                     {labelAddon}
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
@@ -497,6 +506,7 @@ export function LocalizedField({
 
             <div
                 className={cn(aiTranslating && 'ai-field-translating')}
+                lang={locale.replace('_', '-')}
                 aria-busy={aiTranslating || undefined}
                 data-ai-translating={aiTranslating ? 'true' : undefined}
             >
@@ -508,7 +518,7 @@ export function LocalizedField({
                     })
                 ) : inputType === 'textarea' ? (
                     <Textarea
-                        id={idPrefix ? `${idPrefix}_${locale}` : undefined}
+                        id={controlId}
                         value={currentValue}
                         onChange={(event) => setValue(event.target.value)}
                         placeholder={placeholder}
@@ -518,7 +528,7 @@ export function LocalizedField({
                     />
                 ) : (
                     <Input
-                        id={idPrefix ? `${idPrefix}_${locale}` : undefined}
+                        id={controlId}
                         value={currentValue}
                         onChange={(event) => setValue(event.target.value)}
                         placeholder={placeholder}

@@ -278,7 +278,7 @@ export default function ItemRevisions({
                                 setDateFrom(event.target.value)
                             }
                             className="h-9 w-auto"
-                            aria-label="From date"
+                            aria-label={t('a11y.fromDate')}
                         />
                     </div>
                     <div className="space-y-1">
@@ -290,7 +290,7 @@ export default function ItemRevisions({
                             min={dateFrom || undefined}
                             onChange={(event) => setDateTo(event.target.value)}
                             className="h-9 w-auto"
-                            aria-label="To date"
+                            aria-label={t('a11y.toDate')}
                         />
                     </div>
                     <Button

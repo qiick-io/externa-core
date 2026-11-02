@@ -2,6 +2,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Pin, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer';
 import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
@@ -271,6 +272,7 @@ export default function AiIndexPage({
     selectedConversation,
     messages: initialMessages,
 }: Props) {
+    const { t } = useTranslation();
     const page = usePage();
     const initialPaginated = normalizePaginated(conversationsProp);
     const [composer, setComposer] = useState('');
@@ -1417,7 +1419,7 @@ export default function AiIndexPage({
                                     selectedIds.size === 0 || isBulkDeleting
                                 }
                                 onClick={() => setConfirmBulkDeleteOpen(true)}
-                                aria-label="Delete selected chats"
+                                aria-label={t('a11y.deleteSelectedChats')}
                             >
                                 <Trash2 className="size-3.5" />
                             </Button>
@@ -1516,8 +1518,12 @@ export default function AiIndexPage({
                                                             }
                                                             aria-label={
                                                                 conversation.pinned_at
-                                                                    ? 'Unpin'
-                                                                    : 'Pin chat'
+                                                                    ? t(
+                                                                          'a11y.unpinChat',
+                                                                      )
+                                                                    : t(
+                                                                          'a11y.pinChat',
+                                                                      )
                                                             }
                                                         >
                                                             <Pin
@@ -1537,7 +1543,9 @@ export default function AiIndexPage({
                                                                     conversation.id,
                                                                 )
                                                             }
-                                                            aria-label="Delete chat"
+                                                            aria-label={t(
+                                                                'a11y.deleteChat',
+                                                            )}
                                                         >
                                                             <Trash2 className="size-3.5" />
                                                         </Button>

@@ -747,7 +747,7 @@ export default function ItemsIndex({
                                             type="button"
                                             variant="outline"
                                             size="icon"
-                                            aria-label="Export"
+                                            aria-label={t('common.export')}
                                         >
                                             <Download className="size-4" />
                                         </Button>
@@ -1145,7 +1145,7 @@ export default function ItemsIndex({
                                             onCheckedChange={(c) =>
                                                 toggleAll(c === true)
                                             }
-                                            aria-label="Select all"
+                                            aria-label={t('a11y.selectAll')}
                                         />
                                     </TableHead>
                                     {listColumns.map((path) => (

@@ -226,6 +226,7 @@ export function CollectionFormLayoutEditor({
                                     type="button"
                                     size="icon"
                                     variant="ghost"
+                                    aria-label={t('a11y.removeTab')}
                                     onClick={() => {
                                         const nextTabs = tabs.filter(
                                             (entry) => entry.id !== tab.id,

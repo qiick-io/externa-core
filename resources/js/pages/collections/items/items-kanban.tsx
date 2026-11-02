@@ -621,7 +621,9 @@ export function ItemsKanban({
                                                     type="button"
                                                     data-kanban-handle
                                                     className="mt-0.5 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
-                                                    aria-label="Drag"
+                                                    aria-label={t(
+                                                        'a11y.dragToReorder',
+                                                    )}
                                                 >
                                                     <GripVertical className="size-3.5" />
                                                 </button>

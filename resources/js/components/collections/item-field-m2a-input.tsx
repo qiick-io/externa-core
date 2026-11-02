@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp, GripVertical } from 'lucide-react';
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { PaginatedMultiSelect } from '@/components/admin/paginated-multi-select';
 import { Button } from '@/components/ui/button';
@@ -113,6 +114,7 @@ export function M2aFieldInput({
     readonly: boolean;
     relatedCollections: RelatedCollectionOption[];
 }) {
+    const { t } = useTranslation();
     const m2aSettings = parseM2aFieldSettings(field.settings);
     const allowedCollections = relatedCollections.filter((collection) =>
         m2aSettings.allowedCollectionIds.includes(collection.id),
@@ -233,7 +235,7 @@ export function M2aFieldInput({
                                     <button
                                         type="button"
                                         className="drag-handle text-muted-foreground"
-                                        aria-label="Drag to reorder"
+                                        aria-label={t('a11y.dragToReorder')}
                                     >
                                         <GripVertical className="size-4" />
                                     </button>
@@ -267,7 +269,7 @@ export function M2aFieldInput({
                                             size="sm"
                                             variant="ghost"
                                             disabled={blockIndex === 0}
-                                            aria-label="Move block up"
+                                            aria-label={t('a11y.moveBlockUp')}
                                             onClick={() =>
                                                 moveBlock(block.id, -1)
                                             }
@@ -281,7 +283,7 @@ export function M2aFieldInput({
                                             disabled={
                                                 blockIndex === blocks.length - 1
                                             }
-                                            aria-label="Move block down"
+                                            aria-label={t('a11y.moveBlockDown')}
                                             onClick={() =>
                                                 moveBlock(block.id, 1)
                                             }

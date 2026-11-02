@@ -48,6 +48,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { useTranslation } from 'react-i18next';
 import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
 import { FileUrlImportDialog } from '@/components/admin/file-url-import-dialog';
 import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
@@ -401,6 +402,8 @@ export function MarkdownModeToggle({
     onChange: (next: 'edit' | 'preview') => void;
     disabled?: boolean;
 }) {
+    const { t } = useTranslation();
+
     return (
         <ToggleGroup
             type="single"
@@ -414,12 +417,16 @@ export function MarkdownModeToggle({
             className="justify-start"
             disabled={disabled}
         >
-            <ToggleGroupItem value="edit" aria-label="Edit" className="px-2">
+            <ToggleGroupItem
+                value="edit"
+                aria-label={t('a11y.editMode')}
+                className="px-2"
+            >
                 <FileText className="size-3.5" />
             </ToggleGroupItem>
             <ToggleGroupItem
                 value="preview"
-                aria-label="Preview"
+                aria-label={t('a11y.previewMode')}
                 className="px-2"
             >
                 <Eye className="size-3.5" />
@@ -447,6 +454,8 @@ function MarkdownToolbar({
     onImageFromLibrary: () => void;
     onImageFromUrl: () => void;
 }) {
+    const { t } = useTranslation();
+
     return (
         <div className="flex flex-wrap gap-1 border-b p-1.5">
             <DropdownMenu>
@@ -456,8 +465,8 @@ function MarkdownToolbar({
                         size="sm"
                         variant="outline"
                         className="h-7 gap-1.5 px-2"
-                        aria-label="Heading"
-                        title="Heading"
+                        aria-label={t('a11y.heading')}
+                        title={t('a11y.heading')}
                         disabled={disabled}
                     >
                         <Heading className="size-3.5" />
@@ -553,8 +562,8 @@ function MarkdownToolbar({
                         size="sm"
                         variant="outline"
                         className="h-7 px-2"
-                        aria-label="Image"
-                        title="Image"
+                        aria-label={t('a11y.insertImage')}
+                        title={t('a11y.insertImage')}
                         disabled={disabled}
                     >
                         <ImageIcon className="size-3.5" />

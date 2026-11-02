@@ -225,7 +225,7 @@ export function ItemRevisionsDrawer({
                                             setDateFrom(event.target.value)
                                         }
                                         className="h-9"
-                                        aria-label="From date"
+                                        aria-label={t('a11y.fromDate')}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -239,7 +239,7 @@ export function ItemRevisionsDrawer({
                                             setDateTo(event.target.value)
                                         }
                                         className="h-9"
-                                        aria-label="To date"
+                                        aria-label={t('a11y.toDate')}
                                     />
                                 </div>
                             </div>

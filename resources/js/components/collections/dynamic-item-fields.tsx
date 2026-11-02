@@ -2,6 +2,7 @@ import { Asterisk, ChevronDown } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { RequiredMarker } from '@/components/a11y/required-marker';
 import { CollectionFieldFormDrawer } from '@/components/collections/collection-field-form';
 import { useContentLocale } from '@/components/collections/content-locale-provider';
 import { ContentLocaleProvider } from '@/components/collections/content-locale-provider';
@@ -663,11 +664,13 @@ function renderFieldControl(context: FieldRenderContext) {
  * Subtle amber asterisk for fields that differ in revision compare.
  */
 function DiffChangedMarker() {
+    const { t } = useTranslation();
+
     return (
         <span
             className="ml-1 inline-flex text-amber-500"
-            title="Changed"
-            aria-label="Changed"
+            title={t('a11y.changed')}
+            aria-label={t('a11y.changed')}
         >
             <Asterisk className="size-3.5" strokeWidth={2.5} aria-hidden />
         </span>
@@ -724,7 +727,7 @@ function TranslatableItemField({
     const labelText = showFieldNameHeading ? (
         <>
             {displayName}
-            {required ? <span className="text-destructive"> *</span> : null}
+            {required ? <RequiredMarker /> : null}
             {showDiffMarker ? <DiffChangedMarker /> : null}
         </>
     ) : undefined;
@@ -999,7 +1002,7 @@ function NonTranslatableItemField({
     const labelText = showFieldNameHeading ? (
         <>
             {displayName}
-            {required ? <span className="text-destructive"> *</span> : null}
+            {required ? <RequiredMarker /> : null}
             {showDiffMarker ? <DiffChangedMarker /> : null}
         </>
     ) : undefined;
@@ -1398,9 +1401,7 @@ export function DynamicItemFields({
                         <div className="flex flex-wrap items-center gap-2">
                             <span className="font-mono text-sm font-medium">
                                 {displayName}
-                                {flags.required ? (
-                                    <span className="text-destructive"> *</span>
-                                ) : null}
+                                {flags.required ? <RequiredMarker /> : null}
                             </span>
                             {field.translatable && (
                                 <Badge variant="secondary">Translatable</Badge>

@@ -112,6 +112,8 @@ function ModuleRow({
     label: string;
     onToggle: (enabled: boolean) => void;
 }) {
+    const { t } = useTranslation();
+
     return (
         <div
             data-id={module.id}
@@ -125,7 +127,7 @@ function ModuleRow({
                     <button
                         type="button"
                         className="drag-handle cursor-grab touch-none text-muted-foreground hover:text-foreground"
-                        aria-label="Reorder"
+                        aria-label={t('a11y.reorder')}
                     >
                         <GripVertical className="size-4" />
                     </button>
