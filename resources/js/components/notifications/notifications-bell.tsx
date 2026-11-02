@@ -64,10 +64,9 @@ export function NotificationsBell() {
 
         // Debounce realtime bursts so VoiceOver hears one polite update.
         announceTimeoutRef.current = window.setTimeout(() => {
-            announce(
-                t('a11y.notificationsUnread', { count: unreadCount }),
-                { politeness: 'polite' },
-            );
+            announce(t('a11y.notificationsUnread', { count: unreadCount }), {
+                politeness: 'polite',
+            });
         }, UNREAD_ANNOUNCE_DEBOUNCE_MS);
 
         return () => {

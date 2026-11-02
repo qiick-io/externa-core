@@ -4,9 +4,7 @@ const MAIN_CONTENT_ID = 'main-content';
  * Focuses `#main-content` when focus has fallen on `<body>` / documentElement
  * after Inertia navigation or a destructive action (WCAG 2.4.3 / 2.4.11).
  */
-export function focusPageMain(options?: {
-    force?: boolean;
-}): boolean {
+export function focusPageMain(options?: { force?: boolean }): boolean {
     if (typeof document === 'undefined') {
         return false;
     }

@@ -10,7 +10,9 @@ const ASSERTIVE_REGION_ID = 'externa-live-assertive';
 /**
  * Ensures a document-level aria-live region exists and returns it.
  */
-function ensureLiveRegion(politeness: LiveAnnouncePoliteness): HTMLElement | null {
+function ensureLiveRegion(
+    politeness: LiveAnnouncePoliteness,
+): HTMLElement | null {
     if (typeof document === 'undefined') {
         return null;
     }

@@ -1222,7 +1222,9 @@ export default function ItemsIndex({
                                             colSpan={colSpan}
                                             className="text-muted-foreground"
                                         >
-                                            <EmptyStatus>No items yet.</EmptyStatus>
+                                            <EmptyStatus>
+                                                No items yet.
+                                            </EmptyStatus>
                                         </TableCell>
                                     </TableRow>
                                 ) : (

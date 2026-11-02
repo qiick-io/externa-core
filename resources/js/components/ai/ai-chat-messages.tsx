@@ -1,6 +1,6 @@
 import { Paperclip, RefreshCw } from 'lucide-react';
-import { useEffect, useRef  } from 'react';
-import type {ReactNode} from 'react';
+import { useEffect, useRef } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AiFileCards } from '@/components/ai/ai-file-cards';
 import type { AiFileCardItem } from '@/components/ai/ai-file-cards';
@@ -90,7 +90,10 @@ export function AiChatMessages({
                     !message.isError,
             );
 
-        if (!lastAssistant || announcedMessageIdRef.current === lastAssistant.id) {
+        if (
+            !lastAssistant ||
+            announcedMessageIdRef.current === lastAssistant.id
+        ) {
             return;
         }
 
@@ -98,9 +101,10 @@ export function AiChatMessages({
         const preview = lastAssistant.content.trim().slice(0, 160);
         announce(
             t('a11y.aiAnswerReady', {
-                preview: preview.length < lastAssistant.content.trim().length
-                    ? `${preview}…`
-                    : preview,
+                preview:
+                    preview.length < lastAssistant.content.trim().length
+                        ? `${preview}…`
+                        : preview,
             }),
             { politeness: 'polite' },
         );
@@ -187,7 +191,9 @@ export function AiChatMessages({
                                             </div>
                                         </div>
                                     ) : showThinking ? (
-                                        <ThinkingDots label={t('ai.thinking')} />
+                                        <ThinkingDots
+                                            label={t('ai.thinking')}
+                                        />
                                     ) : isUser ? (
                                         <div className="flex flex-col gap-2">
                                             {(message.attachments?.length ??

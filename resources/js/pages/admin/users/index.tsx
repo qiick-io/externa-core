@@ -463,7 +463,9 @@ export default function AdminUsersIndex({
                                             colSpan={7}
                                             className="text-muted-foreground"
                                         >
-                                            <EmptyStatus>No users found.</EmptyStatus>
+                                            <EmptyStatus>
+                                                No users found.
+                                            </EmptyStatus>
                                         </TableCell>
                                     </TableRow>
                                 ) : (
