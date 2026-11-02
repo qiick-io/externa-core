@@ -100,7 +100,7 @@ it('paginates groups without bouncing to page 1', function () {
 
     $page = visit('/groups');
 
-    $page->assertSee('Slug')
+    $page->assertSee('Members')
         ->assertNoJavaScriptErrors()
         ->click('button[aria-label="Go to page 2"]')
         ->wait(1)

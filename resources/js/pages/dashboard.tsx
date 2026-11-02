@@ -302,7 +302,7 @@ export default function Dashboard({
                                                             'dashboard.collection',
                                                         )}
                                                     </TableHead>
-                                                    <TableHead className="w-[6rem] text-right">
+                                                    <TableHead className="w-[6rem] text-right tabular-nums">
                                                         {t('dashboard.items')}
                                                     </TableHead>
                                                 </TableRow>
@@ -318,7 +318,7 @@ export default function Dashboard({
                                                                 {row.slug}
                                                             </div>
                                                         </TableCell>
-                                                        <TableCell className="text-right">
+                                                        <TableCell className="text-right tabular-nums">
                                                             {row.items_count.toLocaleString()}
                                                         </TableCell>
                                                     </TableRow>
@@ -510,7 +510,7 @@ export default function Dashboard({
                                                                 'dashboard.descriptionCol',
                                                             )}
                                                         </TableHead>
-                                                        <TableHead className="w-[10rem] text-right">
+                                                        <TableHead className="w-[10rem] text-right tabular-nums">
                                                             {t(
                                                                 'dashboard.when',
                                                             )}
@@ -550,7 +550,7 @@ export default function Dashboard({
                                                                             : '—'}
                                                                     </div>
                                                                 </TableCell>
-                                                                <TableCell className="text-right text-xs text-muted-foreground">
+                                                                <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                                                                     {activity.created_at
                                                                         ? new Date(
                                                                               activity.created_at,
@@ -715,7 +715,7 @@ export default function Dashboard({
                                                                         'dashboard.file',
                                                                     )}
                                                                 </TableHead>
-                                                                <TableHead className="w-[7rem] text-right">
+                                                                <TableHead className="w-[7rem] text-right tabular-nums">
                                                                     {t(
                                                                         'dashboard.size',
                                                                     )}
@@ -748,7 +748,7 @@ export default function Dashboard({
                                                                             }
                                                                         </div>
                                                                     </TableCell>
-                                                                    <TableCell className="text-right">
+                                                                    <TableCell className="text-right tabular-nums">
                                                                         {formatBytes(
                                                                             file.size,
                                                                         )}
@@ -829,7 +829,7 @@ export default function Dashboard({
                                                                         'dashboard.date',
                                                                     )}
                                                                 </TableHead>
-                                                                <TableHead className="w-[8rem] text-right">
+                                                                <TableHead className="w-[8rem] text-right tabular-nums">
                                                                     {t(
                                                                         'dashboard.added',
                                                                     )}
@@ -849,7 +849,7 @@ export default function Dashboard({
                                                                                 row.date
                                                                             }
                                                                         </TableCell>
-                                                                        <TableCell className="text-right">
+                                                                        <TableCell className="text-right tabular-nums">
                                                                             {formatBytes(
                                                                                 row.bytes_added,
                                                                             )}
@@ -912,7 +912,7 @@ export default function Dashboard({
                                                                     'dashboard.descriptionCol',
                                                                 )}
                                                             </TableHead>
-                                                            <TableHead className="w-[10rem] text-right">
+                                                            <TableHead className="w-[10rem] text-right tabular-nums">
                                                                 {t(
                                                                     'dashboard.when',
                                                                 )}
@@ -948,7 +948,7 @@ export default function Dashboard({
                                                                                 : '—'}
                                                                         </div>
                                                                     </TableCell>
-                                                                    <TableCell className="text-right text-xs text-muted-foreground">
+                                                                    <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                                                                         {event.created_at
                                                                             ? new Date(
                                                                                   event.created_at,
@@ -1008,7 +1008,7 @@ export default function Dashboard({
                                                                         'dashboard.user',
                                                                     )}
                                                                 </TableHead>
-                                                                <TableHead className="w-[6rem] text-right">
+                                                                <TableHead className="w-[6rem] text-right tabular-nums">
                                                                     {t(
                                                                         'dashboard.events',
                                                                     )}
@@ -1028,7 +1028,7 @@ export default function Dashboard({
                                                                                 user.label
                                                                             }
                                                                         </TableCell>
-                                                                        <TableCell className="text-right">
+                                                                        <TableCell className="text-right tabular-nums">
                                                                             {user.activity_count.toLocaleString()}
                                                                         </TableCell>
                                                                     </TableRow>
@@ -1087,7 +1087,7 @@ export default function Dashboard({
                                                                         'dashboard.upload',
                                                                     )}
                                                                 </TableHead>
-                                                                <TableHead className="w-[6rem] text-right">
+                                                                <TableHead className="w-[6rem] text-right tabular-nums">
                                                                     {t(
                                                                         'dashboard.chunks',
                                                                     )}
@@ -1125,7 +1125,7 @@ export default function Dashboard({
                                                                                       )}
                                                                             </div>
                                                                         </TableCell>
-                                                                        <TableCell className="text-right text-xs text-muted-foreground">
+                                                                        <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                                                                             {upload.uploaded_chunks.toLocaleString()}
                                                                             /
                                                                             {upload.total_chunks.toLocaleString()}
@@ -1192,12 +1192,12 @@ export default function Dashboard({
                                                                     'dashboard.disk',
                                                                 )}
                                                             </TableHead>
-                                                            <TableHead className="text-right">
+                                                            <TableHead className="text-right tabular-nums">
                                                                 {t(
                                                                     'dashboard.files',
                                                                 )}
                                                             </TableHead>
-                                                            <TableHead className="text-right">
+                                                            <TableHead className="text-right tabular-nums">
                                                                 {t(
                                                                     'dashboard.size',
                                                                 )}
@@ -1217,10 +1217,10 @@ export default function Dashboard({
                                                                             row.disk
                                                                         }
                                                                     </TableCell>
-                                                                    <TableCell className="text-right">
+                                                                    <TableCell className="text-right tabular-nums">
                                                                         {row.files_count.toLocaleString()}
                                                                     </TableCell>
-                                                                    <TableCell className="text-right">
+                                                                    <TableCell className="text-right tabular-nums">
                                                                         {formatBytes(
                                                                             row.files_size_sum,
                                                                         )}
@@ -1585,17 +1585,17 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                                     'dashboard.healthWorkloadQueue',
                                                 )}
                                             </TableHead>
-                                            <TableHead className="w-[6rem] text-right">
+                                            <TableHead className="w-[6rem] text-right tabular-nums">
                                                 {t(
                                                     'dashboard.healthWorkloadLength',
                                                 )}
                                             </TableHead>
-                                            <TableHead className="w-[6rem] text-right">
+                                            <TableHead className="w-[6rem] text-right tabular-nums">
                                                 {t(
                                                     'dashboard.healthWorkloadWait',
                                                 )}
                                             </TableHead>
-                                            <TableHead className="w-[6rem] text-right">
+                                            <TableHead className="w-[6rem] text-right tabular-nums">
                                                 {t(
                                                     'dashboard.healthWorkloadProcesses',
                                                 )}
@@ -1608,13 +1608,13 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                                                 <TableCell className="font-medium">
                                                     {row.name}
                                                 </TableCell>
-                                                <TableCell className="text-right">
+                                                <TableCell className="text-right tabular-nums">
                                                     {row.length.toLocaleString()}
                                                 </TableCell>
-                                                <TableCell className="text-right">
+                                                <TableCell className="text-right tabular-nums">
                                                     {row.wait.toLocaleString()}s
                                                 </TableCell>
-                                                <TableCell className="text-right">
+                                                <TableCell className="text-right tabular-nums">
                                                     {row.processes.toLocaleString()}
                                                 </TableCell>
                                             </TableRow>

@@ -1,8 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Check, FolderOpen, Search, SearchX, X } from 'lucide-react';
+import { Check, Search, X } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -16,14 +15,20 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { NativeSelect } from '@/components/ui/native-select';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import adminRoutes from '@/lib/admin-routes';
 import { cn } from '@/lib/utils';
-import collectionRoutes from '@/routes/collections';
 import { edit as editProfile } from '@/routes/profile';
 import type { AdminRoleRow, BreadcrumbItem, PermissionGroup } from '@/types';
 
@@ -567,33 +572,31 @@ export default function AdminRoleForm({
                                 </p>
                             </div>
 
-                            <div className="overflow-x-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b bg-muted/40">
-                                            <th className="px-3 py-2 text-left font-medium">
-                                                Resource
-                                            </th>
+                            <div className="overflow-x-auto rounded-xl bg-card">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Resource</TableHead>
                                             {FILE_ACTIONS.map((action) => (
-                                                <th
+                                                <TableHead
                                                     key={action.key}
-                                                    className="px-2 py-2 text-center font-medium"
+                                                    className="text-center"
                                                 >
                                                     {action.label}
-                                                </th>
+                                                </TableHead>
                                             ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr className="border-b last:border-0">
-                                            <td className="px-3 py-2">
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow>
+                                            <TableCell>
                                                 <div className="font-medium">
                                                     Files
                                                 </div>
                                                 <div className="font-mono text-xs text-muted-foreground">
                                                     /api/v1/files
                                                 </div>
-                                            </td>
+                                            </TableCell>
                                             {FILE_ACTIONS.map((action) => {
                                                 const allowed =
                                                     form.data.file_permissions[
@@ -601,9 +604,9 @@ export default function AdminRoleForm({
                                                     ];
 
                                                 return (
-                                                    <td
+                                                    <TableCell
                                                         key={action.key}
-                                                        className="px-2 py-2 text-center"
+                                                        className="text-center"
                                                     >
                                                         <button
                                                             type="button"
@@ -643,12 +646,12 @@ export default function AdminRoleForm({
                                                                 />
                                                             )}
                                                         </button>
-                                                    </td>
+                                                    </TableCell>
                                                 );
                                             })}
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
                             </div>
                             <FieldError id="role-file-permissions-error">
                                 {form.errors.file_permissions}
@@ -686,69 +689,34 @@ export default function AdminRoleForm({
                             </div>
 
                             {collections.length === 0 ? (
-                                <PageEmptyState
-                                    icon={FolderOpen}
-                                    title={t(
-                                        'emptyState.roleCollections.title',
-                                    )}
-                                    description={t(
-                                        'emptyState.roleCollections.description',
-                                    )}
-                                    action={
-                                        <Button asChild>
-                                            <Link
-                                                href={collectionRoutes.index.url()}
-                                            >
-                                                {t(
-                                                    'emptyState.roleCollections.cta',
-                                                )}
-                                            </Link>
-                                        </Button>
-                                    }
-                                    compact
-                                />
+                                <p className="text-sm text-muted-foreground">
+                                    No collections yet.
+                                </p>
                             ) : filteredCollections.length === 0 ? (
-                                <PageEmptyState
-                                    icon={SearchX}
-                                    title={t(
-                                        'emptyState.roleCollections.filteredTitle',
-                                    )}
-                                    description={t(
-                                        'emptyState.roleCollections.filteredDescription',
-                                    )}
-                                    action={
-                                        <Button
-                                            type="button"
-                                            onClick={() =>
-                                                setCollectionSearch('')
-                                            }
-                                        >
-                                            {t('common.clearFilters')}
-                                        </Button>
-                                    }
-                                    compact
-                                />
+                                <p className="text-sm text-muted-foreground">
+                                    No collections match.
+                                </p>
                             ) : (
-                                <div className="overflow-x-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="border-b bg-muted/40">
-                                                <th className="px-3 py-2 text-left font-medium">
+                                <div className="overflow-x-auto rounded-xl bg-card">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow className="border-b bg-muted/40">
+                                                <TableHead className="text-left">
                                                     Collection
-                                                </th>
+                                                </TableHead>
                                                 {COLLECTION_ACTIONS.map(
                                                     (action) => (
-                                                        <th
+                                                        <TableHead
                                                             key={action.key}
-                                                            className="px-2 py-2 text-center font-medium"
+                                                            className="text-center"
                                                         >
                                                             {action.label}
-                                                        </th>
+                                                        </TableHead>
                                                     ),
                                                 )}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
                                             {filteredCollections.map(
                                                 (collection) => {
                                                     const key = String(
@@ -782,8 +750,8 @@ export default function AdminRoleForm({
                                                         <Fragment
                                                             key={collection.id}
                                                         >
-                                                            <tr className="border-b last:border-0">
-                                                                <td className="px-3 py-2">
+                                                            <TableRow>
+                                                                <TableCell>
                                                                     <div className="font-medium">
                                                                         {
                                                                             collection.name
@@ -794,7 +762,7 @@ export default function AdminRoleForm({
                                                                             collection.slug
                                                                         }
                                                                     </div>
-                                                                </td>
+                                                                </TableCell>
                                                                 {COLLECTION_ACTIONS.map(
                                                                     (
                                                                         action,
@@ -806,11 +774,11 @@ export default function AdminRoleForm({
                                                                             ];
 
                                                                         return (
-                                                                            <td
+                                                                            <TableCell
                                                                                 key={
                                                                                     action.key
                                                                                 }
-                                                                                className="px-2 py-2 text-center"
+                                                                                className="text-center"
                                                                             >
                                                                                 <button
                                                                                     type="button"
@@ -851,23 +819,23 @@ export default function AdminRoleForm({
                                                                                         />
                                                                                     )}
                                                                                 </button>
-                                                                            </td>
+                                                                            </TableCell>
                                                                         );
                                                                     },
                                                                 )}
-                                                            </tr>
+                                                            </TableRow>
                                                             {anyGrant &&
                                                             fieldOptions.length >
                                                                 0 ? (
-                                                                <tr
+                                                                <TableRow
                                                                     key={`${collection.id}-rules`}
-                                                                    className="border-b bg-muted/20 last:border-0"
+                                                                    className="bg-muted/20"
                                                                 >
-                                                                    <td
+                                                                    <TableCell
                                                                         colSpan={
                                                                             5
                                                                         }
-                                                                        className="space-y-3 px-3 py-3"
+                                                                        className="space-y-3"
                                                                     >
                                                                         <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                                                             Fields
@@ -962,9 +930,8 @@ export default function AdminRoleForm({
                                                                                         }
                                                                                         className="flex flex-wrap items-center gap-2"
                                                                                     >
-                                                                                        <NativeSelect
-                                                                                            size="sm"
-                                                                                            className="min-w-28 flex-1"
+                                                                                        <select
+                                                                                            className="h-8 rounded-md border bg-background px-2 text-xs"
                                                                                             value={
                                                                                                 rule.field
                                                                                             }
@@ -1008,10 +975,9 @@ export default function AdminRoleForm({
                                                                                                     </option>
                                                                                                 ),
                                                                                             )}
-                                                                                        </NativeSelect>
-                                                                                        <NativeSelect
-                                                                                            size="sm"
-                                                                                            className="min-w-28"
+                                                                                        </select>
+                                                                                        <select
+                                                                                            className="h-8 rounded-md border bg-background px-2 text-xs"
                                                                                             value={
                                                                                                 rule.operator
                                                                                             }
@@ -1050,7 +1016,7 @@ export default function AdminRoleForm({
                                                                                             <option value="not_empty">
                                                                                                 not_empty
                                                                                             </option>
-                                                                                        </NativeSelect>
+                                                                                        </select>
                                                                                         {rule.operator !==
                                                                                             'empty' &&
                                                                                         rule.operator !==
@@ -1136,15 +1102,15 @@ export default function AdminRoleForm({
                                                                                 rule
                                                                             </Button>
                                                                         </div>
-                                                                    </td>
-                                                                </tr>
+                                                                    </TableCell>
+                                                                </TableRow>
                                                             ) : null}
                                                         </Fragment>
                                                     );
                                                 },
                                             )}
-                                        </tbody>
-                                    </table>
+                                        </TableBody>
+                                    </Table>
                                 </div>
                             )}
                             <FieldError id="role-collection-permissions-error">

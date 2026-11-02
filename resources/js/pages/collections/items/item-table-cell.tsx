@@ -55,7 +55,7 @@ export function ItemTableCell({ path, row, fieldsByName }: ItemTableCellProps) {
 
     if (path === 'created_at') {
         return (
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground tabular-nums">
                 {formatDate(row.created_at) ?? empty()}
             </span>
         );
@@ -63,7 +63,7 @@ export function ItemTableCell({ path, row, fieldsByName }: ItemTableCellProps) {
 
     if (path === 'updated_at') {
         return (
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground tabular-nums">
                 {formatDate(row.updated_at) ?? empty()}
             </span>
         );

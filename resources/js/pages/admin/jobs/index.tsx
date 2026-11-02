@@ -2,6 +2,14 @@ import { Head, router } from '@inertiajs/react';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { PageLayout, TablePanel } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { edit as editProfile } from '@/routes/profile';
@@ -54,101 +62,104 @@ export default function JobsIndex({
                             Pending (sample)
                         </h2>
                         <TablePanel>
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="border-b text-left">
-                                        <th className="p-2">ID</th>
-                                        <th className="p-2">Job</th>
-                                        <th className="p-2">Queue</th>
-                                        <th className="p-2">Attempts</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="text-right">
+                                            ID
+                                        </TableHead>
+                                        <TableHead>Job</TableHead>
+                                        <TableHead>Queue</TableHead>
+                                        <TableHead className="text-right">
+                                            Attempts
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
                                     {pending.length === 0 ? (
-                                        <tr>
-                                            <td
+                                        <TableRow>
+                                            <TableCell
                                                 colSpan={4}
-                                                className="p-3 text-muted-foreground"
+                                                className="text-muted-foreground"
                                             >
                                                 No pending jobs.
-                                            </td>
-                                        </tr>
+                                            </TableCell>
+                                        </TableRow>
                                     ) : (
                                         pending.map((job) => (
-                                            <tr
-                                                key={job.id}
-                                                className="border-b last:border-0"
-                                            >
-                                                <td className="p-2">
+                                            <TableRow key={job.id}>
+                                                <TableCell className="text-right tabular-nums">
                                                     {job.id}
-                                                </td>
-                                                <td className="max-w-[14rem] p-2 font-mono text-xs">
+                                                </TableCell>
+                                                <TableCell className="max-w-[14rem] font-mono text-xs">
                                                     <TruncatedText
                                                         text={job.display_name}
                                                     />
-                                                </td>
-                                                <td className="p-2">
+                                                </TableCell>
+                                                <TableCell>
                                                     {job.queue}
-                                                </td>
-                                                <td className="p-2">
+                                                </TableCell>
+                                                <TableCell className="text-right tabular-nums">
                                                     {job.attempts}
-                                                </td>
-                                            </tr>
+                                                </TableCell>
+                                            </TableRow>
                                         ))
                                     )}
-                                </tbody>
-                            </table>
+                                </TableBody>
+                            </Table>
                         </TablePanel>
                     </div>
 
                     <div className="space-y-3">
                         <h2 className="text-lg font-medium">Failed jobs</h2>
                         <TablePanel>
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="border-b text-left">
-                                        <th className="p-2">Job</th>
-                                        <th className="p-2">Queue</th>
-                                        <th className="p-2">Failed at</th>
-                                        <th className="p-2">Exception</th>
-                                        <th className="p-2 text-right">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Job</TableHead>
+                                        <TableHead>Queue</TableHead>
+                                        <TableHead className="text-right">
+                                            Failed at
+                                        </TableHead>
+                                        <TableHead>Exception</TableHead>
+                                        <TableHead className="text-right">
                                             Actions
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
                                     {failed.length === 0 ? (
-                                        <tr>
-                                            <td
+                                        <TableRow>
+                                            <TableCell
                                                 colSpan={5}
-                                                className="p-3 text-muted-foreground"
+                                                className="text-muted-foreground"
                                             >
                                                 No failed jobs.
-                                            </td>
-                                        </tr>
+                                            </TableCell>
+                                        </TableRow>
                                     ) : (
                                         failed.map((job) => (
-                                            <tr
+                                            <TableRow
                                                 key={job.uuid}
-                                                className="border-b align-top last:border-0"
+                                                className="align-top"
                                             >
-                                                <td className="max-w-[14rem] p-2 font-mono text-xs">
+                                                <TableCell className="max-w-[14rem] font-mono text-xs">
                                                     <TruncatedText
                                                         text={job.display_name}
                                                     />
-                                                </td>
-                                                <td className="p-2">
+                                                </TableCell>
+                                                <TableCell>
                                                     {job.queue}
-                                                </td>
-                                                <td className="p-2 whitespace-nowrap">
+                                                </TableCell>
+                                                <TableCell className="text-right whitespace-nowrap tabular-nums">
                                                     {job.failed_at}
-                                                </td>
-                                                <td className="max-w-md p-2 font-mono text-xs text-muted-foreground">
+                                                </TableCell>
+                                                <TableCell className="max-w-md font-mono text-xs text-muted-foreground">
                                                     <TruncatedText
                                                         text={job.exception}
                                                     />
-                                                </td>
-                                                <td className="space-x-2 p-2 text-right whitespace-nowrap">
+                                                </TableCell>
+                                                <TableCell className="space-x-2 text-right whitespace-nowrap">
                                                     {can_manage ? (
                                                         <>
                                                             <Button
@@ -177,12 +188,12 @@ export default function JobsIndex({
                                                             </Button>
                                                         </>
                                                     ) : null}
-                                                </td>
-                                            </tr>
+                                                </TableCell>
+                                            </TableRow>
                                         ))
                                     )}
-                                </tbody>
-                            </table>
+                                </TableBody>
+                            </Table>
                         </TablePanel>
                         <p className="text-xs text-muted-foreground">
                             Domain job status (AI import, zip) remains in their

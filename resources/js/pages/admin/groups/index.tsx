@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { GroupFormDrawer } from '@/components/admin/group-form-drawer';
-import { TruncatedText } from '@/components/admin/truncated-text';
+import { NameSlugCell } from '@/components/admin/name-slug-cell';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import {
@@ -429,9 +429,10 @@ export default function AdminGroupsIndex({
                                         />
                                     </TableHead>
                                     <TableHead>Name</TableHead>
-                                    <TableHead>Slug</TableHead>
                                     <TableHead>Roles</TableHead>
-                                    <TableHead>Members</TableHead>
+                                    <TableHead className="text-right">
+                                        Members
+                                    </TableHead>
                                     <TableHead className="w-[1%] text-right">
                                         Actions
                                     </TableHead>
@@ -441,7 +442,7 @@ export default function AdminGroupsIndex({
                                 {groups.data.length === 0 ? (
                                     <TableRow>
                                         <TableCell
-                                            colSpan={6}
+                                            colSpan={5}
                                             className="text-muted-foreground"
                                         >
                                             No groups yet.
@@ -487,13 +488,11 @@ export default function AdminGroupsIndex({
                                                     }
                                                 />
                                             </TableCell>
-                                            <TableCell className="max-w-[14rem] font-medium">
-                                                <TruncatedText
-                                                    text={group.name}
+                                            <TableCell className="max-w-[16rem]">
+                                                <NameSlugCell
+                                                    name={group.name}
+                                                    slug={group.slug}
                                                 />
-                                            </TableCell>
-                                            <TableCell className="font-mono text-muted-foreground">
-                                                {group.slug}
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-wrap gap-1">
@@ -509,7 +508,7 @@ export default function AdminGroupsIndex({
                                                     )}
                                                 </div>
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell className="text-right tabular-nums">
                                                 {group.users_count ?? '—'}
                                             </TableCell>
                                             <TableCell

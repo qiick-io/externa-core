@@ -2,9 +2,8 @@ import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { KeyRound, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
-import { TablePagination } from '@/components/layout/page-layout';
+import { TablePagination, TablePanel } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -22,6 +21,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import adminRoutes from '@/lib/admin-routes';
@@ -187,10 +194,8 @@ export default function AdminApiKeysIndex({
                             </h1>
                             <p className="text-sm text-muted-foreground">
                                 Bearer tokens for{' '}
-                                <code className="font-mono text-xs">
-                                    /api/v1
-                                </code>
-                                . Permissions come from the selected role (use
+                                <code className="text-xs">/api/v1</code>.
+                                Permissions come from the selected role (use
                                 Public for anonymous-equivalent access).
                             </p>
                         </div>
@@ -605,145 +610,106 @@ export default function AdminApiKeysIndex({
                             </FieldGroup>
                         </form>
 
-                        <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b bg-muted/40">
-                                            <th className="px-3 py-2 text-left">
-                                                Name
-                                            </th>
-                                            <th className="px-3 py-2 text-left">
-                                                Prefix
-                                            </th>
-                                            <th className="px-3 py-2 text-left">
-                                                Role
-                                            </th>
-                                            <th className="px-3 py-2 text-left">
-                                                {t('settings.apiKeys.owner')}
-                                            </th>
-                                            <th className="px-3 py-2 text-left">
-                                                {t('settings.apiKeys.scopes')}
-                                            </th>
-                                            <th className="px-3 py-2 text-left">
-                                                Status
-                                            </th>
-                                            <th className="px-3 py-2 text-right">
-                                                Actions
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {rows.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={7} className="p-4">
-                                                    <PageEmptyState
-                                                        icon={KeyRound}
-                                                        title={t(
-                                                            'emptyState.apiKeys.title',
-                                                        )}
-                                                        description={t(
-                                                            'emptyState.apiKeys.description',
-                                                        )}
-                                                        action={
-                                                            <Button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    document
-                                                                        .getElementById(
-                                                                            'api_key_name',
-                                                                        )
-                                                                        ?.focus();
-                                                                }}
-                                                            >
-                                                                <KeyRound className="size-4" />
-                                                                {t(
-                                                                    'emptyState.apiKeys.cta',
-                                                                )}
-                                                            </Button>
-                                                        }
-                                                        docsHref="https://docs.externa.qiick.io"
-                                                        docsLabel={t(
-                                                            'common.learnMore',
-                                                        )}
-                                                        compact
-                                                    />
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            rows.map((key) => (
-                                                <tr
-                                                    key={key.id}
-                                                    className="border-b last:border-0"
-                                                >
-                                                    <td className="px-3 py-2 font-medium">
-                                                        {key.name}
-                                                    </td>
-                                                    <td className="px-3 py-2 font-mono text-xs">
-                                                        {key.key_prefix}…
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                        {key.role?.name ?? '—'}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                        {key.owner?.name ?? '—'}
-                                                    </td>
-                                                    <td className="px-3 py-2 text-xs text-muted-foreground">
-                                                        {[
-                                                            key.read_only
-                                                                ? t(
-                                                                      'settings.apiKeys.readOnlyBadge',
-                                                                  )
-                                                                : null,
-                                                            key.files_scope &&
-                                                            key.files_scope !==
-                                                                'all'
-                                                                ? `files:${key.files_scope}`
-                                                                : null,
-                                                            key.collection_slugs
-                                                                ?.length
-                                                                ? key.collection_slugs.join(
-                                                                      ', ',
-                                                                  )
-                                                                : null,
-                                                        ]
-                                                            .filter(Boolean)
-                                                            .join(' · ') || '—'}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                        {key.revoked_at
-                                                            ? 'Revoked'
-                                                            : 'Active'}
-                                                    </td>
-                                                    <td className="px-3 py-2 text-right">
-                                                        {!key.revoked_at && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() =>
-                                                                    setPendingRevokeKeyId(
-                                                                        key.id,
-                                                                    )
-                                                                }
-                                                            >
-                                                                <Trash2 className="size-4" />
-                                                            </Button>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                            {apiKeys.last_page > 1 ? (
-                                <div className="flex justify-center border-t border-sidebar-border/70 px-4 py-3 dark:border-sidebar-border">
+                        <TablePanel
+                            footer={
+                                apiKeys.last_page > 1 ? (
                                     <TablePagination
                                         links={apiKeys.links ?? []}
                                     />
-                                </div>
-                            ) : null}
-                        </div>
+                                ) : undefined
+                            }
+                        >
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Prefix</TableHead>
+                                        <TableHead>Role</TableHead>
+                                        <TableHead>
+                                            {t('settings.apiKeys.owner')}
+                                        </TableHead>
+                                        <TableHead>
+                                            {t('settings.apiKeys.scopes')}
+                                        </TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">
+                                            Actions
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {rows.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell
+                                                colSpan={7}
+                                                className="text-center text-muted-foreground"
+                                            >
+                                                No API keys yet.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        rows.map((key) => (
+                                            <TableRow key={key.id}>
+                                                <TableCell className="font-medium">
+                                                    {key.name}
+                                                </TableCell>
+                                                <TableCell className="font-mono text-xs">
+                                                    {key.key_prefix}…
+                                                </TableCell>
+                                                <TableCell>
+                                                    {key.role?.name ?? '—'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {key.owner?.name ?? '—'}
+                                                </TableCell>
+                                                <TableCell className="text-xs text-muted-foreground">
+                                                    {[
+                                                        key.read_only
+                                                            ? t(
+                                                                  'settings.apiKeys.readOnlyBadge',
+                                                              )
+                                                            : null,
+                                                        key.files_scope &&
+                                                        key.files_scope !==
+                                                            'all'
+                                                            ? `files:${key.files_scope}`
+                                                            : null,
+                                                        key.collection_slugs
+                                                            ?.length
+                                                            ? key.collection_slugs.join(
+                                                                  ', ',
+                                                              )
+                                                            : null,
+                                                    ]
+                                                        .filter(Boolean)
+                                                        .join(' · ') || '—'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {key.revoked_at
+                                                        ? 'Revoked'
+                                                        : 'Active'}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {!key.revoked_at && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                setPendingRevokeKeyId(
+                                                                    key.id,
+                                                                )
+                                                            }
+                                                        >
+                                                            <Trash2 className="size-4" />
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </TablePanel>
                     </div>
                 </div>
             </SettingsLayout>

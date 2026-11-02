@@ -164,7 +164,7 @@ export default function AdminRolesIndex({
                                     <TableHead>
                                         {t('roles.columns.name')}
                                     </TableHead>
-                                    <TableHead>
+                                    <TableHead className="text-right">
                                         {t('roles.columns.permissions')}
                                     </TableHead>
                                     <TableHead className="text-right">
@@ -197,7 +197,7 @@ export default function AdminRolesIndex({
                                                     )}
                                                 </span>
                                             </TableCell>
-                                            <TableCell className="text-muted-foreground">
+                                            <TableCell className="text-right text-muted-foreground tabular-nums">
                                                 {role.permissions_count ?? '—'}
                                             </TableCell>
                                             <TableCell className="text-right">

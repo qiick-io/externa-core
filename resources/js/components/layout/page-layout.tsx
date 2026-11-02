@@ -1,6 +1,12 @@
 import { router } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
+import { buttonVariants } from '@/components/ui/button';
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+} from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
 
 export type PageLayoutProps = {
@@ -67,7 +73,9 @@ export function PageLayout({
 }
 
 /**
- * Bordered card wrapper for data tables with optional sticky footer.
+ * Surface wrapper for data tables with optional sticky footer.
+ * Spacing and row separators come from Table*; no extra outer border.
+ *
  * @param {{ children: ReactNode, className?: string, footer?: ReactNode }} props - Panel props.
  * @param {ReactNode} props.children - Table or list content.
  * @param {string} [props.className] - Additional panel classes.
@@ -86,7 +94,7 @@ export function TablePanel({
     return (
         <div
             className={cn(
-                'flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-sidebar-border/70 bg-card dark:border-sidebar-border',
+                'flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl bg-card',
                 className,
             )}
         >
@@ -107,19 +115,25 @@ export type TablePaginationLink = {
 };
 
 /**
- * Laravel-style pagination link row that visits URLs via Inertia.
- * @param {{ links: TablePaginationLink[] }} props - Component props.
- * @param {TablePaginationLink[]} props.links - Pagination links from the server.
- * @returns {JSX.Element | null}
+ * Strip Laravel pagination HTML labels to plain text for aria / layout checks.
  */
-function paginationAriaLabel(label: string): string | undefined {
+function paginationPlainLabel(label: string): string {
     // Parse as HTML so tags/entities resolve safely — regex tag-stripping
     // reintroduces nested sequences (CodeQL js/incomplete-multi-character-sanitization).
-    const plain =
+    return (
         new DOMParser()
             .parseFromString(label, 'text/html')
             .body.textContent?.replace(/\s+/g, ' ')
-            .trim() ?? '';
+            .trim() ?? ''
+    );
+}
+
+/**
+ * @param {string} label - Raw Laravel pagination link label (may include HTML entities).
+ * @returns {string | undefined} Accessible name for the control.
+ */
+function paginationAriaLabel(label: string): string | undefined {
+    const plain = paginationPlainLabel(label);
 
     if (/^\d+$/.test(plain)) {
         return `Go to page ${plain}`;
@@ -136,25 +150,55 @@ function paginationAriaLabel(label: string): string | undefined {
     return plain.length > 0 ? plain : undefined;
 }
 
+/**
+ * Laravel-style pagination link row via shadcn Pagination + Inertia visits.
+ * Query params are unchanged; controls remain `<button>` for browser tests.
+ *
+ * @param {{ links: TablePaginationLink[] }} props - Component props.
+ * @param {TablePaginationLink[]} props.links - Pagination links from the server.
+ * @returns {JSX.Element | null}
+ */
 export function TablePagination({ links }: { links: TablePaginationLink[] }) {
     if (links.length === 0) {
         return null;
     }
 
     return (
-        <div className="flex flex-wrap justify-center gap-2 text-sm text-muted-foreground">
-            {links.map((link, index) => (
-                <button
-                    key={index}
-                    type="button"
-                    className={link.active ? 'font-semibold underline' : ''}
-                    disabled={!link.url}
-                    aria-label={paginationAriaLabel(link.label)}
-                    aria-current={link.active ? 'page' : undefined}
-                    onClick={() => link.url && router.visit(link.url)}
-                    dangerouslySetInnerHTML={{ __html: link.label }}
-                />
-            ))}
-        </div>
+        <Pagination>
+            <PaginationContent>
+                {links.map((link, index) => {
+                    const plain = paginationPlainLabel(link.label);
+                    const isPageNumber = /^\d+$/.test(plain);
+
+                    return (
+                        <PaginationItem key={index}>
+                            <button
+                                type="button"
+                                className={cn(
+                                    buttonVariants({
+                                        variant: link.active
+                                            ? 'outline'
+                                            : 'ghost',
+                                        size: isPageNumber ? 'icon' : 'sm',
+                                    }),
+                                    !isPageNumber && 'min-w-0 px-2.5',
+                                    !link.url &&
+                                        'pointer-events-none opacity-50',
+                                )}
+                                disabled={!link.url}
+                                aria-label={paginationAriaLabel(link.label)}
+                                aria-current={link.active ? 'page' : undefined}
+                                onClick={() =>
+                                    link.url && router.visit(link.url)
+                                }
+                                dangerouslySetInnerHTML={{
+                                    __html: link.label,
+                                }}
+                            />
+                        </PaginationItem>
+                    );
+                })}
+            </PaginationContent>
+        </Pagination>
     );
 }

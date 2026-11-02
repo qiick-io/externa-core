@@ -426,7 +426,7 @@ export default function AdminActivityLogsIndex({
                                                         )}
                                                     </button>
                                                 </TableCell>
-                                                <TableCell className="text-sm whitespace-nowrap">
+                                                <TableCell className="text-sm whitespace-nowrap tabular-nums">
                                                     {formatDate(row.created_at)}
                                                 </TableCell>
                                                 <TableCell>
