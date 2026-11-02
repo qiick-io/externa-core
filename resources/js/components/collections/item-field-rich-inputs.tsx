@@ -629,6 +629,7 @@ export function MarkdownFieldInput({
     /** When false, parent should render MarkdownModeToggle on the title row. */
     showModeToggle?: boolean;
 }) {
+    const { t } = useTranslation();
     const textareaSettings = parseTextareaFieldSettings(settings);
     const { resolvedAppearance } = useAppearance();
     const { projectSettings } = usePage().props;
