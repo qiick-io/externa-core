@@ -7,11 +7,16 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
+use App\Services\Api\CollectionPermissionEnforcerService;
+use App\Support\Api\PublicItemSortParser;
 use App\Support\Collections\CollectionLocaleResolver;
 use App\Support\Validation\FilterQueryLimits;
+use App\Support\Validation\StringLimits;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Applies field-based filters and sort to collection item listing queries.
@@ -21,6 +26,16 @@ use Illuminate\Support\Facades\DB;
  * - `filter[title][_eq]=foo`, `_neq`, `_contains`, `_null=1`, `_nnull=1`
  * - `filter[count][_gte]=1`, `_lte`, `_gt`, `_lt`
  * - `filter[status][_in]=a,b,c` or array
+ * - System columns: `filter[published_at][_gte]=2026-01-01`, `filter[id][_in]=1,2`
+ *   ({@see self::SYSTEM_FILTER_COLUMNS}); system keys win over a same-named
+ *   collection field; unsupported operators / invalid values → 422
+ * - Depth-1 relational: `filter[author.name][_eq]=Ada` (hard cap
+ *   {@see StringLimits::FILTER_MAX_RELATION_DEPTH}); deeper paths → 422
+ *
+ * When a {@see Request} is provided (Public REST/GraphQL), relational filters
+ * require the related collection to be readable via
+ * {@see CollectionPermissionEnforcerService} (same gate as `?include=`). An
+ * unreadable related collection yields no matches (no value leak).
  *
  * Permission item_filter operators (equals|not_equals|empty|not_empty) map onto this dialect.
  */
@@ -28,6 +43,24 @@ class CollectionItemQueryService
 {
     /** @var list<string> */
     public const SYSTEM_SORT_COLUMNS = ['id', 'created_at', 'updated_at', 'board_sort'];
+
+    /**
+     * Public/API filterable system columns on `collections_items`
+     * (same allowlist as {@see PublicItemSortParser::SYSTEM_COLUMNS}).
+     *
+     * @var list<string>
+     */
+    public const SYSTEM_FILTER_COLUMNS = ['id', 'created_at', 'updated_at', 'published_at'];
+
+    /** @var list<string> */
+    public const ID_FILTER_OPERATORS = [
+        '_eq', '_neq', '_in', '_gt', '_gte', '_lt', '_lte',
+    ];
+
+    /** @var list<string> */
+    public const DATETIME_FILTER_OPERATORS = [
+        '_eq', '_gt', '_gte', '_lt', '_lte', '_null', '_nnull',
+    ];
 
     /** @var list<string> */
     public const OPERATORS = [
@@ -51,8 +84,13 @@ class CollectionItemQueryService
      * @param  array<string, mixed>  $filters
      * @param  Builder<CollectionItem>  $query
      */
-    public function applyFilters(Builder $query, Collection $collection, array $filters, ?string $locale = null): Builder
-    {
+    public function applyFilters(
+        Builder $query,
+        Collection $collection,
+        array $filters,
+        ?string $locale = null,
+        ?Request $request = null,
+    ): Builder {
         $filters = FilterQueryLimits::assertValid($filters);
 
         $collection->loadMissing('fields');
@@ -61,6 +99,26 @@ class CollectionItemQueryService
 
         foreach ($filters as $fieldName => $value) {
             if (! is_string($fieldName) || $fieldName === '') {
+                continue;
+            }
+
+            if (str_contains($fieldName, '.')) {
+                $this->applyRelationalPathFilter(
+                    $query,
+                    $collection,
+                    $fieldName,
+                    $value,
+                    $locale,
+                    $request,
+                );
+
+                continue;
+            }
+
+            // System columns win over a collection field with the same name.
+            if (in_array($fieldName, self::SYSTEM_FILTER_COLUMNS, true)) {
+                $this->applySystemFieldFilter($query, $fieldName, $value);
+
                 continue;
             }
 
@@ -80,6 +138,366 @@ class CollectionItemQueryService
         }
 
         return $query;
+    }
+
+    /**
+     * Apply a system-column filter (`id` / timestamps) on `collections_items`.
+     *
+     * @param  Builder<CollectionItem>  $query
+     *
+     * @throws ValidationException
+     */
+    private function applySystemFieldFilter(Builder $query, string $column, mixed $value): void
+    {
+        $ops = $this->normalizeFieldFilter($value);
+        if ($ops === []) {
+            return;
+        }
+
+        $allowed = $column === 'id'
+            ? self::ID_FILTER_OPERATORS
+            : self::DATETIME_FILTER_OPERATORS;
+
+        foreach ($ops as $operator => $operand) {
+            if (! in_array($operator, $allowed, true)) {
+                throw ValidationException::withMessages([
+                    "filter.{$column}" => "Operator [{$operator}] is not supported for system field [{$column}].",
+                ]);
+            }
+
+            if ($column === 'id') {
+                $this->applySystemIdOperator($query, $operator, $operand);
+
+                continue;
+            }
+
+            $this->applySystemDateTimeOperator($query, $column, $operator, $operand);
+        }
+    }
+
+    /**
+     * @param  Builder<CollectionItem>  $query
+     *
+     * @throws ValidationException
+     */
+    private function applySystemIdOperator(Builder $query, string $operator, mixed $operand): void
+    {
+        if ($operator === '_in') {
+            $ids = $this->parseSystemIdList($operand, 'filter.id._in');
+            if ($ids === []) {
+                $query->whereRaw('1 = 0');
+
+                return;
+            }
+
+            $query->whereIn('id', $ids);
+
+            return;
+        }
+
+        $id = $this->parseSystemIdScalar($operand, "filter.id.{$operator}");
+
+        match ($operator) {
+            '_eq' => $query->where('id', '=', $id),
+            '_neq' => $query->where('id', '<>', $id),
+            '_gt' => $query->where('id', '>', $id),
+            '_gte' => $query->where('id', '>=', $id),
+            '_lt' => $query->where('id', '<', $id),
+            '_lte' => $query->where('id', '<=', $id),
+            default => throw ValidationException::withMessages([
+                'filter.id' => "Operator [{$operator}] is not supported for system field [id].",
+            ]),
+        };
+    }
+
+    /**
+     * @param  Builder<CollectionItem>  $query
+     *
+     * @throws ValidationException
+     */
+    private function applySystemDateTimeOperator(
+        Builder $query,
+        string $column,
+        string $operator,
+        mixed $operand,
+    ): void {
+        if ($operator === '_null') {
+            if ($this->isTruthyFilterFlag($operand)) {
+                $query->whereNull($column);
+            }
+
+            return;
+        }
+
+        if ($operator === '_nnull') {
+            if ($this->isTruthyFilterFlag($operand)) {
+                $query->whereNotNull($column);
+            }
+
+            return;
+        }
+
+        $instant = $this->parseSystemDateTime($operand, "filter.{$column}.{$operator}");
+
+        match ($operator) {
+            '_eq' => $query->where($column, '=', $instant),
+            '_gt' => $query->where($column, '>', $instant),
+            '_gte' => $query->where($column, '>=', $instant),
+            '_lt' => $query->where($column, '<', $instant),
+            '_lte' => $query->where($column, '<=', $instant),
+            default => throw ValidationException::withMessages([
+                "filter.{$column}" => "Operator [{$operator}] is not supported for system field [{$column}].",
+            ]),
+        };
+    }
+
+    /**
+     * Parse ISO-8601 datetime (date-only = start of that day, UTC).
+     *
+     * @throws ValidationException
+     */
+    private function parseSystemDateTime(mixed $operand, string $attribute): Carbon
+    {
+        if (! is_string($operand) && ! is_numeric($operand)) {
+            throw ValidationException::withMessages([
+                $attribute => 'System datetime filter values must be ISO 8601 strings.',
+            ]);
+        }
+
+        $raw = trim((string) $operand);
+        if ($raw === '') {
+            throw ValidationException::withMessages([
+                $attribute => 'System datetime filter values must be ISO 8601 strings.',
+            ]);
+        }
+
+        try {
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) === 1) {
+                $parsed = Carbon::createFromFormat('Y-m-d', $raw, 'UTC');
+                if ($parsed === null || $parsed->format('Y-m-d') !== $raw) {
+                    throw new \InvalidArgumentException('Invalid date.');
+                }
+
+                return $parsed->startOfDay();
+            }
+
+            return Carbon::parse($raw, 'UTC')->utc();
+        } catch (\Throwable) {
+            throw ValidationException::withMessages([
+                $attribute => 'System datetime filter values must be valid ISO 8601 timestamps.',
+            ]);
+        }
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function parseSystemIdScalar(mixed $operand, string $attribute): int
+    {
+        if (is_bool($operand) || is_array($operand) || $operand === null || $operand === '') {
+            throw ValidationException::withMessages([
+                $attribute => 'System id filter values must be integers.',
+            ]);
+        }
+
+        if (is_int($operand)) {
+            return $operand;
+        }
+
+        if (is_string($operand) && preg_match('/^-?\d+$/', trim($operand)) === 1) {
+            return (int) trim($operand);
+        }
+
+        if (is_float($operand) && floor($operand) === $operand) {
+            return (int) $operand;
+        }
+
+        throw ValidationException::withMessages([
+            $attribute => 'System id filter values must be integers.',
+        ]);
+    }
+
+    /**
+     * @return list<int>
+     *
+     * @throws ValidationException
+     */
+    private function parseSystemIdList(mixed $operand, string $attribute): array
+    {
+        if (is_array($operand)) {
+            $parts = array_values($operand);
+        } elseif (is_string($operand) || is_numeric($operand)) {
+            $parts = array_values(array_filter(
+                array_map('trim', explode(',', (string) $operand)),
+                fn (string $part): bool => $part !== '',
+            ));
+        } else {
+            throw ValidationException::withMessages([
+                $attribute => 'System id _in values must be a comma-separated list or array of integers.',
+            ]);
+        }
+
+        $ids = [];
+        foreach ($parts as $index => $part) {
+            $ids[] = $this->parseSystemIdScalar($part, $attribute.'.'.$index);
+        }
+
+        return $ids;
+    }
+
+    private function isTruthyFilterFlag(mixed $operand): bool
+    {
+        return filter_var($operand, FILTER_VALIDATE_BOOLEAN)
+            || $operand === '1'
+            || $operand === 1
+            || $operand === true;
+    }
+
+    /**
+     * Apply a depth-1 dotted filter (`relation.relatedField`) via EXISTS/IN subqueries.
+     *
+     * @param  Builder<CollectionItem>  $query
+     */
+    private function applyRelationalPathFilter(
+        Builder $query,
+        Collection $collection,
+        string $path,
+        mixed $value,
+        string $locale,
+        ?Request $request,
+    ): void {
+        $parts = explode('.', $path);
+        if (count($parts) !== StringLimits::FILTER_MAX_RELATION_DEPTH + 1) {
+            return;
+        }
+
+        [$relationName, $relatedFieldName] = $parts;
+
+        $collection->loadMissing('fields');
+        $relationField = $collection->fields->firstWhere('name', $relationName);
+        if (! $relationField instanceof CollectionField) {
+            return;
+        }
+
+        $relationType = $relationField->type;
+        if (! $relationType->isRelationType()) {
+            return;
+        }
+
+        $relatedCollectionId = (int) data_get($relationField->settings, 'related_collection_id');
+        if ($relatedCollectionId <= 0) {
+            return;
+        }
+
+        $relatedCollection = Collection::query()
+            ->with(['fields' => fn ($q) => $q->ordered()])
+            ->find($relatedCollectionId);
+
+        if (! $relatedCollection instanceof Collection) {
+            return;
+        }
+
+        $relatedField = $relatedCollection->fields->firstWhere('name', $relatedFieldName);
+        if (! $relatedField instanceof CollectionField) {
+            return;
+        }
+
+        $ops = $this->normalizeFieldFilter($value);
+        if ($ops === []) {
+            return;
+        }
+
+        if ($request !== null) {
+            $enforcer = app(CollectionPermissionEnforcerService::class);
+            if (! $enforcer->isCollectionReadable($request, $relatedCollection)) {
+                // raw-sql: reviewed — deny-match when related collection is not readable (no leak)
+                $query->whereRaw('1 = 0');
+
+                return;
+            }
+        }
+
+        $relatedIdsQuery = CollectionItem::query()
+            ->where('collection_id', $relatedCollection->id)
+            ->select('collections_items.id');
+
+        // Scalar filter on the related collection only (no Request → no nested permission re-entry).
+        $this->applyFilters($relatedIdsQuery, $relatedCollection, [$relatedFieldName => $value], $locale, null);
+
+        if ($request !== null) {
+            app(CollectionPermissionEnforcerService::class)
+                ->applyItemFilterToQuery($request, $relatedCollection, $relatedIdsQuery);
+        }
+
+        if ($relationType->isMultipleRelationType()) {
+            $this->applyMultipleRelationIdMatch($query, $relationField, $relatedIdsQuery);
+
+            return;
+        }
+
+        $this->applyManyToOneRelationIdMatch($query, $relationField, $relatedIdsQuery);
+    }
+
+    /**
+     * Match parent M2O field values whose JSON scalar id is in the related-ids subquery.
+     *
+     * @param  Builder<CollectionItem>  $query
+     * @param  Builder<CollectionItem>  $relatedIdsQuery
+     */
+    private function applyManyToOneRelationIdMatch(
+        Builder $query,
+        CollectionField $relationField,
+        Builder $relatedIdsQuery,
+    ): void {
+        $query->whereHas('fieldValues', function (Builder $fv) use ($relationField, $relatedIdsQuery): void {
+            $fv->where('field_id', $relationField->id)
+                ->where('position', 0)
+                ->whereNull('locale');
+
+            // raw-sql: reviewed — relational deep filter; subquery bindings rebound; SQL from driver helpers
+            $fv->whereRaw(
+                $this->valueTextSql().' IN ('.$relatedIdsQuery->toSql().')',
+                $relatedIdsQuery->getBindings(),
+            );
+        });
+    }
+
+    /**
+     * Match parent M2M/O2M JSON links that reference any id from the related-ids subquery.
+     *
+     * @param  Builder<CollectionItem>  $query
+     * @param  Builder<CollectionItem>  $relatedIdsQuery
+     */
+    private function applyMultipleRelationIdMatch(
+        Builder $query,
+        CollectionField $relationField,
+        Builder $relatedIdsQuery,
+    ): void {
+        $query->whereHas('fieldValues', function (Builder $fv) use ($relationField, $relatedIdsQuery): void {
+            $fv->where('field_id', $relationField->id)
+                ->where('position', 0)
+                ->whereNull('locale')
+                ->whereExists(function ($sub) use ($relatedIdsQuery): void {
+                    $sub->selectRaw('1')
+                        ->from('collections_items as related_match')
+                        ->whereIn('related_match.id', $relatedIdsQuery)
+                        // raw-sql: reviewed — M2M deep filter; id from subquery; LIKE needle built from bound id expr
+                        ->whereRaw($this->jsonContainsRelatedItemIdSql());
+                });
+        });
+    }
+
+    /**
+     * Portable JSON text containment for `{"related_item_id":N,...}` against `related_match.id`.
+     */
+    private function jsonContainsRelatedItemIdSql(): string
+    {
+        return match (DB::getDriverName()) {
+            'pgsql' => "collections_items_values.value::text LIKE '%\"related_item_id\":' || related_match.id::text || '%'",
+            'sqlite' => "CAST(collections_items_values.value AS TEXT) LIKE '%\"related_item_id\":' || related_match.id || '%'",
+            'mysql', 'mariadb' => "CAST(collections_items_values.value AS CHAR) LIKE CONCAT('%\\\"related_item_id\\\":', related_match.id, '%')",
+            default => "CAST(collections_items_values.value AS TEXT) LIKE '%\"related_item_id\":' || CAST(related_match.id AS TEXT) || '%'",
+        };
     }
 
     /**
@@ -487,13 +905,7 @@ class CollectionItemQueryService
 
     private function isSortableField(CollectionField $field): bool
     {
-        $type = $field->type instanceof FieldTypeEnum
-            ? $field->type
-            : FieldTypeEnum::tryFrom((string) $field->type);
-
-        if ($type === null) {
-            return false;
-        }
+        $type = $field->type;
 
         if ($type->isArrayStorage() || $type->isRelationType()) {
             return false;

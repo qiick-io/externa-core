@@ -5,7 +5,10 @@ namespace App\Support\Validation;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Cap filter map size and operand string lengths for item list queries.
+ * Cap filter map size, operand string lengths, and relational path depth for item list queries.
+ *
+ * Relational (dotted) paths: `relationField.relatedField` is depth 1 (hard cap
+ * {@see StringLimits::FILTER_MAX_RELATION_DEPTH}). Deeper paths such as `a.b.c` are rejected.
  */
 final class FilterQueryLimits
 {
@@ -28,10 +31,55 @@ final class FilterQueryLimits
                 continue;
             }
 
+            self::assertRelationDepth($fieldName);
             self::assertOperand($value, "filter.{$fieldName}");
         }
 
         return $filters;
+    }
+
+    /**
+     * Count depth-1+ relational filter keys (for API cost budgeting).
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    public static function relationalKeyCount(array $filters): int
+    {
+        $count = 0;
+        foreach ($filters as $fieldName => $_) {
+            if (is_string($fieldName) && str_contains($fieldName, '.')) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private static function assertRelationDepth(string $fieldName): void
+    {
+        if (! str_contains($fieldName, '.')) {
+            return;
+        }
+
+        $parts = explode('.', $fieldName);
+        foreach ($parts as $part) {
+            if ($part === '' || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $part) !== 1) {
+                throw ValidationException::withMessages([
+                    'filter' => "Invalid relational filter path [{$fieldName}].",
+                ]);
+            }
+        }
+
+        $depth = count($parts) - 1;
+        if ($depth > StringLimits::FILTER_MAX_RELATION_DEPTH) {
+            throw ValidationException::withMessages([
+                'filter' => 'Relational filter depth may not exceed '.StringLimits::FILTER_MAX_RELATION_DEPTH
+                    ." (got {$depth} for [{$fieldName}]).",
+            ]);
+        }
     }
 
     /**

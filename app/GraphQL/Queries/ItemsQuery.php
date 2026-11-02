@@ -78,7 +78,7 @@ final class ItemsQuery
                     'collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()]),
                 ]);
 
-            app(CollectionItemQueryService::class)->applyFilters($query, $collection, $filters);
+            app(CollectionItemQueryService::class)->applyFilters($query, $collection, $filters, null, $request);
             app(CollectionPermissionEnforcerService::class)->applyItemFilterToQuery($request, $collection, $query);
             app(CollectionItemQueryService::class)->applyPublicSort($query, $collection, $sortKeys, $locale);
 

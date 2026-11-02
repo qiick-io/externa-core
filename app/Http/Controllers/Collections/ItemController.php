@@ -1638,7 +1638,7 @@ class ItemController extends Controller
                 'userUpdated:id,first_name,last_name,email',
                 'collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()]),
             ]);
-        $this->itemQueryService->applyFilters($query, $collection, $stringFilters);
+        $this->itemQueryService->applyFilters($query, $collection, $stringFilters, null, $request);
         $this->permissionEnforcer->applyItemFilterToQuery($request, $collection, $query);
 
         return $query;

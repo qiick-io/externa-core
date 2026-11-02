@@ -14,6 +14,12 @@ type Query {
 
     items(
         collection: String!
+        """
+        Filter map (same dialect as REST): field names, system keys
+        `id` / `created_at` / `updated_at` / `published_at`, and depth-1
+        `relation.field` paths. Unsupported system operators or invalid
+        datetime values raise a validation error (HTTP 422).
+        """
         filter: JSON
         page: Int = 1
         perPage: Int = 15

@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Support\Api\ApiAccess;
 use App\Support\Api\PublicApiIncludeParser;
+use App\Support\Validation\FilterQueryLimits;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -82,12 +83,14 @@ class ApiRequestCostMiddleware
     {
         $base = (int) config('api.cost.base', 1);
         $includeCost = (int) config('api.cost.include', 2);
+        $relationFilterCost = (int) config('api.cost.filter_relation', 2);
         $mutationCost = (int) config('api.cost.mutation', 5);
 
         // GraphQL: complexity is not available before Lighthouse validation —
-        // charge base only here; depth/complexity caps live in config/lighthouse.php.
+        // charge base (+ relational filter keys from variables/inline JSON when present);
+        // depth/complexity caps live in config/lighthouse.php.
         if ($request->is('api/graphql') || $request->routeIs('graphql')) {
-            return max(1, $base);
+            return max(1, $base) + ($this->relationalFilterKeyCount($request) * max(0, $relationFilterCost));
         }
 
         $cost = max(1, $base);
@@ -98,7 +101,51 @@ class ApiRequestCostMiddleware
 
         $tokens = app(PublicApiIncludeParser::class)->parse($request->query('include'));
         $cost += count($tokens) * max(0, $includeCost);
+        $cost += $this->relationalFilterKeyCount($request) * max(0, $relationFilterCost);
 
         return $cost;
+    }
+
+    /**
+     * Count dotted filter keys on REST `?filter=` or GraphQL JSON `filter` argument.
+     */
+    private function relationalFilterKeyCount(Request $request): int
+    {
+        if ($request->is('api/graphql') || $request->routeIs('graphql')) {
+            return FilterQueryLimits::relationalKeyCount($this->graphQlFilterMap($request));
+        }
+
+        $filters = $request->query('filter', []);
+        if (! is_array($filters)) {
+            return 0;
+        }
+
+        /** @var array<string, mixed> $filters */
+        return FilterQueryLimits::relationalKeyCount($filters);
+    }
+
+    /**
+     * Best-effort extract of the items `filter` map from a GraphQL HTTP body.
+     *
+     * @return array<string, mixed>
+     */
+    private function graphQlFilterMap(Request $request): array
+    {
+        $payload = $request->all();
+        $variables = $payload['variables'] ?? null;
+        if (is_array($variables) && isset($variables['filter']) && is_array($variables['filter'])) {
+            /** @var array<string, mixed> $filter */
+            $filter = $variables['filter'];
+
+            return $filter;
+        }
+
+        $query = $payload['query'] ?? null;
+        if (! is_string($query) || ! str_contains($query, 'filter')) {
+            return [];
+        }
+
+        // Inline filter: filter: { ... } — only dotted keys matter for cost; skip fragile parse.
+        return [];
     }
 }

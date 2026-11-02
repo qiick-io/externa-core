@@ -29,6 +29,8 @@ return [
     'cost' => [
         'base' => (int) env('API_COST_BASE', 1),
         'include' => (int) env('API_COST_INCLUDE', 2),
+        /** Per dotted relational filter key (`author.name`), stacked with #113 budget. */
+        'filter_relation' => (int) env('API_COST_FILTER_RELATION', 2),
         'mutation' => (int) env('API_COST_MUTATION', 5),
     ],
 
