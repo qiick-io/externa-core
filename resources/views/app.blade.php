@@ -54,7 +54,8 @@
         @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         @inertiaHead
 
-        {{-- Theme preset CSS variables (+ optional custom brand hex via --brand-primary) --}}
+        {{-- Theme preset CSS variables (+ optional custom brand hex via --brand-primary).
+             The id lets the Appearance live preview rewrite this block (resources/js/lib/theme-css.ts). --}}
         @php
             $themeCss = $projectThemeCss ?? null;
             $themeLight = is_array($themeCss['light'] ?? null) ? $themeCss['light'] : [];
@@ -65,7 +66,7 @@
             $brandPrimaryDarkForeground = $themeCss['brandPrimaryDarkForeground'] ?? $projectColorDarkForeground ?? $brandPrimaryForeground;
         @endphp
         @if ($themeLight !== [] || $themeDark !== [] || ! empty($brandPrimary))
-            <style>
+            <style id="externa-theme-css">
                 :root {
                     @foreach ($themeLight as $cssVar => $cssValue)
                         --{{ $cssVar }}: {{ $cssValue }};
