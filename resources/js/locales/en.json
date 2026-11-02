@@ -1177,6 +1177,22 @@
             "bulkForceDeleteTitle": "Delete {{count}} selected collections permanently?",
             "bulkForceDeleteDescription": "Selected collections will be permanently removed. This cannot be undone.",
             "bulkForceDeleteTitleNamed": "Delete collection “{{name}}” permanently?"
+        },
+        "translatableLockedHintConvert": "Locked here because this field already has content. Use Change type / convert to migrate values safely (or create a new field).",
+        "convert": {
+            "menuLabel": "Change type…",
+            "title": "Convert field “{{name}}”",
+            "description": "Migrate stored values to a supported type or translatable shape. Dry-run first to preview failures.",
+            "targetType": "Target type",
+            "translatableHint": "Move values into the default locale, or collapse to a single locale.",
+            "dryRun": "Dry run",
+            "confirm": "Convert",
+            "previewSummary": "ok {{ok}} · failed {{failed}} · drafts {{drafts}} · skipped {{skipped}}",
+            "loadTargetsFailed": "Could not load conversion targets.",
+            "previewFailed": "Dry run failed.",
+            "convertFailed": "Conversion failed.",
+            "success": "Field converted.",
+            "queued": "Field conversion queued."
         }
     },
     "ai": {

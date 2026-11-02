@@ -1177,6 +1177,22 @@
             "bulkForceDeleteTitle": "{{count}} ausgewählte Collections endgültig löschen?",
             "bulkForceDeleteDescription": "Ausgewählte Collections werden dauerhaft entfernt. Das kann nicht rückgängig gemacht werden.",
             "bulkForceDeleteTitleNamed": "Collection „{{name}}“ endgültig löschen?"
+        },
+        "translatableLockedHintConvert": "Hier gesperrt, weil das Feld bereits Inhalte hat. Nutzen Sie Typ ändern / konvertieren, um Werte sicher zu migrieren (oder legen Sie ein neues Feld an).",
+        "convert": {
+            "menuLabel": "Typ ändern…",
+            "title": "Feld „{{name}}“ konvertieren",
+            "description": "Migriert gespeicherte Werte in einen unterstützten Typ oder übersetzbaren Speicher. Zuerst Dry-run für Fehler prüfen.",
+            "targetType": "Zieltyp",
+            "translatableHint": "Werte in die Standard-Locale verschieben oder auf eine Locale reduzieren.",
+            "dryRun": "Dry-run",
+            "confirm": "Konvertieren",
+            "previewSummary": "ok {{ok}} · fehlgeschlagen {{failed}} · Entwürfe {{drafts}} · übersprungen {{skipped}}",
+            "loadTargetsFailed": "Konvertierungsziele konnten nicht geladen werden.",
+            "previewFailed": "Dry-run fehlgeschlagen.",
+            "convertFailed": "Konvertierung fehlgeschlagen.",
+            "success": "Feld konvertiert.",
+            "queued": "Feldkonvertierung in der Warteschlange."
         }
     },
     "ai": {

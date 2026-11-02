@@ -1177,6 +1177,22 @@
             "bulkForceDeleteTitle": "Eliminare definitivamente {{count}} collection selezionate?",
             "bulkForceDeleteDescription": "Le collection selezionate verranno rimosse definitivamente. L’operazione non può essere annullata.",
             "bulkForceDeleteTitleNamed": "Eliminare definitivamente la collection “{{name}}”?"
+        },
+        "translatableLockedHintConvert": "Bloccato qui perché il campo ha già contenuti. Usa Cambia tipo / converti per migrare i valori in sicurezza (oppure crea un nuovo campo).",
+        "convert": {
+            "menuLabel": "Cambia tipo…",
+            "title": "Converti campo “{{name}}”",
+            "description": "Migra i valori memorizzati verso un tipo o forma traducibile supportata. Esegui prima un dry-run per vedere gli errori.",
+            "targetType": "Tipo di destinazione",
+            "translatableHint": "Sposta i valori nella locale predefinita, oppure riduci a una sola locale.",
+            "dryRun": "Dry run",
+            "confirm": "Converti",
+            "previewSummary": "ok {{ok}} · falliti {{failed}} · bozze {{drafts}} · saltati {{skipped}}",
+            "loadTargetsFailed": "Impossibile caricare le destinazioni di conversione.",
+            "previewFailed": "Dry run non riuscito.",
+            "convertFailed": "Conversione non riuscita.",
+            "success": "Campo convertito.",
+            "queued": "Conversione del campo in coda."
         }
     },
     "ai": {
