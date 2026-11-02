@@ -2,7 +2,6 @@ import { Form, Head, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 import type { SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
-import AppearanceSettingsController from '@/actions/App/Http/Controllers/Settings/AppearanceSettingsController';
 import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
 import Heading from '@/components/heading';
 import { SettingsFormActions } from '@/components/settings-form-actions';
@@ -31,10 +30,10 @@ import { brandPassesAa } from '@/lib/brand-contrast';
 import { applyThemeCss, buildPreviewThemeCss } from '@/lib/theme-css';
 import {
     DEFAULT_THEME_PRESET,
-    themePresetBySlug,
-    type ThemePresetSlug,
+    themePresetBySlug
+    
 } from '@/lib/theme-presets';
-import { edit as editAppearance } from '@/routes/appearance';
+import type {ThemePresetSlug} from '@/lib/theme-presets';
 import type {
     AppearanceFileMeta,
     AppearanceSettings,
@@ -42,6 +41,8 @@ import type {
     ProjectAppearance,
 } from '@/types';
 import type { AdminFileRow } from '@/types/files';
+import AppearanceSettingsController from '@/actions/App/Http/Controllers/Settings/AppearanceSettingsController';
+import { edit as editAppearance } from '@/routes/appearance';
 
 type FileFieldKey = 'project_logo' | 'project_logo_dark' | 'public_favicon';
 

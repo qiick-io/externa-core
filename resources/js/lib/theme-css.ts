@@ -2,10 +2,11 @@ import { contrastingForeground } from '@/lib/contrasting-foreground';
 import {
     AI_OVERRIDE_DARK,
     AI_OVERRIDE_LIGHT,
-    themePresetBySlug,
-    type ThemePresetSlug,
-    type ThemePresetTokens,
+    themePresetBySlug
+    
+    
 } from '@/lib/theme-presets';
+import type {ThemePresetSlug, ThemePresetTokens} from '@/lib/theme-presets';
 import type { ThemeCssPayload } from '@/types/appearance';
 
 const BRAND_LINKED_KEYS = [
