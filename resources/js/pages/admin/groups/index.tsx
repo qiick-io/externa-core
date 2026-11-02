@@ -388,7 +388,7 @@ export default function AdminGroupsIndex({
                                     </ToggleGroupItem>
                                     <ToggleGroupItem
                                         value="trashed"
-                                        aria-label="Trash"
+                                        aria-label={t('a11y.trashList')}
                                         className="px-2.5"
                                     >
                                         <Trash2 className="size-4" />

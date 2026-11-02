@@ -1,3 +1,6 @@
+/**
+ * Shared display formatters (locale, dates, numbers, bytes, initials, datetime-local values).
+ */
 import i18n from '@/lib/i18n';
 
 /**
@@ -16,7 +19,6 @@ export function appLocale(language = i18n.language): string {
 /**
  * BCP 47 tag for Web Speech Recognition from the app UI locale.
  */
-
 export function speechRecognitionLang(language = i18n.language): string {
     switch (appLocale(language)) {
         case 'it':
@@ -31,7 +33,6 @@ export function speechRecognitionLang(language = i18n.language): string {
 /**
  * Locale-aware date/time formatting using the active i18n language.
  */
-
 export function formatDateTime(
     value: Date | string | number,
     options?: Intl.DateTimeFormatOptions,
@@ -49,7 +50,6 @@ export function formatDateTime(
 /**
  * Locale-aware number formatting using the active i18n language.
  */
-
 export function formatNumber(
     value: number,
     options?: Intl.NumberFormatOptions,
@@ -58,6 +58,12 @@ export function formatNumber(
     return value.toLocaleString(appLocale(language), options);
 }
 
+/**
+ * Derives avatar initials from a display name (up to two letters).
+ *
+ * @param name - Full display name
+ * @returns Uppercase initials, or `'?'` when blank
+ */
 export function initialsFromName(name: string): string {
     const parts = name.trim().split(/\s+/).filter(Boolean);
 
@@ -72,14 +78,6 @@ export function initialsFromName(name: string): string {
     return `${parts[0]![0] ?? ''}${parts[1]![0] ?? ''}`.toUpperCase() || '?';
 }
 
-/**
- * Converts an ISO/date value to an `<input type="datetime-local">` string.
- *
- * @param value - ISO string, date-only string, or other scalar
- * @param includeSeconds - When true, include `:ss` (default false)
- * @returns Local datetime string, or empty when unset/invalid
- */
-
 type DatetimeLocalInput =
     | string
     | number
@@ -91,6 +89,13 @@ type DatetimeLocalInput =
     | null
     | undefined;
 
+/**
+ * Converts an ISO/date value to an `<input type="datetime-local">` string.
+ *
+ * @param value - ISO string, date-only string, or other scalar
+ * @param includeSeconds - When true, include `:ss` (default false)
+ * @returns Local datetime string, or empty when unset/invalid
+ */
 export function toDatetimeLocalValue(
     value: DatetimeLocalInput,
     includeSeconds = false,
@@ -126,6 +131,13 @@ export function toDatetimeLocalValue(
         : formatted;
 }
 
+/**
+ * Formats a byte count using binary units (B through TB).
+ *
+ * @param bytes - Raw byte count; null/undefined yield `empty`
+ * @param empty - Placeholder when bytes are null/undefined (default `'—'`)
+ * @returns Human-readable size string
+ */
 export function formatBytes(
     bytes: number | null | undefined,
     empty = '—',
@@ -154,7 +166,6 @@ export function formatBytes(
  * @param bytes - File size in bytes, or null
  * @returns Human-readable size, or `'—'` when empty
  */
-
 export function formatFileSize(bytes: number | null): string {
     if (bytes === null || bytes === 0) {
         return '—';
@@ -162,10 +173,3 @@ export function formatFileSize(bytes: number | null): string {
 
     return formatBytes(bytes);
 }
-
-/**
- * Derives avatar initials from a display name (up to two letters).
- *
- * @param name - Full display name
- * @returns Uppercase initials, or `'?'` when blank
- */

@@ -113,3 +113,15 @@ it('hides files sort and trash chrome when selecting and shows Ask AI', function
         )
         ->assertNoJavaScriptErrors();
 });
+
+it('opens the context attach dialog from the assistant page composer', function () {
+    $user = grantBrowserAiAndCollectionPermissions(User::factory()->create());
+    $this->actingAs($user);
+
+    $page = visit('/ai');
+
+    $page->click('main button[aria-label="Attach"]')
+        ->assertSee('Attach context')
+        ->assertSee('Add collection items, library files, or saved prompts the assistant should use for this message.')
+        ->assertNoJavaScriptErrors();
+});

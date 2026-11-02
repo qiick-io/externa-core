@@ -74,5 +74,17 @@ describe('toDatetimeLocalValue', () => {
         expect(toDatetimeLocalValue('2024-01-02T03:04:05Z')).toBe(
             '2024-01-02T03:04',
         );
+        expect(toDatetimeLocalValue('2024-01-02T03:04:05Z', true)).toBe(
+            '2024-01-02T03:04:05',
+        );
+    });
+
+    it('expands date-only values', () => {
+        expect(toDatetimeLocalValue('2024-01-02')).toBe('2024-01-02T00:00');
+    });
+
+    it('returns empty for nullish input', () => {
+        expect(toDatetimeLocalValue(null)).toBe('');
+        expect(toDatetimeLocalValue(undefined)).toBe('');
     });
 });
