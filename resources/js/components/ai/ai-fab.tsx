@@ -523,12 +523,7 @@ export function AiFab() {
     const handleSend = async () => {
         const message = composer.trim();
 
-        if (
-            !message ||
-            isStreaming ||
-            offline ||
-            isUploadingAttachment
-        ) {
+        if (!message || isStreaming || offline || isUploadingAttachment) {
             return;
         }
 
@@ -537,7 +532,13 @@ export function AiFab() {
         setComposer('');
         setPendingAttachments([]);
         setPendingContextAttachments([]);
-        await runStream(message, messages, attachmentsToSend, [], contextToSend);
+        await runStream(
+            message,
+            messages,
+            attachmentsToSend,
+            [],
+            contextToSend,
+        );
     };
 
     const handleRegenerate = async (

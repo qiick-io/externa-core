@@ -192,7 +192,11 @@ export function AiContextAttachDialog({
     };
 
     const handleSavePrompt = async () => {
-        if (!promptDraft || promptDraft.name.trim() === '' || promptDraft.body.trim() === '') {
+        if (
+            !promptDraft ||
+            promptDraft.name.trim() === '' ||
+            promptDraft.body.trim() === ''
+        ) {
             toast.error(t('ai.context.promptRequired'));
 
             return;

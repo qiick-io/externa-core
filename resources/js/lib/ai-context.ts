@@ -259,9 +259,7 @@ export async function deleteAiSavedPrompt(promptId: number): Promise<void> {
 /**
  * Split pending context chips into chat request ID lists.
  */
-export function contextIdsFromPending(
-    pending: AiPendingContextAttachment[],
-): {
+export function contextIdsFromPending(pending: AiPendingContextAttachment[]): {
     contextItemIds: number[];
     contextFileIds: number[];
     contextPromptIds: number[];
