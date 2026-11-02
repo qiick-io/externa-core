@@ -1518,8 +1518,12 @@ export default function AiIndexPage({
                                                             }
                                                             aria-label={
                                                                 conversation.pinned_at
-                                                                    ? t('a11y.unpinChat')
-                                                                    : t('a11y.pinChat')
+                                                                    ? t(
+                                                                          'a11y.unpinChat',
+                                                                      )
+                                                                    : t(
+                                                                          'a11y.pinChat',
+                                                                      )
                                                             }
                                                         >
                                                             <Pin
@@ -1539,7 +1543,9 @@ export default function AiIndexPage({
                                                                     conversation.id,
                                                                 )
                                                             }
-                                                            aria-label={t('a11y.deleteChat')}
+                                                            aria-label={t(
+                                                                'a11y.deleteChat',
+                                                            )}
                                                         >
                                                             <Trash2 className="size-3.5" />
                                                         </Button>

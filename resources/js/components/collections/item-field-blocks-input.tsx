@@ -600,7 +600,9 @@ export function BlocksFieldInput({
                                                 label={
                                                     <>
                                                         {nestedLabel}
-                                                        {flags.required ? <RequiredMarker /> : null}
+                                                        {flags.required ? (
+                                                            <RequiredMarker />
+                                                        ) : null}
                                                     </>
                                                 }
                                                 description={getFieldNote(
@@ -746,7 +748,9 @@ export function BlocksFieldInput({
                                                         htmlFor={`${field.name}_${block.id}_${nestedField.name}`}
                                                     >
                                                         {nestedLabel}
-                                                        {flags.required ? <RequiredMarker /> : null}
+                                                        {flags.required ? (
+                                                            <RequiredMarker />
+                                                        ) : null}
                                                     </Label>
                                                 </div>
                                             </div>
