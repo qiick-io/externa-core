@@ -388,7 +388,7 @@ export default function AdminGroupsIndex({
                                     </ToggleGroupItem>
                                     <ToggleGroupItem
                                         value="trashed"
-                                        aria-label="Trash"
+                                        aria-label={t('a11y.trashList')}
                                         className="px-2.5"
                                     >
                                         <Trash2 className="size-4" />
@@ -524,6 +524,7 @@ export default function AdminGroupsIndex({
                                                                 type="button"
                                                                 variant="outline"
                                                                 size="sm"
+                                                                data-test={`group-row-restore-${group.id}`}
                                                                 onClick={() =>
                                                                     router.post(
                                                                         groupsRoutes.restore.url(
@@ -548,6 +549,7 @@ export default function AdminGroupsIndex({
                                                                 type="button"
                                                                 variant="destructive-outline"
                                                                 size="sm"
+                                                                data-test={`group-row-force-delete-${group.id}`}
                                                                 onClick={() =>
                                                                     setPendingForceDeleteGroupId(
                                                                         group.id,

@@ -198,7 +198,7 @@ class CollectionField extends Model implements Sortable
     /**
      * Whether values for this field are stored as multiple rows (array storage).
      */
-    public function usesArrayStorage(): bool
+    public function hasArrayStorage(): bool
     {
         if ($this->type === FieldTypeEnum::Image) {
             return self::settingsFlagIsEnabled(data_get($this->settings, 'allow_multiple', false));

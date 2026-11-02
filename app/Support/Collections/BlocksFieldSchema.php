@@ -159,7 +159,7 @@ class BlocksFieldSchema
                     || $rawTranslatable === 1
                     || $rawTranslatable === '1'
                     || $rawTranslatable === 'true';
-                if ($fieldType !== null && ! $fieldType->supportsTranslatable()) {
+                if ($fieldType !== null && ! $fieldType->isTranslatableSupported()) {
                     $translatable = false;
                 }
 

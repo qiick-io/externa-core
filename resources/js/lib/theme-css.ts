@@ -1,3 +1,4 @@
+import { meetsUiContrast } from '@/lib/brand-contrast';
 import { contrastingForeground } from '@/lib/contrasting-foreground';
 import {
     AI_OVERRIDE_DARK,
@@ -18,46 +19,66 @@ const BRAND_LINKED_KEYS = [
 ] as const;
 
 /**
+ * Contrast-safe focus rings (#227) used when the brand colour is below 3:1 on
+ * the page background (#453). Mirrors ThemePresetService and app.css.
+ */
+const FALLBACK_RING_LIGHT = 'var(--color-teal-600)';
+const FALLBACK_RING_DARK = 'var(--color-teal-400)';
+
+/** Id of the theme `<style>` element rendered by `app.blade.php`. */
+export const THEME_STYLE_ELEMENT_ID = 'externa-theme-css';
+
+/** Rejects values that could close the declaration block (`;`, `{`, `}`, `<`). */
+const SAFE_CSS_VALUE = /^[^;{}<>]+$/;
+
+/**
  * Apply resolved theme CSS variables to the document for live preview.
+ *
+ * Rewrites the same `<style id="externa-theme-css">` the server renders, as a
+ * `:root { … }` light block and a `.dark { … }` block. Nothing is set inline on
+ * `<html>`, so the `.dark` (and `html.high-contrast`) rules keep winning in
+ * dark mode. Side effect: creates the style element in `<head>` if missing.
  */
 export function applyThemeCss(themeCss: ThemeCssPayload): void {
-    const root = document.documentElement;
+    let styleElement = document.getElementById(
+        THEME_STYLE_ELEMENT_ID,
+    ) as HTMLStyleElement | null;
 
-    clearThemeInlineVars(root);
-
-    for (const [key, value] of Object.entries(themeCss.light)) {
-        root.style.setProperty(`--${key}`, value);
+    if (!styleElement) {
+        styleElement = document.createElement('style');
+        styleElement.id = THEME_STYLE_ELEMENT_ID;
+        document.head.appendChild(styleElement);
     }
 
-    // Dark tokens are applied under .dark via a style tag so light preview stays clean.
-    ensureDarkThemeStyle(themeCss.dark);
+    const lightDeclarations: Record<string, string> = { ...themeCss.light };
 
     if (themeCss.brandPrimary) {
-        root.style.setProperty('--brand-primary', themeCss.brandPrimary);
-        root.style.setProperty(
-            '--brand-primary-foreground',
+        const brandPrimaryDark =
+            themeCss.brandPrimaryDark ?? themeCss.brandPrimary;
+
+        lightDeclarations['brand-primary'] = themeCss.brandPrimary;
+        lightDeclarations['brand-primary-foreground'] =
             themeCss.brandPrimaryForeground ??
-                contrastingForeground(themeCss.brandPrimary) ??
-                '#ffffff',
-        );
-        root.style.setProperty(
-            '--brand-primary-dark',
-            themeCss.brandPrimaryDark ?? themeCss.brandPrimary,
-        );
-        root.style.setProperty(
-            '--brand-primary-dark-foreground',
+            contrastingForeground(themeCss.brandPrimary) ??
+            '#ffffff';
+        lightDeclarations['brand-primary-dark'] = brandPrimaryDark;
+        lightDeclarations['brand-primary-dark-foreground'] =
             themeCss.brandPrimaryDarkForeground ??
-                contrastingForeground(
-                    themeCss.brandPrimaryDark ?? themeCss.brandPrimary,
-                ) ??
-                '#ffffff',
-        );
-    } else {
-        root.style.removeProperty('--brand-primary');
-        root.style.removeProperty('--brand-primary-foreground');
-        root.style.removeProperty('--brand-primary-dark');
-        root.style.removeProperty('--brand-primary-dark-foreground');
+            contrastingForeground(brandPrimaryDark) ??
+            '#ffffff';
     }
+
+    styleElement.textContent = [
+        `:root { ${cssDeclarations(lightDeclarations)} }`,
+        `.dark { ${cssDeclarations(themeCss.dark)} }`,
+    ].join('\n');
+}
+
+function cssDeclarations(tokens: ThemePresetTokens): string {
+    return Object.entries(tokens)
+        .filter(([, value]) => SAFE_CSS_VALUE.test(value))
+        .map(([key, value]) => `--${key}: ${value};`)
+        .join(' ');
 }
 
 /**
@@ -95,12 +116,26 @@ export function buildPreviewThemeCss(
 
     if (hasCustomLight && projectColor) {
         brandPrimaryForeground = contrastingForeground(projectColor);
-        light = stripBrandLinkedKeys(light);
+        light = {
+            ...stripBrandLinkedKeys(light),
+            ...ringTokens(
+                projectColor,
+                light.background ?? '#FFFFFF',
+                FALLBACK_RING_LIGHT,
+            ),
+        };
     }
 
     if (effectiveDark && (hasCustomLight || hasCustomDark)) {
         brandPrimaryDarkForeground = contrastingForeground(effectiveDark);
-        dark = stripBrandLinkedKeys(dark);
+        dark = {
+            ...stripBrandLinkedKeys(dark),
+            ...ringTokens(
+                effectiveDark,
+                dark.background ?? '#0E171E',
+                FALLBACK_RING_DARK,
+            ),
+        };
     }
 
     return {
@@ -114,6 +149,23 @@ export function buildPreviewThemeCss(
     };
 }
 
+/**
+ * Focus ring tokens for a custom brand: the brand when it keeps 3:1 on the page
+ * background, else the teal fallback. Always set so a light ring cannot leak
+ * into `.dark` through the `:root` block.
+ */
+function ringTokens(
+    brandHex: string,
+    background: string,
+    fallbackRing: string,
+): ThemePresetTokens {
+    const ring = meetsUiContrast(brandHex, background)
+        ? brandHex
+        : fallbackRing;
+
+    return { ring, 'sidebar-ring': ring };
+}
+
 function stripBrandLinkedKeys(tokens: ThemePresetTokens): ThemePresetTokens {
     const next = { ...tokens };
 
@@ -122,72 +174,6 @@ function stripBrandLinkedKeys(tokens: ThemePresetTokens): ThemePresetTokens {
     }
 
     return next;
-}
-
-function clearThemeInlineVars(root: HTMLElement): void {
-    const keys = [
-        'background',
-        'foreground',
-        'card',
-        'card-foreground',
-        'popover',
-        'popover-foreground',
-        'primary',
-        'primary-foreground',
-        'secondary',
-        'secondary-foreground',
-        'muted',
-        'muted-foreground',
-        'accent',
-        'accent-foreground',
-        'destructive',
-        'destructive-foreground',
-        'border',
-        'input',
-        'ring',
-        'chart-1',
-        'chart-2',
-        'chart-3',
-        'chart-4',
-        'chart-5',
-        'sidebar',
-        'sidebar-foreground',
-        'sidebar-primary',
-        'sidebar-primary-foreground',
-        'sidebar-accent',
-        'sidebar-accent-foreground',
-        'sidebar-border',
-        'sidebar-ring',
-        'ai',
-        'ai-hover',
-        'ai-foreground',
-        'ai-bg',
-        'ai-text',
-        'ai-border',
-    ];
-
-    for (const key of keys) {
-        root.style.removeProperty(`--${key}`);
-    }
-}
-
-function ensureDarkThemeStyle(darkTokens: ThemePresetTokens): void {
-    const styleId = 'externa-theme-preset-dark-preview';
-    let styleElement = document.getElementById(
-        styleId,
-    ) as HTMLStyleElement | null;
-
-    if (!styleElement) {
-        styleElement = document.createElement('style');
-        styleElement.id = styleId;
-        document.head.appendChild(styleElement);
-    }
-
-    const declarations = Object.entries(darkTokens)
-        .map(([key, value]) => `--${key}: ${value};`)
-        .join(' ');
-
-    styleElement.textContent = `.dark { ${declarations} }`;
 }
 
 /**

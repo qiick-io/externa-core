@@ -333,7 +333,6 @@
             "create": "Create API key",
             "createTitle": "Create API key",
             "createDescription": "Name the key, pick a role and owner, then optionally narrow scopes.",
-            "empty": "No API keys yet.",
             "secretBanner": "Copy this key now — it will not be shown again.",
             "collectionSlugs": "Collection allowlist (optional, comma-separated slugs)",
             "collectionSlugsHelp": "Leave empty to allow every collection the role can access. Scopes only narrow access.",
@@ -1451,8 +1450,8 @@
         "askPlaceholder": "Ask the assistant…",
         "askSomething": "Ask something…",
         "offlinePlaceholder": "AI is offline…",
-        "attachTooltip": "Attach CSV, TXT, Excel or PDF (max 5 MB)",
-        "attachShortTooltip": "Attach CSV or TXT (max 5 MB)",
+        "attachTooltip": "Attach items, files, saved prompts, or import CSV/TXT/Excel/PDF",
+        "attachShortTooltip": "Attach context or import files",
         "attachAria": "Attach",
         "messageAria": "Message",
         "dictationAria": "Dictation",
@@ -1813,10 +1812,6 @@
             "updated": "Updated"
         },
         "empty": {
-            "trash": "Trash is empty",
-            "dropToUpload": "Drop files anywhere to upload",
-            "folderEmpty": "This folder is empty",
-            "orUseUpload": "Or use the Upload button above",
             "contextNewFolder": "New Folder",
             "contextUploadFile": "Upload File",
             "contextUploadFolder": "Upload Folder"

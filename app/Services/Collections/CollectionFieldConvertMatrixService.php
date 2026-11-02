@@ -58,7 +58,7 @@ class CollectionFieldConvertMatrixService
         bool $fromTranslatable,
         bool $toTranslatable,
     ): bool {
-        if (! $toType->supportsTranslatable() && $toTranslatable) {
+        if (! $toType->isTranslatableSupported() && $toTranslatable) {
             return false;
         }
 

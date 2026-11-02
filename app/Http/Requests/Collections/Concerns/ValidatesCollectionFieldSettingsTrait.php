@@ -475,7 +475,7 @@ trait ValidatesCollectionFieldSettingsTrait
     {
         $type = $this->resolveFieldTypeForTranslatable();
 
-        if ($type !== null && ! $type->supportsTranslatable()) {
+        if ($type !== null && ! $type->isTranslatableSupported()) {
             $this->merge(['translatable' => false]);
         }
     }

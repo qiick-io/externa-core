@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Concerns;
 
+use App\Ai\Concerns\EnforcesAiCollectionPermissionsTrait;
+use App\Ai\Concerns\EnforcesAiFileAccessTrait;
 use App\Ai\Support\AiActivityLogger;
 use App\Ai\Tools\ManageCollectionItems;
 use App\Ai\Tools\ManageCollections;
 use App\Ai\Tools\ManageFiles;
 use App\Ai\Tools\QueryCollectionItems;
 use App\Ai\Tools\SearchSimilarCollectionItems;
+use App\Enums\CollectionPermissionActionEnum;
+use App\Enums\FilePermissionActionEnum;
 use App\Mcp\Adapters\RegistryMcpToolAdapter;
+use App\Models\Collection;
+use App\Models\CollectionItem;
 use App\Models\User;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Laravel\Ai\Contracts\Tool as LaravelAiTool;
@@ -29,6 +35,9 @@ use Laravel\Mcp\ResponseFactory;
  */
 trait DelegatesToRegistryMcpToolTrait
 {
+    use EnforcesAiCollectionPermissionsTrait;
+    use EnforcesAiFileAccessTrait;
+
     /**
      * Registry / AppAssistant tool class basename (e.g. QueryCollectionItems).
      */
@@ -92,10 +101,57 @@ trait DelegatesToRegistryMcpToolTrait
         $arguments = $this->mapArguments($request->all());
 
         if ($this->usesExecutor()) {
+            if ($error = $this->requestScopedWriteError($arguments)) {
+                return Response::error($error);
+            }
+
             return $this->handleViaExecutor($arguments, $actor);
         }
 
         return $this->handleViaDirectTool($arguments, $actor);
+    }
+
+    /**
+     * Authorize an API-key write against the key's scope before the executor may park it
+     * for approval: collection Update/Create + item_filter, or file Update (role ACL,
+     * `collection_slugs`, `files_scope`, owner ceiling). Session callers return null; the
+     * tool re-checks their permissions when it runs.
+     *
+     * ponytail: an approved pending call re-runs later as the key owner (approver ceiling)
+     * without the key's `apiAccess`, so key scopes are enforced here, at request time.
+     * Upgrade path: persist `api_key_id` on `pending_tool_calls` and rebuild ApiAccess on approval.
+     *
+     * @param  array<string, mixed>  $arguments
+     */
+    private function requestScopedWriteError(array $arguments): ?string
+    {
+        if ($this->aiRequestApiAccess() === null) {
+            return null;
+        }
+
+        if ($this->registryToolName() === 'ManageFiles') {
+            return $this->guardAiFileAction(FilePermissionActionEnum::Update);
+        }
+
+        if (isset($arguments['item_id'])) {
+            $item = CollectionItem::query()->with('collection')->find((int) $arguments['item_id']);
+            $collection = $item?->collection;
+
+            if ($item === null || $collection === null) {
+                return 'Error: Item not found.';
+            }
+
+            return $this->guardAiCollectionAction($collection, CollectionPermissionActionEnum::Update)
+                ?? $this->guardAiItemWritable($collection, $item);
+        }
+
+        $collection = Collection::query()->find((int) ($arguments['collection_id'] ?? 0));
+
+        if ($collection === null) {
+            return 'Error: Collection not found.';
+        }
+
+        return $this->guardAiCollectionAction($collection, CollectionPermissionActionEnum::Create);
     }
 
     /**

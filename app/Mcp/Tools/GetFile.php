@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools;
 
+use App\Ai\Concerns\EnforcesAiFileAccessTrait;
 use App\Ai\Support\AiActivityLogger;
 use App\Enums\PermissionEnum;
 use App\Models\File;
@@ -22,10 +23,12 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('get_file')]
 #[Title('Get file')]
-#[Description('Return file metadata by id (no binary). Requires CanShowFiles.')]
+#[Description('Return file metadata by id (no binary). Requires CanShowFiles; honors file ACL, read_private, and API key files_scope.')]
 #[IsReadOnly]
 class GetFile extends Tool
 {
+    use EnforcesAiFileAccessTrait;
+
     /**
      * @return array<string, Type>
      */
@@ -51,7 +54,7 @@ class GetFile extends Tool
         $fileId = (int) $request->get('file_id');
         $file = File::query()->with('tags')->find($fileId);
 
-        if ($file === null) {
+        if ($file === null || $this->guardAiFileReadable($file) !== null) {
             AiActivityLogger::tool($user, 'get_file', ['file_id' => $fileId], 'not found', failed: true, extra: ['surface' => 'mcp']);
 
             return Response::error('File not found.');

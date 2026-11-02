@@ -22,6 +22,7 @@ use App\Ai\Tools\QueryActivityLogs;
 use App\Ai\Tools\QueryCollectionItems;
 use App\Ai\Tools\RollbackLastAiTurn;
 use App\Ai\Tools\SearchSimilarCollectionItems;
+use App\Contracts\Ai\ClassifiesToolActionsInterface;
 use App\Contracts\Ai\ToolDefinitionInterface;
 use App\Enums\AiToolKindEnum;
 use App\Enums\PermissionEnum;
@@ -124,26 +125,49 @@ class AiToolRegistryService
     }
 
     /**
-     * laravel/ai Tool instances for AppAssistant (mutating tools only when write gate allows).
+     * laravel/ai Tool instances for AppAssistant.
+     *
+     * Mutating tools are full only when the write gate allows them. A tool that mixes
+     * read and write actions ({@see ClassifiesToolActionsInterface}) stays listed while
+     * the gate is closed, as a copy that runs reads and refuses writes, so chat keeps
+     * list/get by default as in 1.3.0.
      *
      * @return list<Tool>
      */
     public function chatToolsFor(?Authenticatable $actor): array
     {
+        $this->registerDefaults();
+
+        if (! (bool) config('ai.tools.enabled', true)) {
+            return [];
+        }
+
         $tools = [];
 
-        foreach ($this->visibleFor($actor, ['include_write' => true]) as $definition) {
-            if ($definition instanceof LaravelAiToolDefinition) {
-                $tools[] = $definition->laravelTool();
+        foreach ($this->definitions as $definition) {
+            $isFullyEnabled = $this->passesConfigGates($definition, true);
+            $tool = $definition instanceof LaravelAiToolDefinition ? $definition->laravelTool() : null;
+            $isReadOnlyCandidate = ! $isFullyEnabled
+                && $tool instanceof ClassifiesToolActionsInterface
+                && $this->passesNameLists($definition->name());
 
+            if (! $isFullyEnabled && ! $isReadOnlyCandidate) {
                 continue;
             }
 
-            throw new RuntimeException(sprintf(
-                'Chat adapter requires LaravelAiToolDefinition; got %s for tool [%s].',
-                $definition::class,
-                $definition->name(),
-            ));
+            if (! $this->actorPassesAbilities($definition, $actor)) {
+                continue;
+            }
+
+            if ($tool === null) {
+                throw new RuntimeException(sprintf(
+                    'Chat adapter requires LaravelAiToolDefinition; got %s for tool [%s].',
+                    $definition::class,
+                    $definition->name(),
+                ));
+            }
+
+            $tools[] = $isFullyEnabled ? $tool : $tool->withWriteActionsDenied();
         }
 
         return $tools;
@@ -162,14 +186,8 @@ class AiToolRegistryService
         }
 
         $name = $definition->name();
-        $allow = $this->normalizedNameList(config('ai.tools.allow', []));
-        $deny = $this->normalizedNameList(config('ai.tools.deny', []));
 
-        if ($deny !== [] && in_array($name, $deny, true)) {
-            return false;
-        }
-
-        if ($allow !== [] && ! in_array($name, $allow, true)) {
+        if (! $this->passesNameLists($name)) {
             return false;
         }
 
@@ -187,6 +205,21 @@ class AiToolRegistryService
         }
 
         return $this->writeGate->isToolWriteAllowed($name);
+    }
+
+    /**
+     * Whether config `ai.tools.deny` / `ai.tools.allow` let this tool name through.
+     */
+    private function passesNameLists(string $name): bool
+    {
+        $allow = $this->normalizedNameList(config('ai.tools.allow', []));
+        $deny = $this->normalizedNameList(config('ai.tools.deny', []));
+
+        if ($deny !== [] && in_array($name, $deny, true)) {
+            return false;
+        }
+
+        return $allow === [] || in_array($name, $allow, true);
     }
 
     /**

@@ -7,6 +7,7 @@ use App\Enums\PermissionEnum;
 use App\Enums\ThemePresetEnum;
 use App\Models\File;
 use App\Services\Authorization\EffectivePermissionResolverService;
+use App\Services\Settings\SettingsRepositoryService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -116,11 +117,28 @@ class UpdateAppearanceSettingsRequest extends FormRequest
         }
 
         if (! $this->filled('theme_preset')) {
-            $merge['theme_preset'] = ThemePresetEnum::default()->value;
+            $merge['theme_preset'] = $this->storedThemePreset();
         }
 
         if ($merge !== []) {
             $this->merge($merge);
         }
+    }
+
+    /**
+     * Preset to keep when the request omits `theme_preset`: the stored one,
+     * or the default only when nothing valid has been saved yet.
+     */
+    private function storedThemePreset(): string
+    {
+        $storedThemePreset = app(SettingsRepositoryService::class)->get(
+            SettingsRepositoryService::SCOPE_PROJECT,
+            'appearance',
+            'theme_preset',
+        );
+
+        return ThemePresetEnum::tryFromNullable(
+            is_string($storedThemePreset) ? $storedThemePreset : null,
+        )->value;
     }
 }

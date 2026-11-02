@@ -4,8 +4,10 @@ namespace App\Ai\Tools;
 
 use App\Actions\Collections\CreateCollectionItemAction;
 use App\Ai\Concerns\ChecksAiPermissionsTrait;
+use App\Ai\Concerns\EnforcesAiCollectionPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
+use App\Contracts\Ai\ClassifiesToolActionsInterface;
 use App\Data\Collections\CollectionItemWriteData;
 use App\Data\Collections\FieldConvertOptionsData;
 use App\Enums\FieldTypeEnum;
@@ -34,9 +36,10 @@ use Stringable;
 /**
  * AI tool for listing and mutating content collections and their settings.
  */
-class ManageCollections implements Approvable, Tool
+class ManageCollections implements Approvable, ClassifiesToolActionsInterface, Tool
 {
     use ChecksAiPermissionsTrait;
+    use EnforcesAiCollectionPermissionsTrait;
     use LogsAiToolUseTrait;
     use RequiresDestructiveApprovalTrait;
 
@@ -80,6 +83,10 @@ class ManageCollections implements Approvable, Tool
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
+            if (($refusal = $this->writeActionRefusal($request)) !== null) {
+                return $refusal;
+            }
+
             $action = (string) $request->string('action');
 
             return match ($action) {
@@ -143,14 +150,16 @@ class ManageCollections implements Approvable, Tool
             ->get(['id', 'name', 'slug', 'is_singleton', 'sort_order', 'deleted_at']);
 
         return json_encode([
-            'collections' => $collections->map(fn (Collection $collection): array => [
+            'collections' => $collections->filter(
+                fn (Collection $collection): bool => $this->isAiCollectionReadable($collection),
+            )->map(fn (Collection $collection): array => [
                 'id' => $collection->id,
                 'name' => $collection->name,
                 'slug' => $collection->slug,
                 'is_singleton' => $collection->is_singleton,
                 'sort_order' => $collection->sort_order,
                 'deleted_at' => $collection->deleted_at,
-                'fields' => $collection->fields->map(fn (CollectionField $field): array => [
+                'fields' => $this->readableAiFields($collection)->map(fn (CollectionField $field): array => [
                     'id' => $field->id,
                     'name' => $field->name,
                     'type' => $field->type instanceof FieldTypeEnum ? $field->type->value : (string) $field->type,
@@ -170,7 +179,7 @@ class ManageCollections implements Approvable, Tool
             ->withCount('items')
             ->find($collectionId);
 
-        if ($collection === null) {
+        if ($collection === null || ! $this->isAiCollectionReadable($collection)) {
             return 'Error: Collection not found.';
         }
 
@@ -181,7 +190,7 @@ class ManageCollections implements Approvable, Tool
             'url' => route('collections.show', $collection),
             'is_singleton' => $collection->is_singleton,
             'items_count' => $collection->items_count,
-            'fields' => $collection->fields->map(fn ($field): array => [
+            'fields' => $this->readableAiFields($collection)->map(fn ($field): array => [
                 'id' => $field->id,
                 'name' => $field->name,
                 'type' => $field->type?->value ?? $field->type,
@@ -548,7 +557,7 @@ class ManageCollections implements Approvable, Tool
             return $settings;
         }
 
-        $translatable = $type->supportsTranslatable() && $request->boolean('translatable');
+        $translatable = $type->isTranslatableSupported() && $request->boolean('translatable');
 
         $field = $collection->fields()->create([
             'name' => $name,
@@ -660,7 +669,7 @@ class ManageCollections implements Approvable, Tool
         }
 
         $resultingType = $attributes['type'] ?? $field->type;
-        if ($resultingType instanceof FieldTypeEnum && ! $resultingType->supportsTranslatable()) {
+        if ($resultingType instanceof FieldTypeEnum && ! $resultingType->isTranslatableSupported()) {
             $attributes['translatable'] = false;
         }
 

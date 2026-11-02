@@ -20,7 +20,7 @@ class OidcController extends Controller
 {
     public function redirect(OidcSocialiteFactoryService $factory): RedirectResponse
     {
-        abort_unless($factory->enabled(), 404);
+        abort_unless($factory->isEnabled(), 404);
 
         return $factory->driver()->redirect();
     }
@@ -31,7 +31,7 @@ class OidcController extends Controller
         OidcUserResolverService $resolver,
         LoginResponseContract $loginResponse,
     ): Response {
-        abort_unless($factory->enabled(), 404);
+        abort_unless($factory->isEnabled(), 404);
 
         try {
             $socialiteUser = $factory->driver()->user();

@@ -249,3 +249,77 @@ it('charges API cost budget for each relational filter key', function (): void {
         ->assertStatus(429)
         ->assertJsonPath('message', 'API cost budget exceeded.');
 });
+
+it('matches relational filters by exact related id, never by id prefix', function (FieldTypeEnum $relationType): void {
+    $suffix = 'prefix-'.$relationType->value.'-'.uniqid();
+
+    $tags = Collection::query()->create([
+        'name' => 'Tags '.$suffix,
+        'slug' => $suffix.'-tags',
+        'is_singleton' => false,
+        'sort_order' => 1,
+    ]);
+    CollectionField::factory()->create([
+        'collection_id' => $tags->id,
+        'name' => 'name',
+        'type' => FieldTypeEnum::String,
+        'translatable' => false,
+    ]);
+
+    // Explicit ids (N, N*10+2, N*100) leave headroom so auto-increment rows created below never collide.
+    $targetTagId = (int) CollectionItem::query()->max('id') + 1000;
+    $twelvePrefixTagId = $targetTagId * 10 + 2;
+    $hundredPrefixTagId = $targetTagId * 100;
+    $tagNamesById = [
+        $targetTagId => 'Target',
+        $twelvePrefixTagId => 'Prefix twelve',
+        $hundredPrefixTagId => 'Prefix hundred',
+    ];
+    foreach ($tagNamesById as $tagId => $tagName) {
+        $tag = $tags->items()->forceCreate(['id' => $tagId]);
+        syncDeepFilterItem($tag, $tags->fresh(['fields']), ['name' => $tagName]);
+    }
+
+    $posts = Collection::query()->create([
+        'name' => 'Posts '.$suffix,
+        'slug' => $suffix.'-posts',
+        'is_singleton' => false,
+        'sort_order' => 1,
+    ]);
+    CollectionField::factory()->create([
+        'collection_id' => $posts->id,
+        'name' => 'tags',
+        'type' => $relationType,
+        'settings' => ['related_collection_id' => $tags->id],
+    ]);
+
+    $isManyToOne = $relationType === FieldTypeEnum::ManyToOne;
+
+    $targetPost = $posts->items()->create([]);
+    syncDeepFilterItem($targetPost, $posts->fresh(['fields']), [
+        'tags' => $isManyToOne ? $targetTagId : [$hundredPrefixTagId, $targetTagId],
+    ]);
+    foreach ([$twelvePrefixTagId, $hundredPrefixTagId] as $prefixTagId) {
+        $prefixPost = $posts->items()->create([]);
+        syncDeepFilterItem($prefixPost, $posts->fresh(['fields']), [
+            'tags' => $isManyToOne ? $prefixTagId : [$prefixTagId],
+        ]);
+    }
+
+    grantPublicActions($posts, [CollectionPermissionActionEnum::Read]);
+    grantPublicActions($tags, [CollectionPermissionActionEnum::Read]);
+
+    $response = $this->getJson(
+        '/api/v1/collections/'.$posts->slug.'/items?'.http_build_query([
+            'filter' => ['tags.name' => ['_eq' => 'Target']],
+            'per_page' => 50,
+        ])
+    )->assertOk();
+
+    expect(collect($response->json('data'))->pluck('id')->all())->toBe([$targetPost->id])
+        ->and($response->json('meta.total'))->toBe(1);
+})->with([
+    'many-to-one' => [FieldTypeEnum::ManyToOne],
+    'many-to-many' => [FieldTypeEnum::ManyToMany],
+    'one-to-many' => [FieldTypeEnum::OneToMany],
+]);

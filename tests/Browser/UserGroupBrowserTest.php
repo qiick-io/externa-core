@@ -100,10 +100,13 @@ it('supports trash restore and force delete actions', function () {
         ->wait(1)
         ->assertQueryStringHas('trashed', '1')
         ->assertSee('Trash Me Please')
-        ->assertSee('Restore')
-        ->assertSee('Delete forever')
+        // Row labels come from `common.restore` / `common.deletePermanently` since #282.
+        ->assertVisible('[data-test="group-row-restore-'.$group->id.'"]')
+        ->assertSeeIn('[data-test="group-row-restore-'.$group->id.'"]', 'Restore')
+        ->assertVisible('[data-test="group-row-force-delete-'.$group->id.'"]')
+        ->assertSeeIn('[data-test="group-row-force-delete-'.$group->id.'"]', 'Delete permanently')
         ->assertNoJavaScriptErrors()
-        ->click('Restore')
+        ->click('[data-test="group-row-restore-'.$group->id.'"]')
         ->wait(1);
 
     expect($group->fresh()->trashed())->toBeFalse();
@@ -113,9 +116,15 @@ it('supports trash restore and force delete actions', function () {
     $page = visit('/groups?trashed=1');
 
     $page->assertSee('Trash Me Please')
-        ->click('Delete forever')
-        ->assertSee('Delete group permanently?')
-        ->click('Delete permanently')
+        ->assertVisible('[data-test="group-row-force-delete-'.$group->id.'"]')
+        ->click('[data-test="group-row-force-delete-'.$group->id.'"]')
+        ->wait(0.3)
+        ->assertSee('Delete group “Trash Me Please” permanently?')
+        // Typed confirmation keeps the action disabled until the name matches (#230).
+        ->assertVisible('[data-test="confirm-destructive-typed"]')
+        ->fill('[data-test="confirm-destructive-typed"]', 'Trash Me Please')
+        ->assertVisible('[data-test="confirm-destructive"]')
+        ->click('[data-test="confirm-destructive"]')
         ->wait(1)
         ->assertDontSee('Trash Me Please')
         ->assertNoJavaScriptErrors();

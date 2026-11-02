@@ -69,7 +69,7 @@ import { avatarColorForId, avatarStyleForId } from '@/lib/avatar-color';
 import type { ChatThreadIdentity } from '@/lib/chat-thread-identity';
 import { chatMentionsEnabled } from '@/lib/chat-thread-identity';
 import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, initialsFromName } from '@/lib/format';
 import {
     addChatAttachmentToField,
     chatAttachmentPreviewUrl,
@@ -169,12 +169,6 @@ type Props = {
     thread?: ChatThreadIdentity | null;
     canCreateDirect?: boolean;
 };
-
-function initials(name: string): string {
-    const parts = name.trim().split(/\s+/);
-
-    return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?';
-}
 
 function renderMessageBody(
     body: string,
@@ -2010,7 +2004,7 @@ export function ItemChatDrawer({
                                                         userId,
                                                     )}
                                                 >
-                                                    {initials(
+                                                    {initialsFromName(
                                                         comment.user?.name ??
                                                             '?',
                                                     )}
@@ -2468,7 +2462,7 @@ export function ItemChatDrawer({
                                                                                                                     )}
                                                                                                                     aria-hidden
                                                                                                                 >
-                                                                                                                    {initials(
+                                                                                                                    {initialsFromName(
                                                                                                                         user.name,
                                                                                                                     )}
                                                                                                                 </span>

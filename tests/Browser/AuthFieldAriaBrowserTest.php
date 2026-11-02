@@ -5,8 +5,10 @@ it('links login field errors through aria-describedby', function () {
 
     $page->assertSee('Skip to content')
         ->assertPresent('#main-content')
-        ->fill('email', 'not-an-email')
-        ->fill('password', '')
+        // Fortify only validates `email` as a required string, so an email-field error
+        // comes from failed credentials (auth.failed), not from a malformed address.
+        ->fill('email', 'nobody@example.com')
+        ->fill('password', 'wrong-password')
         ->click('[data-test="login-button"]')
         ->wait(1.5)
         ->assertPresent('#email-error')

@@ -6,6 +6,7 @@ use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\SafeRemoteUrlValidator;
+use App\Contracts\Ai\ClassifiesToolActionsInterface;
 use App\Enums\PermissionEnum;
 use App\Models\AiSyncSource;
 use App\Models\Collection;
@@ -18,7 +19,7 @@ use Stringable;
 /**
  * AI tool for configuring and inspecting AI sync sources.
  */
-class ManageAiSyncSources implements Approvable, Tool
+class ManageAiSyncSources implements Approvable, ClassifiesToolActionsInterface, Tool
 {
     use ChecksAiPermissionsTrait;
     use LogsAiToolUseTrait;
@@ -54,6 +55,10 @@ class ManageAiSyncSources implements Approvable, Tool
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
+            if (($refusal = $this->writeActionRefusal($request)) !== null) {
+                return $refusal;
+            }
+
             $action = trim((string) $request->string('action'));
             $permission = in_array($action, ['list', 'create'], true)
                 ? PermissionEnum::CanCreateCollections

@@ -138,6 +138,7 @@
 
     --color-primary: var(--primary);
     --color-primary-foreground: var(--primary-foreground);
+    --color-primary-hover: var(--primary-hover);
 
     --color-secondary: var(--secondary);
     --color-secondary-foreground: var(--secondary-foreground);
@@ -195,6 +196,13 @@
      */
     --primary: var(--brand-primary, var(--color-teal-600));
     --primary-foreground: var(--brand-primary-foreground, #ffffff);
+    /*
+     * Hover moves away from the white foreground so contrast only grows
+     * (bg-primary/90 dropped white on teal-600 to ~4.1:1, below AA).
+     * ponytail: assumes a light-on-dark brand; a brand with a dark light-mode
+     * foreground would want white here (derive from ContrastingForeground, #243).
+     */
+    --primary-hover: color-mix(in oklab, var(--primary), black 12%);
     --secondary: var(--color-ink-100);
     --secondary-foreground: var(--color-ink-800);
     --muted: var(--color-ink-100);
@@ -212,8 +220,11 @@
     --overlay: color-mix(in srgb, var(--color-ink-950) 60%, transparent);
     --border: var(--color-ink-200);
     --input: var(--color-ink-400);
-    /* teal-600 ≥3:1 on white (qiick #226 / #227); brand override still wins */
-    --ring: var(--brand-primary, var(--color-teal-600));
+    /*
+     * teal-600 ≥3:1 on white (#227). Not tied to the brand variable; a custom
+     * brand reaches the ring only via the theme block when it is ≥3:1 (#453).
+     */
+    --ring: var(--color-teal-600);
     --chart-1: var(--color-teal-600);
     --chart-2: var(--color-blue-500);
     --chart-3: var(--color-amber-500);
@@ -227,7 +238,7 @@
     --sidebar-accent: var(--color-teal-50);
     --sidebar-accent-foreground: var(--color-teal-800);
     --sidebar-border: var(--color-ink-200);
-    --sidebar-ring: var(--brand-primary, var(--color-teal-600));
+    --sidebar-ring: var(--color-teal-600);
     /* AI accent (violet only — never brand/primary) */
     --ai: var(--color-violet-600);
     --ai-hover: var(--color-violet-700);
@@ -258,6 +269,8 @@
         --brand-primary-dark-foreground,
         var(--color-ink-950)
     );
+    /* Dark fg (ink-950): lighten on hover so contrast only grows. */
+    --primary-hover: color-mix(in oklab, var(--primary), white 12%);
     --secondary: var(--color-ink-800);
     --secondary-foreground: var(--color-ink-100);
     --muted: var(--color-ink-800);
@@ -278,11 +291,8 @@
     --overlay: color-mix(in srgb, var(--color-ink-950) 70%, transparent);
     --border: var(--color-ink-800);
     --input: var(--color-ink-500);
-    /* teal-400 ≥3:1 on ink-950 (#227); brand override still wins */
-    --ring: var(
-        --brand-primary-dark,
-        var(--brand-primary, var(--color-teal-400))
-    );
+    /* teal-400 ≥3:1 on ink-950 (#227); contrast-checked brand ring via theme block (#453) */
+    --ring: var(--color-teal-400);
     --chart-1: var(--color-teal-400);
     --chart-2: var(--color-blue-400);
     --chart-3: var(--color-amber-400);
@@ -295,10 +305,7 @@
     --sidebar-accent: var(--color-teal-950);
     --sidebar-accent-foreground: var(--color-teal-200);
     --sidebar-border: var(--color-ink-800);
-    --sidebar-ring: var(
-        --brand-primary-dark,
-        var(--brand-primary, var(--color-teal-400))
-    );
+    --sidebar-ring: var(--color-teal-400);
     /* AI accent dark: light violet fill + ink foreground for AA */
     --ai: var(--color-violet-300);
     --ai-hover: var(--color-violet-200);
