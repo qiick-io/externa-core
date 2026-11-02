@@ -3,6 +3,7 @@ import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
+import { DeployHeaderButton } from '@/components/deploy/deploy-header-button';
 import { NotificationSoundTracker } from '@/components/realtime/notification-sound-tracker';
 import { OnlinePresenceTracker } from '@/components/realtime/online-presence-tracker';
 import { SkipToContent } from '@/components/skip-to-content';
@@ -35,7 +36,12 @@ export default function AppSidebarLayout({
             >
                 <AppSidebarHeader
                     breadcrumbs={breadcrumbs}
-                    actions={headerActions}
+                    actions={
+                        <>
+                            <DeployHeaderButton />
+                            {headerActions}
+                        </>
+                    }
                 />
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                     {children}

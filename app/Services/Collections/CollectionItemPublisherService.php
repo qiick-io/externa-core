@@ -3,9 +3,12 @@
 namespace App\Services\Collections;
 
 use App\Actions\Collections\UpdateCollectionItemAction;
+use App\Actions\Deploy\TriggerDeployHooksAction;
 use App\Data\Collections\CollectionItemWriteData;
 use App\Models\Collection;
 use App\Models\CollectionItem;
+use App\Models\User;
+use App\Services\Deploy\DeployHookDispatcherService;
 use App\Services\GitExport\GitExportDispatcherService;
 use App\Services\Webhooks\OutboundWebhookDispatcherService;
 use Illuminate\Support\Carbon;
@@ -21,6 +24,7 @@ class CollectionItemPublisherService
         private UpdateCollectionItemAction $updateCollectionItemAction,
         private OutboundWebhookDispatcherService $webhooks,
         private GitExportDispatcherService $gitExport,
+        private TriggerDeployHooksAction $deployHooks,
         private CollectionItemApprovalService $approvals,
     ) {}
 
@@ -87,5 +91,12 @@ class CollectionItemPublisherService
             'scheduled' => $scheduled,
         ]);
         $this->gitExport->dispatchItem($published);
+
+        $actor = auth()->user();
+        $this->deployHooks->execute(
+            $actor instanceof User ? $actor : null,
+            null,
+            DeployHookDispatcherService::SOURCE_PUBLISH,
+        );
     }
 }

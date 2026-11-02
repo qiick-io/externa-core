@@ -64,6 +64,8 @@ return [
             'notifier_telegram_bot_token',
             'notifier_telegram_chat_id',
             'notifier_event_types',
+            'deploy_hooks',
+            'deploy_on_publish',
             'oidc_enabled',
             'oidc_issuer',
             'oidc_client_id',
@@ -160,6 +162,9 @@ return [
             'notifier_telegram_chat_id' => null,
             // null = all selectable domain events (legacy default)
             'notifier_event_types' => null,
+            // Named deploy hooks; each URL stored encrypted via Crypt
+            'deploy_hooks' => [],
+            'deploy_on_publish' => false,
             'oidc_enabled' => false,
             'oidc_issuer' => null,
             'oidc_client_id' => null,

@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Actions\Deploy\TriggerDeployHooksAction;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Settings\Concerns\LogsProjectSettingsUpdateTrait;
+use App\Http\Requests\Settings\TriggerDeployHooksRequest;
 use App\Http\Requests\Settings\UpdateProjectIntegrationsSettingsRequest;
 use App\Jobs\DeliverTelegramOutboundNotifierJob;
+use App\Services\Deploy\DeployHookDispatcherService;
+use App\Services\Deploy\DeployHookStatusService;
 use App\Services\Notifiers\OutboundNotifierMessageFormatterService;
 use App\Services\Settings\ProjectSettingsService;
 use App\Services\Settings\SettingsRepositoryService;
@@ -18,7 +22,7 @@ use Inertia\Response;
 use Throwable;
 
 /**
- * Integrations project settings (outbound webhooks + Slack/Telegram notifiers).
+ * Integrations project settings (outbound webhooks + Slack/Telegram notifiers + deploy hooks).
  */
 class ProjectIntegrationsSettingsController extends Controller
 {
@@ -32,8 +36,10 @@ class ProjectIntegrationsSettingsController extends Controller
     /**
      * Render the integrations settings form.
      */
-    public function edit(OutboundWebhookDeliveryLogService $deliveryLog): Response
-    {
+    public function edit(
+        OutboundWebhookDeliveryLogService $deliveryLog,
+        DeployHookStatusService $deployStatus,
+    ): Response {
         return Inertia::render('settings/project/integrations', [
             'project' => $this->projectSettings->forEditOnly([
                 'webhook_url',
@@ -42,9 +48,12 @@ class ProjectIntegrationsSettingsController extends Controller
                 'notifier_telegram_bot_token_configured',
                 'notifier_telegram_chat_id',
                 'notifier_event_types',
+                'deploy_hooks',
+                'deploy_on_publish',
             ]),
             'webhookEvents' => OutboundWebhookCatalogService::all(),
             'webhookDeliveries' => $deliveryLog->summary(),
+            'deployLastRun' => $deployStatus->lastRun(),
         ]);
     }
 
@@ -138,5 +147,25 @@ class ProjectIntegrationsSettingsController extends Controller
 
         return to_route('project.integrations.edit')
             ->with('success', __('Test Telegram message sent.'));
+    }
+
+    /**
+     * Queue POSTs to configured deploy hooks (permission: deploy.trigger).
+     */
+    public function triggerDeploy(TriggerDeployHooksRequest $request, TriggerDeployHooksAction $action): RedirectResponse
+    {
+        $hookIds = $action->execute(
+            $request->user(),
+            $request->hookId(),
+            DeployHookDispatcherService::SOURCE_MANUAL,
+        );
+
+        if ($hookIds === []) {
+            return back()->with('error', __('Configure at least one deploy hook before triggering a deploy.'));
+        }
+
+        return back()->with('success', __('Deploy queued for :count hook(s).', [
+            'count' => count($hookIds),
+        ]));
     }
 }

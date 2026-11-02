@@ -6,6 +6,7 @@ use App\Enums\PermissionEnum;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use App\Services\Chat\ChatUnreadService;
 use App\Services\Dashboard\DashboardHealthMetricsService;
+use App\Services\Deploy\DeployHookStatusService;
 use App\Services\Settings\ProjectAppearanceService;
 use App\Services\Settings\ProjectSettingsService;
 use App\Services\Settings\UserNotificationPreferencesService;
@@ -110,6 +111,27 @@ class HandleInertiaRequests extends Middleware
             ],
             'projectAppearance' => $projectAppearance,
             'projectSettings' => $projectSettings->shared(),
+            'deploy' => function () use ($user, $permissionResolver, $projectSettings): array {
+                $canTrigger = $user !== null
+                    && $permissionResolver->hasPermission($user, PermissionEnum::DeployTrigger->value);
+                $hooks = $canTrigger
+                    ? array_map(
+                        static fn ($hook): array => [
+                            'id' => $hook->id,
+                            'name' => $hook->name,
+                        ],
+                        $projectSettings->deployHooks(),
+                    )
+                    : [];
+
+                return [
+                    'canTrigger' => $canTrigger && $hooks !== [],
+                    'hooks' => $hooks,
+                    'lastRun' => $canTrigger
+                        ? app(DeployHookStatusService::class)->lastRun()
+                        : null,
+                ];
+            },
             'flash' => [
                 'success' => fn (): mixed => $request->session()->get('success'),
                 'error' => fn (): mixed => $request->session()->get('error'),

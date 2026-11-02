@@ -114,6 +114,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware($canManageProject)
         ->name('project.integrations.telegram-notifier-test');
 
+    Route::post('settings/project/integrations/deploy', [ProjectIntegrationsSettingsController::class, 'triggerDeploy'])
+        ->middleware('permission:'.PermissionEnum::DeployTrigger->value)
+        ->name('project.integrations.deploy');
+
     // Deprecated aliases (one minor): keep old test URLs working.
     Route::post('settings/project/webhook-test', [ProjectIntegrationsSettingsController::class, 'sendTestWebhook'])
         ->middleware($canManageProject)

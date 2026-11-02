@@ -416,6 +416,8 @@ function baseIntegrationsPayload(array $overrides = []): array
         'notifier_slack_webhook_url' => null,
         'notifier_telegram_bot_token' => null,
         'notifier_telegram_chat_id' => null,
+        'deploy_hooks' => [],
+        'deploy_on_publish' => false,
     ], $overrides);
 }
 

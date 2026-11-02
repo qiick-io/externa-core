@@ -74,6 +74,9 @@ enum PermissionEnum: string
 
     case CanManageProjectSettings = 'can-manage-project-settings';
 
+    /** Trigger named deploy hooks (Vercel / Netlify / Cloudflare Pages / Forge). */
+    case DeployTrigger = 'deploy.trigger';
+
     case CanShowApiKeys = 'can-show-api-keys';
     case CanManageApiKeys = 'can-manage-api-keys';
 
