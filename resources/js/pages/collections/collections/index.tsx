@@ -10,6 +10,7 @@ import {
     Plus,
     RotateCcw,
     Rows3,
+    SearchX,
     Trash2,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -17,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
+import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ApplyCollectionPackDialog } from '@/components/collections/apply-collection-pack-dialog';
@@ -110,6 +112,9 @@ export default function CollectionsIndex({
     } | null>(null);
     const [confirmingDestructive, setConfirmingDestructive] = useState(false);
     const hasSelection = selected.length > 0;
+    const hasActiveFilters = search.trim() !== '';
+    const isListEmpty = collections.length === 0;
+    const hideListChrome = isListEmpty && !hasActiveFilters && !isTrashed;
 
     const sortFields: { value: CollectionSortField; label: string }[] = [
         { value: 'name', label: t('collections.list.sortName') },
@@ -287,77 +292,81 @@ export default function CollectionsIndex({
             >
                 <PageLayout
                     filters={
-                        <DataTableToolbar
-                            search={search}
-                            onSearchChange={setSearch}
-                            searchPlaceholder={
-                                isTrashed
-                                    ? 'Search trash…'
-                                    : 'Search collections…'
-                            }
-                            selectedCount={selected.length}
-                            onClearSelection={() => setSelected([])}
-                            bulkActions={
-                                <>
-                                    <AskAiButton
-                                        mode="labeled"
-                                        prompt={seedCollectionsBulkPrompt(
-                                            selectedRows,
-                                        )}
-                                    />
-                                    {!isTrashed &&
-                                        can(
-                                            PermissionEnum.CanDeleteCollections,
-                                        ) && (
-                                            <Button
-                                                type="button"
-                                                variant="destructive-outline"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setPendingBulkAction(
-                                                        'delete',
-                                                    )
-                                                }
-                                            >
-                                                Delete
-                                            </Button>
-                                        )}
-                                    {isTrashed &&
-                                        can(
-                                            PermissionEnum.CanRestoreCollections,
-                                        ) && (
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => bulk('restore')}
-                                            >
-                                                Restore
-                                            </Button>
-                                        )}
-                                    {isTrashed &&
-                                        can(
-                                            PermissionEnum.CanForceDeleteCollections,
-                                        ) && (
-                                            <Button
-                                                type="button"
-                                                variant="destructive-outline"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setPendingBulkAction(
-                                                        'force_delete',
-                                                    )
-                                                }
-                                            >
-                                                Delete permanently
-                                            </Button>
-                                        )}
-                                </>
-                            }
-                        />
+                        hideListChrome ? undefined : (
+                            <DataTableToolbar
+                                search={search}
+                                onSearchChange={setSearch}
+                                searchPlaceholder={
+                                    isTrashed
+                                        ? 'Search trash…'
+                                        : 'Search collections…'
+                                }
+                                selectedCount={selected.length}
+                                onClearSelection={() => setSelected([])}
+                                bulkActions={
+                                    <>
+                                        <AskAiButton
+                                            mode="labeled"
+                                            prompt={seedCollectionsBulkPrompt(
+                                                selectedRows,
+                                            )}
+                                        />
+                                        {!isTrashed &&
+                                            can(
+                                                PermissionEnum.CanDeleteCollections,
+                                            ) && (
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive-outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setPendingBulkAction(
+                                                            'delete',
+                                                        )
+                                                    }
+                                                >
+                                                    Delete
+                                                </Button>
+                                            )}
+                                        {isTrashed &&
+                                            can(
+                                                PermissionEnum.CanRestoreCollections,
+                                            ) && (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        bulk('restore')
+                                                    }
+                                                >
+                                                    Restore
+                                                </Button>
+                                            )}
+                                        {isTrashed &&
+                                            can(
+                                                PermissionEnum.CanForceDeleteCollections,
+                                            ) && (
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive-outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setPendingBulkAction(
+                                                            'force_delete',
+                                                        )
+                                                    }
+                                                >
+                                                    Delete permanently
+                                                </Button>
+                                            )}
+                                    </>
+                                }
+                            />
+                        )
                     }
                     filtersRight={
-                        hasSelection ? null : (
+                        hideListChrome || hasSelection ? null : (
                             <div className="flex items-center gap-2">
                                 <Select
                                     value={sort}
@@ -449,59 +458,117 @@ export default function CollectionsIndex({
                         )
                     }
                 >
-                    <TablePanel>
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-sidebar-border/70 text-left">
-                                    <th className="w-10 p-3">
-                                        <Checkbox
-                                            checked={
-                                                collections.length > 0 &&
-                                                selected.length ===
-                                                    collections.length
-                                            }
-                                            onCheckedChange={(c) =>
-                                                toggleAll(c === true)
-                                            }
-                                            aria-label="Select all"
-                                        />
-                                    </th>
-                                    <th className="p-3 font-medium">
-                                        {t('collections.list.name')}
-                                    </th>
-                                    <th className="p-3 font-medium">
-                                        {t('collections.list.slug')}
-                                    </th>
-                                    <th className="max-w-[16rem] p-3 font-medium">
-                                        {t('collections.list.description')}
-                                    </th>
-                                    <th className="p-3 font-medium">
-                                        {t('collections.list.singleton')}
-                                    </th>
-                                    <th className="w-16 p-3 font-medium">
-                                        {t('collections.list.status')}
-                                    </th>
-                                    <th className="p-3 text-right font-medium">
-                                        {t('collections.list.actions')}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {collections.length === 0 ? (
-                                    <tr>
-                                        <td
-                                            colSpan={7}
-                                            className="p-4 text-muted-foreground"
-                                        >
-                                            <EmptyStatus>
-                                                {search
-                                                    ? 'No collections match your search.'
-                                                    : 'No collections yet.'}
-                                            </EmptyStatus>
-                                        </td>
+                    {isListEmpty ? (
+                        <PageEmptyState
+                            icon={
+                                hasActiveFilters
+                                    ? SearchX
+                                    : isTrashed
+                                      ? Trash2
+                                      : FolderOpen
+                            }
+                            title={
+                                <EmptyStatus>
+                                    {hasActiveFilters
+                                        ? t(
+                                              'emptyState.collections.filteredTitle',
+                                          )
+                                        : isTrashed
+                                          ? t(
+                                                'emptyState.collections.trashTitle',
+                                            )
+                                          : t('emptyState.collections.title')}
+                                </EmptyStatus>
+                            }
+                            description={
+                                hasActiveFilters
+                                    ? t(
+                                          'emptyState.collections.filteredDescription',
+                                      )
+                                    : isTrashed
+                                      ? t(
+                                            'emptyState.collections.trashDescription',
+                                        )
+                                      : t('emptyState.collections.description')
+                            }
+                            action={
+                                hasActiveFilters ? (
+                                    <Button
+                                        type="button"
+                                        onClick={() => {
+                                            setSearch('');
+                                            visit({ search: undefined });
+                                        }}
+                                    >
+                                        {t('common.clearFilters')}
+                                    </Button>
+                                ) : isTrashed ? (
+                                    <Button
+                                        type="button"
+                                        onClick={() =>
+                                            visit({ trashed: false })
+                                        }
+                                    >
+                                        {t('common.back')}
+                                    </Button>
+                                ) : can(PermissionEnum.CanCreateCollections) ? (
+                                    <Button type="button" onClick={openCreate}>
+                                        <Plus className="size-4" />
+                                        {t('emptyState.collections.cta')}
+                                    </Button>
+                                ) : undefined
+                            }
+                            docsHref={
+                                hasActiveFilters || isTrashed
+                                    ? undefined
+                                    : 'https://docs.externa.qiick.io'
+                            }
+                            docsLabel={
+                                hasActiveFilters || isTrashed
+                                    ? undefined
+                                    : t('common.learnMore')
+                            }
+                        />
+                    ) : (
+                        <TablePanel>
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b border-sidebar-border/70 text-left">
+                                        <th className="w-10 p-3">
+                                            <Checkbox
+                                                checked={
+                                                    collections.length > 0 &&
+                                                    selected.length ===
+                                                        collections.length
+                                                }
+                                                onCheckedChange={(c) =>
+                                                    toggleAll(c === true)
+                                                }
+                                                aria-label="Select all"
+                                            />
+                                        </th>
+                                        <th className="p-3 font-medium">
+                                            {t('collections.list.name')}
+                                        </th>
+                                        <th className="p-3 font-medium">
+                                            {t('collections.list.slug')}
+                                        </th>
+                                        <th className="max-w-[16rem] p-3 font-medium">
+                                            {t('collections.list.description')}
+                                        </th>
+                                        <th className="p-3 font-medium">
+                                            {t('collections.list.singleton')}
+                                        </th>
+                                        <th className="w-16 p-3 font-medium">
+                                            {t('collections.list.status')}
+                                        </th>
+                                        <th className="p-3 text-right font-medium">
+                                            {t('collections.list.actions')}
+                                        </th>
                                     </tr>
-                                ) : (
-                                    collections.map((c) => {
+                                </thead>
+                                <tbody>
+                                    {collections.map((c) => {
                                         const openUrl = c.is_singleton
                                             ? collectionRoutes.show.url(c.id)
                                             : collectionRoutes.items.index.url(
@@ -836,11 +903,11 @@ export default function CollectionsIndex({
                                                 </td>
                                             </tr>
                                         );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
-                    </TablePanel>
+                                    })}
+                                </tbody>
+                            </table>
+                        </TablePanel>
+                    )}
                 </PageLayout>
 
                 <CollectionFormDrawer

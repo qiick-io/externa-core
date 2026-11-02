@@ -138,6 +138,7 @@
 
     --color-primary: var(--primary);
     --color-primary-foreground: var(--primary-foreground);
+    --color-primary-hover: var(--primary-hover);
 
     --color-secondary: var(--secondary);
     --color-secondary-foreground: var(--secondary-foreground);
@@ -195,6 +196,13 @@
      */
     --primary: var(--brand-primary, var(--color-teal-600));
     --primary-foreground: var(--brand-primary-foreground, #ffffff);
+    /*
+     * Hover moves away from the white foreground so contrast only grows
+     * (bg-primary/90 dropped white on teal-600 to ~4.1:1, below AA).
+     * ponytail: assumes a light-on-dark brand; a brand with a dark light-mode
+     * foreground would want white here (derive from ContrastingForeground, #243).
+     */
+    --primary-hover: color-mix(in oklab, var(--primary), black 12%);
     --secondary: var(--color-ink-100);
     --secondary-foreground: var(--color-ink-800);
     --muted: var(--color-ink-100);
@@ -258,6 +266,8 @@
         --brand-primary-dark-foreground,
         var(--color-ink-950)
     );
+    /* Dark fg (ink-950): lighten on hover so contrast only grows. */
+    --primary-hover: color-mix(in oklab, var(--primary), white 12%);
     --secondary: var(--color-ink-800);
     --secondary-foreground: var(--color-ink-100);
     --muted: var(--color-ink-800);
