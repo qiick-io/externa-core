@@ -3,8 +3,14 @@ import { Bug } from 'lucide-react';
 import type { PropsWithChildren } from 'react';
 import { useTranslation } from 'react-i18next';
 import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import {
+    SidebarGroup,
+    SidebarGroupLabel,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+} from '@/components/ui/sidebar';
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
@@ -174,21 +180,26 @@ export default function SettingsLayout({
         return null;
     }
 
-    const renderNavItem = (item: NavItem, index: number) => (
-        <Button
-            key={`${toUrl(item.href)}-${index}`}
-            size="sm"
-            variant="ghost"
-            asChild
-            className={cn('w-full justify-start', {
-                'bg-muted': isCurrentUrl(item.href),
-            })}
-        >
-            <Link href={item.href}>
-                {item.icon && <item.icon className="h-4 w-4" />}
-                {item.title}
-            </Link>
-        </Button>
+    const renderNavGroup = (label: string, items: NavItem[]) => (
+        <SidebarGroup key={label} className="p-0">
+            <SidebarGroupLabel>{label}</SidebarGroupLabel>
+            <SidebarMenu>
+                {items.map((item, index) => (
+                    <SidebarMenuItem key={`${toUrl(item.href)}-${index}`}>
+                        <SidebarMenuButton
+                            asChild
+                            size="sm"
+                            isActive={isCurrentUrl(item.href)}
+                        >
+                            <Link href={item.href}>
+                                {item.icon && <item.icon />}
+                                <span>{item.title}</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                ))}
+            </SidebarMenu>
+        </SidebarGroup>
     );
 
     return (
@@ -202,50 +213,46 @@ export default function SettingsLayout({
             <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:space-x-12">
                 <aside className="w-full max-w-xl shrink-0 lg:w-48">
                     <nav
-                        className="flex flex-col space-y-1 space-x-0"
+                        className="flex flex-col gap-2"
                         aria-label={t('settings.layout.navAria')}
                     >
-                        <p className="px-2 pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                            {t('settings.layout.sectionAccount')}
-                        </p>
-                        {accountNavItems.map(renderNavItem)}
-
-                        {projectNavItems.length > 0 && (
-                            <>
-                                <Separator className="my-2" />
-                                <p className="px-2 pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                    {t('settings.layout.sectionProject')}
-                                </p>
-                                {projectNavItems.map(renderNavItem)}
-                            </>
+                        {renderNavGroup(
+                            t('settings.layout.sectionAccount'),
+                            accountNavItems,
                         )}
 
-                        {accessNavItems.length > 0 && (
-                            <>
-                                <Separator className="my-2" />
-                                <p className="px-2 pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                    {t('settings.layout.sectionAccess')}
-                                </p>
-                                {accessNavItems.map(renderNavItem)}
-                            </>
-                        )}
+                        {projectNavItems.length > 0
+                            ? renderNavGroup(
+                                  t('settings.layout.sectionProject'),
+                                  projectNavItems,
+                              )
+                            : null}
 
-                        <Separator className="my-2" />
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            asChild
-                            className="w-full justify-start"
-                        >
-                            <a
-                                href={reportBugUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <Bug className="h-4 w-4" />
-                                {t('settings.layout.reportBug')}
-                            </a>
-                        </Button>
+                        {accessNavItems.length > 0
+                            ? renderNavGroup(
+                                  t('settings.layout.sectionAccess'),
+                                  accessNavItems,
+                              )
+                            : null}
+
+                        <SidebarGroup className="p-0">
+                            <SidebarMenu>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild size="sm">
+                                        <a
+                                            href={reportBugUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            <Bug />
+                                            <span>
+                                                {t('settings.layout.reportBug')}
+                                            </span>
+                                        </a>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            </SidebarMenu>
+                        </SidebarGroup>
                     </nav>
                 </aside>
 
