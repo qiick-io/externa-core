@@ -492,7 +492,7 @@ export default function AdminGroupsIndex({
                                                     text={group.name}
                                                 />
                                             </TableCell>
-                                            <TableCell className="text-muted-foreground">
+                                            <TableCell className="font-mono text-muted-foreground">
                                                 {group.slug}
                                             </TableCell>
                                             <TableCell>

@@ -311,7 +311,7 @@ export default function Dashboard({
                                                             <div className="truncate font-medium">
                                                                 {row.name}
                                                             </div>
-                                                            <div className="truncate text-xs text-muted-foreground">
+                                                            <div className="truncate font-mono text-xs text-muted-foreground">
                                                                 {row.slug}
                                                             </div>
                                                         </TableCell>

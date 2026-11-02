@@ -654,7 +654,7 @@ export function ItemsKanban({
                                                     ) : null}
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                                                    <span className="tabular-nums">
+                                                    <span className="font-mono tabular-nums">
                                                         #{item.id}
                                                     </span>
                                                     {updated ? (
