@@ -274,7 +274,7 @@ class CollectionItemQueryService
         try {
             if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) === 1) {
                 $parsed = Carbon::createFromFormat('Y-m-d', $raw, 'UTC');
-                if ($parsed === false || $parsed->format('Y-m-d') !== $raw) {
+                if ($parsed === null || $parsed->format('Y-m-d') !== $raw) {
                     throw new \InvalidArgumentException('Invalid date.');
                 }
 
@@ -379,11 +379,8 @@ class CollectionItemQueryService
             return;
         }
 
-        $relationType = $relationField->type instanceof FieldTypeEnum
-            ? $relationField->type
-            : FieldTypeEnum::tryFrom((string) $relationField->type);
-
-        if ($relationType === null || ! $relationType->isRelationType()) {
+        $relationType = $relationField->type;
+        if (! $relationType->isRelationType()) {
             return;
         }
 
@@ -908,13 +905,7 @@ class CollectionItemQueryService
 
     private function isSortableField(CollectionField $field): bool
     {
-        $type = $field->type instanceof FieldTypeEnum
-            ? $field->type
-            : FieldTypeEnum::tryFrom((string) $field->type);
-
-        if ($type === null) {
-            return false;
-        }
+        $type = $field->type;
 
         if ($type->isArrayStorage() || $type->isRelationType()) {
             return false;

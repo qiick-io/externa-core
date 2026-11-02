@@ -565,12 +565,6 @@ parameters:
 			path: app/Services/Collections/CollectionItemOptionsService.php
 
 		-
-			message: '#^Strict comparison using \=\=\= between App\\Enums\\FieldTypeEnum and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Services/Collections/CollectionItemQueryService.php
-
-		-
 			message: '#^Cannot cast App\\Enums\\FieldTypeEnum to string\.$#'
 			identifier: cast.string
 			count: 1
