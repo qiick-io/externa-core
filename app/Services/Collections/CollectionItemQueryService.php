@@ -7,9 +7,12 @@ use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Models\CollectionItemValue;
+use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Support\Collections\CollectionLocaleResolver;
 use App\Support\Validation\FilterQueryLimits;
+use App\Support\Validation\StringLimits;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -21,6 +24,13 @@ use Illuminate\Support\Facades\DB;
  * - `filter[title][_eq]=foo`, `_neq`, `_contains`, `_null=1`, `_nnull=1`
  * - `filter[count][_gte]=1`, `_lte`, `_gt`, `_lt`
  * - `filter[status][_in]=a,b,c` or array
+ * - Depth-1 relational: `filter[author.name][_eq]=Ada` (hard cap
+ *   {@see StringLimits::FILTER_MAX_RELATION_DEPTH}); deeper paths → 422
+ *
+ * When a {@see Request} is provided (Public REST/GraphQL), relational filters
+ * require the related collection to be readable via
+ * {@see CollectionPermissionEnforcerService} (same gate as `?include=`). An
+ * unreadable related collection yields no matches (no value leak).
  *
  * Permission item_filter operators (equals|not_equals|empty|not_empty) map onto this dialect.
  */
@@ -51,8 +61,13 @@ class CollectionItemQueryService
      * @param  array<string, mixed>  $filters
      * @param  Builder<CollectionItem>  $query
      */
-    public function applyFilters(Builder $query, Collection $collection, array $filters, ?string $locale = null): Builder
-    {
+    public function applyFilters(
+        Builder $query,
+        Collection $collection,
+        array $filters,
+        ?string $locale = null,
+        ?Request $request = null,
+    ): Builder {
         $filters = FilterQueryLimits::assertValid($filters);
 
         $collection->loadMissing('fields');
@@ -61,6 +76,19 @@ class CollectionItemQueryService
 
         foreach ($filters as $fieldName => $value) {
             if (! is_string($fieldName) || $fieldName === '') {
+                continue;
+            }
+
+            if (str_contains($fieldName, '.')) {
+                $this->applyRelationalPathFilter(
+                    $query,
+                    $collection,
+                    $fieldName,
+                    $value,
+                    $locale,
+                    $request,
+                );
+
                 continue;
             }
 
@@ -80,6 +108,156 @@ class CollectionItemQueryService
         }
 
         return $query;
+    }
+
+    /**
+     * Apply a depth-1 dotted filter (`relation.relatedField`) via EXISTS/IN subqueries.
+     *
+     * @param  Builder<CollectionItem>  $query
+     */
+    private function applyRelationalPathFilter(
+        Builder $query,
+        Collection $collection,
+        string $path,
+        mixed $value,
+        string $locale,
+        ?Request $request,
+    ): void {
+        $parts = explode('.', $path);
+        if (count($parts) !== StringLimits::FILTER_MAX_RELATION_DEPTH + 1) {
+            return;
+        }
+
+        [$relationName, $relatedFieldName] = $parts;
+
+        $collection->loadMissing('fields');
+        $relationField = $collection->fields->firstWhere('name', $relationName);
+        if (! $relationField instanceof CollectionField) {
+            return;
+        }
+
+        $relationType = $relationField->type instanceof FieldTypeEnum
+            ? $relationField->type
+            : FieldTypeEnum::tryFrom((string) $relationField->type);
+
+        if ($relationType === null || ! $relationType->isRelationType()) {
+            return;
+        }
+
+        $relatedCollectionId = (int) data_get($relationField->settings, 'related_collection_id');
+        if ($relatedCollectionId <= 0) {
+            return;
+        }
+
+        $relatedCollection = Collection::query()
+            ->with(['fields' => fn ($q) => $q->ordered()])
+            ->find($relatedCollectionId);
+
+        if (! $relatedCollection instanceof Collection) {
+            return;
+        }
+
+        $relatedField = $relatedCollection->fields->firstWhere('name', $relatedFieldName);
+        if (! $relatedField instanceof CollectionField) {
+            return;
+        }
+
+        $ops = $this->normalizeFieldFilter($value);
+        if ($ops === []) {
+            return;
+        }
+
+        if ($request !== null) {
+            $enforcer = app(CollectionPermissionEnforcerService::class);
+            if (! $enforcer->isCollectionReadable($request, $relatedCollection)) {
+                // raw-sql: reviewed — deny-match when related collection is not readable (no leak)
+                $query->whereRaw('1 = 0');
+
+                return;
+            }
+        }
+
+        $relatedIdsQuery = CollectionItem::query()
+            ->where('collection_id', $relatedCollection->id)
+            ->select('collections_items.id');
+
+        // Scalar filter on the related collection only (no Request → no nested permission re-entry).
+        $this->applyFilters($relatedIdsQuery, $relatedCollection, [$relatedFieldName => $value], $locale, null);
+
+        if ($request !== null) {
+            app(CollectionPermissionEnforcerService::class)
+                ->applyItemFilterToQuery($request, $relatedCollection, $relatedIdsQuery);
+        }
+
+        if ($relationType->isMultipleRelationType()) {
+            $this->applyMultipleRelationIdMatch($query, $relationField, $relatedIdsQuery);
+
+            return;
+        }
+
+        $this->applyManyToOneRelationIdMatch($query, $relationField, $relatedIdsQuery);
+    }
+
+    /**
+     * Match parent M2O field values whose JSON scalar id is in the related-ids subquery.
+     *
+     * @param  Builder<CollectionItem>  $query
+     * @param  Builder<CollectionItem>  $relatedIdsQuery
+     */
+    private function applyManyToOneRelationIdMatch(
+        Builder $query,
+        CollectionField $relationField,
+        Builder $relatedIdsQuery,
+    ): void {
+        $query->whereHas('fieldValues', function (Builder $fv) use ($relationField, $relatedIdsQuery): void {
+            $fv->where('field_id', $relationField->id)
+                ->where('position', 0)
+                ->whereNull('locale');
+
+            // raw-sql: reviewed — relational deep filter; subquery bindings rebound; SQL from driver helpers
+            $fv->whereRaw(
+                $this->valueTextSql().' IN ('.$relatedIdsQuery->toSql().')',
+                $relatedIdsQuery->getBindings(),
+            );
+        });
+    }
+
+    /**
+     * Match parent M2M/O2M JSON links that reference any id from the related-ids subquery.
+     *
+     * @param  Builder<CollectionItem>  $query
+     * @param  Builder<CollectionItem>  $relatedIdsQuery
+     */
+    private function applyMultipleRelationIdMatch(
+        Builder $query,
+        CollectionField $relationField,
+        Builder $relatedIdsQuery,
+    ): void {
+        $query->whereHas('fieldValues', function (Builder $fv) use ($relationField, $relatedIdsQuery): void {
+            $fv->where('field_id', $relationField->id)
+                ->where('position', 0)
+                ->whereNull('locale')
+                ->whereExists(function ($sub) use ($relatedIdsQuery): void {
+                    $sub->selectRaw('1')
+                        ->from('collections_items as related_match')
+                        ->whereIn('related_match.id', $relatedIdsQuery)
+                        // raw-sql: reviewed — M2M deep filter; id from subquery; LIKE needle built from bound id expr
+                        ->whereRaw($this->jsonContainsRelatedItemIdSql());
+                });
+        });
+    }
+
+    /**
+     * Portable JSON text containment for `{"related_item_id":N,...}` against `related_match.id`.
+     */
+    private function jsonContainsRelatedItemIdSql(): string
+    {
+        return match (DB::getDriverName()) {
+            'pgsql' => "collections_items_values.value::text LIKE '%\"related_item_id\":' || related_match.id::text || '%'",
+            'sqlite' => "CAST(collections_items_values.value AS TEXT) LIKE '%\"related_item_id\":' || related_match.id || '%'",
+            'mysql', 'mariadb' => "CAST(collections_items_values.value AS CHAR) LIKE CONCAT('%\\\"related_item_id\\\":', related_match.id, '%')",
+            default => "CAST(collections_items_values.value AS TEXT) LIKE '%\"related_item_id\":' || CAST(related_match.id AS TEXT) || '%'",
+        };
     }
 
     /**

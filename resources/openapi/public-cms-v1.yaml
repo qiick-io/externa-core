@@ -79,7 +79,15 @@ paths:
                   schema:
                       type: object
                       additionalProperties: true
-                  description: Advanced field filters (same dialect as admin/GraphQL)
+                  description: |
+                      Advanced field filters (same dialect as admin/GraphQL).
+                      Operators: bare value = `_contains`; `_eq`, `_neq`, `_contains`, `_in`,
+                      `_null`, `_nnull`, `_gt`, `_gte`, `_lt`, `_lte`.
+                      Depth-1 relational paths are supported: `filter[author.name][_eq]=Ada`
+                      (one relation hop; `a.b.c` → 422). The related collection must be readable
+                      for the caller (same rules as `?include=`); otherwise the filter matches
+                      nothing. Each dotted key counts toward `API_COST_FILTER_RELATION` when
+                      the optional cost budget is enabled.
             responses:
                 '200':
                     description: Paginated items
