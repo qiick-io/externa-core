@@ -711,8 +711,6 @@ class ItemController extends Controller
 
         try {
             $built = $this->livePreviewUrlBuilder->build($collection, $item, $version, $locale, $user, $asOf);
-        } catch (RuntimeException $exception) {
-            return response()->json(['message' => $exception->getMessage()], 422);
         } catch (InvalidArgumentException $exception) {
             throw ValidationException::withMessages([
                 'as_of' => [$exception->getMessage()],
