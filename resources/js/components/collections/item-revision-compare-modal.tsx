@@ -295,7 +295,7 @@ export function ItemRevisionCompareModal({
                         >
                             <SelectTrigger
                                 size="sm"
-                                className="h-8 w-auto border-0 bg-transparent px-1.5 shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent dark:hover:bg-muted/40"
+                                className="h-8 w-auto border-0 bg-transparent px-2 shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent dark:hover:bg-muted/40"
                                 data-test="compare-to-select"
                             >
                                 <SelectValue />

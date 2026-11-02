@@ -542,7 +542,7 @@ export function ApiAutocompleteInput({
                         >
                             <button
                                 type="button"
-                                className="flex w-full cursor-pointer rounded-sm px-2 py-1.5 text-left hover:bg-accent hover:text-accent-foreground"
+                                className="flex w-full cursor-pointer rounded-sm px-2 py-2 text-left hover:bg-accent hover:text-accent-foreground"
                                 onMouseDown={(event) => event.preventDefault()}
                                 onClick={() => {
                                     committedSelectionRef.current =
@@ -629,7 +629,7 @@ export function SliderFieldInput({
         <div className={cn(fieldControlChromeSingle, 'gap-2')}>
             {sliderSettings.showValue ? (
                 <span
-                    className="inline-flex h-6 min-w-9 shrink-0 items-center justify-center rounded-sm bg-muted px-1.5 font-mono text-xs text-foreground tabular-nums"
+                    className="inline-flex h-6 min-w-9 shrink-0 items-center justify-center rounded-sm bg-muted px-2 font-mono text-xs text-foreground tabular-nums"
                     aria-live="polite"
                 >
                     {value}
@@ -1073,7 +1073,7 @@ export function MultiselectWithOtherInput({
                                         aria-selected={checked}
                                         tabIndex={0}
                                         className={cn(
-                                            'flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent',
+                                            'flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent',
                                             checked && 'bg-accent/50',
                                         )}
                                         onClick={() => toggle(option.value)}

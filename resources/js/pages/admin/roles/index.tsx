@@ -189,7 +189,7 @@ export default function AdminRolesIndex({
                                                 <span className="inline-flex items-center gap-2">
                                                     {role.name}
                                                     {role.is_system && (
-                                                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                                                        <span className="rounded bg-muted px-2 py-0.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                                                             {t(
                                                                 'roles.systemBadge',
                                                             )}

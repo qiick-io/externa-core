@@ -84,7 +84,7 @@ export function FieldConditionsSettings({
     }
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-6">
             <p className="text-sm text-muted-foreground">
                 When rules match, apply the flags below. Flat AND / OR only — no
                 nested groups.

@@ -1509,7 +1509,7 @@ export default function AdminFilesIndex({
                         }
                         filtersRight={
                             selection.selectedIds.length > 0 ? null : (
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-2">
                                     <Select
                                         value={sort}
                                         onValueChange={(value) => {
@@ -1589,7 +1589,7 @@ export default function AdminFilesIndex({
                                             aria-label={t(
                                                 'files.toolbar.activeFiles',
                                             )}
-                                            className="px-2.5"
+                                            className="px-3"
                                         >
                                             <Files className="size-4" />
                                         </ToggleGroupItem>
@@ -1598,7 +1598,7 @@ export default function AdminFilesIndex({
                                             aria-label={t(
                                                 'files.toolbar.trash',
                                             )}
-                                            className="px-2.5"
+                                            className="px-3"
                                         >
                                             <Trash2 className="size-4" />
                                         </ToggleGroupItem>

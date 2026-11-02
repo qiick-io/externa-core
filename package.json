@@ -8,18 +8,19 @@
         "node": "24.x"
     },
     "scripts": {
+        "a11y:contrast": "node scripts/a11y-contrast.mjs",
         "build": "vite build",
         "build:ssr": "vite build && vite build --ssr",
         "dev": "vite",
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
-        "lint": "eslint . --fix",
-        "lint:check": "eslint . --max-warnings=0",
-        "a11y:contrast": "node scripts/a11y-contrast.mjs",
-        "types:check": "tsc --noEmit",
+        "lint": "eslint . --fix && node scripts/check-ui-tokens.mjs",
+        "lint:check": "eslint . --max-warnings=0 && node scripts/check-ui-tokens.mjs",
+        "lint:ui-tokens": "node scripts/check-ui-tokens.mjs",
         "prepare": "node --input-type=commonjs -e \"const fs=require('fs'); if (fs.existsSync('.git')) { require('child_process').execSync('lefthook install', {stdio:'inherit'}) }\"",
         "test:unit": "vitest run",
-        "test:unit:watch": "vitest"
+        "test:unit:watch": "vitest",
+        "types:check": "tsc --noEmit"
     },
     "devDependencies": {
         "@commitlint/cli": "^21.2.3",
@@ -72,6 +73,7 @@
         "@radix-ui/react-label": "^2.1.15",
         "@radix-ui/react-navigation-menu": "^1.2.22",
         "@radix-ui/react-popover": "^1.1.23",
+        "@radix-ui/react-progress": "^1.2.1",
         "@radix-ui/react-radio-group": "^1.5.1",
         "@radix-ui/react-select": "^2.3.7",
         "@radix-ui/react-separator": "^1.1.15",
@@ -111,6 +113,7 @@
         "react": "^19.3.0",
         "react-day-picker": "^10.0.1",
         "react-dom": "^19.3.0",
+        "react-file-icon": "^1.6.0",
         "react-i18next": "^17.0.15",
         "react-markdown": "^10.1.0",
         "recharts": "^3.10.1",
@@ -124,9 +127,7 @@
         "typescript": "^5.9.3",
         "vaul": "^1.1.2",
         "vite": "^8.3.5",
-        "zustand": "^5.0.15",
-        "@radix-ui/react-progress": "^1.2.1",
-        "react-file-icon": "^1.6.0"
+        "zustand": "^5.0.15"
     },
     "optionalDependencies": {
         "@rollup/rollup-linux-x64-gnu": "4.63.4",

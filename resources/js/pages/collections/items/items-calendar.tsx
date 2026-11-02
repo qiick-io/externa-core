@@ -796,8 +796,8 @@ export function ItemsCalendar({
             className={cn(
                 'group flex items-center gap-0.5 rounded border border-border bg-muted text-foreground',
                 compact
-                    ? 'px-0.5 py-0.5 text-[11px] leading-tight hover:bg-muted/80'
-                    : 'px-1.5 py-1.5 text-sm hover:bg-muted/80',
+                    ? 'px-0.5 py-0.5 text-xs leading-tight hover:bg-muted/80'
+                    : 'px-2 py-2 text-sm hover:bg-muted/80',
             )}
         >
             {canEdit && !isTrashed ? (
@@ -875,7 +875,7 @@ export function ItemsCalendar({
                             <PopoverTrigger asChild>
                                 <button
                                     type="button"
-                                    className="mt-0.5 px-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                                    className="mt-0.5 px-1 text-xs font-medium text-muted-foreground hover:text-foreground"
                                     data-test="calendar-day-more"
                                 >
                                     {t('collections.itemsList.calendarMore', {
@@ -1047,7 +1047,7 @@ export function ItemsCalendar({
                         {weekdayLabels.map((label) => (
                             <div
                                 key={label}
-                                className="border-r border-b bg-muted/40 px-2 py-1.5 text-center text-xs font-medium text-muted-foreground"
+                                className="border-r border-b bg-muted/40 px-2 py-2 text-center text-xs font-medium text-muted-foreground"
                             >
                                 {label}
                             </div>
@@ -1069,7 +1069,7 @@ export function ItemsCalendar({
                         {weekdayLabels.map((label) => (
                             <div
                                 key={label}
-                                className="border-r border-b bg-muted/40 px-2 py-1.5 text-center text-xs font-medium text-muted-foreground"
+                                className="border-r border-b bg-muted/40 px-2 py-2 text-center text-xs font-medium text-muted-foreground"
                             >
                                 {label}
                             </div>

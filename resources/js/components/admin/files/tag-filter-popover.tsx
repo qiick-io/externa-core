@@ -45,13 +45,13 @@ export function TagFilterPopover({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 gap-1.5"
+                    className="h-9 gap-2"
                     aria-label={t('files.tags.filterBy')}
                 >
                     <Tags className="size-4" />
                     {t('files.tags.label')}
                     {selectedCount > 0 && (
-                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-medium text-primary-foreground">
+                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground">
                             {selectedCount}
                         </span>
                     )}

@@ -29,7 +29,7 @@ export function ValidationRuleBuilder({
     const { t } = useTranslation();
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-6">
             <div className="space-y-3">
                 {rules.map((rule, index) => {
                     const meta = FIELD_VALIDATION_OPERATORS.find(

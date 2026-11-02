@@ -163,7 +163,7 @@ export function FileUploadIndicator({
         >
             <Collapsible open={expanded} onOpenChange={setExpanded}>
                 <div className="overflow-hidden rounded-xl border bg-card shadow-xl">
-                    <div className="flex items-center gap-2 border-b px-3 py-2.5">
+                    <div className="flex items-center gap-2 border-b px-3 py-3">
                         {activeCount > 0 ? (
                             <Loader2
                                 className="size-4 shrink-0 animate-spin text-primary"
@@ -226,9 +226,9 @@ export function FileUploadIndicator({
                                 return (
                                     <li
                                         key={upload.uploadId}
-                                        className="border-b px-3 py-2.5 last:border-b-0"
+                                        className="border-b px-3 py-3 last:border-b-0"
                                     >
-                                        <div className="mb-1.5 flex items-start justify-between gap-2">
+                                        <div className="mb-2 flex items-start justify-between gap-2">
                                             <div className="min-w-0 flex-1">
                                                 <p className="truncate text-sm font-medium">
                                                     {upload.fileName}

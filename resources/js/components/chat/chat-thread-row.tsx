@@ -85,7 +85,7 @@ export function ChatThreadRow({
                 <div className="truncate text-sm font-medium">
                     {thread.title}
                 </div>
-                <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                <div className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
                     {imageId ? (
                         <img
                             src={`/chat/${thread.id}/attachments/${imageId}`}
@@ -101,13 +101,13 @@ export function ChatThreadRow({
             <div className="flex shrink-0 items-center gap-0.5 self-start pt-0.5">
                 <div className="flex flex-col items-end gap-1">
                     {time ? (
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                             {time}
                         </span>
                     ) : null}
                     {badge ? (
                         <span
-                            className="flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-medium text-primary-foreground"
+                            className="flex min-w-5 items-center justify-center rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground"
                             aria-label={t('chatHub.unreadCount', {
                                 count: unread,
                             })}

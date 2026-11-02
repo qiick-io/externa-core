@@ -448,10 +448,10 @@ export function FileDetailPanel({
                 </div>
 
                 <div className="space-y-3">
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                         <Label
                             htmlFor="file-access"
-                            className="flex items-center gap-1.5"
+                            className="flex items-center gap-2"
                         >
                             <Lock className="size-3.5" />
                             {t('files.detail.visibility')}
@@ -491,7 +491,7 @@ export function FileDetailPanel({
                                   })}
                         </p>
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                         <Label htmlFor="file-title">
                             {t('files.detail.titleLabel')}
                         </Label>
@@ -502,7 +502,7 @@ export function FileDetailPanel({
                             onChange={(event) => setTitle(event.target.value)}
                         />
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                         <Label htmlFor="file-description">
                             {t('files.detail.descriptionLabel')}
                         </Label>
@@ -516,7 +516,7 @@ export function FileDetailPanel({
                             rows={3}
                         />
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                         <Label htmlFor="file-tags">
                             {t('files.detail.tagsLabel')}
                         </Label>
@@ -532,10 +532,10 @@ export function FileDetailPanel({
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label
                                 htmlFor="file-location"
-                                className="flex items-center gap-1.5"
+                                className="flex items-center gap-2"
                             >
                                 <MapPin className="size-3.5" />
                                 {t('files.detail.location')}
@@ -549,15 +549,15 @@ export function FileDetailPanel({
                                 }
                             />
                         </div>
-                        <div className="space-y-1.5">
-                            <Label className="flex items-center gap-1.5">
+                        <div className="space-y-2">
+                            <Label className="flex items-center gap-2">
                                 <HardDrive className="size-3.5" />
                                 {t('files.detail.storage')}
                             </Label>
                             <Input value={file.disk} disabled />
                         </div>
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                         <Label>{t('files.detail.storagePath')}</Label>
                         <Input
                             value={file.storage_path ?? ''}
@@ -624,20 +624,20 @@ export function FileDetailPanel({
                                                     >
                                                         <a
                                                             className={cn(
-                                                                'flex w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs',
+                                                                'flex w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-2 text-xs',
                                                                 'text-foreground transition-colors',
                                                                 'hover:bg-accent hover:text-accent-foreground',
                                                                 'focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
                                                             )}
                                                             href={`/collections/${ref.collection_id}/items/${ref.item_id}`}
                                                         >
-                                                            <span className="flex min-w-0 items-center gap-1.5">
+                                                            <span className="flex min-w-0 items-center gap-2">
                                                                 <span className="min-w-0 truncate font-medium">
                                                                     {
                                                                         ref.collection_name
                                                                     }
                                                                 </span>
-                                                                <span className="shrink-0 font-mono text-[0.65rem] text-muted-foreground tabular-nums">
+                                                                <span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
                                                                     #
                                                                     {
                                                                         ref.item_id
@@ -651,7 +651,7 @@ export function FileDetailPanel({
                                                     </li>
                                                 ))}
                                             {whereUsedRefs.length > 20 && (
-                                                <li className="w-full px-2 py-1.5 text-xs text-muted-foreground">
+                                                <li className="w-full px-2 py-2 text-xs text-muted-foreground">
                                                     {t(
                                                         'files.detail.moreRefs',
                                                         {
@@ -675,7 +675,7 @@ export function FileDetailPanel({
                         {t('files.detail.focalPoint')}
                     </SectionHeading>
                     <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label htmlFor="focal-x">X</Label>
                             <Input
                                 id="focal-x"
@@ -692,7 +692,7 @@ export function FileDetailPanel({
                                 }
                             />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label htmlFor="focal-y">Y</Label>
                             <Input
                                 id="focal-y"
@@ -719,7 +719,7 @@ export function FileDetailPanel({
                         {t('files.detail.fileNaming')}
                     </SectionHeading>
                     <div className="space-y-3">
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label>{t('files.detail.diskName')}</Label>
                             <Input
                                 value={file.name}
@@ -727,7 +727,7 @@ export function FileDetailPanel({
                                 className="font-mono text-xs"
                             />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label htmlFor="download-name">
                                 {t('files.detail.downloadName')}
                             </Label>
@@ -750,10 +750,10 @@ export function FileDetailPanel({
                         {t('files.detail.transforms')}
                     </SectionHeading>
                     <div className="space-y-3">
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label
                                 htmlFor="translate-x"
-                                className="flex items-center gap-1.5"
+                                className="flex items-center gap-2"
                             >
                                 <MoveHorizontal className="size-3.5" />
                                 {t('files.detail.translateX')}
@@ -771,10 +771,10 @@ export function FileDetailPanel({
                                 }
                             />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label
                                 htmlFor="translate-y"
-                                className="flex items-center gap-1.5"
+                                className="flex items-center gap-2"
                             >
                                 <MoveVertical className="size-3.5" />
                                 {t('files.detail.translateY')}
@@ -792,10 +792,10 @@ export function FileDetailPanel({
                                 }
                             />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label
                                 htmlFor="file-scale"
-                                className="flex items-center gap-1.5"
+                                className="flex items-center gap-2"
                             >
                                 <Scaling className="size-3.5" />
                                 {t('files.detail.scale')}

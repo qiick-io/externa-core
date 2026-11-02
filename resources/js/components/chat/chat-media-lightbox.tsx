@@ -272,7 +272,7 @@ export function ChatMediaLightbox({
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="relative flex min-h-0 flex-1 items-center justify-center px-12 py-10">
+                <div className="relative flex min-h-0 flex-1 items-center justify-center px-12 py-12">
                     {current ? (
                         isVideo && videoHref ? (
                             <video

@@ -24,7 +24,7 @@ export function AppSidebarHeader({
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
             </div>
             {actions ? (
-                <div className="flex min-w-0 shrink-0 items-center justify-end gap-1.5 overflow-x-auto sm:gap-2">
+                <div className="flex min-w-0 shrink-0 items-center justify-end gap-2 overflow-x-auto sm:gap-2">
                     {actions}
                 </div>
             ) : null}

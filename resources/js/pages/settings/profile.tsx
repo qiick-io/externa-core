@@ -87,7 +87,7 @@ export default function Profile({
             <h1 className="sr-only">{t('settings.profile.head')}</h1>
 
             <SettingsLayout>
-                <div className="space-y-10">
+                <div className="space-y-12">
                     <div className="space-y-6">
                         <Heading
                             variant="small"

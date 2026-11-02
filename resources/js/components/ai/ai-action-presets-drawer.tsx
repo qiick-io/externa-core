@@ -179,13 +179,13 @@ export function AiActionPresetsDrawer({
                                     <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                         {group.label}
                                     </h3>
-                                    <ul className="space-y-1.5">
+                                    <ul className="space-y-2">
                                         {group.presets.map((preset) => (
                                             <li key={preset.id}>
                                                 <button
                                                     type="button"
                                                     className={cn(
-                                                        'w-full rounded-lg border px-3 py-2.5 text-left transition-colors',
+                                                        'w-full rounded-lg border px-3 py-3 text-left transition-colors',
                                                         'hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                                                     )}
                                                     onClick={() =>
@@ -199,7 +199,7 @@ export function AiActionPresetsDrawer({
                                                             {preset.title}
                                                         </span>
                                                         {preset.destructive ? (
-                                                            <span className="shrink-0 rounded-md bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium text-destructive">
+                                                            <span className="shrink-0 rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
                                                                 {t(
                                                                     'ai.drawer.destructive',
                                                                 )}

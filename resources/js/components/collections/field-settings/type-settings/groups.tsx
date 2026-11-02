@@ -59,7 +59,7 @@ export function GroupsSettings({
               ];
 
         return (
-            <div className="space-y-5">
+            <div className="space-y-6">
                 <SettingCheckbox
                     id="accordion_mode"
                     label="Max one section open"
@@ -114,7 +114,7 @@ export function GroupsSettings({
 
     if (fieldType === 'group_detail') {
         return (
-            <div className="space-y-5">
+            <div className="space-y-6">
                 <div className="grid gap-2">
                     <Label htmlFor="detail_start">Initial state</Label>
                     <NativeSelect
@@ -139,7 +139,7 @@ export function GroupsSettings({
 
     if (fieldType === 'group_tabs') {
         return (
-            <div className="space-y-5">
+            <div className="space-y-6">
                 <SettingCheckbox
                     id="tabs_fill_width"
                     label="Fill width"

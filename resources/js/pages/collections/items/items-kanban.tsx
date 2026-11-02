@@ -604,7 +604,7 @@ export function ItemsKanban({
                                         key={item.id}
                                         data-kanban-card
                                         data-item-id={item.id}
-                                        className="rounded-md border bg-background p-2.5 shadow-xs"
+                                        className="rounded-md border bg-background p-3 shadow-xs"
                                     >
                                         <div className="flex items-start gap-2">
                                             {canEdit && !isTrashed ? (
@@ -619,7 +619,7 @@ export function ItemsKanban({
                                                     <GripVertical className="size-3.5" />
                                                 </button>
                                             ) : null}
-                                            <div className="min-w-0 flex-1 space-y-1.5">
+                                            <div className="min-w-0 flex-1 space-y-2">
                                                 <div className="flex items-start justify-between gap-2">
                                                     <Link
                                                         href={withReturnParam(
@@ -639,7 +639,7 @@ export function ItemsKanban({
                                                     {showDraft ? (
                                                         <Badge
                                                             variant="secondary"
-                                                            className="shrink-0 text-[10px]"
+                                                            className="shrink-0 text-xs"
                                                             data-test={`kanban-draft-badge-${item.id}`}
                                                         >
                                                             Draft
@@ -665,7 +665,7 @@ export function ItemsKanban({
                                                                 ? 'destructive'
                                                                 : 'outline'
                                                         }
-                                                        className="text-[10px]"
+                                                        className="text-xs"
                                                         data-test={`kanban-approval-badge-${item.id}`}
                                                     >
                                                         {approvalLabel(

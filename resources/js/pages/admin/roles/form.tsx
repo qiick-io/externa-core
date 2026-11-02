@@ -862,7 +862,7 @@ export default function AdminRoleForm({
                                                                                             key={
                                                                                                 field.name
                                                                                             }
-                                                                                            className="grid grid-cols-[minmax(0,1fr)_4.5rem_5rem_5rem] items-center gap-x-3 rounded-md border border-sidebar-border/60 px-3 py-2.5 text-xs"
+                                                                                            className="grid grid-cols-[minmax(0,1fr)_4.5rem_5rem_5rem] items-center gap-x-3 rounded-md border border-sidebar-border/60 px-3 py-3 text-xs"
                                                                                         >
                                                                                             <span
                                                                                                 className="min-w-0 truncate font-medium"
@@ -882,7 +882,7 @@ export default function AdminRoleForm({
                                                                                                         key={
                                                                                                             action.key
                                                                                                         }
-                                                                                                        className="flex items-center gap-1.5 whitespace-nowrap"
+                                                                                                        className="flex items-center gap-2 whitespace-nowrap"
                                                                                                     >
                                                                                                         <Checkbox
                                                                                                             checked={

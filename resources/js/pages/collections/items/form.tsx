@@ -821,7 +821,7 @@ export default function ItemsForm({
                         >
                             <MessageCircle className="size-4" />
                             {chatCount > 0 ? (
-                                <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                                <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
                                     {chatCount > 9 ? '9+' : chatCount}
                                 </span>
                             ) : null}
@@ -963,7 +963,7 @@ export default function ItemsForm({
                     ) : undefined
                 }
                 filtersRight={
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                         {!isNew && item !== null && versioningEnabled && (
                             <>
                                 {/* Status on published view only — on draft, select label carries it. */}
@@ -1022,7 +1022,7 @@ export default function ItemsForm({
                                 >
                                     <SelectTrigger
                                         size="sm"
-                                        className="h-9 w-auto min-w-0 gap-1 px-2.5 text-xs"
+                                        className="h-9 w-auto min-w-0 gap-1 px-3 text-xs"
                                         data-test="content-version-select"
                                     >
                                         <SelectValue />
@@ -1057,7 +1057,7 @@ export default function ItemsForm({
                                         type="button"
                                         size="sm"
                                         variant="outline"
-                                        className="h-9 gap-1 px-2.5 text-xs"
+                                        className="h-9 gap-1 px-3 text-xs"
                                         data-test="item-version-actions"
                                     >
                                         <ListChecks className="size-4" />
@@ -1243,7 +1243,7 @@ export default function ItemsForm({
                                         type="button"
                                         variant="outline"
                                         size="default"
-                                        className="h-9 min-h-9 gap-1.5 px-2"
+                                        className="h-9 min-h-9 gap-2 px-2"
                                         data-test="item-form-locale"
                                         data-locale={globalLocale}
                                     >
@@ -1347,15 +1347,15 @@ export default function ItemsForm({
                             >
                                 <ToggleGroupItem
                                     value="fields"
-                                    aria-label={t('a11y.fieldsPanel')}
-                                    className="h-9 px-2.5"
+                                    aria-label="Fields"
+                                    className="h-9 px-3"
                                 >
                                     <ScrollText className="size-4" />
                                 </ToggleGroupItem>
                                 <ToggleGroupItem
                                     value="activity"
-                                    aria-label={t('a11y.activityPanel')}
-                                    className="h-9 px-2.5"
+                                    aria-label="Activity"
+                                    className="h-9 px-3"
                                 >
                                     <History className="size-4" />
                                 </ToggleGroupItem>
@@ -1414,7 +1414,7 @@ export default function ItemsForm({
                 canEditItem &&
                 item.schedule_error ? (
                     <div
-                        className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+                        className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-3 text-sm text-destructive"
                         data-test="item-schedule-failure"
                         role="alert"
                     >
@@ -1439,7 +1439,7 @@ export default function ItemsForm({
                     versioningEnabled &&
                     canEditItem && (
                         <div
-                            className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-sidebar-border/70 bg-muted/20 px-3 py-2.5 text-sm dark:border-sidebar-border"
+                            className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-sidebar-border/70 bg-muted/20 px-3 py-3 text-sm dark:border-sidebar-border"
                             data-test="item-schedule-panel"
                         >
                             {viewingPublished ? (

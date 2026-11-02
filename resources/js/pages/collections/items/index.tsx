@@ -878,7 +878,7 @@ export default function ItemsIndex({
                 }
                 filtersRight={
                     hasSelection ? null : (
-                        <div className="flex flex-wrap items-center gap-1.5">
+                        <div className="flex flex-wrap items-center gap-2">
                             <Select
                                 value={listLayout}
                                 onValueChange={(value) => {
@@ -1067,7 +1067,7 @@ export default function ItemsIndex({
                                     aria-label={t(
                                         'collections.itemsList.activeItems',
                                     )}
-                                    className="px-2.5"
+                                    className="px-3"
                                 >
                                     <FolderOpen className="size-4" />
                                 </ToggleGroupItem>
@@ -1076,7 +1076,7 @@ export default function ItemsIndex({
                                     aria-label={t(
                                         'collections.itemsList.trash',
                                     )}
-                                    className="px-2.5"
+                                    className="px-3"
                                 >
                                     <Trash2 className="size-4" />
                                 </ToggleGroupItem>

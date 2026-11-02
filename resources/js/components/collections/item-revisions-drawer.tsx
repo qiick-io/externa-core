@@ -289,7 +289,7 @@ export function ItemRevisionsDrawer({
                             {revisions.map((revision) => (
                                 <li
                                     key={revision.id}
-                                    className="flex items-start gap-2 px-3 py-2.5"
+                                    className="flex items-start gap-2 px-3 py-3"
                                 >
                                     <button
                                         type="button"

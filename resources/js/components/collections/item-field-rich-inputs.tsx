@@ -48,7 +48,6 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { useTranslation } from 'react-i18next';
 import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
 import { FileUrlImportDialog } from '@/components/admin/file-url-import-dialog';
 import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
@@ -212,7 +211,7 @@ function WysiwygToolbar({ editor }: { editor: Editor }) {
     };
 
     return (
-        <div className="flex flex-wrap gap-1 border-b p-1.5">
+        <div className="flex flex-wrap gap-1 border-b p-2">
             <ToolbarButton
                 label="Bold"
                 active={editor.isActive('bold')}
@@ -402,8 +401,6 @@ export function MarkdownModeToggle({
     onChange: (next: 'edit' | 'preview') => void;
     disabled?: boolean;
 }) {
-    const { t } = useTranslation();
-
     return (
         <ToggleGroup
             type="single"
@@ -417,16 +414,12 @@ export function MarkdownModeToggle({
             className="justify-start"
             disabled={disabled}
         >
-            <ToggleGroupItem
-                value="edit"
-                aria-label={t('a11y.editMode')}
-                className="px-2"
-            >
+            <ToggleGroupItem value="edit" aria-label="Edit" className="px-2">
                 <FileText className="size-3.5" />
             </ToggleGroupItem>
             <ToggleGroupItem
                 value="preview"
-                aria-label={t('a11y.previewMode')}
+                aria-label="Preview"
                 className="px-2"
             >
                 <Eye className="size-3.5" />
@@ -454,19 +447,17 @@ function MarkdownToolbar({
     onImageFromLibrary: () => void;
     onImageFromUrl: () => void;
 }) {
-    const { t } = useTranslation();
-
     return (
-        <div className="flex flex-wrap gap-1 border-b p-1.5">
+        <div className="flex flex-wrap gap-1 border-b p-2">
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button
                         type="button"
                         size="sm"
                         variant="outline"
-                        className="h-7 gap-1.5 px-2"
-                        aria-label={t('a11y.heading')}
-                        title={t('a11y.heading')}
+                        className="h-7 gap-2 px-2"
+                        aria-label="Heading"
+                        title="Heading"
                         disabled={disabled}
                     >
                         <Heading className="size-3.5" />
@@ -480,7 +471,7 @@ function MarkdownToolbar({
                         return (
                             <DropdownMenuItem
                                 key={command.name ?? level}
-                                className="min-h-10 py-2.5"
+                                className="min-h-10 py-3"
                                 onSelect={() => onRun(command)}
                             >
                                 Heading {level}
@@ -562,8 +553,8 @@ function MarkdownToolbar({
                         size="sm"
                         variant="outline"
                         className="h-7 px-2"
-                        aria-label={t('a11y.insertImage')}
-                        title={t('a11y.insertImage')}
+                        aria-label="Image"
+                        title="Image"
                         disabled={disabled}
                     >
                         <ImageIcon className="size-3.5" />
@@ -571,21 +562,21 @@ function MarkdownToolbar({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="min-w-[14rem]">
                     <DropdownMenuItem
-                        className="min-h-10 gap-2 py-2.5"
+                        className="min-h-10 gap-2 py-3"
                         onSelect={onImageFromComputer}
                     >
                         <Upload className="size-4" />
                         Upload from computer
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                        className="min-h-10 gap-2 py-2.5"
+                        className="min-h-10 gap-2 py-3"
                         onSelect={onImageFromLibrary}
                     >
                         <FolderOpen className="size-4" />
                         Choose from library
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                        className="min-h-10 gap-2 py-2.5"
+                        className="min-h-10 gap-2 py-3"
                         onSelect={onImageFromUrl}
                     >
                         <Link2 className="size-4" />
@@ -889,7 +880,7 @@ export function MarkdownFieldInput({
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label htmlFor={`${id}-table-rows`}>Rows</Label>
                             <Input
                                 id={`${id}-table-rows`}
@@ -904,7 +895,7 @@ export function MarkdownFieldInput({
                                 }
                             />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label htmlFor={`${id}-table-cols`}>Columns</Label>
                             <Input
                                 id={`${id}-table-cols`}
@@ -978,7 +969,7 @@ export function MarkdownFieldInput({
                         />
                     ) : null}
                     {imageUploading ? (
-                        <div className="flex items-center gap-2 border-b px-3 py-1.5 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2 border-b px-3 py-2 text-xs text-muted-foreground">
                             <Loader2 className="size-3.5 animate-spin" />
                             Uploading image…
                         </div>
@@ -1336,7 +1327,7 @@ export function ColorFieldInput({
         >
             <div className="flex h-7 items-center gap-2">{swatchAndHex}</div>
             <div className="flex items-center gap-2">
-                <span className="inline-flex h-6 min-w-9 shrink-0 items-center justify-center rounded-sm bg-muted px-1.5 font-mono text-xs text-foreground tabular-nums">
+                <span className="inline-flex h-6 min-w-9 shrink-0 items-center justify-center rounded-sm bg-muted px-2 font-mono text-xs text-foreground tabular-nums">
                     {Math.round(alpha * 100)}%
                 </span>
                 <Slider

@@ -133,7 +133,7 @@ export function FileCard({
             >
                 <span
                     className={cn(
-                        'min-w-0 truncate rounded-md px-1.5 py-0.5 text-[10px] font-medium',
+                        'min-w-0 truncate rounded-md px-2 py-0.5 text-xs font-medium',
                         useCoverLayout
                             ? 'bg-background/80 text-foreground'
                             : 'bg-muted text-muted-foreground',
@@ -147,7 +147,7 @@ export function FileCard({
                             <TooltipTrigger asChild>
                                 <span
                                     className={cn(
-                                        'inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-medium',
+                                        'inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-medium',
                                         useCoverLayout
                                             ? 'bg-background/80 text-foreground'
                                             : 'bg-muted text-muted-foreground',
@@ -291,7 +291,7 @@ export function FileCard({
 
                     {file.effective_access === 'private' && (
                         <span
-                            className="absolute bottom-2 left-2 z-20 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase shadow-sm"
+                            className="absolute bottom-2 left-2 z-20 rounded bg-background/90 px-2 py-0.5 text-xs font-medium tracking-wide text-muted-foreground uppercase shadow-sm"
                             title={t('files.card.privateTitle')}
                         >
                             {t('files.card.privateBadge')}
@@ -299,7 +299,7 @@ export function FileCard({
                     )}
 
                     {useCoverLayout ? (
-                        <div className="absolute inset-x-0 bottom-0 z-10 min-w-0 overflow-hidden rounded-b-xl bg-background/65 px-2.5 py-2 backdrop-blur-md">
+                        <div className="absolute inset-x-0 bottom-0 z-10 min-w-0 overflow-hidden rounded-b-xl bg-background/65 px-3 py-2 backdrop-blur-md">
                             <div className="flex min-w-0 flex-col items-center gap-1 text-center">
                                 {titleControl}
                                 {tagsRow}

@@ -29,7 +29,7 @@ export function ContentLocaleFlag({
             return (
                 <span
                     className={cn(
-                        'inline-flex size-4 items-center justify-center rounded-sm bg-muted text-[9px] font-medium text-muted-foreground',
+                        'inline-flex size-4 items-center justify-center rounded-sm bg-muted text-xs font-medium text-muted-foreground',
                         className,
                     )}
                     title={accessibleName}
@@ -44,7 +44,7 @@ export function ContentLocaleFlag({
         return (
             <span
                 className={cn(
-                    'inline-flex size-4 items-center justify-center rounded-sm bg-muted text-[9px] font-medium text-muted-foreground',
+                    'inline-flex size-4 items-center justify-center rounded-sm bg-muted text-xs font-medium text-muted-foreground',
                     className,
                 )}
                 title={code}

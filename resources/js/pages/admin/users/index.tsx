@@ -330,7 +330,7 @@ export default function AdminUsersIndex({
                     }
                     filtersRight={
                         hasSelection ? null : (
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-2">
                                 <Select
                                     value={sort}
                                     onValueChange={(value) => {
@@ -348,7 +348,7 @@ export default function AdminUsersIndex({
                                 >
                                     <SelectTrigger
                                         size="sm"
-                                        aria-label={t('a11y.sortBy')}
+                                        aria-label="Sort by"
                                         className="w-[7.5rem]"
                                     >
                                         <SelectValue placeholder="Sort" />
@@ -403,15 +403,15 @@ export default function AdminUsersIndex({
                                 >
                                     <ToggleGroupItem
                                         value="active"
-                                        aria-label={t('a11y.activeList')}
-                                        className="px-2.5"
+                                        aria-label="Active users"
+                                        className="px-3"
                                     >
                                         <Users className="size-4" />
                                     </ToggleGroupItem>
                                     <ToggleGroupItem
                                         value="trashed"
-                                        aria-label={t('a11y.trashList')}
-                                        className="px-2.5"
+                                        aria-label="Trash"
+                                        className="px-3"
                                     >
                                         <Trash2 className="size-4" />
                                     </ToggleGroupItem>
@@ -498,7 +498,7 @@ export default function AdminUsersIndex({
                                                             userId={user.id}
                                                             className="size-7"
                                                         >
-                                                            <AvatarFallback className="text-[10px] font-medium">
+                                                            <AvatarFallback className="text-xs font-medium">
                                                                 {getInitialsFromParts(
                                                                     user.first_name,
                                                                     user.last_name,
@@ -577,7 +577,7 @@ export default function AdminUsersIndex({
                                                 {user.is_active ? (
                                                     <Badge
                                                         variant="success"
-                                                        className="gap-1.5"
+                                                        className="gap-2"
                                                     >
                                                         <span
                                                             className="size-1.5 rounded-full bg-success"
@@ -588,7 +588,7 @@ export default function AdminUsersIndex({
                                                 ) : (
                                                     <Badge
                                                         variant="muted"
-                                                        className="gap-1.5"
+                                                        className="gap-2"
                                                     >
                                                         <span
                                                             className="size-1.5 rounded-full bg-muted-foreground"

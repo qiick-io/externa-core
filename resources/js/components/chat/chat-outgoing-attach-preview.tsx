@@ -198,10 +198,10 @@ export function ChatOutgoingAttachPreview({
                                 !hasMedia && 'mt-0 pt-2',
                             )}
                         >
-                            <div className="truncate text-[11px] font-medium">
+                            <div className="truncate text-xs font-medium">
                                 {pending.replyTo.user?.name}
                             </div>
-                            <div className="truncate text-[11px] text-muted-foreground">
+                            <div className="truncate text-xs text-muted-foreground">
                                 {pending.replyTo.body}
                             </div>
                         </div>
@@ -229,8 +229,8 @@ export function ChatOutgoingAttachPreview({
                         className={cn(
                             'flex h-4 items-center justify-end gap-1 px-3',
                             hasMedia || docs.length > 0 || hasBody
-                                ? 'pb-1.5'
-                                : 'py-1.5',
+                                ? 'pb-2'
+                                : 'py-2',
                         )}
                     >
                         <span className="inline-flex size-2.5 shrink-0 items-center justify-center">
@@ -258,7 +258,7 @@ export function ChatOutgoingAttachPreview({
                             ) : null}
                         </span>
                         <time
-                            className="text-[10px] leading-none text-muted-foreground tabular-nums"
+                            className="text-xs leading-none text-muted-foreground tabular-nums"
                             dateTime={sentAt.toISOString()}
                         >
                             {pendingTimeLabel(sentAt)}

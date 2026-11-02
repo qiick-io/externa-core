@@ -246,7 +246,7 @@ export function LucideIconPicker({
                                         <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                             {category.label}
                                         </p>
-                                        <div className="grid grid-cols-8 gap-1.5 sm:grid-cols-10">
+                                        <div className="grid grid-cols-8 gap-2 sm:grid-cols-10">
                                             {category.icons.map((name) => {
                                                 const iconName =
                                                     resolveDynamicIconName(
