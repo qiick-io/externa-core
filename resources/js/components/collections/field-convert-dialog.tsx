@@ -1,7 +1,7 @@
-import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import {
     AlertDialog,
     AlertDialogCancel,
