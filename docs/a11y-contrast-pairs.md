@@ -28,8 +28,8 @@ Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegro
 | Pair | Foreground | Background | Ratio | Need | Status |
 |---|---|---|---|---|---|
 | foreground / background | `#ebf3f6` (ink-100) | `#0e171e` (ink-950) | 16.11 | 4.5 | PASS |
-| muted-foreground / background | `#b3c2cc` (ink-300) | `#0e171e` | 9.92 | 4.5 | PASS |
-| muted-foreground / card | `#b3c2cc` | `#17232c` (ink-900) | 8.76 | 4.5 | PASS |
+| muted-foreground / background | `#d2dde5` (ink-200) | `#0e171e` | 13.12 | 4.5 | PASS |
+| muted-foreground / card | `#d2dde5` | `#17232c` (ink-900) | 11.59 | 4.5 | PASS |
 | primary-foreground / primary | `#0e171e` | `#1a95a2` (teal-500) | 5.06 | 4.5 | PASS |
 | destructive-foreground / destructive | `#0e171e` | `#f0848c` (red-300) | 7.23 | 4.5 | PASS |
 | success-foreground / success | `#0e171e` | `#3bb872` (green-400) | 7.14 | 4.5 | PASS |

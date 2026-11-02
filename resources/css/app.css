@@ -247,14 +247,19 @@
         --brand-primary-dark,
         var(--brand-primary, var(--color-teal-500))
     );
+    /*
+     * Do not fall back to light --brand-primary-foreground (often #fff).
+     * White on teal-500 is ~3.58:1; ink-950 is ~5.06:1 (AA).
+     */
     --primary-foreground: var(
         --brand-primary-dark-foreground,
-        var(--brand-primary-foreground, var(--color-ink-950))
+        var(--color-ink-950)
     );
     --secondary: var(--color-ink-800);
     --secondary-foreground: var(--color-ink-100);
     --muted: var(--color-ink-800);
-    --muted-foreground: var(--color-ink-300);
+    /* ink-200 on ink-950 ≈ 12:1 — margin vs placeholder opacity / AA edge cases */
+    --muted-foreground: var(--color-ink-200);
     --accent: var(--color-ink-800);
     --accent-foreground: var(--color-ink-100);
     /* red-300 on ink-900 = 6.38:1 (red-400 fails AA) */
@@ -302,6 +307,15 @@
 @layer base {
     * {
         @apply border-border;
+    }
+
+    /*
+     * Browsers default ::placeholder to ~0.54 opacity, which drops ink-300
+     * on ink-950 below 4.5:1 in axe. Keep full opacity; color carries mute.
+     */
+    ::placeholder {
+        color: var(--muted-foreground);
+        opacity: 1;
     }
 
     body {

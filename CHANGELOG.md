@@ -54,6 +54,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 
 ### Fixed
+- Dark primary button AA: `.dark` `--primary-foreground` uses dark brand fg / ink-950 (not light `#fff`); placeholder opacity 1; darker dark `--muted-foreground` (ink-200) for axe smoke (#255).
 - Visible focus ring (offset, full-opacity `--ring`) and 3:1 `--input` borders on `button`/`input`/`textarea`/`checkbox`/`select`/`badge` (WCAG 1.4.11 / 2.4.7) (#227).
 
 ### Added

@@ -24,9 +24,16 @@ final class ContrastingForeground
 
         $luminance = self::relativeLuminance($rgb[0], $rgb[1], $rgb[2]);
 
-        // WCAG contrast ratio (L + 0.05) / (0 + 0.05) vs white; pick the better one.
+        // WCAG contrast vs white / black; prefer whichever meets AA 4.5:1, else the higher ratio.
         $contrastWhite = (1.0 + 0.05) / ($luminance + 0.05);
         $contrastBlack = ($luminance + 0.05) / (0.0 + 0.05);
+
+        $whitePasses = $contrastWhite >= 4.5;
+        $blackPasses = $contrastBlack >= 4.5;
+
+        if ($whitePasses !== $blackPasses) {
+            return $whitePasses ? self::WHITE : self::BLACK;
+        }
 
         return $contrastWhite >= $contrastBlack ? self::WHITE : self::BLACK;
     }
