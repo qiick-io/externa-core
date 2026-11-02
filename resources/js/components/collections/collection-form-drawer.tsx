@@ -180,6 +180,7 @@ export function CollectionFormDrawer({
                                     }
                                 }}
                                 required
+                                // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                 autoFocus
                                 aria-invalid={
                                     form.errors.name ? true : undefined

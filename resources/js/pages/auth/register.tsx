@@ -49,6 +49,7 @@ export default function Register() {
                                     id="first_name"
                                     type="text"
                                     required
+                                    // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                     autoFocus
                                     autoComplete="given-name"
                                     name="first_name"
@@ -193,7 +194,7 @@ export default function Register() {
 
                         <div className="text-center text-sm text-muted-foreground">
                             {t('auth.register.hasAccount')}{' '}
-                            <TextLink href={login()} tabIndex={7}>
+                            <TextLink href={login()}>
                                 {t('auth.register.logIn')}
                             </TextLink>
                         </div>

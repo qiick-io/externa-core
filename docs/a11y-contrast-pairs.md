@@ -56,10 +56,14 @@ Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegro
 | input / background | ink-300 on ink-950 | 3.0 | PASS |
 | ring / background | teal-300 on ink-950 | 3.0 | PASS |
 
+## CI
+
+`npm run a11y:contrast` (`scripts/a11y-contrast.mjs`) resolves these pairs from `resources/css/app.css` and fails below the thresholds above. Runs in the `quality` lint workflow (#255).
+
 ## Related
 
-- Token mapping: #226 (closed)
-- Focus ring / input borders: #227 (landed via #383; keep issue tick when closed)
+- Token mapping: #226
+- Focus ring / input borders: #227
 - Semantic status Badge/Alert: #235
-- AI accent pair: #242 (add measured rows when that lands — open PR #412)
-- Phase 4 CI reads this table: #255
+- AI accent pair: #242 (add when that lands)
+- Automation / axe / screen reader checklist: #255

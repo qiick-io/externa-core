@@ -1307,7 +1307,9 @@ export default function ItemsIndex({
                                                 <TableCell className="w-[1%] text-right whitespace-nowrap">
                                                     <div
                                                         className="flex items-center justify-end gap-1"
-                                                        onClick={(event) =>
+                                                        onPointerDown={(
+                                                            event,
+                                                        ) =>
                                                             event.stopPropagation()
                                                         }
                                                     >

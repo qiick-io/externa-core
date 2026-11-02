@@ -686,10 +686,9 @@ export default function CollectionsIndex({
                                                 <td className="p-3 text-right">
                                                     <div
                                                         className="flex flex-nowrap items-center justify-end gap-1"
-                                                        onClick={(event) =>
-                                                            event.stopPropagation()
-                                                        }
-                                                        onKeyDown={(event) =>
+                                                        onPointerDown={(
+                                                            event,
+                                                        ) =>
                                                             event.stopPropagation()
                                                         }
                                                     >

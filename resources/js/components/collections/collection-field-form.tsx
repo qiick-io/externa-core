@@ -211,6 +211,7 @@ function FieldTypePicker({ onSelect }: { onSelect: (type: string) => void }) {
                     placeholder={t('collections.searchFieldTypes')}
                     maxLength={STRING_LIMITS.SEARCH}
                     className="pl-9"
+                    // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                     autoFocus
                 />
             </div>

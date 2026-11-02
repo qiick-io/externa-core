@@ -126,7 +126,7 @@ export function FileCard({
         file.tags.length > 0 ? (
             <div
                 className="flex w-full min-w-0 items-center justify-center gap-1 overflow-hidden"
-                onClick={(event) => event.stopPropagation()}
+                onPointerDown={(event) => event.stopPropagation()}
             >
                 <span
                     className={cn(
@@ -187,8 +187,20 @@ export function FileCard({
                     )}
                     onMouseEnter={() => setHovered(true)}
                     onMouseLeave={() => setHovered(false)}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={selected}
                     onContextMenu={() => onPrepareContextMenu(file)}
                     onClick={(event) => {
+                        event.stopPropagation();
+                        onSelect(file.id, event);
+                    }}
+                    onKeyDown={(event) => {
+                        if (event.key !== 'Enter' && event.key !== ' ') {
+                            return;
+                        }
+
+                        event.preventDefault();
                         event.stopPropagation();
                         onSelect(file.id, event);
                     }}
@@ -257,7 +269,7 @@ export function FileCard({
                             'absolute top-2 left-2 z-20 transition-opacity',
                             showCheckbox ? 'opacity-100' : 'opacity-0',
                         )}
-                        onClick={(event) => event.stopPropagation()}
+                        onPointerDown={(event) => event.stopPropagation()}
                     >
                         <Checkbox
                             checked={selected}

@@ -126,6 +126,10 @@ jobs:
         if: needs.changes.outputs.docs_only != 'true'
         run: npm run lint:check -- --max-warnings=0
 
+      - name: Theme contrast (WCAG 2.2 AA)
+        if: needs.changes.outputs.docs_only != 'true'
+        run: npm run a11y:contrast
+
       - name: Format Frontend
         if: needs.changes.outputs.docs_only != 'true'
         run: npm run format:check
