@@ -3,6 +3,7 @@ import type { ComponentProps, Ref } from 'react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import { evaluatePasswordStrength } from '@/lib/password-strength';
 import type { PasswordPolicy } from '@/lib/password-strength';
 import { cn } from '@/lib/utils';
@@ -86,15 +87,15 @@ export default function PasswordInput({
         : null;
     const meterColor =
         strength?.level === 'strong'
-            ? 'bg-success'
+            ? '[&_[data-slot=progress-indicator]]:bg-success'
             : strength?.level === 'medium'
-              ? 'bg-warning'
-              : 'bg-red-500';
+              ? '[&_[data-slot=progress-indicator]]:bg-warning'
+              : '[&_[data-slot=progress-indicator]]:bg-destructive';
     const strengthLabelColor =
         strength?.level === 'strong'
             ? 'text-success'
             : strength?.level === 'medium'
-              ? 'text-amber-600'
+              ? 'text-warning'
               : 'text-muted-foreground';
 
     return (
@@ -147,15 +148,11 @@ export default function PasswordInput({
                             )}
                         </span>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                        <div
-                            className={cn(
-                                'h-full rounded-full transition-[width]',
-                                meterColor,
-                            )}
-                            style={{ width: `${strength.progress}%` }}
-                        />
-                    </div>
+                    <Progress
+                        value={strength.progress}
+                        aria-hidden="true"
+                        className={cn('h-1.5 bg-muted', meterColor)}
+                    />
                     <p className="text-xs text-muted-foreground">
                         {t(
                             `settings.project.passwordPolicies.${strengthPolicy}.description`,

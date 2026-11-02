@@ -1,4 +1,3 @@
-import { Transition } from '@headlessui/react';
 import { Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -25,25 +24,11 @@ export function SettingsFormActions({
 
     return (
         <div className="sticky bottom-0 z-10 -mx-1 border-t border-border/80 bg-background/90 px-1 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md supports-backdrop-filter:bg-background/75">
-            <div
-                className="flex w-full flex-wrap items-center justify-end gap-4"
-                role="status"
-                aria-live="polite"
-                aria-busy={processing || undefined}
-            >
-                <Transition
-                    show={recentlySuccessful}
-                    enter="transition ease-in-out"
-                    enterFrom="opacity-0"
-                    leave="transition ease-in-out"
-                    leaveTo="opacity-0"
-                >
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            <div className="flex w-full items-center justify-end gap-4">
+                {recentlySuccessful ? (
+                    <p className="animate-in text-sm text-muted-foreground duration-200 ease-in-out fade-in">
                         {t('common.saved')}
                     </p>
-                </Transition>
-                {processing ? (
-                    <span className="sr-only">{t('a11y.saving')}</span>
                 ) : null}
                 <UnsavedChangesToolbar
                     isDirty={isDirty}
@@ -53,9 +38,8 @@ export function SettingsFormActions({
                     type="submit"
                     disabled={processing}
                     data-test={dataTest}
-                    aria-busy={processing || undefined}
                 >
-                    <Save className="size-4" aria-hidden="true" />
+                    <Save className="size-4" />
                     {t('common.save')}
                 </Button>
             </div>
