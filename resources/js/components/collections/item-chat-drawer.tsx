@@ -55,6 +55,7 @@ import {
     MessageAvatar,
     MessageContent,
 } from '@/components/ui/message';
+import { NativeSelect } from '@/components/ui/native-select';
 import {
     Popover,
     PopoverContent,
@@ -2887,9 +2888,9 @@ export function ItemChatDrawer({
                             <Label htmlFor="item-chat-add-field">
                                 {t('collections.itemChat.selectField')}
                             </Label>
-                            <select
+                            <NativeSelect
                                 id="item-chat-add-field"
-                                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                                className="w-full"
                                 value={addFieldName}
                                 onChange={(event) =>
                                     setAddFieldName(event.target.value)
@@ -2900,7 +2901,7 @@ export function ItemChatDrawer({
                                         {field.name} ({field.type})
                                     </option>
                                 ))}
-                            </select>
+                            </NativeSelect>
                         </div>
                     )}
                     <DialogFooter>

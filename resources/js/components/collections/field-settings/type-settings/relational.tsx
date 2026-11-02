@@ -1,6 +1,7 @@
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import {
     parseFilesFieldSettings,
     parseImageFieldSettings,
@@ -169,13 +170,13 @@ export function RelationalSettings({
                         <Label htmlFor="related_collection_id">
                             Related collection
                         </Label>
-                        <select
+                        <NativeSelect
                             id="related_collection_id"
                             value={relatedCollectionId}
                             onChange={(event) =>
                                 onRelatedCollectionIdChange(event.target.value)
                             }
-                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                            className="w-full"
                         >
                             <option value="">Select a collection…</option>
                             {relatedCollections.map((relatedCollection) => (
@@ -186,7 +187,7 @@ export function RelationalSettings({
                                     {relatedCollection.name}
                                 </option>
                             ))}
-                        </select>
+                        </NativeSelect>
                     </div>
                     <div className="grid gap-2.5">
                         <Label htmlFor="display_field">Display field</Label>
@@ -230,15 +231,15 @@ export function RelationalSettings({
                 {fieldType === 'one_to_many' ? (
                     <div className="grid gap-2">
                         <Label htmlFor="relation_layout">Layout</Label>
-                        <select
+                        <NativeSelect
                             id="relation_layout"
                             name="settings[layout]"
                             defaultValue={relationSettings.layout}
-                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                            className="w-full"
                         >
                             <option value="list">List</option>
                             <option value="table">Table</option>
-                        </select>
+                        </NativeSelect>
                     </div>
                 ) : null}
                 <SettingCheckbox

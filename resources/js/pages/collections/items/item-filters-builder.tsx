@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NativeSelect } from '@/components/ui/native-select';
 import {
     Popover,
     PopoverContent,
@@ -224,8 +225,9 @@ export function ItemFiltersBuilder({
                                     key={rule.id}
                                     className="flex flex-wrap items-center gap-1.5"
                                 >
-                                    <select
-                                        className="h-8 min-w-24 flex-1 rounded-md border bg-background px-2 text-xs"
+                                    <NativeSelect
+                                        size="sm"
+                                        className="min-w-24 flex-1"
                                         value={rule.field}
                                         aria-label="Filter field"
                                         onChange={(e) =>
@@ -242,9 +244,10 @@ export function ItemFiltersBuilder({
                                                 {field.name}
                                             </option>
                                         ))}
-                                    </select>
-                                    <select
-                                        className="h-8 min-w-28 rounded-md border bg-background px-2 text-xs"
+                                    </NativeSelect>
+                                    <NativeSelect
+                                        size="sm"
+                                        className="min-w-28"
                                         value={rule.operator}
                                         aria-label="Filter operator"
                                         onChange={(e) =>
@@ -259,7 +262,7 @@ export function ItemFiltersBuilder({
                                                 {OPERATOR_LABELS[op]}
                                             </option>
                                         ))}
-                                    </select>
+                                    </NativeSelect>
                                     {operatorNeedsValue(rule.operator) ? (
                                         <Input
                                             className="h-8 min-w-24 flex-1 text-xs"

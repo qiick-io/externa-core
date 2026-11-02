@@ -2,6 +2,7 @@ import { TranslatedInput } from '@/components/collections/field-settings/transla
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import { FIELD_VALIDATION_OPERATORS } from '@/lib/collection-field-types';
 import type {
     FieldValidationRule,
@@ -43,7 +44,7 @@ export function ValidationRuleBuilder({
                                 <Label htmlFor={`validation_operator_${index}`}>
                                     Operator
                                 </Label>
-                                <select
+                                <NativeSelect
                                     id={`validation_operator_${index}`}
                                     value={rule.operator}
                                     onChange={(event) => {
@@ -53,7 +54,7 @@ export function ValidationRuleBuilder({
                                         next[index] = { operator };
                                         onRulesChange(next);
                                     }}
-                                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                                    className="w-full"
                                 >
                                     {FIELD_VALIDATION_OPERATORS.map(
                                         (option) => (
@@ -65,7 +66,7 @@ export function ValidationRuleBuilder({
                                             </option>
                                         ),
                                     )}
-                                </select>
+                                </NativeSelect>
                             </div>
                             {meta?.needsValue ? (
                                 <div className="grid gap-2">

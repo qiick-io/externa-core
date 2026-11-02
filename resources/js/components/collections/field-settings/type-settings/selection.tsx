@@ -2,6 +2,7 @@ import { SettingCheckbox } from '@/components/collections/field-settings/setting
 import { TranslatedInput } from '@/components/collections/field-settings/translated-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import {
     parseBooleanFieldSettings,
     parseColorFieldSettings,
@@ -60,7 +61,7 @@ export function SelectionSettings({
             <div className="space-y-5">
                 <div className="grid gap-2">
                     <Label htmlFor="date_mode">Mode</Label>
-                    <select
+                    <NativeSelect
                         id="date_mode"
                         name="settings[date_mode]"
                         defaultValue={
@@ -68,12 +69,12 @@ export function SelectionSettings({
                                 ? dateMode
                                 : 'datetime'
                         }
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                        className="w-full"
                     >
                         <option value="date">Date only</option>
                         <option value="time">Time only</option>
                         <option value="datetime">Date and time</option>
-                    </select>
+                    </NativeSelect>
                 </div>
                 <SettingCheckbox
                     id="date_include_seconds"
@@ -96,15 +97,15 @@ export function SelectionSettings({
             <div className="space-y-4">
                 <div className="grid gap-2">
                     <Label htmlFor="geometry_mode">Geometry mode</Label>
-                    <select
+                    <NativeSelect
                         id="geometry_mode"
                         name="settings[geometry_mode]"
                         defaultValue={mapSettings.geometryMode}
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+                        className="w-full"
                     >
                         <option value="point">Point</option>
                         <option value="multipoint">MultiPoint</option>
-                    </select>
+                    </NativeSelect>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">
                     <div className="grid gap-2">
@@ -196,15 +197,15 @@ export function SelectionSettings({
         return (
             <div className="grid gap-2">
                 <Label htmlFor="value_combining">Value combining</Label>
-                <select
+                <NativeSelect
                     id="value_combining"
                     name="settings[value_combining]"
                     defaultValue={String(settings?.value_combining ?? 'all')}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                    className="w-full"
                 >
                     <option value="all">All selected nodes</option>
                     <option value="leaf">Leaf nodes only</option>
-                </select>
+                </NativeSelect>
             </div>
         );
     }

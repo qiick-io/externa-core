@@ -1,5 +1,6 @@
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 
 export type AccordionGroupSettings = {
     accordionMode: boolean;
@@ -77,7 +78,7 @@ export function GroupsSettings({
                 />
                 <div className="grid gap-2">
                     <Label htmlFor="accordion_start">Initial state</Label>
-                    <select
+                    <NativeSelect
                         id="accordion_start"
                         value={
                             accordionSettings.accordionMode &&
@@ -92,14 +93,14 @@ export function GroupsSettings({
                                     .value as AccordionGroupSettings['start'],
                             }))
                         }
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                        className="w-full"
                     >
                         {startChoices.map((choice) => (
                             <option key={choice.value} value={choice.value}>
                                 {choice.label}
                             </option>
                         ))}
-                    </select>
+                    </NativeSelect>
                 </div>
                 <p className="text-sm text-muted-foreground">
                     Sections are typically Raw groups nested under this
@@ -116,7 +117,7 @@ export function GroupsSettings({
             <div className="space-y-5">
                 <div className="grid gap-2">
                     <Label htmlFor="detail_start">Initial state</Label>
-                    <select
+                    <NativeSelect
                         id="detail_start"
                         value={detailSettings.start}
                         onChange={(event) =>
@@ -126,11 +127,11 @@ export function GroupsSettings({
                                     .value as DetailGroupSettings['start'],
                             }))
                         }
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                        className="w-full"
                     >
                         <option value="open">Open</option>
                         <option value="closed">Closed</option>
-                    </select>
+                    </NativeSelect>
                 </div>
             </div>
         );

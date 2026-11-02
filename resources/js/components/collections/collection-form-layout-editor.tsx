@@ -6,6 +6,7 @@ import FieldController from '@/actions/App/Http/Controllers/Collections/FieldCon
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import {
     newFormLayoutId,
     parseCollectionFormLayout,
@@ -294,8 +295,8 @@ export function CollectionFormLayoutEditor({
                                 {tabs.length > 0 && (
                                     <div className="grid gap-1">
                                         <Label>Tab</Label>
-                                        <select
-                                            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                                        <NativeSelect
+                                            className="w-full"
                                             value={section.tab_id ?? ''}
                                             onChange={(event) =>
                                                 updateSection(
@@ -322,7 +323,7 @@ export function CollectionFormLayoutEditor({
                                                     )}
                                                 </option>
                                             ))}
-                                        </select>
+                                        </NativeSelect>
                                     </div>
                                 )}
                                 <Button
@@ -371,8 +372,8 @@ export function CollectionFormLayoutEditor({
                                     })}
                                 </div>
                                 {unplacedFields.length > 0 && (
-                                    <select
-                                        className="h-9 w-full max-w-sm rounded-md border border-input bg-background px-3 text-sm"
+                                    <NativeSelect
+                                        className="w-full max-w-sm"
                                         defaultValue=""
                                         onChange={(event) => {
                                             const fieldId = Number(
@@ -407,7 +408,7 @@ export function CollectionFormLayoutEditor({
                                                 {field.name} ({field.type})
                                             </option>
                                         ))}
-                                    </select>
+                                    </NativeSelect>
                                 )}
                             </div>
                         </div>

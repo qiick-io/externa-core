@@ -4,6 +4,7 @@ import { SettingCheckbox } from '@/components/collections/field-settings/setting
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import { parseFieldConditions } from '@/lib/field-conditions';
 import type {
     FieldConditionOperator,
@@ -91,9 +92,9 @@ export function FieldConditionsSettings({
 
             <div className="grid gap-1 sm:max-w-xs">
                 <Label htmlFor="condition_logic">Match</Label>
-                <select
+                <NativeSelect
                     id="condition_logic"
-                    className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    className="w-full"
                     value={conditions.logic}
                     onChange={(event) =>
                         onChange({
@@ -104,7 +105,7 @@ export function FieldConditionsSettings({
                 >
                     <option value="and">All rules (AND)</option>
                     <option value="or">Any rule (OR)</option>
-                </select>
+                </NativeSelect>
             </div>
 
             <div className="space-y-3">
@@ -115,8 +116,8 @@ export function FieldConditionsSettings({
                     >
                         <div className="grid gap-1">
                             <Label>Field</Label>
-                            <select
-                                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                            <NativeSelect
+                                className="w-full"
                                 value={rule.field}
                                 onChange={(event) => {
                                     const rules = conditions.rules.map(
@@ -137,12 +138,12 @@ export function FieldConditionsSettings({
                                         {name}
                                     </option>
                                 ))}
-                            </select>
+                            </NativeSelect>
                         </div>
                         <div className="grid gap-1">
                             <Label>Operator</Label>
-                            <select
-                                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                            <NativeSelect
+                                className="w-full"
                                 value={rule.operator}
                                 onChange={(event) => {
                                     const operator = event.target
@@ -172,7 +173,7 @@ export function FieldConditionsSettings({
                                         {operator.label}
                                     </option>
                                 ))}
-                            </select>
+                            </NativeSelect>
                         </div>
                         {VALUELESS.includes(rule.operator) ? (
                             <div />

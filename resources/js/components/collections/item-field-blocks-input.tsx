@@ -15,6 +15,7 @@ import { LocalizedField } from '@/components/collections/localized-field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import {
     getFieldDisplayName,
     getFieldNote,
@@ -28,9 +29,6 @@ import type {
 import { createSortableList } from '@/lib/create-sortable-list';
 import { evaluateFieldFlags } from '@/lib/field-conditions';
 import { cn } from '@/lib/utils';
-
-const inputLike =
-    'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
 
 const SUMMARY_TEXT_TYPES = new Set([
     'string',
@@ -468,8 +466,8 @@ export function BlocksFieldInput({
                                         {summary}
                                     </span>
                                 ) : null}
-                                <select
-                                    className={cn(inputLike, 'max-w-xs')}
+                                <NativeSelect
+                                    className="max-w-xs"
                                     value={block.type}
                                     disabled={readonly}
                                     onChange={(event) =>
@@ -487,7 +485,7 @@ export function BlocksFieldInput({
                                             {entry.label}
                                         </option>
                                     ))}
-                                </select>
+                                </NativeSelect>
                                 {!readonly ? (
                                     <div className="ml-auto flex gap-1">
                                         <Button

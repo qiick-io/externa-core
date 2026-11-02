@@ -17,6 +17,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NativeSelect } from '@/components/ui/native-select';
 import {
     Table,
     TableBody,
@@ -248,7 +249,7 @@ export default function AdminActivityLogsIndex({
                                 'h-auto min-h-9 max-w-[12rem] min-w-[8rem] shrink-0',
                             )}
                         />
-                        <select
+                        <NativeSelect
                             value={event}
                             onChange={(changeEvent) => {
                                 setEvent(changeEvent.target.value);
@@ -257,10 +258,7 @@ export default function AdminActivityLogsIndex({
                                         changeEvent.target.value || undefined,
                                 });
                             }}
-                            className={cn(
-                                filterSelectClassName,
-                                'max-w-[10rem] min-w-[7rem] shrink-0',
-                            )}
+                            className="max-w-[10rem] min-w-[7rem] shrink-0"
                             aria-label={t('activityLog.filterByAction')}
                             title={
                                 event
@@ -276,8 +274,8 @@ export default function AdminActivityLogsIndex({
                                     {eventLabel(eventName)}
                                 </option>
                             ))}
-                        </select>
-                        <select
+                        </NativeSelect>
+                        <NativeSelect
                             value={logName}
                             onChange={(changeEvent) => {
                                 setLogName(changeEvent.target.value);
@@ -286,10 +284,7 @@ export default function AdminActivityLogsIndex({
                                         changeEvent.target.value || undefined,
                                 });
                             }}
-                            className={cn(
-                                filterSelectClassName,
-                                'max-w-[10rem] min-w-[7rem] shrink-0',
-                            )}
+                            className="max-w-[10rem] min-w-[7rem] shrink-0"
                             aria-label={t('activityLog.filterByLog')}
                             title={
                                 logName
@@ -303,7 +298,7 @@ export default function AdminActivityLogsIndex({
                                     {logNameLabel(name)}
                                 </option>
                             ))}
-                        </select>
+                        </NativeSelect>
                         <Input
                             type="date"
                             value={dateFrom}
