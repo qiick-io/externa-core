@@ -257,6 +257,9 @@ export function FileUploadIndicator({
                                                     variant="ghost"
                                                     size="icon"
                                                     className="size-7 shrink-0"
+                                                    aria-label={t(
+                                                        'a11y.dismissUpload',
+                                                    )}
                                                     onClick={() =>
                                                         onDismiss(
                                                             upload.uploadId,

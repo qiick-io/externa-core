@@ -683,7 +683,7 @@ export default function AdminRoleForm({
                                             }
                                             placeholder="Search collections…"
                                             className="pl-9"
-                                            aria-label="Search collections"
+                                            aria-label={t('a11y.search')}
                                         />
                                     </div>
                                 ) : null}

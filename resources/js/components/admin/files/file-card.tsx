@@ -56,8 +56,11 @@ type FileCardProps = {
 
 /**
  * Single file or folder tile in the manager grid.
- * @param {*} props - Component props.
- * @returns {JSX.Element}
+ *
+ * Nested interactive pattern: the card surface handles selection / open via
+ * click handlers; title is a separate native `<button>`; checkbox and context
+ * menu actions are siblings (not nested inside each other) so keyboard and
+ * screen-reader users can reach each control independently.
  */
 export function FileCard({
     file,

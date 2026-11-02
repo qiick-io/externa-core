@@ -6,6 +6,22 @@ import en from '@/locales/en.json';
 import it from '@/locales/it.json';
 
 let navigateBound = false;
+let documentLangBound = false;
+
+/**
+ * Keep `<html lang>` aligned with the active UI locale (BCP 47).
+ */
+export function syncDocumentLanguage(locale: string): void {
+    if (typeof document === 'undefined') {
+        return;
+    }
+
+    const normalized = locale.replace('_', '-');
+
+    if (document.documentElement.lang !== normalized) {
+        document.documentElement.lang = normalized;
+    }
+}
 
 /**
  * Initialize (or sync) react-i18next with the Inertia shared locale.
@@ -24,6 +40,15 @@ export function initI18n(locale = 'en'): typeof i18n {
         });
     } else if (i18n.language !== locale) {
         void i18n.changeLanguage(locale);
+    }
+
+    syncDocumentLanguage(i18n.language || locale);
+
+    if (!documentLangBound && typeof window !== 'undefined') {
+        documentLangBound = true;
+        i18n.on('languageChanged', (next) => {
+            syncDocumentLanguage(next);
+        });
     }
 
     if (!navigateBound && typeof window !== 'undefined') {

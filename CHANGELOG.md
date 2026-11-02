@@ -27,6 +27,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Prompt-injection and denied-permission Pest suite for chat + MCP (`tests/Feature/Ai/Security/*`) with scripted compromised-LLM driver, ≥20 payloads × roles × surfaces, audit/approval assertions, and SECURITY checklist link (#204).
 - Human approval + audit log for AI tool calls: write/destructive tools denied by default (`AI_WRITE_TOOLS` kill switch + per-tool allowlist), chat `Approvable` for write actions, MCP `PendingToolCall` admin inbox (15m TTL), redacted `ai_tool` audit trail with retention prune (`ai:prune-tool-audit`) (#203).
 - Shared permission-aware AI tool registry (`AiToolRegistryService` / `AiToolExecutorService`) with chat + MCP adapters, config gates (`ai.tools.*`), and AuthZ parity tests (#202).
+- Admin a11y phase 2 controls: `html lang` sync on locale change, content-locale `lang` + flag text alternatives, native field-row button, required-field text marker, and expanded `a11y.*` icon-only labels (en/de/it) (#253).
 - Admin a11y phase 2 foundations: `Icon` decorative-by-default semantics, translated dialog/sheet Close + sidebar toggle, unread/notifications names, and new `a11y.*` keys with locale parity coverage (#253).
 
 ### Changed

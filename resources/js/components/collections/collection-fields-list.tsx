@@ -592,7 +592,7 @@ function CollectionFieldRowActions({
                         variant="ghost"
                         size="icon"
                         className="size-8 shrink-0"
-                        aria-label="Field actions"
+                        aria-label={t('a11y.fieldActions')}
                         onClick={(event) => event.stopPropagation()}
                         onPointerDown={(event) => event.stopPropagation()}
                     >
@@ -751,6 +751,8 @@ function CollectionFieldRow({
     const layoutWidth = getFieldLayoutWidth(field.settings);
     const isGroup = isLayoutGroupType(field.type);
 
+    // Pattern: primary row action is a native <button> that opens edit;
+    // overflow actions stay a sibling control (not nested inside the row button).
     return (
         <div
             className={cn(
@@ -770,28 +772,26 @@ function CollectionFieldRow({
                         : 'pointer-events-none opacity-40',
                 )}
                 aria-hidden={!reorderEnabled}
-                aria-label={reorderEnabled ? 'Drag to reorder' : undefined}
+                aria-label={
+                    reorderEnabled ? t('a11y.dragToReorder') : undefined
+                }
             >
-                <GripVertical className="size-4" />
+                <GripVertical className="size-4" aria-hidden="true" />
             </div>
 
-            <div
-                role="button"
-                tabIndex={0}
+            <button
+                type="button"
                 onClick={(event) => {
                     event.stopPropagation();
                     onEdit(field);
                 }}
-                onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        onEdit(field);
-                    }
-                }}
                 className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-md px-1 py-1 text-left hover:bg-muted/50"
             >
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted/30">
-                    <Icon className="size-5 text-muted-foreground" />
+                    <Icon
+                        className="size-5 text-muted-foreground"
+                        aria-hidden="true"
+                    />
                 </div>
                 <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">
@@ -813,7 +813,7 @@ function CollectionFieldRow({
                             : ''}
                     </p>
                 </div>
-            </div>
+            </button>
 
             <CollectionFieldRowActions
                 field={field}

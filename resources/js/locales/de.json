@@ -15,73 +15,7 @@
         "lastName": "Nachname",
         "hide": "Ausblenden",
         "view": "Anzeigen",
-        "export": "Exportieren",
-        "clearFilters": "Filter zurücksetzen",
-        "learnMore": "Mehr erfahren"
-    },
-    "emptyState": {
-        "collections": {
-            "title": "Noch keine Collections",
-            "description": "Collections gruppieren Felder und Inhalte. Erstelle eine, um zu starten.",
-            "cta": "Erste Collection erstellen",
-            "filteredTitle": "Keine passenden Collections",
-            "filteredDescription": "Andere Suche versuchen oder Filter zurücksetzen, um alle Collections zu sehen.",
-            "trashTitle": "Papierkorb ist leer",
-            "trashDescription": "Gelöschte Collections erscheinen hier, bis du sie wiederherstellst oder endgültig entfernst."
-        },
-        "items": {
-            "title": "Noch keine Einträge",
-            "description": "Füge den ersten Inhaltseintrag zu dieser Collection hinzu.",
-            "cta": "Ersten Eintrag erstellen",
-            "filteredTitle": "Keine passenden Einträge",
-            "filteredDescription": "Andere Suche versuchen oder Filter zurücksetzen, um alle Einträge zu sehen.",
-            "trashTitle": "Papierkorb ist leer",
-            "trashDescription": "Gelöschte Einträge erscheinen hier, bis du sie wiederherstellst oder endgültig entfernst."
-        },
-        "users": {
-            "title": "Noch keine Benutzer",
-            "description": "Lade Teammitglieder ein, damit sie Inhalte und Einstellungen verwalten können.",
-            "cta": "Ersten Benutzer erstellen",
-            "filteredTitle": "Keine Benutzer gefunden",
-            "filteredDescription": "Andere Suche versuchen oder Filter zurücksetzen, um alle Benutzer zu sehen.",
-            "trashTitle": "Papierkorb ist leer",
-            "trashDescription": "Gelöschte Benutzer erscheinen hier, bis du sie wiederherstellst oder endgültig entfernst."
-        },
-        "apiKeys": {
-            "title": "Noch keine API-Schlüssel",
-            "description": "Erstelle einen API-Schlüssel, damit externe Apps die Public-CMS-API nutzen können.",
-            "cta": "API-Schlüssel erstellen"
-        },
-        "roleCollections": {
-            "title": "Noch keine Collections",
-            "description": "Erstelle zuerst eine Collection und gewähre dieser Rolle dann Zugriff.",
-            "cta": "Zu den Collections",
-            "filteredTitle": "Keine passenden Collections",
-            "filteredDescription": "Andere Suche versuchen oder Filter zurücksetzen, um alle Collections zu sehen."
-        },
-        "fields": {
-            "title": "Noch keine Felder",
-            "description": "Definiere Feldtypen, bevor du Inhalte für diese Collection eingibst.",
-            "cta": "Felder hinzufügen"
-        },
-        "dashboard": {
-            "collectionsDescription": "Erstelle eine Collection, um Inhaltsvolumen hier zu verfolgen.",
-            "collectionsCta": "Collection erstellen",
-            "activityDescription": "Aktivität erscheint, sobald du und dein Team in Externa arbeiten.",
-            "activityCta": "Aktivitätsprotokoll anzeigen",
-            "filesDescription": "Lade Dateien hoch, um Speicher-Insights im Dashboard zu sehen.",
-            "filesCta": "Dateien öffnen",
-            "genericDescription": "Hier ist noch nichts anzuzeigen."
-        },
-        "files": {
-            "title": "Dieser Ordner ist leer",
-            "description": "Dateien hier ablegen oder Hochladen nutzen, um Medien hinzuzufügen.",
-            "cta": "Datei hochladen",
-            "trashTitle": "Papierkorb ist leer",
-            "trashDescription": "Gelöschte Dateien und Ordner erscheinen hier, bis du sie wiederherstellst oder endgültig entfernst.",
-            "dropTitle": "Dateien zum Hochladen ablegen",
-            "dropDescription": "Loslassen, um den Upload zu starten, oder die Schaltfläche Hochladen in der Toolbar nutzen."
-        }
+        "export": "Exportieren"
     },
     "roles": {
         "names": {
@@ -157,8 +91,6 @@
     "a11y": {
         "skipToContent": "Zum Inhalt springen",
         "mainNav": "Hauptnavigation",
-        "breadcrumb": "Brotkrümelnavigation",
-        "chatThreadList": "Chat-Threads",
         "openMenu": "Menü öffnen",
         "search": "Suchen",
         "removeConditionRule": "Bedingungsregel entfernen",
@@ -176,8 +108,39 @@
         "configureColumns": "Spalten konfigurieren",
         "columnOptions": "Spaltenoptionen für {{label}}",
         "fieldActions": "Feldaktionen",
-        "saving": "Wird gespeichert",
-        "aiAnswerReady": "Antwort des Assistenten: {{preview}}"
+        "dragToReorder": "Zum Neuordnen ziehen",
+        "removeChoice": "Auswahl entfernen",
+        "required": "pflicht",
+        "yes": "Ja",
+        "no": "Nein",
+        "editMode": "Bearbeiten",
+        "previewMode": "Vorschau",
+        "heading": "Überschrift",
+        "insertImage": "Bild",
+        "moveBlockUp": "Block nach oben",
+        "moveBlockDown": "Block nach unten",
+        "changed": "Geändert",
+        "reorder": "Neu ordnen",
+        "filters": "Filter",
+        "removeFilter": "Filter entfernen",
+        "filterField": "Filterfeld",
+        "filterOperator": "Filteroperator",
+        "filterValue": "Filterwert",
+        "selectAll": "Alle auswählen",
+        "sortBy": "Sortieren nach",
+        "activeList": "Aktiv",
+        "trashList": "Papierkorb",
+        "pinChat": "Chat anheften",
+        "unpinChat": "Chat lösen",
+        "deleteChat": "Chat löschen",
+        "deleteSelectedChats": "Ausgewählte Chats löschen",
+        "editField": "Feld bearbeiten",
+        "fieldsPanel": "Felder",
+        "activityPanel": "Aktivität",
+        "fromDate": "Von Datum",
+        "toDate": "Bis Datum",
+        "removeRule": "Regel entfernen",
+        "removeLocale": "Locale {{code}} entfernen"
     },
     "auth": {
         "login": {
@@ -285,12 +248,6 @@
             "linkSent": "Ein neuer Bestätigungslink wurde an Ihre E-Mail-Adresse gesendet."
         },
         "apiKeys": {
-            "description": "Bearer-Tokens für /api/v1. Berechtigungen kommen von der gewählten Rolle (Public für anonym-äquivalenten Zugriff).",
-            "create": "API-Schlüssel erstellen",
-            "createTitle": "API-Schlüssel erstellen",
-            "createDescription": "Namen vergeben, Rolle und Besitzer wählen, optional Scopes einschränken.",
-            "empty": "Noch keine API-Schlüssel.",
-            "secretBanner": "Schlüssel jetzt kopieren — er wird nicht erneut angezeigt.",
             "collectionSlugs": "Collection-Allowlist (optional, Slugs kommagetrennt)",
             "collectionSlugsHelp": "Leer lassen, um alle Collections der Rolle zuzulassen. Scopes schränken nur ein.",
             "owner": "Besitzer",
@@ -509,21 +466,6 @@
             "notifierTelegramSendTest": "Telegram-Test senden",
             "notifierTelegramSendTestHint": "Chat-ID und Token speichern, dann Ping sofort senden (kein Queue-Worker nötig).",
             "notifiersPrivacyNote": "Event-Metadaten werden bei Konfiguration an Slack oder Telegram gesendet. Datenschutz des Anbieters bei Self-Hosting prüfen.",
-            "deployTitle": "Deploy-Hooks",
-            "deployDescription": "Benannte URLs für Vercel-, Netlify-, Cloudflare-Pages- oder Forge-Deploy-Hooks. URLs werden verschlüsselt gespeichert.",
-            "deployHookLabel": "Hook {{number}}",
-            "deployHookName": "Name",
-            "deployHookUrl": "Deploy-Hook-URL",
-            "deployHookUrlHint": "Provider-Deploy-Hook-URL einfügen. Sie wird verschlüsselt gespeichert und nicht erneut angezeigt.",
-            "deployHookUrlConfigured": "Eine URL ist bereits konfiguriert. Leer lassen zum Behalten oder neue URL zum Ersetzen einfügen.",
-            "deployHookAdd": "Deploy-Hook hinzufügen",
-            "deployHookRemove": "Deploy-Hook entfernen",
-            "deployOnPublish": "Bei Veröffentlichung deployen",
-            "deployOnPublishHint": "Wenn aktiv, löst jede Item-Veröffentlichung alle konfigurierten Deploy-Hooks einmal aus.",
-            "deployTrigger": "Jetzt deployen",
-            "deployTriggerHint": "Stellt einen POST an jeden konfigurierten Hook in die Warteschlange. Erfordert die Berechtigung deploy.trigger und einen Queue-Worker, außer QUEUE_CONNECTION=sync.",
-            "deployLastRunTitle": "Letzter Deploy-Lauf",
-            "deployLastRunNone": "Noch kein Deploy ausgelöst.",
             "modules": {
                 "dashboard": "Dashboard",
                 "ai": "Assistent",
@@ -594,20 +536,7 @@
             "sidebar": {
                 "breadcrumb": "Seitenleisten-Einstellungen",
                 "head": "Seitenleisten-Einstellungen"
-            },
-            "themePresetTitle": "Theme-Preset",
-            "themePresetDescription": "Wähle eine integrierte Palette für das Admin. Eine eigene Markenfarbe überschreibt weiterhin Primary.",
-            "themePresetTeal": "qiick Teal (Standard)",
-            "themePresetIndigo": "Indigo",
-            "themePresetViolet": "Violett",
-            "themePresetRose": "Rose",
-            "themePresetSlate": "Schiefer",
-            "customColorTitle": "Eigene Markenfarbe",
-            "customColorDescription": "Optionaler Override für Primary. Leer lassen, um den gewählten Preset zu nutzen.",
-            "clearCustomColor": "Eigene Farbe entfernen",
-            "brandContrastWarning": "Diese Markenfarbe erfüllt nicht den WCAG-AA-Kontrast (4.5:1 Text / 3:1 UI). Bitte eine dunklere oder hellere Nuance wählen.",
-            "presetPreviewLight": "Hell",
-            "presetPreviewDark": "Dunkel"
+            }
         },
         "deleteUser": {
             "title": "Konto löschen",
@@ -831,10 +760,6 @@
             "previewAs": "Vorschau als…",
             "livePreview": "Live Preview",
             "livePreviewError": "Live Preview konnte nicht geöffnet werden. Prüfe die Vorschau-URL der Collection.",
-            "livePreviewAt": "Vorschau zum…",
-            "livePreviewAtHint": "Zeigt den Eintrag so, wie er bei geplanten Änderungen live aussehen wird (max. 90 Tage voraus).",
-            "livePreviewAtOpen": "Vorschau öffnen",
-            "livePreviewAtInvalid": "Wähle eine gültige Zeit innerhalb der nächsten 90 Tage.",
             "chat": "Chat",
             "revisions": "Revisionen",
             "editFields": "Felder bearbeiten",
@@ -1219,22 +1144,6 @@
             "bulkForceDeleteTitle": "{{count}} ausgewählte Collections endgültig löschen?",
             "bulkForceDeleteDescription": "Ausgewählte Collections werden dauerhaft entfernt. Das kann nicht rückgängig gemacht werden.",
             "bulkForceDeleteTitleNamed": "Collection „{{name}}“ endgültig löschen?"
-        },
-        "translatableLockedHintConvert": "Hier gesperrt, weil das Feld bereits Inhalte hat. Nutzen Sie Typ ändern / konvertieren, um Werte sicher zu migrieren (oder legen Sie ein neues Feld an).",
-        "convert": {
-            "menuLabel": "Typ ändern…",
-            "title": "Feld „{{name}}“ konvertieren",
-            "description": "Migriert gespeicherte Werte in einen unterstützten Typ oder übersetzbaren Speicher. Zuerst Dry-run für Fehler prüfen.",
-            "targetType": "Zieltyp",
-            "translatableHint": "Werte in die Standard-Locale verschieben oder auf eine Locale reduzieren.",
-            "dryRun": "Dry-run",
-            "confirm": "Konvertieren",
-            "previewSummary": "ok {{ok}} · fehlgeschlagen {{failed}} · Entwürfe {{drafts}} · übersprungen {{skipped}}",
-            "loadTargetsFailed": "Konvertierungsziele konnten nicht geladen werden.",
-            "previewFailed": "Dry-run fehlgeschlagen.",
-            "convertFailed": "Konvertierung fehlgeschlagen.",
-            "success": "Feld konvertiert.",
-            "queued": "Feldkonvertierung in der Warteschlange."
         }
     },
     "ai": {
@@ -1407,8 +1316,8 @@
         "askPlaceholder": "Assistenten fragen…",
         "askSomething": "Etwas fragen…",
         "offlinePlaceholder": "KI offline…",
-        "attachTooltip": "Items, Dateien, gespeicherte Prompts oder Import-CSV/TXT/Excel/PDF anhängen",
-        "attachShortTooltip": "Kontext oder Import-Dateien anhängen",
+        "attachTooltip": "CSV, TXT, Excel oder PDF anhängen (max. 5 MB)",
+        "attachShortTooltip": "CSV oder TXT anhängen (max. 5 MB)",
         "attachAria": "Anhängen",
         "messageAria": "Nachricht",
         "dictationAria": "Diktat",
@@ -1435,41 +1344,7 @@
         "removeAttachment": "{{name}} entfernen",
         "simulation": "Simulation",
         "simulationHint": "Schreibt keine Daten",
-        "dictationUnsupported": "Diktat wird in diesem Browser nicht unterstützt",
-        "context": {
-            "title": "Kontext anhängen",
-            "description": "Fügen Sie Collection-Items, Bibliotheksdateien oder gespeicherte Prompts hinzu, die der Assistent für diese Nachricht nutzen soll.",
-            "attachTooltip": "Items, Dateien oder gespeicherte Prompts anhängen",
-            "tabs": {
-                "items": "Items",
-                "files": "Dateien",
-                "prompts": "Prompts"
-            },
-            "searchPlaceholder": "Suchen…",
-            "searchAria": "Kontext suchen",
-            "collectionAria": "Collection",
-            "uploadImport": "Import-Datei hochladen",
-            "newPrompt": "Neuer Prompt",
-            "loading": "Laden…",
-            "emptyItems": "Keine lesbaren Items gefunden.",
-            "emptyFiles": "Keine Dateien gefunden.",
-            "emptyPrompts": "Noch keine gespeicherten Prompts.",
-            "selectedCount": "{{count}} ausgewählt",
-            "cancel": "Abbrechen",
-            "attachSelected": "Auswahl anhängen",
-            "promptName": "Name",
-            "promptDescription": "Beschreibung",
-            "promptBody": "Prompt-Text",
-            "savePrompt": "Prompt speichern",
-            "editPrompt": "Prompt bearbeiten",
-            "deletePrompt": "Prompt löschen",
-            "promptRequired": "Name und Text sind erforderlich.",
-            "promptSaved": "Prompt gespeichert",
-            "promptSaveFailed": "Prompt konnte nicht gespeichert werden",
-            "promptDeleted": "Prompt gelöscht",
-            "promptDeleteFailed": "Prompt konnte nicht gelöscht werden",
-            "loadFailed": "Kontext konnte nicht geladen werden"
-        }
+        "dictationUnsupported": "Diktat wird in diesem Browser nicht unterstützt"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1937,8 +1812,5 @@
         "empty": "Keine ausstehenden Freigaben.",
         "approve": "Freigeben",
         "reject": "Ablehnen"
-    },
-    "deploy": {
-        "button": "Deploy"
     }
 }

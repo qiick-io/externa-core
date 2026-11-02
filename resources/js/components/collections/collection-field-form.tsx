@@ -318,6 +318,8 @@ function OptionsEditor({
     options: FieldOptionRow[];
     onChange: (next: FieldOptionRow[]) => void;
 }) {
+    const { t } = useTranslation();
+
     return (
         <div className="space-y-4">
             <div>
@@ -362,7 +364,7 @@ function OptionsEditor({
                             onClick={() =>
                                 onChange(options.filter((_, i) => i !== index))
                             }
-                            aria-label="Remove choice"
+                            aria-label={t('a11y.removeChoice')}
                         >
                             ×
                         </Button>
@@ -390,6 +392,7 @@ function TreeOptionsEditor({
     onChange: (next: FieldTreeOptionRow[]) => void;
     depth?: number;
 }) {
+    const { t } = useTranslation();
     const updateNode = (
         index: number,
         updater: (node: FieldTreeOptionRow) => FieldTreeOptionRow,
@@ -445,7 +448,7 @@ function TreeOptionsEditor({
                             onClick={() =>
                                 onChange(options.filter((_, i) => i !== index))
                             }
-                            aria-label="Remove choice"
+                            aria-label={t('a11y.removeChoice')}
                         >
                             ×
                         </Button>

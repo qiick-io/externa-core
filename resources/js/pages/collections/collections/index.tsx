@@ -434,14 +434,14 @@ export default function CollectionsIndex({
                                 >
                                     <ToggleGroupItem
                                         value="active"
-                                        aria-label="Active collections"
+                                        aria-label={t('a11y.activeList')}
                                         className="px-2.5"
                                     >
                                         <FolderOpen className="size-4" />
                                     </ToggleGroupItem>
                                     <ToggleGroupItem
                                         value="trashed"
-                                        aria-label="Trash"
+                                        aria-label={t('a11y.trashList')}
                                         className="px-2.5"
                                     >
                                         <Trash2 className="size-4" />
@@ -465,7 +465,7 @@ export default function CollectionsIndex({
                                             onCheckedChange={(c) =>
                                                 toggleAll(c === true)
                                             }
-                                            aria-label="Select all"
+                                            aria-label={t('a11y.selectAll')}
                                         />
                                     </th>
                                     <th className="p-3 font-medium">

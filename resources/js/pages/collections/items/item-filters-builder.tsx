@@ -95,7 +95,7 @@ export function ItemFiltersBuilder({
                     variant="outline"
                     size="sm"
                     className="h-9 gap-1.5"
-                    aria-label="Filters"
+                    aria-label={t('a11y.filters')}
                 >
                     <Filter className="size-4" />
                     Filters
@@ -229,7 +229,7 @@ export function ItemFiltersBuilder({
                                         size="sm"
                                         className="min-w-24 flex-1"
                                         value={rule.field}
-                                        aria-label="Filter field"
+                                        aria-label={t('a11y.filterField')}
                                         onChange={(e) =>
                                             updateRule(rule.id, {
                                                 field: e.target.value,
@@ -249,7 +249,7 @@ export function ItemFiltersBuilder({
                                         size="sm"
                                         className="min-w-28"
                                         value={rule.operator}
-                                        aria-label="Filter operator"
+                                        aria-label={t('a11y.filterOperator')}
                                         onChange={(e) =>
                                             updateRule(rule.id, {
                                                 operator: e.target
@@ -272,7 +272,7 @@ export function ItemFiltersBuilder({
                                                     ? 'a, b, c'
                                                     : 'Value'
                                             }
-                                            aria-label="Filter value"
+                                            aria-label={t('a11y.filterValue')}
                                             onChange={(e) =>
                                                 updateRule(rule.id, {
                                                     value: e.target.value,
@@ -292,7 +292,7 @@ export function ItemFiltersBuilder({
                                         variant="ghost"
                                         size="sm"
                                         className="h-8 px-2"
-                                        aria-label="Remove filter"
+                                        aria-label={t('a11y.removeFilter')}
                                         onClick={() => removeRule(rule.id)}
                                     >
                                         <X className="size-3.5" />

@@ -9,7 +9,9 @@ import {
 } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
+import { RequiredMarker } from '@/components/a11y/required-marker';
 import { FieldNoteSlot } from '@/components/collections/item-field-choice-inputs';
 import { LocalizedField } from '@/components/collections/localized-field';
 import { Badge } from '@/components/ui/badge';
@@ -212,6 +214,7 @@ export function BlocksFieldInput({
     /** Root field max nesting; falls back to settings / default 3. */
     maxBlocksDepth?: number;
 }) {
+    const { t } = useTranslation();
     const blockTypes = parseBlocksFieldSettings(field.settings).blockTypes;
     const maxBlocksDepth =
         maxBlocksDepthProp ?? effectiveMaxBlocksDepth(field.settings);
@@ -455,7 +458,7 @@ export function BlocksFieldInput({
                                     <button
                                         type="button"
                                         className="drag-handle text-muted-foreground"
-                                        aria-label="Drag to reorder"
+                                        aria-label={t('a11y.dragToReorder')}
                                     >
                                         <GripVertical className="size-4" />
                                     </button>
@@ -495,7 +498,7 @@ export function BlocksFieldInput({
                                             size="sm"
                                             variant="ghost"
                                             disabled={index === 0}
-                                            aria-label="Move block up"
+                                            aria-label={t('a11y.moveBlockUp')}
                                             onClick={() =>
                                                 moveBlock(block.id, -1)
                                             }
@@ -509,7 +512,7 @@ export function BlocksFieldInput({
                                             disabled={
                                                 index === blocks.length - 1
                                             }
-                                            aria-label="Move block down"
+                                            aria-label={t('a11y.moveBlockDown')}
                                             onClick={() =>
                                                 moveBlock(block.id, 1)
                                             }
@@ -597,12 +600,7 @@ export function BlocksFieldInput({
                                                 label={
                                                     <>
                                                         {nestedLabel}
-                                                        {flags.required ? (
-                                                            <span className="text-destructive">
-                                                                {' '}
-                                                                *
-                                                            </span>
-                                                        ) : null}
+                                                        {flags.required ? <RequiredMarker /> : null}
                                                     </>
                                                 }
                                                 description={getFieldNote(
@@ -748,12 +746,7 @@ export function BlocksFieldInput({
                                                         htmlFor={`${field.name}_${block.id}_${nestedField.name}`}
                                                     >
                                                         {nestedLabel}
-                                                        {flags.required ? (
-                                                            <span className="text-destructive">
-                                                                {' '}
-                                                                *
-                                                            </span>
-                                                        ) : null}
+                                                        {flags.required ? <RequiredMarker /> : null}
                                                     </Label>
                                                 </div>
                                             </div>

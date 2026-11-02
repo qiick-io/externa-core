@@ -51,6 +51,7 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import { RequiredMarker } from '@/components/a11y/required-marker';
 import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -663,11 +664,13 @@ function renderFieldControl(context: FieldRenderContext) {
  * Subtle amber asterisk for fields that differ in revision compare.
  */
 function DiffChangedMarker() {
+    const { t } = useTranslation();
+
     return (
         <span
             className="ml-1 inline-flex text-amber-500"
-            title="Changed"
-            aria-label="Changed"
+            title={t('a11y.changed')}
+            aria-label={t('a11y.changed')}
         >
             <Asterisk className="size-3.5" strokeWidth={2.5} aria-hidden />
         </span>
@@ -724,7 +727,7 @@ function TranslatableItemField({
     const labelText = showFieldNameHeading ? (
         <>
             {displayName}
-            {required ? <span className="text-destructive"> *</span> : null}
+            {required ? <RequiredMarker /> : null}
             {showDiffMarker ? <DiffChangedMarker /> : null}
         </>
     ) : undefined;
@@ -999,7 +1002,7 @@ function NonTranslatableItemField({
     const labelText = showFieldNameHeading ? (
         <>
             {displayName}
-            {required ? <span className="text-destructive"> *</span> : null}
+            {required ? <RequiredMarker /> : null}
             {showDiffMarker ? <DiffChangedMarker /> : null}
         </>
     ) : undefined;
@@ -1398,9 +1401,7 @@ export function DynamicItemFields({
                         <div className="flex flex-wrap items-center gap-2">
                             <span className="font-mono text-sm font-medium">
                                 {displayName}
-                                {flags.required ? (
-                                    <span className="text-destructive"> *</span>
-                                ) : null}
+                                {flags.required ? <RequiredMarker /> : null}
                             </span>
                             {field.translatable && (
                                 <Badge variant="secondary">Translatable</Badge>

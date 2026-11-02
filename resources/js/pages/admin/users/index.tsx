@@ -352,7 +352,7 @@ export default function AdminUsersIndex({
                                 >
                                     <SelectTrigger
                                         size="sm"
-                                        aria-label="Sort by"
+                                        aria-label={t('a11y.sortBy')}
                                         className="w-[7.5rem]"
                                     >
                                         <SelectValue placeholder="Sort" />
@@ -407,14 +407,14 @@ export default function AdminUsersIndex({
                                 >
                                     <ToggleGroupItem
                                         value="active"
-                                        aria-label="Active users"
+                                        aria-label={t('a11y.activeList')}
                                         className="px-2.5"
                                     >
                                         <Users className="size-4" />
                                     </ToggleGroupItem>
                                     <ToggleGroupItem
                                         value="trashed"
-                                        aria-label="Trash"
+                                        aria-label={t('a11y.trashList')}
                                         className="px-2.5"
                                     >
                                         <Trash2 className="size-4" />

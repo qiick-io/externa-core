@@ -1362,14 +1362,14 @@ export default function ItemsForm({
                             >
                                 <ToggleGroupItem
                                     value="fields"
-                                    aria-label="Fields"
+                                    aria-label={t('a11y.fieldsPanel')}
                                     className="h-9 px-2.5"
                                 >
                                     <ScrollText className="size-4" />
                                 </ToggleGroupItem>
                                 <ToggleGroupItem
                                     value="activity"
-                                    aria-label="Activity"
+                                    aria-label={t('a11y.activityPanel')}
                                     className="h-9 px-2.5"
                                 >
                                     <History className="size-4" />

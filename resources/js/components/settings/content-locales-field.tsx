@@ -32,6 +32,7 @@ function LocaleRow({
     onRemove: () => void;
     canRemove: boolean;
 }) {
+    const { t } = useTranslation();
     const meta = contentLocaleMeta(code);
 
     return (
@@ -42,7 +43,7 @@ function LocaleRow({
             <button
                 type="button"
                 className="drag-handle cursor-grab touch-none text-muted-foreground hover:text-foreground"
-                aria-label="Reorder"
+                aria-label={t('a11y.reorder')}
             >
                 <GripVertical className="size-4" />
             </button>
@@ -58,7 +59,7 @@ function LocaleRow({
                 className="text-muted-foreground hover:text-foreground disabled:opacity-40"
                 onClick={onRemove}
                 disabled={!canRemove}
-                aria-label={`Remove ${code}`}
+                aria-label={t('a11y.removeLocale', { code })}
             >
                 <X className="size-4" />
             </button>
