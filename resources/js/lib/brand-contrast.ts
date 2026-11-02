@@ -46,16 +46,16 @@ function pickForeground(hex: string): string | null {
     const contrastWhite = contrastRatio(hex, FOREGROUND_LIGHT);
     const contrastInk = contrastRatio(hex, FOREGROUND_DARK);
 
-    if (
-        contrastWhite < TEXT_CONTRAST_MIN &&
-        contrastInk < TEXT_CONTRAST_MIN
-    ) {
+    if (contrastWhite < TEXT_CONTRAST_MIN && contrastInk < TEXT_CONTRAST_MIN) {
         return contrastWhite >= contrastInk
             ? FOREGROUND_LIGHT
             : FOREGROUND_DARK;
     }
 
-    if (contrastWhite >= TEXT_CONTRAST_MIN && contrastInk >= TEXT_CONTRAST_MIN) {
+    if (
+        contrastWhite >= TEXT_CONTRAST_MIN &&
+        contrastInk >= TEXT_CONTRAST_MIN
+    ) {
         return contrastWhite >= contrastInk
             ? FOREGROUND_LIGHT
             : FOREGROUND_DARK;

@@ -1,9 +1,4 @@
-export type ThemePresetSlug =
-    | 'teal'
-    | 'indigo'
-    | 'violet'
-    | 'rose'
-    | 'slate';
+export type ThemePresetSlug = 'teal' | 'indigo' | 'violet' | 'rose' | 'slate';
 
 export type ThemePresetCatalogItem = {
     slug: ThemePresetSlug;

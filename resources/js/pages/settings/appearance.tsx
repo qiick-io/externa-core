@@ -29,12 +29,8 @@ import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { brandPassesAa } from '@/lib/brand-contrast';
 import { applyThemeCss, buildPreviewThemeCss } from '@/lib/theme-css';
-import {
-    DEFAULT_THEME_PRESET,
-    themePresetBySlug
-    
-} from '@/lib/theme-presets';
-import type {ThemePresetSlug} from '@/lib/theme-presets';
+import { DEFAULT_THEME_PRESET, themePresetBySlug } from '@/lib/theme-presets';
+import type { ThemePresetSlug } from '@/lib/theme-presets';
 import { edit as editAppearance } from '@/routes/appearance';
 import type {
     AppearanceFileMeta,
@@ -77,8 +73,7 @@ export default function Appearance({
     const { projectAppearance } = usePage().props;
 
     const catalog = appearance.theme_presets;
-    const initialPreset =
-        appearance.theme_preset ?? DEFAULT_THEME_PRESET;
+    const initialPreset = appearance.theme_preset ?? DEFAULT_THEME_PRESET;
     const initialColor = appearance.project_color;
     const initialColorDark = appearance.project_color_dark;
     const initialAppearance = appearance.default_appearance;
