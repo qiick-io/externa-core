@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: 'api',
         then: function (): void {
             require __DIR__.'/../routes/health.php';
+            require __DIR__.'/../routes/mcp.php';
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -55,6 +56,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'ai/webhooks/collection-import',
             'api/graphql',
             'graphql',
+            'mcp',
+            'mcp/*',
         ]);
 
         $middleware->web(append: [
