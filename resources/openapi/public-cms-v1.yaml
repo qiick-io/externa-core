@@ -121,6 +121,102 @@ paths:
                     $ref: '#/components/responses/NotFound'
                 '422':
                     $ref: '#/components/responses/ValidationError'
+    /collections/{slug}/items/batch:
+        post:
+            tags: [Items]
+            summary: Batch create items
+            description: |
+                Create up to `API_MAX_BATCH_SIZE` (default 100) items in one request.
+                Each entry is atomic via CreateCollectionItemAction (same validation, activity log,
+                and `item.created` webhook as single create). Partial success returns 200 with
+                per-index `ok` / `error` results — no separate batch webhook types.
+            operationId: batchCreateItems
+            security:
+                - ApiKeyBearer: []
+                - {}
+            parameters:
+                - $ref: '#/components/parameters/CollectionSlug'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/BatchCreateCollectionItemsRequest'
+            responses:
+                '200':
+                    description: Per-item results (partial success allowed)
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BatchWriteItemsResponse'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '422':
+                    $ref: '#/components/responses/ValidationError'
+        patch:
+            tags: [Items]
+            summary: Batch update items
+            description: |
+                Update up to `API_MAX_BATCH_SIZE` items. Each entry uses UpdateCollectionItemAction
+                (same draft/versioning rules as single PATCH). Emits `item.updated` per success.
+            operationId: batchUpdateItems
+            security:
+                - ApiKeyBearer: []
+                - {}
+            parameters:
+                - $ref: '#/components/parameters/CollectionSlug'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/BatchUpdateCollectionItemsRequest'
+            responses:
+                '200':
+                    description: Per-item results (partial success allowed)
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BatchWriteItemsResponse'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '422':
+                    $ref: '#/components/responses/ValidationError'
+        delete:
+            tags: [Items]
+            summary: Batch soft-delete items
+            description: |
+                Soft-delete up to `API_MAX_BATCH_SIZE` items by id. Each success emits `item.deleted`
+                (same model path as single DELETE). Missing ids appear as per-entry failures.
+            operationId: batchDeleteItems
+            security:
+                - ApiKeyBearer: []
+                - {}
+            parameters:
+                - $ref: '#/components/parameters/CollectionSlug'
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/BatchDeleteCollectionItemsRequest'
+            responses:
+                '200':
+                    description: Per-id results (partial success allowed)
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BatchDeleteItemsResponse'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '422':
+                    $ref: '#/components/responses/ValidationError'
     /collections/{slug}/items/{id}:
         get:
             tags: [Items]
@@ -665,6 +761,120 @@ components:
                     type: object
                     additionalProperties: true
                     description: Partial field values to update
+        BatchCreateCollectionItemsRequest:
+            type: object
+            required: [items]
+            properties:
+                items:
+                    type: array
+                    minItems: 1
+                    maxItems: 100
+                    items:
+                        type: object
+                        properties:
+                            data:
+                                type: object
+                                additionalProperties: true
+        BatchUpdateCollectionItemsRequest:
+            type: object
+            required: [items]
+            properties:
+                items:
+                    type: array
+                    minItems: 1
+                    maxItems: 100
+                    items:
+                        type: object
+                        required: [id]
+                        properties:
+                            id:
+                                type: integer
+                                minimum: 1
+                            data:
+                                type: object
+                                additionalProperties: true
+        BatchDeleteCollectionItemsRequest:
+            type: object
+            required: [ids]
+            properties:
+                ids:
+                    type: array
+                    minItems: 1
+                    maxItems: 100
+                    uniqueItems: true
+                    items:
+                        type: integer
+                        minimum: 1
+        BatchResultMeta:
+            type: object
+            required: [total, succeeded, failed]
+            properties:
+                total:
+                    type: integer
+                succeeded:
+                    type: integer
+                failed:
+                    type: integer
+        BatchItemError:
+            type: object
+            required: [message, status]
+            properties:
+                message:
+                    type: string
+                status:
+                    type: integer
+                errors:
+                    type: object
+                    additionalProperties:
+                        type: array
+                        items:
+                            type: string
+        BatchWriteItemResult:
+            type: object
+            required: [index, ok]
+            properties:
+                index:
+                    type: integer
+                ok:
+                    type: boolean
+                item:
+                    $ref: '#/components/schemas/CollectionItemResource'
+                id:
+                    type: integer
+                error:
+                    $ref: '#/components/schemas/BatchItemError'
+        BatchDeleteItemResult:
+            type: object
+            required: [index, ok]
+            properties:
+                index:
+                    type: integer
+                ok:
+                    type: boolean
+                id:
+                    type: integer
+                error:
+                    $ref: '#/components/schemas/BatchItemError'
+        BatchWriteItemsResponse:
+            type: object
+            required: [data, meta]
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/BatchWriteItemResult'
+                meta:
+                    $ref: '#/components/schemas/BatchResultMeta'
+        BatchDeleteItemsResponse:
+            type: object
+            required: [data, meta]
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/BatchDeleteItemResult'
+                meta:
+                    $ref: '#/components/schemas/BatchResultMeta'
         ExpandedFileField:
             type: object
             required:

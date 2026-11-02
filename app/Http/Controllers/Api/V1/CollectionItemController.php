@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Concerns\AuthorizesCollectionAccessTrait;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
+use App\Services\Api\BatchCollectionItemsService;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use App\Services\Api\FilePermissionGuardService;
 use App\Services\Api\PublicApiResponseCacheService;
@@ -32,6 +33,7 @@ class CollectionItemController extends Controller
         private CollectionItemQueryService $itemQueryService,
         private CreateCollectionItemAction $createCollectionItemAction,
         private UpdateCollectionItemAction $updateCollectionItemAction,
+        private BatchCollectionItemsService $batchCollectionItemsService,
         private CollectionPermissionEnforcerService $permissionEnforcer,
         private PublicApiResponseCacheService $responseCache,
         private PublicItemSortParser $sortParser,
@@ -252,5 +254,79 @@ class CollectionItemController extends Controller
         $model->delete();
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Batch-create items; each entry uses {@see CreateCollectionItemAction}.
+     */
+    public function batchStore(Request $request, string $slug): JsonResponse
+    {
+        $collection = $this->findCollectionBySlug($slug);
+        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Create);
+
+        $maxBatchSize = $this->maxBatchSize();
+        $validated = $request->validate([
+            'items' => ['required', 'array', 'min:1', 'max:'.$maxBatchSize],
+            'items.*' => ['required', 'array'],
+            'items.*.data' => ['nullable', 'array'],
+        ]);
+
+        /** @var list<array{data?: mixed}> $items */
+        $items = array_values($validated['items']);
+
+        return response()->json(
+            $this->batchCollectionItemsService->create($request, $collection, $items),
+        );
+    }
+
+    /**
+     * Batch-update items; each entry uses {@see UpdateCollectionItemAction}.
+     */
+    public function batchUpdate(Request $request, string $slug): JsonResponse
+    {
+        $collection = $this->findCollectionBySlug($slug);
+        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Update);
+
+        $maxBatchSize = $this->maxBatchSize();
+        $validated = $request->validate([
+            'items' => ['required', 'array', 'min:1', 'max:'.$maxBatchSize],
+            'items.*' => ['required', 'array'],
+            'items.*.id' => ['required', 'integer', 'min:1'],
+            'items.*.data' => ['nullable', 'array'],
+        ]);
+
+        /** @var list<array{id: int, data?: mixed}> $items */
+        $items = array_values($validated['items']);
+
+        return response()->json(
+            $this->batchCollectionItemsService->update($request, $collection, $items),
+        );
+    }
+
+    /**
+     * Batch soft-delete items (same soft-delete path as single destroy).
+     */
+    public function batchDestroy(Request $request, string $slug): JsonResponse
+    {
+        $collection = $this->findCollectionBySlug($slug);
+        $this->authorizeCollection($request, $collection, CollectionPermissionActionEnum::Delete);
+
+        $maxBatchSize = $this->maxBatchSize();
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:'.$maxBatchSize],
+            'ids.*' => ['required', 'integer', 'min:1', 'distinct'],
+        ]);
+
+        /** @var list<int> $ids */
+        $ids = array_values($validated['ids']);
+
+        return response()->json(
+            $this->batchCollectionItemsService->delete($request, $collection, $ids),
+        );
+    }
+
+    private function maxBatchSize(): int
+    {
+        return max(1, (int) config('api.max_batch_size', 100));
     }
 }

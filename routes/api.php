@@ -37,6 +37,9 @@ Route::prefix('v1')
 
         Route::get('collections/{slug}/items', [CollectionItemController::class, 'index']);
         Route::post('collections/{slug}/items', [CollectionItemController::class, 'store']);
+        Route::post('collections/{slug}/items/batch', [CollectionItemController::class, 'batchStore']);
+        Route::patch('collections/{slug}/items/batch', [CollectionItemController::class, 'batchUpdate']);
+        Route::delete('collections/{slug}/items/batch', [CollectionItemController::class, 'batchDestroy']);
         Route::get('collections/{slug}/items/{item}', [CollectionItemController::class, 'show']);
         Route::patch('collections/{slug}/items/{item}', [CollectionItemController::class, 'update']);
         Route::delete('collections/{slug}/items/{item}', [CollectionItemController::class, 'destroy']);
