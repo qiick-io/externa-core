@@ -13,8 +13,8 @@ import {
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import type { BreadcrumbItem } from '@/types';
 import { edit as editProfile } from '@/routes/profile';
+import type { BreadcrumbItem } from '@/types';
 
 type PendingRow = {
     id: number;
