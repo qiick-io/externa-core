@@ -433,7 +433,7 @@ export default function AdminUsersIndex({
                                     </ToggleGroupItem>
                                     <ToggleGroupItem
                                         value="trashed"
-                                        aria-label="Trash"
+                                        aria-label={t('a11y.trashList')}
                                         className="px-2.5"
                                     >
                                         <Trash2 className="size-4" />
@@ -519,7 +519,7 @@ export default function AdminUsersIndex({
                                                 onCheckedChange={(c) =>
                                                     toggleAll(c === true)
                                                 }
-                                                aria-label="Select all"
+                                                aria-label={t('a11y.selectAll')}
                                             />
                                         </TableHead>
                                         <TableHead>Name</TableHead>
