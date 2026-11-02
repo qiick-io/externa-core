@@ -70,9 +70,12 @@ export function ThemePresetField({
                             <RadioGroupItem
                                 id={`theme-preset-${preset.slug}`}
                                 value={preset.slug}
+                                aria-labelledby={`theme-preset-${preset.slug}-name`}
                             />
                             <FieldContent>
-                                <FieldTitle>
+                                <FieldTitle
+                                    id={`theme-preset-${preset.slug}-name`}
+                                >
                                     {t(PRESET_NAME_KEYS[preset.slug])}
                                 </FieldTitle>
                                 <div className="flex gap-2" aria-hidden="true">

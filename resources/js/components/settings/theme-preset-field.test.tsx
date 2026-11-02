@@ -107,6 +107,27 @@ describe('ThemePresetField', () => {
         ).toBe('rose');
     });
 
+    it('names every preset radio after its visible preset name', () => {
+        render(
+            <ThemePresetFieldHarness initialValue="teal" onChange={vi.fn()} />,
+        );
+
+        const radios = screen.getAllByRole('radio');
+
+        expect(radios).toHaveLength(catalog.length);
+        expect(
+            screen.getByRole('radio', { name: 'qiick Teal (default)' }),
+        ).toHaveAttribute('aria-labelledby', 'theme-preset-teal-name');
+        expect(screen.getByRole('radio', { name: 'Rose' })).toHaveAttribute(
+            'aria-labelledby',
+            'theme-preset-rose-name',
+        );
+
+        for (const radio of radios) {
+            expect(radio).toHaveAccessibleName();
+        }
+    });
+
     it('selects another preset when its card is chosen', async () => {
         const user = userEvent.setup();
         const onChange = vi.fn();
