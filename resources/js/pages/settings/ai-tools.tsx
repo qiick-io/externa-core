@@ -72,6 +72,7 @@ export default function AiToolSettingsPage({
             <SettingsLayout>
                 <div className="space-y-6">
                     <Heading
+                        variant="small"
                         title={t('settings.aiTools.title')}
                         description={t('settings.aiTools.description')}
                     />

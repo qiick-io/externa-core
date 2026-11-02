@@ -48,6 +48,32 @@ export function fieldsVisibleInForm<
 /** Grid column width token for collection field layout. */
 export type FieldLayoutWidth = 'half' | 'full' | 'fill';
 
+/**
+ * Field types that prefer a half-width column and content-sized control
+ * when `layout_width` is unset (number, color, date, slugified string).
+ */
+export const CONTENT_SIZED_FIELD_TYPES = new Set(['number', 'color', 'date']);
+
+/**
+ * Whether a field should use content-sized / half-width layout by default.
+ *
+ * @param field - Field with optional type and settings
+ * @returns Whether short-input sizing applies
+ */
+export function isContentSizedField(field: {
+    type?: string;
+    settings?: Record<string, unknown> | null;
+}): boolean {
+    if (field.type && CONTENT_SIZED_FIELD_TYPES.has(field.type)) {
+        return true;
+    }
+
+    return field.type === 'string' && settingsFlag(field.settings?.slugify);
+}
+
+/** Tailwind width classes for content-sized short item-form controls. */
+export const CONTENT_SIZED_CONTROL_CLASS = 'w-auto max-w-[13rem]';
+
 /** Selectable layout width options for field settings UI. */
 export const FIELD_LAYOUT_WIDTH_OPTIONS: {
     value: FieldLayoutWidth;
@@ -60,15 +86,26 @@ export const FIELD_LAYOUT_WIDTH_OPTIONS: {
 
 /**
  * @param settings - Raw field settings
- * @returns Layout width token, defaulting to `full`
+ * @param fieldType - Optional field type; short types default to `half` when unset
+ * @returns Layout width token, defaulting to `full` (or `half` for short types)
  */
 export function getFieldLayoutWidth(
     settings?: Record<string, unknown> | null,
+    fieldType?: string,
 ): FieldLayoutWidth {
     const value = settings?.layout_width;
 
     if (value === 'half' || value === 'fill' || value === 'full') {
         return value;
+    }
+
+    if (
+        isContentSizedField({
+            type: fieldType,
+            settings,
+        })
+    ) {
+        return 'half';
     }
 
     return 'full';
@@ -115,7 +152,10 @@ export type FieldLayoutRowItem<T> = {
  * @returns Column span per field index
  */
 export function getFieldGridColSpans<
-    T extends { settings?: Record<string, unknown> | null },
+    T extends {
+        type?: string;
+        settings?: Record<string, unknown> | null;
+    },
 >(fields: T[]): (1 | 2)[] {
     const colSpans: (1 | 2)[] = [];
     let awaitingHalfPartner = false;
@@ -125,7 +165,7 @@ export function getFieldGridColSpans<
             awaitingHalfPartner = false;
         }
 
-        const layoutWidth = getFieldLayoutWidth(field.settings);
+        const layoutWidth = getFieldLayoutWidth(field.settings, field.type);
 
         if (layoutWidth === 'full') {
             awaitingHalfPartner = false;
@@ -165,7 +205,10 @@ export function getFieldGridColSpans<
  * @returns Rows of fields with column spans
  */
 export function groupFieldsIntoLayoutRows<
-    T extends { settings?: Record<string, unknown> | null },
+    T extends {
+        type?: string;
+        settings?: Record<string, unknown> | null;
+    },
 >(fields: T[]): FieldLayoutRowItem<T>[][] {
     const colSpans = getFieldGridColSpans(fields);
     const rows: FieldLayoutRowItem<T>[][] = [];
