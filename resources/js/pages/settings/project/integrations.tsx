@@ -59,6 +59,17 @@ type IntegrationsProjectSettings = Pick<
     | 'deploy_on_publish'
 >;
 
+type IntegrationsFormState = {
+    webhook_url: string;
+    webhook_secret: string;
+    notifier_slack_webhook_url: string;
+    notifier_telegram_bot_token: string;
+    notifier_telegram_chat_id: string;
+    notifier_event_types: string[];
+    deploy_hooks: DeployHookDraft[];
+    deploy_on_publish: boolean;
+};
+
 type Props = {
     project: IntegrationsProjectSettings;
     webhookEvents: WebhookEventCatalogEntry[];
@@ -66,7 +77,9 @@ type Props = {
     deployLastRun: DeployLastRun | null;
 };
 
-function buildFormState(project: IntegrationsProjectSettings) {
+function buildFormState(
+    project: IntegrationsProjectSettings,
+): IntegrationsFormState {
     return {
         webhook_url: project.webhook_url ?? '',
         webhook_secret: '',
@@ -74,13 +87,15 @@ function buildFormState(project: IntegrationsProjectSettings) {
         notifier_telegram_bot_token: '',
         notifier_telegram_chat_id: project.notifier_telegram_chat_id ?? '',
         notifier_event_types: project.notifier_event_types ?? [],
-        deploy_hooks: (project.deploy_hooks ?? []).map((hook, index) => ({
-            clientKey: hook.id || `new-${index}`,
-            id: hook.id,
-            name: hook.name,
-            url: '',
-            url_configured: hook.url_configured,
-        })),
+        deploy_hooks: (project.deploy_hooks ?? []).map(
+            (hook, index): DeployHookDraft => ({
+                clientKey: hook.id || `new-${index}`,
+                id: hook.id,
+                name: hook.name,
+                url: '',
+                url_configured: hook.url_configured,
+            }),
+        ),
         deploy_on_publish: project.deploy_on_publish ?? false,
     };
 }
@@ -97,7 +112,7 @@ export default function ProjectIntegrationsSettingsPage({
     const { t } = useTranslation();
     const { can } = useCan();
     const initialForm = useMemo(() => buildFormState(project), [project]);
-    const [form, setFormState] = useState(initialForm);
+    const [form, setFormState] = useState<IntegrationsFormState>(initialForm);
     const [isDirty, setIsDirty] = useState(false);
     const [sendingTestWebhook, setSendingTestWebhook] = useState(false);
     const [sendingTestSlackNotifier, setSendingTestSlackNotifier] =
@@ -107,7 +122,9 @@ export default function ProjectIntegrationsSettingsPage({
     const [isDeploying, setIsDeploying] = useState(false);
     const canTriggerDeploy = can(PermissionEnum.DeployTrigger);
 
-    const setForm: Dispatch<SetStateAction<typeof initialForm>> = (action) => {
+    const setForm: Dispatch<SetStateAction<IntegrationsFormState>> = (
+        action,
+    ) => {
         setIsDirty(true);
         setFormState(action);
     };
