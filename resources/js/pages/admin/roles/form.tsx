@@ -1,7 +1,8 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Check, Search, X } from 'lucide-react';
+import { Check, FolderOpen, Search, SearchX, X } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -21,6 +22,7 @@ import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import adminRoutes from '@/lib/admin-routes';
 import { cn } from '@/lib/utils';
+import collectionRoutes from '@/routes/collections';
 import { edit as editProfile } from '@/routes/profile';
 import type { AdminRoleRow, BreadcrumbItem, PermissionGroup } from '@/types';
 
@@ -683,13 +685,48 @@ export default function AdminRoleForm({
                             </div>
 
                             {collections.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    No collections yet.
-                                </p>
+                                <PageEmptyState
+                                    icon={FolderOpen}
+                                    title={t(
+                                        'emptyState.roleCollections.title',
+                                    )}
+                                    description={t(
+                                        'emptyState.roleCollections.description',
+                                    )}
+                                    action={
+                                        <Button asChild>
+                                            <Link
+                                                href={collectionRoutes.index.url()}
+                                            >
+                                                {t(
+                                                    'emptyState.roleCollections.cta',
+                                                )}
+                                            </Link>
+                                        </Button>
+                                    }
+                                    compact
+                                />
                             ) : filteredCollections.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    No collections match.
-                                </p>
+                                <PageEmptyState
+                                    icon={SearchX}
+                                    title={t(
+                                        'emptyState.roleCollections.filteredTitle',
+                                    )}
+                                    description={t(
+                                        'emptyState.roleCollections.filteredDescription',
+                                    )}
+                                    action={
+                                        <Button
+                                            type="button"
+                                            onClick={() =>
+                                                setCollectionSearch('')
+                                            }
+                                        >
+                                            {t('common.clearFilters')}
+                                        </Button>
+                                    }
+                                    compact
+                                />
                             ) : (
                                 <div className="overflow-x-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                                     <table className="w-full text-sm">

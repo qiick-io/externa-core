@@ -28,6 +28,7 @@ import { useTranslation } from 'react-i18next';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import ItemController from '@/actions/App/Http/Controllers/Collections/ItemController';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
+import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { ContentLocaleFlag } from '@/components/collections/content-locale-flag';
 import { DynamicItemFields } from '@/components/collections/dynamic-item-fields';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
@@ -1591,16 +1592,24 @@ export default function ItemsForm({
                     )}
 
                 {!hasFields && (
-                    <p className="rounded-xl border border-dashed border-sidebar-border/70 p-6 text-sm text-muted-foreground dark:border-sidebar-border">
-                        No fields yet.{' '}
-                        <Link
-                            className="text-primary underline-offset-4 hover:underline"
-                            href={FieldController.index.url(collection.id)}
-                        >
-                            Add fields
-                        </Link>{' '}
-                        before entering content.
-                    </p>
+                    <PageEmptyState
+                        icon={Rows3}
+                        title={t('emptyState.fields.title')}
+                        description={t('emptyState.fields.description')}
+                        action={
+                            <Button asChild>
+                                <Link
+                                    href={FieldController.index.url(
+                                        collection.id,
+                                    )}
+                                >
+                                    {t('emptyState.fields.cta')}
+                                </Link>
+                            </Button>
+                        }
+                        docsHref="https://docs.externa.qiick.io"
+                        docsLabel={t('common.learnMore')}
+                    />
                 )}
 
                 {hasFields && (

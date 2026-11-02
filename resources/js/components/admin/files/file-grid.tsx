@@ -1,8 +1,9 @@
-import { FolderOpen, FolderPlus, Upload } from 'lucide-react';
+import { FolderOpen, FolderPlus, Trash2, Upload } from 'lucide-react';
 import type { MouseEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isInternalFileDrag } from '@/components/admin/file-dropzone';
 import { FileCard } from '@/components/admin/files/file-card';
+import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { Button } from '@/components/ui/button';
 import {
     ContextMenu,
@@ -157,22 +158,35 @@ export function FileGrid({
             >
                 <div
                     data-testid="files-grid-area"
-                    className="flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-sidebar-border/70 bg-muted/20 p-8 text-center text-muted-foreground"
+                    className="flex flex-1 flex-col"
                     onClick={handleBackgroundClick}
                 >
-                    <Upload className="size-8 opacity-60" />
-                    <p className="text-sm font-medium">
-                        {isTrashed
-                            ? t('files.empty.trash')
-                            : uploadsEnabled
-                              ? t('files.empty.dropToUpload')
-                              : t('files.empty.folderEmpty')}
-                    </p>
-                    {uploadsEnabled && !isTrashed && (
-                        <p className="text-xs">
-                            {t('files.empty.orUseUpload')}
-                        </p>
-                    )}
+                    <PageEmptyState
+                        icon={isTrashed ? Trash2 : Upload}
+                        title={
+                            isTrashed
+                                ? t('emptyState.files.trashTitle')
+                                : uploadsEnabled
+                                  ? t('emptyState.files.dropTitle')
+                                  : t('emptyState.files.title')
+                        }
+                        description={
+                            isTrashed
+                                ? t('emptyState.files.trashDescription')
+                                : uploadsEnabled
+                                  ? t('emptyState.files.dropDescription')
+                                  : t('emptyState.files.description')
+                        }
+                        action={
+                            uploadsEnabled && !isTrashed ? (
+                                <Button type="button" onClick={onUploadFile}>
+                                    <Upload className="size-4" />
+                                    {t('emptyState.files.cta')}
+                                </Button>
+                            ) : undefined
+                        }
+                        className="min-h-64 flex-1 bg-muted/20"
+                    />
                 </div>
             </EmptyAreaContextMenu>
         );

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ContentCollectionController from '@/actions/App/Http/Controllers/Collections/ContentCollectionController';
 import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
+import { PageEmptyState } from '@/components/admin/page-empty-state';
 import {
     CollectionEditButton,
     CollectionEditDrawer,
@@ -119,16 +120,24 @@ export default function CollectionsShow({
                 scrollContent
             >
                 {!hasFields && (
-                    <p className="rounded-xl border border-dashed border-sidebar-border/70 p-6 text-sm text-muted-foreground dark:border-sidebar-border">
-                        No fields yet.{' '}
-                        <Link
-                            className="text-primary underline-offset-4 hover:underline"
-                            href={FieldController.index.url(collection.id)}
-                        >
-                            Add fields
-                        </Link>{' '}
-                        before entering content.
-                    </p>
+                    <PageEmptyState
+                        icon={Rows3}
+                        title={t('emptyState.fields.title')}
+                        description={t('emptyState.fields.description')}
+                        action={
+                            <Button asChild>
+                                <Link
+                                    href={FieldController.index.url(
+                                        collection.id,
+                                    )}
+                                >
+                                    {t('emptyState.fields.cta')}
+                                </Link>
+                            </Button>
+                        }
+                        docsHref="https://docs.externa.qiick.io"
+                        docsLabel={t('common.learnMore')}
+                    />
                 )}
 
                 {hasFields && (

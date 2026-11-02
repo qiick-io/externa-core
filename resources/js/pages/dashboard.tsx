@@ -1,4 +1,5 @@
 import { Deferred, Head, Link } from '@inertiajs/react';
+import { Activity, FolderOpen, HardDrive, Inbox } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -10,7 +11,9 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
+import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { PageLayout } from '@/components/layout/page-layout';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -324,12 +327,34 @@ export default function Dashboard({
                                                 0 ? (
                                                     <TableRow>
                                                         <TableCell
-                                                            className="py-6 text-center text-muted-foreground"
+                                                            className="p-3"
                                                             colSpan={2}
                                                         >
-                                                            {t(
-                                                                'dashboard.noCollections',
-                                                            )}
+                                                            <PageEmptyState
+                                                                icon={
+                                                                    FolderOpen
+                                                                }
+                                                                title={t(
+                                                                    'dashboard.noCollections',
+                                                                )}
+                                                                description={t(
+                                                                    'emptyState.dashboard.collectionsDescription',
+                                                                )}
+                                                                action={
+                                                                    <Button
+                                                                        asChild
+                                                                        size="sm"
+                                                                    >
+                                                                        <Link href="/collections">
+                                                                            {t(
+                                                                                'emptyState.dashboard.collectionsCta',
+                                                                            )}
+                                                                        </Link>
+                                                                    </Button>
+                                                                }
+                                                                compact
+                                                                className="border-0"
+                                                            />
                                                         </TableCell>
                                                     </TableRow>
                                                 ) : null}
@@ -353,9 +378,17 @@ export default function Dashboard({
                                         {activityLast7.every(
                                             (row) => row.count === 0,
                                         ) ? (
-                                            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                                                {t('dashboard.noActivity7d')}
-                                            </div>
+                                            <PageEmptyState
+                                                icon={Activity}
+                                                title={t(
+                                                    'dashboard.noActivity7d',
+                                                )}
+                                                description={t(
+                                                    'emptyState.dashboard.activityDescription',
+                                                )}
+                                                compact
+                                                className="h-full border-0"
+                                            />
                                         ) : (
                                             <ResponsiveContainer
                                                 width="100%"
@@ -405,9 +438,17 @@ export default function Dashboard({
                                         {eventBreakdownChart.every(
                                             (row) => row.count === 0,
                                         ) ? (
-                                            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                                                {t('dashboard.noContentEvents')}
-                                            </div>
+                                            <PageEmptyState
+                                                icon={Inbox}
+                                                title={t(
+                                                    'dashboard.noContentEvents',
+                                                )}
+                                                description={t(
+                                                    'emptyState.dashboard.genericDescription',
+                                                )}
+                                                compact
+                                                className="h-full border-0"
+                                            />
                                         ) : (
                                             <ResponsiveContainer
                                                 width="100%"
@@ -523,12 +564,34 @@ export default function Dashboard({
                                                     0 ? (
                                                         <TableRow>
                                                             <TableCell
-                                                                className="py-6 text-center text-muted-foreground"
+                                                                className="p-3"
                                                                 colSpan={3}
                                                             >
-                                                                {t(
-                                                                    'dashboard.noActivity',
-                                                                )}
+                                                                <PageEmptyState
+                                                                    icon={Inbox}
+                                                                    title={t(
+                                                                        'dashboard.noActivity',
+                                                                    )}
+                                                                    description={t(
+                                                                        'emptyState.dashboard.activityDescription',
+                                                                    )}
+                                                                    action={
+                                                                        <Button
+                                                                            asChild
+                                                                            size="sm"
+                                                                        >
+                                                                            <Link
+                                                                                href={adminRoutes.activityLogs.index()}
+                                                                            >
+                                                                                {t(
+                                                                                    'emptyState.dashboard.activityCta',
+                                                                                )}
+                                                                            </Link>
+                                                                        </Button>
+                                                                    }
+                                                                    compact
+                                                                    className="border-0"
+                                                                />
                                                             </TableCell>
                                                         </TableRow>
                                                     ) : null}
@@ -698,14 +761,36 @@ export default function Dashboard({
                                                             ).length === 0 ? (
                                                                 <TableRow>
                                                                     <TableCell
-                                                                        className="py-6 text-center text-muted-foreground"
+                                                                        className="p-3"
                                                                         colSpan={
                                                                             2
                                                                         }
                                                                     >
-                                                                        {t(
-                                                                            'dashboard.noFiles',
-                                                                        )}
+                                                                        <PageEmptyState
+                                                                            icon={
+                                                                                HardDrive
+                                                                            }
+                                                                            title={t(
+                                                                                'dashboard.noFiles',
+                                                                            )}
+                                                                            description={t(
+                                                                                'emptyState.dashboard.filesDescription',
+                                                                            )}
+                                                                            action={
+                                                                                <Button
+                                                                                    asChild
+                                                                                    size="sm"
+                                                                                >
+                                                                                    <Link href="/files">
+                                                                                        {t(
+                                                                                            'emptyState.dashboard.filesCta',
+                                                                                        )}
+                                                                                    </Link>
+                                                                                </Button>
+                                                                            }
+                                                                            compact
+                                                                            className="border-0"
+                                                                        />
                                                                     </TableCell>
                                                                 </TableRow>
                                                             ) : null}
@@ -776,14 +861,24 @@ export default function Dashboard({
                                                             0 ? (
                                                                 <TableRow>
                                                                     <TableCell
-                                                                        className="py-6 text-center text-muted-foreground"
+                                                                        className="p-3"
                                                                         colSpan={
                                                                             2
                                                                         }
                                                                     >
-                                                                        {t(
-                                                                            'dashboard.noData',
-                                                                        )}
+                                                                        <PageEmptyState
+                                                                            icon={
+                                                                                Inbox
+                                                                            }
+                                                                            title={t(
+                                                                                'dashboard.noData',
+                                                                            )}
+                                                                            description={t(
+                                                                                'emptyState.dashboard.genericDescription',
+                                                                            )}
+                                                                            compact
+                                                                            className="border-0"
+                                                                        />
                                                                     </TableCell>
                                                                 </TableRow>
                                                             ) : null}
@@ -867,12 +962,22 @@ export default function Dashboard({
                                                         0 ? (
                                                             <TableRow>
                                                                 <TableCell
-                                                                    className="py-6 text-center text-muted-foreground"
+                                                                    className="p-3"
                                                                     colSpan={2}
                                                                 >
-                                                                    {t(
-                                                                        'dashboard.noSuspicious',
-                                                                    )}
+                                                                    <PageEmptyState
+                                                                        icon={
+                                                                            Inbox
+                                                                        }
+                                                                        title={t(
+                                                                            'dashboard.noSuspicious',
+                                                                        )}
+                                                                        description={t(
+                                                                            'emptyState.dashboard.genericDescription',
+                                                                        )}
+                                                                        compact
+                                                                        className="border-0"
+                                                                    />
                                                                 </TableCell>
                                                             </TableRow>
                                                         ) : null}
@@ -933,14 +1038,24 @@ export default function Dashboard({
                                                             0 ? (
                                                                 <TableRow>
                                                                     <TableCell
-                                                                        className="py-6 text-center text-muted-foreground"
+                                                                        className="p-3"
                                                                         colSpan={
                                                                             2
                                                                         }
                                                                     >
-                                                                        {t(
-                                                                            'dashboard.noActivity',
-                                                                        )}
+                                                                        <PageEmptyState
+                                                                            icon={
+                                                                                Inbox
+                                                                            }
+                                                                            title={t(
+                                                                                'dashboard.noActivity',
+                                                                            )}
+                                                                            description={t(
+                                                                                'emptyState.dashboard.genericDescription',
+                                                                            )}
+                                                                            compact
+                                                                            className="border-0"
+                                                                        />
                                                                     </TableCell>
                                                                 </TableRow>
                                                             ) : null}
@@ -1022,14 +1137,24 @@ export default function Dashboard({
                                                             0 ? (
                                                                 <TableRow>
                                                                     <TableCell
-                                                                        className="py-6 text-center text-muted-foreground"
+                                                                        className="p-3"
                                                                         colSpan={
                                                                             2
                                                                         }
                                                                     >
-                                                                        {t(
-                                                                            'dashboard.noStuckUploads',
-                                                                        )}
+                                                                        <PageEmptyState
+                                                                            icon={
+                                                                                Inbox
+                                                                            }
+                                                                            title={t(
+                                                                                'dashboard.noStuckUploads',
+                                                                            )}
+                                                                            description={t(
+                                                                                'emptyState.dashboard.genericDescription',
+                                                                            )}
+                                                                            compact
+                                                                            className="border-0"
+                                                                        />
                                                                     </TableCell>
                                                                 </TableRow>
                                                             ) : null}
@@ -1107,12 +1232,22 @@ export default function Dashboard({
                                                         0 ? (
                                                             <TableRow>
                                                                 <TableCell
-                                                                    className="py-6 text-center text-muted-foreground"
+                                                                    className="p-3"
                                                                     colSpan={3}
                                                                 >
-                                                                    {t(
-                                                                        'dashboard.noData',
-                                                                    )}
+                                                                    <PageEmptyState
+                                                                        icon={
+                                                                            Inbox
+                                                                        }
+                                                                        title={t(
+                                                                            'dashboard.noData',
+                                                                        )}
+                                                                        description={t(
+                                                                            'emptyState.dashboard.genericDescription',
+                                                                        )}
+                                                                        compact
+                                                                        className="border-0"
+                                                                    />
                                                                 </TableCell>
                                                             </TableRow>
                                                         ) : null}
@@ -1281,9 +1416,15 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                     <CardContent>
                         <div className="h-44 w-full">
                             {!health.pulse_available || pulseQuiet ? (
-                                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                                    {t('dashboard.healthPulseQuiet')}
-                                </div>
+                                <PageEmptyState
+                                    icon={Activity}
+                                    title={t('dashboard.healthPulseQuiet')}
+                                    description={t(
+                                        'emptyState.dashboard.genericDescription',
+                                    )}
+                                    compact
+                                    className="h-full border-0"
+                                />
                             ) : (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={pulseChart}>
@@ -1425,9 +1566,15 @@ function DashboardHealthPanel({ health }: { health?: HealthMetrics }) {
                     <CardContent>
                         {!horizon.available ||
                         horizon.workloads.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                {t('dashboard.healthWorkloadsEmpty')}
-                            </p>
+                            <PageEmptyState
+                                icon={Inbox}
+                                title={t('dashboard.healthWorkloadsEmpty')}
+                                description={t(
+                                    'emptyState.dashboard.genericDescription',
+                                )}
+                                compact
+                                className="border-0"
+                            />
                         ) : (
                             <div className="overflow-x-auto rounded-md border">
                                 <Table>
