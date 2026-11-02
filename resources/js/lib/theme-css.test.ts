@@ -66,6 +66,28 @@ describe('applyThemeCss', () => {
         expect(document.documentElement.getAttribute('style') ?? '').toBe('');
     });
 
+    it('falls back to the teal focus ring when the brand has under 3:1 contrast in dark mode', () => {
+        document.documentElement.classList.add('dark');
+
+        // #0f172a is ~1.1:1 on the dark background but ~17:1 on white (#453).
+        const themeCss = buildPreviewThemeCss('teal', '#0f172a', null);
+        applyThemeCss(themeCss);
+
+        expect(themeCss.light.ring).toBe('#0f172a');
+        expect(themeCss.dark.ring).toBe('var(--color-teal-400)');
+        expect(themeCss.dark['sidebar-ring']).toBe('var(--color-teal-400)');
+        expect(computedVariable('--ring')).toBe('var(--color-teal-400)');
+    });
+
+    it('falls back to the teal focus ring when the brand has under 3:1 contrast in light mode', () => {
+        const themeCss = buildPreviewThemeCss('teal', '#f5f5f5', '#38bdf8');
+        applyThemeCss(themeCss);
+
+        expect(themeCss.light.ring).toBe('var(--color-teal-600)');
+        expect(themeCss.dark.ring).toBe('#38bdf8');
+        expect(computedVariable('--ring')).toBe('var(--color-teal-600)');
+    });
+
     it('skips values that would break out of the declaration block', () => {
         applyThemeCss(
             buildPreviewThemeCss('teal', '#000000; } body { color: red', null),
