@@ -360,7 +360,7 @@ export default function Appearance({
                                                 'settings.appearance.projectColor',
                                             )}
                                         </FieldLabel>
-                                        <div className="flex h-9 max-w-[220px] items-center gap-2 rounded-md border border-input bg-transparent px-3 shadow-xs has-[:focus-visible]:border-ring has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-inset dark:border-white/25">
+                                        <div className="flex h-9 max-w-[220px] items-center gap-2 rounded-md border border-input bg-transparent px-3 shadow-xs has-[:focus-visible]:border-ring has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background dark:border-white/25">
                                             <Input
                                                 id="project_color"
                                                 type="color"
@@ -417,7 +417,7 @@ export default function Appearance({
                                                 'settings.appearance.projectColorDark',
                                             )}
                                         </FieldLabel>
-                                        <div className="flex h-9 max-w-[220px] items-center gap-2 rounded-md border border-input bg-transparent px-3 shadow-xs has-[:focus-visible]:border-ring has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-inset dark:border-white/25">
+                                        <div className="flex h-9 max-w-[220px] items-center gap-2 rounded-md border border-input bg-transparent px-3 shadow-xs has-[:focus-visible]:border-ring has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background dark:border-white/25">
                                             <Input
                                                 id="project_color_dark"
                                                 type="color"

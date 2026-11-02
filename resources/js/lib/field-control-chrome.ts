@@ -6,9 +6,16 @@ import { cn } from '@/lib/utils';
  */
 export const fieldControlHeight = 'h-9';
 
+/**
+ * Visible focus ring for controls (WCAG 2.4.7): full-opacity `--ring`, offset, no inset.
+ * Prefer this over `ring-ring/50` / `ring-[3px]` / `ring-inset`.
+ */
+export const controlFocusRing =
+    'focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+
 /** Bordered chrome shared by naked single-row controls (boolean, slider, color, …). */
 export const fieldControlChromeBase =
-    'w-full rounded-md border border-input bg-transparent shadow-xs has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-inset';
+    'w-full rounded-md border border-input bg-transparent shadow-xs has-[:focus-visible]:border-ring has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background';
 
 /** Single-line chrome — fixed Input height. */
 export const fieldControlChromeSingle = cn(
