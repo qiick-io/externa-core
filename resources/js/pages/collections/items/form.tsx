@@ -1619,7 +1619,7 @@ export default function ItemsForm({
                                 key={formKey}
                                 {...formProps}
                                 id={COLLECTION_ITEM_FORM_ID}
-                                className="space-y-6"
+                                className="max-w-3xl space-y-6"
                                 options={{ preserveScroll: true }}
                                 onSuccess={() => {
                                     setIsDirty(false);
@@ -1692,7 +1692,7 @@ export default function ItemsForm({
                                         key={formKey}
                                         {...formProps}
                                         id={COLLECTION_ITEM_FORM_ID}
-                                        className="space-y-6"
+                                        className="max-w-3xl space-y-6"
                                         options={{ preserveScroll: true }}
                                         onSuccess={() => {
                                             setIsDirty(false);

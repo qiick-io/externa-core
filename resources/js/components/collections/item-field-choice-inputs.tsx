@@ -286,13 +286,18 @@ export function BooleanToggleInput({
             className={cn(
                 fieldControlChromeSingle,
                 'cursor-pointer gap-3',
-                readonly && 'cursor-not-allowed opacity-50',
+                readonly && 'cursor-default bg-muted/50',
             )}
         >
             <Switch
                 id={id}
                 checked={checked}
                 disabled={readonly}
+                className={
+                    readonly
+                        ? 'disabled:cursor-default disabled:opacity-100'
+                        : undefined
+                }
                 onCheckedChange={(next) => {
                     if (readonly) {
                         return;

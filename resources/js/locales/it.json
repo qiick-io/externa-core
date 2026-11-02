@@ -285,6 +285,12 @@
             "linkSent": "Un nuovo link di verifica è stato inviato al tuo indirizzo email."
         },
         "apiKeys": {
+            "description": "Bearer token per /api/v1. I permessi dipendono dal ruolo selezionato (usa Public per accesso equivalente all’anonimo).",
+            "create": "Crea API key",
+            "createTitle": "Crea API key",
+            "createDescription": "Assegna un nome, scegli ruolo e proprietario, poi restringi gli scope se serve.",
+            "empty": "Nessuna API key ancora.",
+            "secretBanner": "Copia questa chiave ora — non verrà mostrata di nuovo.",
             "collectionSlugs": "Allowlist collezioni (opzionale, slug separati da virgola)",
             "collectionSlugsHelp": "Lascia vuoto per consentire ogni collezione a cui il ruolo ha accesso. Gli scope restringono soltanto.",
             "owner": "Proprietario",

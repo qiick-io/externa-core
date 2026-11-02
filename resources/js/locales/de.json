@@ -285,6 +285,12 @@
             "linkSent": "Ein neuer Bestätigungslink wurde an Ihre E-Mail-Adresse gesendet."
         },
         "apiKeys": {
+            "description": "Bearer-Tokens für /api/v1. Berechtigungen kommen von der gewählten Rolle (Public für anonym-äquivalenten Zugriff).",
+            "create": "API-Schlüssel erstellen",
+            "createTitle": "API-Schlüssel erstellen",
+            "createDescription": "Namen vergeben, Rolle und Besitzer wählen, optional Scopes einschränken.",
+            "empty": "Noch keine API-Schlüssel.",
+            "secretBanner": "Schlüssel jetzt kopieren — er wird nicht erneut angezeigt.",
             "collectionSlugs": "Collection-Allowlist (optional, Slugs kommagetrennt)",
             "collectionSlugsHelp": "Leer lassen, um alle Collections der Rolle zuzulassen. Scopes schränken nur ein.",
             "owner": "Besitzer",

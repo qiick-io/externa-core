@@ -285,6 +285,12 @@
             "linkSent": "A new verification link has been sent to your email address."
         },
         "apiKeys": {
+            "description": "Bearer tokens for /api/v1. Permissions come from the selected role (use Public for anonymous-equivalent access).",
+            "create": "Create API key",
+            "createTitle": "Create API key",
+            "createDescription": "Name the key, pick a role and owner, then optionally narrow scopes.",
+            "empty": "No API keys yet.",
+            "secretBanner": "Copy this key now — it will not be shown again.",
             "collectionSlugs": "Collection allowlist (optional, comma-separated slugs)",
             "collectionSlugsHelp": "Leave empty to allow every collection the role can access. Scopes only narrow access.",
             "owner": "Owner",

@@ -331,7 +331,7 @@ export function DateFieldInput({
 
     if (mode === 'time') {
         return (
-            <div className="relative">
+            <div className="relative w-auto max-w-[13rem]">
                 <Input
                     id={id}
                     type="time"
@@ -349,7 +349,7 @@ export function DateFieldInput({
     }
 
     return (
-        <div>
+        <div className="w-auto max-w-[16rem]">
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                     <Button
@@ -362,6 +362,8 @@ export function DateFieldInput({
                             fieldControlHeight,
                             'w-full justify-between font-normal',
                             !selected && 'text-muted-foreground',
+                            readonly &&
+                                'disabled:cursor-default disabled:bg-muted/50 disabled:opacity-100',
                         )}
                     >
                         <span className="truncate">

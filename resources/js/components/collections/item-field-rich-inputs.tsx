@@ -1290,21 +1290,27 @@ export function ColorFieldInput({
                 type="color"
                 value={hex}
                 disabled={readonly}
-                className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
+                className="h-7 w-7 shrink-0 cursor-pointer border-0 p-0 shadow-none focus-visible:ring-0 disabled:cursor-default disabled:opacity-100 [&::-webkit-color-swatch]:rounded-[3px] [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
                 onChange={(event) => setHex(event.target.value)}
             />
             <Input
                 type="text"
                 value={storedValue}
                 readOnly
-                className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono text-sm shadow-none focus-visible:ring-0"
+                className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 font-mono text-sm shadow-none read-only:bg-transparent focus-visible:ring-0"
             />
         </>
     );
 
     if (!colorSettings.opacity) {
         return (
-            <div className={cn(colorFieldChrome, 'gap-2')}>
+            <div
+                className={cn(
+                    colorFieldChrome,
+                    'w-auto max-w-[13rem] gap-2',
+                    readonly && 'bg-muted/50',
+                )}
+            >
                 {swatchAndHex}
                 <input type="hidden" name={name} value={storedValue} />
             </div>
@@ -1312,7 +1318,13 @@ export function ColorFieldInput({
     }
 
     return (
-        <div className={cn(colorFieldChromeWithOpacity, 'space-y-2')}>
+        <div
+            className={cn(
+                colorFieldChromeWithOpacity,
+                'w-auto max-w-xs space-y-2',
+                readonly && 'bg-muted/50',
+            )}
+        >
             <div className="flex h-7 items-center gap-2">{swatchAndHex}</div>
             <div className="flex items-center gap-2">
                 <span className="inline-flex h-6 min-w-9 shrink-0 items-center justify-center rounded-sm bg-muted px-1.5 font-mono text-xs text-foreground tabular-nums">

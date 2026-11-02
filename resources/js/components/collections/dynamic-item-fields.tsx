@@ -65,10 +65,12 @@ import {
     isLayoutGroupType,
 } from '@/lib/collection-field-groups';
 import {
+    CONTENT_SIZED_CONTROL_CLASS,
     getFieldDisplayName,
     getFieldNote,
     getFieldPlaceholder,
     groupFieldsIntoLayoutRows,
+    isContentSizedField,
     isImageFieldMultiple,
     isFilesFieldMultiple,
     parseDateFieldSettings,
@@ -98,7 +100,7 @@ import type { CollectionFieldRow } from '@/types';
 const ITEM_FORM_ID = 'collection-item-form';
 
 const inputLike =
-    'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none';
+    'border-input bg-background ring-offset-background focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none read-only:cursor-default read-only:bg-muted/50 read-only:opacity-100';
 
 type FieldDef = {
     id: number;
@@ -311,6 +313,7 @@ function renderFieldControl(context: FieldRenderContext) {
                     readOnly={readonly}
                     aria-invalid={hasError}
                     aria-describedby={errorDescribedBy}
+                    className={CONTENT_SIZED_CONTROL_CLASS}
                 />
             );
         case 'slider':
@@ -545,6 +548,11 @@ function renderFieldControl(context: FieldRenderContext) {
                         readOnly={readonly}
                         aria-invalid={hasError}
                         aria-describedby={errorDescribedBy}
+                        className={
+                            isContentSizedField(field)
+                                ? CONTENT_SIZED_CONTROL_CLASS
+                                : undefined
+                        }
                     />
                 </InputWithIcons>
             );
@@ -1579,7 +1587,7 @@ export function DynamicItemFields({
                                       key={section.id}
                                       className="space-y-3"
                                   >
-                                      <h3 className="text-sm font-medium">
+                                      <h3 className="text-sm font-semibold text-muted-foreground">
                                           {title}
                                       </h3>
                                       {renderFieldGrid(group.fields)}
@@ -1593,7 +1601,7 @@ export function DynamicItemFields({
                                   defaultOpen={!section.collapsed}
                                   className="space-y-3 rounded-lg border bg-muted/30 p-4 dark:border-sidebar-border"
                               >
-                                  <CollapsibleTrigger className="flex w-full items-center justify-between text-left text-sm font-medium">
+                                  <CollapsibleTrigger className="flex w-full items-center justify-between text-left text-sm font-semibold text-muted-foreground">
                                       {title}
                                       <ChevronDown className="size-4" />
                                   </CollapsibleTrigger>
