@@ -92,9 +92,9 @@ JS;
         }
 
         $page->assertSee('Skip to content')
-            ->keys('body', 'Tab')
+            ->keys('html > body', 'Tab')
             ->wait(0.1)
-            ->keys('body', 'Tab')
+            ->keys('html > body', 'Tab')
             ->wait(0.1)
             ->assertScript($hasVisibleFocusRing, true)
             ->assertNoAccessibilityIssues(1)
@@ -133,9 +133,9 @@ JS;
         }
 
         $page->assertPresent('#main-content')
-            ->keys('body', 'Tab')
+            ->keys('html > body', 'Tab')
             ->wait(0.1)
-            ->keys('body', 'Tab')
+            ->keys('html > body', 'Tab')
             ->wait(0.1)
             ->assertScript($hasVisibleFocusRing, true)
             ->assertNoAccessibilityIssues(1)
@@ -185,9 +185,9 @@ JS;
         }
 
         $page->assertPresent('#main-content')
-            ->keys('body', 'Tab')
+            ->keys('html > body', 'Tab')
             ->wait(0.1)
-            ->keys('body', 'Tab')
+            ->keys('html > body', 'Tab')
             ->wait(0.1)
             ->assertScript($hasVisibleFocusRing, true)
             ->assertNoAccessibilityIssues(1)
