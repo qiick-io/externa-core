@@ -6,6 +6,7 @@ use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\AiToolJsonDecoder;
+use App\Contracts\Ai\ClassifiesToolActionsInterface;
 use App\Enums\PermissionEnum;
 use App\Enums\RoleEnum;
 use App\Http\Controllers\Admin\RoleController;
@@ -25,7 +26,7 @@ use Stringable;
 /**
  * AI tool for listing and mutating roles and their permissions.
  */
-class ManageRoles implements Approvable, Tool
+class ManageRoles implements Approvable, ClassifiesToolActionsInterface, Tool
 {
     use ChecksAiPermissionsTrait;
     use LogsAiToolUseTrait;
@@ -61,6 +62,10 @@ class ManageRoles implements Approvable, Tool
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
+            if (($refusal = $this->writeActionRefusal($request)) !== null) {
+                return $refusal;
+            }
+
             $action = (string) $request->string('action');
 
             return match ($action) {

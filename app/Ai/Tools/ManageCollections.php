@@ -7,6 +7,7 @@ use App\Ai\Concerns\ChecksAiPermissionsTrait;
 use App\Ai\Concerns\EnforcesAiCollectionPermissionsTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
+use App\Contracts\Ai\ClassifiesToolActionsInterface;
 use App\Data\Collections\CollectionItemWriteData;
 use App\Data\Collections\FieldConvertOptionsData;
 use App\Enums\FieldTypeEnum;
@@ -35,7 +36,7 @@ use Stringable;
 /**
  * AI tool for listing and mutating content collections and their settings.
  */
-class ManageCollections implements Approvable, Tool
+class ManageCollections implements Approvable, ClassifiesToolActionsInterface, Tool
 {
     use ChecksAiPermissionsTrait;
     use EnforcesAiCollectionPermissionsTrait;
@@ -82,6 +83,10 @@ class ManageCollections implements Approvable, Tool
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
+            if (($refusal = $this->writeActionRefusal($request)) !== null) {
+                return $refusal;
+            }
+
             $action = (string) $request->string('action');
 
             return match ($action) {

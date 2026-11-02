@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Api;
 
 use App\Enums\RoleEnum;
+use App\Http\Middleware\ResolveApiAccessMiddleware;
 use App\Models\ApiKey;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -73,16 +74,21 @@ class ApiKeyOwnerService
     }
 
     /**
-     * Resolve owner for backfill: created_by when the user still exists, else first admin.
+     * Resolve owner for backfill: created_by when that user is active and not deleted,
+     * else the first active admin ({@see firstAdminUserId()}).
+     *
+     * An inactive owner would make {@see ResolveApiAccessMiddleware}
+     * reject the key with 401, so a key created by a deactivated user moves to an admin.
      */
     public function resolveBackfillOwnerId(?int $createdBy): ?int
     {
         if ($createdBy !== null) {
-            $exists = DB::table('users')
+            $isActiveCreator = DB::table('users')
                 ->where('id', $createdBy)
+                ->where('is_active', true)
                 ->whereNull('deleted_at')
                 ->exists();
-            if ($exists) {
+            if ($isActiveCreator) {
                 return $createdBy;
             }
         }

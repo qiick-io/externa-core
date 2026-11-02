@@ -3,6 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Enums\PermissionEnum;
+use App\Enums\RoleEnum;
+use App\Models\Role;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Spatie\Permission\Models\Permission;
@@ -33,14 +36,20 @@ class SyncPermissionsCommand extends Command
 
         $guard = config('auth.defaults.guard', 'web');
         $enumValues = PermissionEnum::values();
+        $createdNames = [];
 
         foreach ($enumValues as $name) {
-            Permission::query()->firstOrCreate(
+            $permission = Permission::query()->firstOrCreate(
                 ['name' => $name, 'guard_name' => $guard],
             );
+
+            if ($permission->wasRecentlyCreated) {
+                $createdNames[] = $name;
+            }
         }
 
         $this->info(sprintf('Synced %d permissions.', count($enumValues)));
+        $this->grantCreatedPermissionsToAdmin($createdNames, $guard);
 
         if ($this->option('prune')) {
             $deleted = Permission::query()
@@ -55,6 +64,37 @@ class SyncPermissionsCommand extends Command
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Give the built-in `admin` role every permission this sync just created.
+     *
+     * Matches {@see RoleSeeder} (admin holds every permission) on upgraded installs,
+     * e.g. `deploy.trigger` and `ai.prompts.manage` after 1.3.0 (#439). Only new rows
+     * are granted, so permissions an operator removed from admin stay removed.
+     * Super-admin needs no grant: it bypasses permission checks. On a fresh install
+     * the role does not exist yet and RoleSeeder grants everything.
+     *
+     * @param  list<string>  $createdNames
+     */
+    private function grantCreatedPermissionsToAdmin(array $createdNames, string $guard): void
+    {
+        if ($createdNames === []) {
+            return;
+        }
+
+        $admin = Role::query()
+            ->where('name', RoleEnum::Admin->value)
+            ->where('guard_name', $guard)
+            ->first();
+
+        if ($admin === null) {
+            return;
+        }
+
+        $admin->givePermissionTo($createdNames);
+
+        $this->info(sprintf('Granted %d new permission(s) to %s: %s', count($createdNames), RoleEnum::Admin->value, implode(', ', $createdNames)));
     }
 
     /**

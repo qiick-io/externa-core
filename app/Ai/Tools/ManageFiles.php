@@ -7,6 +7,7 @@ use App\Ai\Concerns\EnforcesAiFileAccessTrait;
 use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Ai\Support\AiToolJsonDecoder;
+use App\Contracts\Ai\ClassifiesToolActionsInterface;
 use App\Enums\FilePermissionActionEnum;
 use App\Enums\FileTypeEnum;
 use App\Enums\PermissionEnum;
@@ -23,7 +24,7 @@ use Stringable;
 /**
  * AI tool for browsing and mutating files and folders in the file manager.
  */
-class ManageFiles implements Approvable, Tool
+class ManageFiles implements Approvable, ClassifiesToolActionsInterface, Tool
 {
     use ChecksAiPermissionsTrait;
     use EnforcesAiFileAccessTrait;
@@ -60,6 +61,10 @@ class ManageFiles implements Approvable, Tool
     public function handle(Request $request): Stringable|string
     {
         return $this->withAiToolLogging($request, function () use ($request): string {
+            if (($refusal = $this->writeActionRefusal($request)) !== null) {
+                return $refusal;
+            }
+
             $action = (string) $request->string('action');
 
             return match ($action) {

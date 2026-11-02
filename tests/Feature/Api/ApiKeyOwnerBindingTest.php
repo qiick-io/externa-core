@@ -137,6 +137,36 @@ it('backfills owner_id from created_by, else first admin, else leaves ownerless'
         ->and($lonely['key']->fresh()->hasOwner())->toBeFalse();
 });
 
+it('backfills keys created by a deactivated user to the first active super-admin and keeps them working', function (): void {
+    $inactiveSuperAdmin = User::factory()->create(['is_active' => false]);
+    $inactiveSuperAdmin->assignRole(RoleEnum::SuperAdmin->value);
+    $superAdmin = User::factory()->create(['is_active' => true]);
+    $superAdmin->assignRole(RoleEnum::SuperAdmin->value);
+    $admin = User::factory()->create(['is_active' => true]);
+    $admin->assignRole(RoleEnum::Admin->value);
+    $deactivatedCreator = User::factory()->create(['is_active' => false]);
+
+    $posts = makePostsCollection();
+    $item = CollectionItem::factory()->create(['collection_id' => $posts->id]);
+    $auth = makeApiKeyForRole();
+    grantRoleActions($auth['role'], $posts, [CollectionPermissionActionEnum::Read]);
+    // 1.3.0 shape: created_by set, owner_id not yet backfilled.
+    $auth['key']->forceFill([
+        'created_by' => $deactivatedCreator->id,
+        'owner_id' => null,
+    ])->save();
+
+    $service = app(ApiKeyOwnerService::class);
+
+    expect($service->resolveBackfillOwnerId($deactivatedCreator->id))->toBe($superAdmin->id)
+        ->and($service->backfillMissingOwners())->toBe(1)
+        ->and($auth['key']->fresh()->owner_id)->toBe($superAdmin->id);
+
+    $this->withToken($auth['plain'])
+        ->getJson("/api/v1/collections/posts/items/{$item->id}")
+        ->assertOk();
+});
+
 it('ownerless keys keep legacy REST behaviour', function (): void {
     $posts = makePostsCollection();
     $item = CollectionItem::factory()->create(['collection_id' => $posts->id]);
