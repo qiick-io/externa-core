@@ -497,7 +497,7 @@ export default function AdminUsersIndex({
                                                             userId={user.id}
                                                             className="size-7"
                                                         >
-                                                            <AvatarFallback className="text-[10px] font-medium">
+                                                            <AvatarFallback className="text-xs font-medium">
                                                                 {getInitialsFromParts(
                                                                     user.first_name,
                                                                     user.last_name,
