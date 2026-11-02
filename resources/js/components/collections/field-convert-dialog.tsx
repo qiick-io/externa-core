@@ -1,3 +1,4 @@
+import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -16,7 +17,6 @@ import { Switch } from '@/components/ui/switch';
 import { fieldTypeLabel } from '@/lib/collection-field-types';
 import { toast } from '@/lib/toast';
 import type { CollectionFieldRow } from '@/types';
-import FieldController from '@/actions/App/Http/Controllers/Collections/FieldController';
 
 type ConvertPreview = {
     supported: boolean;
