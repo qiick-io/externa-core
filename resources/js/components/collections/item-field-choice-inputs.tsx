@@ -12,6 +12,8 @@ import type { ReactNode } from 'react';
 import { LucideIconByName } from '@/components/collections/field-settings/lucide-icon-picker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Select,
     SelectContent,
@@ -20,6 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import {
     cascadeToggleValues,
     collectExpandableKeys,
@@ -270,7 +273,7 @@ export function BooleanToggleInput({
 }) {
     const booleanSettings = parseBooleanFieldSettings(settings);
     const [checked, setChecked] = useState(defaultChecked);
-    // Boolean: checkbox + fixed affirmative label (not a Yes/No flip).
+    // Boolean ("Toggle"): Switch + fixed affirmative label (not a Yes/No flip).
     const onLabel = resolveTranslatedText(
         booleanSettings.labelOn,
         locales,
@@ -286,12 +289,12 @@ export function BooleanToggleInput({
                 readonly && 'cursor-not-allowed opacity-50',
             )}
         >
-            <Checkbox
+            <Switch
                 id={id}
                 checked={checked}
                 disabled={readonly}
                 onCheckedChange={(next) => {
-                    if (readonly || next === 'indeterminate') {
+                    if (readonly) {
                         return;
                     }
 
@@ -914,50 +917,67 @@ export function RadioWithOtherInput({
     );
 
     const submitted = selected === '__other__' ? otherValue : selected;
+    const radioIdPrefix = useId();
 
     return (
         <div className={cn('flex flex-col gap-2', fieldControlChromeMulti)}>
-            {options.map((option) => (
-                <label
-                    key={option.value}
-                    className="flex items-center gap-2 text-sm"
-                >
-                    <input
-                        type="radio"
-                        name={`${name}__ui`}
-                        value={option.value}
-                        checked={selected === option.value}
-                        disabled={readonly}
-                        onChange={() => setSelected(option.value)}
-                    />
-                    {option.label || option.value}
-                </label>
-            ))}
-            {allowOther ? (
-                <label className="flex flex-col gap-2 text-sm">
-                    <span className="flex items-center gap-2">
-                        <input
-                            type="radio"
-                            name={`${name}__ui`}
-                            value="__other__"
-                            checked={selected === '__other__'}
-                            disabled={readonly}
-                            onChange={() => setSelected('__other__')}
-                        />
-                        Other
-                    </span>
-                    {selected === '__other__' ? (
-                        <Input
-                            value={otherValue}
-                            readOnly={readonly}
-                            placeholder="Custom value"
-                            onChange={(event) =>
-                                setOtherValue(event.target.value)
-                            }
-                        />
-                    ) : null}
-                </label>
-            ) : null}
+            <RadioGroup
+                value={selected}
+                onValueChange={(next) => {
+                    if (!readonly) {
+                        setSelected(next);
+                    }
+                }}
+                disabled={readonly}
+                className="gap-2"
+            >
+                {options.map((option) => {
+                    const optionId = `${radioIdPrefix}-${option.value}`;
+
+                    return (
+                        <div
+                            key={option.value}
+                            className="flex items-center gap-2 text-sm"
+                        >
+                            <RadioGroupItem
+                                value={option.value}
+                                id={optionId}
+                                disabled={readonly}
+                            />
+                            <Label htmlFor={optionId} className="font-normal">
+                                {option.label || option.value}
+                            </Label>
+                        </div>
+                    );
+                })}
+                {allowOther ? (
+                    <div className="flex flex-col gap-2 text-sm">
+                        <div className="flex items-center gap-2">
+                            <RadioGroupItem
+                                value="__other__"
+                                id={`${radioIdPrefix}-__other__`}
+                                disabled={readonly}
+                            />
+                            <Label
+                                htmlFor={`${radioIdPrefix}-__other__`}
+                                className="font-normal"
+                            >
+                                Other
+                            </Label>
+                        </div>
+                        {selected === '__other__' ? (
+                            <Input
+                                value={otherValue}
+                                readOnly={readonly}
+                                placeholder="Custom value"
+                                onChange={(event) =>
+                                    setOtherValue(event.target.value)
+                                }
+                            />
+                        ) : null}
+                    </div>
+                ) : null}
+            </RadioGroup>
             <input type="hidden" name={name} value={submitted} />
         </div>
     );
