@@ -1,3 +1,5 @@
+import AppearanceSettingsController from '@/actions/App/Http/Controllers/Settings/AppearanceSettingsController';
+import { edit as editAppearance } from '@/routes/appearance';
 import { Form, Head, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 import type { SetStateAction } from 'react';
@@ -41,8 +43,6 @@ import type {
     ProjectAppearance,
 } from '@/types';
 import type { AdminFileRow } from '@/types/files';
-import AppearanceSettingsController from '@/actions/App/Http/Controllers/Settings/AppearanceSettingsController';
-import { edit as editAppearance } from '@/routes/appearance';
 
 type FileFieldKey = 'project_logo' | 'project_logo_dark' | 'public_favicon';
 
