@@ -38,6 +38,7 @@ class ApiKeyResource extends JsonResource
             'files_scope' => $this->files_scope instanceof ApiKeyFilesScopeEnum
                 ? $this->files_scope->value
                 : (string) ($this->files_scope ?? 'all'),
+            'scopes' => $this->scopes,
             'ip_allowlist' => $this->ip_allowlist,
             'rate_limit_per_minute' => $this->rate_limit_per_minute,
             'expires_at' => $this->expires_at?->toIso8601String(),

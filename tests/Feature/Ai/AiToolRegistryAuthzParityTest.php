@@ -144,6 +144,8 @@ it('hides mutating tools from chat and MCP until the write gate allows them', fu
     config([
         'ai.tools.write_enabled' => true,
         'ai.tools.write_allow' => ['ManageCollections'],
+        // MCP adapter also requires the MCP write flag (#121).
+        'ai.mcp.write_enabled' => true,
     ]);
 
     $chatEnabled = collect((new AppAssistant($user))->tools())
@@ -185,6 +187,7 @@ it('returns pending_approval for MCP mutating calls when the write gate allows t
     config([
         'ai.tools.write_enabled' => true,
         'ai.tools.write_allow' => ['ManageCollections'],
+        'ai.mcp.write_enabled' => true,
     ]);
 
     $user = grantAiPermissions(User::factory()->create(), [

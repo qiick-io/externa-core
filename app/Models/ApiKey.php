@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ApiKeyFilesScopeEnum;
+use App\Enums\ApiKeyScopeEnum;
 use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\FilePermissionActionEnum;
 use App\Traits\LogsApplicationActivityTrait;
@@ -16,7 +17,8 @@ use Spatie\Activitylog\Support\LogOptions;
  * Project API key authenticated via Bearer token; permissions come from role_id.
  *
  * Optional scopes only narrow the role: collection_slugs allowlist, read_only,
- * and files_scope (none|read|all). Optional owner_id adds a permission ceiling.
+ * and files_scope (none|read|all). Named capability scopes (mcp:read / mcp:write)
+ * gate the MCP endpoint. Optional owner_id adds a permission ceiling.
  *
  * @property string $uuid
  * @property string $name
@@ -27,6 +29,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property list<string>|null $collection_slugs
  * @property bool $read_only
  * @property ApiKeyFilesScopeEnum $files_scope
+ * @property list<string>|null $scopes
  * @property list<string>|null $ip_allowlist
  * @property int|null $rate_limit_per_minute
  */
@@ -46,6 +49,7 @@ class ApiKey extends Model
         'collection_slugs',
         'read_only',
         'files_scope',
+        'scopes',
         'ip_allowlist',
         'rate_limit_per_minute',
         'expires_at',
@@ -71,12 +75,34 @@ class ApiKey extends Model
             'collection_slugs' => 'array',
             'read_only' => 'boolean',
             'files_scope' => ApiKeyFilesScopeEnum::class,
+            'scopes' => 'array',
             'ip_allowlist' => 'array',
             'rate_limit_per_minute' => 'integer',
             'expires_at' => 'datetime',
             'last_used_at' => 'datetime',
             'revoked_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Whether this key carries a named capability scope (e.g. mcp:read).
+     */
+    public function hasScope(ApiKeyScopeEnum|string $scope): bool
+    {
+        $value = $scope instanceof ApiKeyScopeEnum ? $scope->value : $scope;
+        $scopes = $this->scopes;
+
+        if (! is_array($scopes) || $scopes === []) {
+            return false;
+        }
+
+        foreach ($scopes as $entry) {
+            if (is_string($entry) && $entry === $value) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

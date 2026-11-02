@@ -72,6 +72,7 @@ class ApiKeyController extends Controller
             'collection_slugs' => $data['collection_slugs'] ?? null,
             'read_only' => (bool) ($data['read_only'] ?? false),
             'files_scope' => $data['files_scope'] ?? 'all',
+            'scopes' => $data['scopes'] ?? null,
             'ip_allowlist' => $data['ip_allowlist'] ?? null,
             'rate_limit_per_minute' => $data['rate_limit_per_minute'] ?? null,
             'expires_at' => $data['expires_at'] ?? null,

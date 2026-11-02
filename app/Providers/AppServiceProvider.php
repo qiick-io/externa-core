@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Listeners\Ai\LogAiToolApprovalEventsListener;
+use App\Models\ApiKey;
 use App\Models\User;
 use App\Services\Ai\AiToolApprovalService;
 use App\Services\Ai\AiToolArgumentRedactorService;
@@ -73,6 +74,23 @@ class AppServiceProvider extends ServiceProvider
             $key = $request->user()?->id ?: $request->ip();
 
             return Limit::perMinute(60)->by((string) $key);
+        });
+
+        RateLimiter::for('mcp', function (Request $request) {
+            $apiKey = $request->attributes->get('mcp_api_key');
+            $perMinute = (int) config('ai.mcp.rate_limit_per_minute', 60);
+
+            if ($apiKey instanceof ApiKey) {
+                $perMinute = $apiKey->rate_limit_per_minute ?? $perMinute;
+
+                return Limit::perMinute(max(1, $perMinute))->by('mcp-key:'.$apiKey->id);
+            }
+
+            $userId = $request->user()?->getAuthIdentifier();
+
+            return Limit::perMinute(max(1, $perMinute))->by(
+                $userId !== null ? 'mcp-user:'.$userId : 'mcp-ip:'.$request->ip(),
+            );
         });
     }
 

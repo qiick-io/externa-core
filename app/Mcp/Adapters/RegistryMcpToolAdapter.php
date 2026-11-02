@@ -33,9 +33,18 @@ final class RegistryMcpToolAdapter
      */
     public function listTools(?Authenticatable $actor): array
     {
+        $definitions = $this->registry->visibleFor($actor);
+
+        if (! (bool) config('ai.mcp.write_enabled', false)) {
+            $definitions = array_values(array_filter(
+                $definitions,
+                static fn (ToolDefinitionInterface $definition): bool => ! $definition->kind()->isMutating(),
+            ));
+        }
+
         return array_map(
             fn (ToolDefinitionInterface $definition): array => $this->toMcpTool($definition),
-            $this->registry->visibleFor($actor),
+            $definitions,
         );
     }
 
@@ -53,6 +62,28 @@ final class RegistryMcpToolAdapter
      */
     public function callTool(string $name, array $arguments, ?Authenticatable $actor): array
     {
+        $definition = $this->registry->get($name);
+
+        if (
+            $definition !== null
+            && $definition->kind()->isMutating()
+            && ! (bool) config('ai.mcp.write_enabled', false)
+        ) {
+            return [
+                'isError' => true,
+                'content' => [
+                    [
+                        'type' => 'text',
+                        'text' => 'MCP write tools are disabled.',
+                    ],
+                ],
+                'structuredContent' => [
+                    'status' => 'denied',
+                    'message' => 'MCP write tools are disabled.',
+                ],
+            ];
+        }
+
         $outcome = $this->executor->execute($name, $arguments, $actor, [
             'surface' => 'mcp',
         ]);

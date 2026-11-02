@@ -74,6 +74,9 @@ return [
 
     'mcp' => [
         'enabled' => (bool) env('AI_MCP_ENABLED', false),
+        // When false, write/mutating MCP tools are not registered (even if AI_WRITE_TOOLS is on).
+        'write_enabled' => (bool) env('AI_MCP_WRITE_ENABLED', false),
+        'rate_limit_per_minute' => (int) env('AI_MCP_RATE_LIMIT_PER_MINUTE', 60),
     ],
 
     /*
