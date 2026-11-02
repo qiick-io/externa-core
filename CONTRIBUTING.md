@@ -74,6 +74,7 @@ Rules for changes to the admin UI (`resources/js`). The values live in the linke
   - Forms: every control has a programmatic label; errors use `aria-invalid` + `aria-describedby` (shadcn `Field*` — #231); help text via `FieldDescription`.
   - Focus: visible ring (≥3:1) on every interactive element; restore focus after dialogs/drawers close (#254).
   - Live regions for async feedback; no status by colour alone.
+  - Reduced motion: OS `prefers-reduced-motion` always wins; `html.reduce-motion` can force on. Prefer targeted overlay `animation: none` over global `*` duration overrides so Radix/vaul Presence still unmounts (#254).
   - Skip link first focusable → `#main-content`; exactly one `<main>` per page.
   - Test at 320px width and ~400% zoom; never set `maximum-scale` / `user-scalable=no` on the viewport meta.
   - One a11y concern per PR when practical (rules, landmarks, forms, tooling).

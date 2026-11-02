@@ -160,6 +160,8 @@ export function FileDetailPanel({
     presentation = 'aside',
 }: FileDetailPanelProps) {
     const { t } = useTranslation();
+    const panelRef = useRef<HTMLElement>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
     const replaceInputRef = useRef<HTMLInputElement>(null);
     const [title, setTitle] = useState(file.title ?? '');
     const [description, setDescription] = useState(file.description ?? '');
@@ -189,6 +191,27 @@ export function FileDetailPanel({
     const [whereUsedRefs, setWhereUsedRefs] = useState<
         FileWhereUsedReference[] | null
     >(null);
+
+    useEffect(() => {
+        // Sheet/Dialog already trap focus; aside panel needs open/close restore.
+        if (presentation !== 'aside') {
+            return;
+        }
+
+        previousFocusRef.current =
+            document.activeElement instanceof HTMLElement
+                ? document.activeElement
+                : null;
+
+        const frame = window.requestAnimationFrame(() => {
+            panelRef.current?.focus();
+        });
+
+        return () => {
+            window.cancelAnimationFrame(frame);
+            previousFocusRef.current?.focus();
+        };
+    }, [presentation, file.id]);
 
     useEffect(() => {
         setTitle(file.title ?? '');
@@ -365,11 +388,15 @@ export function FileDetailPanel({
 
     return (
         <aside
+            ref={panelRef}
+            tabIndex={-1}
+            role={presentation === 'aside' ? 'dialog' : undefined}
+            aria-modal={presentation === 'aside' ? false : undefined}
             aria-label={t('files.detail.title')}
             className={cn(
-                'flex flex-col bg-card',
+                'flex flex-col bg-card outline-none',
                 presentation === 'aside' &&
-                    'w-[380px] shrink-0 border-l border-sidebar-border/70',
+                    'w-[min(100%,380px)] shrink-0 border-l border-sidebar-border/70',
                 presentation === 'sheet' && 'h-full min-h-0 w-full',
             )}
         >
@@ -384,7 +411,7 @@ export function FileDetailPanel({
                     onClick={onClose}
                     aria-label={t('files.detail.close')}
                 >
-                    <X className="size-4" />
+                    <X className="size-4" aria-hidden="true" />
                 </Button>
             </div>
 

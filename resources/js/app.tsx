@@ -3,6 +3,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AppErrorBoundary } from '@/components/app-error-boundary';
+import { FocusAfterNavigation } from '@/components/focus-after-navigation';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { UnsavedChangesProvider } from '@/components/unsaved-changes-provider';
@@ -71,6 +72,7 @@ createInertiaApp({
                     <TooltipProvider delayDuration={0}>
                         {/* Provider wraps App so page-level hooks are inside context. */}
                         <UnsavedChangesProvider>
+                            <FocusAfterNavigation />
                             <App {...props} />
                         </UnsavedChangesProvider>
                         {/* bottom-right: top-right toast was intercepting header Save/Create clicks */}

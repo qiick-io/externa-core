@@ -1,20 +1,13 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    ArrowDownAZ,
-    ArrowUpAZ,
-    SearchX,
-    Trash2,
-    UserPlus,
-    Users,
-} from 'lucide-react';
+import { ArrowDownAZ, ArrowUpAZ, Trash2, UserPlus, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
-import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { UserFormDrawer } from '@/components/admin/user-form-drawer';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
+import { EmptyStatus } from '@/components/empty-status';
 import {
     PageLayout,
     TablePagination,
@@ -242,9 +235,6 @@ export default function AdminUsersIndex({
     };
 
     const hasSelection = selected.length > 0;
-    const hasActiveFilters = search.trim() !== '';
-    const isListEmpty = users.data.length === 0;
-    const hideListChrome = isListEmpty && !hasActiveFilters && !isTrashed;
 
     const userDisplayName = (user: AdminUserRow): string =>
         [user.first_name, user.last_name].filter(Boolean).join(' ') ||
@@ -275,85 +265,75 @@ export default function AdminUsersIndex({
             >
                 <PageLayout
                     filters={
-                        hideListChrome ? undefined : (
-                            <DataTableToolbar
-                                search={search}
-                                onSearchChange={setSearch}
-                                searchPlaceholder={
-                                    isTrashed
-                                        ? 'Search trash…'
-                                        : 'Search users…'
-                                }
-                                selectedCount={selected.length}
-                                onClearSelection={() => setSelected([])}
-                                bulkActions={
-                                    <>
-                                        <AskAiButton
-                                            mode="labeled"
-                                            prompt={seedUsersBulkPrompt(
-                                                selectedRows.map((user) => ({
-                                                    id: user.id,
-                                                    name: userDisplayName(user),
-                                                    email: user.email,
-                                                })),
-                                            )}
-                                        />
-                                        {!isTrashed &&
-                                            can(
-                                                PermissionEnum.CanDeleteUsers,
-                                            ) && (
-                                                <Button
-                                                    type="button"
-                                                    variant="destructive-outline"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        setPendingBulkAction(
-                                                            'delete',
-                                                        )
-                                                    }
-                                                >
-                                                    Delete
-                                                </Button>
-                                            )}
-                                        {isTrashed &&
-                                            can(
-                                                PermissionEnum.CanRestoreUsers,
-                                            ) && (
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        bulk('restore')
-                                                    }
-                                                >
-                                                    Restore
-                                                </Button>
-                                            )}
-                                        {isTrashed &&
-                                            can(
-                                                PermissionEnum.CanForceDeleteUsers,
-                                            ) && (
-                                                <Button
-                                                    type="button"
-                                                    variant="destructive-outline"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        setPendingBulkAction(
-                                                            'force_delete',
-                                                        )
-                                                    }
-                                                >
-                                                    Delete permanently
-                                                </Button>
-                                            )}
-                                    </>
-                                }
-                            />
-                        )
+                        <DataTableToolbar
+                            search={search}
+                            onSearchChange={setSearch}
+                            searchPlaceholder={
+                                isTrashed ? 'Search trash…' : 'Search users…'
+                            }
+                            selectedCount={selected.length}
+                            onClearSelection={() => setSelected([])}
+                            bulkActions={
+                                <>
+                                    <AskAiButton
+                                        mode="labeled"
+                                        prompt={seedUsersBulkPrompt(
+                                            selectedRows.map((user) => ({
+                                                id: user.id,
+                                                name: userDisplayName(user),
+                                                email: user.email,
+                                            })),
+                                        )}
+                                    />
+                                    {!isTrashed &&
+                                        can(PermissionEnum.CanDeleteUsers) && (
+                                            <Button
+                                                type="button"
+                                                variant="destructive-outline"
+                                                size="sm"
+                                                onClick={() =>
+                                                    setPendingBulkAction(
+                                                        'delete',
+                                                    )
+                                                }
+                                            >
+                                                Delete
+                                            </Button>
+                                        )}
+                                    {isTrashed &&
+                                        can(PermissionEnum.CanRestoreUsers) && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => bulk('restore')}
+                                            >
+                                                Restore
+                                            </Button>
+                                        )}
+                                    {isTrashed &&
+                                        can(
+                                            PermissionEnum.CanForceDeleteUsers,
+                                        ) && (
+                                            <Button
+                                                type="button"
+                                                variant="destructive-outline"
+                                                size="sm"
+                                                onClick={() =>
+                                                    setPendingBulkAction(
+                                                        'force_delete',
+                                                    )
+                                                }
+                                            >
+                                                Delete permanently
+                                            </Button>
+                                        )}
+                                </>
+                            }
+                        />
                     }
                     filtersRight={
-                        hideListChrome || hasSelection ? null : (
+                        hasSelection ? null : (
                             <div className="flex items-center gap-1.5">
                                 <Select
                                     value={sort}
@@ -444,94 +424,52 @@ export default function AdminUsersIndex({
                         )
                     }
                 >
-                    {isListEmpty ? (
-                        <PageEmptyState
-                            icon={
-                                hasActiveFilters
-                                    ? SearchX
-                                    : isTrashed
-                                      ? Trash2
-                                      : Users
-                            }
-                            title={
-                                hasActiveFilters
-                                    ? t('emptyState.users.filteredTitle')
-                                    : isTrashed
-                                      ? t('emptyState.users.trashTitle')
-                                      : t('emptyState.users.title')
-                            }
-                            description={
-                                hasActiveFilters
-                                    ? t('emptyState.users.filteredDescription')
-                                    : isTrashed
-                                      ? t('emptyState.users.trashDescription')
-                                      : t('emptyState.users.description')
-                            }
-                            action={
-                                hasActiveFilters ? (
-                                    <Button
-                                        type="button"
-                                        onClick={() => {
-                                            setSearch('');
-                                            visit({ search: undefined });
-                                        }}
-                                    >
-                                        {t('common.clearFilters')}
-                                    </Button>
-                                ) : isTrashed ? (
-                                    <Button
-                                        type="button"
-                                        onClick={() =>
-                                            visit({ trashed: false })
-                                        }
-                                    >
-                                        {t('common.back')}
-                                    </Button>
-                                ) : can(PermissionEnum.CanCreateUsers) ? (
-                                    <Button type="button" onClick={openCreate}>
-                                        <UserPlus className="size-4" />
-                                        {t('emptyState.users.cta')}
-                                    </Button>
-                                ) : undefined
-                            }
-                        />
-                    ) : (
-                        <TablePanel
-                            footer={
-                                !hideListChrome && users.last_page > 1 ? (
-                                    <TablePagination
-                                        links={users.links ?? []}
-                                    />
-                                ) : undefined
-                            }
-                        >
-                            <Table>
-                                <TableHeader>
+                    <TablePanel
+                        footer={
+                            users.last_page > 1 ? (
+                                <TablePagination links={users.links ?? []} />
+                            ) : undefined
+                        }
+                    >
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-10">
+                                        <Checkbox
+                                            checked={
+                                                users.data.length > 0 &&
+                                                selected.length ===
+                                                    users.data.length
+                                            }
+                                            onCheckedChange={(c) =>
+                                                toggleAll(c === true)
+                                            }
+                                        />
+                                    </TableHead>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Roles</TableHead>
+                                    <TableHead>Groups</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="w-[1%] text-right">
+                                        Actions
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {users.data.length === 0 ? (
                                     <TableRow>
-                                        <TableHead className="w-10">
-                                            <Checkbox
-                                                checked={
-                                                    users.data.length > 0 &&
-                                                    selected.length ===
-                                                        users.data.length
-                                                }
-                                                onCheckedChange={(c) =>
-                                                    toggleAll(c === true)
-                                                }
-                                            />
-                                        </TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Roles</TableHead>
-                                        <TableHead>Groups</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="w-[1%] text-right">
-                                            Actions
-                                        </TableHead>
+                                        <TableCell
+                                            colSpan={7}
+                                            className="text-muted-foreground"
+                                        >
+                                            <EmptyStatus>
+                                                No users found.
+                                            </EmptyStatus>
+                                        </TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {users.data.map((user) => (
+                                ) : (
+                                    users.data.map((user) => (
                                         <TableRow
                                             key={user.id}
                                             className={
@@ -680,11 +618,11 @@ export default function AdminUsersIndex({
                                                 />
                                             </TableCell>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TablePanel>
-                    )}
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </TablePanel>
                 </PageLayout>
 
                 <UserFormDrawer

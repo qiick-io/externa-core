@@ -25,7 +25,12 @@ export function UnsavedChangesToolbar({
     }
 
     return (
-        <div className={className} data-test="unsaved-changes-toolbar">
+        <div
+            className={className}
+            data-test="unsaved-changes-toolbar"
+            role="status"
+            aria-live="polite"
+        >
             <Badge variant="warning" data-test="unsaved-badge">
                 {t('unsavedChanges.badge')}
             </Badge>

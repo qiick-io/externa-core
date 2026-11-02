@@ -11,6 +11,7 @@ function Toaster({ ...props }: ToasterProps) {
         <Sonner
             theme={resolvedAppearance}
             className="toaster group"
+            // Polite region for success/info; errors also assert via live-announcer.
             toastOptions={{
                 classNames: {
                     toast: 'group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg',

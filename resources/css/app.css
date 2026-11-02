@@ -505,25 +505,101 @@ html.high-contrast.dark {
     }
 }
 
-/* Kill motion: OS always; html.reduce-motion forces when OS does not ask */
+/*
+ * Reduced motion (SC 2.3.3): OS `prefers-reduced-motion: reduce` always wins;
+ * `html.reduce-motion` forces the same rules when the in-app toggle is on.
+ *
+ * Do NOT set global `*` `animation-duration` / `transition-duration` — Radix
+ * Presence and vaul wait for animationend/transitionend and can leave overlays
+ * stuck invisible/unmounted. Target overlays with `animation: none` so Presence
+ * completes immediately, and only kill decorative motion elsewhere.
+ */
+:root {
+    /* SC 2.4.11: keep focused controls clear of sticky toolbar / toasts / AI FAB */
+    scroll-padding-top: 4rem;
+    scroll-padding-bottom: max(6.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+/* SC 1.4.12: text-spacing override must not clip labels/buttons */
+label,
+button,
+[role='button'],
+[data-slot='field-label'],
+[data-slot='field-error'] {
+    overflow-wrap: anywhere;
+    line-height: max(1.25, 1em);
+}
+
 @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
+    html {
+        scroll-behavior: auto;
+    }
+
+    [data-slot='dialog-overlay'],
+    [data-slot='dialog-content'],
+    [data-slot='alert-dialog-overlay'],
+    [data-slot='alert-dialog-content'],
+    [data-slot='sheet-overlay'],
+    [data-slot='sheet-content'],
+    [data-slot='drawer-overlay'],
+    [data-slot='drawer-content'],
+    [data-slot='popover-content'],
+    [data-slot='dropdown-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='context-menu-content'],
+    [data-slot='context-menu-sub-content'],
+    [data-slot='select-content'],
+    [data-slot='tooltip-content'],
+    [data-slot='navigation-menu-content'],
+    [data-slot='navigation-menu-viewport'],
+    [data-slot='collapsible-content'],
+    [data-sonner-toast],
+    [data-sonner-toaster] {
+        animation: none !important;
+        transition: none !important;
+    }
+
+    .animate-pulse,
+    .animate-bounce,
+    .animate-spin,
+    .ai-field-translating::before {
+        animation: none !important;
     }
 }
 
-html.reduce-motion *,
-html.reduce-motion *::before,
-html.reduce-motion *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+html.reduce-motion {
+    scroll-behavior: auto;
+}
+
+html.reduce-motion [data-slot='dialog-overlay'],
+html.reduce-motion [data-slot='dialog-content'],
+html.reduce-motion [data-slot='alert-dialog-overlay'],
+html.reduce-motion [data-slot='alert-dialog-content'],
+html.reduce-motion [data-slot='sheet-overlay'],
+html.reduce-motion [data-slot='sheet-content'],
+html.reduce-motion [data-slot='drawer-overlay'],
+html.reduce-motion [data-slot='drawer-content'],
+html.reduce-motion [data-slot='popover-content'],
+html.reduce-motion [data-slot='dropdown-menu-content'],
+html.reduce-motion [data-slot='dropdown-menu-sub-content'],
+html.reduce-motion [data-slot='context-menu-content'],
+html.reduce-motion [data-slot='context-menu-sub-content'],
+html.reduce-motion [data-slot='select-content'],
+html.reduce-motion [data-slot='tooltip-content'],
+html.reduce-motion [data-slot='navigation-menu-content'],
+html.reduce-motion [data-slot='navigation-menu-viewport'],
+html.reduce-motion [data-slot='collapsible-content'],
+html.reduce-motion [data-sonner-toast],
+html.reduce-motion [data-sonner-toaster] {
+    animation: none !important;
+    transition: none !important;
+}
+
+html.reduce-motion .animate-pulse,
+html.reduce-motion .animate-bounce,
+html.reduce-motion .animate-spin,
+html.reduce-motion .ai-field-translating::before {
+    animation: none !important;
 }
 
 /* Fields DnD — sortable-ghost (dashed slot; children invisible) */

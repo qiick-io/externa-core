@@ -1,5 +1,7 @@
 import { Paperclip, RefreshCw } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AiFileCards } from '@/components/ai/ai-file-cards';
 import type { AiFileCardItem } from '@/components/ai/ai-file-cards';
 import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
@@ -15,6 +17,7 @@ import {
 } from '@/components/ui/message';
 import type { AiChatAttachment, AiPendingApproval } from '@/lib/ai-chat';
 import { suggestedActionsForTools } from '@/lib/ai-suggested-actions';
+import { announce } from '@/lib/live-announcer';
 import { cn } from '@/lib/utils';
 
 export type AiChatMessageView = {
@@ -66,6 +69,47 @@ export function AiChatMessages({
     onSuggestedAction,
     onResolveApprovals,
 }: AiChatMessagesProps) {
+    const { t } = useTranslation();
+    const wasStreamingRef = useRef(false);
+    const announcedMessageIdRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        const wasStreaming = wasStreamingRef.current;
+        wasStreamingRef.current = isStreaming;
+
+        if (!wasStreaming || isStreaming) {
+            return;
+        }
+
+        const lastAssistant = [...messages]
+            .reverse()
+            .find(
+                (message) =>
+                    message.role !== 'user' &&
+                    message.content.trim() !== '' &&
+                    !message.isError,
+            );
+
+        if (
+            !lastAssistant ||
+            announcedMessageIdRef.current === lastAssistant.id
+        ) {
+            return;
+        }
+
+        announcedMessageIdRef.current = lastAssistant.id;
+        const preview = lastAssistant.content.trim().slice(0, 160);
+        announce(
+            t('a11y.aiAnswerReady', {
+                preview:
+                    preview.length < lastAssistant.content.trim().length
+                        ? `${preview}…`
+                        : preview,
+            }),
+            { politeness: 'polite' },
+        );
+    }, [isStreaming, messages, t]);
+
     if (messages.length === 0) {
         return <>{emptyState}</>;
     }
@@ -147,7 +191,9 @@ export function AiChatMessages({
                                             </div>
                                         </div>
                                     ) : showThinking ? (
-                                        <ThinkingDots />
+                                        <ThinkingDots
+                                            label={t('ai.thinking')}
+                                        />
                                     ) : isUser ? (
                                         <div className="flex flex-col gap-2">
                                             {(message.attachments?.length ??
