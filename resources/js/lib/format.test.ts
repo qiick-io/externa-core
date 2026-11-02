@@ -1,10 +1,46 @@
 import { describe, expect, it } from 'vitest';
 import {
+    appLocale, speechRecognitionLang, formatDateTime, formatNumber, formatBytes, formatFileSize, initialsFromName, toDatetimeLocalValue
+} from '@/lib/format';
+
+describe('format helpers', () => {
+    it('maps app locales for speech recognition', () => {
+        expect(speechRecognitionLang('it')).toBe('it-IT');
+        expect(speechRecognitionLang('de')).toBe('de-DE');
+        expect(speechRecognitionLang('en')).toBe('en-US');
+        expect(speechRecognitionLang('fr')).toBe('en-US');
+        expect(appLocale('it-IT')).toBe('it');
+    });
+
+    it('formats numbers with an explicit language', () => {
+        expect(formatNumber(1234.5, undefined, 'it')).toMatch(/1.?234/);
+        expect(formatNumber(1234.5, undefined, 'de')).toMatch(/1.?234/);
+    });
+
+    it('formats dates with an explicit language', () => {
+        const formatted = formatDateTime(
+            '2026-01-15T12:00:00Z',
+            {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                timeZone: 'UTC',
+            },
+            'de',
+        );
+        expect(formatted.length).toBeGreaterThan(0);
+        expect(formatted).toMatch(/2026|15/);
+    });
+});
+
+describe, expect, it } from 'vitest';
+import {
     formatBytes,
     formatFileSize,
     initialsFromName,
     toDatetimeLocalValue,
 } from './format';
+
 
 describe('formatBytes', () => {
     it('formats binary units', () => {
@@ -19,6 +55,7 @@ describe('formatBytes', () => {
     });
 });
 
+
 describe('formatFileSize', () => {
     it('treats zero and null as empty', () => {
         expect(formatFileSize(null)).toBe('—');
@@ -27,6 +64,7 @@ describe('formatFileSize', () => {
     });
 });
 
+
 describe('initialsFromName', () => {
     it('builds up to two initials', () => {
         expect(initialsFromName('Ada Lovelace')).toBe('AL');
@@ -34,6 +72,7 @@ describe('initialsFromName', () => {
         expect(initialsFromName('  ')).toBe('?');
     });
 });
+
 
 describe('toDatetimeLocalValue', () => {
     it('slices ISO strings without seconds by default', () => {
