@@ -42,6 +42,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Calm destructive row/bulk actions (outline/ghost), shared collections/items row menu pattern, and button size scale (`sm`/`default`/`lg`/`icon`/`icon-sm`) (#229).
 - Settings profile and security password forms use shadcn `Field*` with `aria-invalid` / `aria-describedby` (#231).
 - Admin a11y foundations: CONTRIBUTING rules, contrast pair table, zoom-safe viewport guard, skip/`main` on auth card+split layouts, light `--ring` teal-500 for 3:1 (#252).
+- Admin a11y landmarks polish: real `<nav aria-label>` in sidebar (desktop + mobile Sheet) and header variant, labelled file-detail/chat asides, translated breadcrumb + item-chat drawer names (#252).
 - Auth forms use shadcn `Field` / `FieldLabel` / `FieldError` with `aria-invalid` + `aria-describedby` and `noValidate` (#231).
 - Semantic status Badge/Alert variants (`success`/`warning`/`info`/`muted`) and replace hardcoded green/emerald/amber/red status surfaces with theme tokens (#235).
 

@@ -157,6 +157,8 @@
     "a11y": {
         "skipToContent": "Skip to content",
         "mainNav": "Main navigation",
+        "breadcrumb": "Breadcrumb",
+        "chatThreadList": "Chat threads",
         "openMenu": "Open menu",
         "search": "Search",
         "removeConditionRule": "Remove condition rule",

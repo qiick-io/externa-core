@@ -208,7 +208,10 @@ export default function ChatHubPage({
                 data-test="chat-hub"
                 className="flex min-h-0 flex-1 overflow-hidden rounded-xl border bg-card"
             >
-                <aside className="flex w-64 shrink-0 flex-col border-r lg:w-80">
+                <aside
+                    aria-label={t('a11y.chatThreadList')}
+                    className="flex w-64 shrink-0 flex-col border-r lg:w-80"
+                >
                     <div className="flex items-stretch border-b border-input">
                         <button
                             type="button"

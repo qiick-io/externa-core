@@ -157,6 +157,8 @@
     "a11y": {
         "skipToContent": "Vai al contenuto",
         "mainNav": "Navigazione principale",
+        "breadcrumb": "Percorso di navigazione",
+        "chatThreadList": "Conversazioni chat",
         "openMenu": "Apri menu",
         "search": "Cerca",
         "removeConditionRule": "Rimuovi regola di condizione",

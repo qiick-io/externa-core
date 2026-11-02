@@ -1,7 +1,7 @@
 <?php
 
 it('keeps a zoom-friendly viewport meta without maximum-scale locks', function () {
-    $blade = file_get_contents(resource_path('views/app.blade.php'));
+    $blade = file_get_contents(dirname(__DIR__, 2).'/resources/views/app.blade.php');
 
     expect($blade)->toMatch('/name=["\']viewport["\']/')
         ->and($blade)->toContain('width=device-width')

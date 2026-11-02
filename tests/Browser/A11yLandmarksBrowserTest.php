@@ -37,6 +37,10 @@ it('exposes skip link, main, and labelled nav on the dashboard', function () {
             '() => document.querySelectorAll("main").length === 1',
             true,
         )
+        ->assertScript(
+            '() => document.querySelectorAll(\'nav[aria-label="Main navigation"]\').length >= 1',
+            true,
+        )
         ->assertPresent('[aria-label]')
         ->assertNoAccessibilityIssues(1)
         ->assertNoJavaScriptErrors();
