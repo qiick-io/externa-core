@@ -43,9 +43,7 @@ final class BrandColorDerivation
         $hover = self::deriveHover($normalized, $surfaceBackground);
         $ring = self::deriveRing($normalized, $surfaceBackground);
 
-        $passesAa = $foreground !== null
-            && self::contrastRatio($normalized, $foreground) >= self::TEXT_CONTRAST_MIN
-            && $ring !== null
+        $passesAa = self::contrastRatio($normalized, $foreground) >= self::TEXT_CONTRAST_MIN
             && self::contrastRatio($ring, $surfaceBackground) >= self::UI_CONTRAST_MIN;
 
         return [
@@ -58,9 +56,9 @@ final class BrandColorDerivation
     }
 
     /**
-     * Pick white or ink-950 for best text contrast; null if neither reaches 4.5:1.
+     * Pick white or ink-950 for best text contrast on the brand colour.
      */
-    public static function pickForeground(string $hex): ?string
+    public static function pickForeground(string $hex): string
     {
         $contrastWhite = self::contrastRatio($hex, self::FOREGROUND_LIGHT);
         $contrastInk = self::contrastRatio($hex, self::FOREGROUND_DARK);
@@ -102,7 +100,7 @@ final class BrandColorDerivation
         return ($lighter + 0.05) / ($darker + 0.05);
     }
 
-    private static function deriveHover(string $hex, string $surfaceBackground): ?string
+    private static function deriveHover(string $hex, string $surfaceBackground): string
     {
         $surfaceLuminance = self::relativeLuminance($surfaceBackground) ?? 1.0;
         // Darken on light surfaces; lighten on dark surfaces.
@@ -112,7 +110,7 @@ final class BrandColorDerivation
         return $hover ?? $hex;
     }
 
-    private static function deriveRing(string $hex, string $surfaceBackground): ?string
+    private static function deriveRing(string $hex, string $surfaceBackground): string
     {
         if (self::contrastRatio($hex, $surfaceBackground) >= self::UI_CONTRAST_MIN) {
             return $hex;

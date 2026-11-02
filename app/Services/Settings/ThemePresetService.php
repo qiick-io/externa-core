@@ -108,7 +108,7 @@ class ThemePresetService
         $hasCustomDark = is_string($projectColorDark) && $projectColorDark !== '';
         $effectiveDark = $hasCustomDark ? $projectColorDark : ($hasCustomLight ? $projectColor : null);
 
-        $brandPassesAa = true;
+        $brandAaChecks = [];
         $brandPrimaryForeground = null;
         $brandPrimaryDarkForeground = null;
 
@@ -118,7 +118,7 @@ class ThemePresetService
                 $light['background'] ?? '#FFFFFF',
             );
             $brandPrimaryForeground = $lightDerivation['primaryForeground'];
-            $brandPassesAa = $brandPassesAa && $lightDerivation['passesAa'];
+            $brandAaChecks[] = $lightDerivation['passesAa'];
             $light = $this->stripBrandLinkedKeys($light);
         }
 
@@ -128,9 +128,11 @@ class ThemePresetService
                 $dark['background'] ?? '#0E171E',
             );
             $brandPrimaryDarkForeground = $darkDerivation['primaryForeground'];
-            $brandPassesAa = $brandPassesAa && $darkDerivation['passesAa'];
+            $brandAaChecks[] = $darkDerivation['passesAa'];
             $dark = $this->stripBrandLinkedKeys($dark);
         }
+
+        $brandPassesAa = ! in_array(false, $brandAaChecks, true);
 
         return [
             'light' => $light,
