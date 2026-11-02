@@ -154,7 +154,7 @@ export function ItemPreviewAsRoleDialog({
                     </DialogHeader>
 
                     <div className="space-y-3">
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label htmlFor="preview-role">Role</Label>
                             <Select value={roleKey} onValueChange={setRoleKey}>
                                 <SelectTrigger

@@ -1,13 +1,10 @@
 import {
     ArrowUp,
-    File as FileIcon,
     FlaskConical,
     LayoutList,
-    Library,
     Mic,
     MicOff,
     Paperclip,
-    Sparkles,
     Square,
     X,
 } from 'lucide-react';
@@ -21,7 +18,6 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import type { AiChatAttachment } from '@/lib/ai-chat';
-import type { AiPendingContextAttachment } from '@/lib/ai-context';
 import { cn } from '@/lib/utils';
 
 const MIN_TEXTAREA_HEIGHT_PX = 40;
@@ -37,11 +33,6 @@ type AiComposerProps = {
     placeholder?: string;
     attachments?: AiChatAttachment[];
     onRemoveAttachment?: (attachmentId: string) => void;
-    contextAttachments?: AiPendingContextAttachment[];
-    onRemoveContextAttachment?: (
-        kind: AiPendingContextAttachment['kind'],
-        id: number,
-    ) => void;
     onAttach?: () => void;
     isUploadingAttachment?: boolean;
     attachDisabled?: boolean;
@@ -70,8 +61,6 @@ export function AiComposer({
     placeholder,
     attachments = [],
     onRemoveAttachment,
-    contextAttachments = [],
-    onRemoveContextAttachment,
     onAttach,
     isUploadingAttachment = false,
     attachDisabled = false,
@@ -155,43 +144,8 @@ export function AiComposer({
                     'focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50',
                 )}
             >
-                {attachments.length > 0 || contextAttachments.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5 px-3 pt-3">
-                        {contextAttachments.map((attachment) => (
-                            <span
-                                key={`${attachment.kind}-${attachment.id}`}
-                                className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-xs"
-                            >
-                                {attachment.kind === 'item' ? (
-                                    <Library className="size-3" />
-                                ) : attachment.kind === 'file' ? (
-                                    <FileIcon className="size-3" />
-                                ) : (
-                                    <Sparkles className="size-3" />
-                                )}
-                                <span className="max-w-[12rem] truncate">
-                                    {attachment.name}
-                                </span>
-                                {onRemoveContextAttachment ? (
-                                    <button
-                                        type="button"
-                                        className="rounded-sm p-0.5 hover:bg-background"
-                                        onClick={() =>
-                                            onRemoveContextAttachment(
-                                                attachment.kind,
-                                                attachment.id,
-                                            )
-                                        }
-                                        aria-label={t('ai.removeAttachment', {
-                                            name: attachment.name,
-                                        })}
-                                        disabled={isStreaming || disabled}
-                                    >
-                                        <X className="size-3" />
-                                    </button>
-                                ) : null}
-                            </span>
-                        ))}
+                {attachments.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 px-3 pt-3">
                         {attachments.map((attachment) => (
                             <span
                                 key={attachment.id}
@@ -297,7 +251,7 @@ export function AiComposer({
                                         variant={
                                             dryRunMode ? 'secondary' : 'ghost'
                                         }
-                                        className="h-8 gap-1.5 px-2 text-xs"
+                                        className="h-8 gap-2 px-2 text-xs"
                                         disabled={disabled || isStreaming}
                                         onClick={() =>
                                             onDryRunModeChange(!dryRunMode)

@@ -1999,7 +1999,7 @@ export function ItemChatDrawer({
                                         <Message align={mine ? 'end' : 'start'}>
                                             {!mine ? (
                                                 <MessageAvatar
-                                                    className="size-8 text-[10px] font-medium"
+                                                    className="size-8 text-xs font-medium"
                                                     style={avatarStyleForId(
                                                         userId,
                                                     )}
@@ -2194,7 +2194,7 @@ export function ItemChatDrawer({
                                                                                         }
                                                                                     >
                                                                                         <div
-                                                                                            className="text-[11px] font-medium"
+                                                                                            className="text-xs font-medium"
                                                                                             style={{
                                                                                                 color: avatarColorForId(
                                                                                                     comment
@@ -2212,7 +2212,7 @@ export function ItemChatDrawer({
                                                                                                     ?.name
                                                                                             }
                                                                                         </div>
-                                                                                        <div className="truncate text-[11px] text-muted-foreground">
+                                                                                        <div className="truncate text-xs text-muted-foreground">
                                                                                             {
                                                                                                 comment
                                                                                                     .reply_to
@@ -2325,7 +2325,7 @@ export function ItemChatDrawer({
                                                                             ) : null}
                                                                             {fileAttachments.length >
                                                                             0 ? (
-                                                                                <ul className="flex max-h-36 w-full min-w-[12rem] flex-col gap-1.5 overflow-y-auto">
+                                                                                <ul className="flex max-h-36 w-full min-w-[12rem] flex-col gap-2 overflow-y-auto">
                                                                                     {fileAttachments.map(
                                                                                         (
                                                                                             attachment,
@@ -2377,7 +2377,7 @@ export function ItemChatDrawer({
                                                                                     />
                                                                                 ) : null}
                                                                                 <time
-                                                                                    className="text-[10px] leading-none text-muted-foreground tabular-nums"
+                                                                                    className="text-xs leading-none text-muted-foreground tabular-nums"
                                                                                     dateTime={
                                                                                         comment.created_at ??
                                                                                         undefined
@@ -2416,7 +2416,7 @@ export function ItemChatDrawer({
                                                                                                         ', ',
                                                                                                     )}
                                                                                                 className={cn(
-                                                                                                    'inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[12px] leading-none shadow-sm',
+                                                                                                    'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs leading-none shadow-sm',
                                                                                                     reaction.reacted
                                                                                                         ? 'border-primary/60 bg-primary/15'
                                                                                                         : 'border-border bg-card text-card-foreground',
@@ -2452,7 +2452,7 @@ export function ItemChatDrawer({
                                                                                                                         user.id
                                                                                                                     }
                                                                                                                     className={cn(
-                                                                                                                        'flex size-4 items-center justify-center rounded-full text-[8px] font-semibold ring-1 ring-card',
+                                                                                                                        'flex size-4 items-center justify-center rounded-full text-xs font-semibold ring-1 ring-card',
                                                                                                                         index >
                                                                                                                             0 &&
                                                                                                                             '-ml-1',
@@ -2473,7 +2473,7 @@ export function ItemChatDrawer({
                                                                                                         ?.length ??
                                                                                                         0) >
                                                                                                     3 ? (
-                                                                                                        <span className="-ml-1 flex size-4 items-center justify-center rounded-full bg-muted text-[8px] font-semibold text-muted-foreground ring-1 ring-card">
+                                                                                                        <span className="-ml-1 flex size-4 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground ring-1 ring-card">
                                                                                                             +
                                                                                                             {(reaction
                                                                                                                 .users
@@ -2550,7 +2550,7 @@ export function ItemChatDrawer({
                 </div>
                 <DrawerFooter>
                     {replyTo ? (
-                        <div className="flex items-start gap-2 rounded-md bg-muted/60 px-2 py-1.5">
+                        <div className="flex items-start gap-2 rounded-md bg-muted/60 px-2 py-2">
                             <div
                                 className="min-w-0 flex-1 border-l-2 pl-2 text-xs"
                                 style={{
@@ -3175,7 +3175,7 @@ function AttachmentRow({
     const href = chatAttachmentUrl(scope, attachment.id);
 
     return (
-        <div className="flex w-full min-w-0 items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2 text-card-foreground shadow-sm">
+        <div className="flex w-full min-w-0 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-card-foreground shadow-sm">
             <a
                 href={href}
                 className="flex min-w-0 flex-1 items-center gap-2 text-xs font-medium text-foreground no-underline hover:underline"

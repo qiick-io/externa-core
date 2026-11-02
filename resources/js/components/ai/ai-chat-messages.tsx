@@ -166,7 +166,7 @@ export function AiChatMessages({
                                                     )
                                                 }
                                                 rows={3}
-                                                className="w-full resize-y rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                className="w-full resize-y rounded-md border border-border bg-background px-2 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                             />
                                             <div className="flex justify-end gap-2">
                                                 <Button
@@ -198,7 +198,7 @@ export function AiChatMessages({
                                         <div className="flex flex-col gap-2">
                                             {(message.attachments?.length ??
                                                 0) > 0 ? (
-                                                <div className="flex flex-wrap gap-1.5">
+                                                <div className="flex flex-wrap gap-2">
                                                     {message.attachments?.map(
                                                         (attachment) => (
                                                             <span

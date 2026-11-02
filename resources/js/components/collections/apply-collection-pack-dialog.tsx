@@ -118,7 +118,7 @@ export function ApplyCollectionPackDialog({
                                     type="button"
                                     onClick={() => setSelectedKey(pack.key)}
                                     className={cn(
-                                        'rounded-lg border px-3 py-2.5 text-left transition-colors',
+                                        'rounded-lg border px-3 py-3 text-left transition-colors',
                                         selected?.key === pack.key
                                             ? 'border-primary bg-primary/5'
                                             : 'border-sidebar-border/70 hover:bg-muted/40 dark:border-sidebar-border',

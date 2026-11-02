@@ -217,7 +217,7 @@ export default function ChatHubPage({
                             type="button"
                             data-test="chat-tab-collection"
                             className={cn(
-                                'inline-flex flex-1 items-center justify-center gap-1.5 border-r border-input px-3 py-2 text-sm',
+                                'inline-flex flex-1 items-center justify-center gap-2 border-r border-input px-3 py-2 text-sm',
                                 tab === 'collection'
                                     ? 'bg-primary text-primary-foreground'
                                     : 'bg-muted text-muted-foreground',
@@ -230,7 +230,7 @@ export default function ChatHubPage({
                                 <span
                                     data-test="chat-tab-collection-unread"
                                     className={cn(
-                                        'min-w-5 rounded-full px-1.5 text-[11px] font-medium',
+                                        'min-w-5 rounded-full px-2 text-xs font-medium',
                                         tab === 'collection'
                                             ? 'bg-primary-foreground/20 text-primary-foreground'
                                             : 'bg-primary text-primary-foreground',
@@ -244,7 +244,7 @@ export default function ChatHubPage({
                             type="button"
                             data-test="chat-tab-private"
                             className={cn(
-                                'inline-flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-sm',
+                                'inline-flex flex-1 items-center justify-center gap-2 px-3 py-2 text-sm',
                                 tab === 'private'
                                     ? 'bg-primary text-primary-foreground'
                                     : 'bg-muted text-muted-foreground',
@@ -257,7 +257,7 @@ export default function ChatHubPage({
                                 <span
                                     data-test="chat-tab-private-unread"
                                     className={cn(
-                                        'min-w-5 rounded-full px-1.5 text-[11px] font-medium',
+                                        'min-w-5 rounded-full px-2 text-xs font-medium',
                                         tab === 'private'
                                             ? 'bg-primary-foreground/20 text-primary-foreground'
                                             : 'bg-primary text-primary-foreground',

@@ -551,7 +551,7 @@ export function BlocksFieldInput({
 
                             <div
                                 className={cn(
-                                    'mt-4 space-y-5',
+                                    'mt-4 space-y-6',
                                     collapsed && 'hidden',
                                 )}
                             >

@@ -22,7 +22,7 @@ function FaceCircle({
 }) {
     return (
         <Avatar userId={face.id} className={className}>
-            <AvatarFallback className="text-[10px] font-medium">
+            <AvatarFallback className="text-xs font-medium">
                 {initialsFromName(face.name)}
             </AvatarFallback>
         </Avatar>
@@ -46,7 +46,7 @@ function StackedFaces({ faces }: { faces: ChatParticipantRef[] }) {
                 />
             ))}
             {overflow > 0 ? (
-                <span className="relative -ml-2 flex size-7 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground ring-2 ring-card">
+                <span className="relative -ml-2 flex size-7 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground ring-2 ring-card">
                     +{overflow}
                 </span>
             ) : null}

@@ -170,7 +170,7 @@ export function ColumnPickerPopover({
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="Search fields"
                             maxLength={STRING_LIMITS.SEARCH}
-                            className="h-8 pl-7 text-sm"
+                            className="h-8 pl-8 text-sm"
                         />
                     </div>
                     {drillField ? (
@@ -193,7 +193,7 @@ export function ColumnPickerPopover({
                                       key={path}
                                       type="button"
                                       className={cn(
-                                          'flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm',
+                                          'flex w-full items-center gap-2 px-3 py-2 text-left text-sm',
                                           active
                                               ? 'text-muted-foreground'
                                               : 'hover:bg-muted',
@@ -230,7 +230,7 @@ export function ColumnPickerPopover({
                                       <button
                                           type="button"
                                           className={cn(
-                                              'flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 text-left text-sm',
+                                              'flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-sm',
                                               !active && 'hover:bg-muted',
                                           )}
                                           onClick={() => togglePath(entry.path)}

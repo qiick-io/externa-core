@@ -24,7 +24,4 @@ export const fieldControlChromeSingle = cn(
 );
 
 /** Multi-option / growing chrome — height follows content. */
-export const fieldControlChromeMulti = cn(
-    fieldControlChromeBase,
-    'px-3 py-1.5',
-);
+export const fieldControlChromeMulti = cn(fieldControlChromeBase, 'px-3 py-2');

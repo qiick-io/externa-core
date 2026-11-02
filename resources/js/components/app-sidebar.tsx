@@ -185,29 +185,31 @@ export function AppSidebar() {
                 )}
                 tooltip={{ children: t(item.titleKey) }}
                 className={
-                    item.accent
-                        ? cn(
-                              'sidebar-ai-nav relative overflow-hidden',
-                              'text-orange-700 hover:text-orange-700',
-                              'dark:text-orange-300 dark:hover:text-orange-300',
-                              'data-[active=true]:font-medium',
-                              'data-[active=true]:text-orange-700',
-                              'dark:data-[active=true]:text-orange-300',
-                          )
-                        : undefined
+                    item.id === 'chat'
+                        ? 'relative'
+                        : item.accent
+                          ? cn(
+                                'sidebar-ai-nav relative overflow-hidden',
+                                'text-orange-700 hover:text-orange-700',
+                                'dark:text-orange-300 dark:hover:text-orange-300',
+                                'data-[active=true]:font-medium',
+                                'data-[active=true]:text-orange-700',
+                                'dark:data-[active=true]:text-orange-300',
+                            )
+                          : undefined
                 }
             >
-                <Link href={item.href} prefetch>
+                <Link href={item.href} prefetch className="relative">
                     <item.icon />
                     <span>{t(item.titleKey)}</span>
+                    {item.id === 'chat' ? (
+                        <SidebarUnreadBadge
+                            count={chatUnread.unread_count}
+                            data-test="chat-nav-unread"
+                        />
+                    ) : null}
                 </Link>
             </SidebarMenuButton>
-            {item.id === 'chat' ? (
-                <SidebarUnreadBadge
-                    count={chatUnread.unread_count}
-                    data-test="chat-nav-unread"
-                />
-            ) : null}
         </SidebarMenuItem>
     );
 
@@ -256,7 +258,7 @@ export function AppSidebar() {
                 <NotificationsBell />
                 <NavUser />
                 {appVersion ? (
-                    <p className="truncate px-2 text-center text-[10px] leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
+                    <p className="truncate px-2 text-center text-xs leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
                         v{appVersion}
                     </p>
                 ) : null}

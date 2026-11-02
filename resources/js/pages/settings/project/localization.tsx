@@ -100,7 +100,7 @@ export default function ProjectLocalizationSettingsPage({
                 <Form
                     {...ProjectLocalizationSettingsController.update.form()}
                     options={{ preserveScroll: true }}
-                    className="space-y-10"
+                    className="space-y-12"
                     onSuccess={() => setIsDirty(false)}
                     noValidate
                 >

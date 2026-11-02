@@ -1506,7 +1506,7 @@ export default function AiIndexPage({
                             <>
                                 {conversationSections.map((section) => (
                                     <div key={section.key} className="mb-3">
-                                        <div className="flex items-center gap-1.5 px-2 py-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                                        <div className="flex items-center gap-2 px-2 py-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                             {section.key === 'pinned' ? (
                                                 <Pin className="size-3 fill-current" />
                                             ) : null}

@@ -217,11 +217,11 @@ function FieldTypePicker({ onSelect }: { onSelect: (type: string) => void }) {
             </div>
 
             {filteredGroups.length === 0 ? (
-                <p className="py-10 text-center text-sm text-muted-foreground">
+                <p className="py-12 text-center text-sm text-muted-foreground">
                     {t('collections.noMatchingFieldTypes')}
                 </p>
             ) : (
-                <div className="space-y-10">
+                <div className="space-y-12">
                     {filteredGroups.map((group) => {
                         const rows: string[][] = [];
 
@@ -237,7 +237,7 @@ function FieldTypePicker({ onSelect }: { onSelect: (type: string) => void }) {
 
                         return (
                             <div key={group.key}>
-                                <p className="mb-5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                <p className="mb-6 text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                     {t(fieldTypeGroupLabelKey(group.key))}
                                 </p>
                                 <div className="flex flex-col gap-4">
@@ -258,7 +258,7 @@ function FieldTypePicker({ onSelect }: { onSelect: (type: string) => void }) {
                                                         onClick={() =>
                                                             onSelect(type)
                                                         }
-                                                        className="flex flex-col items-center gap-2.5 rounded-lg border border-border px-3 py-5 text-center transition-colors hover:border-primary/40 hover:bg-muted/50"
+                                                        className="flex flex-col items-center gap-3 rounded-lg border border-border px-3 py-6 text-center transition-colors hover:border-primary/40 hover:bg-muted/50"
                                                     >
                                                         <Icon className="size-6 text-muted-foreground" />
                                                         <span className="text-xs leading-tight font-medium">
@@ -324,7 +324,7 @@ function OptionsEditor({
         <div className="space-y-4">
             <div>
                 <Label>Choices</Label>
-                <p className="mt-1.5 text-sm text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground">
                     Add the values users can pick from. Label is shown in the
                     interface; value is stored in the database.
                 </p>
@@ -409,7 +409,7 @@ function TreeOptionsEditor({
             {depth === 0 && (
                 <div>
                     <Label>Tree choices</Label>
-                    <p className="mt-1.5 text-sm text-muted-foreground">
+                    <p className="mt-2 text-sm text-muted-foreground">
                         Define nested options. Checking a parent selects all
                         descendants; mixed children show an indeterminate
                         parent.
@@ -811,7 +811,7 @@ function BlocksSettingsEditor({
                 <Label>
                     {depth === 1 ? 'Block types' : 'Inner block types'}
                 </Label>
-                <p className="mt-1.5 text-sm text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground">
                     {depth === 1
                         ? `Define the inline block schema for this field. Keys must be lowercase snake_case (e.g. rich_text). Nesting depth max ${cappedMax} (ceiling ${MAX_BLOCKS_DEPTH}).`
                         : `Inner blocks (depth ${depth}/${cappedMax}). Further blocks nesting is disabled at this depth.`}

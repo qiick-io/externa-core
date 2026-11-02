@@ -195,7 +195,7 @@ export function ChatSendAttachmentsDialog({
                 onDragLeave={onDialogDragLeave}
                 onDrop={onDialogDrop}
             >
-                <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2.5">
+                <div className="flex shrink-0 items-center gap-2 border-b px-3 py-3">
                     <Button
                         type="button"
                         size="icon"
@@ -508,7 +508,7 @@ function FileThumb({ item }: { item: SendAttachItem }) {
         <div className="flex size-11 shrink-0 flex-col items-center justify-center rounded-md bg-primary/15 text-primary">
             <FileText className="size-4" aria-hidden />
             {ext ? (
-                <span className="text-[9px] leading-none font-bold uppercase">
+                <span className="text-xs leading-none font-bold uppercase">
                     {ext.slice(0, 4)}
                 </span>
             ) : null}
@@ -542,7 +542,7 @@ function MediaPreviewGrid({
                     <>
                         <div className="absolute top-1 right-1 z-10 flex items-center gap-1">
                             {item.uploaded === null && item.error === null ? (
-                                <span className="rounded-full bg-background/80 p-1.5 shadow">
+                                <span className="rounded-full bg-background/80 p-2 shadow">
                                     <Spinner className="size-3.5" />
                                 </span>
                             ) : null}
@@ -558,7 +558,7 @@ function MediaPreviewGrid({
                             </Button>
                         </div>
                         {item.error ? (
-                            <div className="absolute inset-x-0 bottom-0 z-10 bg-destructive/90 px-2 py-1 text-[10px] break-all text-destructive-foreground">
+                            <div className="absolute inset-x-0 bottom-0 z-10 bg-destructive/90 px-2 py-1 text-xs break-all text-destructive-foreground">
                                 {item.error}
                             </div>
                         ) : null}

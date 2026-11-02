@@ -248,7 +248,7 @@ export default function CollectionsFields({
                 )}
 
                 {fields.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-sidebar-border/70 p-10 text-center dark:border-sidebar-border">
+                    <div className="rounded-xl border border-dashed border-sidebar-border/70 p-12 text-center dark:border-sidebar-border">
                         <p className="text-sm text-muted-foreground">
                             {t('collections.noFieldsYet')}
                         </p>

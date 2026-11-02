@@ -31,7 +31,7 @@ export function CommonAdvancedSettings({
     const isGroup = isLayoutGroupType(fieldType);
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-6">
             {!isGroup && (
                 <div className="grid gap-2">
                     <Label htmlFor="field_layout_width">Field width</Label>

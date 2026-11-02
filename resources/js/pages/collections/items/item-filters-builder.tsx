@@ -94,13 +94,13 @@ export function ItemFiltersBuilder({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 gap-1.5"
-                    aria-label={t('a11y.filters')}
+                    className="h-9 gap-2"
+                    aria-label="Filters"
                 >
                     <Filter className="size-4" />
                     Filters
                     {activeCount > 0 ? (
-                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-medium text-primary-foreground">
+                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground">
                             {activeCount}
                         </span>
                     ) : null}
@@ -130,7 +130,7 @@ export function ItemFiltersBuilder({
                 </div>
 
                 {showStatusFilters ? (
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
                         {showHasDraft ? (
                             <Select
                                 value={hasDraft ? 'yes' : 'all'}
@@ -208,9 +208,7 @@ export function ItemFiltersBuilder({
                     <p className="text-sm font-medium">Field filters</p>
                     <p className="text-xs text-muted-foreground">
                         Rules are AND-combined and written to the URL (
-                        <code className="text-[10px]">
-                            filter[field][_eq]=…
-                        </code>
+                        <code className="text-xs">filter[field][_eq]=…</code>
                         ).
                     </p>
 
@@ -223,13 +221,13 @@ export function ItemFiltersBuilder({
                             {rules.map((rule) => (
                                 <div
                                     key={rule.id}
-                                    className="flex flex-wrap items-center gap-1.5"
+                                    className="flex flex-wrap items-center gap-2"
                                 >
                                     <NativeSelect
                                         size="sm"
                                         className="min-w-24 flex-1"
                                         value={rule.field}
-                                        aria-label={t('a11y.filterField')}
+                                        aria-label="Filter field"
                                         onChange={(e) =>
                                             updateRule(rule.id, {
                                                 field: e.target.value,
@@ -249,7 +247,7 @@ export function ItemFiltersBuilder({
                                         size="sm"
                                         className="min-w-28"
                                         value={rule.operator}
-                                        aria-label={t('a11y.filterOperator')}
+                                        aria-label="Filter operator"
                                         onChange={(e) =>
                                             updateRule(rule.id, {
                                                 operator: e.target
@@ -272,7 +270,7 @@ export function ItemFiltersBuilder({
                                                     ? 'a, b, c'
                                                     : 'Value'
                                             }
-                                            aria-label={t('a11y.filterValue')}
+                                            aria-label="Filter value"
                                             onChange={(e) =>
                                                 updateRule(rule.id, {
                                                     value: e.target.value,
@@ -292,7 +290,7 @@ export function ItemFiltersBuilder({
                                         variant="ghost"
                                         size="sm"
                                         className="h-8 px-2"
-                                        aria-label={t('a11y.removeFilter')}
+                                        aria-label="Remove filter"
                                         onClick={() => removeRule(rule.id)}
                                     >
                                         <X className="size-3.5" />

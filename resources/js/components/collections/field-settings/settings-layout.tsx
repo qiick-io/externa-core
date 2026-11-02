@@ -28,7 +28,7 @@ export function SettingsPanel({
     return (
         <div
             className={cn(
-                'space-y-5 rounded-lg border bg-muted/30 p-4',
+                'space-y-6 rounded-lg border bg-muted/30 p-4',
                 className,
             )}
         >

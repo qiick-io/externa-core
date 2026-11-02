@@ -65,7 +65,7 @@ import { cn } from '@/lib/utils';
 import type { CollectionFieldRow } from '@/types';
 
 /** Field-grid gap — enough air for between-item / between-group inserts. */
-const FIELD_LIST_GAP_CLASS = 'gap-5';
+const FIELD_LIST_GAP_CLASS = 'gap-6';
 
 const groupSurfaceClass =
     'space-y-2 rounded-lg border bg-muted/30 p-3 dark:border-sidebar-border';
@@ -756,7 +756,7 @@ function CollectionFieldRow({
     return (
         <div
             className={cn(
-                'flex items-center gap-3 rounded-xl border px-3 py-2.5',
+                'flex items-center gap-3 rounded-xl border px-3 py-3',
                 fillHeight && 'h-full',
                 isGroup ? 'border-transparent bg-transparent' : 'bg-card',
                 !isGroup &&
@@ -869,7 +869,7 @@ function PanelAddSectionControl({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="gap-1.5"
+                className="gap-2"
                 onClick={(event) => {
                     event.stopPropagation();
                     createPanelSectionField(collectionId, parent, allFields);

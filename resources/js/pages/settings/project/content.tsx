@@ -78,7 +78,7 @@ export default function ProjectContentSettingsPage({ project }: Props) {
                 <Form
                     {...ProjectContentSettingsController.update.form()}
                     options={{ preserveScroll: true }}
-                    className="space-y-10"
+                    className="space-y-12"
                     onSuccess={() => setIsDirty(false)}
                     noValidate
                 >

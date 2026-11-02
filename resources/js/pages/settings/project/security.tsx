@@ -120,7 +120,7 @@ export default function ProjectSecuritySettingsPage({
                 <Form
                     {...ProjectSecuritySettingsController.update.form()}
                     options={{ preserveScroll: true }}
-                    className="space-y-10"
+                    className="space-y-12"
                     onSuccess={() => setIsDirty(false)}
                     noValidate
                 >
@@ -249,7 +249,7 @@ export default function ProjectSecuritySettingsPage({
                                                 )}
                                             </SelectContent>
                                         </Select>
-                                        <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                                        <ul className="list-disc space-y-1 pl-6 text-sm text-muted-foreground">
                                             {passwordPolicies.map((policy) => (
                                                 <li key={`hint-${policy}`}>
                                                     <span className="font-medium text-foreground">
@@ -351,7 +351,7 @@ export default function ProjectSecuritySettingsPage({
                                         </div>
                                         <FieldDescription
                                             id="two-factor-required-hint"
-                                            className="pl-7"
+                                            className="pl-8"
                                         >
                                             {t(
                                                 'settings.project.twoFactorRequiredHint',
@@ -633,7 +633,7 @@ export default function ProjectSecuritySettingsPage({
                                         </div>
                                         <FieldDescription
                                             id="oidc-jit-provisioning-hint"
-                                            className="pl-7"
+                                            className="pl-8"
                                         >
                                             {t(
                                                 'settings.project.oidcJitProvisioningHint',

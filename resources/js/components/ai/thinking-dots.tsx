@@ -19,7 +19,7 @@ export function ThinkingDots({
     return (
         <div
             className={cn(
-                'flex items-center gap-1.5 text-muted-foreground',
+                'flex items-center gap-2 text-muted-foreground',
                 className,
             )}
             role="status"

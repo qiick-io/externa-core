@@ -28,7 +28,7 @@ export default function AuthSimpleLayout({
             : projectAppearance?.logoUrl;
 
     return (
-        <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
+        <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-12">
             <SkipToContent />
             <main id="main-content" tabIndex={-1} className="w-full max-w-sm">
                 <div className="flex flex-col gap-8">

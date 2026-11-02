@@ -58,7 +58,7 @@ export function SelectionSettings({
         const dateMode = String(settings?.date_mode ?? 'datetime');
 
         return (
-            <div className="space-y-5">
+            <div className="space-y-6">
                 <div className="grid gap-2">
                     <Label htmlFor="date_mode">Mode</Label>
                     <NativeSelect
@@ -143,7 +143,7 @@ export function SelectionSettings({
         const colorSettings = parseColorFieldSettings(settings);
 
         return (
-            <div className="space-y-5">
+            <div className="space-y-6">
                 <SettingCheckbox
                     id="color_opacity"
                     name="settings[opacity]"
@@ -172,7 +172,7 @@ export function SelectionSettings({
         const selectSettings = parseSelectFieldSettings(settings);
 
         return (
-            <div className="space-y-5">
+            <div className="space-y-6">
                 {fieldType === 'select' ? (
                     <SettingCheckbox
                         id="select_allow_none"

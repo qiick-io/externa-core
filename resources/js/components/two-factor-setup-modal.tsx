@@ -27,7 +27,7 @@ import { confirm } from '@/routes/two-factor';
 function GridScanIcon() {
     return (
         <div className="mb-3 rounded-full border border-border bg-card p-0.5 shadow-sm">
-            <div className="relative overflow-hidden rounded-full border border-border bg-muted p-2.5">
+            <div className="relative overflow-hidden rounded-full border border-border bg-muted p-3">
                 <div className="absolute inset-0 grid grid-cols-5 opacity-50">
                     {Array.from({ length: 5 }, (_, i) => (
                         <div
@@ -78,7 +78,7 @@ function TwoFactorSetupStep({
                 <>
                     <div className="mx-auto flex max-w-md overflow-hidden">
                         <div className="mx-auto aspect-square w-64 rounded-lg border border-border">
-                            <div className="z-10 flex h-full w-full items-center justify-center p-5">
+                            <div className="z-10 flex h-full w-full items-center justify-center p-6">
                                 {qrCodeSvg ? (
                                     <div
                                         className="aspect-square w-full rounded-lg bg-white p-2 [&_svg]:size-full"
@@ -99,7 +99,7 @@ function TwoFactorSetupStep({
                         </div>
                     </div>
 
-                    <div className="flex w-full space-x-5">
+                    <div className="flex w-full space-x-6">
                         <Button className="w-full" onClick={onNextStep}>
                             {buttonText}
                         </Button>
@@ -234,7 +234,7 @@ function TwoFactorVerificationStep({
                                 </FieldError>
                             </Field>
 
-                            <div className="flex w-full space-x-5">
+                            <div className="flex w-full space-x-6">
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -372,7 +372,7 @@ export default function TwoFactorSetupModal({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex flex-col items-center space-y-5">
+                <div className="flex flex-col items-center space-y-6">
                     {showVerificationStep ? (
                         <TwoFactorVerificationStep
                             onClose={handleClose}

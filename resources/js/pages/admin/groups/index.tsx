@@ -308,7 +308,7 @@ export default function AdminGroupsIndex({
                     }
                     filtersRight={
                         hasSelection ? null : (
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-2">
                                 <Select
                                     value={sort}
                                     onValueChange={(value) => {
@@ -324,7 +324,7 @@ export default function AdminGroupsIndex({
                                 >
                                     <SelectTrigger
                                         size="sm"
-                                        aria-label={t('a11y.sortBy')}
+                                        aria-label="Sort by"
                                         className="w-[7.5rem]"
                                     >
                                         <SelectValue placeholder="Sort" />
@@ -379,15 +379,15 @@ export default function AdminGroupsIndex({
                                 >
                                     <ToggleGroupItem
                                         value="active"
-                                        aria-label={t('a11y.activeList')}
-                                        className="px-2.5"
+                                        aria-label="Active groups"
+                                        className="px-3"
                                     >
                                         <UsersRound className="size-4" />
                                     </ToggleGroupItem>
                                     <ToggleGroupItem
                                         value="trashed"
-                                        aria-label={t('a11y.trashList')}
-                                        className="px-2.5"
+                                        aria-label="Trash"
+                                        className="px-3"
                                     >
                                         <Trash2 className="size-4" />
                                     </ToggleGroupItem>

@@ -118,7 +118,7 @@ export function TagPicker({
             )}
 
             {availableCatalogTags.length > 0 && (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">
                         {t('files.tags.existing')}
                     </p>

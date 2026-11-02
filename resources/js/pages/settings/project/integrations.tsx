@@ -254,7 +254,7 @@ export default function ProjectIntegrationsSettingsPage({
                 <Form
                     {...ProjectIntegrationsSettingsController.update.form()}
                     options={{ preserveScroll: true }}
-                    className="space-y-10"
+                    className="space-y-12"
                     onSuccess={() => setIsDirty(false)}
                     noValidate
                 >

@@ -119,7 +119,7 @@ export default function Security({
             <h1 className="sr-only">{t('settings.security.head')}</h1>
 
             <SettingsLayout>
-                <div className="space-y-10">
+                <div className="space-y-12">
                     {twoFactorEnforcedForUser && (
                         <Alert data-test="two-factor-required-banner">
                             <ShieldAlert />

@@ -49,7 +49,7 @@ export function RelationalSettings({
         const imageSettings = parseImageFieldSettings(settings);
 
         return (
-            <div className="space-y-5">
+            <div className="space-y-6">
                 <SettingCheckbox
                     id="image_allow_multiple"
                     label="Allow multiple images"
@@ -79,7 +79,7 @@ export function RelationalSettings({
         const filesSettings = parseFilesFieldSettings(settings);
 
         return (
-            <div className="space-y-5">
+            <div className="space-y-6">
                 <SettingCheckbox
                     id="files_allow_multiple"
                     label="Allow multiple files"
@@ -166,7 +166,7 @@ export function RelationalSettings({
         return (
             <div className="space-y-4">
                 <div className="grid gap-6 sm:grid-cols-2">
-                    <div className="grid gap-2.5">
+                    <div className="grid gap-3">
                         <Label htmlFor="related_collection_id">
                             Related collection
                         </Label>
@@ -189,7 +189,7 @@ export function RelationalSettings({
                             ))}
                         </NativeSelect>
                     </div>
-                    <div className="grid gap-2.5">
+                    <div className="grid gap-3">
                         <Label htmlFor="display_field">Display field</Label>
                         <Input
                             id="display_field"

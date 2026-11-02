@@ -254,7 +254,7 @@ export default function CollectionsIndex({
             breadcrumbs={breadcrumbs}
             headerActions={
                 !isTrashed && can(PermissionEnum.CanCreateCollections) ? (
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                         <HeaderIconButton
                             type="button"
                             variant="outline"
@@ -358,7 +358,7 @@ export default function CollectionsIndex({
                     }
                     filtersRight={
                         hasSelection ? null : (
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-2">
                                 <Select
                                     value={sort}
                                     onValueChange={(value) => {
@@ -432,15 +432,15 @@ export default function CollectionsIndex({
                                 >
                                     <ToggleGroupItem
                                         value="active"
-                                        aria-label={t('a11y.activeList')}
-                                        className="px-2.5"
+                                        aria-label="Active collections"
+                                        className="px-3"
                                     >
                                         <FolderOpen className="size-4" />
                                     </ToggleGroupItem>
                                     <ToggleGroupItem
                                         value="trashed"
-                                        aria-label={t('a11y.trashList')}
-                                        className="px-2.5"
+                                        aria-label="Trash"
+                                        className="px-3"
                                     >
                                         <Trash2 className="size-4" />
                                     </ToggleGroupItem>
@@ -463,7 +463,7 @@ export default function CollectionsIndex({
                                             onCheckedChange={(c) =>
                                                 toggleAll(c === true)
                                             }
-                                            aria-label={t('a11y.selectAll')}
+                                            aria-label="Select all"
                                         />
                                     </th>
                                     <th className="p-3 font-medium">
@@ -633,7 +633,7 @@ export default function CollectionsIndex({
                                                             <TooltipTrigger
                                                                 asChild
                                                             >
-                                                                <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs">
+                                                                <span className="inline-flex items-center gap-2 rounded-md bg-muted px-2 py-0.5 text-xs">
                                                                     <Box
                                                                         className="size-3.5 shrink-0"
                                                                         aria-hidden
@@ -667,7 +667,7 @@ export default function CollectionsIndex({
                                                                 ? 'success'
                                                                 : 'muted'
                                                         }
-                                                        className="gap-1.5"
+                                                        className="gap-2"
                                                     >
                                                         <span
                                                             className={cn(

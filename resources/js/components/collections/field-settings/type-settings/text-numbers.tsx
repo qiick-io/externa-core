@@ -127,7 +127,7 @@ export function TextNumbersSettings({
                         }
                     />
                 </div>
-                <div className="space-y-5">
+                <div className="space-y-6">
                     <SettingCheckbox
                         id="string_trim"
                         label="Trim whitespace"

@@ -168,7 +168,7 @@ function GroupTabsRenderer<T extends FieldDef>({
                                     type="button"
                                     data-tab-name={child.field.name}
                                     className={cn(
-                                        // py-3.5 ≈ old strip py-2 + button py-1.5 (same header height)
+                                        // py-3.5 ≈ old strip py-2 + button py-2 (same header height)
                                         'border-r border-input px-3 py-3.5 text-sm last:border-r-0',
                                         index === 0 && 'rounded-tl-lg',
                                         isActive
