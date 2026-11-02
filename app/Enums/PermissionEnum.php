@@ -62,6 +62,13 @@ enum PermissionEnum: string
 
     case CanUseAi = 'can-use-ai';
 
+    /**
+     * Create, update, and delete project-level saved AI prompts (#195).
+     * Value is dotted (`ai.prompts.manage`) per product acceptance; listing/selecting
+     * prompts in chat only requires {@see self::CanUseAi}.
+     */
+    case CanManageAiPrompts = 'ai.prompts.manage';
+
     case CanShowChat = 'can-show-chat';
     case CanCreateDirectChats = 'can-create-direct-chats';
 

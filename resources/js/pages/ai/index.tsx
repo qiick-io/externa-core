@@ -6,6 +6,7 @@ import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer'
 import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
 import { AiComposer } from '@/components/ai/ai-composer';
+import { AiContextAttachDialog } from '@/components/ai/ai-context-attach-dialog';
 import {
     fileCardsFromToolResult,
     fileCardsFromToolResults,
@@ -48,6 +49,8 @@ import type {
     AiImportJobStatus,
     AiPendingApproval,
 } from '@/lib/ai-chat';
+import type { AiPendingContextAttachment } from '@/lib/ai-context';
+import { contextIdsFromPending } from '@/lib/ai-context';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import { toast } from '@/lib/toast';
@@ -299,6 +302,10 @@ export default function AiIndexPage({
     const [pendingAttachments, setPendingAttachments] = useState<
         AiChatAttachment[]
     >([]);
+    const [pendingContextAttachments, setPendingContextAttachments] = useState<
+        AiPendingContextAttachment[]
+    >([]);
+    const [contextAttachOpen, setContextAttachOpen] = useState(false);
     const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
     const [dryRunMode, setDryRunMode] = useState(false);
     const [presetsOpen, setPresetsOpen] = useState(false);
@@ -727,10 +734,13 @@ export default function AiIndexPage({
             conversationIdForStream: string | null;
             baseMessages: ChatMessage[];
             attachments?: AiChatAttachment[];
+            contextAttachments?: AiPendingContextAttachment[];
             approvals?: AiApprovalDecision[];
         },
     ): Promise<boolean> => {
         const attachmentsForMessage = options.attachments ?? [];
+        const contextForMessage = options.contextAttachments ?? [];
+        const contextIds = contextIdsFromPending(contextForMessage);
         const approvalDecisions = options.approvals ?? [];
         const isResume = approvalDecisions.length > 0;
         let approvalsRequested: AiPendingApproval[] = [];
@@ -968,6 +978,11 @@ export default function AiIndexPage({
                 },
                 attachmentsForMessage.map((attachment) => attachment.id),
                 approvalDecisions,
+                {
+                    itemIds: contextIds.contextItemIds,
+                    fileIds: contextIds.contextFileIds,
+                    promptIds: contextIds.contextPromptIds,
+                },
             );
 
             // Stop: streamAiChat swallows AbortError; handleStop already rolled back UI.
@@ -1051,7 +1066,7 @@ export default function AiIndexPage({
     };
 
     const handlePickAttachment = () => {
-        fileInputRef.current?.click();
+        setContextAttachOpen(true);
     };
 
     const handleAttachmentFiles = async (files: FileList | File[]) => {
@@ -1105,11 +1120,25 @@ export default function AiIndexPage({
         );
     };
 
+    const removePendingContextAttachment = (
+        kind: AiPendingContextAttachment['kind'],
+        id: number,
+    ) => {
+        setPendingContextAttachments((current) =>
+            current.filter(
+                (attachment) =>
+                    !(attachment.kind === kind && attachment.id === id),
+            ),
+        );
+    };
+
     const handleSend = async () => {
         const message = composer.trim();
 
         if (
-            (!message && pendingAttachments.length === 0) ||
+            (!message &&
+                pendingAttachments.length === 0 &&
+                pendingContextAttachments.length === 0) ||
             isStreamingRef.current ||
             isUploadingAttachment
         ) {
@@ -1123,17 +1152,20 @@ export default function AiIndexPage({
         }
 
         const attachmentsToSend = pendingAttachments;
+        const contextToSend = pendingContextAttachments;
         const prompt = dryRunMode
             ? `[SIMULATION MODE] Run dry_run=true only; do not write data.\n\n${message}`
             : message;
         setComposer('');
         setPendingAttachments([]);
+        setPendingContextAttachments([]);
 
         try {
             await runStream(prompt, {
                 conversationIdForStream: conversationIdRef.current,
                 baseMessages: messages,
                 attachments: attachmentsToSend,
+                contextAttachments: contextToSend,
             });
         } catch (error) {
             const messageText =
@@ -1627,6 +1659,10 @@ export default function AiIndexPage({
                                 isStreaming={isStreaming}
                                 attachments={pendingAttachments}
                                 onRemoveAttachment={removePendingAttachment}
+                                contextAttachments={pendingContextAttachments}
+                                onRemoveContextAttachment={
+                                    removePendingContextAttachment
+                                }
                                 onAttach={handlePickAttachment}
                                 isUploadingAttachment={isUploadingAttachment}
                                 attachDisabled={
@@ -1644,6 +1680,34 @@ export default function AiIndexPage({
                     </AiChatDropZone>
                 </section>
             </div>
+
+            <AiContextAttachDialog
+                open={contextAttachOpen}
+                onOpenChange={setContextAttachOpen}
+                onAttach={(entries) => {
+                    setPendingContextAttachments((current) => {
+                        const next = [...current];
+
+                        for (const entry of entries) {
+                            if (
+                                !next.some(
+                                    (row) =>
+                                        row.kind === entry.kind &&
+                                        row.id === entry.id,
+                                )
+                            ) {
+                                next.push(entry);
+                            }
+                        }
+
+                        return next;
+                    });
+                }}
+                onPickUploadFiles={() => {
+                    setContextAttachOpen(false);
+                    fileInputRef.current?.click();
+                }}
+            />
 
             <AiActionPresetsDrawer
                 open={presetsOpen}

@@ -8,6 +8,7 @@ import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
 import type { AiChatMessageView } from '@/components/ai/ai-chat-messages';
 import { AiComposer } from '@/components/ai/ai-composer';
+import { AiContextAttachDialog } from '@/components/ai/ai-context-attach-dialog';
 import { Button } from '@/components/ui/button';
 import {
     Drawer,
@@ -44,6 +45,8 @@ import type {
     AiPendingApproval,
     AiStatus,
 } from '@/lib/ai-chat';
+import type { AiPendingContextAttachment } from '@/lib/ai-context';
+import { contextIdsFromPending } from '@/lib/ai-context';
 import { AI_OPEN_EVENT } from '@/lib/ai-open';
 import type { AiOpenDetail } from '@/lib/ai-open';
 import { toast } from '@/lib/toast';
@@ -87,6 +90,10 @@ export function AiFab() {
     const [pendingAttachments, setPendingAttachments] = useState<
         AiChatAttachment[]
     >([]);
+    const [pendingContextAttachments, setPendingContextAttachments] = useState<
+        AiPendingContextAttachment[]
+    >([]);
+    const [contextAttachOpen, setContextAttachOpen] = useState(false);
     const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [speechSupported] = useState(
@@ -257,10 +264,12 @@ export function AiFab() {
         baseMessages: ChatLine[],
         attachments: AiChatAttachment[] = [],
         approvals: AiApprovalDecision[] = [],
+        contextAttachments: AiPendingContextAttachment[] = [],
     ): Promise<boolean> => {
         const userMessageId = `user-${Date.now()}`;
         const assistantId = `assistant-${Date.now()}`;
         const isResume = approvals.length > 0;
+        const contextIds = contextIdsFromPending(contextAttachments);
         let completed = false;
         let approvalsRequested: AiPendingApproval[] = [];
 
@@ -382,6 +391,11 @@ export function AiFab() {
                 },
                 attachments.map((attachment) => attachment.id),
                 approvals,
+                {
+                    itemIds: contextIds.contextItemIds,
+                    fileIds: contextIds.contextFileIds,
+                    promptIds: contextIds.contextPromptIds,
+                },
             );
 
             if (abortController.signal.aborted) {
@@ -494,17 +508,36 @@ export function AiFab() {
         );
     };
 
+    const removePendingContextAttachment = (
+        kind: AiPendingContextAttachment['kind'],
+        id: number,
+    ) => {
+        setPendingContextAttachments((current) =>
+            current.filter(
+                (attachment) =>
+                    !(attachment.kind === kind && attachment.id === id),
+            ),
+        );
+    };
+
     const handleSend = async () => {
         const message = composer.trim();
 
-        if (!message || isStreaming || offline || isUploadingAttachment) {
+        if (
+            !message ||
+            isStreaming ||
+            offline ||
+            isUploadingAttachment
+        ) {
             return;
         }
 
         const attachmentsToSend = pendingAttachments;
+        const contextToSend = pendingContextAttachments;
         setComposer('');
         setPendingAttachments([]);
-        await runStream(message, messages, attachmentsToSend);
+        setPendingContextAttachments([]);
+        await runStream(message, messages, attachmentsToSend, [], contextToSend);
     };
 
     const handleRegenerate = async (
@@ -773,7 +806,11 @@ export function AiFab() {
                                 }
                                 attachments={pendingAttachments}
                                 onRemoveAttachment={removePendingAttachment}
-                                onAttach={() => fileInputRef.current?.click()}
+                                contextAttachments={pendingContextAttachments}
+                                onRemoveContextAttachment={
+                                    removePendingContextAttachment
+                                }
+                                onAttach={() => setContextAttachOpen(true)}
                                 isUploadingAttachment={isUploadingAttachment}
                                 attachDisabled={
                                     pendingAttachments.length >=
@@ -799,6 +836,34 @@ export function AiFab() {
                     </AiChatDropZone>
                 </DrawerContent>
             </Drawer>
+
+            <AiContextAttachDialog
+                open={contextAttachOpen}
+                onOpenChange={setContextAttachOpen}
+                onAttach={(entries) => {
+                    setPendingContextAttachments((current) => {
+                        const next = [...current];
+
+                        for (const entry of entries) {
+                            if (
+                                !next.some(
+                                    (row) =>
+                                        row.kind === entry.kind &&
+                                        row.id === entry.id,
+                                )
+                            ) {
+                                next.push(entry);
+                            }
+                        }
+
+                        return next;
+                    });
+                }}
+                onPickUploadFiles={() => {
+                    setContextAttachOpen(false);
+                    fileInputRef.current?.click();
+                }}
+            />
 
             <AiActionPresetsDrawer
                 nested
