@@ -48,6 +48,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { useTranslation } from 'react-i18next';
 import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
 import { FileUrlImportDialog } from '@/components/admin/file-url-import-dialog';
 import { AssistantMarkdown } from '@/components/ai/assistant-markdown';
@@ -92,7 +93,6 @@ import {
 } from '@/lib/files-api';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
-import { useTranslation } from 'react-i18next';
 import type { AdminFileRow } from '@/types/files';
 
 import '@uiw/react-md-editor/markdown-editor.css';

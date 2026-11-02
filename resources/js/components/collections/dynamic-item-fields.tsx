@@ -2,6 +2,7 @@ import { Asterisk, ChevronDown } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { RequiredMarker } from '@/components/a11y/required-marker';
 import { CollectionFieldFormDrawer } from '@/components/collections/collection-field-form';
 import { useContentLocale } from '@/components/collections/content-locale-provider';
 import { ContentLocaleProvider } from '@/components/collections/content-locale-provider';
@@ -51,7 +52,6 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
-import { RequiredMarker } from '@/components/a11y/required-marker';
 import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
