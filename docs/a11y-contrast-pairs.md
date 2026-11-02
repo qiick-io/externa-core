@@ -28,8 +28,8 @@ Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegro
 | Pair | Foreground | Background | Ratio | Need | Status |
 |---|---|---|---|---|---|
 | foreground / background | `#ebf3f6` (ink-100) | `#0e171e` (ink-950) | 16.11 | 4.5 | PASS |
-| muted-foreground / background | `#b3c2cc` (ink-300) | `#0e171e` | 9.92 | 4.5 | PASS |
-| muted-foreground / card | `#b3c2cc` | `#17232c` (ink-900) | 8.76 | 4.5 | PASS |
+| muted-foreground / background | `#d2dde5` (ink-200) | `#0e171e` | 13.12 | 4.5 | PASS |
+| muted-foreground / card | `#d2dde5` | `#17232c` (ink-900) | 11.59 | 4.5 | PASS |
 | primary-foreground / primary | `#0e171e` | `#1a95a2` (teal-500) | 5.06 | 4.5 | PASS |
 | destructive-foreground / destructive | `#0e171e` | `#f0848c` (red-300) | 7.23 | 4.5 | PASS |
 | success-foreground / success | `#0e171e` | `#3bb872` (green-400) | 7.14 | 4.5 | PASS |
@@ -56,10 +56,14 @@ Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegro
 | input / background | ink-300 on ink-950 | 3.0 | PASS |
 | ring / background | teal-300 on ink-950 | 3.0 | PASS |
 
+## CI
+
+`npm run a11y:contrast` (`scripts/a11y-contrast.mjs`) resolves these pairs from `resources/css/app.css` and fails below the thresholds above. Runs in the `quality` lint workflow (#255).
+
 ## Related
 
-- Token mapping: #226 (closed)
-- Focus ring / input borders: #227 (landed via #383; keep issue tick when closed)
+- Token mapping: #226
+- Focus ring / input borders: #227
 - Semantic status Badge/Alert: #235
-- AI accent pair: #242 (add measured rows when that lands — open PR #412)
-- Phase 4 CI reads this table: #255
+- AI accent pair: #242 (add when that lands)
+- Automation / axe / screen reader checklist: #255

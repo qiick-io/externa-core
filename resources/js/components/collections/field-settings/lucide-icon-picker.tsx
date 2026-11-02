@@ -217,6 +217,7 @@ export function LucideIconPicker({
                                     setQuery(event.target.value)
                                 }
                                 className="pr-8 pl-8"
+                                // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                 autoFocus
                             />
                             {query ? (

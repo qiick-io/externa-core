@@ -113,7 +113,10 @@ function DetailMediaPreview({ file }: { file: AdminFileRow }) {
                 preload="metadata"
                 src={publicUrl}
                 className="max-h-64 w-full rounded bg-black"
-            />
+            >
+                {/* User-uploaded media has no captions track available. */}
+                <track kind="captions" />
+            </video>
         );
     }
 

@@ -282,7 +282,10 @@ export function ChatMediaLightbox({
                                 controls
                                 autoPlay
                                 playsInline
-                            />
+                            >
+                                {/* Chat attachments have no captions track available. */}
+                                <track kind="captions" />
+                            </video>
                         ) : (
                             <ChatMediaLightboxImage
                                 key={current.id}

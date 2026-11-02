@@ -23,6 +23,7 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 - Live Preview optional `as_of` token claim (max 90 days ahead): point-in-time overlay of scheduled `publish_at` drafts / hide after `unpublish_at`, admin “Preview at…” picker, and `GET /api/v1/preview` meta (`as_of`, `source`) (#222).
 - Project deploy hooks (Vercel / Netlify / Cloudflare Pages / Forge): encrypted named URLs, `deploy.trigger` permission, admin Deploy button, optional deploy-on-publish, activity log, and last-run status (#196).
 - Admin a11y phase 3: overlay focus restore (Sheet/Drawer/Dialog + file detail panel), Inertia `#main-content` focus after navigation, polite/assertive live announcements (toasts, notifications, AI final answer, empty-table status), targeted reduced-motion rules that keep Radix/vaul overlays unmounting, and scroll-padding for sticky toolbar/FAB (#254).
+- Admin a11y phase 4 automation: `eslint-plugin-jsx-a11y` (errors on shared React, warnings on pages), Pest Browser axe smoke on key routes (required `browser` gate on code PRs), `npm run a11y:contrast` theme-token CI check, screen reader checklist, and third-party limits doc (#255).
 - Prompt-injection and denied-permission Pest suite for chat + MCP (`tests/Feature/Ai/Security/*`) with scripted compromised-LLM driver, ≥20 payloads × roles × surfaces, audit/approval assertions, and SECURITY checklist link (#204).
 - Human approval + audit log for AI tool calls: write/destructive tools denied by default (`AI_WRITE_TOOLS` kill switch + per-tool allowlist), chat `Approvable` for write actions, MCP `PendingToolCall` admin inbox (15m TTL), redacted `ai_tool` audit trail with retention prune (`ai:prune-tool-audit`) (#203).
 - Shared permission-aware AI tool registry (`AiToolRegistryService` / `AiToolExecutorService`) with chat + MCP adapters, config gates (`ai.tools.*`), and AuthZ parity tests (#202).
@@ -53,6 +54,8 @@ Version source of truth: `composer.json` `version` (mirrored in `package.json`).
 
 
 ### Fixed
+- Axe smoke: Playwright `inDarkMode`/`inLightMode` first paint + sync `color-scheme` with `.dark` (CSS + boot script); underline uses `decoration-muted-foreground`; dashboard overflow panels are named `region` landmarks with `tabIndex={0}` (scrollable-region-focusable) (#255).
+- Dark primary button AA: `.dark` `--primary-foreground` uses dark brand fg / ink-950 (not light `#fff`); placeholder opacity 1; darker dark `--muted-foreground` (ink-200) for axe smoke (#255).
 - Visible focus ring (offset, full-opacity `--ring`) and 3:1 `--input` borders on `button`/`input`/`textarea`/`checkbox`/`select`/`badge` (WCAG 1.4.11 / 2.4.7) (#227).
 
 ### Added

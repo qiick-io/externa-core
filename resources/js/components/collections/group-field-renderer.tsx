@@ -414,7 +414,6 @@ function DetailGroupCollapsible({
                 {headerMenu ? (
                     <div
                         className="shrink-0"
-                        onClick={(event) => event.stopPropagation()}
                         onPointerDown={(event) => event.stopPropagation()}
                     >
                         {headerMenu}

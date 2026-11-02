@@ -547,6 +547,7 @@ export default function AdminRoleForm({
                                                         c === true,
                                                     )
                                                 }
+                                                aria-label="Create private chats"
                                             />
                                             <span>Create private chats</span>
                                         </label>

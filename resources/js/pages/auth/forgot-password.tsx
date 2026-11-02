@@ -48,6 +48,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     type="email"
                                     name="email"
                                     autoComplete="off"
+                                    // eslint-disable-next-line jsx-a11y/no-autofocus -- focus primary field when surface opens
                                     autoFocus
                                     placeholder="email@example.com"
                                     aria-invalid={

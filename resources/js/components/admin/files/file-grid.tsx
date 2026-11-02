@@ -1,5 +1,5 @@
 import { FolderOpen, FolderPlus, Upload } from 'lucide-react';
-import type { MouseEvent, ReactNode } from 'react';
+import type { PointerEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isInternalFileDrag } from '@/components/admin/file-dropzone';
 import { FileCard } from '@/components/admin/files/file-card';
@@ -139,7 +139,9 @@ export function FileGrid({
 }: FileGridProps) {
     const { t } = useTranslation();
 
-    const handleBackgroundClick = (event: MouseEvent<HTMLDivElement>): void => {
+    const handleBackgroundPointerDown = (
+        event: PointerEvent<HTMLDivElement>,
+    ): void => {
         if (isInteractiveGridClickTarget(event.target)) {
             return;
         }
@@ -158,7 +160,7 @@ export function FileGrid({
                 <div
                     data-testid="files-grid-area"
                     className="flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-sidebar-border/70 bg-muted/20 p-8 text-center text-muted-foreground"
-                    onClick={handleBackgroundClick}
+                    onPointerDown={handleBackgroundPointerDown}
                 >
                     <Upload className="size-8 opacity-60" />
                     <p className="text-sm font-medium" role="status">
@@ -188,7 +190,7 @@ export function FileGrid({
             <div
                 data-testid="files-grid-area"
                 className="flex min-h-0 flex-1 flex-col gap-3"
-                onClick={handleBackgroundClick}
+                onPointerDown={handleBackgroundPointerDown}
             >
                 <div
                     className="grid min-h-0 flex-1 grid-cols-2 content-start items-start gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8"

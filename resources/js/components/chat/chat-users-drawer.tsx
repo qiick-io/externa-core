@@ -193,20 +193,17 @@ export function ChatUsersDrawer({
                                                 : 'cursor-pointer',
                                             selected && 'bg-muted',
                                         )}
-                                        onClick={(event) => {
-                                            event.preventDefault();
-
-                                            if (alreadyIn) {
-                                                return;
-                                            }
-
-                                            toggle(row);
-                                        }}
                                     >
                                         <Checkbox
                                             checked={selected || alreadyIn}
                                             disabled={alreadyIn}
-                                            className="pointer-events-none"
+                                            onCheckedChange={() => {
+                                                if (alreadyIn) {
+                                                    return;
+                                                }
+
+                                                toggle(row);
+                                            }}
                                             aria-label={row.name}
                                         />
                                         <Avatar

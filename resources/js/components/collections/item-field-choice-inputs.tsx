@@ -571,6 +571,7 @@ export function ApiAutocompleteInput({
                         <li
                             key={`${suggestion.value}-${suggestion.text}`}
                             role="option"
+                            aria-selected={false}
                         >
                             <button
                                 type="button"
@@ -755,8 +756,9 @@ export function CheckboxGroupInput({
                             onCheckedChange={(next) =>
                                 setOtherEnabled(next === true)
                             }
+                            aria-label="Other"
                         />
-                        Other
+                        <span>Other</span>
                     </label>
                     {otherEnabled ? (
                         <Input
