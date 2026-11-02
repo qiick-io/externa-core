@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Services\Ai\AiToolExecutorService;
 use App\Services\Ai\AiToolRegistryService;
 use Database\Seeders\PermissionSeeder;
+use Laravel\Ai\Approvals\Approval;
+use Laravel\Ai\Tools\Request;
 use Laravel\Ai\Tools\ToolNameResolver;
 
 beforeEach(function (): void {
@@ -23,7 +25,7 @@ beforeEach(function (): void {
     ]);
 });
 
-it('lists the same read tools for chat and MCP for a show-collections user', function (): void {
+it('lists the same read tools for chat and MCP for a show-collections user, plus read-only Manage tools in chat', function (): void {
     $user = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
         PermissionEnum::CanShowCollections->value,
@@ -50,8 +52,10 @@ it('lists the same read tools for chat and MCP for a show-collections user', fun
         ->values()
         ->all();
 
+    // Chat also keeps the read actions of mixed read/write tools while the write gate is closed (#439).
     expect($mcpNames)->toBe($readNames)
-        ->and($chatNames)->toBe($readNames)
+        ->and(array_values(array_diff($readNames, $chatNames)))->toBe([])
+        ->and(array_values(array_diff($chatNames, $readNames)))->toBe(['ManageCollectionItems', 'ManageCollections'])
         ->and($readNames)->toContain('QueryCollectionItems')
         ->and($readNames)->toContain('ExportCollection')
         ->and($readNames)->toContain('SearchSimilarCollectionItems')
@@ -122,22 +126,28 @@ it('allows QueryCollectionItems on both surfaces when the user can show collecti
         ->and($mcpCall['structuredContent']['status'] ?? null)->toBe('ok');
 });
 
-it('hides mutating tools from chat and MCP until the write gate allows them', function (): void {
+it('keeps mutating actions out of chat and MCP until the write gate allows them', function (): void {
     $user = grantAiPermissions(User::factory()->create(), [
         PermissionEnum::CanUseAi->value,
         ...allCollectionPermissions(),
     ]);
     $this->actingAs($user);
 
-    $chatNames = collect((new AppAssistant($user))->tools())
-        ->map(fn ($tool): string => ToolNameResolver::resolve($tool))
-        ->all();
+    $chatTools = collect((new AppAssistant($user))->tools())
+        ->keyBy(fn ($tool): string => ToolNameResolver::resolve($tool));
 
     $mcpNames = collect(app(RegistryMcpToolAdapter::class)->listTools($user))
         ->pluck('name')
         ->all();
 
-    expect($chatNames)->not->toContain('ManageCollections')
+    $collection = Collection::factory()->create();
+
+    // Chat lists ManageCollections for its read actions only: writes are refused without an approval prompt.
+    expect($chatTools->keys()->all())->toContain('ManageCollections')
+        ->and($chatTools['ManageCollections']->shouldRequestApproval(new Request(['action' => 'delete'])))->toBeNull()
+        ->and((string) $chatTools['ManageCollections']->handle(new Request(['action' => 'delete', 'collection_id' => $collection->id])))
+        ->toStartWith('Error: ManageCollections delete is disabled')
+        ->and($collection->fresh()?->trashed())->toBeFalse()
         ->and($mcpNames)->not->toContain('ManageCollections')
         ->and($mcpNames)->toContain('QueryCollectionItems');
 
@@ -149,13 +159,14 @@ it('hides mutating tools from chat and MCP until the write gate allows them', fu
     ]);
 
     $chatEnabled = collect((new AppAssistant($user))->tools())
-        ->map(fn ($tool): string => ToolNameResolver::resolve($tool))
-        ->all();
+        ->keyBy(fn ($tool): string => ToolNameResolver::resolve($tool));
     $mcpEnabled = collect(app(RegistryMcpToolAdapter::class)->listTools($user))
         ->pluck('name')
         ->all();
 
-    expect($chatEnabled)->toContain('ManageCollections')
+    expect($chatEnabled->keys()->all())->toContain('ManageCollections')
+        ->and($chatEnabled['ManageCollections']->shouldRequestApproval(new Request(['action' => 'delete'])))
+        ->toBeInstanceOf(Approval::class)
         ->and($mcpEnabled)->toContain('ManageCollections');
 });
 
