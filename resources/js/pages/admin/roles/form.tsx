@@ -1,7 +1,9 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Check, Search, X } from 'lucide-react';
+import { Check, FolderOpen, Search, SearchX, X } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PageEmptyState } from '@/components/admin/page-empty-state';
+import { EmptyStatus } from '@/components/empty-status';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -15,6 +17,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import {
     Table,
     TableBody,
@@ -28,6 +31,7 @@ import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { cn } from '@/lib/utils';
+import collectionRoutes from '@/routes/collections';
 import { edit as editProfile } from '@/routes/profile';
 import rolesRoutes from '@/routes/roles';
 import type { AdminRoleRow, BreadcrumbItem, PermissionGroup } from '@/types';
@@ -690,13 +694,52 @@ export default function AdminRoleForm({
                             </div>
 
                             {collections.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    No collections yet.
-                                </p>
+                                <PageEmptyState
+                                    icon={FolderOpen}
+                                    title={t(
+                                        'emptyState.roleCollections.title',
+                                    )}
+                                    description={t(
+                                        'emptyState.roleCollections.description',
+                                    )}
+                                    action={
+                                        <Button asChild>
+                                            <Link
+                                                href={collectionRoutes.index.url()}
+                                            >
+                                                {t(
+                                                    'emptyState.roleCollections.cta',
+                                                )}
+                                            </Link>
+                                        </Button>
+                                    }
+                                    compact
+                                />
                             ) : filteredCollections.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    No collections match.
-                                </p>
+                                <PageEmptyState
+                                    icon={SearchX}
+                                    title={
+                                        <EmptyStatus>
+                                            {t(
+                                                'emptyState.roleCollections.filteredTitle',
+                                            )}
+                                        </EmptyStatus>
+                                    }
+                                    description={t(
+                                        'emptyState.roleCollections.filteredDescription',
+                                    )}
+                                    action={
+                                        <Button
+                                            type="button"
+                                            onClick={() =>
+                                                setCollectionSearch('')
+                                            }
+                                        >
+                                            {t('common.clearFilters')}
+                                        </Button>
+                                    }
+                                    compact
+                                />
                             ) : (
                                 <div className="overflow-x-auto rounded-xl bg-card">
                                     <Table>
@@ -931,8 +974,9 @@ export default function AdminRoleForm({
                                                                                         }
                                                                                         className="flex flex-wrap items-center gap-2"
                                                                                     >
-                                                                                        <select
-                                                                                            className="h-8 rounded-md border bg-background px-2 text-xs"
+                                                                                        <NativeSelect
+                                                                                            size="sm"
+                                                                                            className="min-w-28 flex-1"
                                                                                             value={
                                                                                                 rule.field
                                                                                             }
@@ -976,9 +1020,10 @@ export default function AdminRoleForm({
                                                                                                     </option>
                                                                                                 ),
                                                                                             )}
-                                                                                        </select>
-                                                                                        <select
-                                                                                            className="h-8 rounded-md border bg-background px-2 text-xs"
+                                                                                        </NativeSelect>
+                                                                                        <NativeSelect
+                                                                                            size="sm"
+                                                                                            className="min-w-28"
                                                                                             value={
                                                                                                 rule.operator
                                                                                             }
@@ -1017,7 +1062,7 @@ export default function AdminRoleForm({
                                                                                             <option value="not_empty">
                                                                                                 not_empty
                                                                                             </option>
-                                                                                        </select>
+                                                                                        </NativeSelect>
                                                                                         {rule.operator !==
                                                                                             'empty' &&
                                                                                         rule.operator !==

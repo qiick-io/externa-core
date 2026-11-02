@@ -333,7 +333,6 @@
             "create": "Crea API key",
             "createTitle": "Crea API key",
             "createDescription": "Assegna un nome, scegli ruolo e proprietario, poi restringi gli scope se serve.",
-            "empty": "Nessuna API key ancora.",
             "secretBanner": "Copia questa chiave ora — non verrà mostrata di nuovo.",
             "collectionSlugs": "Allowlist collezioni (opzionale, slug separati da virgola)",
             "collectionSlugsHelp": "Lascia vuoto per consentire ogni collezione a cui il ruolo ha accesso. Gli scope restringono soltanto.",
@@ -1813,10 +1812,6 @@
             "updated": "Aggiornato"
         },
         "empty": {
-            "trash": "Il cestino è vuoto",
-            "dropToUpload": "Trascina i file qui per caricarli",
-            "folderEmpty": "Questa cartella è vuota",
-            "orUseUpload": "Oppure usa il pulsante Carica sopra",
             "contextNewFolder": "Nuova cartella",
             "contextUploadFile": "Carica file",
             "contextUploadFolder": "Carica cartella"
