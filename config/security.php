@@ -15,11 +15,13 @@ return [
     'referrer_policy' => env('SECURITY_REFERRER_POLICY', 'strict-origin-when-cross-origin'),
 
     /*
-    | Restrict powerful browser features on the admin UI.
+    | Restrict powerful browser features on the admin UI. The microphone stays
+    | allowed for self: AI chat voice input uses SpeechRecognition. Use
+    | `microphone=()` in SECURITY_PERMISSIONS_POLICY to turn voice input off.
     */
     'permissions_policy' => env(
         'SECURITY_PERMISSIONS_POLICY',
-        'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+        'camera=(), microphone=(self), geolocation=(), payment=(), usb=()',
     ),
 
     /*
