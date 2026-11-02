@@ -26,6 +26,8 @@ concurrency:
 # - pull_request → develop (code): Pest on PHP 8.4 only; other PHP/DB stub; browser runs axe smoke.
 # - docs/md-only PR → develop: all Pest/browser stub.
 # - push → develop/main, PR → main, schedule: full matrix + full browser suite.
+# - Required jobs run with if: always() and fail first when changes/assets did not succeed,
+#   so a broken build can never surface as a skipped (= passing) required check (#438).
 
 jobs:
   changes:
@@ -60,7 +62,14 @@ jobs:
               CODE=0
               for f in "${FILES[@]}"; do
                 case "$f" in
-                  *.md|docs/*|.github/ISSUE_TEMPLATE/*|.github/PULL_REQUEST_TEMPLATE*)
+                  # Docs = top-level *.md, docs/, .github templates. Nested *.md (e.g. resources/skills/*/SKILL.md) is code (#438).
+                  docs/*|.github/ISSUE_TEMPLATE/*|.github/PULL_REQUEST_TEMPLATE*|.github/pull_request_template.md|.github/RELEASE_TEMPLATE.md)
+                    ;;
+                  */*)
+                    CODE=1
+                    break
+                    ;;
+                  *.md)
                     ;;
                   *)
                     CODE=1
@@ -165,6 +174,7 @@ jobs:
   ci:
     name: ci (${{ matrix.php-version }})
     needs: [changes, assets]
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -173,6 +183,11 @@ jobs:
         php-version: ['8.4', '8.5']
 
     steps:
+      - name: Require changes and assets to succeed
+        if: needs.changes.result != 'success' || needs.assets.result != 'success'
+        run: |
+          echo "::error::changes=${{ needs.changes.result }} assets=${{ needs.assets.result }} — failing this required check (#438)."
+          exit 1
       - name: Resolve whether to run Pest
         id: gate
         shell: bash
@@ -256,6 +271,7 @@ jobs:
 
   ci-mysql:
     needs: [changes, assets]
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -272,6 +288,11 @@ jobs:
           --health-timeout=5s
           --health-retries=10
     steps:
+      - name: Require changes and assets to succeed
+        if: needs.changes.result != 'success' || needs.assets.result != 'success'
+        run: |
+          echo "::error::changes=${{ needs.changes.result }} assets=${{ needs.assets.result }} — failing this required check (#438)."
+          exit 1
       - name: Stub success (PR → develop reduced gate)
         if: needs.changes.outputs.mode != 'full'
         run: echo "Stub success for required check ci-mysql — mode=${{ needs.changes.outputs.mode }} (#381)."
@@ -336,6 +357,7 @@ jobs:
 
   ci-mariadb:
     needs: [changes, assets]
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -354,6 +376,11 @@ jobs:
           --health-timeout=5s
           --health-retries=10
     steps:
+      - name: Require changes and assets to succeed
+        if: needs.changes.result != 'success' || needs.assets.result != 'success'
+        run: |
+          echo "::error::changes=${{ needs.changes.result }} assets=${{ needs.assets.result }} — failing this required check (#438)."
+          exit 1
       - name: Stub success (PR → develop reduced gate)
         if: needs.changes.outputs.mode != 'full'
         run: echo "Stub success for required check ci-mariadb — mode=${{ needs.changes.outputs.mode }} (#381)."
@@ -418,6 +445,7 @@ jobs:
 
   ci-pgsql:
     needs: [changes, assets]
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -435,6 +463,11 @@ jobs:
           --health-timeout=5s
           --health-retries=10
     steps:
+      - name: Require changes and assets to succeed
+        if: needs.changes.result != 'success' || needs.assets.result != 'success'
+        run: |
+          echo "::error::changes=${{ needs.changes.result }} assets=${{ needs.assets.result }} — failing this required check (#438)."
+          exit 1
       - name: Stub success (PR → develop reduced gate)
         if: needs.changes.outputs.mode != 'full'
         run: echo "Stub success for required check ci-pgsql — mode=${{ needs.changes.outputs.mode }} (#381)."
@@ -504,9 +537,15 @@ jobs:
   # lite (PR → develop code): axe smoke only (#255). full: entire Browser suite.
   browser:
     needs: [changes, assets]
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Require changes and assets to succeed
+        if: needs.changes.result != 'success' || needs.assets.result != 'success'
+        run: |
+          echo "::error::changes=${{ needs.changes.result }} assets=${{ needs.assets.result }} — failing this required check (#438)."
+          exit 1
       - name: Stub success (docs-only PR)
         if: needs.changes.outputs.mode == 'docs'
         run: echo "Stub success for required check browser — mode=docs (#381)."
