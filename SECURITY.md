@@ -59,6 +59,7 @@ Please **do not** open a public GitHub issue for security bugs.
 
 Use this when shipping a production instance. App-level gates: [Security checklist](https://docs.externa.qiick.io/docs/security-checklist).
 
+- [ ] AI tool AuthZ / prompt-injection regression: `php artisan test --compact tests/Feature/Ai/Security` (threat map in [`tests/Feature/Ai/Security/README.md`](tests/Feature/Ai/Security/README.md), #204)
 - [ ] `APP_ENV=production`, `APP_DEBUG=false`, unique `APP_KEY` (never reuse across envs)
 - [ ] **HTTPS** for the public origin (`APP_URL`); required for passkeys / secure cookies
 - [ ] Strong `INITIAL_SUPER_ADMIN_*` before first seed; rotate after bootstrap if needed
