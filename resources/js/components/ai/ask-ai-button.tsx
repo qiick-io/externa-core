@@ -54,7 +54,7 @@ export function AskAiButton({
                 className={className}
                 onClick={handleClick}
             >
-                <Sparkles className="size-3.5" />
+                <Sparkles className="size-3.5 text-ai" />
                 {label}
             </Button>
         );
@@ -71,7 +71,7 @@ export function AskAiButton({
                     aria-label={label}
                     onClick={handleClick}
                 >
-                    <Sparkles className="size-3.5" />
+                    <Sparkles className="size-3.5 text-ai" />
                 </Button>
             </TooltipTrigger>
             <TooltipContent>{label}</TooltipContent>

@@ -676,11 +676,11 @@ export function AiFab() {
                                 : t('ai.openAssistant')
                         }
                         className={cn(
-                            'fixed right-5 bottom-5 z-50 flex size-14 items-center justify-center rounded-full text-white shadow-lg transition outline-none',
-                            'focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2',
+                            'fixed right-5 bottom-5 z-50 flex size-14 items-center justify-center rounded-full text-ai-foreground shadow-lg transition outline-none',
+                            'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                             offline
-                                ? 'cursor-not-allowed bg-zinc-400 opacity-70'
-                                : 'bg-gradient-to-br from-orange-500 via-rose-500 to-amber-400 hover:scale-105',
+                                ? 'cursor-not-allowed bg-muted text-muted-foreground opacity-70'
+                                : 'bg-ai hover:scale-105 hover:bg-ai-hover',
                         )}
                     >
                         <Sparkles className="size-6" aria-hidden="true" />

@@ -1373,7 +1373,7 @@ export default function AiIndexPage({
                 <aside className="flex w-72 shrink-0 flex-col border-r">
                     <div className="flex items-center justify-between gap-2 border-b p-3">
                         <div className="flex items-center gap-2 text-sm font-medium">
-                            <Sparkles className="size-4 text-orange-500" />
+                            <Sparkles className="size-4 text-ai" />
                             Chat
                         </div>
                         <div className="flex items-center gap-1">

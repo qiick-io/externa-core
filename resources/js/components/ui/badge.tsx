@@ -24,6 +24,7 @@ const badgeVariants = cva(
         info: "border-transparent bg-info/15 text-info dark:bg-info/20 [a&]:hover:bg-info/25",
         muted:
           "border-transparent bg-muted text-muted-foreground [a&]:hover:bg-muted/80",
+        ai: "border-ai-border bg-ai-bg text-ai-text [a&]:hover:bg-ai-bg/90",
       },
     },
     defaultVariants: {

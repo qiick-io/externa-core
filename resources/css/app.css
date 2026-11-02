@@ -92,6 +92,25 @@
     --color-blue-900: #1e3a8a;
     --color-blue-950: #172554;
 
+    /* Violet scale for AI elements only (shared with website/docs) */
+    --color-violet-50: #f7f0ff;
+    --color-violet-100: #e9d8fd;
+    --color-violet-200: #d8b8fa;
+    --color-violet-300: #c497f2;
+    --color-violet-400: #ad70e6;
+    --color-violet-500: #9650d3;
+    --color-violet-600: #7f35bb;
+    --color-violet-700: #69279b;
+    --color-violet-800: #521b79;
+    --color-violet-900: #3a0f57;
+
+    --color-ai: var(--ai);
+    --color-ai-hover: var(--ai-hover);
+    --color-ai-foreground: var(--ai-foreground);
+    --color-ai-bg: var(--ai-bg);
+    --color-ai-text: var(--ai-text);
+    --color-ai-border: var(--ai-border);
+
     --radius-xl: calc(var(--radius) * 1.5);
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -207,6 +226,13 @@
     --sidebar-accent-foreground: var(--color-teal-800);
     --sidebar-border: var(--color-ink-200);
     --sidebar-ring: var(--brand-primary, var(--color-teal-600));
+    /* AI accent (violet only — never brand/primary) */
+    --ai: var(--color-violet-600);
+    --ai-hover: var(--color-violet-700);
+    --ai-foreground: #ffffff;
+    --ai-bg: var(--color-violet-50);
+    --ai-text: var(--color-violet-800);
+    --ai-border: var(--color-violet-500);
 }
 
 .dark {
@@ -264,6 +290,13 @@
         --brand-primary-dark,
         var(--brand-primary, var(--color-teal-400))
     );
+    /* AI accent dark: light violet fill + ink foreground for AA */
+    --ai: var(--color-violet-300);
+    --ai-hover: var(--color-violet-200);
+    --ai-foreground: var(--color-ink-950);
+    --ai-bg: var(--color-violet-900);
+    --ai-text: var(--color-violet-200);
+    --ai-border: var(--color-violet-400);
 }
 
 @layer base {
@@ -303,24 +336,17 @@
     }
 }
 
-/* Assistant nav: gradient border + hover shimmer (no solid fill) */
+/* Assistant nav: solid AI border + hover/active AI wash (shimmer kept) */
 .sidebar-ai-nav {
-    border: 1px solid transparent;
-    background:
-        linear-gradient(var(--sidebar), var(--sidebar)) padding-box,
-        linear-gradient(135deg, #f97316, #f43f5e, #fbbf24) border-box !important;
+    border: 1px solid var(--ai-border);
+    background: var(--sidebar) !important;
 }
 
 .sidebar-ai-nav:hover,
 .sidebar-ai-nav:active,
 .sidebar-ai-nav[data-active='true'] {
-    background:
-        linear-gradient(
-                color-mix(in oklab, #f97316 12%, var(--sidebar)),
-                color-mix(in oklab, #f97316 12%, var(--sidebar))
-            )
-            padding-box,
-        linear-gradient(135deg, #f97316, #f43f5e, #fbbf24) border-box !important;
+    border-color: var(--ai-border);
+    background: var(--ai-bg) !important;
 }
 
 .sidebar-ai-nav::after {
@@ -348,11 +374,11 @@
     }
 }
 
-/* Localized field: amber beam while AI translate runs */
+/* Localized field: AI beam while translate runs */
 .ai-field-translating {
     position: relative;
     border-radius: calc(var(--radius) - 2px);
-    box-shadow: 0 0 0 2px color-mix(in oklab, #f59e0b 75%, transparent);
+    box-shadow: 0 0 0 2px var(--ai-border);
 }
 
 .ai-field-translating::before {
@@ -365,11 +391,11 @@
     padding: 2px;
     background: linear-gradient(
         90deg,
-        #f59e0b,
-        #f97316,
-        #fbbf24,
-        #f59e0b,
-        #f97316
+        var(--ai-border),
+        var(--ai),
+        var(--ai-border),
+        var(--ai),
+        var(--ai-border)
     );
     background-size: 200% 100%;
     animation: ai-field-translate-beam 1.1s linear infinite;

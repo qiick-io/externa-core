@@ -145,7 +145,7 @@ export function AiActionPresetsDrawer({
                 <DrawerContent>
                     <DrawerHeader>
                         <DrawerTitle className="flex items-center gap-2">
-                            <Sparkles className="size-4" />
+                            <Sparkles className="size-4 text-ai" />
                             {t('ai.drawer.title')}
                         </DrawerTitle>
                         <DrawerDescription>
