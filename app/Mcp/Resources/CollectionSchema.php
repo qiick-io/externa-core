@@ -52,7 +52,7 @@ class CollectionSchema extends Resource implements HasUriTemplate
         $fields = $collection->fields->map(static fn ($field): array => [
             'id' => $field->id,
             'name' => $field->name,
-            'type' => $field->type?->value ?? $field->type,
+            'type' => $field->type->value ?? $field->type,
             'required' => $field->isRequired(),
             'translatable' => (bool) $field->translatable,
         ])->values()->all();
