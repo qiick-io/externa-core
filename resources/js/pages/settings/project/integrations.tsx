@@ -783,158 +783,163 @@ export default function ProjectIntegrationsSettingsPage({
                                     />
 
                                     <div className="space-y-4">
-                                        {form.deploy_hooks.map((hook, index) => (
-                                            <div
-                                                key={hook.clientKey}
-                                                className="space-y-3 rounded-md border border-border/60 p-4"
-                                                data-test={`deploy-hook-row-${index}`}
-                                            >
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <p className="text-sm font-medium">
-                                                        {t(
-                                                            'settings.project.deployHookLabel',
-                                                            {
-                                                                number:
-                                                                    index + 1,
-                                                            },
-                                                        )}
-                                                    </p>
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon-sm"
-                                                        onClick={() =>
-                                                            removeDeployHook(
-                                                                hook.clientKey,
-                                                            )
-                                                        }
-                                                        aria-label={t(
-                                                            'settings.project.deployHookRemove',
-                                                        )}
-                                                    >
-                                                        <Trash2 className="size-4" />
-                                                    </Button>
+                                        {form.deploy_hooks.map(
+                                            (hook, index) => (
+                                                <div
+                                                    key={hook.clientKey}
+                                                    className="space-y-3 rounded-md border border-border/60 p-4"
+                                                    data-test={`deploy-hook-row-${index}`}
+                                                >
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <p className="text-sm font-medium">
+                                                            {t(
+                                                                'settings.project.deployHookLabel',
+                                                                {
+                                                                    number:
+                                                                        index +
+                                                                        1,
+                                                                },
+                                                            )}
+                                                        </p>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon-sm"
+                                                            onClick={() =>
+                                                                removeDeployHook(
+                                                                    hook.clientKey,
+                                                                )
+                                                            }
+                                                            aria-label={t(
+                                                                'settings.project.deployHookRemove',
+                                                            )}
+                                                        >
+                                                            <Trash2 className="size-4" />
+                                                        </Button>
+                                                    </div>
+                                                    <FieldGroup className="gap-4">
+                                                        <Field
+                                                            data-invalid={
+                                                                errors[
+                                                                    `deploy_hooks.${index}.name`
+                                                                ]
+                                                                    ? true
+                                                                    : undefined
+                                                            }
+                                                        >
+                                                            <FieldLabel
+                                                                htmlFor={`deploy_hook_name_${hook.clientKey}`}
+                                                            >
+                                                                {t(
+                                                                    'settings.project.deployHookName',
+                                                                )}
+                                                            </FieldLabel>
+                                                            <Input
+                                                                id={`deploy_hook_name_${hook.clientKey}`}
+                                                                value={
+                                                                    hook.name
+                                                                }
+                                                                onChange={(
+                                                                    event,
+                                                                ) =>
+                                                                    updateDeployHook(
+                                                                        hook.clientKey,
+                                                                        {
+                                                                            name: event
+                                                                                .target
+                                                                                .value,
+                                                                        },
+                                                                    )
+                                                                }
+                                                                placeholder="Production"
+                                                                aria-invalid={
+                                                                    errors[
+                                                                        `deploy_hooks.${index}.name`
+                                                                    ]
+                                                                        ? true
+                                                                        : undefined
+                                                                }
+                                                            />
+                                                            <FieldError>
+                                                                {
+                                                                    errors[
+                                                                        `deploy_hooks.${index}.name`
+                                                                    ]
+                                                                }
+                                                            </FieldError>
+                                                        </Field>
+                                                        <Field
+                                                            data-invalid={
+                                                                errors[
+                                                                    `deploy_hooks.${index}.url`
+                                                                ]
+                                                                    ? true
+                                                                    : undefined
+                                                            }
+                                                        >
+                                                            <FieldLabel
+                                                                htmlFor={`deploy_hook_url_${hook.clientKey}`}
+                                                            >
+                                                                {t(
+                                                                    'settings.project.deployHookUrl',
+                                                                )}
+                                                            </FieldLabel>
+                                                            <Input
+                                                                id={`deploy_hook_url_${hook.clientKey}`}
+                                                                type="url"
+                                                                autoComplete="off"
+                                                                data-1p-ignore
+                                                                data-lpignore="true"
+                                                                value={hook.url}
+                                                                onChange={(
+                                                                    event,
+                                                                ) =>
+                                                                    updateDeployHook(
+                                                                        hook.clientKey,
+                                                                        {
+                                                                            url: event
+                                                                                .target
+                                                                                .value,
+                                                                        },
+                                                                    )
+                                                                }
+                                                                placeholder={
+                                                                    hook.url_configured
+                                                                        ? '••••••••'
+                                                                        : 'https://api.vercel.com/v1/integrations/deploy/…'
+                                                                }
+                                                                aria-invalid={
+                                                                    errors[
+                                                                        `deploy_hooks.${index}.url`
+                                                                    ]
+                                                                        ? true
+                                                                        : undefined
+                                                                }
+                                                                aria-describedby={`deploy-hook-url-hint-${hook.clientKey}`}
+                                                            />
+                                                            <FieldDescription
+                                                                id={`deploy-hook-url-hint-${hook.clientKey}`}
+                                                            >
+                                                                {hook.url_configured
+                                                                    ? t(
+                                                                          'settings.project.deployHookUrlConfigured',
+                                                                      )
+                                                                    : t(
+                                                                          'settings.project.deployHookUrlHint',
+                                                                      )}
+                                                            </FieldDescription>
+                                                            <FieldError>
+                                                                {
+                                                                    errors[
+                                                                        `deploy_hooks.${index}.url`
+                                                                    ]
+                                                                }
+                                                            </FieldError>
+                                                        </Field>
+                                                    </FieldGroup>
                                                 </div>
-                                                <FieldGroup className="gap-4">
-                                                    <Field
-                                                        data-invalid={
-                                                            errors[
-                                                                `deploy_hooks.${index}.name`
-                                                            ]
-                                                                ? true
-                                                                : undefined
-                                                        }
-                                                    >
-                                                        <FieldLabel
-                                                            htmlFor={`deploy_hook_name_${hook.clientKey}`}
-                                                        >
-                                                            {t(
-                                                                'settings.project.deployHookName',
-                                                            )}
-                                                        </FieldLabel>
-                                                        <Input
-                                                            id={`deploy_hook_name_${hook.clientKey}`}
-                                                            value={hook.name}
-                                                            onChange={(
-                                                                event,
-                                                            ) =>
-                                                                updateDeployHook(
-                                                                    hook.clientKey,
-                                                                    {
-                                                                        name: event
-                                                                            .target
-                                                                            .value,
-                                                                    },
-                                                                )
-                                                            }
-                                                            placeholder="Production"
-                                                            aria-invalid={
-                                                                errors[
-                                                                    `deploy_hooks.${index}.name`
-                                                                ]
-                                                                    ? true
-                                                                    : undefined
-                                                            }
-                                                        />
-                                                        <FieldError>
-                                                            {
-                                                                errors[
-                                                                    `deploy_hooks.${index}.name`
-                                                                ]
-                                                            }
-                                                        </FieldError>
-                                                    </Field>
-                                                    <Field
-                                                        data-invalid={
-                                                            errors[
-                                                                `deploy_hooks.${index}.url`
-                                                            ]
-                                                                ? true
-                                                                : undefined
-                                                        }
-                                                    >
-                                                        <FieldLabel
-                                                            htmlFor={`deploy_hook_url_${hook.clientKey}`}
-                                                        >
-                                                            {t(
-                                                                'settings.project.deployHookUrl',
-                                                            )}
-                                                        </FieldLabel>
-                                                        <Input
-                                                            id={`deploy_hook_url_${hook.clientKey}`}
-                                                            type="url"
-                                                            autoComplete="off"
-                                                            data-1p-ignore
-                                                            data-lpignore="true"
-                                                            value={hook.url}
-                                                            onChange={(
-                                                                event,
-                                                            ) =>
-                                                                updateDeployHook(
-                                                                    hook.clientKey,
-                                                                    {
-                                                                        url: event
-                                                                            .target
-                                                                            .value,
-                                                                    },
-                                                                )
-                                                            }
-                                                            placeholder={
-                                                                hook.url_configured
-                                                                    ? '••••••••'
-                                                                    : 'https://api.vercel.com/v1/integrations/deploy/…'
-                                                            }
-                                                            aria-invalid={
-                                                                errors[
-                                                                    `deploy_hooks.${index}.url`
-                                                                ]
-                                                                    ? true
-                                                                    : undefined
-                                                            }
-                                                            aria-describedby={`deploy-hook-url-hint-${hook.clientKey}`}
-                                                        />
-                                                        <FieldDescription
-                                                            id={`deploy-hook-url-hint-${hook.clientKey}`}
-                                                        >
-                                                            {hook.url_configured
-                                                                ? t(
-                                                                      'settings.project.deployHookUrlConfigured',
-                                                                  )
-                                                                : t(
-                                                                      'settings.project.deployHookUrlHint',
-                                                                  )}
-                                                        </FieldDescription>
-                                                        <FieldError>
-                                                            {
-                                                                errors[
-                                                                    `deploy_hooks.${index}.url`
-                                                                ]
-                                                            }
-                                                        </FieldError>
-                                                    </Field>
-                                                </FieldGroup>
-                                            </div>
-                                        ))}
+                                            ),
+                                        )}
                                     </div>
 
                                     <Button
