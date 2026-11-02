@@ -98,6 +98,7 @@ export function ItemLivePreviewButton({
         }
 
         const chosen = new Date(asOfLocal);
+
         if (Number.isNaN(chosen.getTime())) {
             toast.error(t('collections.itemToolbar.livePreviewAtInvalid'));
 
@@ -105,6 +106,7 @@ export function ItemLivePreviewButton({
         }
 
         const max = Date.now() + MAX_AHEAD_DAYS * 24 * 60 * 60 * 1000;
+
         if (chosen.getTime() > max) {
             toast.error(t('collections.itemToolbar.livePreviewAtInvalid'));
 
