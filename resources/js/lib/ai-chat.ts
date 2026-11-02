@@ -312,12 +312,20 @@ export async function uploadAiAttachment(
  * @param approvals - Decisions resuming a turn paused for tool approval (message may be empty)
  * @returns {void}
  */
+/** Explicit collection/file/prompt context attached to a chat turn (#195). */
+export type AiChatContextIds = {
+    itemIds?: number[];
+    fileIds?: number[];
+    promptIds?: number[];
+};
+
 export async function streamAiChat(
     message: string,
     conversationId: string | null | undefined,
     handlers: AiStreamHandlers = {},
     attachmentIds: string[] = [],
     approvals: AiApprovalDecision[] = [],
+    context: AiChatContextIds = {},
 ): Promise<void> {
     let response: Response;
 
@@ -334,6 +342,9 @@ export async function streamAiChat(
                 message,
                 conversation_id: conversationId ?? null,
                 attachment_ids: attachmentIds,
+                context_item_ids: context.itemIds ?? [],
+                context_file_ids: context.fileIds ?? [],
+                context_prompt_ids: context.promptIds ?? [],
                 ...(approvals.length > 0 ? { approvals } : {}),
             }),
         });

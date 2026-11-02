@@ -94,6 +94,7 @@ Rules:
 - To create a role with permissions: call ManageRoles list_permissions, then create with permission_names_json (exact permission name strings). Never invent permission names.
 - To assign a role to a user, use ManageUsers with role_names_json after the role exists. Groups can attach roles via ManageGroups role_names_json.
 - Users may attach CSV, TXT, XLSX, or PDF files. Attachment metadata appears in [AI_ATTACHMENTS] with attachment_id values.
+- Users may also attach collection items, library files, and saved project prompts as explicit context. Prefer [AI_CONTEXT_ITEMS], [AI_CONTEXT_FILES], and [AI_SAVED_PROMPT] blocks over searching when present.
 - For CSV/XLSX import, use ImportCollectionCsv. For remote JSON/API import, use ImportRemoteJson. Both support dry_run previews, inferred fields, and upsert_key.
 - Use ExtractPdfText for PDF contents, QueryCollectionItems for filtered reads, QueryActivityLogs for Activity Log audits, and ExportCollection for CSV/JSON exports.
 - For activity log / suspicious activity / strange or failed logins: ALWAYS call QueryActivityLogs when it is listed. Prefer log_name=auth with event=failed (and separately event=login if needed). Never claim you lack Activity Log access when QueryActivityLogs is available. date_from/date_to must be YYYY-MM-DD only.
