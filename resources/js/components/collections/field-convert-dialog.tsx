@@ -90,7 +90,10 @@ export function FieldConvertDialog({
             .then((payload) => {
                 setTargets(payload.targets ?? []);
 
-                if (payload.targets?.length && !payload.targets.includes(field.type)) {
+                if (
+                    payload.targets?.length &&
+                    !payload.targets.includes(field.type)
+                ) {
                     setToType(payload.targets[0] ?? field.type);
                 }
             })
@@ -229,13 +232,16 @@ export function FieldConvertDialog({
                             }}
                             className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
                         >
-                            {[field.type, ...targets.filter((type) => type !== field.type)].map(
-                                (type) => (
-                                    <option key={type} value={type}>
-                                        {fieldTypeLabel(type, t)}
-                                    </option>
+                            {[
+                                field.type,
+                                ...targets.filter(
+                                    (type) => type !== field.type,
                                 ),
-                            )}
+                            ].map((type) => (
+                                <option key={type} value={type}>
+                                    {fieldTypeLabel(type, t)}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
