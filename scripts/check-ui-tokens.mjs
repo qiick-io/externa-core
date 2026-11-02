@@ -6,6 +6,10 @@
  * - Arbitrary `text-[Npx|Nrem|Nem]` → hard fail (must use text-xs… scale).
  * - Raw palette / #hex → fail when a new path:kind:token appears or its count
  *   grows vs scripts/ui-token-baseline.txt (pay down debt; do not grow it).
+ * - Stale baseline → fail when a baselined count is higher than what the scan
+ *   finds. The baseline is a ratchet: once debt is paid it must be removed, so a
+ *   later revert (e.g. `text-orange-700` coming back on the sidebar AI item via a
+ *   stale squash, #452) fails instead of hiding behind leftover allowance.
  *
  * Excludes: components/ui/*, pages/welcome.tsx (starter chrome), app-logo-icon.tsx.
  */
@@ -178,11 +182,33 @@ for (const [key, count] of paletteHex) {
     }
 }
 
+/** @type {string[]} */
+const staleBaseline = [];
+
+for (const [key, allowed] of baseline) {
+    const count = paletteHex.get(key) ?? 0;
+
+    if (count < allowed) {
+        staleBaseline.push(
+            count === 0
+                ? `  ${key}:${allowed} → remove this line`
+                : `  ${key}:${allowed} → lower to ${key}:${count}`,
+        );
+    }
+}
+
 if (debtGrowth.length > 0) {
     errors.push(
         'New or increased raw palette / #hex className usage (use theme tokens; see CONTRIBUTING.md):',
     );
     errors.push(...debtGrowth);
+}
+
+if (staleBaseline.length > 0) {
+    errors.push(
+        'Stale scripts/ui-token-baseline.txt entries (debt was paid; ratchet the baseline down):',
+    );
+    errors.push(...staleBaseline);
 }
 
 if (errors.length > 0) {

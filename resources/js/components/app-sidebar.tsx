@@ -185,31 +185,27 @@ export function AppSidebar() {
                 )}
                 tooltip={{ children: t(item.titleKey) }}
                 className={
-                    item.id === 'chat'
-                        ? 'relative'
-                        : item.accent
-                          ? cn(
-                                'sidebar-ai-nav relative overflow-hidden',
-                                'text-orange-700 hover:text-orange-700',
-                                'dark:text-orange-300 dark:hover:text-orange-300',
-                                'data-[active=true]:font-medium',
-                                'data-[active=true]:text-orange-700',
-                                'dark:data-[active=true]:text-orange-300',
-                            )
-                          : undefined
+                    item.accent
+                        ? cn(
+                              'sidebar-ai-nav relative overflow-hidden',
+                              'text-ai-text hover:text-ai-text',
+                              'data-[active=true]:font-medium',
+                              'data-[active=true]:text-ai-text',
+                          )
+                        : undefined
                 }
             >
-                <Link href={item.href} prefetch className="relative">
+                <Link href={item.href} prefetch>
                     <item.icon />
                     <span>{t(item.titleKey)}</span>
-                    {item.id === 'chat' ? (
-                        <SidebarUnreadBadge
-                            count={chatUnread.unread_count}
-                            data-test="chat-nav-unread"
-                        />
-                    ) : null}
                 </Link>
             </SidebarMenuButton>
+            {item.id === 'chat' ? (
+                <SidebarUnreadBadge
+                    count={chatUnread.unread_count}
+                    data-test="chat-nav-unread"
+                />
+            ) : null}
         </SidebarMenuItem>
     );
 
