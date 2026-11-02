@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Mcp\Resources;
 
+use App\Ai\Concerns\EnforcesAiCollectionPermissionsTrait;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
+use App\Models\CollectionField;
 use App\Models\User;
 use App\Services\Authorization\EffectivePermissionResolverService;
 use Laravel\Mcp\Request;
@@ -25,6 +27,8 @@ use Laravel\Mcp\Support\UriTemplate;
 #[MimeType('application/json')]
 class CollectionSchema extends Resource implements HasUriTemplate
 {
+    use EnforcesAiCollectionPermissionsTrait;
+
     public function uriTemplate(): UriTemplate
     {
         return new UriTemplate('externa://collections/{slug}/schema');
@@ -45,11 +49,11 @@ class CollectionSchema extends Resource implements HasUriTemplate
         $slug = (string) $request->get('slug', '');
         $collection = Collection::query()->with('fields')->where('slug', $slug)->first();
 
-        if ($collection === null) {
+        if ($collection === null || ! $this->isAiCollectionReadable($collection)) {
             return Response::error('Collection not found.');
         }
 
-        $fields = $collection->fields->map(static fn ($field): array => [
+        $fields = $this->readableAiFields($collection)->map(static fn (CollectionField $field): array => [
             'id' => $field->id,
             'name' => $field->name,
             'type' => $field->type->value ?? $field->type,

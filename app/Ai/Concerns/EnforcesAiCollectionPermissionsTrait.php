@@ -2,10 +2,13 @@
 
 namespace App\Ai\Concerns;
 
+use App\Enums\CollectionPermissionActionEnum;
 use App\Models\Collection;
+use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcerService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -35,6 +38,48 @@ trait EnforcesAiCollectionPermissionsTrait
         }
 
         return $request;
+    }
+
+    /**
+     * Collection-level gate (role grant, owner ceiling, API key `collection_slugs` / `read_only`).
+     *
+     * Read denials answer "not found" so out-of-scope collections stay invisible.
+     */
+    protected function guardAiCollectionAction(
+        Collection $collection,
+        CollectionPermissionActionEnum $action,
+    ): ?string {
+        if ($this->collectionPermissionEnforcer()->allowsCollectionAction($this->aiPermissionRequest(), $collection, $action)) {
+            return null;
+        }
+
+        return $action === CollectionPermissionActionEnum::Read
+            ? 'Error: Collection not found.'
+            : 'Error: This action is unauthorized for the collection.';
+    }
+
+    protected function isAiCollectionReadable(Collection $collection): bool
+    {
+        return $this->guardAiCollectionAction($collection, CollectionPermissionActionEnum::Read) === null;
+    }
+
+    /**
+     * Loaded field definitions the actor may read (field ACL `read`), for schema payloads.
+     *
+     * @return EloquentCollection<int, CollectionField>
+     */
+    protected function readableAiFields(Collection $collection): EloquentCollection
+    {
+        $fieldNames = $collection->fields->pluck('name')->map(strval(...))->all();
+        // ponytail: reuse the item stripper on a name-keyed map instead of a second field ACL resolver.
+        $readableNames = array_map(
+            strval(...),
+            array_keys($this->stripAiItemData($collection, array_fill_keys($fieldNames, true))),
+        );
+
+        return $collection->fields
+            ->filter(static fn (CollectionField $field): bool => in_array((string) $field->name, $readableNames, true))
+            ->values();
     }
 
     /**
