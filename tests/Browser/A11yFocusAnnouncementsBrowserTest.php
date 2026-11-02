@@ -16,7 +16,7 @@ it('opens and closes dialog sheet and menu with reduce-motion without getting st
     $this->actingAs($user);
 
     $overlaysBecomeVisibleAndUnmount = <<<'JS'
-() => {
+async () => {
   document.documentElement.classList.add('reduce-motion');
 
   const menuTrigger = document.querySelector('[data-test="sidebar-menu-button"]');
@@ -24,7 +24,9 @@ it('opens and closes dialog sheet and menu with reduce-motion without getting st
     return 'missing-menu-trigger';
   }
 
-  menuTrigger.click();
+  // Radix DropdownMenu opens on pointerdown, not click.
+  menuTrigger.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse' }));
+  await new Promise((resolve) => requestAnimationFrame(resolve));
 
   const menu = document.querySelector('[data-slot="dropdown-menu-content"]');
   if (!(menu instanceof HTMLElement)) {
@@ -54,7 +56,7 @@ JS;
         ->click('[data-test="sidebar-menu-button"]')
         ->wait(0.3)
         ->assertSee('Accessibility')
-        ->keys('body', 'Escape')
+        ->keys('html > body', 'Escape')
         ->wait(0.2)
         ->assertScript($overlaysBecomeVisibleAndUnmount, 'ok')
         ->assertNoJavaScriptErrors();
