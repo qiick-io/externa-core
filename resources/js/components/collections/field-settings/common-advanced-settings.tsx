@@ -1,6 +1,7 @@
 import { SettingCheckbox } from '@/components/collections/field-settings/settings-layout';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import { isLayoutGroupType } from '@/lib/collection-field-groups';
 import {
     supportsDefaultValue,
@@ -37,7 +38,7 @@ export function CommonAdvancedSettings({
                     <p className="text-sm text-muted-foreground">
                         How much horizontal space this field takes in the form.
                     </p>
-                    <select
+                    <NativeSelect
                         id="field_layout_width"
                         value={settings.layoutWidth}
                         onChange={(event) =>
@@ -47,14 +48,14 @@ export function CommonAdvancedSettings({
                                     .value as typeof current.layoutWidth,
                             }))
                         }
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                        className="w-full"
                     >
                         {FIELD_LAYOUT_WIDTH_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
                                 {option.label}
                             </option>
                         ))}
-                    </select>
+                    </NativeSelect>
                 </div>
             )}
             {!isGroup && (

@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import { UnsavedChangesToolbar } from '@/components/unsaved-changes-toolbar';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
@@ -961,8 +962,9 @@ export default function AdminRoleForm({
                                                                                         }
                                                                                         className="flex flex-wrap items-center gap-2"
                                                                                     >
-                                                                                        <select
-                                                                                            className="h-8 rounded-md border bg-background px-2 text-xs"
+                                                                                        <NativeSelect
+                                                                                            size="sm"
+                                                                                            className="min-w-28 flex-1"
                                                                                             value={
                                                                                                 rule.field
                                                                                             }
@@ -1006,9 +1008,10 @@ export default function AdminRoleForm({
                                                                                                     </option>
                                                                                                 ),
                                                                                             )}
-                                                                                        </select>
-                                                                                        <select
-                                                                                            className="h-8 rounded-md border bg-background px-2 text-xs"
+                                                                                        </NativeSelect>
+                                                                                        <NativeSelect
+                                                                                            size="sm"
+                                                                                            className="min-w-28"
                                                                                             value={
                                                                                                 rule.operator
                                                                                             }
@@ -1047,7 +1050,7 @@ export default function AdminRoleForm({
                                                                                             <option value="not_empty">
                                                                                                 not_empty
                                                                                             </option>
-                                                                                        </select>
+                                                                                        </NativeSelect>
                                                                                         {rule.operator !==
                                                                                             'empty' &&
                                                                                         rule.operator !==

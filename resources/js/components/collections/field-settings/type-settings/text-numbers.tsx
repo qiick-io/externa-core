@@ -3,6 +3,7 @@ import { SettingCheckbox } from '@/components/collections/field-settings/setting
 import { TranslatedInput } from '@/components/collections/field-settings/translated-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import {
     STRING_INPUT_TYPES,
     parseApiAutocompleteFieldSettings,
@@ -54,7 +55,7 @@ export function TextNumbersSettings({
                 <div className="grid gap-6 sm:grid-cols-2">
                     <div className="grid gap-2">
                         <Label htmlFor="input_type">Input type</Label>
-                        <select
+                        <NativeSelect
                             id="input_type"
                             value={stringSettings.inputType}
                             onChange={(event) =>
@@ -63,14 +64,14 @@ export function TextNumbersSettings({
                                     inputType: event.target.value,
                                 }))
                             }
-                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                            className="w-full"
                         >
                             {STRING_INPUT_TYPES.map((option) => (
                                 <option key={option.value} value={option.value}>
                                     {option.label}
                                 </option>
                             ))}
-                        </select>
+                        </NativeSelect>
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="string_max_length">Max length</Label>
@@ -487,7 +488,7 @@ function ApiAutocompleteSettingsPanel({
             <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                     <Label htmlFor="api_trigger">Trigger</Label>
-                    <select
+                    <NativeSelect
                         id="api_trigger"
                         value={settings.trigger}
                         onChange={(event) =>
@@ -499,11 +500,11 @@ function ApiAutocompleteSettingsPanel({
                                         : 'debounce',
                             }))
                         }
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                        className="w-full"
                     >
                         <option value="debounce">Debounce</option>
                         <option value="throttle">Throttle</option>
-                    </select>
+                    </NativeSelect>
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="api_rate">Rate (ms)</Label>

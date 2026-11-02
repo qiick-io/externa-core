@@ -78,6 +78,7 @@ import {
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import {
     DEFAULT_BLOCKS_DEPTH,
@@ -585,7 +586,7 @@ function NestedRelationSettings({
             </p>
             <div className="grid gap-2">
                 <Label>Related collection</Label>
-                <select
+                <NativeSelect
                     value={relatedCollectionId}
                     onChange={(event) =>
                         onChange({
@@ -595,7 +596,7 @@ function NestedRelationSettings({
                                 : null,
                         })
                     }
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                    className="w-full"
                 >
                     <option value="">Select a collection…</option>
                     {relatedCollections.map((relatedCollection) => (
@@ -606,7 +607,7 @@ function NestedRelationSettings({
                             {relatedCollection.name}
                         </option>
                     ))}
-                </select>
+                </NativeSelect>
             </div>
             <div className="grid gap-2">
                 <Label>Display field</Label>
@@ -939,7 +940,7 @@ function BlocksSettingsEditor({
                                                     })
                                                 }
                                             />
-                                            <select
+                                            <NativeSelect
                                                 value={field.type}
                                                 onChange={(event) => {
                                                     const type =
@@ -974,7 +975,7 @@ function BlocksSettingsEditor({
                                                         ),
                                                     });
                                                 }}
-                                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                                                className="w-full"
                                             >
                                                 {allowedTypes.map((type) => (
                                                     <option
@@ -987,7 +988,7 @@ function BlocksSettingsEditor({
                                                         )}
                                                     </option>
                                                 ))}
-                                            </select>
+                                            </NativeSelect>
                                             <label className="flex items-center gap-2 text-sm">
                                                 <input
                                                     type="checkbox"

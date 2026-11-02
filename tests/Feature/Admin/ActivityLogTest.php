@@ -172,6 +172,43 @@ test('authorized users can filter activity logs by user and date range', functio
             ->where('filters.date_to', $today));
 });
 
+test('authorized users can filter activity logs by event and log name', function () {
+    $actor = grantActivityLogPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowActivityLogs->value,
+    ]);
+    $this->actingAs($actor);
+
+    Activity::query()->delete();
+
+    activity()
+        ->causedBy($actor)
+        ->useLog('default')
+        ->event('created')
+        ->log('Created activity');
+
+    activity()
+        ->causedBy($actor)
+        ->useLog('auth')
+        ->event('login')
+        ->log('Login activity');
+
+    $this->get(route('activity-logs.index', ['event' => 'login']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('admin/activity-logs/index')
+            ->has('activityLogs.data', 1)
+            ->where('activityLogs.data.0.description', 'Login activity')
+            ->where('filters.event', 'login'));
+
+    $this->get(route('activity-logs.index', ['log_name' => 'auth']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('admin/activity-logs/index')
+            ->has('activityLogs.data', 1)
+            ->where('activityLogs.data.0.description', 'Login activity')
+            ->where('filters.log_name', 'auth'));
+});
+
 test('user password is excluded from activity log properties', function () {
     $actor = User::factory()->create();
     $this->actingAs($actor);
