@@ -7,6 +7,8 @@ use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\User;
 use App\Services\Settings\ProjectSettingsService;
+use Carbon\CarbonInterface;
+use InvalidArgumentException;
 use RuntimeException;
 
 /**
@@ -33,6 +35,7 @@ class LivePreviewUrlBuilderService
     public function __construct(
         private readonly ProjectSettingsService $projectSettings,
         private readonly LivePreviewTokenService $tokens,
+        private readonly LivePreviewAsOfResolverService $asOfResolver,
     ) {}
 
     public function templateFor(Collection $collection): ?string
@@ -47,10 +50,22 @@ class LivePreviewUrlBuilderService
 
     /**
      * Content fingerprint so draft/published edits can invalidate outstanding tokens.
+     *
+     * When {@see $asOf} is set, schedule fields are included so reschedules invalidate the token.
      */
-    public function contentHash(CollectionItem $item, string $version): string
+    public function contentHash(CollectionItem $item, string $version, ?CarbonInterface $asOf = null): string
     {
         $stamp = $item->updated_at?->getTimestamp() ?? 0;
+
+        if ($asOf !== null) {
+            return hash('sha256', implode('|', [
+                (string) $stamp,
+                (string) $asOf->getTimestamp(),
+                (string) ($item->publish_at?->getTimestamp() ?? ''),
+                (string) ($item->unpublish_at?->getTimestamp() ?? ''),
+                json_encode($item->draft_data ?? [], JSON_THROW_ON_ERROR),
+            ]));
+        }
 
         if ($version === 'draft') {
             return hash('sha256', $stamp.'|'.json_encode($item->draft_data ?? [], JSON_THROW_ON_ERROR));
@@ -61,7 +76,9 @@ class LivePreviewUrlBuilderService
 
     /**
      * @param  'draft'|'published'  $version
-     * @return array{url: string, expires_at: string}
+     * @return array{url: string, expires_at: string, as_of: string|null}
+     *
+     * @throws InvalidArgumentException when as_of is out of bounds
      */
     public function build(
         Collection $collection,
@@ -69,6 +86,7 @@ class LivePreviewUrlBuilderService
         string $version = 'published',
         ?string $locale = null,
         ?User $user = null,
+        ?CarbonInterface $asOf = null,
     ): array {
         $template = $this->templateFor($collection);
         if ($template === null) {
@@ -77,6 +95,10 @@ class LivePreviewUrlBuilderService
 
         if ($user === null) {
             throw new RuntimeException('Live Preview tokens require an issuing user.');
+        }
+
+        if ($asOf !== null) {
+            $this->asOfResolver->assertWithinBound($asOf);
         }
 
         $version = $version === 'draft' ? 'draft' : 'published';
@@ -92,7 +114,8 @@ class LivePreviewUrlBuilderService
             locale: $locale,
             expiresAt: $expiresAt->getTimestamp(),
             userId: (int) $user->id,
-            contentHash: $this->contentHash($item, $version),
+            contentHash: $this->contentHash($item, $version, $asOf),
+            asOfTimestamp: $asOf?->getTimestamp(),
         );
 
         $replacements = [
@@ -131,6 +154,7 @@ class LivePreviewUrlBuilderService
         return [
             'url' => $url,
             'expires_at' => $expiresAt->utc()->format('Y-m-d\TH:i:s\Z'),
+            'as_of' => $asOf?->utc()->format('Y-m-d\TH:i:s\Z'),
         ];
     }
 }

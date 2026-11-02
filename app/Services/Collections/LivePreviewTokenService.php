@@ -2,13 +2,17 @@
 
 namespace App\Services\Collections;
 
+use Illuminate\Support\Carbon;
+use InvalidArgumentException;
+
 /**
  * HMAC-signed Live Preview tokens (short-lived; query-param safe).
  *
  * Format: base64url(json).base64url(hmac_sha256)
  *
  * Claims: c (collection), i (item), v (version), l (locale), exp,
- * u (issuing user id, required), h (optional content hash).
+ * u (issuing user id, required), h (optional content hash),
+ * a (optional as_of unix timestamp for point-in-time preview).
  */
 class LivePreviewTokenService
 {
@@ -20,6 +24,7 @@ class LivePreviewTokenService
         int $expiresAt,
         int $userId,
         ?string $contentHash = null,
+        ?int $asOfTimestamp = null,
     ): string {
         $payload = [
             'c' => $collectionId,
@@ -32,6 +37,10 @@ class LivePreviewTokenService
 
         if ($contentHash !== null && $contentHash !== '') {
             $payload['h'] = $contentHash;
+        }
+
+        if ($asOfTimestamp !== null && $asOfTimestamp > 0) {
+            $payload['a'] = $asOfTimestamp;
         }
 
         $body = $this->b64(json_encode($payload, JSON_THROW_ON_ERROR));
@@ -47,7 +56,8 @@ class LivePreviewTokenService
      *     locale: string|null,
      *     exp: int,
      *     user_id: int,
-     *     content_hash: string|null
+     *     content_hash: string|null,
+     *     as_of: int|null
      * }|null
      */
     public function verify(string $token): ?array
@@ -95,6 +105,21 @@ class LivePreviewTokenService
             ? $payload['h']
             : null;
 
+        $asOf = null;
+        if (array_key_exists('a', $payload) && $payload['a'] !== null && $payload['a'] !== '') {
+            $asOf = (int) $payload['a'];
+            if ($asOf < 1) {
+                return null;
+            }
+
+            try {
+                app(LivePreviewAsOfResolverService::class)
+                    ->assertWithinBound(Carbon::createFromTimestamp($asOf));
+            } catch (InvalidArgumentException) {
+                return null;
+            }
+        }
+
         return [
             'collection_id' => $collectionId,
             'item_id' => $itemId,
@@ -103,6 +128,7 @@ class LivePreviewTokenService
             'exp' => $exp,
             'user_id' => $userId,
             'content_hash' => $contentHash,
+            'as_of' => $asOf,
         ];
     }
 

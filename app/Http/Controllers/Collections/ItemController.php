@@ -35,6 +35,7 @@ use App\Services\Collections\CollectionListColumnsNormalizerService;
 use App\Services\Collections\CollectionListDisplayEnricherService;
 use App\Services\Collections\FieldConditionEvaluatorService;
 use App\Services\Collections\ItemRolePreviewService;
+use App\Services\Collections\LivePreviewAsOfResolverService;
 use App\Services\Collections\LivePreviewUrlBuilderService;
 use App\Services\Settings\SettingsRepositoryService;
 use App\Support\Http\SafeReturnUrl;
@@ -48,6 +49,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use InvalidArgumentException;
 use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -682,6 +684,7 @@ class ItemController extends Controller
         $validated = $request->validate([
             'version' => ['nullable', 'string', 'in:draft,published'],
             'locale' => ['nullable', 'string', 'max:16'],
+            'as_of' => ['nullable', 'string', 'max:64'],
         ]);
 
         $version = (string) ($validated['version'] ?? 'published');
@@ -689,13 +692,31 @@ class ItemController extends Controller
             ? $validated['locale']
             : null;
 
+        $asOf = null;
+        $asOfRaw = isset($validated['as_of']) && is_string($validated['as_of'])
+            ? trim($validated['as_of'])
+            : '';
+        if ($asOfRaw !== '') {
+            try {
+                $asOf = app(LivePreviewAsOfResolverService::class)->parseBounded($asOfRaw);
+            } catch (InvalidArgumentException $exception) {
+                throw ValidationException::withMessages([
+                    'as_of' => [$exception->getMessage()],
+                ]);
+            }
+        }
+
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
         try {
-            $built = $this->livePreviewUrlBuilder->build($collection, $item, $version, $locale, $user);
+            $built = $this->livePreviewUrlBuilder->build($collection, $item, $version, $locale, $user, $asOf);
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
+        } catch (InvalidArgumentException $exception) {
+            throw ValidationException::withMessages([
+                'as_of' => [$exception->getMessage()],
+            ]);
         }
 
         return response()->json($built);
