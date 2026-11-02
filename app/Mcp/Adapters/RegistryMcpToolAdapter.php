@@ -51,7 +51,10 @@ final class RegistryMcpToolAdapter
     /**
      * MCP `tools/call` via the shared executor (permissions re-checked at call time).
      *
-     * Mutating tools return pending_approval until a human resolves the PendingToolCall.
+     * Always routes through {@see AiToolExecutorService} so every decision writes an
+     * `ai_tool` audit row (same as chat). Write policy uses the shared kill switch /
+     * allowlist; mutating calls return `pending_approval` when the write gate allows.
+     * {@see listTools()} and HTTP MCP registration still honor `ai.mcp.write_enabled`.
      *
      * @param  array<string, mixed>  $arguments
      * @return array{
@@ -62,28 +65,6 @@ final class RegistryMcpToolAdapter
      */
     public function callTool(string $name, array $arguments, ?Authenticatable $actor): array
     {
-        $definition = $this->registry->get($name);
-
-        if (
-            $definition !== null
-            && $definition->kind()->isMutating()
-            && ! (bool) config('ai.mcp.write_enabled', false)
-        ) {
-            return [
-                'isError' => true,
-                'content' => [
-                    [
-                        'type' => 'text',
-                        'text' => 'MCP write tools are disabled.',
-                    ],
-                ],
-                'structuredContent' => [
-                    'status' => 'denied',
-                    'message' => 'MCP write tools are disabled.',
-                ],
-            ];
-        }
-
         $outcome = $this->executor->execute($name, $arguments, $actor, [
             'surface' => 'mcp',
         ]);
