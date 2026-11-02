@@ -80,6 +80,17 @@ export function initialsFromName(name: string): string {
  * @returns Local datetime string, or empty when unset/invalid
  */
 
+type DatetimeLocalInput =
+    | string
+    | number
+    | boolean
+    | string[]
+    | number[]
+    | Array<Record<string, unknown>>
+    | Record<string, unknown>
+    | null
+    | undefined;
+
 export function toDatetimeLocalValue(
     value: DatetimeLocalInput,
     includeSeconds = false,
