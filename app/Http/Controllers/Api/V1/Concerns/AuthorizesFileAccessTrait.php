@@ -39,18 +39,18 @@ trait AuthorizesFileAccessTrait
         );
 
         if (! $allowed) {
-            abort(403, 'This action is unauthorized for files.');
+            abort(403, __('This action is unauthorized for files.'));
         }
 
         $apiKey = $access->apiKey;
         if ($apiKey !== null && ! $apiKey->allowsFileAction($action)) {
-            abort(403, 'This action is unauthorized for files.');
+            abort(403, __('This action is unauthorized for files.'));
         }
 
         if ($apiKey !== null && $apiKey->owner_id !== null) {
             $owner = $apiKey->relationLoaded('owner') ? $apiKey->owner : $apiKey->owner()->first();
             if (! $owner instanceof User || ! $this->ownerAllowsFileAction($owner, $action)) {
-                abort(403, 'This action is unauthorized for files.');
+                abort(403, __('This action is unauthorized for files.'));
             }
         }
     }
@@ -81,7 +81,7 @@ trait AuthorizesFileAccessTrait
 
         $access = $this->apiAccess($request);
         if (! app(FilePermissionGuardService::class)->canReadFile($access->roleId(), $file)) {
-            abort(403, 'This action is unauthorized for files.');
+            abort(403, __('This action is unauthorized for files.'));
         }
 
         $apiKey = $access->apiKey;
@@ -91,7 +91,7 @@ trait AuthorizesFileAccessTrait
                 ! $owner instanceof User
                 || ! $this->ownerAllowsFileAction($owner, FilePermissionActionEnum::ReadPrivate)
             ) {
-                abort(403, 'This action is unauthorized for files.');
+                abort(403, __('This action is unauthorized for files.'));
             }
         }
     }

@@ -40,7 +40,7 @@ class ResolveApiAccessMiddleware
             ->first();
 
         if ($role === null) {
-            abort(503, 'Public API role is not configured.');
+            abort(503, __('Public API role is not configured.'));
         }
 
         return new ApiAccess(actor: 'public', role: $role);
@@ -52,19 +52,19 @@ class ResolveApiAccessMiddleware
         $apiKey = ApiKey::query()->with(['role', 'owner'])->where('key_hash', $hash)->first();
 
         if ($apiKey === null || ! $apiKey->isActive()) {
-            abort(401, 'Invalid or inactive API key.');
+            abort(401, __('Invalid or inactive API key.'));
         }
 
         // Owned keys: owner must still be active (lifecycle should have revoked; fail closed).
         if ($apiKey->owner_id !== null) {
             $owner = $apiKey->owner;
             if ($owner === null || ! $owner->is_active || $owner->trashed()) {
-                abort(401, 'Invalid or inactive API key.');
+                abort(401, __('Invalid or inactive API key.'));
             }
         }
 
         if (! $apiKey->allowsIp((string) $request->ip())) {
-            abort(401, 'API key is not allowed from this IP address.');
+            abort(401, __('API key is not allowed from this IP address.'));
         }
 
         $limit = $apiKey->rate_limit_per_minute
@@ -73,7 +73,7 @@ class ResolveApiAccessMiddleware
         if ($limit > 0) {
             $rateKey = 'api-key:'.$apiKey->id;
             if (RateLimiter::tooManyAttempts($rateKey, $limit)) {
-                abort(429, 'API key rate limit exceeded.');
+                abort(429, __('API key rate limit exceeded.'));
             }
             RateLimiter::hit($rateKey, 60);
         }
@@ -82,11 +82,11 @@ class ResolveApiAccessMiddleware
 
         $role = $apiKey->role;
         if ($role === null) {
-            abort(401, 'API key role is missing.');
+            abort(401, __('API key role is missing.'));
         }
 
         if ($role->name === RoleEnum::SuperAdmin->value) {
-            abort(401, 'API keys cannot use the super-admin role.');
+            abort(401, __('API keys cannot use the super-admin role.'));
         }
 
         return new ApiAccess(actor: 'api_key', role: $role, apiKey: $apiKey);

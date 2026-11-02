@@ -22,7 +22,7 @@ final class FilterQueryLimits
     {
         if (count($filters) > StringLimits::FILTER_MAX_KEYS) {
             throw ValidationException::withMessages([
-                'filter' => 'Too many filter keys (max '.StringLimits::FILTER_MAX_KEYS.').',
+                'filter' => __('Too many filter keys (max :max).', ['max' => StringLimits::FILTER_MAX_KEYS]),
             ]);
         }
 
@@ -90,7 +90,7 @@ final class FilterQueryLimits
         if (is_string($value)) {
             if (mb_strlen($value) > StringLimits::FILTER_VALUE) {
                 throw ValidationException::withMessages([
-                    $attribute => 'Filter value may not be greater than '.StringLimits::FILTER_VALUE.' characters.',
+                    $attribute => __('Filter value may not be greater than :max characters.', ['max' => StringLimits::FILTER_VALUE]),
                 ]);
             }
 
@@ -109,7 +109,7 @@ final class FilterQueryLimits
             if (is_string($operand)) {
                 if (mb_strlen($operand) > StringLimits::FILTER_VALUE) {
                     throw ValidationException::withMessages([
-                        $path => 'Filter value may not be greater than '.StringLimits::FILTER_VALUE.' characters.',
+                        $path => __('Filter value may not be greater than :max characters.', ['max' => StringLimits::FILTER_VALUE]),
                     ]);
                 }
 
@@ -120,7 +120,7 @@ final class FilterQueryLimits
                 foreach ($operand as $index => $item) {
                     if (is_string($item) && mb_strlen($item) > StringLimits::FILTER_VALUE) {
                         throw ValidationException::withMessages([
-                            $path.'.'.$index => 'Filter value may not be greater than '.StringLimits::FILTER_VALUE.' characters.',
+                            $path.'.'.$index => __('Filter value may not be greater than :max characters.', ['max' => StringLimits::FILTER_VALUE]),
                         ]);
                     }
                 }

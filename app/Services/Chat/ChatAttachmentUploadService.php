@@ -92,7 +92,7 @@ class ChatAttachmentUploadService
         $extension = SafeUploadMime::extensionOf($fileName);
         if ($extension === '' || ! isset(SafeUploadMime::CHAT_EXTENSION_MIMES[$extension])) {
             throw ValidationException::withMessages([
-                'file_name' => ['This file type is not allowed.'],
+                'file_name' => [__('This file type is not allowed.')],
             ]);
         }
         ForbiddenUploadExtension::assertAllowed($fileName, 'file_name');

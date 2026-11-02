@@ -127,7 +127,7 @@ class CollectionItemExportService
     ): StreamedResponse {
         $format = strtolower($format);
         if (! in_array($format, ['csv', 'json'], true)) {
-            abort(422, 'format must be csv or json.');
+            abort(422, __('format must be csv or json.'));
         }
 
         $payload = $this->collectRows($collection, $filters, $sort, $direction, $request);

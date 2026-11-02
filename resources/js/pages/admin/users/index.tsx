@@ -7,7 +7,6 @@ import { TruncatedText } from '@/components/admin/truncated-text';
 import { UserFormDrawer } from '@/components/admin/user-form-drawer';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
-import { EmptyStatus } from '@/components/empty-status';
 import {
     PageLayout,
     TablePagination,
@@ -60,14 +59,6 @@ type Filters = {
     direction?: UserSortDirection;
 };
 
-const USER_SORT_FIELDS: { value: UserSortField; label: string }[] = [
-    { value: 'first_name', label: 'Name' },
-    { value: 'last_name', label: 'Last name' },
-    { value: 'email', label: 'Email' },
-    { value: 'created_at', label: 'Created' },
-    { value: 'updated_at', label: 'Updated' },
-];
-
 /**
  * Admin users list with search and form drawer.
  * @param {*} props.users - users.
@@ -82,6 +73,14 @@ export default function AdminUsersIndex({
 }) {
     const users = normalizePaginated(usersProp);
     const { t } = useTranslation();
+
+    const userSortFields: { value: UserSortField; label: string }[] = [
+        { value: 'first_name', label: t('common.firstName') },
+        { value: 'last_name', label: t('common.lastName') },
+        { value: 'email', label: t('common.email') },
+        { value: 'created_at', label: t('users.columns.created') },
+        { value: 'updated_at', label: t('users.columns.updated') },
+    ];
     const { can } = useCan();
     const requestLeave = useRequestLeave();
     const onlineUsers = useOnlineUsers();
@@ -247,12 +246,12 @@ export default function AdminUsersIndex({
                 !isTrashed && can(PermissionEnum.CanCreateUsers) ? (
                     <Button type="button" onClick={openCreate}>
                         <UserPlus className="mr-1 size-4" />
-                        New user
+                        {t('users.newUser')}
                     </Button>
                 ) : undefined
             }
         >
-            <Head title="Users" />
+            <Head title={t('users.title')} />
 
             <Drawer
                 direction="right"
@@ -265,7 +264,9 @@ export default function AdminUsersIndex({
                             search={search}
                             onSearchChange={setSearch}
                             searchPlaceholder={
-                                isTrashed ? 'Search trash…' : 'Search users…'
+                                isTrashed
+                                    ? t('users.searchTrashPlaceholder')
+                                    : t('users.searchPlaceholder')
                             }
                             selectedCount={selected.length}
                             onClearSelection={() => setSelected([])}
@@ -293,7 +294,7 @@ export default function AdminUsersIndex({
                                                     )
                                                 }
                                             >
-                                                Delete
+                                                {t('common.delete')}
                                             </Button>
                                         )}
                                     {isTrashed &&
@@ -304,7 +305,7 @@ export default function AdminUsersIndex({
                                                 size="sm"
                                                 onClick={() => bulk('restore')}
                                             >
-                                                Restore
+                                                {t('common.restore')}
                                             </Button>
                                         )}
                                     {isTrashed &&
@@ -321,7 +322,7 @@ export default function AdminUsersIndex({
                                                     )
                                                 }
                                             >
-                                                Delete permanently
+                                                {t('common.deletePermanently')}
                                             </Button>
                                         )}
                                 </>
@@ -330,7 +331,7 @@ export default function AdminUsersIndex({
                     }
                     filtersRight={
                         hasSelection ? null : (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
                                 <Select
                                     value={sort}
                                     onValueChange={(value) => {
@@ -348,13 +349,13 @@ export default function AdminUsersIndex({
                                 >
                                     <SelectTrigger
                                         size="sm"
-                                        aria-label="Sort by"
+                                        aria-label={t('users.sortBy')}
                                         className="w-[7.5rem]"
                                     >
                                         <SelectValue placeholder="Sort" />
                                     </SelectTrigger>
                                     <SelectContent align="end">
-                                        {USER_SORT_FIELDS.map((field) => (
+                                        {userSortFields.map((field) => (
                                             <SelectItem
                                                 key={field.value}
                                                 value={field.value}
@@ -370,8 +371,8 @@ export default function AdminUsersIndex({
                                     size="icon-sm"
                                     aria-label={
                                         direction === 'asc'
-                                            ? 'Sort ascending'
-                                            : 'Sort descending'
+                                            ? t('common.sortAscending')
+                                            : t('common.sortDescending')
                                     }
                                     onClick={() => {
                                         const nextDirection =
@@ -403,15 +404,15 @@ export default function AdminUsersIndex({
                                 >
                                     <ToggleGroupItem
                                         value="active"
-                                        aria-label="Active users"
-                                        className="px-3"
+                                        aria-label={t('users.activeUsers')}
+                                        className="px-2.5"
                                     >
                                         <Users className="size-4" />
                                     </ToggleGroupItem>
                                     <ToggleGroupItem
                                         value="trashed"
                                         aria-label="Trash"
-                                        className="px-3"
+                                        className="px-2.5"
                                     >
                                         <Trash2 className="size-4" />
                                     </ToggleGroupItem>
@@ -460,9 +461,7 @@ export default function AdminUsersIndex({
                                             colSpan={7}
                                             className="text-muted-foreground"
                                         >
-                                            <EmptyStatus>
-                                                No users found.
-                                            </EmptyStatus>
+                                            No users found.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -523,8 +522,12 @@ export default function AdminUsersIndex({
                                                                 onlineUsers.has(
                                                                     user.id,
                                                                 )
-                                                                    ? 'Online'
-                                                                    : 'Offline'
+                                                                    ? t(
+                                                                          'common.online',
+                                                                      )
+                                                                    : t(
+                                                                          'common.offline',
+                                                                      )
                                                             }
                                                             data-test="user-online-dot"
                                                             data-online={
@@ -577,7 +580,7 @@ export default function AdminUsersIndex({
                                                 {user.is_active ? (
                                                     <Badge
                                                         variant="success"
-                                                        className="gap-2"
+                                                        className="gap-1.5"
                                                     >
                                                         <span
                                                             className="size-1.5 rounded-full bg-success"
@@ -588,7 +591,7 @@ export default function AdminUsersIndex({
                                                 ) : (
                                                     <Badge
                                                         variant="muted"
-                                                        className="gap-2"
+                                                        className="gap-1.5"
                                                     >
                                                         <span
                                                             className="size-1.5 rounded-full bg-muted-foreground"

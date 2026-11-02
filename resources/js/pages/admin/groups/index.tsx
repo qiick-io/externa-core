@@ -54,12 +54,6 @@ type Filters = {
     direction?: GroupSortDirection;
 };
 
-const GROUP_SORT_FIELDS: { value: GroupSortField; label: string }[] = [
-    { value: 'name', label: 'Name' },
-    { value: 'created_at', label: 'Created' },
-    { value: 'updated_at', label: 'Updated' },
-];
-
 /**
  * Admin groups list with search, trash, and form drawer.
  */
@@ -72,6 +66,12 @@ export default function AdminGroupsIndex({
 }) {
     const groups = normalizePaginated(groupsProp);
     const { t } = useTranslation();
+
+    const groupSortFields: { value: GroupSortField; label: string }[] = [
+        { value: 'name', label: t('common.name') },
+        { value: 'created_at', label: t('common.created') },
+        { value: 'updated_at', label: t('common.updated') },
+    ];
     const { can } = useCan();
     const requestLeave = useRequestLeave();
     const isTrashed = filters.trashed === true;
@@ -227,12 +227,12 @@ export default function AdminGroupsIndex({
                 can(PermissionEnum.CanCreateGroups) && !isTrashed ? (
                     <Button type="button" onClick={openCreate}>
                         <Plus className="mr-1 size-4" />
-                        New group
+                        {t('groups.newGroup')}
                     </Button>
                 ) : undefined
             }
         >
-            <Head title="User groups" />
+            <Head title={t('groups.title')} />
 
             <Drawer
                 direction="right"
@@ -245,7 +245,9 @@ export default function AdminGroupsIndex({
                             search={search}
                             onSearchChange={setSearch}
                             searchPlaceholder={
-                                isTrashed ? 'Search trash…' : 'Search groups…'
+                                isTrashed
+                                    ? t('groups.searchTrashPlaceholder')
+                                    : t('groups.searchPlaceholder')
                             }
                             selectedCount={selected.length}
                             onClearSelection={() => setSelected([])}
@@ -269,7 +271,7 @@ export default function AdminGroupsIndex({
                                                     )
                                                 }
                                             >
-                                                Delete
+                                                {t('common.delete')}
                                             </Button>
                                         )}
                                     {isTrashed &&
@@ -282,7 +284,7 @@ export default function AdminGroupsIndex({
                                                 size="sm"
                                                 onClick={() => bulk('restore')}
                                             >
-                                                Restore
+                                                {t('common.restore')}
                                             </Button>
                                         )}
                                     {isTrashed &&
@@ -299,7 +301,7 @@ export default function AdminGroupsIndex({
                                                     )
                                                 }
                                             >
-                                                Delete permanently
+                                                {t('common.deletePermanently')}
                                             </Button>
                                         )}
                                 </>
@@ -308,7 +310,7 @@ export default function AdminGroupsIndex({
                     }
                     filtersRight={
                         hasSelection ? null : (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
                                 <Select
                                     value={sort}
                                     onValueChange={(value) => {
@@ -324,13 +326,13 @@ export default function AdminGroupsIndex({
                                 >
                                     <SelectTrigger
                                         size="sm"
-                                        aria-label="Sort by"
+                                        aria-label={t('groups.sortBy')}
                                         className="w-[7.5rem]"
                                     >
                                         <SelectValue placeholder="Sort" />
                                     </SelectTrigger>
                                     <SelectContent align="end">
-                                        {GROUP_SORT_FIELDS.map((field) => (
+                                        {groupSortFields.map((field) => (
                                             <SelectItem
                                                 key={field.value}
                                                 value={field.value}
@@ -379,15 +381,15 @@ export default function AdminGroupsIndex({
                                 >
                                     <ToggleGroupItem
                                         value="active"
-                                        aria-label="Active groups"
-                                        className="px-3"
+                                        aria-label={t('groups.title')}
+                                        className="px-2.5"
                                     >
                                         <UsersRound className="size-4" />
                                     </ToggleGroupItem>
                                     <ToggleGroupItem
                                         value="trashed"
                                         aria-label="Trash"
-                                        className="px-3"
+                                        className="px-2.5"
                                     >
                                         <Trash2 className="size-4" />
                                     </ToggleGroupItem>
@@ -534,7 +536,9 @@ export default function AdminGroupsIndex({
                                                                     )
                                                                 }
                                                             >
-                                                                Restore
+                                                                {t(
+                                                                    'common.restore',
+                                                                )}
                                                             </Button>
                                                         )}
                                                         {can(
@@ -550,7 +554,9 @@ export default function AdminGroupsIndex({
                                                                     )
                                                                 }
                                                             >
-                                                                Delete forever
+                                                                {t(
+                                                                    'common.deletePermanently',
+                                                                )}
                                                             </Button>
                                                         )}
                                                     </div>

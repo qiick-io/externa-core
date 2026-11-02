@@ -43,6 +43,7 @@ import {
     uploadFileChunked,
     uploadFileDirect,
 } from '@/lib/files-api';
+import { formatNumber } from '@/lib/format';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { AdminFileRow, FileTag } from '@/types/files';
@@ -61,7 +62,7 @@ function formatImageFieldMetaLine(file: AdminFileRow): string {
 
     if (file.width && file.height) {
         parts.push(
-            `${file.width.toLocaleString('en-US')} \u00d7 ${file.height.toLocaleString('en-US')}`,
+            `${formatNumber(file.width)} \u00d7 ${formatNumber(file.height)}`,
         );
     }
 

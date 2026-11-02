@@ -69,7 +69,9 @@ export function UserMenuContent({ user }: Props) {
             {
                 preserveScroll: true,
                 onSuccess: () => {
-                    void i18n.changeLanguage(next);
+                    void i18n.changeLanguage(next).then(() => {
+                        document.documentElement.lang = next.replace('_', '-');
+                    });
                 },
             },
         );

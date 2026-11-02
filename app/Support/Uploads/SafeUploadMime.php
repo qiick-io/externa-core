@@ -129,7 +129,7 @@ final class SafeUploadMime
 
         if ($allowed === null) {
             throw ValidationException::withMessages([
-                $field => ['This file extension is not in the project upload allowlist.'],
+                $field => [__('This file extension is not in the project upload allowlist.')],
             ]);
         }
 
@@ -140,7 +140,7 @@ final class SafeUploadMime
 
         if ($dangerous || ! in_array($sniffed, $allowed, true)) {
             throw ValidationException::withMessages([
-                $field => ['File content does not match the declared file type.'],
+                $field => [__('File content does not match the declared file type.')],
             ]);
         }
 
@@ -166,7 +166,7 @@ final class SafeUploadMime
         if (self::isDangerous($sniffed)
             && ! ($allowlist->allowSvg() && $allowlist->isSvgMime($sniffed))) {
             throw ValidationException::withMessages([
-                $field => ['This file type is not in the project upload allowlist.'],
+                $field => [__('This file type is not in the project upload allowlist.')],
             ]);
         }
 
@@ -182,7 +182,7 @@ final class SafeUploadMime
             }
             if ($sniffed !== 'application/octet-stream') {
                 throw ValidationException::withMessages([
-                    $field => ['File content does not match the declared file type.'],
+                    $field => [__('File content does not match the declared file type.')],
                 ]);
             }
 

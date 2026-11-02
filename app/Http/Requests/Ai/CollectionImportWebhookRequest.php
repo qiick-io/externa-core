@@ -51,7 +51,7 @@ class CollectionImportWebhookRequest extends FormRequest
         if ($tokens === []) {
             abort(
                 Response::HTTP_UNAUTHORIZED,
-                'Webhook signing is not configured.',
+                __('Webhook signing is not configured.'),
             );
         }
 
@@ -59,7 +59,7 @@ class CollectionImportWebhookRequest extends FormRequest
         if ($timestamp === '' || ! ctype_digit($timestamp)) {
             abort(
                 Response::HTTP_UNAUTHORIZED,
-                'Webhook timestamp missing or invalid.',
+                __('Webhook timestamp missing or invalid.'),
             );
         }
 
@@ -67,7 +67,7 @@ class CollectionImportWebhookRequest extends FormRequest
         if ($skew > CollectionImportWebhookController::TIMESTAMP_TOLERANCE_SECONDS) {
             abort(
                 Response::HTTP_UNAUTHORIZED,
-                'Webhook timestamp outside allowed skew.',
+                __('Webhook timestamp outside allowed skew.'),
             );
         }
 
@@ -88,7 +88,7 @@ class CollectionImportWebhookRequest extends FormRequest
         if (! $matched) {
             abort(
                 Response::HTTP_UNAUTHORIZED,
-                'Invalid webhook signature.',
+                __('Invalid webhook signature.'),
             );
         }
 
@@ -97,7 +97,7 @@ class CollectionImportWebhookRequest extends FormRequest
         if (! Cache::add($nonceKey, true, CollectionImportWebhookController::TIMESTAMP_TOLERANCE_SECONDS)) {
             abort(
                 Response::HTTP_UNAUTHORIZED,
-                'Webhook replay detected.',
+                __('Webhook replay detected.'),
             );
         }
     }

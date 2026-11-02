@@ -43,7 +43,7 @@ final class MimeTypeValidator
         $handle = @fopen($absolutePath, 'rb');
         if ($handle === false) {
             throw ValidationException::withMessages([
-                $field => ['Unable to read uploaded file.'],
+                $field => [__('Unable to read uploaded file.')],
             ]);
         }
 
@@ -79,7 +79,7 @@ final class MimeTypeValidator
 
         if ($allowed !== [] && ! in_array($sniffed, $allowed, true)) {
             throw ValidationException::withMessages([
-                $field => ['This file type is not in the project upload allowlist.'],
+                $field => [__('This file type is not in the project upload allowlist.')],
             ]);
         }
     }
@@ -110,7 +110,7 @@ final class MimeTypeValidator
         }
 
         throw ValidationException::withMessages([
-            $field => ['File content does not match the declared file type.'],
+            $field => [__('File content does not match the declared file type.')],
         ]);
     }
 }

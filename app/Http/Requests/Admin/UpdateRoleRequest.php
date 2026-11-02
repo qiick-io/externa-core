@@ -30,11 +30,11 @@ class UpdateRoleRequest extends FormRequest
         $role = $this->route('role');
 
         if ($role->name === RoleEnum::SuperAdmin->value && $this->input('name') !== RoleEnum::SuperAdmin->value) {
-            abort(403, 'The super-admin role cannot be renamed.');
+            abort(403, __('The super-admin role cannot be renamed.'));
         }
 
         if ($role->isLockedSystemRole() && $this->filled('name') && $this->input('name') !== $role->name) {
-            abort(403, 'System roles cannot be renamed.');
+            abort(403, __('System roles cannot be renamed.'));
         }
 
         return true;

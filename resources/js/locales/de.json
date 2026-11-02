@@ -17,7 +17,18 @@
         "view": "Anzeigen",
         "export": "Exportieren",
         "clearFilters": "Filter zurücksetzen",
-        "learnMore": "Mehr erfahren"
+        "learnMore": "Mehr erfahren",
+        "restore": "Wiederherstellen",
+        "deletePermanently": "Dauerhaft löschen",
+        "created": "Erstellt",
+        "updated": "Aktualisiert",
+        "search": "Suchen",
+        "online": "Online",
+        "offline": "Offline",
+        "sortAscending": "Aufsteigend sortieren",
+        "sortDescending": "Absteigend sortieren",
+        "active": "Aktiv",
+        "name": "Name"
     },
     "emptyState": {
         "collections": {
@@ -1502,7 +1513,36 @@
             "promptDeleted": "Prompt gelöscht",
             "promptDeleteFailed": "Prompt konnte nicht gelöscht werden",
             "loadFailed": "Kontext konnte nicht geladen werden"
-        }
+        },
+        "unableStartChat": "Neuer Chat konnte nicht gestartet werden",
+        "chatDeleted": "Chat gelöscht",
+        "unableDeleteChat": "Chat konnte nicht gelöscht werden",
+        "unableUpdatePin": "Pin konnte nicht aktualisiert werden",
+        "unableLoadMoreChats": "Weitere Chats konnten nicht geladen werden",
+        "chatsDeleted": "{{count}} Chats gelöscht",
+        "unableDeleteSelectedChats": "Ausgewählte Chats konnten nicht gelöscht werden",
+        "noResponse": "Keine Antwort vom Assistenten",
+        "responseError": "Fehler während der Antwort",
+        "attachmentUploadFailed": "Anhang-Upload fehlgeschlagen",
+        "writeMessageWithAttachments": "Schreiben Sie zusätzlich zu Anhängen eine Nachricht",
+        "noUserMessageToRegenerate": "Keine Benutzernachricht zum Regenerieren",
+        "unablePrepareRegeneration": "Regenerierung konnte nicht vorbereitet werden",
+        "messageResent": "Nachricht erneut gesendet",
+        "messageCannotBeEmpty": "Nachricht darf nicht leer sein",
+        "unableEditMessage": "Nachricht konnte nicht bearbeitet werden",
+        "dictationError": "Diktierfehler",
+        "unableStartDictation": "Diktat konnte nicht gestartet werden",
+        "chat": "Chat",
+        "responseTryAgain": "Keine Antwort vom Assistenten. Bitte erneut versuchen.",
+        "sendError": "Fehler beim Senden",
+        "loadMore": "Mehr laden",
+        "yesterday": "Gestern",
+        "thisWeek": "Diese Woche",
+        "aWeekAgo": "Vor einer Woche",
+        "thisMonth": "Diesen Monat",
+        "today": "Heute",
+        "twoDaysAgo": "Vor 2 Tagen",
+        "older": "Älter"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1947,6 +1987,19 @@
             "bulkDeleteDescription": "Ausgewählte Benutzer werden soft-gelöscht.",
             "bulkForceDeleteTitle": "{{count}} ausgewählte Benutzer endgültig löschen?",
             "bulkForceDeleteDescription": "Ausgewählte Benutzer werden dauerhaft entfernt. Das kann nicht rückgängig gemacht werden."
+        },
+        "title": "Benutzer",
+        "newUser": "Neuer Benutzer",
+        "searchPlaceholder": "Benutzer suchen…",
+        "searchTrashPlaceholder": "Papierkorb durchsuchen…",
+        "sortBy": "Sortieren nach",
+        "activeUsers": "Aktive Benutzer",
+        "columns": {
+            "lastName": "Nachname",
+            "firstName": "Vorname",
+            "email": "E-Mail",
+            "created": "Erstellt",
+            "updated": "Aktualisiert"
         }
     },
     "groups": {
@@ -1957,7 +2010,12 @@
             "bulkForceDeleteDescription": "Ausgewählte Gruppen werden dauerhaft entfernt. Das kann nicht rückgängig gemacht werden.",
             "forceDeleteTitle": "Gruppe „{{name}}“ endgültig löschen?",
             "forceDeleteDescription": "Diese Gruppe wird dauerhaft entfernt. Das kann nicht rückgängig gemacht werden."
-        }
+        },
+        "title": "Gruppen",
+        "newGroup": "Neue Gruppe",
+        "searchPlaceholder": "Gruppen suchen…",
+        "searchTrashPlaceholder": "Papierkorb durchsuchen…",
+        "sortBy": "Sortieren nach"
     },
     "pendingToolCalls": {
         "head": "KI-Tool-Freigaben",
@@ -1973,5 +2031,28 @@
     },
     "deploy": {
         "button": "Deploy"
+    },
+    "richText": {
+        "bold": "Fett",
+        "italic": "Kursiv",
+        "heading": "Überschrift",
+        "heading2": "Überschrift 2",
+        "heading3": "Überschrift 3",
+        "edit": "Bearbeiten",
+        "preview": "Vorschau",
+        "image": "Bild",
+        "chooseImages": "Bilder auswählen",
+        "addTag": "Tag hinzufügen…",
+        "strikethrough": "Durchgestrichen",
+        "link": "Link",
+        "bulletList": "Aufzählung",
+        "orderedList": "Nummerierte Liste",
+        "quote": "Zitat",
+        "code": "Code",
+        "undo": "Rückgängig",
+        "redo": "Wiederholen",
+        "table": "Tabelle",
+        "linkUrl": "Link-URL",
+        "headingLevel": "Überschrift {{level}}"
     }
 }

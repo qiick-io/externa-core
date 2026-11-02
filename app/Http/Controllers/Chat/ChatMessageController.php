@@ -183,7 +183,7 @@ class ChatMessageController extends Controller
 
         if ($body === '' && $attachmentIds === []) {
             throw ValidationException::withMessages([
-                'body' => 'Message body or an attachment is required.',
+                'body' => __('Message body or an attachment is required.'),
             ]);
         }
 
@@ -367,7 +367,7 @@ class ChatMessageController extends Controller
         $emoji = $validated['emoji'];
         if (! in_array($emoji, CollectionItemChatReaction::ALLOWED, true)) {
             throw ValidationException::withMessages([
-                'emoji' => 'Unsupported reaction.',
+                'emoji' => __('Unsupported reaction.'),
             ]);
         }
 
@@ -823,7 +823,7 @@ class ChatMessageController extends Controller
 
         if (! $this->chats->allowsMentions($chat)) {
             throw ValidationException::withMessages([
-                'mentioned_user_ids' => 'Mentions are not available in one-to-one chats.',
+                'mentioned_user_ids' => __('Mentions are not available in one-to-one chats.'),
             ]);
         }
 
@@ -832,7 +832,7 @@ class ChatMessageController extends Controller
             $denied = array_values(array_diff($ids, $allowed));
             if ($denied !== []) {
                 throw ValidationException::withMessages([
-                    'mentioned_user_ids' => 'Mentions in private chats are limited to participants.',
+                    'mentioned_user_ids' => __('Mentions in private chats are limited to participants.'),
                 ]);
             }
 
@@ -857,7 +857,7 @@ class ChatMessageController extends Controller
         $denied = array_values(array_diff($ids, $allowed));
         if ($denied !== []) {
             throw ValidationException::withMessages([
-                'mentioned_user_ids' => 'One or more mentioned users cannot read this collection.',
+                'mentioned_user_ids' => __('One or more mentioned users cannot read this collection.'),
             ]);
         }
 
@@ -879,7 +879,7 @@ class ChatMessageController extends Controller
             $collection = $found->get($id);
             if (! $collection instanceof Collection || ! $this->chats->userCanReadCollection($user, $collection)) {
                 throw ValidationException::withMessages([
-                    'body' => 'One or more mentioned collections are invalid.',
+                    'body' => __('One or more mentioned collections are invalid.'),
                 ]);
             }
         }
@@ -904,14 +904,14 @@ class ChatMessageController extends Controller
 
         if ($attachments->count() !== count($ids)) {
             throw ValidationException::withMessages([
-                'attachment_ids' => 'One or more attachments are invalid.',
+                'attachment_ids' => __('One or more attachments are invalid.'),
             ]);
         }
 
         foreach ($attachments as $attachment) {
             if ($attachment->isExpired()) {
                 throw ValidationException::withMessages([
-                    'attachment_ids' => 'One or more attachments have expired.',
+                    'attachment_ids' => __('One or more attachments have expired.'),
                 ]);
             }
         }

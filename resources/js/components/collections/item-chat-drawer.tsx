@@ -69,7 +69,7 @@ import { avatarColorForId, avatarStyleForId } from '@/lib/avatar-color';
 import type { ChatThreadIdentity } from '@/lib/chat-thread-identity';
 import { chatMentionsEnabled } from '@/lib/chat-thread-identity';
 import { ensureEcho, isRealtimeEnabled } from '@/lib/echo';
-import { initialsFromName } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
 import {
     addChatAttachmentToField,
     chatAttachmentPreviewUrl,
@@ -170,6 +170,12 @@ type Props = {
     canCreateDirect?: boolean;
 };
 
+function initials(name: string): string {
+    const parts = name.trim().split(/\s+/);
+
+    return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?';
+}
+
 function renderMessageBody(
     body: string,
     mentions: ChatUser[],
@@ -228,7 +234,7 @@ function dayLabel(iso: string | null): string {
         return '';
     }
 
-    return new Date(iso).toLocaleDateString(undefined, {
+    return formatDateTime(iso, {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -240,7 +246,7 @@ function commentTime(iso: string | null): string {
         return '';
     }
 
-    return new Date(iso).toLocaleTimeString(undefined, {
+    return formatDateTime(iso, {
         hour: '2-digit',
         minute: '2-digit',
     });
@@ -2004,7 +2010,7 @@ export function ItemChatDrawer({
                                                         userId,
                                                     )}
                                                 >
-                                                    {initialsFromName(
+                                                    {initials(
                                                         comment.user?.name ??
                                                             '?',
                                                     )}
@@ -2462,7 +2468,7 @@ export function ItemChatDrawer({
                                                                                                                     )}
                                                                                                                     aria-hidden
                                                                                                                 >
-                                                                                                                    {initialsFromName(
+                                                                                                                    {initials(
                                                                                                                         user.name,
                                                                                                                     )}
                                                                                                                 </span>

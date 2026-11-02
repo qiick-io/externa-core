@@ -136,7 +136,7 @@ class RoleController extends Controller
     public function duplicate(DuplicateRoleRequest $request, Role $role): RedirectResponse
     {
         if ($role->name === RoleEnum::SuperAdmin->value || $role->isLockedSystemRole()) {
-            abort(403, 'This role cannot be duplicated.');
+            abort(403, __('This role cannot be duplicated.'));
         }
 
         $data = $request->validated();
@@ -213,7 +213,7 @@ class RoleController extends Controller
 
         if ($role->isLockedSystemRole()) {
             if (array_key_exists('name', $data) && $data['name'] !== $role->name) {
-                abort(403, 'System roles cannot be renamed.');
+                abort(403, __('System roles cannot be renamed.'));
             }
         } elseif (array_key_exists('name', $data)) {
             $role->update(['name' => $data['name']]);
@@ -246,7 +246,7 @@ class RoleController extends Controller
         $this->authorizePermission(PermissionEnum::CanDeleteRoles->value);
 
         if ($role->name === RoleEnum::SuperAdmin->value || $role->isLockedSystemRole()) {
-            abort(403, 'This role cannot be deleted.');
+            abort(403, __('This role cannot be deleted.'));
         }
 
         $role->delete();

@@ -17,7 +17,18 @@
         "view": "Mostra",
         "export": "Esporta",
         "clearFilters": "Cancella filtri",
-        "learnMore": "Scopri di più"
+        "learnMore": "Scopri di più",
+        "restore": "Ripristina",
+        "deletePermanently": "Elimina definitivamente",
+        "created": "Creato",
+        "updated": "Aggiornato",
+        "search": "Cerca",
+        "online": "Online",
+        "offline": "Offline",
+        "sortAscending": "Ordine crescente",
+        "sortDescending": "Ordine decrescente",
+        "active": "Attivo",
+        "name": "Nome"
     },
     "emptyState": {
         "collections": {
@@ -1502,7 +1513,36 @@
             "promptDeleted": "Prompt eliminato",
             "promptDeleteFailed": "Impossibile eliminare il prompt",
             "loadFailed": "Impossibile caricare il contesto"
-        }
+        },
+        "unableStartChat": "Impossibile avviare una nuova chat",
+        "chatDeleted": "Chat eliminata",
+        "unableDeleteChat": "Impossibile eliminare la chat",
+        "unableUpdatePin": "Impossibile aggiornare il pin",
+        "unableLoadMoreChats": "Impossibile caricare altre chat",
+        "chatsDeleted": "{{count}} chat eliminate",
+        "unableDeleteSelectedChats": "Impossibile eliminare le chat selezionate",
+        "noResponse": "Nessuna risposta dall’assistente",
+        "responseError": "Errore durante la risposta",
+        "attachmentUploadFailed": "Caricamento allegato non riuscito",
+        "writeMessageWithAttachments": "Scrivi un messaggio oltre agli allegati",
+        "noUserMessageToRegenerate": "Nessun messaggio utente da rigenerare",
+        "unablePrepareRegeneration": "Impossibile preparare la rigenerazione",
+        "messageResent": "Messaggio reinviato",
+        "messageCannotBeEmpty": "Il messaggio non può essere vuoto",
+        "unableEditMessage": "Impossibile modificare il messaggio",
+        "dictationError": "Errore di dettatura",
+        "unableStartDictation": "Impossibile avviare la dettatura",
+        "chat": "Chat",
+        "responseTryAgain": "Nessuna risposta dall’assistente. Riprova.",
+        "sendError": "Errore durante l’invio",
+        "loadMore": "Carica altri",
+        "yesterday": "Ieri",
+        "thisWeek": "Questa settimana",
+        "aWeekAgo": "Una settimana fa",
+        "thisMonth": "Questo mese",
+        "today": "Oggi",
+        "twoDaysAgo": "2 giorni fa",
+        "older": "Più vecchie"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -1947,6 +1987,19 @@
             "bulkDeleteDescription": "Gli utenti selezionati verranno eliminati in modo soft.",
             "bulkForceDeleteTitle": "Eliminare definitivamente {{count}} utenti selezionati?",
             "bulkForceDeleteDescription": "Gli utenti selezionati verranno rimossi definitivamente. L’operazione non può essere annullata."
+        },
+        "title": "Utenti",
+        "newUser": "Nuovo utente",
+        "searchPlaceholder": "Cerca utenti…",
+        "searchTrashPlaceholder": "Cerca nel cestino…",
+        "sortBy": "Ordina per",
+        "activeUsers": "Utenti attivi",
+        "columns": {
+            "lastName": "Cognome",
+            "firstName": "Nome",
+            "email": "Email",
+            "created": "Creato",
+            "updated": "Aggiornato"
         }
     },
     "groups": {
@@ -1957,7 +2010,12 @@
             "bulkForceDeleteDescription": "I gruppi selezionati verranno rimossi definitivamente. L’operazione non può essere annullata.",
             "forceDeleteTitle": "Eliminare definitivamente il gruppo “{{name}}”?",
             "forceDeleteDescription": "Il gruppo verrà rimosso definitivamente. L’operazione non può essere annullata."
-        }
+        },
+        "title": "Gruppi",
+        "newGroup": "Nuovo gruppo",
+        "searchPlaceholder": "Cerca gruppi…",
+        "searchTrashPlaceholder": "Cerca nel cestino…",
+        "sortBy": "Ordina per"
     },
     "pendingToolCalls": {
         "head": "Approvazioni strumenti AI",
@@ -1973,5 +2031,28 @@
     },
     "deploy": {
         "button": "Deploy"
+    },
+    "richText": {
+        "bold": "Grassetto",
+        "italic": "Corsivo",
+        "heading": "Titolo",
+        "heading2": "Titolo 2",
+        "heading3": "Titolo 3",
+        "edit": "Modifica",
+        "preview": "Anteprima",
+        "image": "Immagine",
+        "chooseImages": "Scegli immagini",
+        "addTag": "Aggiungi tag…",
+        "strikethrough": "Barrato",
+        "link": "Link",
+        "bulletList": "Elenco puntato",
+        "orderedList": "Elenco numerato",
+        "quote": "Citazione",
+        "code": "Codice",
+        "undo": "Annulla",
+        "redo": "Ripeti",
+        "table": "Tabella",
+        "linkUrl": "URL del link",
+        "headingLevel": "Titolo {{level}}"
     }
 }
