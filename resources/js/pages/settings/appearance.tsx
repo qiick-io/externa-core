@@ -1,9 +1,8 @@
-import AppearanceSettingsController from '@/actions/App/Http/Controllers/Settings/AppearanceSettingsController';
-import { edit as editAppearance } from '@/routes/appearance';
 import { Form, Head, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 import type { SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
+import AppearanceSettingsController from '@/actions/App/Http/Controllers/Settings/AppearanceSettingsController';
 import { FilePickerDrawer } from '@/components/admin/file-picker-drawer';
 import Heading from '@/components/heading';
 import { SettingsFormActions } from '@/components/settings-form-actions';
@@ -36,6 +35,7 @@ import {
     
 } from '@/lib/theme-presets';
 import type {ThemePresetSlug} from '@/lib/theme-presets';
+import { edit as editAppearance } from '@/routes/appearance';
 import type {
     AppearanceFileMeta,
     AppearanceSettings,
