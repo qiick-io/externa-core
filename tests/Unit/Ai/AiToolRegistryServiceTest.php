@@ -208,7 +208,11 @@ it('keeps chat read actions of mixed tools while the write gate denies their wri
     expect($listResult)->toContain('Chat readable')
         ->and($createResult)->toStartWith('Error: ManageCollections create is disabled')
         ->and(Collection::query()->where('name', 'Sneaky')->exists())->toBeFalse()
-        ->and($collection->fresh())->not->toBeNull();
+        ->and($collection->fresh())->not->toBeNull()
+        ->and((string) $chatTools['ManageCollectionItems']->handle(new Request(['action' => 'publish', 'item_id' => 1])))
+        ->toStartWith('Error: ManageCollectionItems publish is disabled')
+        ->and((string) $chatTools['ManageFiles']->handle(new Request(['action' => 'tag', 'file_id' => 1, 'tags_json' => '["x"]'])))
+        ->toStartWith('Error: ManageFiles tag is disabled');
 
     // The registry's shared instance is not switched to read-only (MCP / executor keep their own gates).
     $sharedTool = $registry->get('ManageCollections');

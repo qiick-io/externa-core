@@ -10,11 +10,13 @@ use App\Ai\Concerns\LogsAiToolUseTrait;
 use App\Ai\Concerns\RequiresDestructiveApprovalTrait;
 use App\Contracts\Ai\ClassifiesToolActionsInterface;
 use App\Data\Collections\CollectionItemWriteData;
+use App\Enums\CollectionPermissionActionEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\CollectionItem;
 use App\Services\Collections\CollectionItemOptionsService;
+use App\Services\Collections\CollectionItemPublisherService;
 use App\Services\Collections\CollectionItemQueryService;
 use App\Services\Collections\CollectionItemValuesAssemblerService;
 use App\Services\Collections\FieldConditionEvaluatorService;
@@ -24,6 +26,7 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
+use RuntimeException;
 use Stringable;
 
 /**
@@ -41,7 +44,7 @@ class ManageCollectionItems implements Approvable, ClassifiesToolActionsInterfac
      */
     protected function writeActions(): array
     {
-        return ['create', 'update', 'restore', 'bulk_update'];
+        return ['create', 'update', 'publish', 'restore', 'bulk_update'];
     }
 
     /**
@@ -57,7 +60,7 @@ class ManageCollectionItems implements Approvable, ClassifiesToolActionsInterfac
      */
     public function description(): Stringable|string
     {
-        return 'List, get, create, update, soft-delete, restore, or force-delete items inside a collection. Pass field values as a JSON object in the data parameter.';
+        return 'List, get, create, update, publish (promote draft), soft-delete, restore, or force-delete items inside a collection. Pass field values as a JSON object in the data parameter.';
     }
 
     /**
@@ -77,13 +80,14 @@ class ManageCollectionItems implements Approvable, ClassifiesToolActionsInterfac
                 'get' => $this->getItem($request->integer('item_id')),
                 'create' => $this->createItem($request),
                 'update' => $this->updateItem($request),
+                'publish' => $this->publishItem($request->integer('item_id')),
                 'delete' => $this->deleteItem($request->integer('item_id')),
                 'restore' => $this->restoreItem($request->integer('item_id')),
                 'force_delete' => $this->forceDeleteItem($request->integer('item_id')),
                 'bulk_update' => $this->bulkUpdate($request),
                 'bulk_delete' => $this->bulkDelete($request),
                 'list_relation_options' => $this->listRelationOptions($request),
-                default => 'Error: Unknown action. Use list, get, create, update, delete, restore, force_delete, bulk_update, bulk_delete, or list_relation_options.',
+                default => 'Error: Unknown action. Use list, get, create, update, publish, delete, restore, force_delete, bulk_update, bulk_delete, or list_relation_options.',
             };
         });
     }
@@ -94,7 +98,7 @@ class ManageCollectionItems implements Approvable, ClassifiesToolActionsInterfac
     public function schema(JsonSchema $schema): array
     {
         return [
-            'action' => $schema->string()->required()->description('list|get|create|update|delete|restore|force_delete|bulk_update|bulk_delete|list_relation_options'),
+            'action' => $schema->string()->required()->description('list|get|create|update|publish|delete|restore|force_delete|bulk_update|bulk_delete|list_relation_options'),
             'collection_id' => $schema->integer(),
             'item_id' => $schema->integer(),
             'field_id' => $schema->integer()->description('Relation field id for list_relation_options'),
@@ -116,7 +120,7 @@ class ManageCollectionItems implements Approvable, ClassifiesToolActionsInterfac
         $collectionId = $request->integer('collection_id');
         $collection = Collection::query()->find($collectionId);
 
-        if ($collection === null) {
+        if ($collection === null || ! $this->isAiCollectionReadable($collection)) {
             return 'Error: Collection not found.';
         }
 
@@ -234,6 +238,10 @@ class ManageCollectionItems implements Approvable, ClassifiesToolActionsInterfac
             return 'Error: Item not found.';
         }
 
+        if ($error = $this->guardAiCollectionAction($collection, CollectionPermissionActionEnum::Update)) {
+            return $error;
+        }
+
         if ($error = $this->guardAiItemWritable($collection, $item)) {
             return $error;
         }
@@ -263,6 +271,51 @@ class ManageCollectionItems implements Approvable, ClassifiesToolActionsInterfac
                 'collection_id' => $item->collection_id,
                 'data' => $this->stripAiItemData($collection, $data),
             ],
+        ], JSON_PRETTY_PRINT) ?: '{}';
+    }
+
+    /**
+     * Promote draft values to published, with the same gates as `ItemController::publish`
+     * (collection Update, item_filter, versioning). Fires publish side effects (deploy hooks).
+     */
+    private function publishItem(int $itemId): string
+    {
+        if ($error = $this->requirePermission(PermissionEnum::CanEditCollections)) {
+            return $error;
+        }
+
+        $item = CollectionItem::query()->with('collection')->find($itemId);
+        $collection = $item?->collection;
+
+        if ($item === null || $collection === null) {
+            return 'Error: Item not found.';
+        }
+
+        if ($error = $this->guardAiCollectionAction($collection, CollectionPermissionActionEnum::Update)) {
+            return $error;
+        }
+
+        if ($error = $this->guardAiItemWritable($collection, $item)) {
+            return $error;
+        }
+
+        if (! $collection->versioning) {
+            return 'Error: Collection versioning is disabled.';
+        }
+
+        try {
+            app(CollectionItemPublisherService::class)->promote($item, $collection);
+        } catch (RuntimeException $exception) {
+            return 'Error: '.$exception->getMessage();
+        }
+
+        $this->logAiMutation($item, 'publish_item');
+
+        return json_encode([
+            'ok' => true,
+            'item_id' => $item->id,
+            'collection_id' => $item->collection_id,
+            'published_at' => $item->fresh()?->published_at?->toIso8601String(),
         ], JSON_PRETTY_PRINT) ?: '{}';
     }
 
