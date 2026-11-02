@@ -6,8 +6,8 @@ import { useTranslation } from 'react-i18next';
 import AppearanceSidebarSettingsController from '@/actions/App/Http/Controllers/Settings/AppearanceSidebarSettingsController';
 import Heading from '@/components/heading';
 import { SettingsFormActions } from '@/components/settings-form-actions';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Switch } from '@/components/ui/switch';
 import { useRegisterUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -63,11 +63,11 @@ function ModuleRowContent({
                     <Lock className="size-3.5" />
                 </span>
             )}
-            <Checkbox
+            <Switch
                 id={`module-${module.id}`}
                 checked={module.enabled}
                 disabled={module.locked}
-                onCheckedChange={(checked) => onToggle(checked === true)}
+                onCheckedChange={(checked) => onToggle(checked)}
             />
             <FieldLabel
                 htmlFor={`module-${module.id}`}
