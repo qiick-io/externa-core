@@ -1,7 +1,7 @@
-import type { LucideIcon } from 'lucide-react';
-import { icons } from 'lucide-react';
 import { Check, Search, X } from 'lucide-react';
-import { createElement, useMemo, useState } from 'react';
+import { DynamicIcon, dynamicIconImports } from 'lucide-react/dynamic';
+import type { IconName } from 'lucide-react/dynamic';
+import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -26,20 +26,27 @@ type IconCategory = {
 
 const ICON_CATEGORIES = catalog.categories as IconCategory[];
 
-/** Flat list kept for callers that still expect a curated options array. */
-export const LUCIDE_ICON_OPTIONS: { name: string; icon: LucideIcon }[] =
-    ICON_CATEGORIES.flatMap((category) =>
-        category.icons
-            .map((name) => {
-                const icon = icons[name as keyof typeof icons] as
-                    LucideIcon | undefined;
+/**
+ * Converts PascalCase Lucide component names to kebab-case DynamicIcon keys.
+ * Keeps NxN patterns (e.g. Grid2x2 → grid-2x2) matching lucide-react 1.x.
+ */
+export function toLucideIconKebabName(name: string): string {
+    return name
+        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+        .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+        .replace(/([a-zA-Z])(\d)/g, '$1-$2')
+        .replace(/(\d)x-(\d)/gi, '$1x$2')
+        .toLowerCase();
+}
 
-                return icon ? { name, icon } : null;
-            })
-            .filter((option): option is { name: string; icon: LucideIcon } =>
-                Boolean(option),
-            ),
-    );
+function isLucideIconName(name: string): name is IconName {
+    return Object.hasOwn(dynamicIconImports, name);
+}
+
+/** Flat list kept for callers that still expect a curated options array. */
+export const LUCIDE_ICON_OPTIONS: { name: string }[] = ICON_CATEGORIES.flatMap(
+    (category) => category.icons.map((name) => ({ name })),
+);
 
 /**
  * Converts kebab-case Lucide names (e.g. flask-conical) to PascalCase component names.
@@ -62,8 +69,9 @@ export function toLucideIconName(name: string): string {
             .join('');
     }
 
-    // Already PascalCase or single word
-    if (icons[trimmed as keyof typeof icons]) {
+    const kebab = toLucideIconKebabName(trimmed);
+
+    if (isLucideIconName(kebab)) {
         return trimmed;
     }
 
@@ -71,7 +79,7 @@ export function toLucideIconName(name: string): string {
 }
 
 /**
- * Resolves a stored icon name to a Lucide key, falling back to the collection default.
+ * Resolves a stored icon name to a Lucide PascalCase key, falling back to the collection default.
  */
 export function resolveCollectionIconName(name?: string | null): string {
     if (!name?.trim()) {
@@ -79,22 +87,20 @@ export function resolveCollectionIconName(name?: string | null): string {
     }
 
     const resolved = toLucideIconName(name);
+    const kebab = toLucideIconKebabName(resolved);
 
-    return icons[resolved as keyof typeof icons]
-        ? resolved
-        : DEFAULT_COLLECTION_ICON;
+    return isLucideIconName(kebab) ? resolved : DEFAULT_COLLECTION_ICON;
 }
 
-function getIconComponent(name: string): LucideIcon | null {
-    const resolved = toLucideIconName(name);
-    const Icon = icons[resolved as keyof typeof icons] as
-        LucideIcon | undefined;
+function resolveDynamicIconName(name: string): IconName | null {
+    const kebab = toLucideIconKebabName(toLucideIconName(name));
 
-    return Icon ?? null;
+    return isLucideIconName(kebab) ? kebab : null;
 }
 
 /**
  * Renders a Lucide icon by its string name (PascalCase or kebab-case).
+ * Uses DynamicIcon so the full icons map is not pulled into the main chunk.
  */
 export function LucideIconByName({
     name,
@@ -110,13 +116,13 @@ export function LucideIconByName({
     const resolved = fallbackToDefault
         ? resolveCollectionIconName(name)
         : toLucideIconName(name);
-    const Icon = getIconComponent(resolved);
+    const iconName = resolveDynamicIconName(resolved);
 
-    if (!Icon) {
+    if (!iconName) {
         return null;
     }
 
-    return createElement(Icon, { className, style });
+    return <DynamicIcon name={iconName} className={className} style={style} />;
 }
 
 type LucideIconPickerProps = {
@@ -141,7 +147,7 @@ export function LucideIconPicker({
 
     const selectedName = value ? toLucideIconName(value) : '';
     const previewName = resolveCollectionIconName(value);
-    const PreviewIcon = getIconComponent(previewName);
+    const previewIconName = resolveDynamicIconName(previewName);
 
     const filteredCategories = useMemo(() => {
         const normalizedQuery = query.trim().toLowerCase();
@@ -178,14 +184,15 @@ export function LucideIconPicker({
                         variant="outline"
                         className="w-full justify-start gap-2"
                     >
-                        {PreviewIcon
-                            ? createElement(PreviewIcon, {
-                                  className: cn(
-                                      'size-4 shrink-0',
-                                      !value && 'text-muted-foreground',
-                                  ),
-                              })
-                            : null}
+                        {previewIconName ? (
+                            <DynamicIcon
+                                name={previewIconName}
+                                className={cn(
+                                    'size-4 shrink-0',
+                                    !value && 'text-muted-foreground',
+                                )}
+                            />
+                        ) : null}
                         <span
                             className={cn(
                                 'truncate',
@@ -240,11 +247,16 @@ export function LucideIconPicker({
                                         </p>
                                         <div className="grid grid-cols-8 gap-1.5 sm:grid-cols-10">
                                             {category.icons.map((name) => {
-                                                const Icon = icons[
-                                                    name as keyof typeof icons
-                                                ] as LucideIcon;
+                                                const iconName =
+                                                    resolveDynamicIconName(
+                                                        name,
+                                                    );
                                                 const selected =
                                                     selectedName === name;
+
+                                                if (!iconName) {
+                                                    return null;
+                                                }
 
                                                 return (
                                                     <button
@@ -262,7 +274,10 @@ export function LucideIconPicker({
                                                             setQuery('');
                                                         }}
                                                     >
-                                                        <Icon className="size-4" />
+                                                        <DynamicIcon
+                                                            name={iconName}
+                                                            className="size-4"
+                                                        />
                                                         {selected ? (
                                                             <Check className="sr-only" />
                                                         ) : null}
