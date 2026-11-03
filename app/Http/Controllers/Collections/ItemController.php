@@ -14,6 +14,7 @@ use App\Http\Requests\Collections\BulkItemActionRequest;
 use App\Http\Requests\Collections\StoreCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionItemRequest;
 use App\Http\Requests\Collections\UpdateCollectionListColumnsRequest;
+use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Http\Resources\Admin\ActivityLogResource;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\Collection;
@@ -59,6 +60,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class ItemController extends Controller
 {
+    use ValidatesListPerPageTrait;
+
     /** First page size per kanban column (scroll fetches the next page). */
     private const KANBAN_PER_PAGE = 30;
 
@@ -209,7 +212,7 @@ class ItemController extends Controller
             );
             $sortState = $this->itemQueryService->applySort($query, $collection, $sort, $direction);
 
-            $paginator = $query->paginate(15)->withQueryString();
+            $paginator = $query->paginate($this->validatedListPerPage($request))->withQueryString();
             $rows = $this->mapItemRows(
                 $request,
                 $collection,

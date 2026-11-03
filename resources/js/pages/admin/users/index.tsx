@@ -19,7 +19,8 @@ import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialo
 import { EmptyStatus } from '@/components/empty-status';
 import {
     PageLayout,
-    TablePagination,
+    hasTablePaginationFooter,
+    TablePaginationFooter,
     TablePanel,
 } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
@@ -50,7 +51,7 @@ import { useOnlineUsers } from '@/hooks/use-online-users';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import { seedUserPrompt, seedUsersBulkPrompt } from '@/lib/ai-open';
-import { normalizePaginated } from '@/lib/pagination';
+import { listPerPageQuery, normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import usersRoutes from '@/routes/users';
 import type { AdminUserRow, BreadcrumbItem, Paginated } from '@/types';
@@ -153,13 +154,14 @@ export default function AdminUsersIndex({
                         sort: nextSort,
                         direction: nextDirection,
                         trashed: nextTrashed ? true : undefined,
+                        per_page: listPerPageQuery(users.per_page),
                     },
                 }),
                 {},
                 { preserveState: true, preserveScroll: true },
             );
         },
-        [direction, isTrashed, search, sort],
+        [direction, isTrashed, users.per_page, search, sort],
     );
 
     useEffect(() => {
@@ -494,10 +496,8 @@ export default function AdminUsersIndex({
                     ) : (
                         <TablePanel
                             footer={
-                                users.last_page > 1 ? (
-                                    <TablePagination
-                                        links={users.links ?? []}
-                                    />
+                                hasTablePaginationFooter(users) ? (
+                                    <TablePaginationFooter pagination={users} />
                                 ) : undefined
                             }
                         >

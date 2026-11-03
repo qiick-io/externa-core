@@ -1,5 +1,7 @@
 import { router } from '@inertiajs/react';
+import { useId } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/layout/page-header';
 import { buttonVariants } from '@/components/ui/button';
 import {
@@ -7,6 +9,14 @@ import {
     PaginationContent,
     PaginationItem,
 } from '@/components/ui/pagination';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { LIST_PER_PAGE_OPTIONS, listUrlWithPerPage } from '@/lib/pagination';
 import { cn } from '@/lib/utils';
 
 export type PageLayoutProps = {
@@ -158,13 +168,19 @@ function paginationAriaLabel(label: string): string | undefined {
  * @param {TablePaginationLink[]} props.links - Pagination links from the server.
  * @returns {JSX.Element | null}
  */
-export function TablePagination({ links }: { links: TablePaginationLink[] }) {
+export function TablePagination({
+    links,
+    className,
+}: {
+    links: TablePaginationLink[];
+    className?: string;
+}) {
     if (links.length === 0) {
         return null;
     }
 
     return (
-        <Pagination>
+        <Pagination className={className}>
             <PaginationContent>
                 {links.map((link, index) => {
                     const plain = paginationPlainLabel(link.label);
@@ -200,5 +216,92 @@ export function TablePagination({ links }: { links: TablePaginationLink[] }) {
                 })}
             </PaginationContent>
         </Pagination>
+    );
+}
+
+/** Paginator slice the list footer needs (flat `Paginated` shape). */
+export type TablePaginationState = {
+    last_page: number;
+    per_page: number;
+    total: number;
+    links?: TablePaginationLink[];
+};
+
+/**
+ * Whether a list needs its pagination footer: more than one page, or enough
+ * rows that a smaller / larger "Rows per page" choice changes what is shown.
+ *
+ * @param pagination - Current paginator state
+ * @returns `true` when {@link TablePaginationFooter} has something to render
+ */
+export function hasTablePaginationFooter(
+    pagination: TablePaginationState,
+): boolean {
+    return (
+        pagination.last_page > 1 || pagination.total > LIST_PER_PAGE_OPTIONS[0]
+    );
+}
+
+/**
+ * Admin list footer: shared "Rows per page" select (10 / 20 / 50 / 100, URL
+ * `per_page`, resets to page 1 and keeps every other query param) next to the
+ * page links. Default-size (32px) shadcn Select per the control scale.
+ *
+ * @param props.pagination - Current paginator state
+ * @returns {JSX.Element}
+ */
+export function TablePaginationFooter({
+    pagination,
+}: {
+    pagination: TablePaginationState;
+}) {
+    const { t } = useTranslation();
+    const perPageId = useId();
+
+    return (
+        <div className="flex w-full flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+                <span
+                    id={perPageId}
+                    className="text-sm whitespace-nowrap text-muted-foreground"
+                >
+                    {t('common.rowsPerPage')}
+                </span>
+                <Select
+                    value={String(pagination.per_page)}
+                    onValueChange={(value) =>
+                        router.get(
+                            listUrlWithPerPage(
+                                window.location.href,
+                                Number(value),
+                            ),
+                            {},
+                            { preserveScroll: true },
+                        )
+                    }
+                >
+                    <SelectTrigger
+                        aria-labelledby={perPageId}
+                        className="w-20"
+                        data-test="rows-per-page"
+                    >
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {LIST_PER_PAGE_OPTIONS.map((option) => (
+                            <SelectItem key={option} value={String(option)}>
+                                {option}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            {pagination.last_page > 1 ? (
+                <TablePagination
+                    links={pagination.links ?? []}
+                    className="mx-0 w-auto"
+                />
+            ) : null}
+        </div>
     );
 }

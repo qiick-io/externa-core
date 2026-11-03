@@ -10,7 +10,8 @@ import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import {
     PageLayout,
-    TablePagination,
+    hasTablePaginationFooter,
+    TablePaginationFooter,
     TablePanel,
 } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
@@ -41,7 +42,7 @@ import { useOnlineUsers } from '@/hooks/use-online-users';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import { seedGroupPrompt, seedGroupsBulkPrompt } from '@/lib/ai-open';
-import { normalizePaginated } from '@/lib/pagination';
+import { listPerPageQuery, normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
 import groupsRoutes from '@/routes/groups';
 import type { AdminGroupRow, BreadcrumbItem, Paginated } from '@/types';
@@ -143,13 +144,14 @@ export default function AdminGroupsIndex({
                         sort: nextSort,
                         direction: nextDirection,
                         trashed: nextTrashed ? true : undefined,
+                        per_page: listPerPageQuery(groups.per_page),
                     },
                 }),
                 {},
                 { preserveState: true, preserveScroll: true },
             );
         },
-        [direction, isTrashed, search, sort],
+        [direction, isTrashed, groups.per_page, search, sort],
     );
 
     useEffect(() => {
@@ -403,8 +405,8 @@ export default function AdminGroupsIndex({
                 >
                     <TablePanel
                         footer={
-                            groups.last_page > 1 ? (
-                                <TablePagination links={groups.links ?? []} />
+                            hasTablePaginationFooter(groups) ? (
+                                <TablePaginationFooter pagination={groups} />
                             ) : undefined
                         }
                     >

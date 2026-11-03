@@ -10,6 +10,7 @@ use App\Http\Requests\Admin\DuplicateRoleRequest;
 use App\Http\Requests\Admin\StoreRoleRequest;
 use App\Http\Requests\Admin\UpdateRoleRequest;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Http\Requests\Concerns\ValidatesSearchQueryTrait;
 use App\Http\Resources\Admin\RoleResource;
 use App\Models\Role;
@@ -30,6 +31,7 @@ use Spatie\Permission\PermissionRegistrar;
 class RoleController extends Controller
 {
     use AuthorizesWithPermissionTrait;
+    use ValidatesListPerPageTrait;
     use ValidatesSearchQueryTrait;
 
     public function __construct(
@@ -71,7 +73,7 @@ class RoleController extends Controller
         }
 
         $roles = $query
-            ->paginate($request->integer('per_page', 15))
+            ->paginate($this->validatedListPerPage($request))
             ->withQueryString();
 
         if ($request->expectsJson()) {

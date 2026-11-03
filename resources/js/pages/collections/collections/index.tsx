@@ -30,7 +30,13 @@ import {
 } from '@/components/collections/field-settings/lucide-icon-picker';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import { EmptyStatus } from '@/components/empty-status';
-import { PageLayout, TablePanel } from '@/components/layout/page-layout';
+import {
+    hasTablePaginationFooter,
+    PageLayout,
+    TablePaginationFooter,
+    TablePanel,
+} from '@/components/layout/page-layout';
+import type { TablePaginationState } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -70,6 +76,7 @@ import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
 import AppLayout from '@/layouts/app-layout';
 import { seedCollectionPrompt, seedCollectionsBulkPrompt } from '@/lib/ai-open';
+import { listPerPageQuery } from '@/lib/pagination';
 import { cn } from '@/lib/utils';
 import collectionRoutes from '@/routes/collections';
 import { resolveCollectionColor } from '@/types';
@@ -91,10 +98,12 @@ type CollectionFilters = {
  */
 export default function CollectionsIndex({
     collections,
+    pagination,
     filters = {},
     collectionPacks = [],
 }: {
     collections: CollectionRow[];
+    pagination: TablePaginationState;
     filters?: CollectionFilters;
     collectionPacks?: CollectionPackSummary[];
 }) {
@@ -208,6 +217,7 @@ export default function CollectionsIndex({
                         sort: nextSort,
                         direction: nextDirection,
                         trashed: nextTrashed ? true : undefined,
+                        per_page: listPerPageQuery(pagination.per_page),
                     },
                 }),
                 {},
@@ -217,7 +227,7 @@ export default function CollectionsIndex({
                 },
             );
         },
-        [direction, isTrashed, search, sort],
+        [direction, isTrashed, pagination.per_page, search, sort],
     );
 
     useEffect(() => {
@@ -533,7 +543,15 @@ export default function CollectionsIndex({
                             }
                         />
                     ) : (
-                        <TablePanel>
+                        <TablePanel
+                            footer={
+                                hasTablePaginationFooter(pagination) ? (
+                                    <TablePaginationFooter
+                                        pagination={pagination}
+                                    />
+                                ) : undefined
+                            }
+                        >
                             <Table>
                                 <TableHeader>
                                     <TableRow>

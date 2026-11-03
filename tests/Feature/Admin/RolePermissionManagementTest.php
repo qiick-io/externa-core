@@ -175,7 +175,7 @@ test('authorized users can manage permissions and sync from enum', function () {
     $this->actingAs($actor);
 
     $totalPermissions = count(PermissionEnum::cases());
-    $perPage = 15;
+    $perPage = 20;
 
     $this->get(route('permissions.index'))
         ->assertOk()

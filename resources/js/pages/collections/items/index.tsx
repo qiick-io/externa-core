@@ -38,7 +38,8 @@ import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialo
 import { EmptyStatus } from '@/components/empty-status';
 import {
     PageLayout,
-    TablePagination,
+    hasTablePaginationFooter,
+    TablePaginationFooter,
     TablePanel,
 } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
@@ -85,6 +86,7 @@ import {
     serializeFilterRules,
 } from '@/lib/item-list-filters';
 import type { FilterRule } from '@/lib/item-list-filters';
+import { listPerPageQuery } from '@/lib/pagination';
 import { currentPathWithQuery, withReturnParam } from '@/lib/safe-return-url';
 import collections from '@/routes/collections';
 import type {
@@ -528,6 +530,12 @@ export default function ItemsIndex({
                 query.calendar_field = calendarField;
             }
 
+            const perPage = listPerPageQuery(items.per_page);
+
+            if (perPage !== undefined) {
+                query.per_page = perPage;
+            }
+
             router.get(
                 collections.items.index.url(collection.id, { query }),
                 {},
@@ -543,6 +551,7 @@ export default function ItemsIndex({
             hasDraftFilter,
             inReviewFilter,
             isTrashed,
+            items.per_page,
             kanbanField,
             listLayout,
         ],
@@ -1096,8 +1105,8 @@ export default function ItemsIndex({
                 footer={
                     !hideListChrome &&
                     listLayout === 'table' &&
-                    items.last_page > 1 ? (
-                        <TablePagination links={items.links} />
+                    hasTablePaginationFooter(items) ? (
+                        <TablePaginationFooter pagination={items} />
                     ) : undefined
                 }
             >

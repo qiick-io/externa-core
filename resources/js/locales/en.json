@@ -23,6 +23,7 @@
         "created": "Created",
         "updated": "Updated",
         "search": "Search",
+        "rowsPerPage": "Rows per page",
         "online": "Online",
         "offline": "Offline",
         "sortAscending": "Sort ascending",
