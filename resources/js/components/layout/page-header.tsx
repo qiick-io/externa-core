@@ -36,8 +36,9 @@ export function PageHeader({
                 </p>
             ) : null}
             {subheader}
+            {/* -m-1 p-1: room for field focus halos inside the scrolling row. */}
             {showFilterRow ? (
-                <div className="flex min-w-0 flex-nowrap items-center gap-3 overflow-x-auto">
+                <div className="-m-1 flex min-w-0 flex-nowrap items-center gap-3 overflow-x-auto p-1">
                     {filters ? (
                         <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-2">
                             {filters}

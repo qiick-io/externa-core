@@ -15,7 +15,11 @@ import {
     formatUserDisplayName,
     getInitialsFromParts,
 } from '@/hooks/use-initials';
-import { fieldControlHeight } from '@/lib/field-control-chrome';
+import {
+    fieldControlHeight,
+    fieldFocusRing,
+    fieldOpenBorder,
+} from '@/lib/field-control-chrome';
 import { cn } from '@/lib/utils';
 import type { AdminSelectOption, Paginated } from '@/types/admin';
 
@@ -234,7 +238,9 @@ export function PaginatedMultiSelect({
                     aria-expanded={open}
                     disabled={disabled}
                     className={cn(
-                        'w-full justify-between font-normal',
+                        'w-full justify-between font-normal focus-visible:ring-offset-0',
+                        fieldFocusRing,
+                        fieldOpenBorder,
                         multiple
                             ? 'h-auto min-h-control'
                             : cn(fieldControlHeight, 'overflow-hidden'),

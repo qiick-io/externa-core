@@ -279,7 +279,7 @@ export default function Appearance({
                                                 'settings.appearance.projectColor',
                                             )}
                                         </FieldLabel>
-                                        <InputGroup className="max-w-[220px] bg-transparent has-[:focus-visible]:border-ring has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background dark:border-white/25 dark:bg-transparent">
+                                        <InputGroup className="max-w-[220px] bg-transparent has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/30 dark:border-white/25 dark:bg-transparent">
                                             <InputGroupAddon
                                                 align="inline-start"
                                                 className="pl-2"
@@ -340,7 +340,7 @@ export default function Appearance({
                                                 'settings.appearance.projectColorDark',
                                             )}
                                         </FieldLabel>
-                                        <InputGroup className="max-w-[220px] bg-transparent has-[:focus-visible]:border-ring has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background dark:border-white/25 dark:bg-transparent">
+                                        <InputGroup className="max-w-[220px] bg-transparent has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/30 dark:border-white/25 dark:bg-transparent">
                                             <InputGroupAddon
                                                 align="inline-start"
                                                 className="pl-2"
