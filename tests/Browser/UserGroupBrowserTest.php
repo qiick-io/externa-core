@@ -131,3 +131,23 @@ it('supports trash restore and force delete actions', function () {
 
     expect(UserGroup::query()->withTrashed()->find($group->id))->toBeNull();
 });
+
+it('shows the group name and slug in separate columns', function () {
+    $actor = grantBrowserGroupPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowGroups->value,
+    ]);
+
+    UserGroup::factory()->create([
+        'name' => 'Column Group',
+    ]);
+
+    $this->actingAs($actor);
+
+    $page = visit('/groups');
+
+    $page->assertSee('Column Group')
+        ->assertScript("Array.from(document.querySelectorAll('thead th')).map((cell) => cell.textContent.trim()).slice(1, 3).join('|') === 'Name|Slug'")
+        ->assertScript("document.querySelector('tbody tr td:nth-child(2)').textContent.trim() === 'Column Group'")
+        ->assertScript("document.querySelector('tbody tr td:nth-child(3)').textContent.trim() === 'column-group'")
+        ->assertNoJavaScriptErrors();
+});
