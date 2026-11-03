@@ -1,6 +1,7 @@
-import { Sparkles, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { FilesActionsOverflow } from '@/components/admin/files/files-actions-overflow';
+import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { Button } from '@/components/ui/button';
 import type { FileActionDefinition, FileActionKey } from '@/types/files';
 
@@ -45,14 +46,11 @@ export function FilesSelectionToolbar({
                 </Button>
             </div>
             {askAi ? (
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => onAction('ask_ai')}
-                >
-                    <Sparkles className="size-4" />
-                    {askAi.label}
-                </Button>
+                <AskAiButton
+                    mode="labeled"
+                    label={askAi.label}
+                    onAsk={() => onAction('ask_ai')}
+                />
             ) : null}
             {overflowActions.length > 0 ? (
                 <FilesActionsOverflow
