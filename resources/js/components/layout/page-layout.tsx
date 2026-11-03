@@ -85,6 +85,9 @@ export function PageLayout({
 /**
  * Surface wrapper for data tables with optional sticky footer.
  * Spacing and row separators come from Table*; no extra outer border.
+ * The panel is the scroll container: the Table wrapper's own overflow is
+ * released so the header row sticks to the top of the panel while rows scroll
+ * (the bottom rule is an inset shadow because collapsed borders scroll away).
  *
  * @param {{ children: ReactNode, className?: string, footer?: ReactNode }} props - Panel props.
  * @param {ReactNode} props.children - Table or list content.
@@ -108,7 +111,12 @@ export function TablePanel({
                 className,
             )}
         >
-            <div className="min-h-0 flex-1 overflow-auto p-1">{children}</div>
+            <div
+                data-slot="table-panel-scroll"
+                className="min-h-0 flex-1 overflow-auto px-1 pb-1 [&_[data-slot=table-container]]:overflow-visible [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead]:bg-card [&_thead_th]:shadow-[inset_0_-1px_0_var(--color-border)] [&_thead_tr]:border-b-0"
+            >
+                {children}
+            </div>
             {footer ? (
                 <div className="flex shrink-0 justify-center border-t border-sidebar-border/70 px-4 py-3 dark:border-sidebar-border">
                     {footer}

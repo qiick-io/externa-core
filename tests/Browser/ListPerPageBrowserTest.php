@@ -74,3 +74,24 @@ it('opens the rows-per-page options upward when the select sits at the bottom of
         ->assertScript("[...document.querySelectorAll('[role=\"option\"]')].every((option) => { const rect = option.getBoundingClientRect(); return rect.top >= 0 && rect.bottom <= window.innerHeight; })")
         ->assertNoJavaScriptErrors();
 });
+
+it('keeps the table header pinned to the top of the panel while 50 rows scroll', function (): void {
+    foreach (range(1, 60) as $index) {
+        User::factory()->create(['email' => "sticky-{$index}@example.com"]);
+    }
+
+    $page = visit('/users?per_page=50');
+
+    $page->script("document.querySelector('[data-slot=\"table-panel-scroll\"]').scrollTop = 600");
+
+    $page->wait(0.2)
+        ->assertScript(<<<'JS'
+(() => {
+  const panel = document.querySelector('[data-slot="table-panel-scroll"]');
+  const header = panel.querySelector('thead').getBoundingClientRect();
+
+  return panel.scrollTop > 0 && Math.round(header.top) === Math.round(panel.getBoundingClientRect().top);
+})()
+JS)
+        ->assertNoJavaScriptErrors();
+});
