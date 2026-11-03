@@ -155,3 +155,23 @@ it('keeps table row actions on the compact 24px size', function () {
     expect($rowActionHeights)->not->toBeEmpty()
         ->each->toEqual(24);
 });
+
+it('gives activity log filter selects the same dark background as the inputs', function () {
+    $page = visit('/activity-logs')->inDarkMode();
+
+    $page->assertNoJavaScriptErrors();
+
+    $backgrounds = $page->script(<<<'JS'
+(() => {
+  const background = (element) => getComputedStyle(element).backgroundColor;
+  const input = document.querySelector('input[type="search"], input[data-slot="input"], [data-slot="input-group"]');
+  const triggers = [...document.querySelectorAll('button[data-slot="select-trigger"]')];
+
+  return { input: input ? background(input) : null, triggers: triggers.map(background) };
+})()
+JS);
+
+    expect($backgrounds['input'])->not->toBeNull()
+        ->and($backgrounds['triggers'])->not->toBeEmpty()
+        ->each->toBe($backgrounds['input']);
+});
