@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Fragment, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DateRangePicker } from '@/components/admin/date-range-picker';
 import { TruncatedText } from '@/components/admin/truncated-text';
 import { UserMultiSelect } from '@/components/admin/user-multi-select';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
@@ -28,7 +29,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
@@ -292,7 +292,7 @@ export default function AdminActivityLogsIndex({
                     <div className="@container w-full min-w-0">
                         <div
                             data-testid="activity-log-filters"
-                            className="grid grid-cols-1 gap-2 @lg:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-6"
+                            className="grid grid-cols-1 gap-2 @lg:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-5"
                         >
                             <FilterSearch
                                 value={search}
@@ -367,35 +367,20 @@ export default function AdminActivityLogsIndex({
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <Input
-                                type="date"
-                                value={dateFrom}
-                                onChange={(changeEvent) => {
-                                    setDateFrom(changeEvent.target.value);
+                            <DateRangePicker
+                                dataTest="activity-log-date-range"
+                                value={{ from: dateFrom, to: dateTo }}
+                                onChange={(range) => {
+                                    setDateFrom(range.from);
+                                    setDateTo(range.to);
                                     visit({
-                                        date_from:
-                                            changeEvent.target.value ||
-                                            undefined,
+                                        date_from: range.from,
+                                        date_to: range.to,
                                     });
                                 }}
-                                className="min-w-0"
-                                title={dateFrom || undefined}
-                                aria-label={t('activityLog.dateFrom')}
-                            />
-                            <Input
-                                type="date"
-                                value={dateTo}
-                                onChange={(changeEvent) => {
-                                    setDateTo(changeEvent.target.value);
-                                    visit({
-                                        date_to:
-                                            changeEvent.target.value ||
-                                            undefined,
-                                    });
-                                }}
-                                className="min-w-0"
-                                title={dateTo || undefined}
-                                aria-label={t('activityLog.dateTo')}
+                                placeholder={t('activityLog.anyDate')}
+                                clearLabel={t('activityLog.clearDates')}
+                                aria-label={t('activityLog.dateRange')}
                             />
                         </div>
                     </div>
