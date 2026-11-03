@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { MoreHorizontal } from 'lucide-react';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,8 @@ type ActionsOverflowProps = {
     /** When true, visible actions are icon-only with tooltip (denser toolbars). */
     iconOnly?: boolean;
     moreLabel?: string;
+    /** Always-visible control rendered before the actions (never spills into ⋯). */
+    pinned?: ReactNode;
 };
 
 const MIN_VALID_ACTION_WIDTH = 24;
@@ -39,10 +42,12 @@ export function ActionsOverflow({
     className,
     iconOnly = false,
     moreLabel,
+    pinned,
 }: ActionsOverflowProps) {
     const { t } = useTranslation();
     const containerRef = useRef<HTMLDivElement>(null);
     const overflowButtonRef = useRef<HTMLButtonElement>(null);
+    const pinnedRef = useRef<HTMLDivElement>(null);
     const actionButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
     const [overflowStart, setOverflowStart] = useState(actions.length);
 
@@ -72,7 +77,16 @@ export function ActionsOverflow({
             return;
         }
 
-        const availableWidth = Math.max(0, container.clientWidth - 20);
+        const pinnedWidth = pinnedRef.current
+            ? pinnedRef.current.getBoundingClientRect().width +
+              (Number.parseFloat(
+                  window.getComputedStyle(container).columnGap || '0',
+              ) || 0)
+            : 0;
+        const availableWidth = Math.max(
+            0,
+            container.clientWidth - 20 - pinnedWidth,
+        );
         let overflowButtonWidth = 40;
 
         if (overflowButton) {
@@ -177,6 +191,11 @@ export function ActionsOverflow({
                 className,
             )}
         >
+            {pinned ? (
+                <div ref={pinnedRef} className="flex shrink-0">
+                    {pinned}
+                </div>
+            ) : null}
             {actions.map((action, index) => {
                 const Icon = action.icon;
                 const hidden = index >= overflowStart;

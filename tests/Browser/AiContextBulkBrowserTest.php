@@ -80,7 +80,7 @@ it('seeds bulk Ask AI from multi-selected collections and hides sort chrome', fu
         ->click('[aria-label="Select Beta Pack"]')
         ->assertSee('2 selected')
         ->assertMissing('button[aria-label="Sort by"]')
-        ->click('Ask AI')
+        ->click('[data-testid="ask-ai-toolbar"]')
         ->assertPresent('textarea[aria-label="Message"]')
         ->assertValue(
             'textarea[aria-label="Message"]',
@@ -114,10 +114,10 @@ it('hides files sort and trash chrome when selecting and shows Ask AI', function
         ->assertPresent('button[aria-label="Sort by"]')
         ->click("[data-testid=\"file-card-{$file->id}\"]")
         ->assertSee('1 selected')
-        ->assertSee('Ask AI')
+        ->assertPresent('[data-testid="ask-ai-toolbar"]')
         ->assertMissing('button[aria-label="Sort by"]')
         ->assertMissing('button[aria-label="Trash"]')
-        ->click('Ask AI')
+        ->click('[data-testid="ask-ai-toolbar"]')
         ->assertPresent('textarea[aria-label="Message"]')
         ->assertValue(
             'textarea[aria-label="Message"]',
@@ -161,7 +161,7 @@ it('disables every Ask AI entry point with the FAB offline reason while AI is of
 
     $page->assertMissing('textarea[aria-label="Message"]')
         ->click('[aria-label="Select Offline Desk"]')
-        ->assertScript("((buttons) => buttons.length > 0 && buttons.every((button) => button.getAttribute('aria-disabled') === 'true'))(Array.from(document.querySelectorAll('button')).filter((button) => button.textContent.trim() === 'Ask AI'))")
+        ->assertScript("((buttons) => buttons.length > 0 && buttons.every((button) => button.getAttribute('aria-disabled') === 'true'))(Array.from(document.querySelectorAll('[data-testid=\"ask-ai-toolbar\"]')))")
         ->assertNoJavaScriptErrors();
 });
 
