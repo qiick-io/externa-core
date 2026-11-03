@@ -6,9 +6,6 @@ import {
 } from "lucide-react"
 import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
 
-// Tailwind v4 drops CSS @import from app.css — same pattern as leaflet.
-import "react-day-picker/style.css"
-
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
 
