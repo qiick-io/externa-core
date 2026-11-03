@@ -41,10 +41,11 @@ it('switches between collection and user chats with the shared toggle group', fu
         ->assertScript("document.querySelector('[data-test=\"chat-tab-collection\"]').getBoundingClientRect().height === 32")
         ->assertPresent('[data-test="chat-list-empty"]')
         ->assertPresent('[data-test="chat-pane-empty"]')
+        ->assertScript("document.querySelector('[data-test=\"chat-filter-archived\"]').disabled === true")
         ->click('[data-test="chat-tab-private"]')
         ->assertAttribute('[data-test="chat-tab-private"]', 'data-state', 'on')
         ->assertAttribute('[data-test="chat-tab-collection"]', 'data-state', 'off')
-        ->assertPresent('[data-test="chat-filter-archived"]')
+        ->assertScript("document.querySelector('[data-test=\"chat-filter-archived\"]').disabled === false")
         ->assertNoJavaScriptErrors();
 });
 
@@ -59,6 +60,21 @@ it('puts the chat search above the thread list, as wide as the list', function (
   const list = document.querySelector('[data-test="chat-hub"] aside').getBoundingClientRect();
 
   return Math.round(search.left) === Math.round(list.left) && Math.round(search.width) === Math.round(list.width);
+})()
+JS)
+        ->assertNoJavaScriptErrors();
+});
+
+it('uses a filled New chat button and centres the empty thread list', function (): void {
+    $page = visit('/chat');
+
+    $page->assertScript("document.querySelector('[data-test=\"chat-new\"]').classList.contains('bg-primary')")
+        ->assertScript(<<<'JS'
+(() => {
+  const list = document.querySelector('[data-test="chat-list"]').getBoundingClientRect();
+  const empty = document.querySelector('[data-test="chat-list-empty"]').getBoundingClientRect();
+
+  return Math.abs((empty.top + empty.height / 2) - (list.top + list.height / 2)) <= 2;
 })()
 JS)
         ->assertNoJavaScriptErrors();
