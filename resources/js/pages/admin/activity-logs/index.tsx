@@ -242,7 +242,7 @@ export default function AdminActivityLogsIndex({
                             initialUsers={initialSelectedUsers}
                             className={cn(
                                 filterSelectClassName,
-                                'h-auto min-h-9 max-w-[12rem] min-w-[8rem] shrink-0',
+                                'h-auto min-h-control max-w-[12rem] min-w-[8rem] shrink-0',
                             )}
                         />
                         <NativeSelect
@@ -305,7 +305,7 @@ export default function AdminActivityLogsIndex({
                                         changeEvent.target.value || undefined,
                                 });
                             }}
-                            className="h-9 w-auto shrink-0"
+                            className="w-auto shrink-0"
                             title={dateFrom || undefined}
                             aria-label={t('activityLog.dateFrom')}
                         />
@@ -319,7 +319,7 @@ export default function AdminActivityLogsIndex({
                                         changeEvent.target.value || undefined,
                                 });
                             }}
-                            className="h-9 w-auto shrink-0"
+                            className="w-auto shrink-0"
                             aria-label={t('activityLog.dateTo')}
                         />
                     </>
@@ -331,13 +331,13 @@ export default function AdminActivityLogsIndex({
                                 limit: exportRowLimit,
                             })}
                         </span>
-                        <Button variant="outline" size="sm" asChild>
+                        <Button variant="outline" asChild>
                             <a href={exportHref('csv')}>
                                 <Download className="size-4" />
                                 {t('activityLog.exportCsv')}
                             </a>
                         </Button>
-                        <Button variant="outline" size="sm" asChild>
+                        <Button variant="outline" asChild>
                             <a href={exportHref('json')}>
                                 <Download className="size-4" />
                                 {t('activityLog.exportJson')}

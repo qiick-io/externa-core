@@ -44,8 +44,6 @@ export function TagFilterPopover({
                 <Button
                     type="button"
                     variant="outline"
-                    size="sm"
-                    className="h-9 gap-2"
                     aria-label={t('files.tags.filterBy')}
                 >
                     <Tags className="size-4" />

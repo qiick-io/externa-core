@@ -93,8 +93,6 @@ export function ItemFiltersBuilder({
                 <Button
                     type="button"
                     variant="outline"
-                    size="sm"
-                    className="h-9 gap-2"
                     aria-label={t('a11y.filters')}
                 >
                     <Filter className="size-4" />

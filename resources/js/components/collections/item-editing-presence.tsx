@@ -65,9 +65,7 @@ export function ItemEditingPresence({
                     </span>
                     <Button
                         type="button"
-                        size="sm"
                         variant="outline"
-                        className="h-7 px-2"
                         data-test="item-presence-take-over"
                         onClick={onTakeOver}
                     >

@@ -326,7 +326,6 @@ export default function CollectionsIndex({
                                                 <Button
                                                     type="button"
                                                     variant="destructive-outline"
-                                                    size="sm"
                                                     onClick={() =>
                                                         setPendingBulkAction(
                                                             'delete',
@@ -343,7 +342,6 @@ export default function CollectionsIndex({
                                                 <Button
                                                     type="button"
                                                     variant="outline"
-                                                    size="sm"
                                                     onClick={() =>
                                                         bulk('restore')
                                                     }
@@ -358,7 +356,6 @@ export default function CollectionsIndex({
                                                 <Button
                                                     type="button"
                                                     variant="destructive-outline"
-                                                    size="sm"
                                                     onClick={() =>
                                                         setPendingBulkAction(
                                                             'force_delete',
@@ -391,7 +388,6 @@ export default function CollectionsIndex({
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
                                         aria-label={t(
                                             'collections.list.sortBy',
                                         )}
@@ -413,7 +409,7 @@ export default function CollectionsIndex({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="icon-sm"
+                                    size="icon"
                                     aria-label={
                                         direction === 'asc'
                                             ? 'Sort ascending'
@@ -435,6 +431,7 @@ export default function CollectionsIndex({
                                     )}
                                 </Button>
                                 <ToggleGroup
+                                    variant="outline"
                                     type="single"
                                     value={isTrashed ? 'trashed' : 'active'}
                                     onValueChange={(value) => {
@@ -450,14 +447,12 @@ export default function CollectionsIndex({
                                     <ToggleGroupItem
                                         value="active"
                                         aria-label={t('a11y.activeList')}
-                                        className="px-3"
                                     >
                                         <FolderOpen className="size-4" />
                                     </ToggleGroupItem>
                                     <ToggleGroupItem
                                         value="trashed"
                                         aria-label={t('a11y.trashList')}
-                                        className="px-3"
                                     >
                                         <Trash2 className="size-4" />
                                     </ToggleGroupItem>

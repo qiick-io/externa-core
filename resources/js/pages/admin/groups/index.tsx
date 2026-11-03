@@ -264,7 +264,6 @@ export default function AdminGroupsIndex({
                                             <Button
                                                 type="button"
                                                 variant="destructive-outline"
-                                                size="sm"
                                                 onClick={() =>
                                                     setPendingBulkAction(
                                                         'delete',
@@ -281,7 +280,6 @@ export default function AdminGroupsIndex({
                                             <Button
                                                 type="button"
                                                 variant="outline"
-                                                size="sm"
                                                 onClick={() => bulk('restore')}
                                             >
                                                 {t('common.restore')}
@@ -294,7 +292,6 @@ export default function AdminGroupsIndex({
                                             <Button
                                                 type="button"
                                                 variant="destructive-outline"
-                                                size="sm"
                                                 onClick={() =>
                                                     setPendingBulkAction(
                                                         'force_delete',
@@ -325,7 +322,6 @@ export default function AdminGroupsIndex({
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
                                         aria-label={t('groups.sortBy')}
                                         className="w-[7.5rem]"
                                     >
@@ -345,7 +341,7 @@ export default function AdminGroupsIndex({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="icon-sm"
+                                    size="icon"
                                     aria-label={
                                         direction === 'asc'
                                             ? 'Sort ascending'
@@ -367,6 +363,7 @@ export default function AdminGroupsIndex({
                                     )}
                                 </Button>
                                 <ToggleGroup
+                                    variant="outline"
                                     type="single"
                                     value={isTrashed ? 'trashed' : 'active'}
                                     onValueChange={(value) => {

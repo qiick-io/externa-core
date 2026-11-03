@@ -47,10 +47,9 @@ export function DataTableToolbar({
                     <Button
                         type="button"
                         variant="ghost"
-                        size="sm"
                         onClick={onClearSelection}
                     >
-                        <X className="mr-1 size-4" />
+                        <X className="size-4" aria-hidden="true" />
                         {selectedCount} selected
                     </Button>
                     {bulkActions}
@@ -64,7 +63,7 @@ export function DataTableToolbar({
                         placeholder={searchPlaceholder}
                         aria-label={searchPlaceholder}
                         maxLength={searchMaxLength}
-                        className="h-9 pl-8"
+                        className="pl-8"
                     />
                 </div>
             )}
