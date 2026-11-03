@@ -1487,10 +1487,12 @@ export default function AdminFilesIndex({
                         className="min-h-0 min-w-0 flex-1"
                         filters={
                             selection.selectedIds.length > 0 ? (
-                                <div className="flex min-w-0 items-center gap-2">
+                                <div className="flex w-full min-w-0 items-center gap-2">
                                     <FilesSelectionToolbar
                                         count={selection.selectedIds.length}
+                                        visibleCount={files.length}
                                         actions={toolbarActions}
+                                        onSelectAll={selection.selectAll}
                                         onClear={selection.clearSelection}
                                         onAction={(action) => {
                                             void runAction(action);
