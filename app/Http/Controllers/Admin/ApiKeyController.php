@@ -7,6 +7,7 @@ use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreApiKeyRequest;
 use App\Http\Requests\Concerns\AuthorizesWithPermissionTrait;
+use App\Http\Requests\Concerns\ValidatesListPerPageTrait;
 use App\Http\Resources\Admin\ApiKeyResource;
 use App\Models\ApiKey;
 use App\Models\Role;
@@ -22,6 +23,7 @@ use Inertia\Response;
 class ApiKeyController extends Controller
 {
     use AuthorizesWithPermissionTrait;
+    use ValidatesListPerPageTrait;
 
     public function index(Request $request): Response
     {
@@ -30,7 +32,7 @@ class ApiKeyController extends Controller
         $keys = ApiKey::query()
             ->with(['role:id,name', 'owner:id,first_name,last_name,email'])
             ->latest('id')
-            ->paginate($request->integer('per_page', 15))
+            ->paginate($this->validatedListPerPage($request))
             ->withQueryString();
 
         $roles = Role::query()

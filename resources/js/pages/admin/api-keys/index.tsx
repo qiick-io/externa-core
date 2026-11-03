@@ -5,7 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import Heading from '@/components/heading';
-import { TablePagination, TablePanel } from '@/components/layout/page-layout';
+import {
+    hasTablePaginationFooter,
+    TablePaginationFooter,
+    TablePanel,
+} from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -263,9 +267,9 @@ export default function AdminApiKeysIndex({
                         ) : (
                             <TablePanel
                                 footer={
-                                    apiKeys.last_page > 1 ? (
-                                        <TablePagination
-                                            links={apiKeys.links ?? []}
+                                    hasTablePaginationFooter(apiKeys) ? (
+                                        <TablePaginationFooter
+                                            pagination={apiKeys}
                                         />
                                     ) : undefined
                                 }
