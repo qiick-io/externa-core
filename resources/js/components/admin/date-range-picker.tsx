@@ -53,7 +53,8 @@ function toWireDate(date: Date): string {
 /**
  * One field for a from–to date filter (antd RangePicker style) on the shadcn
  * Calendar: the first click sets the start, the second the end (either order),
- * then the range commits and the popover closes. Values stay `YYYY-MM-DD`.
+ * then the range commits and the popover closes. While the end is being picked,
+ * the hovered day previews the band. Values stay `YYYY-MM-DD`.
  */
 export function DateRangePicker({
     value,
@@ -66,6 +67,7 @@ export function DateRangePicker({
 }: DateRangePickerProps) {
     const [open, setOpen] = useState(false);
     const [pendingStart, setPendingStart] = useState<Date | undefined>();
+    const [hoveredDay, setHoveredDay] = useState<Date | undefined>();
 
     const locale = appLocale();
     const from = parseWireDate(value.from);
@@ -78,7 +80,11 @@ export function DateRangePicker({
         ? `${from ? dateFormatter.format(from) : '…'} – ${to ? dateFormatter.format(to) : '…'}`
         : placeholder;
     const selected: DateRange | undefined = pendingStart
-        ? { from: pendingStart, to: undefined }
+        ? hoveredDay
+            ? hoveredDay < pendingStart
+                ? { from: hoveredDay, to: pendingStart }
+                : { from: pendingStart, to: hoveredDay }
+            : { from: pendingStart, to: undefined }
         : hasValue
           ? { from, to }
           : undefined;
@@ -94,6 +100,7 @@ export function DateRangePicker({
             day < pendingStart ? [day, pendingStart] : [pendingStart, day];
 
         setPendingStart(undefined);
+        setHoveredDay(undefined);
         setOpen(false);
         onChange({ from: toWireDate(start), to: toWireDate(end) });
     };
@@ -104,6 +111,7 @@ export function DateRangePicker({
             onOpenChange={(next) => {
                 setOpen(next);
                 setPendingStart(undefined);
+                setHoveredDay(undefined);
             }}
         >
             <PopoverTrigger asChild>
@@ -133,6 +141,8 @@ export function DateRangePicker({
                     selected={selected}
                     defaultMonth={pendingStart ?? from ?? to}
                     onSelect={(_range, day) => selectDay(day)}
+                    onDayMouseEnter={(day) => setHoveredDay(day)}
+                    onDayMouseLeave={() => setHoveredDay(undefined)}
                 />
                 {hasValue ? (
                     <div className="flex justify-end border-t p-2">

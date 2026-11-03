@@ -56,3 +56,33 @@ JS);
         ->assertQueryStringMissing('date_to')
         ->assertNoJavaScriptErrors();
 });
+
+it('previews the range band on hover and tints the days between the ends', function (): void {
+    $start = now()->startOfMonth()->addDays(2);
+    $hovered = now()->startOfMonth()->addDays(9);
+
+    $page = visit('/activity-logs');
+
+    $page->click('[data-test="activity-log-date-range"]')
+        ->wait(0.3)
+        ->click('button[data-day="'.$start->format('n/j/Y').'"]')
+        ->wait(0.3);
+
+    $page->hover('button[data-day="'.$hovered->format('n/j/Y').'"]')
+        ->wait(0.2)
+        ->assertScript("document.querySelectorAll('[data-slot=\"calendar\"] td.rdp-range_middle').length === 6")
+        ->assertScript(<<<'JS'
+(() => {
+  const middle = document.querySelector('[data-slot="calendar"] td.rdp-range_middle');
+  const background = getComputedStyle(middle).backgroundColor;
+  const popover = getComputedStyle(middle.closest('[data-slot="popover-content"]')).backgroundColor;
+
+  return background !== 'rgba(0, 0, 0, 0)' && background !== popover;
+})()
+JS)
+        ->click('button[data-day="'.$hovered->format('n/j/Y').'"]')
+        ->wait(1)
+        ->assertQueryStringHas('date_from', $start->format('Y-m-d'))
+        ->assertQueryStringHas('date_to', $hovered->format('Y-m-d'))
+        ->assertNoJavaScriptErrors();
+});
