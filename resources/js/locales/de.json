@@ -1467,7 +1467,7 @@
         "askAi": "KI fragen",
         "assistantOffline": "Assistent offline",
         "assistantOnline": "Assistent online",
-        "aiOfflineHint": "KI offline — LM Studio starten zum Aktivieren",
+        "aiOfflineHint": "KI nicht verfügbar — Konfiguration des KI-Anbieters prüfen",
         "thinking": "Denke nach",
         "copied": "In die Zwischenablage kopiert",
         "copyFailed": "Kopieren fehlgeschlagen",
@@ -1711,7 +1711,6 @@
     },
     "activityLog": {
         "title": "Aktivitätsprotokoll",
-        "description": "Schreibgeschützter Audit-Trail für Modelländerungen und Authentifizierungsereignisse.",
         "searchPlaceholder": "Beschreibung oder Subjekt suchen…",
         "allUsers": "Alle Benutzer",
         "allActions": "Alle Aktionen",

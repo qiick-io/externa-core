@@ -154,7 +154,7 @@ it('disables every Ask AI entry point with the FAB offline reason while AI is of
 
     $page->assertSee('Offline Desk')
         ->assertAttribute('button[aria-label="Ask AI"]', 'aria-disabled', 'true')
-        ->assertScript("(() => { const button = document.querySelector('button[aria-label=\"Ask AI\"]'); return document.getElementById(button.getAttribute('aria-describedby'))?.textContent === 'AI offline — start LM Studio to enable'; })()");
+        ->assertScript("(() => { const button = document.querySelector('button[aria-label=\"Ask AI\"]'); return document.getElementById(button.getAttribute('aria-describedby'))?.textContent === 'AI unavailable — check the AI provider configuration'; })()");
 
     // Playwright refuses to click aria-disabled targets; dispatch the click directly.
     $page->script("document.querySelector('button[aria-label=\"Ask AI\"]').click()");

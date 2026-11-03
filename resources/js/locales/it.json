@@ -1467,7 +1467,7 @@
         "askAi": "Chiedi all'AI",
         "assistantOffline": "Assistente offline",
         "assistantOnline": "Assistente online",
-        "aiOfflineHint": "AI offline — avvia LM Studio per abilitarla",
+        "aiOfflineHint": "AI non disponibile — verifica la configurazione del provider AI",
         "thinking": "Sto pensando",
         "copied": "Copiato negli appunti",
         "copyFailed": "Copia non riuscita",
@@ -1711,7 +1711,6 @@
     },
     "activityLog": {
         "title": "Activity Log",
-        "description": "Audit trail in sola lettura di modifiche e eventi di autenticazione.",
         "searchPlaceholder": "Cerca descrizione o soggetto…",
         "allUsers": "Tutti gli utenti",
         "allActions": "Tutte le azioni",
