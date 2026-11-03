@@ -13,6 +13,7 @@ import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { ChatThreadRow } from '@/components/chat/chat-thread-row';
 import { NewChatMenu } from '@/components/chat/new-chat-menu';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
+import { FilterSearch } from '@/components/layout/page-header';
 import { PageLayout } from '@/components/layout/page-layout';
 import {
     Empty,
@@ -20,7 +21,6 @@ import {
     EmptyHeader,
     EmptyMedia,
 } from '@/components/ui/empty';
-import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useChatUnread } from '@/hooks/use-chat-unread';
@@ -219,7 +219,92 @@ export default function ChatHubPage({
             headerActions={<NewChatMenu canCreateDirect={canCreateDirect} />}
         >
             <Head title={t('chatHub.title')} />
-            <PageLayout>
+            <PageLayout
+                filters={
+                    <FilterSearch
+                        dataTest="chat-filter-q"
+                        className="w-64 flex-none sm:max-w-none lg:w-80"
+                        value={q}
+                        placeholder={t('chatHub.search')}
+                        maxLength={STRING_LIMITS.SEARCH_CHAT_HUB}
+                        onChange={(value) => {
+                            setQ(value);
+                            setHubQuery(value);
+                        }}
+                    />
+                }
+                filtersRight={
+                    <>
+                        <ToggleGroup
+                            type="single"
+                            variant="outline"
+                            value={tab}
+                            onValueChange={(value) => {
+                                if (
+                                    value === 'collection' ||
+                                    value === 'private'
+                                ) {
+                                    switchTab(value);
+                                }
+                            }}
+                        >
+                            <ToggleGroupItem
+                                value="collection"
+                                data-test="chat-tab-collection"
+                            >
+                                <Database className="size-4" />
+                                <span>{t('chatHub.collection')}</span>
+                                {unread.unread_collection > 0 ? (
+                                    <span
+                                        data-test="chat-tab-collection-unread"
+                                        className="min-w-5 rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground"
+                                    >
+                                        {formatChatUnread(
+                                            unread.unread_collection,
+                                        )}
+                                    </span>
+                                ) : null}
+                            </ToggleGroupItem>
+                            <ToggleGroupItem
+                                value="private"
+                                data-test="chat-tab-private"
+                            >
+                                <UsersRound className="size-4" />
+                                <span>{t('chatHub.users')}</span>
+                                {unread.unread_private > 0 ? (
+                                    <span
+                                        data-test="chat-tab-private-unread"
+                                        className="min-w-5 rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground"
+                                    >
+                                        {formatChatUnread(
+                                            unread.unread_private,
+                                        )}
+                                    </span>
+                                ) : null}
+                            </ToggleGroupItem>
+                        </ToggleGroup>
+                        {tab === 'private' ? (
+                            <HeaderIconButton
+                                type="button"
+                                data-test="chat-filter-archived"
+                                variant={showArchived ? 'default' : 'outline'}
+                                label={
+                                    showArchived
+                                        ? t('chatHub.showInbox')
+                                        : t('chatHub.showArchived')
+                                }
+                                onClick={() => setShowArchived((prev) => !prev)}
+                            >
+                                {showArchived ? (
+                                    <Inbox className="size-4" />
+                                ) : (
+                                    <Archive className="size-4" />
+                                )}
+                            </HeaderIconButton>
+                        ) : null}
+                    </>
+                }
+            >
                 <div
                     data-test="chat-hub"
                     className="flex min-h-0 flex-1 overflow-hidden rounded-xl bg-card"
@@ -228,95 +313,6 @@ export default function ChatHubPage({
                         aria-label={t('a11y.chatThreadList')}
                         className="flex w-64 shrink-0 flex-col border-r lg:w-80"
                     >
-                        <div className="flex flex-col gap-2 border-b p-2">
-                            <ToggleGroup
-                                type="single"
-                                variant="outline"
-                                className="w-full"
-                                value={tab}
-                                onValueChange={(value) => {
-                                    if (
-                                        value === 'collection' ||
-                                        value === 'private'
-                                    ) {
-                                        switchTab(value);
-                                    }
-                                }}
-                            >
-                                <ToggleGroupItem
-                                    value="collection"
-                                    data-test="chat-tab-collection"
-                                    className="flex-1"
-                                >
-                                    <Database className="size-4" />
-                                    {t('chatHub.collection')}
-                                    {unread.unread_collection > 0 ? (
-                                        <span
-                                            data-test="chat-tab-collection-unread"
-                                            className="min-w-5 rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground"
-                                        >
-                                            {formatChatUnread(
-                                                unread.unread_collection,
-                                            )}
-                                        </span>
-                                    ) : null}
-                                </ToggleGroupItem>
-                                <ToggleGroupItem
-                                    value="private"
-                                    data-test="chat-tab-private"
-                                    className="flex-1"
-                                >
-                                    <UsersRound className="size-4" />
-                                    {t('chatHub.users')}
-                                    {unread.unread_private > 0 ? (
-                                        <span
-                                            data-test="chat-tab-private-unread"
-                                            className="min-w-5 rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground"
-                                        >
-                                            {formatChatUnread(
-                                                unread.unread_private,
-                                            )}
-                                        </span>
-                                    ) : null}
-                                </ToggleGroupItem>
-                            </ToggleGroup>
-                            <div className="flex items-center gap-2">
-                                <Input
-                                    data-test="chat-filter-q"
-                                    className="min-w-0 flex-1"
-                                    value={q}
-                                    placeholder={t('chatHub.search')}
-                                    maxLength={STRING_LIMITS.SEARCH_CHAT_HUB}
-                                    onChange={(event) => {
-                                        setQ(event.target.value);
-                                        setHubQuery(event.target.value);
-                                    }}
-                                />
-                                {tab === 'private' ? (
-                                    <HeaderIconButton
-                                        type="button"
-                                        data-test="chat-filter-archived"
-                                        variant={
-                                            showArchived ? 'default' : 'outline'
-                                        }
-                                        label={
-                                            showArchived
-                                                ? t('chatHub.showInbox')
-                                                : t('chatHub.showArchived')
-                                        }
-                                        onClick={() =>
-                                            setShowArchived((prev) => !prev)
-                                        }
-                                    >
-                                        {showArchived ? (
-                                            <Inbox className="size-4" />
-                                        ) : (
-                                            <Archive className="size-4" />
-                                        )}
-                                    </HeaderIconButton>
-                                ) : null}
-                            </div>
-                        </div>
                         <div
                             data-test="chat-list"
                             className={cn(
