@@ -101,7 +101,7 @@ import type { CollectionFieldRow, FieldDef } from '@/types';
 const ITEM_FORM_ID = 'collection-item-form';
 
 const inputLike =
-    'border-input bg-background ring-offset-background focus-visible:border-ring focus-visible:ring-ring flex min-h-control w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none read-only:cursor-default read-only:bg-muted/50 read-only:opacity-100';
+    'border-input bg-background flex min-h-control w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:outline-none read-only:cursor-default read-only:bg-muted/50 read-only:opacity-100';
 
 type DefaultValue =
     | string

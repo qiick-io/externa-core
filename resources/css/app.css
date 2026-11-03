@@ -345,6 +345,15 @@
         @apply bg-background text-foreground;
     }
 
+    /*
+     * #main-content takes focus programmatically (skip link, focusPageMain after
+     * navigation) so screen readers land on the page; it is not a control, so it
+     * shows no outline around the whole page.
+     */
+    #main-content:focus {
+        outline: none;
+    }
+
     /* Tailwind v4 preflight sets cursor: default on buttons — restore click affordance */
     button:not(:disabled),
     [role='button']:not([aria-disabled='true']),
