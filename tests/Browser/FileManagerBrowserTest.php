@@ -366,3 +366,52 @@ it('opens a folder picker dialog for move instead of a prompt', function () {
 
     expect($file->fresh()->parent_id)->toBe($destination->id);
 });
+
+it('keeps every checkbox-selected file and moves them all with one bulk action', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+    ]);
+
+    $destination = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'Archive',
+        'path' => '/Archive',
+        'disk' => 'assets',
+    ]);
+
+    $files = collect(['first-pick.txt', 'second-pick.txt'])->map(
+        fn (string $name): File => File::query()->create([
+            'type' => FileTypeEnum::File,
+            'name' => $name,
+            'path' => '/'.$name,
+            'disk' => 'assets',
+            'storage_path' => '2026/07/'.$name,
+            'mime_type' => 'text/plain',
+            'extension' => 'txt',
+        ]),
+    );
+
+    $this->actingAs($user);
+
+    $page = visit('/files');
+
+    $page->assertSee('first-pick.txt')
+        ->click('[aria-label="Select first-pick.txt"]')
+        ->assertSee('1 selected')
+        ->click('[aria-label="Select second-pick.txt"]')
+        ->assertSee('2 selected')
+        ->assertAttribute('[aria-label="Select first-pick.txt"]', 'aria-checked', 'true')
+        ->assertAttribute('[aria-label="Select second-pick.txt"]', 'aria-checked', 'true')
+        ->rightClick("[data-testid=\"file-card-{$files[0]->id}\"]")
+        ->click('[data-testid="files-context-action-move"]')
+        ->assertPresent('[data-testid="folder-picker-dialog"]')
+        ->click("[data-testid=\"folder-picker-item-{$destination->id}\"]")
+        ->click('[data-testid="folder-picker-confirm"]')
+        ->assertMissing('[data-testid="folder-picker-dialog"]')
+        ->assertNoJavaScriptErrors();
+
+    foreach ($files as $file) {
+        expect($file->fresh()->parent_id)->toBe($destination->id);
+    }
+});
