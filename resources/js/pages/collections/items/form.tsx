@@ -47,6 +47,7 @@ import {
     TablePagination,
     TablePanel,
 } from '@/components/layout/page-layout';
+import type { TablePaginationLink } from '@/components/layout/page-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -119,6 +120,51 @@ const DRAFT_DEBOUNCE_MS = 800;
 type FieldGrant = { read: boolean; create: boolean; update: boolean };
 
 type ItemSaveAction = 'stay' | 'create_new' | 'copy';
+
+type ItemView = 'fields' | 'activity';
+
+/** Query param that keeps the item's activity view across pagination and history (#465). */
+const ITEM_VIEW_PARAM = 'view';
+
+/**
+ * Read the item view from the page URL (`?view=activity`); anything else is the edit view.
+ * @param {string} pageUrl - Inertia page URL (path + query).
+ * @returns {ItemView}
+ */
+function readItemViewParam(pageUrl: string): ItemView {
+    const queryIndex = pageUrl.indexOf('?');
+
+    if (queryIndex === -1) {
+        return 'fields';
+    }
+
+    return new URLSearchParams(pageUrl.slice(queryIndex + 1)).get(
+        ITEM_VIEW_PARAM,
+    ) === 'activity'
+        ? 'activity'
+        : 'fields';
+}
+
+/**
+ * Pin activity pagination links to the activity view. The server builds them
+ * on first load, before a client-side switch to `?view=activity`.
+ * @param {TablePaginationLink[]} links - Laravel paginator links.
+ * @returns {TablePaginationLink[]}
+ */
+function withActivityViewParam(
+    links: TablePaginationLink[],
+): TablePaginationLink[] {
+    return links.map((link) => {
+        if (link.url === null) {
+            return link;
+        }
+
+        const linkUrl = new URL(link.url, window.location.origin);
+        linkUrl.searchParams.set(ITEM_VIEW_PARAM, 'activity');
+
+        return { ...link, url: `${linkUrl.pathname}${linkUrl.search}` };
+    });
+}
 
 function itemSaveShortcut(shift: boolean): string {
     const isMac =
@@ -217,6 +263,33 @@ export default function ItemsForm({
     const activityLogs = activityLogsProp
         ? normalizePaginated(activityLogsProp)
         : null;
+    const activeTab: ItemView =
+        !isNew && item !== null ? readItemViewParam(page.url) : 'fields';
+
+    /**
+     * Switch between the edit and activity views through the `view` query
+     * param, so activity pagination (its links keep the query string) and
+     * back/forward stay on the chosen view. Client-side push, no request.
+     */
+    const selectItemView = useCallback(
+        (view: ItemView) => {
+            const nextUrl = new URL(page.url, window.location.origin);
+
+            if (view === 'activity') {
+                nextUrl.searchParams.set(ITEM_VIEW_PARAM, 'activity');
+            } else {
+                nextUrl.searchParams.delete(ITEM_VIEW_PARAM);
+                nextUrl.searchParams.delete('page');
+            }
+
+            router.push({
+                url: `${nextUrl.pathname}${nextUrl.search}`,
+                preserveState: true,
+                preserveScroll: true,
+            });
+        },
+        [page.url],
+    );
     const listHref = useMemo(() => {
         const fromReturn = readReturnParam(page.url);
 
@@ -249,7 +322,6 @@ export default function ItemsForm({
     const [draftBanner, setDraftBanner] = useState(
         () => initialDraft !== null && Object.keys(initialDraft).length > 0,
     );
-    const [activeTab, setActiveTab] = useState<'fields' | 'activity'>('fields');
     const [fieldSearch, setFieldSearch] = useState('');
     const [globalLocale, setGlobalLocale] = useState(locales[0] ?? 'en');
     const [revisionsOpen, setRevisionsOpen] = useState(false);
@@ -955,11 +1027,17 @@ export default function ItemsForm({
 
             <PageLayout
                 filters={
-                    activeTab === 'fields' && hasFields ? (
+                    hasFields ? (
+                        // Activity view keeps the slot (invisible, out of the tab order) so the sub-header controls don't move (#465).
                         <FilterSearch
                             value={fieldSearch}
                             onChange={setFieldSearch}
                             placeholder="Search fields…"
+                            className={
+                                activeTab === 'activity'
+                                    ? 'invisible'
+                                    : undefined
+                            }
                         />
                     ) : undefined
                 }
@@ -1336,7 +1414,7 @@ export default function ItemsForm({
                                         value === 'fields' ||
                                         value === 'activity'
                                     ) {
-                                        setActiveTab(value);
+                                        selectItemView(value);
                                     }
                                 }}
                             >
@@ -1430,7 +1508,8 @@ export default function ItemsForm({
                 {!isNew &&
                     item !== null &&
                     versioningEnabled &&
-                    canEditItem && (
+                    canEditItem &&
+                    activeTab === 'fields' && (
                         <div
                             className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-sidebar-border/70 bg-muted/20 px-3 py-3 text-sm dark:border-sidebar-border"
                             data-test="item-schedule-panel"
@@ -1593,7 +1672,7 @@ export default function ItemsForm({
                                 key={formKey}
                                 {...formProps}
                                 id={COLLECTION_ITEM_FORM_ID}
-                                className="max-w-3xl space-y-6"
+                                className="space-y-6"
                                 options={{ preserveScroll: true }}
                                 onSuccess={() => {
                                     setIsDirty(false);
@@ -1666,7 +1745,7 @@ export default function ItemsForm({
                                         key={formKey}
                                         {...formProps}
                                         id={COLLECTION_ITEM_FORM_ID}
-                                        className="max-w-3xl space-y-6"
+                                        className="space-y-6"
                                         options={{ preserveScroll: true }}
                                         onSuccess={() => {
                                             setIsDirty(false);
@@ -1831,10 +1910,10 @@ export default function ItemsForm({
                                                 activityLogs &&
                                                 activityLogs.last_page > 1 ? (
                                                     <TablePagination
-                                                        links={
+                                                        links={withActivityViewParam(
                                                             activityLogs.links ??
-                                                            []
-                                                        }
+                                                                [],
+                                                        )}
                                                     />
                                                 ) : undefined
                                             }
