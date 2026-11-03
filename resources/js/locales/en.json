@@ -1542,7 +1542,10 @@
         "thisMonth": "This month",
         "today": "Today",
         "twoDaysAgo": "2 days ago",
-        "older": "Older"
+        "older": "Older",
+        "newChat": "New chat",
+        "noConversations": "No conversations yet.",
+        "assistantScope": "Assistant with permissions for collections and files"
     },
     "dashboard": {
         "title": "Dashboard",

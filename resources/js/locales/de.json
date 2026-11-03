@@ -1542,7 +1542,10 @@
         "thisMonth": "Diesen Monat",
         "today": "Heute",
         "twoDaysAgo": "Vor 2 Tagen",
-        "older": "Älter"
+        "older": "Älter",
+        "newChat": "Neuer Chat",
+        "noConversations": "Noch keine Unterhaltungen.",
+        "assistantScope": "Assistent mit Berechtigungen für Sammlungen und Dateien"
     },
     "dashboard": {
         "title": "Dashboard",
