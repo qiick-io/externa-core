@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 
 type AskAiButtonProps = {
     prompt: string;
-    /** icon = row action; labeled = bulk toolbar */
+    /** icon = compact row action (`sm`); labeled = bulk toolbar (default control size, #462) */
     mode?: 'icon' | 'labeled';
     className?: string;
     stopPropagation?: boolean;
@@ -50,11 +50,10 @@ export function AskAiButton({
             <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 className={className}
                 onClick={handleClick}
             >
-                <Sparkles className="size-3.5 text-ai" />
+                <Sparkles className="size-4 text-ai" aria-hidden="true" />
                 {label}
             </Button>
         );

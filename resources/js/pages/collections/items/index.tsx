@@ -828,7 +828,6 @@ export default function ItemsIndex({
                                             <Button
                                                 type="button"
                                                 variant="destructive-outline"
-                                                size="sm"
                                                 onClick={() =>
                                                     setPendingBulkAction(
                                                         'delete',
@@ -845,7 +844,6 @@ export default function ItemsIndex({
                                             <Button
                                                 type="button"
                                                 variant="outline"
-                                                size="sm"
                                                 onClick={() => bulk('restore')}
                                             >
                                                 Restore
@@ -858,7 +856,6 @@ export default function ItemsIndex({
                                             <Button
                                                 type="button"
                                                 variant="destructive-outline"
-                                                size="sm"
                                                 onClick={() =>
                                                     setPendingBulkAction(
                                                         'force_delete',
@@ -908,8 +905,7 @@ export default function ItemsIndex({
                                 }}
                             >
                                 <SelectTrigger
-                                    size="sm"
-                                    className="w-auto min-w-28 text-xs"
+                                    className="w-auto min-w-28"
                                     data-test="list-layout-select"
                                     aria-label={t(
                                         'collections.itemsList.layout',
@@ -971,8 +967,7 @@ export default function ItemsIndex({
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
-                                        className="w-auto min-w-36 text-xs"
+                                        className="w-auto min-w-36"
                                         data-test="kanban-field-select"
                                         aria-label={t(
                                             'collections.itemsList.kanbanField',
@@ -1026,8 +1021,7 @@ export default function ItemsIndex({
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
-                                        className="w-auto min-w-36 text-xs"
+                                        className="w-auto min-w-36"
                                         data-test="calendar-field-select"
                                         aria-label={t(
                                             'collections.itemsList.calendarField',
@@ -1068,6 +1062,7 @@ export default function ItemsIndex({
                                 </Select>
                             ) : null}
                             <ToggleGroup
+                                variant="outline"
                                 type="single"
                                 value={isTrashed ? 'trashed' : 'active'}
                                 onValueChange={(value) => {
@@ -1083,7 +1078,6 @@ export default function ItemsIndex({
                                     aria-label={t(
                                         'collections.itemsList.activeItems',
                                     )}
-                                    className="px-3"
                                 >
                                     <FolderOpen className="size-4" />
                                 </ToggleGroupItem>
@@ -1092,7 +1086,6 @@ export default function ItemsIndex({
                                     aria-label={t(
                                         'collections.itemsList.trash',
                                     )}
-                                    className="px-3"
                                 >
                                     <Trash2 className="size-4" />
                                 </ToggleGroupItem>

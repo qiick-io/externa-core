@@ -71,6 +71,17 @@ Rules for changes to the admin UI (`resources/js`). The values live in the linke
   - Spacing: prefer `2` / `3` / `4` / `6` / `8` / `12` for `p` / `m` / `gap` / `space-*`. Avoid off-scale steps (`1.5`, `2.5`, `5`, `7`, `9`, `10`) unless layout-coupled (for example icon-offset `pl-9`).
   - `components/ui` stock primitives are exempt; leave their internals alone.
   - Guardrail: `npm run lint:ui-tokens` (also part of `npm run lint:check`) fails on new arbitrary font sizes and on new/increased raw palette or `#hex` in `className` outside `components/ui` (see `scripts/ui-token-baseline.txt` for existing debt to pay down).
+- **Control sizes (#462).** One height scale for every control, defined once in `resources/css/app.css` (`--spacing-control-sm` / `--spacing-control` / `--spacing-control-lg`, used as `h-control`, `size-control-sm`, `min-w-control-lg`, …):
+
+  | Size | Height | Button / Toggle inline padding | Used by |
+  | --- | --- | --- | --- |
+  | `sm` | 32px | `px-3` (`px-2.5` with an icon) / `px-2.5` | table row actions, dense cards, inline field menus |
+  | `default` | 36px | `px-4` (`px-3` with an icon) / `px-3` | page header actions, list toolbars and sub-headers, forms, the item-edit header, the schedule bar |
+  | `lg` | 40px | `px-6` (`px-4` with an icon) / `px-4` | rare hero/empty-state CTAs |
+
+  - Every control at one size shares height, `rounded-md`, `text-sm` and 16px (`size-4`) icons: `Button` (`sm` / `default` / `lg`, icon-only `icon-sm` / `icon` / `icon-lg` are square), `Input`, `InputGroup`, `NativeSelect` and `SelectTrigger` (`size="sm"` or default), `Toggle` / `ToggleGroup` (icon-only items stay square), and the date-time picker trigger (`fieldControlHeight`).
+  - Pick one size per row and pass it as a prop. Don't override heights with `h-8` / `h-9` / `size-8` or shrink text with `text-xs` on a control. Page headers and toolbars use the default size, including primary actions such as "New collection" and "Save draft".
+  - Every step is above the WCAG 2.2 SC 2.5.8 minimum target size (24 × 24px).
 - **Contrast:** light and dark themes must both pass WCAG 2.2 AA, meaning 4.5:1 for text and 3:1 for UI components, borders and focus indicators. Never convey status by color alone; pair it with text or an icon. Measured key pairs live in [`docs/a11y-contrast-pairs.md`](./docs/a11y-contrast-pairs.md) (light, dark, `html.high-contrast`, `html.high-contrast.dark`); CI runs `npm run a11y:contrast`. Keep `prefers-contrast: more` and `html.high-contrast` token blocks in sync.
 - **Accessibility (WCAG 2.2 AA):** expand the checklist below for every UI PR. Tracking detail: [#252](https://github.com/qiick-io/externa-core/issues/252)–[#255](https://github.com/qiick-io/externa-core/issues/255).
   - Decorative Lucide icons: `aria-hidden="true"` unless the icon alone carries meaning (then `role="img"` + translated `aria-label`).

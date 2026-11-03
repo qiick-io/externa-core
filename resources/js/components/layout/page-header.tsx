@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 /** Shared Tailwind classes for filter select elements in page headers. */
 export const filterSelectClassName =
-    'border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 min-w-[8rem] rounded-md border px-3 py-1 text-sm focus-visible:ring-2 focus-visible:outline-none';
+    'border-input bg-background ring-offset-background focus-visible:ring-ring flex h-control min-w-[8rem] rounded-md border px-3 py-1 text-sm focus-visible:ring-2 focus-visible:outline-none';
 
 export type PageHeaderProps = {
     description?: ReactNode;
@@ -90,7 +90,7 @@ export function FilterSearch({
                 onChange={(changeEvent) => onChange(changeEvent.target.value)}
                 placeholder={placeholder}
                 maxLength={maxLength}
-                className="h-9 pl-8"
+                className="pl-8"
             />
         </div>
     );

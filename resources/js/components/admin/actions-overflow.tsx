@@ -197,7 +197,7 @@ export function ActionsOverflow({
                                         : 'outline'
                                 }
                                 label={action.label}
-                                className="size-8 shrink-0"
+                                className="shrink-0"
                                 data-testid={`files-action-${action.key}`}
                                 onClick={() => onAction(action.key)}
                             >
@@ -212,7 +212,6 @@ export function ActionsOverflow({
                         <Button
                             ref={setActionButtonRef(action.key)}
                             type="button"
-                            size="sm"
                             variant={
                                 action.destructive ? 'destructive' : 'outline'
                             }
@@ -231,10 +230,10 @@ export function ActionsOverflow({
                     <Button
                         ref={overflowButtonRef}
                         type="button"
-                        size={iconOnly ? 'icon' : 'sm'}
+                        size="icon"
                         variant="outline"
                         className={cn(
-                            iconOnly && 'size-8 shrink-0',
+                            'shrink-0',
                             overflowActions.length === 0 && 'hidden',
                         )}
                         aria-label={ariaMore}

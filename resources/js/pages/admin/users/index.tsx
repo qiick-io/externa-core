@@ -302,7 +302,6 @@ export default function AdminUsersIndex({
                                                 <Button
                                                     type="button"
                                                     variant="destructive-outline"
-                                                    size="sm"
                                                     onClick={() =>
                                                         setPendingBulkAction(
                                                             'delete',
@@ -319,7 +318,6 @@ export default function AdminUsersIndex({
                                                 <Button
                                                     type="button"
                                                     variant="outline"
-                                                    size="sm"
                                                     onClick={() =>
                                                         bulk('restore')
                                                     }
@@ -334,7 +332,6 @@ export default function AdminUsersIndex({
                                                 <Button
                                                     type="button"
                                                     variant="destructive-outline"
-                                                    size="sm"
                                                     onClick={() =>
                                                         setPendingBulkAction(
                                                             'force_delete',
@@ -370,7 +367,6 @@ export default function AdminUsersIndex({
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
                                         aria-label={t('users.sortBy')}
                                         className="w-[7.5rem]"
                                     >
@@ -390,7 +386,7 @@ export default function AdminUsersIndex({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="icon-sm"
+                                    size="icon"
                                     aria-label={
                                         direction === 'asc'
                                             ? t('common.sortAscending')
@@ -412,6 +408,7 @@ export default function AdminUsersIndex({
                                     )}
                                 </Button>
                                 <ToggleGroup
+                                    variant="outline"
                                     type="single"
                                     value={isTrashed ? 'trashed' : 'active'}
                                     onValueChange={(value) => {

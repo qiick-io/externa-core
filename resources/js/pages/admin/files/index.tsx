@@ -1524,7 +1524,6 @@ export default function AdminFilesIndex({
                                         }}
                                     >
                                         <SelectTrigger
-                                            size="sm"
                                             aria-label={t(
                                                 'files.toolbar.sortBy',
                                             )}
@@ -1551,7 +1550,6 @@ export default function AdminFilesIndex({
                                         type="button"
                                         variant="outline"
                                         size="icon"
-                                        className="size-8"
                                         aria-label={
                                             direction === 'asc'
                                                 ? t('files.toolbar.sortAsc')
@@ -1573,6 +1571,7 @@ export default function AdminFilesIndex({
                                         )}
                                     </Button>
                                     <ToggleGroup
+                                        variant="outline"
                                         type="single"
                                         value={trashed}
                                         onValueChange={(value) => {
@@ -1589,7 +1588,6 @@ export default function AdminFilesIndex({
                                             aria-label={t(
                                                 'files.toolbar.activeFiles',
                                             )}
-                                            className="px-3"
                                         >
                                             <Files className="size-4" />
                                         </ToggleGroupItem>
@@ -1598,7 +1596,6 @@ export default function AdminFilesIndex({
                                             aria-label={t(
                                                 'files.toolbar.trash',
                                             )}
-                                            className="px-3"
                                         >
                                             <Trash2 className="size-4" />
                                         </ToggleGroupItem>

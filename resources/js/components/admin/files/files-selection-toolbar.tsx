@@ -35,7 +35,7 @@ export function FilesSelectionToolbar({
                 </span>
                 <Button
                     type="button"
-                    size="sm"
+                    size="icon"
                     variant="ghost"
                     onClick={onClear}
                     aria-label={t('files.toolbar.clearSelection')}
@@ -48,10 +48,9 @@ export function FilesSelectionToolbar({
                 <Button
                     type="button"
                     variant="outline"
-                    size="sm"
                     onClick={() => onAction('ask_ai')}
                 >
-                    <Sparkles className="size-3.5" />
+                    <Sparkles className="size-4" />
                     {askAi.label}
                 </Button>
             ) : null}

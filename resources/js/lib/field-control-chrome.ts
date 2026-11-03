@@ -2,9 +2,10 @@ import { cn } from '@/lib/utils';
 
 /**
  * Shared height token for single-row collection field controls.
- * Matches shadcn `Input` / `Button` default (`h-9` = 36px).
+ * Default step of the control-size scale (#462, `--spacing-control` = 36px),
+ * the same height as `Input` / `Button` / `SelectTrigger` default.
  */
-export const fieldControlHeight = 'h-9';
+export const fieldControlHeight = 'h-control';
 
 /**
  * Visible focus ring for controls (WCAG 2.4.7): full-opacity `--ring`, offset, no inset.
@@ -20,7 +21,7 @@ export const fieldControlChromeBase =
 /** Single-line chrome — fixed Input height. */
 export const fieldControlChromeSingle = cn(
     fieldControlChromeBase,
-    'flex h-9 min-h-9 items-center px-3',
+    'flex h-control min-h-control items-center px-3',
 );
 
 /** Multi-option / growing chrome — height follows content. */

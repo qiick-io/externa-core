@@ -879,7 +879,7 @@ export default function ItemsForm({
                             <Button
                                 type="submit"
                                 form={COLLECTION_ITEM_FORM_ID}
-                                className="h-9 rounded-r-none"
+                                className="rounded-r-none"
                                 onClick={() => setItemSaveAction('stay')}
                             >
                                 <Save className="size-4" />
@@ -894,7 +894,8 @@ export default function ItemsForm({
                                 <DropdownMenuTrigger asChild>
                                     <Button
                                         type="button"
-                                        className="h-9 rounded-l-none border-l border-primary-foreground/25 px-2"
+                                        size="icon"
+                                        className="rounded-l-none border-l border-primary-foreground/25"
                                         aria-label={t(
                                             'collections.itemSave.more',
                                         )}
@@ -1021,8 +1022,7 @@ export default function ItemsForm({
                                     }}
                                 >
                                     <SelectTrigger
-                                        size="sm"
-                                        className="h-9 w-auto min-w-0 gap-1 px-3 text-xs"
+                                        className="w-auto min-w-0"
                                         data-test="content-version-select"
                                     >
                                         <SelectValue />
@@ -1055,9 +1055,7 @@ export default function ItemsForm({
                                 <DropdownMenuTrigger asChild>
                                     <Button
                                         type="button"
-                                        size="sm"
                                         variant="outline"
-                                        className="h-9 gap-1 px-3 text-xs"
                                         data-test="item-version-actions"
                                     >
                                         <ListChecks className="size-4" />
@@ -1242,8 +1240,7 @@ export default function ItemsForm({
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        size="default"
-                                        className="h-9 min-h-9 gap-2 px-2"
+                                        className="px-3"
                                         data-test="item-form-locale"
                                         data-locale={globalLocale}
                                     >
@@ -1333,9 +1330,7 @@ export default function ItemsForm({
                             <ToggleGroup
                                 type="single"
                                 variant="outline"
-                                size="default"
                                 value={activeTab}
-                                className="h-9"
                                 onValueChange={(value) => {
                                     if (
                                         value === 'fields' ||
@@ -1348,14 +1343,12 @@ export default function ItemsForm({
                                 <ToggleGroupItem
                                     value="fields"
                                     aria-label={t('a11y.fieldsPanel')}
-                                    className="h-9 px-3"
                                 >
                                     <ScrollText className="size-4" />
                                 </ToggleGroupItem>
                                 <ToggleGroupItem
                                     value="activity"
                                     aria-label={t('a11y.activityPanel')}
-                                    className="h-9 px-3"
                                 >
                                     <History className="size-4" />
                                 </ToggleGroupItem>
@@ -1466,7 +1459,7 @@ export default function ItemsForm({
                                         />
                                     ) : (
                                         <span
-                                            className="flex h-9 min-w-[12.5rem] items-center text-sm text-muted-foreground"
+                                            className="flex h-control min-w-[12.5rem] items-center text-sm text-muted-foreground"
                                             data-test="schedule-already-published"
                                         >
                                             {t(
@@ -1513,9 +1506,7 @@ export default function ItemsForm({
                             </label>
                             <Button
                                 type="button"
-                                size="sm"
                                 variant="secondary"
-                                className="text-xs"
                                 disabled={scheduling}
                                 data-test="schedule-save"
                                 onClick={() => {
@@ -1553,9 +1544,7 @@ export default function ItemsForm({
                                 : item.publish_at || item.unpublish_at) && (
                                 <Button
                                     type="button"
-                                    size="sm"
                                     variant="outline"
-                                    className="text-xs"
                                     disabled={scheduling}
                                     data-test="schedule-clear"
                                     onClick={() => {
