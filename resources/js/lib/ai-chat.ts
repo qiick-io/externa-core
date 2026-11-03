@@ -344,7 +344,7 @@ export async function streamAiChat(
 
         const networkError = new Error(
             error instanceof TypeError
-                ? 'Connection to the AI server was interrupted (timeout, proxy, or local model crash). Check LM Studio and retry with a smaller prompt.'
+                ? 'Connection to the AI server was interrupted (timeout, proxy, or model crash). Check the AI provider and retry with a smaller prompt.'
                 : error instanceof Error
                   ? error.message
                   : 'Network error',
@@ -527,7 +527,7 @@ export async function streamAiChat(
         // fastcgi_read_timeout 60s when the local model thinks without emitting events).
         const streamError = new Error(
             error instanceof TypeError
-                ? 'AI stream connection interrupted (proxy/nginx timeout or slow local model). Check LM Studio and that fastcgi_read_timeout is ≥ 600s, then retry.'
+                ? 'AI stream connection interrupted (proxy/nginx timeout or slow model). Check the AI provider and that fastcgi_read_timeout is ≥ 600s, then retry.'
                 : error instanceof Error
                   ? error.message
                   : 'Error during stream',

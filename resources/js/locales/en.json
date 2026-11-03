@@ -1467,7 +1467,7 @@
         "askAi": "Ask AI",
         "assistantOffline": "Assistant offline",
         "assistantOnline": "Assistant online",
-        "aiOfflineHint": "AI offline — start LM Studio to enable",
+        "aiOfflineHint": "AI unavailable — check the AI provider configuration",
         "thinking": "Thinking",
         "copied": "Copied to clipboard",
         "copyFailed": "Copy failed",
@@ -1711,7 +1711,6 @@
     },
     "activityLog": {
         "title": "Activity Log",
-        "description": "Read-only audit trail of model changes and authentication events.",
         "searchPlaceholder": "Search description or subject…",
         "allUsers": "All users",
         "allActions": "All actions",
