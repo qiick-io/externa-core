@@ -35,7 +35,6 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useChatUnread } from '@/hooks/use-chat-unread';
 import { useCurrentUrl } from '@/hooks/use-current-url';
-import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import activityLogs from '@/routes/activity-logs';
 import { index as aiIndex } from '@/routes/ai';
@@ -184,16 +183,7 @@ export function AppSidebar() {
                     item.id === 'ai' || item.id === 'settings',
                 )}
                 tooltip={{ children: t(item.titleKey) }}
-                className={
-                    item.accent
-                        ? cn(
-                              'sidebar-ai-nav relative overflow-hidden',
-                              'text-ai-text hover:text-ai-text',
-                              'data-[active=true]:font-medium',
-                              'data-[active=true]:text-ai-text',
-                          )
-                        : undefined
-                }
+                className={item.accent ? 'sidebar-ai-nav' : undefined}
             >
                 <Link href={item.href} prefetch>
                     <item.icon />
