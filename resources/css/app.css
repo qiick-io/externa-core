@@ -372,17 +372,15 @@
     }
 }
 
-/* Assistant nav: solid AI border + hover/active AI wash (shimmer kept) */
-.sidebar-ai-nav {
-    border: 1px solid var(--ai-border);
-    background: var(--sidebar) !important;
-}
-
+/*
+ * Assistant nav (#463): a plain sidebar item at rest and when active (same
+ * text token, background and straight active bar as its siblings). The AI
+ * accent wash and the shimmer appear only on hover and keyboard focus.
+ */
 .sidebar-ai-nav:hover,
-.sidebar-ai-nav:active,
-.sidebar-ai-nav[data-active='true'] {
-    border-color: var(--ai-border);
-    background: var(--ai-bg) !important;
+.sidebar-ai-nav:focus-visible {
+    background: var(--ai-bg);
+    color: var(--ai-text);
 }
 
 .sidebar-ai-nav::after {
@@ -400,7 +398,8 @@
     transform: translateX(-120%);
 }
 
-.sidebar-ai-nav:hover::after {
+.sidebar-ai-nav:hover::after,
+.sidebar-ai-nav:focus-visible::after {
     animation: sidebar-ai-shimmer 0.85s ease;
 }
 
@@ -408,6 +407,16 @@
     to {
         transform: translateX(120%);
     }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sidebar-ai-nav::after {
+        animation: none !important;
+    }
+}
+
+html.reduce-motion .sidebar-ai-nav::after {
+    animation: none !important;
 }
 
 /* Localized field: AI beam while translate runs */

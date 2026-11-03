@@ -1,7 +1,7 @@
 # Admin contrast pairs (WCAG 2.2 AA)
 
 Source tokens: `resources/css/app.css` (`:root`, `.dark`, `html.high-contrast`, `html.high-contrast.dark`).
-Ratios measured from resolved hex (WCAG relative luminance). **Text** needs ≥4.5:1; **UI / border / focus** needs ≥3:1.
+Ratios measured from resolved hex (WCAG relative luminance). `sidebar-primary / sidebar-accent` is the straight active-item bar in the sidebar and settings nav (non-colour active cue, #463); `ai-text / ai-bg` is the Assistant nav hover/focus state. **Text** needs ≥4.5:1; **UI / border / focus** needs ≥3:1.
 
 Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForeground` picks fg; if a project brand fails 3:1 against the surface, settings should warn or fall back (#243).
 
@@ -23,6 +23,8 @@ Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegro
 | input / background (UI)              | `#8195a2` (ink-400)  | `#ffffff`             | 3.11  | 3.0  | PASS   |
 | ring / background (focus)            | `#0e7c86` (teal-600) | `#ffffff`             | 4.95  | 3.0  | PASS   |
 | sidebar-foreground / sidebar         | `#516370`            | `#f8fdfe` (ink-50)    | 6.08  | 4.5  | PASS   |
+| sidebar-primary / sidebar-accent     | `#0e7c86` (teal-600) | `#ecfdfd` (teal-50)   | 4.72  | 3.0  | PASS   |
+| ai-text / ai-bg                      | `#521b79` (violet-800) | `#f7f0ff` (violet-50) | 10.53 | 4.5  | PASS   |
 
 ## Dark (`.dark`)
 
@@ -39,6 +41,8 @@ Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegro
 | info-foreground / info               | `#0e171e`            | `#8ec0ff` (blue-300)  | 9.60  | 4.5  | PASS   |
 | input / background (UI)              | `#637683` (ink-500)  | `#0e171e`             | 3.84  | 3.0  | PASS   |
 | ring / background (focus)            | `#2cb1bc` (teal-400) | `#0e171e`             | 7.00  | 3.0  | PASS   |
+| sidebar-primary / sidebar-accent     | `#1a95a2` (teal-500) | `#02252c` (teal-950)  | 4.50  | 3.0  | PASS   |
+| ai-text / ai-bg                      | `#d8b8fa` (violet-200) | `#3a0f57` (violet-900) | 8.77  | 4.5  | PASS   |
 
 ## High contrast (`html.high-contrast`)
 
@@ -48,6 +52,8 @@ Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegro
 | muted-foreground / background | ink-700 on white (~8.6:1)  | 4.5  | PASS   |
 | input / background            | ink-600 on white (~6.2:1)  | 3.0  | PASS   |
 | ring / background             | teal-700 on white (~6.8:1) | 3.0  | PASS   |
+| sidebar-primary / sidebar-accent | teal-600 on teal-50 (~4.7:1) | 3.0 | PASS |
+| ai-text / ai-bg | violet-800 on violet-50 (~10.5:1) | 4.5 | PASS |
 
 ## High contrast dark (`html.high-contrast.dark`)
 
@@ -57,6 +63,8 @@ Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForegro
 | muted-foreground / background | ink-200 on ink-950  | 4.5  | PASS   |
 | input / background            | ink-300 on ink-950  | 3.0  | PASS   |
 | ring / background             | teal-300 on ink-950 | 3.0  | PASS   |
+| sidebar-primary / sidebar-accent | teal-500 on teal-950 (~4.5:1) | 3.0 | PASS |
+| ai-text / ai-bg | violet-200 on violet-900 (~8.8:1) | 4.5 | PASS |
 
 ## Related
 
