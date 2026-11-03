@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { PageEmptyState } from '@/components/admin/page-empty-state';
 import { TruncatedText } from '@/components/admin/truncated-text';
+import { UserAvatar } from '@/components/admin/user-avatar';
 import { UserFormDrawer } from '@/components/admin/user-form-drawer';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
@@ -21,7 +22,6 @@ import {
     TablePagination,
     TablePanel,
 } from '@/components/layout/page-layout';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -46,14 +46,12 @@ import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { useDebouncedServerSearch } from '@/hooks/use-debounced-server-search';
 import { useDrawerDeepLink } from '@/hooks/use-drawer-deep-link';
-import { getInitialsFromParts } from '@/hooks/use-initials';
 import { useOnlineUsers } from '@/hooks/use-online-users';
 import { useRequestLeave } from '@/hooks/use-unsaved-changes';
 import AppLayout from '@/layouts/app-layout';
 import { seedUserPrompt, seedUsersBulkPrompt } from '@/lib/ai-open';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
-import { cn } from '@/lib/utils';
 import usersRoutes from '@/routes/users';
 import type { AdminUserRow, BreadcrumbItem, Paginated } from '@/types';
 
@@ -557,54 +555,12 @@ export default function AdminUsersIndex({
                                             </TableCell>
                                             <TableCell className="max-w-[12rem] font-medium">
                                                 <span className="inline-flex min-w-0 items-center gap-2">
-                                                    <span className="relative shrink-0">
-                                                        <Avatar
-                                                            userId={user.id}
-                                                            className="size-7"
-                                                        >
-                                                            <AvatarFallback className="text-xs font-medium">
-                                                                {getInitialsFromParts(
-                                                                    user.first_name,
-                                                                    user.last_name,
-                                                                ) ||
-                                                                    user.email
-                                                                        .charAt(
-                                                                            0,
-                                                                        )
-                                                                        .toUpperCase()}
-                                                            </AvatarFallback>
-                                                        </Avatar>
-                                                        <span
-                                                            className={cn(
-                                                                'absolute -right-0.5 -bottom-0.5 size-2 rounded-full ring-2 ring-background',
-                                                                onlineUsers.has(
-                                                                    user.id,
-                                                                )
-                                                                    ? 'bg-emerald-500'
-                                                                    : 'bg-muted-foreground/30',
-                                                            )}
-                                                            title={
-                                                                onlineUsers.has(
-                                                                    user.id,
-                                                                )
-                                                                    ? t(
-                                                                          'common.online',
-                                                                      )
-                                                                    : t(
-                                                                          'common.offline',
-                                                                      )
-                                                            }
-                                                            data-test="user-online-dot"
-                                                            data-online={
-                                                                onlineUsers.has(
-                                                                    user.id,
-                                                                )
-                                                                    ? '1'
-                                                                    : '0'
-                                                            }
-                                                            aria-hidden
-                                                        />
-                                                    </span>
+                                                    <UserAvatar
+                                                        user={user}
+                                                        isOnline={onlineUsers.has(
+                                                            user.id,
+                                                        )}
+                                                    />
                                                     <TruncatedText
                                                         text={userDisplayName(
                                                             user,
