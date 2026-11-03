@@ -415,3 +415,87 @@ it('keeps every checkbox-selected file and moves them all with one bulk action',
         expect($file->fresh()->parent_id)->toBe($destination->id);
     }
 });
+
+it('selects every visible file from the selection bar and keeps the actions on the right', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanDownloadFiles->value,
+    ]);
+
+    $files = collect(range(1, 3))->map(fn (int $index): File => File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => "bulk-{$index}.txt",
+        'title' => "Bulk file {$index}",
+        'path' => "/bulk-{$index}.txt",
+        'disk' => 'assets',
+        'storage_path' => "2026/07/bulk-{$index}.txt",
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]));
+
+    $this->actingAs($user);
+
+    $page = visit('/files');
+
+    $page->click("[data-testid=\"file-card-{$files->first()->id}\"]")
+        ->assertSee('1 selected')
+        ->assertAttribute('[data-testid="files-select-all"]', 'data-state', 'indeterminate')
+        ->assertScript(<<<'JS'
+(() => {
+  const bar = document.querySelector('[data-testid="files-select-all"]').closest('[data-slot="page-header"]').getBoundingClientRect();
+  const download = document.querySelector('[data-testid="files-action-download"]').getBoundingClientRect();
+
+  return bar.right - download.right < 8;
+})()
+JS)
+        ->click('[data-testid="files-select-all"]')
+        ->assertSee('3 selected')
+        ->assertAttribute('[data-testid="files-select-all"]', 'data-state', 'checked')
+        ->click('[data-testid="files-select-all"]')
+        ->assertMissing('[data-testid="files-select-all"]')
+        ->assertNoJavaScriptErrors();
+});
+
+it('keeps the selection actions inline after the selection grows and shrinks', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanDownloadFiles->value,
+        PermissionEnum::CanUseAi->value,
+    ]);
+
+    $files = collect(range(1, 2))->map(fn (int $index): File => File::query()->create([
+        'type' => FileTypeEnum::File,
+        'name' => "inline-{$index}.txt",
+        'title' => "Inline file {$index}",
+        'path' => "/inline-{$index}.txt",
+        'disk' => 'assets',
+        'storage_path' => "2026/07/inline-{$index}.txt",
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+    ]));
+
+    $this->actingAs($user);
+
+    $page = visit('/files');
+
+    $page->click("[data-testid=\"file-card-{$files->first()->id}\"]")
+        ->assertSee('1 selected')
+        ->assertVisible('[data-testid="files-action-download"]')
+        ->assertScript(<<<'JS'
+(() => {
+  const askAi = document.querySelector('[data-testid="ask-ai-toolbar"]').getBoundingClientRect();
+  const download = document.querySelector('[data-testid="files-action-download"]').getBoundingClientRect();
+
+  return askAi.right < download.left && download.left - askAi.right < 120;
+})()
+JS)
+        ->click('button[aria-label="Select inline-2.txt"]')
+        ->assertSee('2 selected')
+        ->assertVisible('[data-testid="files-action-download"]')
+        ->assertMissing('[data-testid="files-actions-more"]')
+        ->click('button[aria-label="Select inline-2.txt"]')
+        ->assertSee('1 selected')
+        ->assertVisible('[data-testid="files-action-download"]')
+        ->assertMissing('[data-testid="files-actions-more"]')
+        ->assertNoJavaScriptErrors();
+});

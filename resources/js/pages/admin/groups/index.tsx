@@ -263,7 +263,7 @@ export default function AdminGroupsIndex({
                             bulkActions={
                                 <>
                                     <AskAiButton
-                                        mode="labeled"
+                                        mode="toolbar"
                                         prompt={seedGroupsBulkPrompt(
                                             selectedRows,
                                         )}

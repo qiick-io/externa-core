@@ -19,8 +19,12 @@ type AskAiButtonProps = {
     onAsk?: () => void;
     /** Overrides the default "Ask AI" label. */
     label?: string;
-    /** icon = compact table-row action (`icon-sm`, 24px); labeled = bulk toolbar (default 32px, #472) */
-    mode?: 'icon' | 'labeled';
+    /**
+     * icon = compact table-row action (`icon-sm`, 24px); toolbar = icon-only
+     * selection / bulk bar action (32px, like the other bar actions);
+     * labeled = icon + text (32px, #472).
+     */
+    mode?: 'icon' | 'toolbar' | 'labeled';
     className?: string;
     stopPropagation?: boolean;
 };
@@ -96,9 +100,10 @@ export function AskAiButton({
             <Button
                 type="button"
                 variant="outline"
-                size="icon-sm"
+                size={mode === 'toolbar' ? 'icon' : 'icon-sm'}
                 className={buttonClassName}
                 aria-label={buttonLabel}
+                data-testid={mode === 'toolbar' ? 'ask-ai-toolbar' : undefined}
                 onClick={handleClick}
                 {...availabilityProps}
             >

@@ -286,7 +286,7 @@ export default function AdminUsersIndex({
                                 bulkActions={
                                     <>
                                         <AskAiButton
-                                            mode="labeled"
+                                            mode="toolbar"
                                             prompt={seedUsersBulkPrompt(
                                                 selectedRows.map((user) => ({
                                                     id: user.id,

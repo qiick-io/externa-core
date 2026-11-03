@@ -818,7 +818,7 @@ export default function ItemsIndex({
                             bulkActions={
                                 <>
                                     <AskAiButton
-                                        mode="labeled"
+                                        mode="toolbar"
                                         prompt={seedItemsBulkPrompt(
                                             {
                                                 id: collection.id,
