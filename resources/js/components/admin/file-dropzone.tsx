@@ -243,7 +243,6 @@ export function FileDropzone({
                 <Button
                     type="button"
                     variant="outline"
-                    size="sm"
                     disabled={disabled}
                     onClick={openFilePicker}
                 >

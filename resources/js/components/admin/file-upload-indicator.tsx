@@ -189,8 +189,8 @@ export function FileUploadIndicator({
                             <Button
                                 type="button"
                                 variant="ghost"
-                                size="icon"
-                                className="size-7 shrink-0"
+                                size="icon-sm"
+                                className="shrink-0"
                                 aria-label={
                                     expanded
                                         ? t('files.uploadIndicator.minimize')
@@ -208,8 +208,8 @@ export function FileUploadIndicator({
                             <Button
                                 type="button"
                                 variant="ghost"
-                                size="icon"
-                                className="size-7 shrink-0"
+                                size="icon-sm"
+                                className="shrink-0"
                                 aria-label={t('files.uploadIndicator.close')}
                                 onClick={onDismissAll}
                             >
@@ -255,8 +255,8 @@ export function FileUploadIndicator({
                                                 <Button
                                                     type="button"
                                                     variant="ghost"
-                                                    size="icon"
-                                                    className="size-7 shrink-0"
+                                                    size="icon-sm"
+                                                    className="shrink-0"
                                                     aria-label={t(
                                                         'a11y.dismissUpload',
                                                     )}

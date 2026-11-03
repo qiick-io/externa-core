@@ -461,7 +461,6 @@ export default function Security({
                                                 <Button
                                                     type="button"
                                                     variant="destructive"
-                                                    size="sm"
                                                     disabled={
                                                         deletingPasskeyId ===
                                                         passkey.id

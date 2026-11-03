@@ -1444,7 +1444,6 @@ export default function ItemsForm({
                         <span>Restored unsaved browser draft.</span>
                         <Button
                             type="button"
-                            size="sm"
                             variant="outline"
                             data-test="discard-item-draft"
                             onClick={() => {
@@ -1469,7 +1468,6 @@ export default function ItemsForm({
                         </span>
                         <Button
                             type="button"
-                            size="sm"
                             variant="outline"
                             data-test="item-stale-reload"
                             onClick={() => router.reload()}

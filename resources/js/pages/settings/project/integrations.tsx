@@ -821,7 +821,7 @@ export default function ProjectIntegrationsSettingsPage({
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
-                                                            size="icon-sm"
+                                                            size="icon"
                                                             onClick={() =>
                                                                 removeDeployHook(
                                                                     hook.clientKey,

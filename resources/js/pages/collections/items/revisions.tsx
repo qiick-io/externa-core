@@ -277,7 +277,7 @@ export default function ItemRevisions({
                             onChange={(event) =>
                                 setDateFrom(event.target.value)
                             }
-                            className="h-9 w-auto"
+                            className="w-auto"
                             aria-label={t('a11y.fromDate')}
                         />
                     </div>
@@ -289,13 +289,12 @@ export default function ItemRevisions({
                             value={dateTo}
                             min={dateFrom || undefined}
                             onChange={(event) => setDateTo(event.target.value)}
-                            className="h-9 w-auto"
+                            className="w-auto"
                             aria-label={t('a11y.toDate')}
                         />
                     </div>
                     <Button
                         type="button"
-                        size="sm"
                         variant="secondary"
                         onClick={applyFilter}
                         disabled={loading}
@@ -304,7 +303,6 @@ export default function ItemRevisions({
                     </Button>
                     <Button
                         type="button"
-                        size="sm"
                         variant="ghost"
                         onClick={clearFilter}
                         disabled={loading || !filterActive}
@@ -368,7 +366,6 @@ export default function ItemRevisions({
                                                 {canRestore ? (
                                                     <Button
                                                         type="button"
-                                                        size="sm"
                                                         variant="outline"
                                                         onClick={() =>
                                                             setRestoreRevisionId(

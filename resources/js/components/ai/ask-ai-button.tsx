@@ -10,11 +10,10 @@ import {
 import { PermissionEnum } from '@/enums/permission-enum';
 import { useCan } from '@/hooks/use-can';
 import { openAiWithPrompt } from '@/lib/ai-open';
-import { cn } from '@/lib/utils';
 
 type AskAiButtonProps = {
     prompt: string;
-    /** icon = compact row action (`sm`); labeled = bulk toolbar (default control size, #462) */
+    /** icon = compact table-row action (`icon-sm`, 24px); labeled = bulk toolbar (default 32px, #472) */
     mode?: 'icon' | 'labeled';
     className?: string;
     stopPropagation?: boolean;
@@ -65,12 +64,12 @@ export function AskAiButton({
                 <Button
                     type="button"
                     variant="outline"
-                    size="sm"
-                    className={cn('px-2', className)}
+                    size="icon-sm"
+                    className={className}
                     aria-label={label}
                     onClick={handleClick}
                 >
-                    <Sparkles className="size-3.5 text-ai" />
+                    <Sparkles className="text-ai" aria-hidden="true" />
                 </Button>
             </TooltipTrigger>
             <TooltipContent>{label}</TooltipContent>

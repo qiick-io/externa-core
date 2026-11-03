@@ -179,7 +179,7 @@ export function TablePagination({ links }: { links: TablePaginationLink[] }) {
                                         variant: link.active
                                             ? 'outline'
                                             : 'ghost',
-                                        size: isPageNumber ? 'icon' : 'sm',
+                                        size: isPageNumber ? 'icon' : 'default',
                                     }),
                                     !isPageNumber && 'min-w-0 px-2.5',
                                     !link.url &&

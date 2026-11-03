@@ -16,4 +16,22 @@ describe('cn with the control-size scale (#462)', () => {
         expect(buttonVariants({ size: 'lg' })).toContain('h-control-lg');
         expect(buttonVariants({ size: 'icon' })).toContain('size-control');
     });
+
+    it('scales text and icons down at sm once merged by cn (#472)', () => {
+        const smallButton = cn(buttonVariants({ size: 'sm' }));
+        const smallIconButton = cn(buttonVariants({ size: 'icon-sm' }));
+
+        expect(smallButton).toContain('text-xs');
+        expect(smallButton).not.toContain('text-sm');
+        expect(smallButton).toContain("[&_svg:not([class*='size-'])]:size-3.5");
+        expect(smallButton).not.toContain(
+            "[&_svg:not([class*='size-'])]:size-4",
+        );
+        expect(smallIconButton).toContain(
+            "[&_svg:not([class*='size-'])]:size-3.5",
+        );
+        expect(buttonVariants()).toContain(
+            "[&_svg:not([class*='size-'])]:size-4",
+        );
+    });
 });

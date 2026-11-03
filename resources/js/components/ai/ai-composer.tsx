@@ -250,7 +250,7 @@ export function AiComposer({
                                         type="button"
                                         size="icon"
                                         variant="ghost"
-                                        className="size-8 text-muted-foreground"
+                                        className="text-muted-foreground"
                                         disabled={disabled || isStreaming}
                                         onClick={onOpenPresets}
                                         aria-label={t('ai.usefulActionsAria')}
@@ -270,7 +270,7 @@ export function AiComposer({
                                         type="button"
                                         size="icon"
                                         variant="ghost"
-                                        className="size-8 text-muted-foreground"
+                                        className="text-muted-foreground"
                                         disabled={
                                             disabled ||
                                             isStreaming ||
@@ -293,11 +293,10 @@ export function AiComposer({
                                 <TooltipTrigger asChild>
                                     <Button
                                         type="button"
-                                        size="sm"
                                         variant={
                                             dryRunMode ? 'secondary' : 'ghost'
                                         }
-                                        className="h-8 gap-1.5 px-2 text-xs"
+                                        className="gap-1.5 px-2"
                                         disabled={disabled || isStreaming}
                                         onClick={() =>
                                             onDryRunModeChange(!dryRunMode)
@@ -325,7 +324,7 @@ export function AiComposer({
                                             size="icon"
                                             variant="ghost"
                                             className={cn(
-                                                'size-8 text-muted-foreground',
+                                                'text-muted-foreground',
                                                 isListening &&
                                                     'bg-primary/10 text-primary',
                                             )}
@@ -361,7 +360,7 @@ export function AiComposer({
                                                 type="button"
                                                 size="icon"
                                                 variant="ghost"
-                                                className="size-8 text-muted-foreground"
+                                                className="text-muted-foreground"
                                                 disabled
                                                 aria-label={t(
                                                     'ai.dictationAria',
@@ -383,7 +382,7 @@ export function AiComposer({
                                 type="button"
                                 size="icon"
                                 variant="destructive"
-                                className="relative z-10 size-8 rounded-full"
+                                className="relative z-10 rounded-full"
                                 disabled={false}
                                 onClick={handleStopClick}
                                 aria-label={t('ai.stopAria')}
@@ -394,7 +393,7 @@ export function AiComposer({
                             <Button
                                 type="submit"
                                 size="icon"
-                                className="size-8 rounded-full"
+                                className="rounded-full"
                                 disabled={!canSubmit || isStreaming}
                                 aria-label={t('ai.sendAria')}
                             >

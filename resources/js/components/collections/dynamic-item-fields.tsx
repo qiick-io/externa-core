@@ -101,7 +101,7 @@ import type { CollectionFieldRow, FieldDef } from '@/types';
 const ITEM_FORM_ID = 'collection-item-form';
 
 const inputLike =
-    'border-input bg-background ring-offset-background focus-visible:border-ring focus-visible:ring-ring flex min-h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none read-only:cursor-default read-only:bg-muted/50 read-only:opacity-100';
+    'border-input bg-background ring-offset-background focus-visible:border-ring focus-visible:ring-ring flex min-h-control w-full rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none read-only:cursor-default read-only:bg-muted/50 read-only:opacity-100';
 
 type DefaultValue =
     | string
@@ -1043,8 +1043,8 @@ function NonTranslatableItemField({
             }}
             onInput={onMarkDirty}
         >
-            {/* min-h-8 matches Button/ToggleGroup sm so half-width siblings align with/without actions */}
-            <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
+            {/* min-h-control matches the default Button/ToggleGroup so half-width siblings align with/without actions */}
+            <div className="flex min-h-control flex-wrap items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-1 items-center gap-0.5">
                     {labelText ? (
                         <Label htmlFor={`data_${field.name}`}>

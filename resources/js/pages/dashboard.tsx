@@ -332,7 +332,6 @@ export default function Dashboard({
                                                                 action={
                                                                     <Button
                                                                         asChild
-                                                                        size="sm"
                                                                     >
                                                                         <Link href="/collections">
                                                                             {t(
@@ -574,7 +573,6 @@ export default function Dashboard({
                                                                     action={
                                                                         <Button
                                                                             asChild
-                                                                            size="sm"
                                                                         >
                                                                             <Link
                                                                                 href={activityLogs.index.url()}
@@ -782,7 +780,6 @@ export default function Dashboard({
                                                                             action={
                                                                                 <Button
                                                                                     asChild
-                                                                                    size="sm"
                                                                                 >
                                                                                     <Link
                                                                                         href={files.index.url()}

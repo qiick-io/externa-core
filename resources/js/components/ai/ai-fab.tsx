@@ -824,7 +824,6 @@ export function AiFab() {
                             />
                             <Button
                                 variant="ghost"
-                                size="sm"
                                 asChild
                                 className="self-start"
                             >

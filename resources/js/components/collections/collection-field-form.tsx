@@ -374,7 +374,6 @@ function OptionsEditor({
             <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 onClick={() => onChange([...options, { value: '', label: '' }])}
             >
                 Add choice
@@ -468,7 +467,6 @@ function TreeOptionsEditor({
                     <Button
                         type="button"
                         variant="outline"
-                        size="sm"
                         onClick={() =>
                             updateNode(index, (node) => ({
                                 ...node,
@@ -488,7 +486,6 @@ function TreeOptionsEditor({
                 <Button
                     type="button"
                     variant="outline"
-                    size="sm"
                     onClick={() =>
                         onChange([
                             ...options,
@@ -1032,7 +1029,6 @@ function BlocksSettingsEditor({
                                             <Button
                                                 type="button"
                                                 variant="ghost"
-                                                size="sm"
                                                 onClick={() =>
                                                     updateBlock(blockIndex, {
                                                         fields: blockType.fields.filter(
@@ -1205,7 +1201,6 @@ function BlocksSettingsEditor({
                             <div className="flex flex-wrap gap-2">
                                 <Button
                                     type="button"
-                                    size="sm"
                                     variant="outline"
                                     onClick={() =>
                                         updateBlock(blockIndex, {
@@ -1227,7 +1222,6 @@ function BlocksSettingsEditor({
                                 </Button>
                                 <Button
                                     type="button"
-                                    size="sm"
                                     variant="outline"
                                     disabled={blockIndex === 0}
                                     onClick={() => move(blockIndex, -1)}
@@ -1236,7 +1230,6 @@ function BlocksSettingsEditor({
                                 </Button>
                                 <Button
                                     type="button"
-                                    size="sm"
                                     variant="outline"
                                     disabled={
                                         blockIndex === blockTypes.length - 1
@@ -1247,7 +1240,6 @@ function BlocksSettingsEditor({
                                 </Button>
                                 <Button
                                     type="button"
-                                    size="sm"
                                     variant="ghost"
                                     onClick={() =>
                                         onChange(
@@ -1269,7 +1261,6 @@ function BlocksSettingsEditor({
             <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 onClick={() =>
                     onChange([...blockTypes, nextBlockTypeDefaults(blockTypes)])
                 }

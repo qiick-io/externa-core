@@ -394,7 +394,6 @@ export default function Appearance({
                                         <Button
                                             type="button"
                                             variant="ghost"
-                                            size="sm"
                                             className="w-fit"
                                             onClick={() => {
                                                 setProjectColor(null);
@@ -468,7 +467,6 @@ export default function Appearance({
                                                     <Button
                                                         type="button"
                                                         variant="outline"
-                                                        size="sm"
                                                         onClick={() =>
                                                             setPickerField(
                                                                 field.key,
@@ -501,7 +499,6 @@ export default function Appearance({
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
-                                                            size="sm"
                                                             onClick={() =>
                                                                 setFiles(
                                                                     (

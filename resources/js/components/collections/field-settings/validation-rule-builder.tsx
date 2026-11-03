@@ -122,7 +122,6 @@ export function ValidationRuleBuilder({
             <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 onClick={() =>
                     onRulesChange([
                         ...rules,

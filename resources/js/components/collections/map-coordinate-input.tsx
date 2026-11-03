@@ -503,7 +503,7 @@ function ToolbarButton({
                     type="button"
                     size="icon"
                     variant={pressed ? 'default' : 'ghost'}
-                    className={cn('size-8 shrink-0', pressed && 'shadow-xs')}
+                    className={cn('shrink-0', pressed && 'shadow-xs')}
                     aria-label={label}
                     aria-pressed={pressed}
                     disabled={disabled}

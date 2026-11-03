@@ -29,7 +29,7 @@ export function PageHeader({
     const showFilterRow = Boolean(filters || filtersRight);
 
     return (
-        <div className="flex shrink-0 flex-col gap-3">
+        <div data-slot="page-header" className="flex shrink-0 flex-col gap-3">
             {description ? (
                 <p className="max-w-2xl text-sm text-muted-foreground">
                     {description}

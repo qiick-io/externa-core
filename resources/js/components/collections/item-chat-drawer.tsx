@@ -1895,7 +1895,6 @@ export function ItemChatDrawer({
                             <Button
                                 type="button"
                                 variant="outline"
-                                size="sm"
                                 disabled={loading || loadingMore}
                                 onClick={() => {
                                     const oldestId = messages[0]?.id;
@@ -2286,7 +2285,6 @@ export function ItemChatDrawer({
                                                                                     <div className="flex gap-2">
                                                                                         <Button
                                                                                             type="button"
-                                                                                            size="sm"
                                                                                             onClick={() =>
                                                                                                 saveEdit(
                                                                                                     comment,
@@ -2299,7 +2297,6 @@ export function ItemChatDrawer({
                                                                                         </Button>
                                                                                         <Button
                                                                                             type="button"
-                                                                                            size="sm"
                                                                                             variant="ghost"
                                                                                             onClick={() =>
                                                                                                 setEditingId(
@@ -2578,7 +2575,6 @@ export function ItemChatDrawer({
                             </div>
                             <Button
                                 type="button"
-                                size="sm"
                                 variant="ghost"
                                 className="h-6 px-1"
                                 onClick={() => setReplyTo(null)}

@@ -296,7 +296,6 @@ export function LucideIconPicker({
                             <Button
                                 type="button"
                                 variant="ghost"
-                                size="sm"
                                 className="w-full"
                                 onClick={() => {
                                     onChange('');

@@ -46,7 +46,6 @@ export default function AppearanceToggleTab({
                     }
                 }}
                 variant="outline"
-                size="sm"
                 className="bg-muted"
             >
                 {tabs.map(({ value, icon: Icon, label }) => (

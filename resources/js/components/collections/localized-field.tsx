@@ -269,8 +269,8 @@ export function LocalizedField({
 
     return (
         <div className={cn('space-y-2', className)}>
-            {/* min-h-8 matches Button/ToggleGroup sm so half-width siblings align with/without headerActions */}
-            <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
+            {/* min-h-control matches the default Button/ToggleGroup so half-width siblings align with/without headerActions */}
+            <div className="flex min-h-control flex-wrap items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-1 items-center gap-0.5">
                     {label ? (
                         <Label htmlFor={children ? undefined : controlId}>
@@ -287,7 +287,6 @@ export function LocalizedField({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="sm"
                                     className="gap-2"
                                     disabled={disabled}
                                     data-test="localized-field-locale"

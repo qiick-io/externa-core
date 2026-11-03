@@ -66,7 +66,6 @@ export function PageEmptyState({
                         <Button
                             variant="link"
                             asChild
-                            size="sm"
                             className="text-muted-foreground"
                         >
                             <a href={docsHref} target="_blank" rel="noreferrer">

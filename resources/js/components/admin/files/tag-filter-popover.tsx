@@ -64,8 +64,7 @@ export function TagFilterPopover({
                         <Button
                             type="button"
                             variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs"
+                            className="px-2"
                             onClick={() => onChange([])}
                         >
                             <X className="mr-1 size-3" />

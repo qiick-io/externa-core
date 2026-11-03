@@ -334,7 +334,6 @@ export default function PerformanceSettingsPage({
                                     {links.jobs && (
                                         <Button
                                             variant="outline"
-                                            size="sm"
                                             asChild
                                             data-test="performance-link-jobs"
                                         >
@@ -348,7 +347,6 @@ export default function PerformanceSettingsPage({
                                     {links.pulse && (
                                         <Button
                                             variant="outline"
-                                            size="sm"
                                             asChild
                                             data-test="performance-link-pulse"
                                         >
@@ -362,7 +360,6 @@ export default function PerformanceSettingsPage({
                                     {links.horizon && (
                                         <Button
                                             variant="outline"
-                                            size="sm"
                                             asChild
                                             data-test="performance-link-horizon"
                                         >
@@ -403,7 +400,6 @@ export default function PerformanceSettingsPage({
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        size="sm"
                                         disabled={flushing !== null}
                                         data-test={`performance-flush-${action.key}`}
                                         onClick={() => runFlush(action)}

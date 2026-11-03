@@ -486,7 +486,6 @@ export function BlocksFieldInput({
                                     <div className="ml-auto flex gap-1">
                                         <Button
                                             type="button"
-                                            size="sm"
                                             variant="ghost"
                                             disabled={index === 0}
                                             aria-label={t('a11y.moveBlockUp')}
@@ -498,7 +497,6 @@ export function BlocksFieldInput({
                                         </Button>
                                         <Button
                                             type="button"
-                                            size="sm"
                                             variant="ghost"
                                             disabled={
                                                 index === blocks.length - 1
@@ -512,7 +510,6 @@ export function BlocksFieldInput({
                                         </Button>
                                         <Button
                                             type="button"
-                                            size="sm"
                                             variant="ghost"
                                             onClick={() =>
                                                 duplicateBlock(block.id)
@@ -523,7 +520,6 @@ export function BlocksFieldInput({
                                         </Button>
                                         <Button
                                             type="button"
-                                            size="sm"
                                             variant="ghost"
                                             onClick={() =>
                                                 removeBlock(block.id)
@@ -733,7 +729,7 @@ export function BlocksFieldInput({
                                                 );
                                             }}
                                         >
-                                            <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
+                                            <div className="flex min-h-control flex-wrap items-center justify-between gap-2">
                                                 <div className="min-w-0 flex-1">
                                                     <Label
                                                         htmlFor={`${field.name}_${block.id}_${nestedField.name}`}
@@ -778,7 +774,6 @@ export function BlocksFieldInput({
                         <Button
                             key={blockType.key}
                             type="button"
-                            size="sm"
                             variant="outline"
                             onClick={() => addBlock(blockType.key)}
                         >
