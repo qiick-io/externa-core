@@ -151,3 +151,33 @@ it('shows the group name and slug in separate columns', function () {
         ->assertScript("document.querySelector('tbody tr td:nth-child(3)').textContent.trim() === 'column-group'")
         ->assertNoJavaScriptErrors();
 });
+
+it('shows member avatars with initials next to the member count', function () {
+    $actor = grantBrowserGroupPermissions(User::factory()->create(), [
+        PermissionEnum::CanShowGroups->value,
+    ]);
+
+    $members = collect([
+        ['first_name' => 'Ada', 'last_name' => 'Lovelace'],
+        ['first_name' => 'Grace', 'last_name' => 'Hopper'],
+        ['first_name' => 'Alan', 'last_name' => 'Turing'],
+        ['first_name' => 'Edsger', 'last_name' => 'Dijkstra'],
+    ])->map(fn (array $name): User => User::factory()->create($name));
+
+    $group = UserGroup::factory()->create(['name' => 'Avatar Group']);
+    $group->users()->sync($members->pluck('id'));
+
+    $this->actingAs($actor);
+
+    $page = visit('/groups');
+
+    $selector = "[data-test=\"group-member-avatars-{$group->id}\"]";
+
+    $page->assertSee('Avatar Group')
+        ->assertPresent($selector)
+        ->assertScript("document.querySelectorAll('{$selector} [data-slot=\"avatar\"]').length === 3")
+        ->assertScript("Array.from(document.querySelectorAll('{$selector} [data-slot=\"avatar\"]')).map((avatar) => avatar.textContent.trim()).join(',') === 'AL,GH,AT'")
+        ->assertScript("document.querySelectorAll('{$selector} [data-test=\"user-online-dot\"]').length === 3")
+        ->assertScript("document.querySelector('{$selector}').closest('td').textContent.trim().endsWith('4')")
+        ->assertNoJavaScriptErrors();
+});
