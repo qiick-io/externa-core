@@ -283,25 +283,28 @@ export default function ChatHubPage({
                                 ) : null}
                             </ToggleGroupItem>
                         </ToggleGroup>
-                        {tab === 'private' ? (
-                            <HeaderIconButton
-                                type="button"
-                                data-test="chat-filter-archived"
-                                variant={showArchived ? 'default' : 'outline'}
-                                label={
-                                    showArchived
-                                        ? t('chatHub.showInbox')
-                                        : t('chatHub.showArchived')
-                                }
-                                onClick={() => setShowArchived((prev) => !prev)}
-                            >
-                                {showArchived ? (
-                                    <Inbox className="size-4" />
-                                ) : (
-                                    <Archive className="size-4" />
-                                )}
-                            </HeaderIconButton>
-                        ) : null}
+                        <HeaderIconButton
+                            type="button"
+                            data-test="chat-filter-archived"
+                            disabled={tab !== 'private'}
+                            variant={
+                                tab === 'private' && showArchived
+                                    ? 'default'
+                                    : 'outline'
+                            }
+                            label={
+                                showArchived
+                                    ? t('chatHub.showInbox')
+                                    : t('chatHub.showArchived')
+                            }
+                            onClick={() => setShowArchived((prev) => !prev)}
+                        >
+                            {tab === 'private' && showArchived ? (
+                                <Inbox className="size-4" />
+                            ) : (
+                                <Archive className="size-4" />
+                            )}
+                        </HeaderIconButton>
                     </>
                 }
             >
@@ -317,7 +320,7 @@ export default function ChatHubPage({
                             data-test="chat-list"
                             className={cn(
                                 'min-h-0 flex-1 overflow-y-auto p-2',
-                                !threadsLoaded &&
+                                (!threadsLoaded || threads.length === 0) &&
                                     'flex flex-col items-center justify-center',
                             )}
                         >
