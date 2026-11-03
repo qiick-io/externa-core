@@ -591,7 +591,7 @@ function CollectionFieldRowActions({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-8 shrink-0"
+                        className="shrink-0"
                         aria-label={t('a11y.fieldActions')}
                         onClick={(event) => event.stopPropagation()}
                         onPointerDown={(event) => event.stopPropagation()}
@@ -867,7 +867,6 @@ function PanelAddSectionControl({
             ) : null}
             <Button
                 type="button"
-                size="sm"
                 variant="outline"
                 className="gap-2"
                 onClick={(event) => {

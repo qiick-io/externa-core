@@ -692,7 +692,6 @@ export function ItemsKanban({
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    size="sm"
                                     className="w-full"
                                     disabled={column.loading}
                                     data-test={`kanban-load-more-${column.value || 'empty'}`}

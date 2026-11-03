@@ -930,7 +930,6 @@ export function ItemsCalendar({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-8"
                         aria-label={t('collections.itemsList.calendarPrevYear')}
                         data-test="calendar-prev-year"
                         onClick={goPrevYear}
@@ -941,7 +940,6 @@ export function ItemsCalendar({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-8"
                         aria-label={t('collections.itemsList.calendarPrev')}
                         data-test="calendar-prev"
                         onClick={goPrev}
@@ -952,7 +950,6 @@ export function ItemsCalendar({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-8"
                         aria-label={t('collections.itemsList.calendarNext')}
                         data-test="calendar-next"
                         onClick={goNext}
@@ -963,7 +960,6 @@ export function ItemsCalendar({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-8"
                         aria-label={t('collections.itemsList.calendarNextYear')}
                         data-test="calendar-next-year"
                         onClick={goNextYear}
@@ -973,8 +969,7 @@ export function ItemsCalendar({
                     <Button
                         type="button"
                         variant="ghost"
-                        size="sm"
-                        className="ml-1 h-8 text-xs"
+                        className="ml-1"
                         data-test="calendar-today"
                         onClick={goToday}
                     >

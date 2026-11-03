@@ -261,7 +261,6 @@ export function FileGrid({
                         <Button
                             type="button"
                             variant="outline"
-                            size="sm"
                             disabled={loadingMore}
                             onClick={onLoadMore}
                         >

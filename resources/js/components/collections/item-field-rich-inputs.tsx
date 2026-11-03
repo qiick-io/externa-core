@@ -97,7 +97,7 @@ import type { AdminFileRow } from '@/types/files';
 
 import '@uiw/react-md-editor/markdown-editor.css';
 
-/** Outer chrome for color picker — matches Input h-9 single-row controls. */
+/** Outer chrome for color picker — matches the default Input height (`h-control`). */
 const colorFieldChrome = cn(fieldControlChromeSingle, 'dark:border-white/25');
 const colorFieldChromeWithOpacity = cn(
     fieldControlChromeMulti,
@@ -172,9 +172,8 @@ function ToolbarButton({
     return (
         <Button
             type="button"
-            size="sm"
             variant={active ? 'default' : 'outline'}
-            className="h-7 px-2"
+            className="px-2"
             aria-label={label}
             title={label}
             disabled={disabled}
@@ -417,7 +416,6 @@ export function MarkdownModeToggle({
                     onChange(next);
                 }
             }}
-            size="sm"
             className="justify-start"
             disabled={disabled}
         >
@@ -466,9 +464,8 @@ function MarkdownToolbar({
                 <DropdownMenuTrigger asChild>
                     <Button
                         type="button"
-                        size="sm"
                         variant="outline"
-                        className="h-7 gap-1.5 px-2"
+                        className="gap-1.5 px-2"
                         aria-label={t('richText.heading')}
                         title={t('richText.heading')}
                         disabled={disabled}
@@ -563,9 +560,8 @@ function MarkdownToolbar({
                 <DropdownMenuTrigger asChild>
                     <Button
                         type="button"
-                        size="sm"
                         variant="outline"
-                        className="h-7 px-2"
+                        className="px-2"
                         aria-label={t('richText.image')}
                         title={t('richText.image')}
                         disabled={disabled}
@@ -1202,7 +1198,7 @@ export function TagChipInput({
 
     return (
         <div className="space-y-2">
-            <div className="flex min-h-9 flex-wrap items-center gap-2 rounded-md border px-2 py-1">
+            <div className="flex min-h-control flex-wrap items-center gap-2 rounded-md border px-2 py-0.5">
                 {tags.map((tag) => (
                     <Badge key={tag} variant="secondary" className="gap-1">
                         {tag}

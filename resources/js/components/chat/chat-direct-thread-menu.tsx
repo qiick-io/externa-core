@@ -132,7 +132,7 @@ export function ChatDirectThreadMenu({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className={cn('size-8 shrink-0', triggerClassName)}
+                        className={cn('shrink-0', triggerClassName)}
                         data-test="chat-thread-menu"
                         aria-label={t('collections.itemChat.more')}
                         onClick={(event) => {

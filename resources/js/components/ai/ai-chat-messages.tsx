@@ -171,7 +171,6 @@ export function AiChatMessages({
                                             <div className="flex justify-end gap-2">
                                                 <Button
                                                     type="button"
-                                                    size="sm"
                                                     variant="ghost"
                                                     onClick={onCancelEdit}
                                                 >
@@ -179,7 +178,6 @@ export function AiChatMessages({
                                                 </Button>
                                                 <Button
                                                     type="button"
-                                                    size="sm"
                                                     onClick={() =>
                                                         onResendEdited(
                                                             message.id,
@@ -228,7 +226,6 @@ export function AiChatMessages({
                                             </div>
                                             <Button
                                                 type="button"
-                                                size="sm"
                                                 variant="secondary"
                                                 className="w-fit"
                                                 disabled={actionsLocked}
@@ -288,7 +285,6 @@ export function AiChatMessages({
                                                     <div className="flex gap-2">
                                                         <Button
                                                             type="button"
-                                                            size="sm"
                                                             variant="destructive"
                                                             disabled={
                                                                 actionsLocked
@@ -304,7 +300,6 @@ export function AiChatMessages({
                                                         </Button>
                                                         <Button
                                                             type="button"
-                                                            size="sm"
                                                             variant="outline"
                                                             disabled={
                                                                 actionsLocked
@@ -359,7 +354,7 @@ export function AiChatMessages({
                                                                           type="button"
                                                                           size="sm"
                                                                           variant="outline"
-                                                                          className="h-7 rounded-full text-xs"
+                                                                          className="rounded-full"
                                                                           onClick={() =>
                                                                               onSuggestedAction(
                                                                                   action.prompt,

@@ -117,15 +117,16 @@
     --radius-sm: calc(var(--radius) - 4px);
 
     /*
-     * Control-size scale (#462): one height per size for every control
-     * (Button, icon Button, Input, InputGroup, NativeSelect, Select trigger,
-     * Toggle/ToggleGroup, date-time picker trigger) so mixed rows line up.
-     * Exposed as spacing keys: h-control, size-control-sm, min-w-control-lg, …
-     * All sizes stay above the WCAG 2.2 SC 2.5.8 minimum target (24px).
+     * Control-size scale (antd: #462, #472): one height per size for every
+     * control (Button, icon Button, Input, InputGroup, NativeSelect, Select
+     * trigger and items, Toggle/ToggleGroup, date-time picker trigger) so
+     * mixed rows line up. Exposed as spacing keys: h-control, size-control-sm,
+     * min-w-control-lg, … `sm` is only for compact inline actions (table row
+     * icons, chips) and sits exactly on the WCAG 2.2 SC 2.5.8 minimum (24px).
      */
-    --spacing-control-sm: 2rem; /* 32px */
-    --spacing-control: 2.25rem; /* 36px — default for page headers and toolbars */
-    --spacing-control-lg: 2.5rem; /* 40px */
+    --spacing-control-sm: 1.5rem; /* 24px — compact inline actions only */
+    --spacing-control: 2rem; /* 32px — default everywhere */
+    --spacing-control-lg: 2.5rem; /* 40px — rare large CTAs */
 
     --shadow-xs: 0 1px 2px rgb(14 23 30 / 0.05);
     --shadow-sm: 0 1px 3px rgb(14 23 30 / 0.08), 0 1px 2px rgb(14 23 30 / 0.04);

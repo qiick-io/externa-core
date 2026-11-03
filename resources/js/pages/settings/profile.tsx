@@ -420,7 +420,6 @@ export default function Profile({
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            size="sm"
                                             data-test="notification-sounds-test"
                                             onClick={() => {
                                                 playTestSound();

@@ -293,7 +293,6 @@ export function FolderPickerDialog({
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    size="sm"
                                     className="w-full"
                                     disabled={loading || submitting}
                                     onClick={() =>

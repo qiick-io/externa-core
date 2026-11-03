@@ -61,7 +61,6 @@ export function FieldConditionsSettings({
                 </p>
                 <Button
                     type="button"
-                    size="sm"
                     variant="outline"
                     onClick={() =>
                         onChange({
@@ -233,7 +232,6 @@ export function FieldConditionsSettings({
 
                 <Button
                     type="button"
-                    size="sm"
                     variant="outline"
                     onClick={() =>
                         onChange({
@@ -317,7 +315,6 @@ export function FieldConditionsSettings({
 
             <Button
                 type="button"
-                size="sm"
                 variant="ghost"
                 onClick={() => onChange(null)}
             >

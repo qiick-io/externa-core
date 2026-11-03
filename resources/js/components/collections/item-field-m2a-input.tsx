@@ -256,7 +256,6 @@ export function M2aFieldInput({
                                     <div className="ml-auto flex gap-1">
                                         <Button
                                             type="button"
-                                            size="sm"
                                             variant="ghost"
                                             disabled={blockIndex === 0}
                                             aria-label={t('a11y.moveBlockUp')}
@@ -268,7 +267,6 @@ export function M2aFieldInput({
                                         </Button>
                                         <Button
                                             type="button"
-                                            size="sm"
                                             variant="ghost"
                                             disabled={
                                                 blockIndex === blocks.length - 1
@@ -282,7 +280,6 @@ export function M2aFieldInput({
                                         </Button>
                                         <Button
                                             type="button"
-                                            size="sm"
                                             variant="ghost"
                                             onClick={() =>
                                                 removeBlock(block.id)
@@ -328,7 +325,6 @@ export function M2aFieldInput({
             {!readonly ? (
                 <Button
                     type="button"
-                    size="sm"
                     variant="outline"
                     disabled={allowedCollections.length === 0}
                     onClick={addBlock}

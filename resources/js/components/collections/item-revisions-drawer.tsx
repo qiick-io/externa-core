@@ -224,7 +224,6 @@ export function ItemRevisionsDrawer({
                                         onChange={(event) =>
                                             setDateFrom(event.target.value)
                                         }
-                                        className="h-9"
                                         aria-label={t('a11y.fromDate')}
                                     />
                                 </div>
@@ -238,7 +237,6 @@ export function ItemRevisionsDrawer({
                                         onChange={(event) =>
                                             setDateTo(event.target.value)
                                         }
-                                        className="h-9"
                                         aria-label={t('a11y.toDate')}
                                     />
                                 </div>
@@ -246,7 +244,6 @@ export function ItemRevisionsDrawer({
                             <div className="flex gap-2">
                                 <Button
                                     type="button"
-                                    size="sm"
                                     variant="secondary"
                                     className="flex-1"
                                     onClick={applyFilter}
@@ -256,7 +253,6 @@ export function ItemRevisionsDrawer({
                                 </Button>
                                 <Button
                                     type="button"
-                                    size="sm"
                                     variant="ghost"
                                     className="flex-1"
                                     onClick={clearFilter}
@@ -323,9 +319,8 @@ export function ItemRevisionsDrawer({
                                     {canRestore ? (
                                         <Button
                                             type="button"
-                                            size="sm"
                                             variant="ghost"
-                                            className="shrink-0 text-xs text-muted-foreground"
+                                            className="shrink-0 text-muted-foreground"
                                             title="Hard restore (writes immediately)"
                                             data-test={`hard-restore-${revision.id}`}
                                             onClick={() =>

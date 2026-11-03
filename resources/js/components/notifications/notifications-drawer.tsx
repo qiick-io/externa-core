@@ -197,7 +197,6 @@ export function NotificationsDrawer({
                     <Button
                         type="button"
                         variant="ghost"
-                        size="sm"
                         className="text-muted-foreground hover:text-foreground"
                         disabled={isMutating || isLoading || !hasUnread}
                         onClick={() => void handleMarkAllRead()}

@@ -139,8 +139,7 @@ export function ColumnPickerPopover({
                 <Button
                     type="button"
                     variant="ghost"
-                    size="icon"
-                    className="size-7"
+                    size="icon-sm"
                     aria-label={t('a11y.configureColumns')}
                     aria-expanded={open}
                     aria-haspopup="dialog"
@@ -170,7 +169,7 @@ export function ColumnPickerPopover({
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="Search fields"
                             maxLength={STRING_LIMITS.SEARCH}
-                            className="h-8 pl-8 text-sm"
+                            className="pl-8 text-sm"
                         />
                     </div>
                     {drillField ? (

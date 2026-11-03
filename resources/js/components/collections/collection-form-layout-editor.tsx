@@ -159,7 +159,6 @@ export function CollectionFormLayoutEditor({
                 <div className="flex flex-wrap gap-2">
                     <Button
                         type="button"
-                        size="sm"
                         variant="outline"
                         onClick={addTab}
                         disabled={saving}
@@ -168,7 +167,6 @@ export function CollectionFormLayoutEditor({
                     </Button>
                     <Button
                         type="button"
-                        size="sm"
                         variant="outline"
                         onClick={addSection}
                         disabled={saving}
@@ -178,7 +176,6 @@ export function CollectionFormLayoutEditor({
                     {(tabs.length > 0 || sections.length > 0) && (
                         <Button
                             type="button"
-                            size="sm"
                             variant="ghost"
                             aria-label={t('a11y.removeTab')}
                             onClick={clearLayout}

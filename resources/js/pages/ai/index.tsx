@@ -1471,7 +1471,6 @@ export default function AiIndexPage({
                             <Button
                                 size="icon"
                                 variant="outline"
-                                className="size-8"
                                 disabled={
                                     selectedIds.size === 0 || isBulkDeleting
                                 }
@@ -1481,7 +1480,6 @@ export default function AiIndexPage({
                                 <Trash2 className="size-3.5" />
                             </Button>
                             <Button
-                                size="sm"
                                 variant="outline"
                                 onClick={() => void handleNewChat()}
                             >
@@ -1563,7 +1561,6 @@ export default function AiIndexPage({
                                                             size="icon"
                                                             variant="ghost"
                                                             className={cn(
-                                                                'size-8',
                                                                 conversation.pinned_at
                                                                     ? 'opacity-100'
                                                                     : 'opacity-0 group-hover:opacity-100',
@@ -1594,7 +1591,7 @@ export default function AiIndexPage({
                                                         <Button
                                                             size="icon"
                                                             variant="ghost"
-                                                            className="size-8 opacity-0 group-hover:opacity-100"
+                                                            className="opacity-0 group-hover:opacity-100"
                                                             onClick={() =>
                                                                 void handleDelete(
                                                                     conversation.id,
@@ -1616,7 +1613,6 @@ export default function AiIndexPage({
                                     <Button
                                         type="button"
                                         variant="ghost"
-                                        size="sm"
                                         className="mb-2 w-full text-muted-foreground"
                                         disabled={isLoadingMore}
                                         onClick={() =>
@@ -1644,7 +1640,7 @@ export default function AiIndexPage({
                                 files
                             </p>
                         </div>
-                        <Button variant="ghost" size="sm" asChild>
+                        <Button variant="ghost" asChild>
                             <Link href={aiIndex.url()}>New chat</Link>
                         </Button>
                     </div>

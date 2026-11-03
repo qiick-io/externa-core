@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * Shared height token for single-row collection field controls.
- * Default step of the control-size scale (#462, `--spacing-control` = 36px),
+ * Default step of the control-size scale (#462, #472, `--spacing-control` = 32px),
  * the same height as `Input` / `Button` / `SelectTrigger` default.
  */
 export const fieldControlHeight = 'h-control';
