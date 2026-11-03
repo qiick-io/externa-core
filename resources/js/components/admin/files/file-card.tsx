@@ -199,7 +199,11 @@ export function FileCard({
                         onSelect(file.id, event);
                     }}
                     onKeyDown={(event) => {
-                        if (event.key !== 'Enter' && event.key !== ' ') {
+                        // Nested controls (checkbox, title) handle their own keys.
+                        if (
+                            event.target !== event.currentTarget ||
+                            (event.key !== 'Enter' && event.key !== ' ')
+                        ) {
                             return;
                         }
 
@@ -276,6 +280,15 @@ export function FileCard({
                     >
                         <Checkbox
                             checked={selected}
+                            onClick={(event) => {
+                                // Keep the card's select-only click from replacing the multi-selection (#464).
+                                event.stopPropagation();
+
+                                if (event.shiftKey) {
+                                    event.preventDefault();
+                                    onSelect(file.id, { shiftKey: true });
+                                }
+                            }}
                             onCheckedChange={() =>
                                 onSelect(file.id, { metaKey: true })
                             }
