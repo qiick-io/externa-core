@@ -346,10 +346,21 @@ export function FileCard({
                                         : 'default'
                                 }
                                 data-testid={`files-context-action-${action.key}`}
+                                disabled={Boolean(action.disabledReason)}
+                                title={action.disabledReason}
                                 onSelect={() => onAction(action.key, file)}
                             >
                                 <Icon className="size-4" />
-                                {action.label}
+                                {action.disabledReason ? (
+                                    <span className="flex flex-col">
+                                        {action.label}
+                                        <span className="text-xs text-muted-foreground">
+                                            {action.disabledReason}
+                                        </span>
+                                    </span>
+                                ) : (
+                                    action.label
+                                )}
                             </ContextMenuItem>
                         </Fragment>
                     );

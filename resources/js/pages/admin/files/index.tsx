@@ -53,6 +53,7 @@ import {
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PermissionEnum } from '@/enums/permission-enum';
+import { useAiAvailability } from '@/hooks/use-ai-availability';
 import { useCan } from '@/hooks/use-can';
 import { useRegisterActiveUploads } from '@/hooks/use-register-active-uploads';
 import AppLayout from '@/layouts/app-layout';
@@ -216,6 +217,7 @@ export default function AdminFilesIndex({
     const canTag = can(PermissionEnum.CanTagFiles);
     const canUpdateMetadata = can(PermissionEnum.CanUpdateFileMetadata);
     const canUseAi = can(PermissionEnum.CanUseAi);
+    const { isAvailable: isAiAvailable } = useAiAvailability();
     const isTrashed = trashed === 'trashed';
     const uploadsEnabled = canCreate && !isTrashed;
 
@@ -273,6 +275,7 @@ export default function AdminFilesIndex({
             canTag,
             canUpdateMetadata,
             canUseAi,
+            isAiAvailable,
         }),
         [
             canEdit,
@@ -286,6 +289,7 @@ export default function AdminFilesIndex({
             canTag,
             canUpdateMetadata,
             canUseAi,
+            isAiAvailable,
         ],
     );
 
@@ -1261,6 +1265,10 @@ export default function AdminFilesIndex({
                         setTagDialogOpen(true);
                         break;
                     case 'ask_ai':
+                        if (!isAiAvailable) {
+                            break;
+                        }
+
                         openAiWithPrompt(
                             seedFilesBulkPrompt(
                                 selected.map((file) => ({
@@ -1296,6 +1304,7 @@ export default function AdminFilesIndex({
             trackPendingDuplication,
             trackPendingZip,
             openFileDetails,
+            isAiAvailable,
             t,
         ],
     );

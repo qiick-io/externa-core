@@ -24,13 +24,11 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { PermissionEnum } from '@/enums/permission-enum';
-import { useCan } from '@/hooks/use-can';
+import { useAiAvailability } from '@/hooks/use-ai-availability';
 import {
     AI_CHAT_ATTACHMENT_ACCEPT,
     AI_CHAT_ATTACHMENT_MAX_COUNT,
     awaitingApprovalContent,
-    fetchAiStatus,
     getSpeechRecognitionConstructor,
     isAbortError,
     pickAiChatAttachmentFiles,
@@ -43,7 +41,6 @@ import type {
     AiApprovalDecision,
     AiChatAttachment,
     AiPendingApproval,
-    AiStatus,
 } from '@/lib/ai-chat';
 import type { AiPendingContextAttachment } from '@/lib/ai-context';
 import { contextIdsFromPending } from '@/lib/ai-context';
@@ -72,9 +69,13 @@ type InFlightTurn = {
  */
 export function AiFab() {
     const { t, i18n } = useTranslation();
-    const { can } = useCan();
     const page = usePage();
-    const canUseAi = can(PermissionEnum.CanUseAi);
+    // One shared /ai/status probe for the FAB and every Ask AI button.
+    const {
+        canUseAi,
+        isAvailable: isAiAvailable,
+        status,
+    } = useAiAvailability();
     const isAiRoute =
         page.url === '/ai' ||
         page.url.startsWith('/ai/') ||
@@ -82,7 +83,6 @@ export function AiFab() {
 
     const [open, setOpen] = useState(false);
     const [presetsOpen, setPresetsOpen] = useState(false);
-    const [status, setStatus] = useState<AiStatus>({ online: false });
     const [composer, setComposer] = useState('');
     const [isStreaming, setIsStreaming] = useState(false);
     const [toolHint, setToolHint] = useState<string | null>(null);
@@ -119,36 +119,10 @@ export function AiFab() {
             return;
         }
 
-        let cancelled = false;
-        const statusAbort = new AbortController();
-
-        const refresh = async () => {
-            const next = await fetchAiStatus(statusAbort.signal);
-
-            if (!cancelled) {
-                setStatus(next);
-            }
-        };
-
-        void refresh();
-
-        const onFocus = () => {
-            void refresh();
-        };
-
-        window.addEventListener('focus', onFocus);
-        const intervalId = window.setInterval(() => {
-            void refresh();
-        }, 15000);
-
         return () => {
-            cancelled = true;
-            statusAbort.abort();
             abortControllerRef.current?.abort();
             recognitionRef.current?.abort();
             stopSpeaking();
-            window.removeEventListener('focus', onFocus);
-            window.clearInterval(intervalId);
         };
     }, [canUseAi]);
 
@@ -192,7 +166,7 @@ export function AiFab() {
         return null;
     }
 
-    const offline = !status.online;
+    const offline = !isAiAvailable;
 
     const handleStop = () => {
         const inFlightTurn = inFlightTurnRef.current;
