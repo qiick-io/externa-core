@@ -58,3 +58,19 @@ it('offers the rows-per-page select on the collections list', function (): void 
         ->assertPresent('nav[aria-label="pagination"]')
         ->assertNoJavaScriptErrors();
 });
+
+it('opens the rows-per-page options upward when the select sits at the bottom of the window', function (): void {
+    foreach (range(1, 30) as $index) {
+        User::factory()->create(['email' => "edge-{$index}@example.com"]);
+    }
+
+    $page = visit('/users');
+
+    $page->script("document.querySelector('[data-test=\"rows-per-page\"]').scrollIntoView({ block: 'end' })");
+
+    $page->click('[data-test="rows-per-page"]')
+        ->wait(0.3)
+        ->assertAttribute('[data-slot="select-content"]', 'data-side', 'top')
+        ->assertScript("[...document.querySelectorAll('[role=\"option\"]')].every((option) => { const rect = option.getBoundingClientRect(); return rect.top >= 0 && rect.bottom <= window.innerHeight; })")
+        ->assertNoJavaScriptErrors();
+});
