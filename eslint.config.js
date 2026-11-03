@@ -196,6 +196,8 @@ export default [
             'scripts',
             'bootstrap/ssr',
             '.e2e/**',
+            // Agent worktrees live under .claude/ (gitignored); linting them repeats the whole tree.
+            '.claude/**',
             'tests/Browser/**/*.mjs',
             'tailwind.config.js',
             'vite.config.ts',

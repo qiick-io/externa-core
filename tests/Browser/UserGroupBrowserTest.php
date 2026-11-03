@@ -147,7 +147,8 @@ it('shows the group name and slug in separate columns', function () {
 
     $page->assertSee('Column Group')
         ->assertScript("Array.from(document.querySelectorAll('thead th')).map((cell) => cell.textContent.trim()).slice(1, 3).join('|') === 'Name|Slug'")
-        ->assertScript("document.querySelector('tbody tr td:nth-child(2)').textContent.trim() === 'Column Group'")
+        ->assertScript("document.querySelector('tbody tr td:nth-child(2) [data-test=\"group-avatar\"]').textContent.trim() === 'C'")
+        ->assertScript("document.querySelector('tbody tr td:nth-child(2) [data-test=\"group-avatar\"]').nextElementSibling.textContent.trim() === 'Column Group'")
         ->assertScript("document.querySelector('tbody tr td:nth-child(3)').textContent.trim() === 'column-group'")
         ->assertNoJavaScriptErrors();
 });

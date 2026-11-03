@@ -14,6 +14,7 @@ import {
     TablePaginationFooter,
     TablePanel,
 } from '@/components/layout/page-layout';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -493,9 +494,24 @@ export default function AdminGroupsIndex({
                                                 />
                                             </TableCell>
                                             <TableCell className="max-w-[14rem] font-medium">
-                                                <TruncatedText
-                                                    text={group.name}
-                                                />
+                                                <span className="inline-flex min-w-0 items-center gap-2">
+                                                    <Avatar
+                                                        userId={`group-${group.id}`}
+                                                        className="size-7"
+                                                        data-test="group-avatar"
+                                                        aria-hidden
+                                                    >
+                                                        <AvatarFallback className="text-xs font-medium">
+                                                            {group.name
+                                                                .trim()
+                                                                .charAt(0)
+                                                                .toUpperCase()}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <TruncatedText
+                                                        text={group.name}
+                                                    />
+                                                </span>
                                             </TableCell>
                                             <TableCell className="max-w-[14rem]">
                                                 <TruncatedText
