@@ -324,7 +324,7 @@ export default function CollectionsIndex({
                                 bulkActions={
                                     <>
                                         <AskAiButton
-                                            mode="labeled"
+                                            mode="toolbar"
                                             prompt={seedCollectionsBulkPrompt(
                                                 selectedRows,
                                             )}

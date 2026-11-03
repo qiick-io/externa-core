@@ -1,5 +1,6 @@
 {
     "common": {
+        "selectedCount": "{{count}} selected",
         "save": "Save",
         "saved": "Saved",
         "cancel": "Cancel",
