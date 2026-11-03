@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTableToolbar } from '@/components/admin/data-table-toolbar';
 import { GroupFormDrawer } from '@/components/admin/group-form-drawer';
-import { NameSlugCell } from '@/components/admin/name-slug-cell';
+import { TruncatedText } from '@/components/admin/truncated-text';
 import { AskAiButton } from '@/components/ai/ask-ai-button';
 import { ConfirmDestructiveDialog } from '@/components/confirm-destructive-dialog';
 import {
@@ -424,6 +424,7 @@ export default function AdminGroupsIndex({
                                         />
                                     </TableHead>
                                     <TableHead>Name</TableHead>
+                                    <TableHead>Slug</TableHead>
                                     <TableHead>Roles</TableHead>
                                     <TableHead className="text-right">
                                         Members
@@ -437,7 +438,7 @@ export default function AdminGroupsIndex({
                                 {groups.data.length === 0 ? (
                                     <TableRow>
                                         <TableCell
-                                            colSpan={5}
+                                            colSpan={6}
                                             className="text-muted-foreground"
                                         >
                                             No groups yet.
@@ -483,10 +484,15 @@ export default function AdminGroupsIndex({
                                                     }
                                                 />
                                             </TableCell>
-                                            <TableCell className="max-w-[16rem]">
-                                                <NameSlugCell
-                                                    name={group.name}
-                                                    slug={group.slug}
+                                            <TableCell className="max-w-[14rem] font-medium">
+                                                <TruncatedText
+                                                    text={group.name}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="max-w-[14rem]">
+                                                <TruncatedText
+                                                    text={group.slug}
+                                                    className="font-mono text-xs text-muted-foreground"
                                                 />
                                             </TableCell>
                                             <TableCell>

@@ -35,20 +35,23 @@ it('deletes a collection through the row menu and confirm dialog', function (): 
         ->assertNoJavaScriptErrors();
 });
 
-it('shows the collection name and slug in one combined cell', function (): void {
+it('shows name, slug, description, singleton and status in separate aligned columns', function (): void {
     $user = User::factory()->create();
     $user->assignRole(RoleEnum::SuperAdmin->value);
     $this->actingAs($user);
 
     Collection::factory()->create([
-        'name' => 'Combined Cell',
-        'slug' => 'combined-cell',
+        'name' => 'Separate Columns',
+        'slug' => 'separate-columns',
+        'description' => 'Shown in its own column',
     ]);
 
     $page = visit('/collections');
 
-    $page->assertSee('Combined Cell')
-        ->assertScript("document.querySelectorAll('thead th').length === 4")
-        ->assertScript("document.querySelector('tbody tr td:nth-child(2)').textContent.includes('combined-cell')")
+    $page->assertSee('Separate Columns')
+        ->assertScript("Array.from(document.querySelectorAll('thead th')).map((cell) => cell.textContent.trim()).slice(1).join('|') === 'Name|Slug|Description|Singleton|Status|Actions'")
+        ->assertScript("document.querySelector('tbody tr td:nth-child(2)').textContent.trim() === 'Separate Columns'")
+        ->assertScript("document.querySelector('tbody tr td:nth-child(3)').textContent.trim() === 'separate-columns'")
+        ->assertScript("document.querySelector('tbody tr td:nth-child(4)').textContent.trim() === 'Shown in its own column'")
         ->assertNoJavaScriptErrors();
 });
