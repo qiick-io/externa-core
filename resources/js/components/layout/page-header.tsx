@@ -61,6 +61,8 @@ export type FilterSearchProps = {
     className?: string;
     id?: string;
     maxLength?: number;
+    /** `data-test` hook on the input for browser tests. */
+    dataTest?: string;
 };
 
 /**
@@ -75,6 +77,7 @@ export function FilterSearch({
     className,
     id,
     maxLength = STRING_LIMITS.SEARCH,
+    dataTest,
 }: FilterSearchProps) {
     return (
         <div
@@ -86,6 +89,7 @@ export function FilterSearch({
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
                 id={id}
+                data-test={dataTest}
                 value={value}
                 onChange={(changeEvent) => onChange(changeEvent.target.value)}
                 placeholder={placeholder}

@@ -6,8 +6,9 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 
 /**
- * The chat hub sits in the shared PageLayout gutter like every other page and
- * switches lists with the shared outline ToggleGroup.
+ * The chat hub sits in the shared PageLayout gutter like every other page: the
+ * search (as wide as the thread list) and the outline ToggleGroup live in the
+ * page header filter row, above the two-pane panel.
  */
 beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
@@ -44,5 +45,21 @@ it('switches between collection and user chats with the shared toggle group', fu
         ->assertAttribute('[data-test="chat-tab-private"]', 'data-state', 'on')
         ->assertAttribute('[data-test="chat-tab-collection"]', 'data-state', 'off')
         ->assertPresent('[data-test="chat-filter-archived"]')
+        ->assertNoJavaScriptErrors();
+});
+
+it('puts the chat search above the thread list, as wide as the list', function (): void {
+    $page = visit('/chat');
+
+    $page->assertPresent('[data-slot="page-header"] [data-test="chat-filter-q"]')
+        ->assertPresent('[data-slot="page-header"] [data-test="chat-tab-collection"]')
+        ->assertScript(<<<'JS'
+(() => {
+  const search = document.querySelector('[data-test="chat-filter-q"]').getBoundingClientRect();
+  const list = document.querySelector('[data-test="chat-hub"] aside').getBoundingClientRect();
+
+  return Math.round(search.left) === Math.round(list.left) && Math.round(search.width) === Math.round(list.width);
+})()
+JS)
         ->assertNoJavaScriptErrors();
 });
