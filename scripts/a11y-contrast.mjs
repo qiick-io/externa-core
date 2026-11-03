@@ -262,6 +262,8 @@ const modes = {
             { name: 'info-foreground / info', fg: '--info-foreground', bg: '--info', need: 4.5 },
             { name: 'input / background (UI)', fg: '--input', bg: '--background', need: 3.0 },
             { name: 'ring / background (focus)', fg: '--ring', bg: '--background', need: 3.0 },
+            { name: 'sidebar-primary / sidebar-accent (active bar)', fg: '--sidebar-primary', bg: '--sidebar-accent', need: 3.0 },
+            { name: 'ai-text / ai-bg (Assistant nav hover)', fg: '--ai-text', bg: '--ai-bg', need: 4.5 },
             { name: 'sidebar-foreground / sidebar', fg: '--sidebar-foreground', bg: '--sidebar', need: 4.5 },
         ],
     },
@@ -278,6 +280,8 @@ const modes = {
             { name: 'info-foreground / info', fg: '--info-foreground', bg: '--info', need: 4.5 },
             { name: 'input / background (UI)', fg: '--input', bg: '--background', need: 3.0 },
             { name: 'ring / background (focus)', fg: '--ring', bg: '--background', need: 3.0 },
+            { name: 'sidebar-primary / sidebar-accent (active bar)', fg: '--sidebar-primary', bg: '--sidebar-accent', need: 3.0 },
+            { name: 'ai-text / ai-bg (Assistant nav hover)', fg: '--ai-text', bg: '--ai-bg', need: 4.5 },
         ],
     },
     'high-contrast': {
@@ -287,6 +291,8 @@ const modes = {
             { name: 'muted-foreground / background', fg: '--muted-foreground', bg: '--background', need: 4.5 },
             { name: 'input / background (UI)', fg: '--input', bg: '--background', need: 3.0 },
             { name: 'ring / background (focus)', fg: '--ring', bg: '--background', need: 3.0 },
+            { name: 'sidebar-primary / sidebar-accent (active bar)', fg: '--sidebar-primary', bg: '--sidebar-accent', need: 3.0 },
+            { name: 'ai-text / ai-bg (Assistant nav hover)', fg: '--ai-text', bg: '--ai-bg', need: 4.5 },
         ],
     },
     'high-contrast-dark': {
@@ -296,6 +302,8 @@ const modes = {
             { name: 'muted-foreground / background', fg: '--muted-foreground', bg: '--background', need: 4.5 },
             { name: 'input / background (UI)', fg: '--input', bg: '--background', need: 3.0 },
             { name: 'ring / background (focus)', fg: '--ring', bg: '--background', need: 3.0 },
+            { name: 'sidebar-primary / sidebar-accent (active bar)', fg: '--sidebar-primary', bg: '--sidebar-accent', need: 3.0 },
+            { name: 'ai-text / ai-bg (Assistant nav hover)', fg: '--ai-text', bg: '--ai-bg', need: 4.5 },
         ],
     },
 };
