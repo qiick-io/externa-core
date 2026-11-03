@@ -1,7 +1,7 @@
 # Admin contrast pairs (WCAG 2.2 AA)
 
 Source tokens: `resources/css/app.css` (`:root`, `.dark`, `html.high-contrast`, `html.high-contrast.dark`).
-Ratios measured from resolved hex (WCAG relative luminance). `sidebar-primary / sidebar-accent` is the straight active-item bar in the sidebar and settings nav (non-colour active cue, #463); `ai-text / ai-bg` is the Assistant nav hover/focus state. **Text** needs ≥4.5:1; **UI / border / focus** needs ≥3:1.
+Ratios measured from resolved hex (WCAG relative luminance). `sidebar-primary / sidebar-accent` is the full-height active-item bar in the sidebar and settings nav (non-colour active cue, #463, #473); `ai-text / ai-bg` is the Assistant nav hover/focus state. **Text** needs ≥4.5:1; **UI / border / focus** needs ≥3:1.
 
 Brand override (`--brand-primary` / `--brand-primary-dark`): `ContrastingForeground` picks fg; if a project brand fails 3:1 against the surface, settings should warn or fall back (#243).
 
