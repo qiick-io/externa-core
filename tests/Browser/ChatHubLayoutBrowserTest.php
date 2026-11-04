@@ -28,7 +28,10 @@ it('insets the chat hub by the same 16px gutter as the other pages', function ()
   const main = document.querySelector('#main-content').getBoundingClientRect();
   const hub = document.querySelector('[data-test="chat-hub"]').getBoundingClientRect();
 
-  return Math.round(hub.left - main.left) === 16 && Math.round(main.right - hub.right) === 16;
+  // Measure from the inside of the panel frame (1px border).
+  const frame = parseFloat(getComputedStyle(document.querySelector('#main-content')).borderLeftWidth) || 0;
+
+  return Math.round(hub.left - main.left - frame) === 16 && Math.round(main.right - hub.right - frame) === 16;
 })()
 JS)
         ->assertNoJavaScriptErrors();
