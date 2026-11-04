@@ -141,10 +141,10 @@ export function FileGrid({
     cardActionsFor,
 }: FileGridProps) {
     const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
-    // List state at the last automatic load; a failed or empty load leaves it
-    // unchanged, so auto-loading stops (the button still retries) instead of looping.
-    const lastAutoLoadKeyRef = useRef<string | null>(null);
-    const listKey = `${files.length}:${files[0]?.id ?? ''}`;
+    // The list at the last automatic load: a failed or empty load leaves the same
+    // array, so auto-loading stops (the button still retries) instead of looping,
+    // while any refreshed list (upload, move, reload) can load again.
+    const lastAutoLoadFilesRef = useRef<AdminFileRow[] | null>(null);
     // Parents pass an inline callback; read the latest one without re-observing.
     const onLoadMoreRef = useRef(onLoadMore);
 
@@ -176,9 +176,9 @@ export function FileGrid({
             (entries) => {
                 if (
                     entries.some((entry) => entry.isIntersecting) &&
-                    lastAutoLoadKeyRef.current !== listKey
+                    lastAutoLoadFilesRef.current !== files
                 ) {
-                    lastAutoLoadKeyRef.current = listKey;
+                    lastAutoLoadFilesRef.current = files;
                     onLoadMoreRef.current();
                 }
             },
@@ -188,7 +188,7 @@ export function FileGrid({
         observer.observe(sentinel);
 
         return () => observer.disconnect();
-    }, [hasMore, listKey, loadingMore]);
+    }, [files, hasMore, loadingMore]);
 
     const { t } = useTranslation();
 

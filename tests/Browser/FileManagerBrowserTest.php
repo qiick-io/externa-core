@@ -597,3 +597,53 @@ it('loads more files on scroll without fetching everything up front', function (
         ->assertMissing('[data-testid="files-load-more"]')
         ->assertNoJavaScriptErrors();
 });
+
+it('keeps the loaded pages after a move and keeps loading on scroll', function () {
+    $user = grantBrowserFilePermissions(User::factory()->create(), [
+        PermissionEnum::CanShowFiles->value,
+        PermissionEnum::CanEditFiles->value,
+    ]);
+    $destination = File::query()->create([
+        'type' => FileTypeEnum::Folder,
+        'name' => 'Archive',
+        'path' => '/Archive',
+        'disk' => 'assets',
+    ]);
+    $files = createGridFiles(144);
+    $this->actingAs($user);
+
+    $countCards = "document.querySelectorAll('[data-testid^=\"file-card-\"]:not([data-testid^=\"file-card-title\"])').length";
+    $page = visit('/files')->on()->macbookAir()->wait(1);
+    $loaded = $page->script($countCards);
+
+    expect($loaded)->toBeGreaterThan(48);
+
+    $page->rightClick("[data-testid=\"file-card-{$files[0]->id}\"]")
+        ->click('[data-testid="files-context-action-move"]')
+        ->click("[data-testid=\"folder-picker-item-{$destination->id}\"]")
+        ->click('[data-testid="folder-picker-confirm"]')
+        ->wait(1.5)
+        ->assertMissing("[data-testid=\"file-card-{$files[0]->id}\"]")
+        ->assertScript("{$countCards} === {$loaded}");
+
+    // Scroll the grid panel to the bottom, as the wheel would.
+    foreach (range(1, 4) as $_) {
+        $page->script(<<<'JS'
+            (() => {
+                let panel = document.querySelector('[data-testid="files-load-more"]')?.parentElement;
+                while (panel && !/(auto|scroll)/.test(getComputedStyle(panel).overflowY)) {
+                    panel = panel.parentElement;
+                }
+                if (panel) {
+                    panel.scrollTop = panel.scrollHeight;
+                }
+            })()
+            JS);
+        $page->wait(1);
+    }
+
+    // The folder plus the 143 files left in the root.
+    $page->assertScript("{$countCards} === 144")
+        ->assertMissing('[data-testid="files-load-more"]')
+        ->assertNoJavaScriptErrors();
+});
