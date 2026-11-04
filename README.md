@@ -27,12 +27,16 @@ Externa is a **Laravel-native headless CMS**: operators manage structured conten
 
 ### Highlights
 
-- **Dynamic collections** — fields, locales, lean draft/publish, typed item editor
-- **Hierarchical files** — folders, uploads, versions, async zip
+- **Dynamic collections** — fields, locales, lean draft/publish, typed item editor, safe field type conversion with dry-run
+- **Hierarchical files** — folders, uploads, versions, async zip, empty trash; local, S3, GCS or Azure disks; upload allowlist
 - **RBAC + groups** — Spatie roles/permissions with group inheritance; `public` role for the API
-- **Public CMS API + GraphQL** — collection access matrix, API keys, origin allowlist; [1.x compatibility policy](https://docs.externa.qiick.io/docs/api-compatibility)
-- **Chat + activity** — item/private threads; Spatie activity log
-- **Optional AI assistant** — OpenAI-compatible / LM Studio; tools gated by effective permissions
+- **Public CMS API + GraphQL** — collection access matrix, owned API keys, `sort`, system and relational filters, batch writes; [TypeScript SDK](./packages/sdk); [1.x compatibility policy](https://docs.externa.qiick.io/docs/api-compatibility)
+- **Chat + activity** — item/private threads with live presence; Spatie activity log
+- **Optional AI assistant** — OpenAI-compatible / LM Studio; side panel on any page (⌘J), saved prompts and context attachments; write tools need human approval
+- **Optional MCP server** — the same permission-aware tools for MCP clients, through owned API keys
+- **Deploy hooks** — Vercel, Netlify, Cloudflare Pages or Forge, from the admin or on publish
+- **Theme presets** — six built-in presets (Teal, Blue, Indigo, Violet, Rose, Slate) or a custom brand colour
+- **Secure by default** — security headers, signed webhooks, SSRF-hardened remote fetches, registration off on fresh installs
 
 Stack: **Laravel 13**, **Inertia + React 19**, Vite, Spatie Permission / Activitylog, Wayfinder typed routes.
 
@@ -43,7 +47,7 @@ Stack: **Laravel 13**, **Inertia + React 19**, Vite, Spatie Permission / Activit
 | **PHP 8.4.27+** | Pinned in `.php-version` / `composer.json` (`^8.4.27`). Herd PHP 8.4 recommended on macOS. Required for CVE-2026-109618 / CVE-2026-109619. |
 | **Composer 2** | PHP dependencies and `composer setup` / `composer run dev`. |
 | **Node.js 24** | Pinned in `.nvmrc` and `package.json` `engines`. Use `nvm use` (or equivalent). |
-| **Database** | **SQLite** 3.x (local/CI default); **PostgreSQL** 14+ (16 preferred, production recommended); **MySQL** 8.0+; **MariaDB** 10.6+ (10.11+ preferred). MySQL/MariaDB: `utf8mb4` / `utf8mb4_unicode_ci`. Matrix: [Supported databases](https://docs.externa.qiick.io/docs/supported-databases). |
+| **Database** | **SQLite** 3.x (local/CI default); **PostgreSQL** 15+ (16 preferred, production recommended); **MySQL** 8.0+; **MariaDB** 10.6+ (10.11+ preferred). MySQL/MariaDB: `utf8mb4` / `utf8mb4_unicode_ci`. Matrix: [Supported databases](https://docs.externa.qiick.io/docs/supported-databases). |
 | **Redis** (optional) | Needed for Horizon, Reverb-friendly realtime, and Pulse redis ingest. Prod without Redis: [docs](https://docs.externa.qiick.io/docs/production-without-redis). |
 
 Optional: [Laravel Herd](https://herd.laravel.com) (PHP, nginx, `.test` hosts; Pro adds shared Reverb on `:8080`). Optional AI: an OpenAI-compatible gateway (e.g. [LM Studio](https://lmstudio.ai)) at `LOCAL_AI_URL`.
@@ -177,42 +181,78 @@ Override with `INITIAL_SUPER_ADMIN_*` in `.env` **before** seeding. **Local/dev 
 
 ## Product UI
 
-Light-theme shots from the admin (demo seed data). More in the [docs](https://docs.externa.qiick.io).
+Shots from the admin with demo content, in light and dark (they follow your GitHub theme). More in the [docs](https://docs.externa.qiick.io).
 
 <p align="center">
-  <img src="docs/images/collection-items.webp" alt="Blog Posts collection items list" width="800" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/dashboard-dark.webp">
+    <img src="docs/images/dashboard-light.webp" alt="Dashboard with collection, activity and storage insights" width="800" />
+  </picture>
+  <br />
+  <em>Dashboard — content, activity and storage at a glance</em>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/collection-items-dark.webp">
+    <img src="docs/images/collection-items-light.webp" alt="Products collection items list" width="800" />
+  </picture>
   <br />
   <em>Collection items — list, filters, and actions</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/collection-item.webp" alt="Collection item editor with rich text" width="800" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/collection-item-dark.webp">
+    <img src="docs/images/collection-item-light.webp" alt="Journal item editor with rich text and cover image" width="800" />
+  </picture>
   <br />
-  <em>Item editor — localized fields and rich text</em>
+  <em>Item editor — relations, media and rich text</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/file-manager.webp" alt="Hierarchical file manager" width="800" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/file-manager-dark.webp">
+    <img src="docs/images/file-manager-light.webp" alt="File manager with folders, photos and documents" width="800" />
+  </picture>
   <br />
-  <em>File manager — folders and assets</em>
+  <em>File manager — folders, assets and tags</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/roles.webp" alt="Roles settings matrix" width="800" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/ai-chat-dark.webp">
+    <img src="docs/images/ai-chat-light.webp" alt="AI assistant answering from collection data" width="800" />
+  </picture>
   <br />
-  <em>Roles — project access control</em>
+  <em>Assistant — answers and actions with your permissions</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/chat.webp" alt="In-app chat hub" width="800" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/chat-dark.webp">
+    <img src="docs/images/chat-light.webp" alt="Item chat thread on a product" width="800" />
+  </picture>
   <br />
-  <em>Chat — collection and private threads</em>
+  <em>Chat — item and private threads</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/users.webp" alt="Users list with roles and groups" width="800" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/users-dark.webp">
+    <img src="docs/images/users-light.webp" alt="Users list with roles, status and presence" width="800" />
+  </picture>
   <br />
   <em>Users — roles, groups, and status</em>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/roles-dark.webp">
+    <img src="docs/images/roles-light.webp" alt="Roles settings" width="800" />
+  </picture>
+  <br />
+  <em>Roles — project access control</em>
 </p>
 
 ## Important environment variables
