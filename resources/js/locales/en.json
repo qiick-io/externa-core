@@ -30,7 +30,8 @@
         "sortAscending": "Sort ascending",
         "sortDescending": "Sort descending",
         "active": "Active",
-        "name": "Name"
+        "name": "Name",
+        "pageRange": "{{from}}–{{to}} of {{total}}"
     },
     "emptyState": {
         "collections": {
