@@ -1477,7 +1477,10 @@ export default function AiIndexPage({
                     className="flex min-h-0 flex-1 overflow-hidden"
                 >
                     <aside className="flex w-72 shrink-0 flex-col border-r">
-                        <div className="flex items-center justify-between gap-2 border-b p-3">
+                        <div
+                            data-test="ai-list-header"
+                            className="flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4"
+                        >
                             <div className="flex items-center gap-2 text-sm font-medium">
                                 <Sparkles className="size-4 text-ai" />
                                 {t('ai.chat')}
@@ -1644,7 +1647,10 @@ export default function AiIndexPage({
                     </aside>
 
                     <section className="flex min-w-0 flex-1 flex-col">
-                        <div className="border-b px-4 py-3">
+                        <div
+                            data-test="ai-pane-header"
+                            className="flex h-16 shrink-0 flex-col justify-center border-b px-4"
+                        >
                             <h1 className="text-sm font-semibold">
                                 {selectedTitle}
                             </h1>
