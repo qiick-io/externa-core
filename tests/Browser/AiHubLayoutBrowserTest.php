@@ -44,3 +44,17 @@ it('puts a single filled New chat button in the page header', function (): void 
         ->assertScript("[...document.querySelectorAll('a, button')].filter((element) => element.textContent.trim() === 'New chat').length === 1")
         ->assertNoJavaScriptErrors();
 });
+
+it('aligns the conversation list header with the chat pane header', function (): void {
+    $page = visit('/ai');
+
+    $page->assertScript(<<<'JS'
+(() => {
+  const list = document.querySelector('[data-test="ai-list-header"]').getBoundingClientRect();
+  const pane = document.querySelector('[data-test="ai-pane-header"]').getBoundingClientRect();
+
+  return list.top === pane.top && list.height === pane.height;
+})()
+JS)
+        ->assertNoJavaScriptErrors();
+});
