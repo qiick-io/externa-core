@@ -82,3 +82,18 @@ it('uses a filled New chat button and centres the empty thread list', function (
 JS)
         ->assertNoJavaScriptErrors();
 });
+
+it('keeps the list and pane header rules on one line with no thread selected', function (): void {
+    $page = visit('/chat');
+
+    $page->assertPresent('[data-test="chat-pane-empty"]')
+        ->assertScript(<<<'JS'
+(() => {
+  const list = document.querySelector('[data-test="chat-hub-list-header"]').getBoundingClientRect();
+  const pane = document.querySelector('[data-test="chat-pane-placeholder-header"]').getBoundingClientRect();
+
+  return list.top === pane.top && list.height === pane.height;
+})()
+JS)
+        ->assertNoJavaScriptErrors();
+});

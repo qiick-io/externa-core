@@ -11,7 +11,7 @@ final class StringLimits
 {
     public const SEARCH = 255;
 
-    /** Chat hub thread search stays tighter than generic admin search. */
+    /** Chat hub and assistant conversation search stay tighter than generic admin search. */
     public const SEARCH_CHAT_HUB = 120;
 
     public const NAME = 255;

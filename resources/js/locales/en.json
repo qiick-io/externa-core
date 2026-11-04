@@ -1550,7 +1550,11 @@
         "noConversations": "No conversations yet.",
         "assistantScope": "Assistant with permissions for collections and files",
         "openFullPage": "Open full page",
-        "openPanel": "Open in side panel"
+        "openPanel": "Open in side panel",
+        "conversations": "Conversations",
+        "searchConversations": "Search conversations…",
+        "noConversationsMatch": "No conversations match your search.",
+        "paneEmpty": "Ask the assistant to list collections, create items, or manage files. Destructive actions go through tools."
     },
     "dashboard": {
         "title": "Dashboard",

@@ -1550,7 +1550,11 @@
         "noConversations": "Nessuna conversazione.",
         "assistantScope": "Assistente con permessi su collezioni e file",
         "openFullPage": "Apri a schermo intero",
-        "openPanel": "Apri nel pannello laterale"
+        "openPanel": "Apri nel pannello laterale",
+        "conversations": "Conversazioni",
+        "searchConversations": "Cerca conversazioni…",
+        "noConversationsMatch": "Nessuna conversazione corrisponde alla ricerca.",
+        "paneEmpty": "Chiedi all’assistente di elencare collezioni, creare item o gestire file. Le azioni distruttive passano dagli strumenti."
     },
     "dashboard": {
         "title": "Dashboard",

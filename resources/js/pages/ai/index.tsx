@@ -1,8 +1,9 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Pin, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { MessagesSquare, Pin, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer';
 import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
@@ -13,6 +14,8 @@ import {
     fileCardsFromToolResults,
 } from '@/components/ai/ai-file-cards';
 import type { AiFileCardItem } from '@/components/ai/ai-file-cards';
+import { ChatHubListHeader } from '@/components/chat/chat-hub-list-header';
+import { FilterSearch } from '@/components/layout/page-header';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -24,6 +27,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+} from '@/components/ui/empty';
 import AppLayout from '@/layouts/app-layout';
 import {
     AI_CHAT_ATTACHMENT_ACCEPT,
@@ -57,6 +66,7 @@ import { speechRecognitionLang } from '@/lib/format';
 import i18n from '@/lib/i18n';
 import { normalizePaginated } from '@/lib/pagination';
 import type { LaravelPaginated } from '@/lib/pagination';
+import { STRING_LIMITS } from '@/lib/string-limits';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { index as aiIndex, show as aiShow } from '@/routes/ai';
@@ -296,6 +306,8 @@ export default function AiIndexPage({
         initialPaginated.last_page,
     );
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [conversationQuery, setConversationQuery] = useState('');
+    const hasSearchedConversationsRef = useRef(false);
     const [pendingAttachments, setPendingAttachments] = useState<
         AiChatAttachment[]
     >([]);
@@ -572,6 +584,38 @@ export default function AiIndexPage({
         selectRange(lastSelectedIndexRef.current, index);
     };
 
+    // Server-side title search (debounced): replaces the loaded list with page 1.
+    useEffect(() => {
+        if (!hasSearchedConversationsRef.current && conversationQuery === '') {
+            return;
+        }
+
+        hasSearchedConversationsRef.current = true;
+        let cancelled = false;
+        const timeoutId = window.setTimeout(() => {
+            void fetchAiConversationsPage(1, 25, conversationQuery.trim())
+                .then((firstPage) => {
+                    if (cancelled) {
+                        return;
+                    }
+
+                    setConversationItems(firstPage.data);
+                    setListPage(firstPage.current_page);
+                    setListLastPage(firstPage.last_page);
+                })
+                .catch(() => {
+                    if (!cancelled) {
+                        toast.error(t('ai.unableLoadMoreChats'));
+                    }
+                });
+        }, 300);
+
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timeoutId);
+        };
+    }, [conversationQuery, t]);
+
     const handleLoadMoreConversations = async () => {
         if (isLoadingMore || !hasMoreConversations) {
             return;
@@ -580,7 +624,11 @@ export default function AiIndexPage({
         setIsLoadingMore(true);
 
         try {
-            const nextPage = await fetchAiConversationsPage(listPage + 1);
+            const nextPage = await fetchAiConversationsPage(
+                listPage + 1,
+                25,
+                conversationQuery.trim(),
+            );
             setConversationItems((current) => {
                 const seenIds = new Set(
                     current.map((conversation) => conversation.id),
@@ -1471,41 +1519,70 @@ export default function AiIndexPage({
         >
             <Head title={t('nav.assistant')} />
 
-            <PageLayout>
+            <PageLayout
+                filters={
+                    <FilterSearch
+                        dataTest="ai-filter-q"
+                        className="w-64 flex-none sm:max-w-none lg:w-80"
+                        value={conversationQuery}
+                        placeholder={t('ai.searchConversations')}
+                        maxLength={STRING_LIMITS.SEARCH_CHAT_HUB}
+                        onChange={setConversationQuery}
+                    />
+                }
+                filtersRight={
+                    <HeaderIconButton
+                        type="button"
+                        variant="outline"
+                        data-test="ai-delete-selected"
+                        disabled={selectedIds.size === 0 || isBulkDeleting}
+                        onClick={() => setConfirmBulkDeleteOpen(true)}
+                        label={t('a11y.deleteSelectedChats')}
+                    >
+                        <Trash2 className="size-4" />
+                    </HeaderIconButton>
+                }
+            >
                 <div
                     data-test="ai-hub"
                     className="flex min-h-0 flex-1 overflow-hidden"
                 >
-                    <aside className="flex w-72 shrink-0 flex-col border-r">
+                    <aside
+                        aria-label={t('ai.conversations')}
+                        className="flex w-64 shrink-0 flex-col border-r lg:w-80"
+                    >
+                        <ChatHubListHeader
+                            icon={Sparkles}
+                            iconClassName="size-4 text-ai"
+                            title={t('ai.conversations')}
+                        />
                         <div
-                            data-test="ai-list-header"
-                            className="flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4"
+                            data-test="ai-list"
+                            className={cn(
+                                'min-h-0 flex-1 overflow-y-auto p-2',
+                                conversationItems.length === 0 &&
+                                    'flex flex-col items-center justify-center',
+                            )}
                         >
-                            <div className="flex items-center gap-2 text-sm font-medium">
-                                <Sparkles className="size-4 text-ai" />
-                                {t('ai.chat')}
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <Button
-                                    size="icon"
-                                    variant="outline"
-                                    disabled={
-                                        selectedIds.size === 0 || isBulkDeleting
-                                    }
-                                    onClick={() =>
-                                        setConfirmBulkDeleteOpen(true)
-                                    }
-                                    aria-label={t('a11y.deleteSelectedChats')}
-                                >
-                                    <Trash2 className="size-3.5" />
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="min-h-0 flex-1 overflow-y-auto p-2">
                             {conversationItems.length === 0 ? (
-                                <p className="px-2 py-4 text-sm text-muted-foreground">
-                                    {t('ai.noConversations')}
-                                </p>
+                                <Empty
+                                    data-test="ai-list-empty"
+                                    className="gap-3 p-6 md:p-6"
+                                >
+                                    <EmptyHeader>
+                                        <EmptyMedia
+                                            variant="icon"
+                                            className="bg-primary/10 text-primary"
+                                        >
+                                            <MessagesSquare />
+                                        </EmptyMedia>
+                                        <EmptyDescription>
+                                            {conversationQuery.trim() !== ''
+                                                ? t('ai.noConversationsMatch')
+                                                : t('ai.noConversations')}
+                                        </EmptyDescription>
+                                    </EmptyHeader>
+                                </Empty>
                             ) : (
                                 <>
                                     {conversationSections.map((section) => (
@@ -1637,7 +1714,7 @@ export default function AiIndexPage({
                                             }
                                         >
                                             {isLoadingMore
-                                                ? 'Loading…'
+                                                ? t('chatHub.loading')
                                                 : t('ai.loadMore')}
                                         </Button>
                                     ) : null}
@@ -1649,14 +1726,22 @@ export default function AiIndexPage({
                     <section className="flex min-w-0 flex-1 flex-col">
                         <div
                             data-test="ai-pane-header"
-                            className="flex h-16 shrink-0 flex-col justify-center border-b px-4"
+                            className="flex h-16 shrink-0 items-center gap-3 border-b px-4"
                         >
-                            <h1 className="text-sm font-semibold">
-                                {selectedTitle}
-                            </h1>
-                            <p className="text-xs text-muted-foreground">
-                                {t('ai.assistantScope')}
-                            </p>
+                            <div
+                                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-ai/10 text-ai"
+                                aria-hidden
+                            >
+                                <Sparkles className="size-5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <h1 className="truncate text-sm font-medium">
+                                    {selectedTitle}
+                                </h1>
+                                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                                    {t('ai.assistantScope')}
+                                </p>
+                            </div>
                         </div>
 
                         <AiChatDropZone
@@ -1691,12 +1776,22 @@ export default function AiIndexPage({
                                         )
                                     }
                                     emptyState={
-                                        <div className="m-auto max-w-md text-center text-sm text-muted-foreground">
-                                            Ask the assistant to list
-                                            collections, create items, or manage
-                                            files. Destructive actions go
-                                            through tools.
-                                        </div>
+                                        <Empty
+                                            data-test="ai-pane-empty"
+                                            className="m-auto"
+                                        >
+                                            <EmptyHeader>
+                                                <EmptyMedia
+                                                    variant="icon"
+                                                    className="bg-ai/10 text-ai"
+                                                >
+                                                    <Sparkles />
+                                                </EmptyMedia>
+                                                <EmptyDescription>
+                                                    {t('ai.paneEmpty')}
+                                                </EmptyDescription>
+                                            </EmptyHeader>
+                                        </Empty>
                                     }
                                 />
 

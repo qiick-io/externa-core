@@ -10,6 +10,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
+import { ChatHubListHeader } from '@/components/chat/chat-hub-list-header';
 import { ChatThreadRow } from '@/components/chat/chat-thread-row';
 import { NewChatMenu } from '@/components/chat/new-chat-menu';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
@@ -316,6 +317,14 @@ export default function ChatHubPage({
                         aria-label={t('a11y.chatThreadList')}
                         className="flex w-64 shrink-0 flex-col border-r lg:w-80"
                     >
+                        <ChatHubListHeader
+                            icon={tab === 'collection' ? Database : UsersRound}
+                            title={
+                                tab === 'collection'
+                                    ? t('chatHub.collection')
+                                    : t('chatHub.users')
+                            }
+                        />
                         <div
                             data-test="chat-list"
                             className={cn(
@@ -385,22 +394,38 @@ export default function ChatHubPage({
                             canCreateDirect={canCreateDirect}
                         />
                         {selectedChat === null ? (
-                            <Empty
-                                data-test="chat-pane-empty"
-                                className="absolute inset-0 bg-background"
-                            >
-                                <EmptyHeader>
-                                    <EmptyMedia
-                                        variant="icon"
-                                        className="bg-primary/10 text-primary"
+                            <div className="absolute inset-0 flex flex-col bg-background">
+                                <div
+                                    data-test="chat-pane-placeholder-header"
+                                    className="flex h-16 shrink-0 items-center gap-3 border-b px-4"
+                                >
+                                    <div
+                                        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+                                        aria-hidden
                                     >
-                                        <MessageSquare />
-                                    </EmptyMedia>
-                                    <EmptyDescription>
-                                        {t('chatHub.pickThread')}
-                                    </EmptyDescription>
-                                </EmptyHeader>
-                            </Empty>
+                                        <MessageSquare className="size-5" />
+                                    </div>
+                                    <span className="truncate text-sm font-medium">
+                                        {t('chatHub.title')}
+                                    </span>
+                                </div>
+                                <Empty
+                                    data-test="chat-pane-empty"
+                                    className="flex-1"
+                                >
+                                    <EmptyHeader>
+                                        <EmptyMedia
+                                            variant="icon"
+                                            className="bg-primary/10 text-primary"
+                                        >
+                                            <MessageSquare />
+                                        </EmptyMedia>
+                                        <EmptyDescription>
+                                            {t('chatHub.pickThread')}
+                                        </EmptyDescription>
+                                    </EmptyHeader>
+                                </Empty>
+                            </div>
                         ) : null}
                     </section>
                 </div>

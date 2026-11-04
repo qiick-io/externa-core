@@ -594,11 +594,17 @@ function mapConversationSummary(
 export async function fetchAiConversationsPage(
     page: number,
     perPage = 25,
+    search = '',
 ): Promise<Paginated<AiConversationSummary>> {
     const params = new URLSearchParams({
         page: String(page),
         per_page: String(perPage),
     });
+
+    if (search !== '') {
+        params.set('q', search);
+    }
+
     const response = await fetch(`/ai/conversations?${params.toString()}`, {
         headers: {
             Accept: 'application/json',
