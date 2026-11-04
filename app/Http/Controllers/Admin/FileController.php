@@ -42,6 +42,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class FileController extends Controller
 {
     /**
+     * Files per grid page: divisible by 2, 3, 4, 6 and 8, so every responsive
+     * column count ends on a full row.
+     */
+    private const PAGE_SIZE = 48;
+
+    /**
      * @var list<string>
      */
     private const SORTABLE_COLUMNS = ['name', 'size', 'created_at', 'updated_at'];
@@ -113,7 +119,7 @@ class FileController extends Controller
             $sort,
             $direction,
         )
-            ->paginate(50, ['*'], 'page', 1)
+            ->paginate(self::PAGE_SIZE, ['*'], 'page', 1)
             ->withQueryString();
 
         $breadcrumbs = [];
@@ -210,7 +216,7 @@ class FileController extends Controller
             $tagNames,
             $validated['sort'] ?? 'name',
             $validated['direction'] ?? 'asc',
-        )->paginate(50);
+        )->paginate(self::PAGE_SIZE);
 
         return response()->json([
             'data' => FileResource::collection($paginator->items())->resolve(),
