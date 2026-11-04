@@ -6,6 +6,7 @@ use App\Actions\Collections\UpdateCollectionItemAction;
 use App\Data\Collections\CollectionItemWriteData;
 use App\Enums\CollectionPermissionActionEnum;
 use App\GraphQL\Concerns\AuthorizesGraphqlCollectionTrait;
+use App\GraphQL\Concerns\SerializesGraphqlItemTrait;
 use App\Http\Resources\CollectionItemResource;
 use App\Models\CollectionItem;
 use App\Services\Api\CollectionPermissionEnforcerService;
@@ -13,6 +14,7 @@ use App\Services\Api\CollectionPermissionEnforcerService;
 final class UpdateItem
 {
     use AuthorizesGraphqlCollectionTrait;
+    use SerializesGraphqlItemTrait;
 
     /**
      * @param  array{collection: string, id: string, data: array<string, mixed>}  $args
@@ -49,6 +51,6 @@ final class UpdateItem
 
         $item->load(['collection' => fn ($q) => $q->with(['fields' => fn ($fq) => $fq->ordered()])]);
 
-        return (new CollectionItemResource($item))->toArray($request);
+        return $this->withGraphqlTimestamps((new CollectionItemResource($item))->toArray($request));
     }
 }
