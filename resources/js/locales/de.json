@@ -321,7 +321,10 @@
             "integrations": "Integrationen",
             "sidebar": "Seitenleiste",
             "aiTools": "KI-Schreibwerkzeuge",
-            "pendingToolCalls": "KI-Tool-Freigaben"
+            "pendingToolCalls": "KI-Tool-Freigaben",
+            "sectionAi": "KI",
+            "aiToolsNav": "Schreibwerkzeuge",
+            "pendingToolCallsNav": "Tool-Freigaben"
         },
         "profile": {
             "breadcrumb": "Profileinstellungen",
@@ -644,7 +647,7 @@
             },
             "themePresetTitle": "Theme-Preset",
             "themePresetDescription": "Wähle eine integrierte Palette für das Admin. Eine eigene Markenfarbe überschreibt weiterhin Primary.",
-            "themePresetTeal": "qiick Teal (Standard)",
+            "themePresetTeal": "Teal (Standard)",
             "themePresetIndigo": "Indigo",
             "themePresetViolet": "Violett",
             "themePresetRose": "Rose",

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Built-in appearance theme presets (qiick Teal default).
+ * Built-in appearance theme presets (Teal default).
  *
  * @see https://github.com/qiick-io/externa-core/issues/243
  */
@@ -28,7 +28,7 @@ return [
     ],
     'presets' => [
         'teal' => [
-            'name' => 'qiick Teal (default)',
+            'name' => 'Teal (default)',
             'ai_override' => false,
             'light' => [
                 'background' => '#FFFFFF',

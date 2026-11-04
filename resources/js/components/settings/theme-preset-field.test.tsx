@@ -18,7 +18,7 @@ vi.mock('react-i18next', () => ({
         t: (key: string) => {
             const translations: Record<string, string> = {
                 'settings.appearance.themePresetTitle': 'Theme preset',
-                'settings.appearance.themePresetTeal': 'qiick Teal (default)',
+                'settings.appearance.themePresetTeal': 'Teal (default)',
                 'settings.appearance.themePresetRose': 'Rose',
             };
 
@@ -30,7 +30,7 @@ vi.mock('react-i18next', () => ({
 const catalog: ThemePresetCatalogItem[] = [
     {
         slug: 'teal',
-        name: 'qiick Teal (default)',
+        name: 'Teal (default)',
         aiOverride: false,
         swatchLight: '#0E7C86',
         swatchDark: '#2CB1BC',
@@ -116,7 +116,7 @@ describe('ThemePresetField', () => {
 
         expect(radios).toHaveLength(catalog.length);
         expect(
-            screen.getByRole('radio', { name: 'qiick Teal (default)' }),
+            screen.getByRole('radio', { name: 'Teal (default)' }),
         ).toHaveAttribute('aria-labelledby', 'theme-preset-teal-name');
         expect(screen.getByRole('radio', { name: 'Rose' })).toHaveAttribute(
             'aria-labelledby',
