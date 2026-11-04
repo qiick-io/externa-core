@@ -26,7 +26,7 @@ export function AppContent({
         return (
             <SidebarInset
                 className={cn(
-                    'md:peer-data-[variant=inset]:border md:peer-data-[variant=inset]:border-sidebar-border/50',
+                    'md:peer-data-[variant=inset]:border md:peer-data-[variant=inset]:border-sidebar-border/40',
                     className,
                 )}
                 {...props}

@@ -82,8 +82,10 @@ export function PageLayout({
 }
 
 /**
- * Surface wrapper for data tables with optional sticky footer.
- * Spacing and row separators come from Table*; no extra outer border.
+ * Flat wrapper for data tables with optional sticky footer: no card surface,
+ * the table sits straight on the framed content panel (like the file grid),
+ * so lists don't read as a box inside a box. Spacing and row separators come
+ * from Table*.
  * The panel is the scroll container: the Table wrapper's own overflow is
  * released so the header row sticks to the top of the panel while rows scroll
  * (the bottom rule is an inset shadow because collapsed borders scroll away).
@@ -106,18 +108,18 @@ export function TablePanel({
     return (
         <div
             className={cn(
-                'flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl bg-card',
+                'flex min-h-0 flex-1 flex-col overflow-hidden',
                 className,
             )}
         >
             <div
                 data-slot="table-panel-scroll"
-                className="min-h-0 flex-1 overflow-auto px-1 pb-1 [&_[data-slot=table-container]]:overflow-visible [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead]:bg-card [&_thead_th]:shadow-[inset_0_-1px_0_var(--color-border)] [&_thead_tr]:border-b-0"
+                className="min-h-0 flex-1 overflow-auto [&_[data-slot=table-container]]:overflow-visible [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead]:bg-background [&_thead_th]:shadow-[inset_0_-1px_0_var(--color-border)] [&_thead_tr]:border-b-0"
             >
                 {children}
             </div>
             {footer ? (
-                <div className="flex shrink-0 justify-center border-t border-sidebar-border/70 px-4 py-3 dark:border-sidebar-border">
+                <div className="flex shrink-0 justify-center border-t px-2 pt-3">
                     {footer}
                 </div>
             ) : null}
