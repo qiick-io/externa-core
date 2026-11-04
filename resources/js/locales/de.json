@@ -1548,9 +1548,12 @@
         "older": "Älter",
         "newChat": "Neuer Chat",
         "noConversations": "Noch keine Unterhaltungen.",
-        "assistantScope": "Assistent mit Berechtigungen für Sammlungen und Dateien",
         "openFullPage": "Ganze Seite öffnen",
-        "openPanel": "Im Seitenbereich öffnen"
+        "openPanel": "Im Seitenbereich öffnen",
+        "conversations": "Unterhaltungen",
+        "searchConversations": "Unterhaltungen suchen…",
+        "noConversationsMatch": "Keine Unterhaltung passt zur Suche.",
+        "paneEmpty": "Bitte den Assistenten, Collections aufzulisten, Einträge anzulegen oder Dateien zu verwalten. Destruktive Aktionen laufen über Tools."
     },
     "dashboard": {
         "title": "Dashboard",

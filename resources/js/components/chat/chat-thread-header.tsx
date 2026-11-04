@@ -53,7 +53,7 @@ export function ChatThreadHeader({
     return (
         <div
             data-test="chat-thread-header"
-            className="flex items-center gap-3 border-b px-4 py-3"
+            className="flex h-16 shrink-0 items-center gap-3 border-b px-4"
         >
             {thread ? (
                 <ChatThreadAvatar thread={thread} viewerId={viewerId} />

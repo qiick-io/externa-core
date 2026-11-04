@@ -82,3 +82,11 @@ it('uses a filled New chat button and centres the empty thread list', function (
 JS)
         ->assertNoJavaScriptErrors();
 });
+
+it('shows the disabled composer under the empty pane when no thread is selected', function (): void {
+    $page = visit('/chat');
+
+    $page->assertPresent('[data-test="chat-pane-empty"]')
+        ->assertPresent('[data-test="chat-composer-placeholder"] textarea[disabled]')
+        ->assertNoJavaScriptErrors();
+});

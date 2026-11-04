@@ -4,6 +4,8 @@ use App\Enums\RoleEnum;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Support\Str;
+use Laravel\Ai\Models\Conversation;
 
 /**
  * The assistant page sits in the shared PageLayout gutter like the chat hub,
@@ -13,10 +15,32 @@ beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
 
-    $admin = User::factory()->create();
-    $admin->assignRole(RoleEnum::SuperAdmin->value);
-    $this->actingAs($admin);
+    $this->admin = User::factory()->create();
+    $this->admin->assignRole(RoleEnum::SuperAdmin->value);
+    $this->actingAs($this->admin);
 });
+
+/**
+ * Geometry of the shared hub chrome (search, list, message pane) as JSON.
+ */
+function chatHubChromeScript(string $searchTest, string $hubTest): string
+{
+    return <<<JS
+(() => {
+  const rect = (element) => {
+    const box = element.getBoundingClientRect();
+
+    return [Math.round(box.left), Math.round(box.top), Math.round(box.width), Math.round(box.height)];
+  };
+
+  return JSON.stringify({
+    search: rect(document.querySelector('[data-test="{$searchTest}"]')),
+    list: rect(document.querySelector('[data-test="{$hubTest}"] aside')),
+    pane: rect(document.querySelector('[data-test="{$hubTest}"] section')),
+  });
+})()
+JS;
+}
 
 it('insets the assistant by the same 16px gutter as the other pages', function (): void {
     $page = visit('/ai');
@@ -45,16 +69,84 @@ it('puts a single filled New chat button in the page header', function (): void 
         ->assertNoJavaScriptErrors();
 });
 
-it('aligns the conversation list header with the chat pane header', function (): void {
+it('starts the list and the message pane right under the filters, with no pane header for a new chat', function (): void {
     $page = visit('/ai');
 
-    $page->assertScript(<<<'JS'
+    $page->assertMissing('[data-test="ai-pane-header"]')
+        ->assertPresent('[data-test="ai-pane-empty"]')
+        ->assertScript(<<<'JS'
 (() => {
-  const list = document.querySelector('[data-test="ai-list-header"]').getBoundingClientRect();
-  const pane = document.querySelector('[data-test="ai-pane-header"]').getBoundingClientRect();
+  const list = document.querySelector('[data-test="ai-hub"] aside').getBoundingClientRect();
+  const pane = document.querySelector('[data-test="ai-hub"] section').getBoundingClientRect();
 
-  return list.top === pane.top && list.height === pane.height;
+  return list.top === pane.top;
 })()
 JS)
         ->assertNoJavaScriptErrors();
+});
+
+it('lays out /ai and /chat with the same search, list and message pane geometry', function (): void {
+    $chat = visit('/chat')->script(chatHubChromeScript('chat-filter-q', 'chat-hub'));
+    $assistant = visit('/ai')->script(chatHubChromeScript('ai-filter-q', 'ai-hub'));
+
+    expect($assistant)->toBe($chat);
+});
+
+it('filters the assistant conversation list from the search field', function (): void {
+    foreach (['Quarterly report', 'Holiday plan'] as $title) {
+        Conversation::query()->create([
+            'id' => (string) Str::uuid7(),
+            'participant_type' => $this->admin->getMorphClass(),
+            'participant_id' => $this->admin->id,
+            'title' => $title,
+        ]);
+    }
+
+    $page = visit('/ai');
+
+    $page->assertSeeIn('[data-test="ai-list"]', 'Holiday plan')
+        ->fill('[data-test="ai-filter-q"]', 'report')
+        ->wait(1)
+        ->assertSeeIn('[data-test="ai-list"]', 'Quarterly report')
+        ->assertDontSeeIn('[data-test="ai-list"]', 'Holiday plan')
+        ->assertNoJavaScriptErrors();
+});
+
+it('gives /chat and /ai the same composer box', function (): void {
+    $composerBox = <<<'JS'
+(() => {
+  const box = document.querySelector('section textarea').closest('.rounded-2xl').getBoundingClientRect();
+
+  return JSON.stringify([Math.round(box.left), Math.round(box.width), Math.round(box.height), Math.round(window.innerHeight - box.bottom)]);
+})()
+JS;
+
+    $chat = visit('/chat')->script($composerBox);
+    $assistant = visit('/ai')->script($composerBox);
+
+    expect($assistant)->toBe($chat);
+});
+
+it('deletes a conversation from its row menu and keeps the pane header-less when one is open', function (): void {
+    $conversationId = (string) Str::uuid7();
+
+    Conversation::query()->create([
+        'id' => $conversationId,
+        'participant_type' => $this->admin->getMorphClass(),
+        'participant_id' => $this->admin->id,
+        'title' => 'Throwaway thread',
+    ]);
+
+    $page = visit("/ai/{$conversationId}");
+
+    $page->assertSeeIn('[data-test="ai-list"]', 'Throwaway thread')
+        ->assertMissing('[data-test="ai-pane-header"]')
+        ->hover('[data-test="ai-list"] [data-test="ai-conversation-menu"]')
+        ->click('[data-test="ai-conversation-menu"]')
+        ->click('[data-test="ai-conversation-delete"]')
+        ->wait(1)
+        ->assertDontSeeIn('[data-test="ai-list"]', 'Throwaway thread')
+        ->assertNoJavaScriptErrors();
+
+    expect(Conversation::query()->whereKey($conversationId)->exists())->toBeFalse();
 });
