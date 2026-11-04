@@ -30,6 +30,26 @@ it('runs migrate and permissions sync with --force on production', function () {
         ->assertSuccessful();
 });
 
+it('clears the cached GraphQL schema so new arguments and fields are served', function () {
+    $schemaCachePath = config('lighthouse.schema_cache.path');
+    $previousSchema = is_file($schemaCachePath) ? file_get_contents($schemaCachePath) : null;
+    file_put_contents($schemaCachePath, '<?php return [];');
+
+    try {
+        $this->artisan(UpgradeCommand::class, [
+            '--force' => true,
+            '--no-migrate' => true,
+            '--no-permissions' => true,
+        ])->assertSuccessful();
+
+        expect(is_file($schemaCachePath))->toBeFalse();
+    } finally {
+        if ($previousSchema !== null) {
+            file_put_contents($schemaCachePath, $previousSchema);
+        }
+    }
+});
+
 it('refuses --dry-run without --sync-upstream', function () {
     $this->artisan(UpgradeCommand::class, [
         '--dry-run' => true,
