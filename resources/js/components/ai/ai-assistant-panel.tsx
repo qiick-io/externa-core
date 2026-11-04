@@ -1,15 +1,15 @@
-import { Link, usePage } from '@inertiajs/react';
-import { Sparkles } from 'lucide-react';
+import { router, usePage } from '@inertiajs/react';
+import { Maximize2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HeaderIconButton } from '@/components/admin/header-icon-button';
 import { AiActionPresetsDrawer } from '@/components/ai/ai-action-presets-drawer';
 import { AiChatDropZone } from '@/components/ai/ai-chat-drop-zone';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
 import type { AiChatMessageView } from '@/components/ai/ai-chat-messages';
 import { AiComposer } from '@/components/ai/ai-composer';
 import { AiContextAttachDialog } from '@/components/ai/ai-context-attach-dialog';
-import { Button } from '@/components/ui/button';
 import {
     Drawer,
     DrawerBody,
@@ -19,11 +19,6 @@ import {
     DrawerHeader,
     DrawerTitle,
 } from '@/components/ui/drawer';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { useAiAvailability } from '@/hooks/use-ai-availability';
 import {
     AI_CHAT_ATTACHMENT_ACCEPT,
@@ -44,12 +39,11 @@ import type {
 } from '@/lib/ai-chat';
 import type { AiPendingContextAttachment } from '@/lib/ai-context';
 import { contextIdsFromPending } from '@/lib/ai-context';
-import { AI_OPEN_EVENT } from '@/lib/ai-open';
+import { AI_OPEN_EVENT, AI_TOGGLE_EVENT } from '@/lib/ai-open';
 import type { AiOpenDetail } from '@/lib/ai-open';
 import { speechRecognitionLang } from '@/lib/format';
 import { toast } from '@/lib/toast';
-import { cn } from '@/lib/utils';
-import { index as aiIndex } from '@/routes/ai';
+import { index as aiIndex, show as aiShow } from '@/routes/ai';
 
 type ChatLine = AiChatMessageView & {
     role: 'user' | 'assistant';
@@ -63,19 +57,16 @@ type InFlightTurn = {
 };
 
 /**
- * Floating action button that opens the AI assistant chat.
- * @param {*} props - Component props.
- * @returns {JSX.Element}
+ * AI assistant side panel available on every page except `/ai`. It opens from
+ * the sidebar Assistant item, ⌘J / Ctrl+J and the contextual Ask AI buttons,
+ * without leaving the current route; the header links to the full page.
+ * @returns {JSX.Element | null}
  */
-export function AiFab() {
+export function AiAssistantPanel() {
     const { t, i18n } = useTranslation();
     const page = usePage();
-    // One shared /ai/status probe for the FAB and every Ask AI button.
-    const {
-        canUseAi,
-        isAvailable: isAiAvailable,
-        status,
-    } = useAiAvailability();
+    // One shared /ai/status probe for the panel and every Ask AI button.
+    const { canUseAi, isAvailable: isAiAvailable } = useAiAvailability();
     const isAiRoute =
         page.url === '/ai' ||
         page.url.startsWith('/ai/') ||
@@ -155,10 +146,27 @@ export function AiFab() {
             setOpen(true);
         };
 
+        const onToggle = (): void => setOpen((current) => !current);
+        const onKeyDown = (event: KeyboardEvent): void => {
+            if (
+                (event.metaKey || event.ctrlKey) &&
+                !event.altKey &&
+                !event.shiftKey &&
+                event.key.toLowerCase() === 'j'
+            ) {
+                event.preventDefault();
+                onToggle();
+            }
+        };
+
         window.addEventListener(AI_OPEN_EVENT, onOpen);
+        window.addEventListener(AI_TOGGLE_EVENT, onToggle);
+        window.addEventListener('keydown', onKeyDown);
 
         return () => {
             window.removeEventListener(AI_OPEN_EVENT, onOpen);
+            window.removeEventListener(AI_TOGGLE_EVENT, onToggle);
+            window.removeEventListener('keydown', onKeyDown);
         };
     }, [canUseAi, isAiRoute]);
 
@@ -671,44 +679,48 @@ export function AiFab() {
 
     return (
         <>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <button
-                        type="button"
-                        disabled={offline}
-                        onClick={() => setOpen(true)}
-                        aria-label={
-                            offline
-                                ? t('ai.assistantOffline')
-                                : t('ai.openAssistant')
-                        }
-                        className={cn(
-                            'fixed right-5 bottom-5 z-50 flex size-14 items-center justify-center rounded-full text-ai-foreground shadow-lg transition outline-none',
-                            'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                            offline
-                                ? 'cursor-not-allowed bg-muted text-muted-foreground opacity-70'
-                                : 'bg-ai hover:scale-105 hover:bg-ai-hover',
-                        )}
-                    >
-                        <Sparkles className="size-6" aria-hidden="true" />
-                    </button>
-                </TooltipTrigger>
-                <TooltipContent side="left">
-                    {offline
-                        ? t('ai.aiOfflineHint')
-                        : status.model
-                          ? `${t('ai.assistantOnline')} (${status.model})`
-                          : t('ai.assistantOnline')}
-                </TooltipContent>
-            </Tooltip>
-
             <Drawer open={open} onOpenChange={setOpen} direction="right">
-                <DrawerContent>
-                    <DrawerHeader>
-                        <DrawerTitle>{t('ai.fabTitle')}</DrawerTitle>
-                        <DrawerDescription>
-                            {t('ai.fabDescription')}
-                        </DrawerDescription>
+                <DrawerContent
+                    onOpenAutoFocus={(event) => {
+                        // Land in the composer (⌘J then type), never on the header button;
+                        // offline (composer disabled) focus stays on the panel itself.
+                        const panel = event.currentTarget;
+
+                        if (!(panel instanceof HTMLElement)) {
+                            return;
+                        }
+
+                        event.preventDefault();
+                        (
+                            panel.querySelector<HTMLElement>(
+                                'textarea:not([disabled])',
+                            ) ?? panel
+                        ).focus();
+                    }}
+                >
+                    <DrawerHeader className="flex-row items-start justify-between gap-2">
+                        <div className="grid gap-1">
+                            <DrawerTitle>{t('ai.fabTitle')}</DrawerTitle>
+                            <DrawerDescription>
+                                {t('ai.fabDescription')}
+                            </DrawerDescription>
+                        </div>
+                        <HeaderIconButton
+                            type="button"
+                            variant="ghost"
+                            label={t('ai.openFullPage')}
+                            data-testid="ai-panel-full-page"
+                            onClick={() => {
+                                setOpen(false);
+                                router.visit(
+                                    conversationId
+                                        ? aiShow.url(conversationId)
+                                        : aiIndex.url(),
+                                );
+                            }}
+                        >
+                            <Maximize2 className="size-4" />
+                        </HeaderIconButton>
                     </DrawerHeader>
 
                     <AiChatDropZone
@@ -796,15 +808,6 @@ export function AiFab() {
                                 onOpenPresets={() => setPresetsOpen(true)}
                                 attachTooltip={t('ai.attachTooltip')}
                             />
-                            <Button
-                                variant="ghost"
-                                asChild
-                                className="self-start"
-                            >
-                                <Link href={aiIndex.url()}>
-                                    Open full assistant
-                                </Link>
-                            </Button>
                         </DrawerFooter>
                     </AiChatDropZone>
                 </DrawerContent>
