@@ -95,3 +95,30 @@ it('keeps the table header pinned to the top of the panel while 50 rows scroll',
 JS)
         ->assertNoJavaScriptErrors();
 });
+
+it('shows the row range on the left and groups rows per page with the page links on the right', function (): void {
+    foreach (range(1, 60) as $index) {
+        User::factory()->create(['email' => "range-{$index}@example.com"]);
+    }
+
+    $page = visit('/users');
+
+    $page->assertSeeIn('[data-test="pagination-range"]', '1–20 of 61')
+        ->assertScript(<<<'JS'
+(() => {
+  const range = document.querySelector('[data-test="pagination-range"]').getBoundingClientRect();
+  const perPage = document.querySelector('[data-test="rows-per-page"]').getBoundingClientRect();
+  const lastPage = document.querySelector('button[aria-label="Go to next page"]').getBoundingClientRect();
+  const panel = document.querySelector('[data-test="pagination-range"]').parentElement.getBoundingClientRect();
+
+  return range.left - panel.left < 4
+    && perPage.left > panel.left + panel.width / 2
+    && lastPage.right > perPage.right
+    && panel.right - lastPage.right < 4;
+})()
+JS)
+        ->assertNoJavaScriptErrors();
+
+    visit('/users?page=2')
+        ->assertSeeIn('[data-test="pagination-range"]', '21–40 of 61');
+});
