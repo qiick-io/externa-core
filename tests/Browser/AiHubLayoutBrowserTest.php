@@ -21,7 +21,7 @@ beforeEach(function (): void {
 });
 
 /**
- * Geometry of the shared hub chrome (search, list, list header) as JSON.
+ * Geometry of the shared hub chrome (search, list, message pane) as JSON.
  */
 function chatHubChromeScript(string $searchTest, string $hubTest): string
 {
@@ -36,7 +36,7 @@ function chatHubChromeScript(string $searchTest, string $hubTest): string
   return JSON.stringify({
     search: rect(document.querySelector('[data-test="{$searchTest}"]')),
     list: rect(document.querySelector('[data-test="{$hubTest}"] aside')),
-    listHeader: rect(document.querySelector('[data-test="chat-hub-list-header"]')),
+    pane: rect(document.querySelector('[data-test="{$hubTest}"] section')),
   });
 })()
 JS;
@@ -69,21 +69,23 @@ it('puts a single filled New chat button in the page header', function (): void 
         ->assertNoJavaScriptErrors();
 });
 
-it('aligns the conversation list header with the chat pane header', function (): void {
+it('starts the list and the message pane right under the filters, with no pane header for a new chat', function (): void {
     $page = visit('/ai');
 
-    $page->assertScript(<<<'JS'
+    $page->assertMissing('[data-test="ai-pane-header"]')
+        ->assertPresent('[data-test="ai-pane-empty"]')
+        ->assertScript(<<<'JS'
 (() => {
-  const list = document.querySelector('[data-test="chat-hub-list-header"]').getBoundingClientRect();
-  const pane = document.querySelector('[data-test="ai-pane-header"]').getBoundingClientRect();
+  const list = document.querySelector('[data-test="ai-hub"] aside').getBoundingClientRect();
+  const pane = document.querySelector('[data-test="ai-hub"] section').getBoundingClientRect();
 
-  return list.top === pane.top && list.height === pane.height;
+  return list.top === pane.top;
 })()
 JS)
         ->assertNoJavaScriptErrors();
 });
 
-it('lays out /ai and /chat with the same search, list and list header geometry', function (): void {
+it('lays out /ai and /chat with the same search, list and message pane geometry', function (): void {
     $chat = visit('/chat')->script(chatHubChromeScript('chat-filter-q', 'chat-hub'));
     $assistant = visit('/ai')->script(chatHubChromeScript('ai-filter-q', 'ai-hub'));
 

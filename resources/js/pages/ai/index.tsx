@@ -14,7 +14,6 @@ import {
     fileCardsFromToolResults,
 } from '@/components/ai/ai-file-cards';
 import type { AiFileCardItem } from '@/components/ai/ai-file-cards';
-import { ChatHubListHeader } from '@/components/chat/chat-hub-list-header';
 import { FilterSearch } from '@/components/layout/page-header';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
@@ -1551,11 +1550,6 @@ export default function AiIndexPage({
                         aria-label={t('ai.conversations')}
                         className="flex w-64 shrink-0 flex-col border-r lg:w-80"
                     >
-                        <ChatHubListHeader
-                            icon={Sparkles}
-                            iconClassName="size-4 text-ai"
-                            title={t('ai.conversations')}
-                        />
                         <div
                             data-test="ai-list"
                             className={cn(
@@ -1724,25 +1718,23 @@ export default function AiIndexPage({
                     </aside>
 
                     <section className="flex min-w-0 flex-1 flex-col">
-                        <div
-                            data-test="ai-pane-header"
-                            className="flex h-16 shrink-0 items-center gap-3 border-b px-4"
-                        >
+                        {/* Like /chat: a pane header only once a conversation is open. */}
+                        {conversationId ? (
                             <div
-                                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-ai/10 text-ai"
-                                aria-hidden
+                                data-test="ai-pane-header"
+                                className="flex h-16 shrink-0 items-center gap-3 border-b px-4"
                             >
-                                <Sparkles className="size-5" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <h1 className="truncate text-sm font-medium">
+                                <div
+                                    className="flex size-10 shrink-0 items-center justify-center rounded-full bg-ai/10 text-ai"
+                                    aria-hidden
+                                >
+                                    <Sparkles className="size-5" />
+                                </div>
+                                <h1 className="min-w-0 flex-1 truncate text-sm font-medium">
                                     {selectedTitle}
                                 </h1>
-                                <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                                    {t('ai.assistantScope')}
-                                </p>
                             </div>
-                        </div>
+                        ) : null}
 
                         <AiChatDropZone
                             disabled={isStreaming || isUploadingAttachment}

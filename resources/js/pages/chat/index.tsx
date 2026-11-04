@@ -5,17 +5,21 @@ import {
     Inbox,
     MessageSquare,
     MessagesSquare,
+    Paperclip,
+    Send,
+    Smile,
     UsersRound,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HeaderIconButton } from '@/components/admin/header-icon-button';
-import { ChatHubListHeader } from '@/components/chat/chat-hub-list-header';
 import { ChatThreadRow } from '@/components/chat/chat-thread-row';
 import { NewChatMenu } from '@/components/chat/new-chat-menu';
 import { ItemChatDrawer } from '@/components/collections/item-chat-drawer';
 import { FilterSearch } from '@/components/layout/page-header';
 import { PageLayout } from '@/components/layout/page-layout';
+import { Button } from '@/components/ui/button';
+import { DrawerFooter } from '@/components/ui/drawer';
 import {
     Empty,
     EmptyDescription,
@@ -23,6 +27,7 @@ import {
     EmptyMedia,
 } from '@/components/ui/empty';
 import { Spinner } from '@/components/ui/spinner';
+import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useChatUnread } from '@/hooks/use-chat-unread';
 import AppLayout from '@/layouts/app-layout';
@@ -317,14 +322,6 @@ export default function ChatHubPage({
                         aria-label={t('a11y.chatThreadList')}
                         className="flex w-64 shrink-0 flex-col border-r lg:w-80"
                     >
-                        <ChatHubListHeader
-                            icon={tab === 'collection' ? Database : UsersRound}
-                            title={
-                                tab === 'collection'
-                                    ? t('chatHub.collection')
-                                    : t('chatHub.users')
-                            }
-                        />
                         <div
                             data-test="chat-list"
                             className={cn(
@@ -395,23 +392,9 @@ export default function ChatHubPage({
                         />
                         {selectedChat === null ? (
                             <div className="absolute inset-0 flex flex-col bg-background">
-                                <div
-                                    data-test="chat-pane-placeholder-header"
-                                    className="flex h-16 shrink-0 items-center gap-3 border-b px-4"
-                                >
-                                    <div
-                                        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
-                                        aria-hidden
-                                    >
-                                        <MessageSquare className="size-5" />
-                                    </div>
-                                    <span className="truncate text-sm font-medium">
-                                        {t('chatHub.title')}
-                                    </span>
-                                </div>
                                 <Empty
                                     data-test="chat-pane-empty"
-                                    className="flex-1"
+                                    className="min-h-0 flex-1"
                                 >
                                     <EmptyHeader>
                                         <EmptyMedia
@@ -425,6 +408,53 @@ export default function ChatHubPage({
                                         </EmptyDescription>
                                     </EmptyHeader>
                                 </Empty>
+                                {/* Same composer frame as an open thread, disabled until one is picked. */}
+                                <DrawerFooter data-test="chat-composer-placeholder">
+                                    <Textarea
+                                        rows={3}
+                                        disabled
+                                        placeholder={t(
+                                            'collections.itemChat.placeholder',
+                                        )}
+                                        aria-label={t(
+                                            'collections.itemChat.placeholder',
+                                        )}
+                                    />
+                                    <div className="flex items-center gap-1">
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            disabled
+                                            aria-label={t(
+                                                'collections.itemChat.emoji',
+                                            )}
+                                        >
+                                            <Smile className="size-4" />
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            disabled
+                                            aria-label={t(
+                                                'collections.itemChat.attach',
+                                            )}
+                                        >
+                                            <Paperclip className="size-4" />
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            className="ml-auto"
+                                            disabled
+                                            aria-label={t(
+                                                'collections.itemChat.send',
+                                            )}
+                                        >
+                                            <Send className="size-4" />
+                                        </Button>
+                                    </div>
+                                </DrawerFooter>
                             </div>
                         ) : null}
                     </section>
